@@ -1,0 +1,1134 @@
+{
+ "version": 1,
+ "meta": {
+  "savedAt": null,
+  "savedBy": "",
+  "quelle": "Übernommen aus 260924_Jahresplanung_Aussenkommunikation_2027_MA.xlsx"
+ },
+ "settings": {
+  "year": 2027,
+  "maxStarts": 2,
+  "vorlaufS": 76,
+  "vorlaufI": 58
+ },
+ "personen": [
+  {
+   "name": "Martin",
+   "farbe": "#E0A100"
+  },
+  {
+   "name": "Eva",
+   "farbe": "#5E81AC"
+  },
+  {
+   "name": "P/Ö",
+   "farbe": "#B55D9C"
+  },
+  {
+   "name": "Team",
+   "farbe": "#3E9E8F"
+  }
+ ],
+ "massnahmen": [
+  {
+   "id": "m1",
+   "name": "Jahres-ZWB mit Dank",
+   "farbe": "#1F77B4",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-01-29",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "",
+   "hinweis": "PAL-Platzhalter – bitte prüfen",
+   "plan": null
+  },
+  {
+   "id": "m2",
+   "name": "Bußgeldmailing 1: Jahresdank",
+   "farbe": "#E6550D",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-02-19",
+   "palStatus": "vorläufig",
+   "vorlaufS": 21,
+   "vorlaufI": 7,
+   "art": "",
+   "hinweis": "PAL-Platzhalter – bitte prüfen",
+   "plan": null
+  },
+  {
+   "id": "m3",
+   "name": "Projekt-Update 1",
+   "farbe": "#2CA02C",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-04-23",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "",
+   "hinweis": "PAL-Platzhalter – bitte prüfen",
+   "plan": null
+  },
+  {
+   "id": "m4",
+   "name": "Sommermailing",
+   "farbe": "#C2185B",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-06-19",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "aktiv",
+   "hinweis": "PAL-Vorschlag (analog Vorjahr) – bitte prüfen",
+   "plan": {
+    "steps": [
+     {
+      "id": "g_sel",
+      "typ": "gruppe",
+      "name": "Selektion",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sel_einleiten",
+      "typ": "aufgabe",
+      "name": "Selektion einleiten",
+      "wer": "",
+      "kommentar": "seitens Paderborn",
+      "dauer": 2,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "freigabe_kati"
+      }
+     },
+     {
+      "id": "interessen",
+      "typ": "aufgabe",
+      "name": "Interessensabwägung",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 14,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "sel_abg"
+      }
+     },
+     {
+      "id": "freigabe_kati",
+      "typ": "aufgabe",
+      "name": "Freigabe Selektion Kati",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 5,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "sel_erstellen"
+      }
+     },
+     {
+      "id": "sel_erstellen",
+      "typ": "aufgabe",
+      "name": "Selektion erstellen",
+      "wer": "",
+      "kommentar": "seitens Köln",
+      "dauer": 52,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "freigaben"
+      }
+     },
+     {
+      "id": "sel_abg",
+      "typ": "ziel",
+      "name": "Selektion abgeschlossen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "uebergabe"
+      }
+     },
+     {
+      "id": "g_mail",
+      "typ": "gruppe",
+      "name": "Mailing",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "thema",
+      "typ": "aufgabe",
+      "name": "Thema definieren",
+      "wer": "",
+      "kommentar": "Recherche",
+      "dauer": 1,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "texte"
+      }
+     },
+     {
+      "id": "texte",
+      "typ": "aufgabe",
+      "name": "Texte erstellen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 7,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "gestaltung"
+      }
+     },
+     {
+      "id": "bilder",
+      "typ": "aufgabe",
+      "name": "Bilder einholen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 7,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "gestaltung"
+      }
+     },
+     {
+      "id": "layout",
+      "typ": "meilenstein",
+      "name": "Layoutphase",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "gestaltung"
+      }
+     },
+     {
+      "id": "gestaltung",
+      "typ": "aufgabe",
+      "name": "Gestaltung",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 14,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "korrektur"
+      }
+     },
+     {
+      "id": "korrektur",
+      "typ": "aufgabe",
+      "name": "Korrekturphase",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 5,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "freigaben"
+      }
+     },
+     {
+      "id": "freigaben",
+      "typ": "aufgabe",
+      "name": "Freigaben einholen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 14,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "uebergabe"
+      }
+     },
+     {
+      "id": "uebergabe",
+      "typ": "meilenstein",
+      "name": "Übergabe an Lettershop",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "produktion"
+      }
+     },
+     {
+      "id": "angebot",
+      "typ": "aufgabe",
+      "name": "Angebotsanfrage",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 41,
+      "fortschritt": 0,
+      "anker": {
+       "art": "pal",
+       "offset": 0
+      }
+     },
+     {
+      "id": "produktion",
+      "typ": "aufgabe",
+      "name": "Produktion & Versand",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 17,
+      "fortschritt": 0,
+      "anker": {
+       "art": "pal",
+       "offset": 0
+      }
+     },
+     {
+      "id": "briefkasten",
+      "typ": "ziel",
+      "name": "Briefkasten-Termin",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "pal",
+       "offset": 0
+      }
+     },
+     {
+      "id": "g_sm",
+      "typ": "gruppe",
+      "name": "Flankierung: Social Media",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sm_texte",
+      "typ": "aufgabe",
+      "name": "Texte erstellen",
+      "wer": "P/Ö",
+      "kommentar": "Anke",
+      "dauer": 3,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "sm_grafik"
+      }
+     },
+     {
+      "id": "sm_grafik",
+      "typ": "aufgabe",
+      "name": "Grafik erstellen",
+      "wer": "P/Ö",
+      "kommentar": "",
+      "dauer": 3,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "sm_v1"
+      }
+     },
+     {
+      "id": "sm_v1",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 1",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sm_v2",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 2",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sm_v3",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 3",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sm_v4",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 4",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "g_pr",
+      "typ": "gruppe",
+      "name": "Flankierung: Pressearbeit",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "pr_artikel",
+      "typ": "aufgabe",
+      "name": "Artikel erstellen",
+      "wer": "P/Ö",
+      "kommentar": "",
+      "dauer": 3,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "pr_v1"
+      }
+     },
+     {
+      "id": "pr_korrektur",
+      "typ": "aufgabe",
+      "name": "Korrekturphase",
+      "wer": "P/Ö",
+      "kommentar": "",
+      "dauer": 3,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "pr_v1"
+      }
+     },
+     {
+      "id": "pr_v1",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 1",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "pr_v2",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 2",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "pr_v3",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 3",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "pr_v4",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 4",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "g_dank",
+      "typ": "gruppe",
+      "name": "Dankbrief",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "db_texte",
+      "typ": "aufgabe",
+      "name": "Texte erstellen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 5,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "db_versand"
+      }
+     },
+     {
+      "id": "db_layout",
+      "typ": "aufgabe",
+      "name": "Layoutphase",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 5,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "db_versand"
+      }
+     },
+     {
+      "id": "db_versand",
+      "typ": "aufgabe",
+      "name": "Versand",
+      "wer": "",
+      "kommentar": "Briefkasten + 14 Tage",
+      "dauer": 1,
+      "fortschritt": 0,
+      "anker": {
+       "art": "pal",
+       "offset": 14
+      }
+     }
+    ],
+    "markS": "sel_einleiten",
+    "markI": "thema"
+   }
+  },
+  {
+   "id": "m5",
+   "name": "Jahresbericht",
+   "farbe": "#0097A7",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-08-27",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "",
+   "hinweis": "PAL-Platzhalter – bitte prüfen",
+   "plan": null
+  },
+  {
+   "id": "m6",
+   "name": "Projekt-Update 2 (optional)",
+   "farbe": "#C62828",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-09-24",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "",
+   "hinweis": "PAL-Platzhalter – bitte prüfen",
+   "plan": null
+  },
+  {
+   "id": "m7",
+   "name": "Unternehmensmailing",
+   "farbe": "#283593",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-10-08",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "aktiv",
+   "hinweis": "PAL-Vorschlag (Vorjahr 09.10.2026) – bitte prüfen",
+   "plan": null
+  },
+  {
+   "id": "m8",
+   "name": "Bußgeldmailing 2",
+   "farbe": "#7C8B1F",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-10-22",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "",
+   "hinweis": "PAL-Platzhalter – bitte prüfen",
+   "plan": null
+  },
+  {
+   "id": "m9",
+   "name": "Weihnachtsmailing",
+   "farbe": "#7B3FA0",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-11-26",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "aktiv",
+   "hinweis": "PAL-Vorschlag (Vorjahr 27.11.2026) – bitte prüfen",
+   "plan": {
+    "steps": [
+     {
+      "id": "g_sel",
+      "typ": "gruppe",
+      "name": "Selektion",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sel_einleiten",
+      "typ": "aufgabe",
+      "name": "Selektion einleiten",
+      "wer": "",
+      "kommentar": "seitens Paderborn",
+      "dauer": 2,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "freigabe_kati"
+      }
+     },
+     {
+      "id": "interessen",
+      "typ": "aufgabe",
+      "name": "Interessensabwägung",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 14,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "sel_abg"
+      }
+     },
+     {
+      "id": "freigabe_kati",
+      "typ": "aufgabe",
+      "name": "Freigabe Selektion Kati",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 5,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "sel_erstellen"
+      }
+     },
+     {
+      "id": "sel_erstellen",
+      "typ": "aufgabe",
+      "name": "Selektion erstellen",
+      "wer": "",
+      "kommentar": "seitens Köln",
+      "dauer": 52,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "freigaben"
+      }
+     },
+     {
+      "id": "sel_abg",
+      "typ": "ziel",
+      "name": "Selektion abgeschlossen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "uebergabe"
+      }
+     },
+     {
+      "id": "g_mail",
+      "typ": "gruppe",
+      "name": "Mailing",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "thema",
+      "typ": "aufgabe",
+      "name": "Thema definieren",
+      "wer": "",
+      "kommentar": "Recherche",
+      "dauer": 1,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "texte"
+      }
+     },
+     {
+      "id": "texte",
+      "typ": "aufgabe",
+      "name": "Texte erstellen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 7,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "gestaltung"
+      }
+     },
+     {
+      "id": "bilder",
+      "typ": "aufgabe",
+      "name": "Bilder einholen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 7,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "gestaltung"
+      }
+     },
+     {
+      "id": "layout",
+      "typ": "meilenstein",
+      "name": "Layoutphase",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "gestaltung"
+      }
+     },
+     {
+      "id": "gestaltung",
+      "typ": "aufgabe",
+      "name": "Gestaltung",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 14,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "korrektur"
+      }
+     },
+     {
+      "id": "korrektur",
+      "typ": "aufgabe",
+      "name": "Korrekturphase",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 5,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "freigaben"
+      }
+     },
+     {
+      "id": "freigaben",
+      "typ": "aufgabe",
+      "name": "Freigaben einholen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 14,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "uebergabe"
+      }
+     },
+     {
+      "id": "uebergabe",
+      "typ": "meilenstein",
+      "name": "Übergabe an Lettershop",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "produktion"
+      }
+     },
+     {
+      "id": "angebot",
+      "typ": "aufgabe",
+      "name": "Angebotsanfrage",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 41,
+      "fortschritt": 0,
+      "anker": {
+       "art": "pal",
+       "offset": 0
+      }
+     },
+     {
+      "id": "produktion",
+      "typ": "aufgabe",
+      "name": "Produktion & Versand",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 17,
+      "fortschritt": 0,
+      "anker": {
+       "art": "pal",
+       "offset": 0
+      }
+     },
+     {
+      "id": "briefkasten",
+      "typ": "ziel",
+      "name": "Briefkasten-Termin",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "pal",
+       "offset": 0
+      }
+     },
+     {
+      "id": "g_sm",
+      "typ": "gruppe",
+      "name": "Flankierung: Social Media",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sm_texte",
+      "typ": "aufgabe",
+      "name": "Texte erstellen",
+      "wer": "P/Ö",
+      "kommentar": "Anke",
+      "dauer": 3,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "sm_grafik"
+      }
+     },
+     {
+      "id": "sm_grafik",
+      "typ": "aufgabe",
+      "name": "Grafik erstellen",
+      "wer": "P/Ö",
+      "kommentar": "",
+      "dauer": 3,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "sm_v1"
+      }
+     },
+     {
+      "id": "sm_v1",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 1",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sm_v2",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 2",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sm_v3",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 3",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "sm_v4",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 4",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "g_pr",
+      "typ": "gruppe",
+      "name": "Flankierung: Pressearbeit",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "pr_artikel",
+      "typ": "aufgabe",
+      "name": "Artikel erstellen",
+      "wer": "P/Ö",
+      "kommentar": "",
+      "dauer": 3,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "pr_v1"
+      }
+     },
+     {
+      "id": "pr_korrektur",
+      "typ": "aufgabe",
+      "name": "Korrekturphase",
+      "wer": "P/Ö",
+      "kommentar": "",
+      "dauer": 3,
+      "fortschritt": 0,
+      "anker": {
+       "art": "ende",
+       "offset": 0,
+       "ref": "pr_v1"
+      }
+     },
+     {
+      "id": "pr_v1",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 1",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "pr_v2",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 2",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "pr_v3",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 3",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "pr_v4",
+      "typ": "meilenstein",
+      "name": "Veröffentlichung 4",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "g_dank",
+      "typ": "gruppe",
+      "name": "Dankbrief",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 0,
+      "fortschritt": 0,
+      "anker": {
+       "art": "offen"
+      }
+     },
+     {
+      "id": "db_texte",
+      "typ": "aufgabe",
+      "name": "Texte erstellen",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 5,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "db_versand"
+      }
+     },
+     {
+      "id": "db_layout",
+      "typ": "aufgabe",
+      "name": "Layoutphase",
+      "wer": "",
+      "kommentar": "",
+      "dauer": 5,
+      "fortschritt": 0,
+      "anker": {
+       "art": "start",
+       "offset": 0,
+       "ref": "db_versand"
+      }
+     },
+     {
+      "id": "db_versand",
+      "typ": "aufgabe",
+      "name": "Versand",
+      "wer": "",
+      "kommentar": "Briefkasten + 14 Tage",
+      "dauer": 1,
+      "fortschritt": 0,
+      "anker": {
+       "art": "pal",
+       "offset": 14
+      }
+     }
+    ],
+    "markS": "sel_einleiten",
+    "markI": "thema"
+   }
+  },
+  {
+   "id": "m10",
+   "name": "Weihnachtskarte",
+   "farbe": "#8D5B3A",
+   "verantwortlich": "",
+   "auflage": null,
+   "pal": "2027-12-10",
+   "palStatus": "vorläufig",
+   "vorlaufS": 76,
+   "vorlaufI": 58,
+   "art": "",
+   "hinweis": "PAL-Platzhalter – bitte prüfen",
+   "plan": null
+  }
+ ],
+ "urlaube": [],
+ "sondertage": []
+}
