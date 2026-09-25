@@ -3,7 +3,7 @@
 function setStepDone(mid, sid, done) {
   commit(d => { const s = findM(d, mid).plan.steps.find(q => q.id === sid); s.fortschritt = done ? 100 : 0; }, done ? 'Als erledigt markiert' : 'Wieder offen');
 }
-VIEW_FN.agenda = main => {
+function agendaSection() {
   const today = todayDn(), from = UI.agendaFrom != null ? UI.agendaFrom : today, to = from + UI.agendaWeeks * 7 - 1;
   const withSteps = UI.agendaSteps !== false, withVac = UI.agendaVac !== false;
   const items = [], running = [], overdue = [];
@@ -79,18 +79,15 @@ VIEW_FN.agenda = main => {
       next ? h('div', null, 'Nächster Termin: ', chip(next), ' ' + next.x.m.name + ' – ' + TYPE_LABEL[next.t] + ' am ' + fmtW(next.n) + ' (' + relDays(next.n, today) + ') ',
         h('button', { class: 'link', onclick: () => { UI.agendaFrom = next.n - wd(next.n); renderNow(); } }, 'dorthin springen')) : null));
   }
-  const wBtn = n => h('button', { class: 'seg-btn' + (UI.agendaWeeks === n ? ' on' : ''), onclick: () => { UI.agendaWeeks = n; renderNow(); } }, n + (n === 1 ? ' Woche' : ' Wochen'));
-  put(main, 
-    h('div', { class: 'view-head' },
-      !UI.sidebar ? h('button', { class: 'side-open', onclick: () => { UI.sidebar = true; renderNow(); } }, '» Filter') : null,
-      h('h1', null, 'Was steht an?'),
-      h('div', { class: 'tools' },
-        h('span', { class: 'segs' }, [1, 2, 4, 8, 12].map(wBtn)),
-        h('label', { class: 'inl' }, 'ab ', dateInput(ds(from), 'ag:from', v => { if (dn(v) != null) { UI.agendaFrom = dn(v); renderNow(); } })),
-        UI.agendaFrom != null && UI.agendaFrom !== today ? h('button', { onclick: () => { UI.agendaFrom = null; renderNow(); } }, 'Heute') : null)),
-    h('div', { class: 'tools sub' },
-      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: withSteps, onchange: e => { UI.agendaSteps = e.target.checked; renderNow(); } }), 'Arbeitsschritte aus Detailplänen'),
-      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: withVac, onchange: e => { UI.agendaVac = e.target.checked; renderNow(); } }), 'Urlaube und Feiertage'),
-      h('span', { class: 'muted small' }, fmtW(from) + ' bis ' + fmtW(to))),
-    list);
-};
+  const wBtn = n => h('button', { class: 'seg-btn' + (UI.agendaWeeks === n ? ' on' : ''), onclick: () => { UI.agendaWeeks = n; renderNow(); } }, n + ' Wo.');
+  return {
+    summary: fmtWS(from) + ' – ' + fmtWS(to),
+    tools: [
+      h('span', { class: 'segs' }, [1, 2, 4, 8, 12].map(wBtn)),
+      h('label', { class: 'inl small' }, 'ab ', dateInput(ds(from), 'ag:from', v => { if (dn(v) != null) { UI.agendaFrom = dn(v); renderNow(); } })),
+      UI.agendaFrom != null && UI.agendaFrom !== today ? h('button', { class: 'ghostbtn', onclick: () => { UI.agendaFrom = null; renderNow(); } }, 'Heute') : null,
+      h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: withSteps, onchange: e => { UI.agendaSteps = e.target.checked; renderNow(); } }), 'Arbeitsschritte'),
+      h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: withVac, onchange: e => { UI.agendaVac = e.target.checked; renderNow(); } }), 'Urlaub/Feiertage')],
+    body: [list],
+  };
+}

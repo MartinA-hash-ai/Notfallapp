@@ -174,7 +174,7 @@ VIEW_FN.plaene = main => {
     h('div', { class: 'c-pct' }, '%'), h('div', { class: 'c-acts' }));
   put(main, personList(), h('div', { class: 'pl-split' },
     h('div', { class: 'pl-table' }, thead, trows),
-    h('div', { class: 'pl-gantt', 'data-keep-scroll': 'plg' }, h('div', { style: { width: W + 'px' } }, ghead, h('div', { class: 'g-body' }, gbg, grows)))));
+    (() => { const g = h('div', { class: 'pl-gantt', 'data-keep-scroll': 'plg' }, h('div', { style: { width: W + 'px' } }, ghead, h('div', { class: 'g-body' }, gbg, grows))); tlPan(g); return g; })()));
 };
 VIEW_FN['plaene:after'] = () => {
   if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
@@ -194,7 +194,7 @@ function durDrag(ev, x, s, r, pxd, bar, X) {
     bar.style.left = X(st) + 'px'; bar.style.width = Math.max(3, dur * pxd) + 'px';
     const w = dateWarn(st, s.wer);
     lab.replaceChildren(h('b', null, s.name + ': ' + dur + ' Tage'), h('div', null, 'Beginn ' + fmtW(st)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
-    lab.style.left = (e.clientX + 14) + 'px'; lab.style.top = (e.clientY - 50) + 'px';
+    placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {
     el.removeEventListener('pointermove', move); document.body.classList.remove('dragging'); lab.remove();

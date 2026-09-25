@@ -7,11 +7,11 @@ const UNDO = [], REDO = [];
 
 // Ansichtseinstellungen je Person/Browser (werden nicht in die Datei geschrieben)
 const UI = {
-  view: 'kalender', year: null, show: { S: true, I: true, P: true }, hiddenM: new Set(), hiddenP: new Set(),
+  view: 'jahr', year: null, secOpen: {}, show: { S: true, I: true, P: true }, hiddenM: new Set(), hiddenP: new Set(),
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'sidebar', 'userName'];
+const UI_KEYS = ['view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');

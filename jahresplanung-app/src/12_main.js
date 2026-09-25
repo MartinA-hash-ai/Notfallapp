@@ -17,7 +17,9 @@ function boot() {
   initTips();
   loadData(normalize(d || emptyData()));
   ensurePersons(D); SAVED_JSON = JSON.stringify(D);
-  if (!VIEW_FN[UI.view]) UI.view = 'kalender';
+  UI.view = OLD_VIEWS[UI.view] || UI.view;
+  if (!VIEW_FN[UI.view]) UI.view = 'jahr';
+  if (!UI.secOpen || typeof UI.secOpen !== 'object') UI.secOpen = {};
   checkDraft();
   renderNow();
   if (!('showSaveFilePicker' in window)) toast('Hinweis: Dieser Browser kann die Datei nicht direkt überschreiben – „Speichern“ lädt eine neue Datei herunter. Am besten Edge oder Chrome verwenden.', 'warn');

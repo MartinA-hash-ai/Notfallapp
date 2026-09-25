@@ -1,11 +1,9 @@
 /* ===================================================================== Rahmen: Kopfzeile, Reiter, Seitenleiste, Warnungen, Menüs */
 
-const VIEWS = [
-  ['kalender', 'Kalender'], ['zeitleiste', 'Zeitleiste'], ['massnahmen', 'Maßnahmen'], ['agenda', 'Was steht an?'],
-  ['plaene', 'Detailpläne'], ['urlaub', 'Urlaub & Feiertage'],
-];
+const VIEWS = [['jahr', 'Jahresplanung'], ['zeit', 'Zeitleiste'], ['plaene', 'Detailpläne'], ['urlaub', 'Urlaub & Feiertage']];
+const OLD_VIEWS = { kalender: 'jahr', massnahmen: 'jahr', zeitleiste: 'zeit', agenda: 'zeit' };
 const VIEW_FN = {};                  // wird von den Ansichten befüllt
-const SIDEBAR_VIEWS = new Set(['kalender', 'zeitleiste', 'agenda']);
+const SIDEBAR_VIEWS = new Set();
 
 let _renderTimer = null, _pointerDown = false, _renderPending = false;
 function requestRender() {
@@ -143,8 +141,8 @@ const vacVisible = v => UI.showVac && !UI.hiddenP.has(v.u.wer);
 function goTo(w) {
   UI.warnOpen = false;
   if (w.step) { UI.view = 'plaene'; UI.planSel = w.mid; UI.flash = 'step:' + w.step; }
-  else if (w.mid) { UI.view = 'massnahmen'; UI.flash = 'm:' + w.mid; }
-  else if (w.n != null) { UI.view = 'zeitleiste'; UI.flash = 'n:' + w.n; }
+  else if (w.mid) { UI.view = 'jahr'; UI.secOpen.mass = true; UI.flash = 'm:' + w.mid; }
+  else if (w.n != null) { UI.view = 'zeit'; UI.secOpen.tl = true; UI.flash = 'n:' + w.n; }
   renderNow();
 }
 function fixDate(w) {
@@ -204,7 +202,8 @@ function helpDialog() {
     h('h3', null, 'Datenschutz'),
     p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen.'),
     h('h3', null, 'Bedienung'),
-    p('Kalender: Maus über einen Tag oder eine Markierung zeigt die Details; Maus über eine Maßnahme in der Seitenleiste hebt ihre Termine hervor. Zeitleiste: Balken ziehen verschiebt den PAL (Vorläufe bleiben), die Griffe an S und I ändern den Vorlauf. Strg+Z macht jede Änderung rückgängig.'),
+    p('Jahresplanung: oben die Maßnahmen, darunter der Kalender – beide Bereiche lassen sich mit ▾ ein- und ausklappen. Maus über einen Tag oder eine Markierung zeigt die Details. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Klick öffnet die Maßnahme.'),
+    p('Zeitleiste: Klick auf einen Monat zoomt hinein, mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL, die Griffe S und I ändern den Vorlauf. Darunter „Was steht an?“. Strg+Z macht jede Änderung rückgängig.'),
     p('Maßnahmen mit Detailplan (z. B. Sommer- und Weihnachtsmailing) berechnen Start Selektion und Start Inhalt aus den Arbeitsschritten – wie im Excel-Gantt.')), null, { wide: true });
 }
 

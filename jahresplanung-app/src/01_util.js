@@ -136,6 +136,11 @@ function placeTip(ev) {
   tipEl.style.left = Math.max(8, x) + 'px';
   tipEl.style.top = Math.max(8, y) + 'px';
 }
+function placeLab(lab, x, y) {
+  const r = lab.getBoundingClientRect();
+  lab.style.left = (x + 16 + r.width > innerWidth - 8 ? Math.max(8, x - r.width - 16) : x + 16) + 'px';
+  lab.style.top = Math.max(8, y - r.height - 14) + 'px';
+}
 function hideTip() { tipFor = null; if (tipEl) tipEl.classList.remove('on'); }
 
 /* ---------- Meldungen und Dialoge */

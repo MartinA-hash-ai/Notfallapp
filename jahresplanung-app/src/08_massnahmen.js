@@ -67,7 +67,7 @@ async function copyToNextYear() {
 }
 
 /* ---------- Tabelle */
-VIEW_FN.massnahmen = main => {
+function massnahmenSection() {
   const y = UI.year;
   const rows = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === y);
   const warnBy = new Map();
@@ -76,13 +76,15 @@ VIEW_FN.massnahmen = main => {
   for (const x of rows) {
     const m = x.m, id = x.id, fk = f => 'm:' + id + ':' + f;
     const ws = warnBy.get(id) || [];
-    const dateCell = (n, warnList) => h('td', { class: 'calc' + (n != null && ymd(n)[0] !== y ? ' other' : '') },
-      h('span', null, fmtW(n)), warnList.length ? h('span', { class: 'wi', tip: warnList.join('\n') }, '⚠') : null);
+    const dateCell = (n, warnList) => h('td', { class: 'calc' + (n != null && ymd(n)[0] !== y ? ' other' : ''), tip: n != null ? WDL[wd(n)] + ', ' + fmtD(n) : null },
+      h('span', null, n == null ? '–' : WD[wd(n)] + ' ' + fmtS(n) + String(ymd(n)[0]).slice(2)), warnList.length ? h('span', { class: 'wi', tip: warnList.join('\n') }, '⚠') : null);
     const resp = (m.verantwortlich || '').trim();
-    tb.append(h('tr', { dataset: { m: id, flash: 'm:' + id } },
+    tb.append(h('tr', { dataset: { m: id, flash: 'm:' + id }, class: visibleM(x) ? '' : 'hidden-m', onmouseenter: () => highlight(id), onmouseleave: () => highlight(null) },
+      h('td', { class: 'vis' }, h('input', { type: 'checkbox', checked: visibleM(x), tip: 'im Kalender und in der Zeitleiste anzeigen', 'aria-label': 'anzeigen',
+        onchange: e => { e.target.checked ? UI.hiddenM.delete(id) : UI.hiddenM.add(id); renderNow(); } })),
       h('td', { class: 'col' }, h('button', { class: 'swatch', style: { background: x.color }, tip: 'Farbe ändern', 'aria-label': 'Farbe ändern', onclick: e => { e.stopPropagation(); colorPicker(e.currentTarget, x.color, c => setM(id, 'farbe', c)); } })),
-      h('td', { class: 'name' }, h('input', { value: m.name, 'data-fk': fk('name'), style: { color: mix(x.color, 0.1, '#000000') }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
-      h('td', null, h('input', { value: m.verantwortlich || '', list: 'dl-personen', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
+      h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: mix(x.color, 0.1, '#000000') }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
+      h('td', { class: 'resp' }, h('input', { value: m.verantwortlich || '', list: 'dl-personen', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
       h('td', { class: 'num' }, h('input', { type: 'number', min: 0, value: m.auflage ?? '', 'data-fk': fk('auflage'), placeholder: '–', onchange: e => setM(id, 'auflage', numOrNull(e.target.value)) })),
       dateCell(x.s, x.s != null ? dateWarn(x.s, resp) : []),
       h('td', { class: 'num' }, m.plan ? h('span', { class: 'derived', tip: 'aus dem Detailplan berechnet' }, x.vS ?? '–') :
@@ -97,29 +99,28 @@ VIEW_FN.massnahmen = main => {
         onclick: () => setM(id, 'palStatus', m.palStatus === 'fest' ? 'vorläufig' : 'fest') }, m.palStatus === 'fest' ? 'fest' : 'vorläufig')),
       h('td', null, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
       h('td', { class: 'hinweis' }, h('input', { value: m.hinweis || '', 'data-fk': fk('hinweis'), placeholder: '–', onchange: e => setM(id, 'hinweis', e.target.value) })),
-      h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', onclick: () => { UI.view = 'plaene'; UI.planSel = id; renderNow(); } }, 'Detailplan ›') :
+      h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', tip: 'Detailplan öffnen', onclick: () => { UI.view = 'plaene'; UI.planSel = id; renderNow(); } }, 'Plan ›') :
         h('button', { class: 'pill ghost', tip: 'Arbeitsschritte mit Gantt anlegen', onclick: () => createPlan(id) }, '+ Plan')),
       h('td', { class: 'warns' }, ws.length ? h('span', { class: 'wi ' + (ws.some(w => w.lvl === 'warn') ? 'warn' : 'info'), tip: () => h('div', null, ws.map(w => h('div', null, (w.lvl === 'warn' ? '⚠ ' : 'ℹ ') + w.text))) }, ws.length) : null),
       h('td', { class: 'acts' }, menuButton('⋯', [['Bearbeiten …', () => editMassnahme(id)], ['Duplizieren', () => duplicateMassnahme(id)], ['Löschen', () => deleteMassnahme(id)]], 'right'))));
   }
-  const head = ['', 'Maßnahme', 'Verantwortlich', 'Auflage', 'Start Selektion', 'Vorlauf S', 'Start inhaltl. Arbeit', 'Vorlauf I', 'PAL', 'Status', 'Art der Bitte', 'Hinweis', 'Detailplan', '', ''];
-  put(main, 
-    h('div', { class: 'view-head' },
-      h('h1', null, 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : y)),
-      h('div', { class: 'tools' },
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.allYears, onchange: e => { UI.allYears = e.target.checked; renderNow(); } }), 'alle Jahre'),
-        h('button', { onclick: copyToNextYear }, 'Ins Folgejahr kopieren …'),
-        h('button', { class: 'primary', onclick: () => addMassnahme(y) }, '+ Maßnahme'))),
-    h('p', { class: 'muted hint' }, 'Sortiert automatisch nach PAL. Start Selektion = PAL − Vorlauf Selektion, Start inhaltliche Arbeit = PAL − Vorlauf Inhalt (Kalendertage). Bei Maßnahmen mit Detailplan kommen die Vorläufe aus den Arbeitsschritten.'),
-    personList(),
-    h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable' },
-      h('thead', null, h('tr', null, head.map((t, i) => h('th', { class: ['col', 'name', '', 'num', 'calc', 'num', 'calc', 'num', 'pal', '', '', 'hinweis', 'plan', 'warns', 'acts'][i] || '' }, t)))), tb)),
-    !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
-      C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null);
-};
-VIEW_FN['massnahmen:after'] = () => {
-  if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
-};
+  const head = ['', '', 'Maßnahme', 'Verantwortlich', 'Auflage', 'Start Selektion', 'Vorlauf S', 'Start Inhalt', 'Vorlauf I', 'PAL', 'Status', 'Bitte', 'Hinweis', 'Plan', '', ''];
+  const nWarn = C.warnings.filter(w => w.mid && rows.some(x => x.id === w.mid) && w.lvl === 'warn').length;
+  return {
+    summary: rows.length + ' Maßnahmen' + (nWarn ? ' · ⚠ ' + nWarn : ''),
+    tools: [
+      h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.allYears, onchange: e => { UI.allYears = e.target.checked; renderNow(); } }), 'alle Jahre'),
+      h('button', { class: 'ghostbtn', onclick: copyToNextYear }, 'Ins Folgejahr kopieren …'),
+      h('button', { class: 'primary', onclick: () => addMassnahme(y) }, '+ Maßnahme')],
+    body: [personList(),
+      h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable' },
+        h('thead', null, h('tr', null, head.map((t, i) => h('th', { class: ['vis', 'col', 'name', '', 'num', 'calc', 'num', 'calc', 'num', 'pal', '', '', 'hinweis', 'plan', 'warns', 'acts'][i] || '',
+          tip: i === 0 ? 'Häkchen = im Kalender und in der Zeitleiste anzeigen' : i === 6 || i === 8 ? 'Vorlauf in Kalendertagen vor dem PAL' : null },
+          i === 0 ? h('input', { type: 'checkbox', checked: rows.every(visibleM), 'aria-label': 'alle anzeigen', onchange: e => { rows.forEach(x => e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) : t)))), tb)),
+      !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
+        C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null],
+  };
+}
 
 /* ---------- Bearbeiten-Dialog (aus Kalender und Zeitleiste) */
 async function editMassnahme(id) {

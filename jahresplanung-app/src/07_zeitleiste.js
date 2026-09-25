@@ -16,12 +16,12 @@ function tlRange(rows, y) {
   if (mins.length) { const [yy, mm] = ymd(Math.min(...mins)); x0 = mkdn(yy, mm, 1); }
   return [x0, x1];
 }
-VIEW_FN.zeitleiste = main => {
+function timelineSection() {
   const y = UI.year, today = todayDn();
   const rows = C.ms.filter(x => visibleM(x) && inYear(x, y));
   const [x0, x1] = tlRange(rows, y), nd = x1 - x0 + 1;
   const label = UI.printing ? 215 : TL_LABEL;
-  const avail = UI.printing ? 1040 - label : Math.max(500, innerWidth - (UI.sidebar ? 262 : 0) - label - 58);
+  const avail = UI.printing ? 1040 - label : Math.max(500, innerWidth - label - 66);
   const pxd = UI.printing ? avail / nd : (UI.tlPxd || avail / nd);
   const W = Math.round(nd * pxd), X = n => (n - x0) * pxd;
 
@@ -30,7 +30,7 @@ VIEW_FN.zeitleiste = main => {
   for (let n = x0; n <= x1;) {
     const [yy, mm] = ymd(n), e = Math.min(x1, mkdn(yy, mm, daysIn(yy, mm)));
     const w = (e - n + 1) * pxd;
-    months.append(h('div', { style: { left: X(n) + 'px', width: w + 'px' } }, w > MON[mm - 1].length * 7.5 + 46 ? MON[mm - 1] + (mm === 1 || n === x0 ? ' ' + yy : '') : w > MON[mm - 1].length * 7.5 + 8 ? MON[mm - 1] : w > 26 ? MONS[mm - 1] : ''));
+    months.append(h('div', { class: 'mz', dataset: { mz: n }, tip: 'Klicken: in ' + MON[mm - 1] + ' hineinzoomen', style: { left: X(n) + 'px', width: w + 'px' } }, h('span', null, w > MON[mm - 1].length * 7.5 + 46 ? MON[mm - 1] + (mm === 1 || n === x0 ? ' ' + yy : '') : w > MON[mm - 1].length * 7.5 + 8 ? MON[mm - 1] : w > 26 ? MONS[mm - 1] : '')));
     n = e + 1;
   }
   for (let n = x0 - wd(x0); n <= x1; n += 7) {
@@ -140,28 +140,66 @@ VIEW_FN.zeitleiste = main => {
 
   const head = h('div', { class: 'tl-head' }, h('div', { class: 'tl-lab corner' }, 'Maßnahme', h('span', null, 'PAL')), h('div', { class: 'tl-track', style: { width: W + 'px' } }, months, weeks, days));
   const tl = h('div', { class: 'tl', 'data-keep-scroll': 'tl' }, h('div', { class: 'tl-inner', style: { width: label + W + 'px', '--lab': label + 'px' } }, head, h('div', { class: 'tl-bodywrap' }, bg, body)));
-  const zoom = f => { UI.tlPxd = clamp((UI.tlPxd || pxd) * f, 1.5, 40); renderNow(); };
-  put(main, 
-    h('div', { class: 'view-head' },
-      !UI.sidebar ? h('button', { class: 'side-open', onclick: () => { UI.sidebar = true; renderNow(); } }, '» Filter') : null,
-      h('h1', null, 'Zeitleiste ' + y),
-      h('div', { class: 'tools' },
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.tlPlans, onchange: e => { UI.tlPlans = e.target.checked; renderNow(); } }), 'Detailpläne aufklappen'),
-        h('button', { onclick: () => { UI.tlPxd = 0; renderNow(); } }, 'Ganzes Jahr'),
-        h('button', { class: 'icon', 'aria-label': 'Verkleinern', onclick: () => zoom(1 / 1.5) }, '−'),
-        h('button', { class: 'icon', 'aria-label': 'Vergrößern', onclick: () => zoom(1.5) }, '+'),
-        h('button', { onclick: () => scrollTlTo(today) }, 'Heute'))),
-    h('p', { class: 'muted hint' }, 'Balken ziehen verschiebt den PAL – Start Selektion und Start Inhalt wandern mit. Die Griffe S und I ändern den jeweiligen Vorlauf. Doppelklick öffnet die Maßnahme. Strg+Z macht es rückgängig.'),
-    tl);
+  const zoom = f => { const c = tlCenter(); UI.tlPxd = clamp((UI.tlPxd || pxd) * f, 1.5, 60); UI.tlFocusCenter = c; renderNow(); };
+  tlPan(tl, n => {             // Klick auf einen Monat: hineinzoomen
+    const [yy, mm] = ymd(n), dim = daysIn(yy, mm), vis = Math.max(300, (($('.tl') || {}).clientWidth || innerWidth - 70) - label);
+    UI.tlPxd = clamp(vis / dim, 1.5, 60); UI.tlFocus = n; renderNow();
+  });
   UI._tl = { x0, pxd, label };
-};
+  const zoomed = UI.tlPxd && UI.tlPxd * nd > avail + 10;
+  return {
+    tools: [
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.tlPlans, onchange: e => { UI.tlPlans = e.target.checked; renderNow(); } }), 'Detailpläne'),
+      h('span', { class: 'segs' },
+        h('button', { class: 'seg-btn' + (!zoomed ? ' on' : ''), onclick: () => { UI.tlPxd = 0; renderNow(); } }, 'Jahr'),
+        h('button', { class: 'seg-btn', 'aria-label': 'Verkleinern', tip: 'verkleinern', onclick: () => zoom(1 / 1.5) }, '−'),
+        h('button', { class: 'seg-btn', 'aria-label': 'Vergrößern', tip: 'vergrößern', onclick: () => zoom(1.5) }, '+')),
+      h('button', { class: 'ghostbtn', onclick: () => { if (!zoomed) { UI.tlPxd = clamp((avail / nd) * 4, 1.5, 60); UI.tlFocusCenter = today; renderNow(); } else scrollTlTo(today); } }, 'Heute')],
+    body: [tl],
+  };
+}
+function tlCenter() {
+  const tl = $('.tl'); if (!tl || !UI._tl) return null;
+  return UI._tl.x0 + (tl.scrollLeft + (tl.clientWidth - UI._tl.label) / 2) / UI._tl.pxd;
+}
+// Ziehen mit der Maus auf freier Fläche verschiebt die Ansicht; Klick auf einen Monat ruft onMonth auf
+function tlPan(box, onMonth) {
+  box.addEventListener('pointerdown', ev => {
+    if (ev.button !== 0) return;
+    if (ev.target.closest('.seg,.handle,.dia,.sbar,.sdia,.vbar,.g-bar,.g-dia,button,input,select,a,.tl-lab')) return;
+    const sx = ev.clientX, sl = box.scrollLeft, mz = ev.target.closest('[data-mz]');
+    let moved = false;
+    const move = e => {
+      const dx = e.clientX - sx;
+      if (!moved && Math.abs(dx) < 4) return;
+      if (!moved) { moved = true; box.classList.add('panning'); document.body.classList.add('dragging'); hideTip(); }
+      e.preventDefault();
+      box.scrollLeft = sl - dx;
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      box.classList.remove('panning'); document.body.classList.remove('dragging');
+      if (!moved && mz && onMonth) onMonth(+mz.dataset.mz);
+    };
+    ev.preventDefault();
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  });
+}
+
 function scrollTlTo(n) {
   const tl = $('.tl'); if (!tl || !UI._tl) return;
   tl.scrollLeft = Math.max(0, (n - UI._tl.x0) * UI._tl.pxd - tl.clientWidth / 2 + UI._tl.label);
 }
-VIEW_FN['zeitleiste:after'] = () => {
+function timelineAfter() {
+  const tl = $('.tl'); if (!tl || !UI._tl) return;
   if (UI.flash && UI.flash.startsWith('n:')) { scrollTlTo(+UI.flash.slice(2)); UI.flash = null; }
-};
+  if (UI.tlFocus != null) { tl.scrollLeft = Math.max(0, (UI.tlFocus - UI._tl.x0) * UI._tl.pxd); UI.tlFocus = null; }
+  if (UI.tlFocusCenter != null) { scrollTlTo(UI.tlFocusCenter); UI.tlFocusCenter = null; }
+}
 function tlDrag(ev, x, mode, pxd, place) {
   if (ev.button !== 0) return;
   if (x.pc && mode !== 'move') { toast('Bei Maßnahmen mit Detailplan ergeben sich Start Selektion und Start Inhalt aus den Arbeitsschritten (Reiter „Detailpläne“).', 'warn'); return; }
@@ -183,7 +221,7 @@ function tlDrag(ev, x, mode, pxd, place) {
     place(s, i, p);
     const w = mode === 'move' ? [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(t => k > 0 || !/Samstag|Urlaub/.test(t)).map(t => ['PAL', 'S', 'I'][k] + ': ' + t)) : dateWarn(n, resp);
     lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
-    lab.style.left = (e.clientX + 14) + 'px'; lab.style.top = (e.clientY - 46) + 'px';
+    placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {
     el.removeEventListener('pointermove', move);

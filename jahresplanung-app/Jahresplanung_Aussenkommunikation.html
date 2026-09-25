@@ -110,7 +110,7 @@ aside.side h3 .links { text-transform: none; letter-spacing: 0; font-weight: 400
 .chip { display: inline-flex; align-items: center; justify-content: center; min-width: 15px; height: 15px; padding: 0 2px; border-radius: 3px; font-size: 10px; font-weight: 700; line-height: 1; border: 1px solid transparent; cursor: pointer; flex: none; }
 .chip.demo { cursor: default; background: #e6e6e6; color: #555; border-color: #ccc; }
 .chip.demo.P { background: #595959; color: #fff; }
-main.hl .chip:not(.hl-on), main.hl .mline:not(.hl-on) { opacity: .15; }
+main.hl .chip:not(.hl-on):not(.demo), main.hl .mline:not(.hl-on) { opacity: .15; }
 main.hl .chip.hl-on { transform: scale(1.25); box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 
 /* ---------- Kalender */
@@ -406,6 +406,109 @@ main.hl .tl-row[data-m]:not(.hl-on) { opacity: .35; }
 
 .print-foot { display: none; }
 
+/* ===================================================================== Vereinfachte Optik (Runde 2) */
+body { background: #f7f7f5; }
+header.top { padding: 6px 20px 0; gap: 18px; box-shadow: 0 1px 0 var(--line); border-bottom: 0; }
+.brand .mark { height: 30px; }
+.tab { border-radius: 0; padding: 12px 12px 11px; border-bottom: 3px solid transparent; color: var(--muted); }
+.tab:hover { background: none; color: var(--ink); }
+.tab.on { background: none; color: var(--ink); border-bottom-color: var(--red); font-weight: 600; }
+.actions { padding-bottom: 6px; }
+.actions .icon { border-color: transparent; background: transparent; font-size: 16px; }
+.menu-btn { border-color: #ddd; }
+main { padding: 14px 24px 60px; }
+.ghostbtn { background: transparent; border-color: transparent; color: var(--ink2); }
+.ghostbtn:hover:not(:disabled) { background: #efefef; border-color: transparent; }
+label.check.small { font-size: 13px; color: var(--ink2); }
+
+/* Filterleiste */
+.filterbar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 0 0 12px; font-size: 13px; }
+.tpill { display: inline-flex; align-items: center; gap: 6px; border-radius: 16px; padding: 4px 11px 4px 6px; background: #fff; border-color: #ddd; }
+.tpill:not(.on) { opacity: .45; text-decoration: line-through; }
+.tpill .chip { cursor: inherit; }
+.filterbar .sep { width: 1px; height: 22px; background: var(--line2); margin: 0 4px; }
+.fbtn { border-radius: 16px; padding: 4px 12px; background: #fff; border-color: #ddd; color: var(--ink2); }
+.legend-inline { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
+.legend-inline .lg { margin-left: 8px; width: 14px; height: 11px; }
+.legend-inline .lg.vac { height: 4px; }
+.menu.pop { padding: 8px; min-width: 260px; max-height: 60vh; overflow: auto; }
+.pop-h { display: flex; justify-content: space-between; font-size: 12px; font-weight: 600; color: var(--muted); padding: 2px 4px 6px; }
+.mchk { display: flex; align-items: center; gap: 7px; padding: 4px; border-radius: 5px; cursor: pointer; }
+.mchk:hover { background: var(--bg); }
+.mchk .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mchk .pal { font-size: 11px; color: var(--muted); }
+
+/* Bereiche zum Ein-/Ausklappen */
+.sec { background: #fff; border: 1px solid var(--line); border-radius: 10px; margin-bottom: 14px; }
+.sec-h { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 12px 8px 8px; min-height: 48px; }
+.sec-tog { display: inline-flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 6px; font-size: 16px; font-weight: 700; color: var(--ink); border-radius: 6px; }
+.sec-tog:hover { background: #f3f3f3; }
+.chev { width: 14px; color: var(--muted); font-size: 13px; }
+.sec-sum { color: var(--muted); font-size: 13px; }
+.info { color: #aaa; cursor: help; font-size: 14px; }
+.sec-h .tools { margin-left: auto; gap: 6px; }
+.sec-b { padding: 0 12px 12px; }
+.sec.closed { background: #fbfbfa; }
+.sec .tablewrap, .sec .tl { border: 0; border-top: 1px solid var(--line); border-radius: 0; }
+.sec .agenda { max-width: none; }
+.sec .cal { margin-top: 0; }
+
+/* hellere Kopfzeilen */
+table.grid th { background: #f5f5f4; color: #666; border-bottom: 1px solid var(--line); font-size: 11.5px; }
+table.grid th input { margin: 0; }
+.mtable th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
+td.vis, th.vis { width: 28px; text-align: center; }
+.mtable tr.hidden-m td:not(.vis) { opacity: .45; }
+.month { border-color: #e8e8e8; border-radius: 10px; }
+.month > header { background: none; color: var(--ink); font-size: 14px; padding: 9px 12px 3px; }
+.mgrid .wh { border-bottom-color: #f0f0f0; }
+.mgrid .kw { border-right-color: #f3f3f3; }
+.day { border-right-color: #f5f5f5; border-bottom-color: #f5f5f5; }
+.mlist { border-top-color: #f0f0f0; }
+.pl-row.head { background: #f5f5f4; }
+.pl-row.head > div { color: #666; }
+.g-head { background: #f5f5f4; border-bottom: 1px solid var(--line); }
+.g-head > div { color: #555; border-left-color: #e3e3e3; }
+.g-head .gw { color: #888; }
+.g-head .gd.we { background: #ebebeb; }
+.pl-split { border-color: var(--line); }
+.ptab.on { background: #fff; color: var(--ink); border-color: var(--c); box-shadow: inset 0 -3px 0 var(--c); }
+.ptab.on .muted { color: var(--muted); }
+.aweek h3 { background: #fafafa; }
+
+.tl-months > div { overflow: clip; }
+.tl-months > div > span { position: sticky; left: calc(var(--lab) + 6px); }
+.mtable td.name { min-width: 176px; }
+.mtable td.resp { width: 96px; }
+.mtable td.resp input { width: 90px; }
+.mtable td select { max-width: 78px; }
+.mtable { font-size: 12.5px; }
+.mtable td.num { width: 58px; }
+.mtable td.num input { width: 52px; }
+.mtable td.pal input { width: 128px !important; }
+.mtable td.hinweis { min-width: 130px; }
+table.grid td { padding: 3px 4px; }
+/* Ziehen und Zoomen */
+.chip { cursor: grab; touch-action: none; }
+.chip.dragsrc { opacity: .25; }
+.chip.ghost { position: fixed; z-index: 99; pointer-events: none; transform: scale(1.35); box-shadow: 0 4px 14px rgba(0,0,0,.3); }
+.day.drop { box-shadow: inset 0 0 0 2px var(--dc); background: #fff; }
+.day.drop::after { content: attr(data-drop); position: absolute; right: 2px; top: 1px; font-size: 9px; font-weight: 800; color: var(--dc); }
+.tl { cursor: grab; }
+.tl.panning, .tl.panning * { cursor: grabbing !important; }
+.tl-months .mz { cursor: zoom-in; }
+.tl-months .mz:hover { background: #f1f1f1; }
+.pl-gantt { cursor: grab; }
+.pl-gantt.panning { cursor: grabbing; }
+
+@media (max-width: 1480px) {
+  .brand span { display: none; }
+  .brand strong { font-size: 13.5px; max-width: 168px; line-height: 1.15; }
+  header.top { gap: 12px; }
+  .tab { padding: 12px 9px 11px; }
+  .save { min-width: 0; }
+  .legend-inline { display: none; }
+}
 @media (max-width: 1100px) {
   .body.with-side { grid-template-columns: 210px 1fr; }
   .cols2 { grid-template-columns: 1fr; }
@@ -425,6 +528,11 @@ main.hl .tl-row[data-m]:not(.hl-on) { opacity: .35; }
   header.top { position: static; border: 0; padding: 0 0 6px; }
   main { padding: 0; overflow: visible; }
   .body, .body.with-side { display: block; min-height: 0; }
+  .sec { border: 0; margin: 0 0 8px; background: none; }
+  .sec-h { padding: 0 0 4px; min-height: 0; }
+  .sec-tog { padding: 0; font-size: 13px; }
+  .chev, .info, .filterbar, .sec-sum { display: none !important; }
+  .sec-b { padding: 0; }
   .print-foot { display: block; position: fixed; bottom: 0; right: 0; font-size: 9px; color: #888; }
   .cal { grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 4px; }
   .mgrid .wh { padding: 0; font-size: 7.5px; }
@@ -603,6 +711,11 @@ function placeTip(ev) {
   tipEl.style.left = Math.max(8, x) + 'px';
   tipEl.style.top = Math.max(8, y) + 'px';
 }
+function placeLab(lab, x, y) {
+  const r = lab.getBoundingClientRect();
+  lab.style.left = (x + 16 + r.width > innerWidth - 8 ? Math.max(8, x - r.width - 16) : x + 16) + 'px';
+  lab.style.top = Math.max(8, y - r.height - 14) + 'px';
+}
 function hideTip() { tipFor = null; if (tipEl) tipEl.classList.remove('on'); }
 
 /* ---------- Meldungen und Dialoge */
@@ -646,11 +759,11 @@ const UNDO = [], REDO = [];
 
 // Ansichtseinstellungen je Person/Browser (werden nicht in die Datei geschrieben)
 const UI = {
-  view: 'kalender', year: null, show: { S: true, I: true, P: true }, hiddenM: new Set(), hiddenP: new Set(),
+  view: 'jahr', year: null, secOpen: {}, show: { S: true, I: true, P: true }, hiddenM: new Set(), hiddenP: new Set(),
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'sidebar', 'userName'];
+const UI_KEYS = ['view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -1228,12 +1341,10 @@ window.addEventListener('afterprint', () => { if (UI.printing) { UI.printing = f
 
 /* ===================================================================== Rahmen: Kopfzeile, Reiter, Seitenleiste, Warnungen, Menüs */
 
-const VIEWS = [
-  ['kalender', 'Kalender'], ['zeitleiste', 'Zeitleiste'], ['massnahmen', 'Maßnahmen'], ['agenda', 'Was steht an?'],
-  ['plaene', 'Detailpläne'], ['urlaub', 'Urlaub & Feiertage'],
-];
+const VIEWS = [['jahr', 'Jahresplanung'], ['zeit', 'Zeitleiste'], ['plaene', 'Detailpläne'], ['urlaub', 'Urlaub & Feiertage']];
+const OLD_VIEWS = { kalender: 'jahr', massnahmen: 'jahr', zeitleiste: 'zeit', agenda: 'zeit' };
 const VIEW_FN = {};                  // wird von den Ansichten befüllt
-const SIDEBAR_VIEWS = new Set(['kalender', 'zeitleiste', 'agenda']);
+const SIDEBAR_VIEWS = new Set();
 
 let _renderTimer = null, _pointerDown = false, _renderPending = false;
 function requestRender() {
@@ -1371,8 +1482,8 @@ const vacVisible = v => UI.showVac && !UI.hiddenP.has(v.u.wer);
 function goTo(w) {
   UI.warnOpen = false;
   if (w.step) { UI.view = 'plaene'; UI.planSel = w.mid; UI.flash = 'step:' + w.step; }
-  else if (w.mid) { UI.view = 'massnahmen'; UI.flash = 'm:' + w.mid; }
-  else if (w.n != null) { UI.view = 'zeitleiste'; UI.flash = 'n:' + w.n; }
+  else if (w.mid) { UI.view = 'jahr'; UI.secOpen.mass = true; UI.flash = 'm:' + w.mid; }
+  else if (w.n != null) { UI.view = 'zeit'; UI.secOpen.tl = true; UI.flash = 'n:' + w.n; }
   renderNow();
 }
 function fixDate(w) {
@@ -1432,7 +1543,8 @@ function helpDialog() {
     h('h3', null, 'Datenschutz'),
     p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen.'),
     h('h3', null, 'Bedienung'),
-    p('Kalender: Maus über einen Tag oder eine Markierung zeigt die Details; Maus über eine Maßnahme in der Seitenleiste hebt ihre Termine hervor. Zeitleiste: Balken ziehen verschiebt den PAL (Vorläufe bleiben), die Griffe an S und I ändern den Vorlauf. Strg+Z macht jede Änderung rückgängig.'),
+    p('Jahresplanung: oben die Maßnahmen, darunter der Kalender – beide Bereiche lassen sich mit ▾ ein- und ausklappen. Maus über einen Tag oder eine Markierung zeigt die Details. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Klick öffnet die Maßnahme.'),
+    p('Zeitleiste: Klick auf einen Monat zoomt hinein, mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL, die Griffe S und I ändern den Vorlauf. Darunter „Was steht an?“. Strg+Z macht jede Änderung rückgängig.'),
     p('Maßnahmen mit Detailplan (z. B. Sommer- und Weihnachtsmailing) berechnen Start Selektion und Start Inhalt aus den Arbeitsschritten – wie im Excel-Gantt.')), null, { wide: true });
 }
 
@@ -1449,11 +1561,11 @@ window.addEventListener('beforeprint', () => { if (!UI.printing) { UI.printing =
 /* ===================================================================== Ansicht: Jahreskalender */
 
 function chipStyle(t, color) {
-  return t === 'P' ? { background: color, color: onColor(color), borderColor: color } : { background: pastel(color), color: mix(color, 0, '#000000'), borderColor: mix(color, 0.35) };
+  return t === 'P' ? { background: color, color: onColor(color), borderColor: color } : { background: pastel(color), color: mix(color, 0.15, '#000000'), borderColor: mix(color, 0.35) };
 }
 function chip(e, opts = {}) {
   return h('span', { class: 'chip ' + e.t, dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
-    onclick: opts.noClick ? null : ev => { ev.stopPropagation(); editMassnahme(e.x.id); },
+    onpointerdown: opts.noClick ? null : ev => chipDrag(ev, e),
     onmouseenter: opts.noHl ? null : () => highlight(e.x.id), onmouseleave: opts.noHl ? null : () => highlight(null) }, e.t);
 }
 function chipTip(e) {
@@ -1468,7 +1580,7 @@ function chipTip(e) {
       m.plan ? 'mit Detailplan' : (x.vS != null ? 'Vorlauf ' + x.vS + ' / ' + (x.vI ?? '–') + ' Tage' : null),
       m.art ? 'Bitte: ' + m.art : null].filter(Boolean).join(' · ')),
     m.hinweis ? h('div', { class: 'tt-note' }, m.hinweis) : null,
-    h('div', { class: 'tt-foot' }, 'Klicken zum Bearbeiten'));
+    h('div', { class: 'tt-foot' }, 'Klicken = bearbeiten · ziehen = ' + (e.t === 'P' ? 'ganzes Projekt verschieben' : x.pc ? 'im Detailplan ändern' : 'nur dieses Datum verschieben')));
 }
 function vacTag(v) {
   const c = personColor(v.u.wer);
@@ -1485,7 +1597,7 @@ function dayTip(n, evs, away, hn) {
 function dayCell(n, evs, vacs, today) {
   const hn = holName(n), w = wd(n), away = vacs.filter(v => v.von <= n && n <= v.bis);
   const cls = 'day' + (w >= 5 ? ' we' : '') + (hn ? ' hol' : '') + (n === today ? ' today' : '') + (away.length ? ' away' : '');
-  return h('div', { class: cls, tip: () => dayTip(n, evs, away, hn) },
+  return h('div', { class: cls, dataset: { dn: n }, tip: () => dayTip(n, evs, away, hn) },
     h('span', { class: 'dnum' }, ymd(n)[2]),
     evs.length ? h('div', { class: 'chips' }, evs.map(e => chip(e))) : null,
     away.length ? h('div', { class: 'vbars' + (away.length > 1 ? ' multi' : '') }, away.slice(0, 4).map(v => h('span', { style: { background: personColor(v.u.wer) } })),
@@ -1520,19 +1632,88 @@ function monthCard(y, mo, byDay, vacs, today) {
   }
   return card;
 }
-VIEW_FN.kalender = main => {
+function calendarBody() {
   const y = UI.year, today = todayDn();
   const ev = eventsIn(mkdn(y, 1, 1), mkdn(y, 12, 31));
   const byDay = new Map();
   ev.forEach(e => { if (!byDay.has(e.n)) byDay.set(e.n, []); byDay.get(e.n).push(e); });
   const vacs = C.vac.filter(vacVisible);
-  put(main, 
-    h('div', { class: 'view-head' },
-      !UI.sidebar ? h('button', { class: 'side-open', onclick: () => { UI.sidebar = true; renderNow(); } }, '» Filter') : null,
-      h('h1', null, 'Kalender ' + y),
-      h('p', { class: 'muted' }, 'Maus über einen Tag oder eine Markierung zeigt, was dahintersteckt. Klick auf eine Markierung öffnet die Maßnahme.')),
-    h('div', { class: 'cal' }, Array.from({ length: 12 }, (_, i) => monthCard(y, i + 1, byDay, vacs, today))));
-};
+  return h('div', { class: 'cal' }, Array.from({ length: 12 }, (_, i) => monthCard(y, i + 1, byDay, vacs, today)));
+}
+
+/* ---------- Markierung im Kalender ziehen: P verschiebt das ganze Projekt, S/I nur dieses Datum */
+function chipDrag(ev, e) {
+  if (ev.button !== 0) return;
+  ev.stopPropagation();
+  const x = e.x, t = e.t, el = ev.currentTarget, sx = ev.clientX, sy = ev.clientY;
+  const locked = x.pc && t !== 'P';
+  el.setPointerCapture(ev.pointerId);
+  let moved = false, dd = 0, ghost = null, lab = null, marks = [];
+  const resp = (x.m.verantwortlich || '').trim();
+  const clearMarks = () => { marks.forEach(c => { c.classList.remove('drop'); c.style.removeProperty('--dc'); c.removeAttribute('data-drop'); }); marks = []; };
+  const mark = (n, k) => {
+    if (n == null) return;
+    const c = $('.day[data-dn="' + n + '"]');
+    if (!c) return;
+    c.classList.add('drop'); c.style.setProperty('--dc', x.color); c.dataset.drop = k;
+    marks.push(c);
+  };
+  const move = m => {
+    if (!moved) {
+      if (Math.hypot(m.clientX - sx, m.clientY - sy) < 5) return;
+      if (locked) { toast('„' + x.m.name + '“ hat einen Detailplan – Start Selektion und Start Inhalt ergeben sich aus den Arbeitsschritten. Das PAL (P) lässt sich ziehen.', 'warn'); stop(); return; }
+      moved = true; hideTip(); document.body.classList.add('dragging');
+      el.classList.add('dragsrc');
+      ghost = h('span', { class: 'chip ghost ' + t, style: chipStyle(t, x.color) }, t);
+      lab = h('div', { class: 'drag-lab' });
+      document.body.append(ghost, lab);
+    }
+    ghost.style.left = (m.clientX - 8) + 'px'; ghost.style.top = (m.clientY - 8) + 'px';
+    const under = document.elementFromPoint(m.clientX, m.clientY);
+    const cell = under && under.closest('.day[data-dn]');
+    if (cell) dd = +cell.dataset.dn - e.n;
+    let s = x.s, i = x.i, p = x.pal, txt, w;
+    if (t === 'P') {
+      p += dd; if (s != null) s += dd; if (i != null) i += dd;
+      txt = 'PAL ' + fmtW(p) + (s != null ? ' · S ' + fmtWS(s) : '') + (i != null ? ' · I ' + fmtWS(i) : '');
+      w = [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(q => k > 0 || !/Samstag|Urlaub/.test(q)).map(q => ['PAL', 'S', 'I'][k] + ': ' + q));
+    } else {
+      const n = (t === 'S' ? s : i) + dd;
+      txt = TYPE_LABEL[t] + ' ' + fmtW(n) + ' · Vorlauf ' + (p - n) + ' Tage';
+      w = dateWarn(n, resp);
+      if (t === 'S') s = n; else i = n;
+    }
+    clearMarks();
+    if (t === 'P') { mark(p, 'P'); mark(s, 'S'); mark(i, 'I'); } else mark(t === 'S' ? s : i, t);
+    lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    placeLab(lab, m.clientX, m.clientY);
+  };
+  const stop = () => {
+    el.removeEventListener('pointermove', move);
+    el.removeEventListener('pointerup', up);
+    el.removeEventListener('pointercancel', stop);
+    document.body.classList.remove('dragging');
+    el.classList.remove('dragsrc');
+    clearMarks();
+    if (ghost) ghost.remove();
+    if (lab) lab.remove();
+  };
+  const up = () => {
+    const wasMoved = moved;
+    stop();
+    if (!wasMoved) { editMassnahme(x.id); return; }
+    if (!dd) return;
+    commit(d => {
+      const m = findM(d, x.id);
+      if (t === 'P') m.pal = ds(x.pal + dd);
+      else if (t === 'S') m.vorlaufS = Math.max(0, x.vS - dd);
+      else m.vorlaufI = Math.max(0, x.vI - dd);
+    }, t === 'P' ? x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (S und I mitverschoben)' : x.m.name + ': ' + TYPE_LABEL[t] + ' → ' + fmtW((t === 'S' ? x.s : x.i) + dd));
+  };
+  el.addEventListener('pointermove', move);
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', stop);
+}
 
 /* ===================================================================== Ansicht: Zeitleiste mit Ziehen */
 
@@ -1552,12 +1733,12 @@ function tlRange(rows, y) {
   if (mins.length) { const [yy, mm] = ymd(Math.min(...mins)); x0 = mkdn(yy, mm, 1); }
   return [x0, x1];
 }
-VIEW_FN.zeitleiste = main => {
+function timelineSection() {
   const y = UI.year, today = todayDn();
   const rows = C.ms.filter(x => visibleM(x) && inYear(x, y));
   const [x0, x1] = tlRange(rows, y), nd = x1 - x0 + 1;
   const label = UI.printing ? 215 : TL_LABEL;
-  const avail = UI.printing ? 1040 - label : Math.max(500, innerWidth - (UI.sidebar ? 262 : 0) - label - 58);
+  const avail = UI.printing ? 1040 - label : Math.max(500, innerWidth - label - 66);
   const pxd = UI.printing ? avail / nd : (UI.tlPxd || avail / nd);
   const W = Math.round(nd * pxd), X = n => (n - x0) * pxd;
 
@@ -1566,7 +1747,7 @@ VIEW_FN.zeitleiste = main => {
   for (let n = x0; n <= x1;) {
     const [yy, mm] = ymd(n), e = Math.min(x1, mkdn(yy, mm, daysIn(yy, mm)));
     const w = (e - n + 1) * pxd;
-    months.append(h('div', { style: { left: X(n) + 'px', width: w + 'px' } }, w > MON[mm - 1].length * 7.5 + 46 ? MON[mm - 1] + (mm === 1 || n === x0 ? ' ' + yy : '') : w > MON[mm - 1].length * 7.5 + 8 ? MON[mm - 1] : w > 26 ? MONS[mm - 1] : ''));
+    months.append(h('div', { class: 'mz', dataset: { mz: n }, tip: 'Klicken: in ' + MON[mm - 1] + ' hineinzoomen', style: { left: X(n) + 'px', width: w + 'px' } }, h('span', null, w > MON[mm - 1].length * 7.5 + 46 ? MON[mm - 1] + (mm === 1 || n === x0 ? ' ' + yy : '') : w > MON[mm - 1].length * 7.5 + 8 ? MON[mm - 1] : w > 26 ? MONS[mm - 1] : '')));
     n = e + 1;
   }
   for (let n = x0 - wd(x0); n <= x1; n += 7) {
@@ -1676,28 +1857,66 @@ VIEW_FN.zeitleiste = main => {
 
   const head = h('div', { class: 'tl-head' }, h('div', { class: 'tl-lab corner' }, 'Maßnahme', h('span', null, 'PAL')), h('div', { class: 'tl-track', style: { width: W + 'px' } }, months, weeks, days));
   const tl = h('div', { class: 'tl', 'data-keep-scroll': 'tl' }, h('div', { class: 'tl-inner', style: { width: label + W + 'px', '--lab': label + 'px' } }, head, h('div', { class: 'tl-bodywrap' }, bg, body)));
-  const zoom = f => { UI.tlPxd = clamp((UI.tlPxd || pxd) * f, 1.5, 40); renderNow(); };
-  put(main, 
-    h('div', { class: 'view-head' },
-      !UI.sidebar ? h('button', { class: 'side-open', onclick: () => { UI.sidebar = true; renderNow(); } }, '» Filter') : null,
-      h('h1', null, 'Zeitleiste ' + y),
-      h('div', { class: 'tools' },
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.tlPlans, onchange: e => { UI.tlPlans = e.target.checked; renderNow(); } }), 'Detailpläne aufklappen'),
-        h('button', { onclick: () => { UI.tlPxd = 0; renderNow(); } }, 'Ganzes Jahr'),
-        h('button', { class: 'icon', 'aria-label': 'Verkleinern', onclick: () => zoom(1 / 1.5) }, '−'),
-        h('button', { class: 'icon', 'aria-label': 'Vergrößern', onclick: () => zoom(1.5) }, '+'),
-        h('button', { onclick: () => scrollTlTo(today) }, 'Heute'))),
-    h('p', { class: 'muted hint' }, 'Balken ziehen verschiebt den PAL – Start Selektion und Start Inhalt wandern mit. Die Griffe S und I ändern den jeweiligen Vorlauf. Doppelklick öffnet die Maßnahme. Strg+Z macht es rückgängig.'),
-    tl);
+  const zoom = f => { const c = tlCenter(); UI.tlPxd = clamp((UI.tlPxd || pxd) * f, 1.5, 60); UI.tlFocusCenter = c; renderNow(); };
+  tlPan(tl, n => {             // Klick auf einen Monat: hineinzoomen
+    const [yy, mm] = ymd(n), dim = daysIn(yy, mm), vis = Math.max(300, (($('.tl') || {}).clientWidth || innerWidth - 70) - label);
+    UI.tlPxd = clamp(vis / dim, 1.5, 60); UI.tlFocus = n; renderNow();
+  });
   UI._tl = { x0, pxd, label };
-};
+  const zoomed = UI.tlPxd && UI.tlPxd * nd > avail + 10;
+  return {
+    tools: [
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.tlPlans, onchange: e => { UI.tlPlans = e.target.checked; renderNow(); } }), 'Detailpläne'),
+      h('span', { class: 'segs' },
+        h('button', { class: 'seg-btn' + (!zoomed ? ' on' : ''), onclick: () => { UI.tlPxd = 0; renderNow(); } }, 'Jahr'),
+        h('button', { class: 'seg-btn', 'aria-label': 'Verkleinern', tip: 'verkleinern', onclick: () => zoom(1 / 1.5) }, '−'),
+        h('button', { class: 'seg-btn', 'aria-label': 'Vergrößern', tip: 'vergrößern', onclick: () => zoom(1.5) }, '+')),
+      h('button', { class: 'ghostbtn', onclick: () => { if (!zoomed) { UI.tlPxd = clamp((avail / nd) * 4, 1.5, 60); UI.tlFocusCenter = today; renderNow(); } else scrollTlTo(today); } }, 'Heute')],
+    body: [tl],
+  };
+}
+function tlCenter() {
+  const tl = $('.tl'); if (!tl || !UI._tl) return null;
+  return UI._tl.x0 + (tl.scrollLeft + (tl.clientWidth - UI._tl.label) / 2) / UI._tl.pxd;
+}
+// Ziehen mit der Maus auf freier Fläche verschiebt die Ansicht; Klick auf einen Monat ruft onMonth auf
+function tlPan(box, onMonth) {
+  box.addEventListener('pointerdown', ev => {
+    if (ev.button !== 0) return;
+    if (ev.target.closest('.seg,.handle,.dia,.sbar,.sdia,.vbar,.g-bar,.g-dia,button,input,select,a,.tl-lab')) return;
+    const sx = ev.clientX, sl = box.scrollLeft, mz = ev.target.closest('[data-mz]');
+    let moved = false;
+    const move = e => {
+      const dx = e.clientX - sx;
+      if (!moved && Math.abs(dx) < 4) return;
+      if (!moved) { moved = true; box.classList.add('panning'); document.body.classList.add('dragging'); hideTip(); }
+      e.preventDefault();
+      box.scrollLeft = sl - dx;
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      box.classList.remove('panning'); document.body.classList.remove('dragging');
+      if (!moved && mz && onMonth) onMonth(+mz.dataset.mz);
+    };
+    ev.preventDefault();
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+  });
+}
+
 function scrollTlTo(n) {
   const tl = $('.tl'); if (!tl || !UI._tl) return;
   tl.scrollLeft = Math.max(0, (n - UI._tl.x0) * UI._tl.pxd - tl.clientWidth / 2 + UI._tl.label);
 }
-VIEW_FN['zeitleiste:after'] = () => {
+function timelineAfter() {
+  const tl = $('.tl'); if (!tl || !UI._tl) return;
   if (UI.flash && UI.flash.startsWith('n:')) { scrollTlTo(+UI.flash.slice(2)); UI.flash = null; }
-};
+  if (UI.tlFocus != null) { tl.scrollLeft = Math.max(0, (UI.tlFocus - UI._tl.x0) * UI._tl.pxd); UI.tlFocus = null; }
+  if (UI.tlFocusCenter != null) { scrollTlTo(UI.tlFocusCenter); UI.tlFocusCenter = null; }
+}
 function tlDrag(ev, x, mode, pxd, place) {
   if (ev.button !== 0) return;
   if (x.pc && mode !== 'move') { toast('Bei Maßnahmen mit Detailplan ergeben sich Start Selektion und Start Inhalt aus den Arbeitsschritten (Reiter „Detailpläne“).', 'warn'); return; }
@@ -1719,7 +1938,7 @@ function tlDrag(ev, x, mode, pxd, place) {
     place(s, i, p);
     const w = mode === 'move' ? [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(t => k > 0 || !/Samstag|Urlaub/.test(t)).map(t => ['PAL', 'S', 'I'][k] + ': ' + t)) : dateWarn(n, resp);
     lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
-    lab.style.left = (e.clientX + 14) + 'px'; lab.style.top = (e.clientY - 46) + 'px';
+    placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {
     el.removeEventListener('pointermove', move);
@@ -1809,7 +2028,7 @@ async function copyToNextYear() {
 }
 
 /* ---------- Tabelle */
-VIEW_FN.massnahmen = main => {
+function massnahmenSection() {
   const y = UI.year;
   const rows = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === y);
   const warnBy = new Map();
@@ -1818,13 +2037,15 @@ VIEW_FN.massnahmen = main => {
   for (const x of rows) {
     const m = x.m, id = x.id, fk = f => 'm:' + id + ':' + f;
     const ws = warnBy.get(id) || [];
-    const dateCell = (n, warnList) => h('td', { class: 'calc' + (n != null && ymd(n)[0] !== y ? ' other' : '') },
-      h('span', null, fmtW(n)), warnList.length ? h('span', { class: 'wi', tip: warnList.join('\n') }, '⚠') : null);
+    const dateCell = (n, warnList) => h('td', { class: 'calc' + (n != null && ymd(n)[0] !== y ? ' other' : ''), tip: n != null ? WDL[wd(n)] + ', ' + fmtD(n) : null },
+      h('span', null, n == null ? '–' : WD[wd(n)] + ' ' + fmtS(n) + String(ymd(n)[0]).slice(2)), warnList.length ? h('span', { class: 'wi', tip: warnList.join('\n') }, '⚠') : null);
     const resp = (m.verantwortlich || '').trim();
-    tb.append(h('tr', { dataset: { m: id, flash: 'm:' + id } },
+    tb.append(h('tr', { dataset: { m: id, flash: 'm:' + id }, class: visibleM(x) ? '' : 'hidden-m', onmouseenter: () => highlight(id), onmouseleave: () => highlight(null) },
+      h('td', { class: 'vis' }, h('input', { type: 'checkbox', checked: visibleM(x), tip: 'im Kalender und in der Zeitleiste anzeigen', 'aria-label': 'anzeigen',
+        onchange: e => { e.target.checked ? UI.hiddenM.delete(id) : UI.hiddenM.add(id); renderNow(); } })),
       h('td', { class: 'col' }, h('button', { class: 'swatch', style: { background: x.color }, tip: 'Farbe ändern', 'aria-label': 'Farbe ändern', onclick: e => { e.stopPropagation(); colorPicker(e.currentTarget, x.color, c => setM(id, 'farbe', c)); } })),
-      h('td', { class: 'name' }, h('input', { value: m.name, 'data-fk': fk('name'), style: { color: mix(x.color, 0.1, '#000000') }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
-      h('td', null, h('input', { value: m.verantwortlich || '', list: 'dl-personen', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
+      h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: mix(x.color, 0.1, '#000000') }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
+      h('td', { class: 'resp' }, h('input', { value: m.verantwortlich || '', list: 'dl-personen', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
       h('td', { class: 'num' }, h('input', { type: 'number', min: 0, value: m.auflage ?? '', 'data-fk': fk('auflage'), placeholder: '–', onchange: e => setM(id, 'auflage', numOrNull(e.target.value)) })),
       dateCell(x.s, x.s != null ? dateWarn(x.s, resp) : []),
       h('td', { class: 'num' }, m.plan ? h('span', { class: 'derived', tip: 'aus dem Detailplan berechnet' }, x.vS ?? '–') :
@@ -1839,29 +2060,28 @@ VIEW_FN.massnahmen = main => {
         onclick: () => setM(id, 'palStatus', m.palStatus === 'fest' ? 'vorläufig' : 'fest') }, m.palStatus === 'fest' ? 'fest' : 'vorläufig')),
       h('td', null, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
       h('td', { class: 'hinweis' }, h('input', { value: m.hinweis || '', 'data-fk': fk('hinweis'), placeholder: '–', onchange: e => setM(id, 'hinweis', e.target.value) })),
-      h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', onclick: () => { UI.view = 'plaene'; UI.planSel = id; renderNow(); } }, 'Detailplan ›') :
+      h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', tip: 'Detailplan öffnen', onclick: () => { UI.view = 'plaene'; UI.planSel = id; renderNow(); } }, 'Plan ›') :
         h('button', { class: 'pill ghost', tip: 'Arbeitsschritte mit Gantt anlegen', onclick: () => createPlan(id) }, '+ Plan')),
       h('td', { class: 'warns' }, ws.length ? h('span', { class: 'wi ' + (ws.some(w => w.lvl === 'warn') ? 'warn' : 'info'), tip: () => h('div', null, ws.map(w => h('div', null, (w.lvl === 'warn' ? '⚠ ' : 'ℹ ') + w.text))) }, ws.length) : null),
       h('td', { class: 'acts' }, menuButton('⋯', [['Bearbeiten …', () => editMassnahme(id)], ['Duplizieren', () => duplicateMassnahme(id)], ['Löschen', () => deleteMassnahme(id)]], 'right'))));
   }
-  const head = ['', 'Maßnahme', 'Verantwortlich', 'Auflage', 'Start Selektion', 'Vorlauf S', 'Start inhaltl. Arbeit', 'Vorlauf I', 'PAL', 'Status', 'Art der Bitte', 'Hinweis', 'Detailplan', '', ''];
-  put(main, 
-    h('div', { class: 'view-head' },
-      h('h1', null, 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : y)),
-      h('div', { class: 'tools' },
-        h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.allYears, onchange: e => { UI.allYears = e.target.checked; renderNow(); } }), 'alle Jahre'),
-        h('button', { onclick: copyToNextYear }, 'Ins Folgejahr kopieren …'),
-        h('button', { class: 'primary', onclick: () => addMassnahme(y) }, '+ Maßnahme'))),
-    h('p', { class: 'muted hint' }, 'Sortiert automatisch nach PAL. Start Selektion = PAL − Vorlauf Selektion, Start inhaltliche Arbeit = PAL − Vorlauf Inhalt (Kalendertage). Bei Maßnahmen mit Detailplan kommen die Vorläufe aus den Arbeitsschritten.'),
-    personList(),
-    h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable' },
-      h('thead', null, h('tr', null, head.map((t, i) => h('th', { class: ['col', 'name', '', 'num', 'calc', 'num', 'calc', 'num', 'pal', '', '', 'hinweis', 'plan', 'warns', 'acts'][i] || '' }, t)))), tb)),
-    !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
-      C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null);
-};
-VIEW_FN['massnahmen:after'] = () => {
-  if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
-};
+  const head = ['', '', 'Maßnahme', 'Verantwortlich', 'Auflage', 'Start Selektion', 'Vorlauf S', 'Start Inhalt', 'Vorlauf I', 'PAL', 'Status', 'Bitte', 'Hinweis', 'Plan', '', ''];
+  const nWarn = C.warnings.filter(w => w.mid && rows.some(x => x.id === w.mid) && w.lvl === 'warn').length;
+  return {
+    summary: rows.length + ' Maßnahmen' + (nWarn ? ' · ⚠ ' + nWarn : ''),
+    tools: [
+      h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.allYears, onchange: e => { UI.allYears = e.target.checked; renderNow(); } }), 'alle Jahre'),
+      h('button', { class: 'ghostbtn', onclick: copyToNextYear }, 'Ins Folgejahr kopieren …'),
+      h('button', { class: 'primary', onclick: () => addMassnahme(y) }, '+ Maßnahme')],
+    body: [personList(),
+      h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable' },
+        h('thead', null, h('tr', null, head.map((t, i) => h('th', { class: ['vis', 'col', 'name', '', 'num', 'calc', 'num', 'calc', 'num', 'pal', '', '', 'hinweis', 'plan', 'warns', 'acts'][i] || '',
+          tip: i === 0 ? 'Häkchen = im Kalender und in der Zeitleiste anzeigen' : i === 6 || i === 8 ? 'Vorlauf in Kalendertagen vor dem PAL' : null },
+          i === 0 ? h('input', { type: 'checkbox', checked: rows.every(visibleM), 'aria-label': 'alle anzeigen', onchange: e => { rows.forEach(x => e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) : t)))), tb)),
+      !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
+        C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null],
+  };
+}
 
 /* ---------- Bearbeiten-Dialog (aus Kalender und Zeitleiste) */
 async function editMassnahme(id) {
@@ -1901,7 +2121,7 @@ async function editMassnahme(id) {
 function setStepDone(mid, sid, done) {
   commit(d => { const s = findM(d, mid).plan.steps.find(q => q.id === sid); s.fortschritt = done ? 100 : 0; }, done ? 'Als erledigt markiert' : 'Wieder offen');
 }
-VIEW_FN.agenda = main => {
+function agendaSection() {
   const today = todayDn(), from = UI.agendaFrom != null ? UI.agendaFrom : today, to = from + UI.agendaWeeks * 7 - 1;
   const withSteps = UI.agendaSteps !== false, withVac = UI.agendaVac !== false;
   const items = [], running = [], overdue = [];
@@ -1977,21 +2197,18 @@ VIEW_FN.agenda = main => {
       next ? h('div', null, 'Nächster Termin: ', chip(next), ' ' + next.x.m.name + ' – ' + TYPE_LABEL[next.t] + ' am ' + fmtW(next.n) + ' (' + relDays(next.n, today) + ') ',
         h('button', { class: 'link', onclick: () => { UI.agendaFrom = next.n - wd(next.n); renderNow(); } }, 'dorthin springen')) : null));
   }
-  const wBtn = n => h('button', { class: 'seg-btn' + (UI.agendaWeeks === n ? ' on' : ''), onclick: () => { UI.agendaWeeks = n; renderNow(); } }, n + (n === 1 ? ' Woche' : ' Wochen'));
-  put(main, 
-    h('div', { class: 'view-head' },
-      !UI.sidebar ? h('button', { class: 'side-open', onclick: () => { UI.sidebar = true; renderNow(); } }, '» Filter') : null,
-      h('h1', null, 'Was steht an?'),
-      h('div', { class: 'tools' },
-        h('span', { class: 'segs' }, [1, 2, 4, 8, 12].map(wBtn)),
-        h('label', { class: 'inl' }, 'ab ', dateInput(ds(from), 'ag:from', v => { if (dn(v) != null) { UI.agendaFrom = dn(v); renderNow(); } })),
-        UI.agendaFrom != null && UI.agendaFrom !== today ? h('button', { onclick: () => { UI.agendaFrom = null; renderNow(); } }, 'Heute') : null)),
-    h('div', { class: 'tools sub' },
-      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: withSteps, onchange: e => { UI.agendaSteps = e.target.checked; renderNow(); } }), 'Arbeitsschritte aus Detailplänen'),
-      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: withVac, onchange: e => { UI.agendaVac = e.target.checked; renderNow(); } }), 'Urlaube und Feiertage'),
-      h('span', { class: 'muted small' }, fmtW(from) + ' bis ' + fmtW(to))),
-    list);
-};
+  const wBtn = n => h('button', { class: 'seg-btn' + (UI.agendaWeeks === n ? ' on' : ''), onclick: () => { UI.agendaWeeks = n; renderNow(); } }, n + ' Wo.');
+  return {
+    summary: fmtWS(from) + ' – ' + fmtWS(to),
+    tools: [
+      h('span', { class: 'segs' }, [1, 2, 4, 8, 12].map(wBtn)),
+      h('label', { class: 'inl small' }, 'ab ', dateInput(ds(from), 'ag:from', v => { if (dn(v) != null) { UI.agendaFrom = dn(v); renderNow(); } })),
+      UI.agendaFrom != null && UI.agendaFrom !== today ? h('button', { class: 'ghostbtn', onclick: () => { UI.agendaFrom = null; renderNow(); } }, 'Heute') : null,
+      h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: withSteps, onchange: e => { UI.agendaSteps = e.target.checked; renderNow(); } }), 'Arbeitsschritte'),
+      h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: withVac, onchange: e => { UI.agendaVac = e.target.checked; renderNow(); } }), 'Urlaub/Feiertage')],
+    body: [list],
+  };
+}
 
 /* ===================================================================== Ansicht: Detailpläne (Gantt, Rückwärtsterminierung ab PAL) */
 
@@ -2169,7 +2386,7 @@ VIEW_FN.plaene = main => {
     h('div', { class: 'c-pct' }, '%'), h('div', { class: 'c-acts' }));
   put(main, personList(), h('div', { class: 'pl-split' },
     h('div', { class: 'pl-table' }, thead, trows),
-    h('div', { class: 'pl-gantt', 'data-keep-scroll': 'plg' }, h('div', { style: { width: W + 'px' } }, ghead, h('div', { class: 'g-body' }, gbg, grows)))));
+    (() => { const g = h('div', { class: 'pl-gantt', 'data-keep-scroll': 'plg' }, h('div', { style: { width: W + 'px' } }, ghead, h('div', { class: 'g-body' }, gbg, grows))); tlPan(g); return g; })()));
 };
 VIEW_FN['plaene:after'] = () => {
   if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
@@ -2189,7 +2406,7 @@ function durDrag(ev, x, s, r, pxd, bar, X) {
     bar.style.left = X(st) + 'px'; bar.style.width = Math.max(3, dur * pxd) + 'px';
     const w = dateWarn(st, s.wer);
     lab.replaceChildren(h('b', null, s.name + ': ' + dur + ' Tage'), h('div', null, 'Beginn ' + fmtW(st)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
-    lab.style.left = (e.clientX + 14) + 'px'; lab.style.top = (e.clientY - 50) + 'px';
+    placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {
     el.removeEventListener('pointermove', move); document.body.classList.remove('dragging'); lab.remove();
@@ -2334,12 +2551,85 @@ function boot() {
   initTips();
   loadData(normalize(d || emptyData()));
   ensurePersons(D); SAVED_JSON = JSON.stringify(D);
-  if (!VIEW_FN[UI.view]) UI.view = 'kalender';
+  UI.view = OLD_VIEWS[UI.view] || UI.view;
+  if (!VIEW_FN[UI.view]) UI.view = 'jahr';
+  if (!UI.secOpen || typeof UI.secOpen !== 'object') UI.secOpen = {};
   checkDraft();
   renderNow();
   if (!('showSaveFilePicker' in window)) toast('Hinweis: Dieser Browser kann die Datei nicht direkt überschreiben – „Speichern“ lädt eine neue Datei herunter. Am besten Edge oder Chrome verwenden.', 'warn');
 }
 document.addEventListener('DOMContentLoaded', boot);
+
+/* ===================================================================== Zusammengefasste Ansichten mit ein-/ausklappbaren Bereichen */
+
+function section(key, title, fn, opts = {}) {
+  const open = UI.secOpen[key] !== undefined ? UI.secOpen[key] : opts.open !== false;
+  const toggle = () => { UI.secOpen[key] = !open; renderNow(); };
+  let content = null;
+  if (open) { try { content = fn(); } catch (e) { console.error(e); content = { body: [h('div', { class: 'error' }, 'Fehler: ' + e.message)] }; } }
+  const sum = open ? content && content.summary : (opts.closedSummary ? opts.closedSummary() : null);
+  return h('section', { class: 'sec' + (open ? '' : ' closed'), dataset: { sec: key } },
+    h('header', { class: 'sec-h' },
+      h('button', { class: 'sec-tog', 'aria-expanded': String(open), onclick: toggle, tip: open ? 'einklappen' : 'ausklappen' },
+        h('span', { class: 'chev' }, open ? '▾' : '▸'), h('span', { class: 'sec-t' }, title)),
+      sum ? h('span', { class: 'sec-sum' }, sum) : null,
+      opts.info ? h('span', { class: 'info', tip: opts.info }, 'ⓘ') : null,
+      open && content && content.tools ? h('div', { class: 'tools' }, content.tools) : null),
+    open && content ? h('div', { class: 'sec-b' }, content.body) : null);
+}
+
+/* ---------- Filterleiste (ersetzt die Seitenleiste) */
+function popover(anchor, content) {
+  closeMenu();
+  const m = h('div', { class: 'menu pop', onclick: e => e.stopPropagation() }, content);
+  const r = anchor.getBoundingClientRect();
+  m.style.top = (r.bottom + 4) + 'px'; m.style.left = Math.min(r.left, innerWidth - 300) + 'px';
+  document.body.append(m);
+  _openMenu = { m, btn: anchor };
+}
+function filterBar(extra) {
+  const y = UI.year, ms = C.ms.filter(x => inYear(x, y)), shown = ms.filter(visibleM).length;
+  const persons = [...new Set([...D.personen.map(p => p.name), ...C.vac.map(v => v.u.wer).filter(Boolean)])];
+  const typeBtn = (t, label) => h('button', { class: 'tpill' + (UI.show[t] ? ' on' : ''), 'aria-pressed': String(UI.show[t]), tip: (UI.show[t] ? 'ausblenden: ' : 'einblenden: ') + label,
+    onclick: () => { UI.show[t] = !UI.show[t]; renderNow(); } }, h('span', { class: 'chip demo ' + t }, t), label);
+  const mBtn = h('button', { class: 'fbtn', onclick: e => { e.stopPropagation(); popover(mBtn, h('div', null,
+    h('div', { class: 'pop-h' }, 'Maßnahmen anzeigen', h('span', null, h('button', { class: 'link', onclick: () => { UI.hiddenM.clear(); renderNow(); closeMenu(); } }, 'alle'), ' · ',
+      h('button', { class: 'link', onclick: () => { ms.forEach(x => UI.hiddenM.add(x.id)); renderNow(); closeMenu(); } }, 'keine'))),
+    ms.map(x => h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: visibleM(x), onchange: ev => { ev.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id); renderNow(); } }),
+      h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'), h('span', { class: 'pal' }, x.pal != null ? fmtS(x.pal) : ''))))); } },
+    'Maßnahmen: ', h('b', null, shown === ms.length ? 'alle' : shown + ' von ' + ms.length), ' ▾');
+  const vBtn = h('button', { class: 'fbtn', onclick: e => { e.stopPropagation(); popover(vBtn, h('div', null,
+    h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: UI.showVac, onchange: ev => { UI.showVac = ev.target.checked; renderNow(); } }), h('b', null, 'Urlaube anzeigen')),
+    persons.map(n => h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: !UI.hiddenP.has(n), onchange: ev => { ev.target.checked ? UI.hiddenP.delete(n) : UI.hiddenP.add(n); renderNow(); } }),
+      h('span', { class: 'vdot', style: { background: personColor(n) } }), h('span', { class: 'nm' }, n))),
+    !persons.length ? h('p', { class: 'muted small' }, 'Noch keine Urlaube eingetragen.') : null)); } },
+    'Urlaub: ', h('b', null, UI.showVac ? (UI.hiddenP.size ? 'teilweise' : 'an') : 'aus'), ' ▾');
+  return h('div', { class: 'filterbar' },
+    typeBtn('S', 'Selektion'), typeBtn('I', 'Inhalt'), typeBtn('P', 'PAL'), h('span', { class: 'sep' }), mBtn, vBtn, extra,
+    h('span', { class: 'legend-inline' }, h('span', { class: 'lg we' }), 'Wochenende', h('span', { class: 'lg hol' }), 'Feiertag', h('span', { class: 'lg vac' }), 'Urlaub', h('span', { class: 'lg today' }), 'heute'));
+}
+
+/* ---------- Reiter „Jahresplanung“: Maßnahmen + Kalender */
+VIEW_FN.jahr = main => {
+  put(main, filterBar(h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten')),
+    section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
+      info: 'Sortiert automatisch nach PAL. Start Selektion = PAL − Vorlauf Selektion, Start inhaltliche Arbeit = PAL − Vorlauf Inhalt (Kalendertage). Bei Maßnahmen mit Detailplan kommen die Vorläufe aus den Arbeitsschritten. Häkchen links = im Kalender anzeigen.',
+      closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
+    section('kal', 'Kalender ' + UI.year, () => ({ body: [calendarBody()] }), {
+      info: 'Maus über Tag oder Markierung zeigt Details. Markierung anklicken = bearbeiten. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Strg+Z macht es rückgängig.' }));
+};
+VIEW_FN['jahr:after'] = () => {
+  if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
+};
+
+/* ---------- Reiter „Zeitleiste“: Zeitleiste + Was steht an? */
+VIEW_FN.zeit = main => {
+  put(main, filterBar(),
+    section('tl', 'Zeitleiste ' + UI.year, timelineSection, {
+      info: 'Klick auf einen Monat zoomt hinein; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL (S und I wandern mit), die Griffe S und I ändern den Vorlauf. Doppelklick öffnet die Maßnahme.' }),
+    section('ag', 'Was steht an?', agendaSection, { info: 'Termine, Arbeitsschritte, Urlaube und Feiertage der nächsten Wochen. Häkchen = Arbeitsschritt erledigt.' }));
+};
+VIEW_FN['zeit:after'] = () => timelineAfter();
 </script>
 </body>
 </html>
