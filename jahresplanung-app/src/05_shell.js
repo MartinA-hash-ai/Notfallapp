@@ -62,15 +62,28 @@ function topBar() {
         '⚠ ', nW, nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
       menuButton('Export ▾', [
         ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS], ['Drucken / als PDF speichern', printView]]),
-      h('button', { class: 'primary save' + (dirty ? ' dirty' : ''), tip: dirty ? 'Ungespeicherte Änderungen – jetzt speichern (Strg+S)' : 'Alles gespeichert', onclick: () => save() },
-        dirty ? '● Speichern' : '✓ Gespeichert'),
+      saveBox(),
       menuButton('⋯', [
-        ['Andere Datei öffnen …', openFile], ['Speichern unter …', () => save(true)], ['Daten als JSON sichern', exportJSON], null,
+        [(UI.autoSave === false ? '☐' : '☑') + ' Automatisch speichern', () => { UI.autoSave = UI.autoSave === false; saveUI(); if (UI.autoSave && isDirty()) scheduleAutosave(); renderNow(); toast('Automatisch speichern ' + (UI.autoSave ? 'an' : 'aus')); }],
+        ['Speicherort (Mailing-Ordner) neu wählen …', async () => { ST.conn = 'none'; ST.dir = null; await connectFolder(); renderNow(); }], null,
+        ['Daten aus anderer Datei übernehmen …', openFile], ['Kopie speichern unter …', saveCopy], ['Daten als JSON sichern', exportJSON], null,
         ['Einstellungen …', settingsDialog], ['Hilfe', helpDialog]], 'right')));
 }
 
 function banners() {
   const out = h('div', { class: 'banners' });
+  if (ST.conflict) {
+    const o = ST.conflict.other.meta || {};
+    out.append(h('div', { class: 'banner err' },
+      h('span', null, (o.savedBy || 'Jemand') + ' hat ' + fmtStamp(o.savedAt) + ' einen neueren Stand gespeichert, während du Änderungen gemacht hast. Welcher Stand soll gelten?'),
+      h('button', { onclick: () => resolveConflict(false) }, 'Stand von ' + (o.savedBy || 'der Datei') + ' laden'),
+      h('button', { class: 'primary', onclick: () => resolveConflict(true) }, 'Meinen Stand speichern')));
+  } else if (FSA && ST.conn !== 'ok' && isDirty()) out.append(h('div', { class: 'banner warn' },
+    h('span', null, 'Deine Änderungen sind noch nicht gespeichert.' + (ST.conn === 'needs-permission' ? ' Ein Klick genügt – der Browser fragt kurz, ob die App den Ordner bearbeiten darf.' : ' Einmal den Mailing-Ordner wählen, danach speichert die App automatisch.')),
+    h('button', { class: 'primary', onclick: () => save() }, ST.conn === 'needs-permission' ? 'Speichern aktivieren' : 'Speicherort wählen')));
+  if (ST.xlsxErr && !UI.xlsxErrClosed) out.append(h('div', { class: 'banner warn' },
+    h('span', null, 'Die Excel-Ansicht „' + VIEW_XLSX + '“ konnte nicht aktualisiert werden (ist sie gerade in Excel geöffnet?). Das Programm selbst ist gespeichert; beim nächsten Speichern versucht es die App erneut.'),
+    h('button', { onclick: () => { UI.xlsxErrClosed = true; renderNow(); } }, 'Ausblenden')));
   if (openedFromDownloads() && !UI.dlHintClosed) out.append(h('div', { class: 'banner err' },
     h('span', null, 'Achtung: Diese Datei wurde aus dem Download-Ordner bzw. dem Browser geöffnet. Änderungen landen dann nicht im gemeinsamen Mailing-Ordner. ' +
       'Bitte schließen und über „Jahresplanung starten“ im (synchronisierten) Mailing-Ordner öffnen.'),
@@ -195,10 +208,10 @@ function helpDialog() {
     p('Im Mailing-Ordner auf „Jahresplanung starten“ doppelklicken – das Programm öffnet sich in einem eigenen Fenster. Geht das nicht (z. B. weil die IT Startdateien sperrt), im Unterordner „Jahresplanung (Programmdatei)“ die HTML-Datei doppelklicken.'),
     p('Wer den Ordner nur in Teams oder im Browser sieht: einmalig in Teams unter „Dateien“ auf „Synchronisieren“ klicken. Danach liegt der Ordner im Windows-Explorer und der Start funktioniert. Direkt aus der Teams-/SharePoint-Weboberfläche läuft das Programm nicht.'),
     h('h3', null, 'Speichern'),
-    p('Alles steckt in dieser einen HTML-Datei: das Programm und deine Daten. „Speichern“ schreibt die Datei zurück. Beim ersten Speichern fragt der Browser, wohin – dann dieselbe Datei auswählen und ersetzen. Danach speichert Strg+S direkt.'),
-    p('Funktioniert am besten im Microsoft Edge oder Google Chrome. In anderen Browsern wird die Datei heruntergeladen; dann die alte Datei damit ersetzen.'),
+    p('Beim ersten Mal einmal den Mailing-Ordner wählen und „Bearbeiten zulassen“. Danach speichert die App automatisch wenige Sekunden nach jeder Änderung – in die Programmdatei und in die Ansichts-Excel „' + VIEW_XLSX + '“. Bei jedem neuen Start fragt der Browser einmal kurz nach („Speichern aktivieren“).'),
+    p('Die Excel-Ansicht ist für alle, die nur in Teams hineinschauen: Sie zeigt immer den zuletzt gespeicherten Stand (Übersicht, Kalender, Zeitleiste, Termine, Detailpläne, Urlaub). Sie ist schreibgeschützt; Änderungen dort würden beim nächsten Speichern überschrieben.'),
     h('h3', null, 'Im Team'),
-    p('Die Datei in einen gemeinsamen Teams-/SharePoint-Ordner legen, der per OneDrive auf dem PC synchronisiert ist, und von dort öffnen. Es kann immer nur eine Person gleichzeitig sinnvoll bearbeiten: Hat jemand anderes zwischenzeitlich gespeichert, warnt die App vor dem Überschreiben.'),
+    p('Es sollte immer nur eine Person gleichzeitig ändern. Die App prüft alle 15 Sekunden, ob jemand anderes gespeichert hat: Ohne eigene offene Änderungen lädt sie den neuen Stand automatisch, sonst fragt sie, welcher Stand gelten soll.'),
     h('h3', null, 'Datenschutz'),
     p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen.'),
     h('h3', null, 'Bedienung'),

@@ -11,7 +11,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen'];
+const UI_KEYS = ['autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -220,6 +220,6 @@ function redo() {
   if (!REDO.length) return;
   UNDO.push(JSON.stringify(D)); D = JSON.parse(REDO.pop()); changed(); toast('Wiederhergestellt');
 }
-function changed() { saveDraft(); requestRender(); }
+function changed() { saveDraft(); scheduleAutosave(); requestRender(); }
 const isDirty = () => JSON.stringify(D) !== SAVED_JSON;
 const findM = (d, id) => d.massnahmen.find(m => m.id === id);

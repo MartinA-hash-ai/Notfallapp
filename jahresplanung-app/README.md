@@ -6,18 +6,18 @@ Die Datei enthält Programm **und** Daten; „Speichern“ schreibt sie zurück.
 **Benutzen:** `Jahresplanung_Aussenkommunikation.html` in Microsoft Edge oder Google Chrome öffnen.
 Es werden keine Daten ins Internet gesendet und nichts nachgeladen.
 
-**Für den Mailing-Ordner:** `Jahresplanung_fuer_Mailing-Ordner.zip` entpacken und den Inhalt in den
-(über OneDrive synchronisierten) Mailing-Ordner legen:
+**Für den Mailing-Ordner:** `Jahresplanung_fuer_Mailing-Ordner.zip` in den (über OneDrive synchronisierten)
+Mailing-Ordner entpacken:
 
 - `Jahresplanung starten.cmd` – Doppelklick öffnet die App in einem eigenen Edge-Fenster (`msedge --app`)
-- `Jahresplanung (Programmdatei)/Jahresplanung_Aussenkommunikation.html` – Programm und Daten
+- `Jahresplanung_Aussenkommunikation.html` – Programm und Daten
+- `Jahresplanung – aktueller Stand.xlsx` – entsteht beim ersten Speichern: schreibgeschützte Ansicht
+  (Übersicht, Kalender, Zeitleiste, Termine, Detailpläne, Urlaub) für alle, die nur in Teams hineinschauen
 
-Direkt aus der Teams-/SharePoint-Weboberfläche läuft die App nicht (SharePoint führt HTML nicht aus);
-dort einmalig „Synchronisieren“ wählen.
-
-Ansichten: Kalender (mit Hover-Details), Zeitleiste (PAL/Vorläufe per Ziehen ändern), Maßnahmen-Tabelle,
-„Was steht an?“, Detailpläne (Gantt mit Rückwärtsterminierung wie im Excel), Urlaub & Feiertage.
-Exporte: Excel (.xlsx), Outlook (.ics), Drucken/PDF.
+Speichern: Beim ersten Mal den Mailing-Ordner wählen (File System Access API, Zugriff wird im Browser
+gemerkt). Danach speichert die App automatisch nach jeder Änderung Programmdatei und Excel-Ansicht und
+prüft alle 15 Sekunden, ob jemand anderes gespeichert hat (neuer Stand wird geladen bzw. Konflikt angezeigt).
+Direkt aus der Teams-/SharePoint-Weboberfläche läuft die App nicht (SharePoint führt HTML nicht aus).
 
 ## Entwicklung
 

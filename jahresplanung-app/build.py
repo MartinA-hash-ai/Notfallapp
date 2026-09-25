@@ -22,9 +22,9 @@ html = ('<!DOCTYPE html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n<met
 open(OUT, 'w', encoding='utf8').write(html)
 print('OK', OUT, len(html) // 1024, 'KB')
 
-# Paket für den Mailing-Ordner: Startknopf + Programmdatei im Unterordner
+# Paket für den Mailing-Ordner: Startknopf + Programmdatei (die Excel-Ansicht entsteht beim ersten Speichern)
 ZIP = os.path.join(HERE, 'Jahresplanung_fuer_Mailing-Ordner.zip')
 with zipfile.ZipFile(ZIP, 'w', zipfile.ZIP_DEFLATED) as z:
     z.write(os.path.join(HERE, 'launcher', 'Jahresplanung starten.cmd'), 'Jahresplanung starten.cmd')
-    z.write(OUT, 'Jahresplanung (Programmdatei)/' + os.path.basename(OUT))
+    z.write(OUT, os.path.basename(OUT))
 print('OK', ZIP)
