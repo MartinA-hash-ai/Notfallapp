@@ -6,6 +6,15 @@ Die Datei enthält Programm **und** Daten; „Speichern“ schreibt sie zurück.
 **Benutzen:** `Jahresplanung_Aussenkommunikation.html` in Microsoft Edge oder Google Chrome öffnen.
 Es werden keine Daten ins Internet gesendet und nichts nachgeladen.
 
+**Für den Mailing-Ordner:** `Jahresplanung_fuer_Mailing-Ordner.zip` entpacken und den Inhalt in den
+(über OneDrive synchronisierten) Mailing-Ordner legen:
+
+- `Jahresplanung starten.cmd` – Doppelklick öffnet die App in einem eigenen Edge-Fenster (`msedge --app`)
+- `Jahresplanung (Programmdatei)/Jahresplanung_Aussenkommunikation.html` – Programm und Daten
+
+Direkt aus der Teams-/SharePoint-Weboberfläche läuft die App nicht (SharePoint führt HTML nicht aus);
+dort einmalig „Synchronisieren“ wählen.
+
 Ansichten: Kalender (mit Hover-Details), Zeitleiste (PAL/Vorläufe per Ziehen ändern), Maßnahmen-Tabelle,
 „Was steht an?“, Detailpläne (Gantt mit Rückwärtsterminierung wie im Excel), Urlaub & Feiertage.
 Exporte: Excel (.xlsx), Outlook (.ics), Drucken/PDF.
@@ -14,7 +23,8 @@ Exporte: Excel (.xlsx), Outlook (.ics), Drucken/PDF.
 
 - Quellcode: `src/*.js` (werden in Reihenfolge der Nummern zusammengefügt), `src/style.css`
 - Startdaten: `src/initial_data.json`, erzeugt aus der Excel-Datei mit `python3 make_initial_data.py`
-- Bauen: `python3 build.py` → `Jahresplanung_Aussenkommunikation.html`
+- Startknopf: `launcher/Jahresplanung starten.cmd` (nur ASCII, CRLF)
+- Bauen: `python3 build.py` → `Jahresplanung_Aussenkommunikation.html` und `Jahresplanung_fuer_Mailing-Ordner.zip`
 
 Achtung: Die gebaute Datei enthält die Startdaten. Eine Datei, in der schon gearbeitet wurde, nicht durch
 einen neuen Build ersetzen – stattdessen die neue Version öffnen und über „⋯ → Andere Datei öffnen …“

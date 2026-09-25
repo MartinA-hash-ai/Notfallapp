@@ -61,6 +61,8 @@ nav.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
 .menu .custom input { width: 44px; height: 26px; padding: 0 2px; }
 .banners .banner { display: flex; align-items: center; gap: 10px; padding: 8px 16px; background: var(--warnbg); border-bottom: 1px solid #f0c27a; }
 .banner span { flex: 1; }
+.banners .banner.err { background: #fdecea; border-bottom-color: #f5b5ae; color: #8a1c12; }
+.pathbox { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: Consolas, monospace; font-size: 12.5px; word-break: break-all; }
 
 /* ---------- Grundlayout */
 .body { display: grid; grid-template-columns: 1fr; min-height: calc(100vh - 60px); }

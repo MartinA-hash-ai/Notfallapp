@@ -7,11 +7,22 @@ function currentFileName() {
   try { const n = decodeURIComponent(location.pathname.split('/').pop() || ''); if (/\.html?$/i.test(n)) return n; } catch (e) { /* */ }
   return DEFAULT_FILE;
 }
+function localPath() {
+  try {
+    if (location.protocol !== 'file:') return null;
+    const p = decodeURIComponent(location.pathname);
+    return location.host ? '\\\\' + location.host + p.replace(/\//g, '\\') : p.replace(/^\/(?=[A-Za-z]:)/, '').replace(/\//g, '\\');
+  } catch (e) { return null; }
+}
+function openedFromDownloads() {
+  const p = localPath();
+  return location.protocol !== 'file:' || (p && /\\(Downloads|Download|INetCache|Temp)\\/i.test(p));
+}
 function buildFile(data) {
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
   const S = 'script';
   return '<!DOCTYPE html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
-    '<title>Jahresplanung Außenkommunikation</title>\n<style id="jp-style">' + $('#jp-style').textContent + '</style>\n</head>\n<body>\n<div id="app"></div>\n' +
+    '<title>Jahresplanung Außenkommunikation</title>\n<link rel="icon" href="' + FAVICON + '">\n<style id="jp-style">' + $('#jp-style').textContent + '</style>\n</head>\n<body>\n<div id="app"></div>\n' +
     '<' + S + ' type="application/json" id="jp-data">' + json + '</' + S + '>\n<' + S + ' id="jp-app">' + $('#jp-app').textContent + '</' + S + '>\n</body>\n</html>\n';
 }
 function parseFileText(text) {
@@ -32,7 +43,17 @@ async function save(as = false) {
   if ('showSaveFilePicker' in window) {
     try {
       if (!fileHandle || as) {
-        const hnd = await window.showSaveFilePicker({ suggestedName: currentFileName(), types: [{ description: 'Jahresplanung (HTML)', accept: { 'text/html': ['.html'] } }] });
+        if (!as && !localStorage.getItem('jp-savehint')) {
+          const p = localPath(), dir = p ? p.slice(0, p.lastIndexOf('\\') + 1) : null;
+          const ok = await modal('Erstes Speichern', h('div', { class: 'help' },
+            h('p', null, 'Gleich öffnet sich ein Fenster „Speichern unter“. Dort einmal die geöffnete Datei auswählen und ersetzen:'),
+            dir ? h('p', { class: 'pathbox' }, dir, h('b', null, currentFileName())) : h('p', null, h('b', null, currentFileName())),
+            h('p', null, 'Danach speichert „Speichern“ (oder Strg+S) direkt, solange das Fenster offen ist. Beim nächsten Start merkt sich der Browser den Ordner.')),
+            [['Abbrechen', false], ['Verstanden', true, 'primary']]);
+          if (!ok) return false;
+          try { localStorage.setItem('jp-savehint', '1'); } catch (e) { /* */ }
+        }
+        const hnd = await window.showSaveFilePicker({ id: 'jahresplanung', suggestedName: currentFileName(), types: [{ description: 'Jahresplanung (HTML)', accept: { 'text/html': ['.html'] } }] });
         const f = await hnd.getFile();
         if (f.size > 0) {
           const other = parseFileText(await f.text());
@@ -93,7 +114,7 @@ async function openFile() {
   let got = null, hnd = null, stamp = null;
   if ('showOpenFilePicker' in window) {
     try {
-      [hnd] = await window.showOpenFilePicker({ types: [{ description: 'Jahresplanung', accept: { 'text/html': ['.html', '.htm'], 'application/json': ['.json'] } }] });
+      [hnd] = await window.showOpenFilePicker({ id: 'jahresplanung', types: [{ description: 'Jahresplanung', accept: { 'text/html': ['.html', '.htm'], 'application/json': ['.json'] } }] });
       const f = await hnd.getFile(); got = { text: await f.text(), name: f.name }; stamp = f.lastModified;
     } catch (e) { if (e && e.name === 'AbortError') return; hnd = null; }
   }

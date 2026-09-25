@@ -73,6 +73,10 @@ function topBar() {
 
 function banners() {
   const out = h('div', { class: 'banners' });
+  if (openedFromDownloads() && !UI.dlHintClosed) out.append(h('div', { class: 'banner err' },
+    h('span', null, 'Achtung: Diese Datei wurde aus dem Download-Ordner bzw. dem Browser geöffnet. Änderungen landen dann nicht im gemeinsamen Mailing-Ordner. ' +
+      'Bitte schließen und über „Jahresplanung starten“ im (synchronisierten) Mailing-Ordner öffnen.'),
+    h('button', { onclick: () => { UI.dlHintClosed = true; renderNow(); } }, 'Trotzdem hier arbeiten')));
   if (DRAFT_OFFER) out.append(h('div', { class: 'banner warn' },
     h('span', null, `In diesem Browser gibt es ungespeicherte Änderungen vom ${fmtStamp(DRAFT_OFFER.at)}.`),
     h('button', { class: 'primary', onclick: restoreDraft }, 'Wiederherstellen'),
@@ -189,6 +193,9 @@ async function settingsDialog() {
 function helpDialog() {
   const p = t => h('p', null, t);
   modal('Hilfe', h('div', { class: 'help' },
+    h('h3', null, 'Starten'),
+    p('Im Mailing-Ordner auf „Jahresplanung starten“ doppelklicken – das Programm öffnet sich in einem eigenen Fenster. Geht das nicht (z. B. weil die IT Startdateien sperrt), im Unterordner „Jahresplanung (Programmdatei)“ die HTML-Datei doppelklicken.'),
+    p('Wer den Ordner nur in Teams oder im Browser sieht: einmalig in Teams unter „Dateien“ auf „Synchronisieren“ klicken. Danach liegt der Ordner im Windows-Explorer und der Start funktioniert. Direkt aus der Teams-/SharePoint-Weboberfläche läuft das Programm nicht.'),
     h('h3', null, 'Speichern'),
     p('Alles steckt in dieser einen HTML-Datei: das Programm und deine Daten. „Speichern“ schreibt die Datei zurück. Beim ersten Speichern fragt der Browser, wohin – dann dieselbe Datei auswählen und ersetzen. Danach speichert Strg+S direkt.'),
     p('Funktioniert am besten im Microsoft Edge oder Google Chrome. In anderen Browsern wird die Datei heruntergeladen; dann die alte Datei damit ersetzen.'),
