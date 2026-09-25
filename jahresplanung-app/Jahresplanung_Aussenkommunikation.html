@@ -55,7 +55,8 @@ nav.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
 .warnbtn.has { color: var(--warn); border-color: #f0c27a; background: var(--warnbg); }
 .warnbtn .sub { font-weight: 400; }
 .save { min-width: 124px; }
-.save:not(.dirty) { background: #fff; color: var(--ok); border-color: var(--line2); }
+.save { background: #fff; border-color: var(--line2); }
+.save.ok { color: var(--ok); }
 .menu { position: fixed; z-index: 60; background: #fff; border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 4px; min-width: 200px; }
 .menu > button { display: block; width: 100%; text-align: left; border: 0; padding: 8px 12px; border-radius: 5px; }
 .menu > button:hover { background: var(--bg); }
@@ -482,12 +483,19 @@ td.vis, th.vis { width: 28px; text-align: center; }
 .mtable td.resp { width: 96px; }
 .mtable td.resp input { width: 90px; }
 .mtable td select { max-width: 78px; }
+.mtable td.art { min-width: 66px; }
+.mtable td.art select { min-width: 60px; }
 .mtable { font-size: 12.5px; }
 .mtable td.num { width: 58px; }
 .mtable td.num input { width: 52px; }
 .mtable td.pal input { width: 128px !important; }
-.mtable td.hinweis { min-width: 130px; }
+.mtable td.hinweis { min-width: 120px; }
 table.grid td { padding: 3px 4px; }
+/* ruhigere Häkchen */
+input[type=checkbox], input[type=radio] { accent-color: #9e9e9e; }
+.sec-h .tools.lead { margin-left: 6px; gap: 6px; }
+.sec-h .sep { width: 1px; height: 22px; background: var(--line2); margin: 0 2px; }
+.sec-h .legend-inline { margin-left: 0; }
 /* Ziehen und Zoomen */
 .chip { cursor: grab; touch-action: none; }
 .chip.dragsrc { opacity: .25; }
@@ -507,8 +515,8 @@ table.grid td { padding: 3px 4px; }
   header.top { gap: 12px; }
   .tab { padding: 12px 9px 11px; }
   .save { min-width: 0; }
-  .legend-inline { display: none; }
 }
+@media (max-width: 1360px) { .sec-h .legend-inline { display: none; } }
 @media (max-width: 1100px) {
   .body.with-side { grid-template-columns: 210px 1fr; }
   .cols2 { grid-template-columns: 1fr; }
@@ -1209,7 +1217,7 @@ function saveBox() {
   else if (ST.conn === 'none') { label = 'Speichern …'; cls += ' primary' + (dirty ? ' dirty' : ''); tip = 'Einmal den Mailing-Ordner wählen – danach speichert die App automatisch'; }
   else if (ST.conn === 'needs-permission') { label = '🔓 Speichern aktivieren'; cls += ' primary'; tip = 'Ein Klick: der Browser fragt, ob die App den Ordner bearbeiten darf'; }
   else if (dirty) { label = UI.autoSave === false ? '● Speichern' : '● wird gespeichert …'; cls += ' primary dirty'; tip = 'Jetzt speichern (Strg+S)'; }
-  else { label = '✓ Gespeichert' + (t ? ' ' + t : ''); tip = 'Programm und Excel-Ansicht sind aktuell' + (ST.xlsxErr ? ' (Excel-Ansicht: Fehler)' : ''); }
+  else { label = '✓ Gespeichert' + (t ? ' ' + t : ''); cls += ' ok'; tip = 'Programm und Excel-Ansicht sind aktuell' + (ST.xlsxErr ? ' (Excel-Ansicht: Fehler)' : ''); }
   return h('button', { id: 'savebox', class: cls, tip, onclick: () => save() }, label);
 }
 
@@ -2091,11 +2099,10 @@ function massnahmenSection() {
       h('td', { class: 'num' }, m.plan ? h('span', { class: 'derived', tip: 'aus dem Detailplan berechnet' }, x.vI ?? '–') :
         h('input', { type: 'number', min: 0, value: m.vorlaufI ?? '', 'data-fk': fk('vi'), onchange: e => setM(id, 'vorlaufI', numOrNull(e.target.value)) })),
       h('td', { class: 'pal' + (m.palStatus !== 'fest' ? ' vorl' : '') },
-        dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null)),
-        h('span', { class: 'wdn' }, x.pal != null ? WD[wd(x.pal)] : '')),
+        dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null))),
       h('td', null, h('button', { class: 'status ' + (m.palStatus === 'fest' ? 'fest' : 'vorl'), 'data-fk': fk('status'), tip: 'Klicken zum Umschalten',
         onclick: () => setM(id, 'palStatus', m.palStatus === 'fest' ? 'vorläufig' : 'fest') }, m.palStatus === 'fest' ? 'fest' : 'vorläufig')),
-      h('td', null, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
+      h('td', { class: 'art' }, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
       h('td', { class: 'hinweis' }, h('input', { value: m.hinweis || '', 'data-fk': fk('hinweis'), placeholder: '–', onchange: e => setM(id, 'hinweis', e.target.value) })),
       h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', tip: 'Detailplan öffnen', onclick: () => { UI.view = 'plaene'; UI.planSel = id; renderNow(); } }, 'Plan ›') :
         h('button', { class: 'pill ghost', tip: 'Arbeitsschritte mit Gantt anlegen', onclick: () => createPlan(id) }, '+ Plan')),
@@ -2613,6 +2620,63 @@ function section(key, title, fn, opts = {}) {
         h('span', { class: 'chev' }, open ? '▾' : '▸'), h('span', { class: 'sec-t' }, title)),
       sum ? h('span', { class: 'sec-sum' }, sum) : null,
       opts.info ? h('span', { class: 'info', tip: opts.info }, 'ⓘ') : null,
+      open && content && content.lead ? h('div', { class: 'tools lead' }, content.lead) : null,
+      open && content && content.tools ? h('div', { class: 'tools' }, content.tools) : null),
+    open && content ? h('div', { class: 'sec-b' }, content.body) : null);
+}
+
+/* ---------- Filterleiste (ersetzt die Seitenleiste) */
+function popover(anchor, content) {
+  closeMenu();
+  const m = h('div', { class: 'menu pop', onclick: e => e.stopPropagation() }, content);
+  const r = anchor.getBoundingClientRect();
+  m.style.top = (r.bottom + 4) + 'px'; m.style.left = Math.min(r.left, innerWidth - 300) + 'px';
+  document.body.append(m);
+  _openMenu = { m, btn: anchor };
+}
+/* ---------- Anzeige-Einstellungen (einzeln, damit sie im jeweiligen Bereich sitzen können) */
+function typePills() {
+  const typeBtn = (t, label) => h('button', { class: 'tpill' + (UI.show[t] ? ' on' : ''), 'aria-pressed': String(UI.show[t]), tip: (UI.show[t] ? 'ausblenden: ' : 'einblenden: ') + label,
+    onclick: () => { UI.show[t] = !UI.show[t]; renderNow(); } }, h('span', { class: 'chip demo ' + t }, t), label);
+  return [typeBtn('S', 'Selektion'), typeBtn('I', 'Inhalt'), typeBtn('P', 'PAL')];
+}
+function massnahmenDropdown() {
+  const y = UI.year, ms = C.ms.filter(x => inYear(x, y)), shown = ms.filter(visibleM).length;
+  const mBtn = h('button', { class: 'fbtn', onclick: e => { e.stopPropagation(); popover(mBtn, h('div', null,
+    h('div', { class: 'pop-h' }, 'Maßnahmen anzeigen', h('span', null, h('button', { class: 'link', onclick: () => { UI.hiddenM.clear(); renderNow(); closeMenu(); } }, 'alle'), ' · ',
+      h('button', { class: 'link', onclick: () => { ms.forEach(x => UI.hiddenM.add(x.id)); renderNow(); closeMenu(); } }, 'keine'))),
+    ms.map(x => h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: visibleM(x), onchange: ev => { ev.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id); renderNow(); } }),
+      h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'), h('span', { class: 'pal' }, x.pal != null ? fmtS(x.pal) : ''))))); } },
+    'Maßnahmen: ', h('b', null, shown === ms.length ? 'alle' : shown + ' von ' + ms.length), ' ▾');
+  return mBtn;
+}
+function vacDropdown() {
+  const persons = [...new Set([...D.personen.map(p => p.name), ...C.vac.map(v => v.u.wer).filter(Boolean)])];
+  const vBtn = h('button', { class: 'fbtn', onclick: e => { e.stopPropagation(); popover(vBtn, h('div', null,
+    h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: UI.showVac, onchange: ev => { UI.showVac = ev.target.checked; renderNow(); } }), h('b', null, 'Urlaube anzeigen')),
+    persons.map(n => h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: !UI.hiddenP.has(n), onchange: ev => { ev.target.checked ? UI.hiddenP.delete(n) : UI.hiddenP.add(n); renderNow(); } }),
+      h('span', { class: 'vdot', style: { background: personColor(n) } }), h('span', { class: 'nm' }, n))),
+    !persons.length ? h('p', { class: 'muted small' }, 'Noch keine Urlaube eingetragen.') : null)); } },
+    'Urlaub: ', h('b', null, UI.showVac ? (UI.hiddenP.size ? 'teilweise' : 'an') : 'aus'), ' ▾');
+  return vBtn;
+}
+const legendInline = () => h('span', { class: 'legend-inline' }, h('span', { class: 'lg we' }), 'Wochenende', h('span', { class: 'lg hol' }), 'Feiertag', h('span', { class: 'lg vac' }), 'Urlaub', h('span', { class: 'lg today' }), 'heute');
+function filterBar(extra) {
+  return h('div', { class: 'filterbar' }, typePills(), h('span', { class: 'sep' }), massnahmenDropdown(), vacDropdown(), extra, legendInline());
+}
+function section(key, title, fn, opts = {}) {
+  const open = UI.secOpen[key] !== undefined ? UI.secOpen[key] : opts.open !== false;
+  const toggle = () => { UI.secOpen[key] = !open; renderNow(); };
+  let content = null;
+  if (open) { try { content = fn(); } catch (e) { console.error(e); content = { body: [h('div', { class: 'error' }, 'Fehler: ' + e.message)] }; } }
+  const sum = open ? content && content.summary : (opts.closedSummary ? opts.closedSummary() : null);
+  return h('section', { class: 'sec' + (open ? '' : ' closed'), dataset: { sec: key } },
+    h('header', { class: 'sec-h' },
+      h('button', { class: 'sec-tog', 'aria-expanded': String(open), onclick: toggle, tip: open ? 'einklappen' : 'ausklappen' },
+        h('span', { class: 'chev' }, open ? '▾' : '▸'), h('span', { class: 'sec-t' }, title)),
+      sum ? h('span', { class: 'sec-sum' }, sum) : null,
+      opts.info ? h('span', { class: 'info', tip: opts.info }, 'ⓘ') : null,
+      open && content && content.lead ? h('div', { class: 'tools lead' }, content.lead) : null,
       open && content && content.tools ? h('div', { class: 'tools' }, content.tools) : null),
     open && content ? h('div', { class: 'sec-b' }, content.body) : null);
 }
@@ -2650,11 +2714,15 @@ function filterBar(extra) {
 
 /* ---------- Reiter „Jahresplanung“: Maßnahmen + Kalender */
 VIEW_FN.jahr = main => {
-  put(main, filterBar(h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten')),
+  put(main,
     section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
       info: 'Sortiert automatisch nach PAL. Start Selektion = PAL − Vorlauf Selektion, Start inhaltliche Arbeit = PAL − Vorlauf Inhalt (Kalendertage). Bei Maßnahmen mit Detailplan kommen die Vorläufe aus den Arbeitsschritten. Häkchen links = im Kalender anzeigen.',
       closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
-    section('kal', 'Kalender ' + UI.year, () => ({ body: [calendarBody()] }), {
+    section('kal', 'Kalender ' + UI.year, () => ({
+      lead: [typePills(), h('span', { class: 'sep' }), vacDropdown(),
+        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten')],
+      tools: [legendInline()],
+      body: [calendarBody()] }), {
       info: 'Maus über Tag oder Markierung zeigt Details. Markierung anklicken = bearbeiten. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Strg+Z macht es rückgängig.' }));
 };
 VIEW_FN['jahr:after'] = () => {

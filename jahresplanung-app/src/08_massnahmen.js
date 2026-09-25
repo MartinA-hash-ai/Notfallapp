@@ -93,11 +93,10 @@ function massnahmenSection() {
       h('td', { class: 'num' }, m.plan ? h('span', { class: 'derived', tip: 'aus dem Detailplan berechnet' }, x.vI ?? '–') :
         h('input', { type: 'number', min: 0, value: m.vorlaufI ?? '', 'data-fk': fk('vi'), onchange: e => setM(id, 'vorlaufI', numOrNull(e.target.value)) })),
       h('td', { class: 'pal' + (m.palStatus !== 'fest' ? ' vorl' : '') },
-        dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null)),
-        h('span', { class: 'wdn' }, x.pal != null ? WD[wd(x.pal)] : '')),
+        dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null))),
       h('td', null, h('button', { class: 'status ' + (m.palStatus === 'fest' ? 'fest' : 'vorl'), 'data-fk': fk('status'), tip: 'Klicken zum Umschalten',
         onclick: () => setM(id, 'palStatus', m.palStatus === 'fest' ? 'vorläufig' : 'fest') }, m.palStatus === 'fest' ? 'fest' : 'vorläufig')),
-      h('td', null, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
+      h('td', { class: 'art' }, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
       h('td', { class: 'hinweis' }, h('input', { value: m.hinweis || '', 'data-fk': fk('hinweis'), placeholder: '–', onchange: e => setM(id, 'hinweis', e.target.value) })),
       h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', tip: 'Detailplan öffnen', onclick: () => { UI.view = 'plaene'; UI.planSel = id; renderNow(); } }, 'Plan ›') :
         h('button', { class: 'pill ghost', tip: 'Arbeitsschritte mit Gantt anlegen', onclick: () => createPlan(id) }, '+ Plan')),

@@ -231,7 +231,7 @@ function saveBox() {
   else if (ST.conn === 'none') { label = 'Speichern …'; cls += ' primary' + (dirty ? ' dirty' : ''); tip = 'Einmal den Mailing-Ordner wählen – danach speichert die App automatisch'; }
   else if (ST.conn === 'needs-permission') { label = '🔓 Speichern aktivieren'; cls += ' primary'; tip = 'Ein Klick: der Browser fragt, ob die App den Ordner bearbeiten darf'; }
   else if (dirty) { label = UI.autoSave === false ? '● Speichern' : '● wird gespeichert …'; cls += ' primary dirty'; tip = 'Jetzt speichern (Strg+S)'; }
-  else { label = '✓ Gespeichert' + (t ? ' ' + t : ''); tip = 'Programm und Excel-Ansicht sind aktuell' + (ST.xlsxErr ? ' (Excel-Ansicht: Fehler)' : ''); }
+  else { label = '✓ Gespeichert' + (t ? ' ' + t : ''); cls += ' ok'; tip = 'Programm und Excel-Ansicht sind aktuell' + (ST.xlsxErr ? ' (Excel-Ansicht: Fehler)' : ''); }
   return h('button', { id: 'savebox', class: cls, tip, onclick: () => save() }, label);
 }
 
