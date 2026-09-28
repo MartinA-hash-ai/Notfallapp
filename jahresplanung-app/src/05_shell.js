@@ -95,6 +95,10 @@ function banners() {
   if (ST.xlsxErr && !UI.xlsxErrClosed) out.append(h('div', { class: 'banner warn' },
     h('span', null, 'Die Excel-Ansicht „' + VIEW_XLSX + '“ konnte nicht aktualisiert werden (ist sie gerade in Excel geöffnet?). Das Programm selbst ist gespeichert; beim nächsten Speichern versucht es die App erneut.'),
     h('button', { onclick: () => { UI.xlsxErrClosed = true; renderNow(); } }, 'Ausblenden')));
+  const mm = folderMismatch();
+  if (mm) out.append(h('div', { class: 'banner err' },
+    h('span', null, 'Achtung: Geöffnet ist die Datei aus „' + mm.opened + '“, gespeichert wird aber in den Ordner „' + mm.connected + '“. So arbeiten zwei Kopien aneinander vorbei.'),
+    h('button', { class: 'primary', onclick: async () => { ST.conn = 'none'; ST.dir = null; ST.html = null; await connectFolder(); renderNow(); } }, 'Speicherort neu wählen')));
   if (openedFromDownloads() && !UI.dlHintClosed) out.append(h('div', { class: 'banner err' },
     h('span', null, 'Achtung: Diese Datei wurde aus dem Download-Ordner bzw. dem Browser geöffnet. Änderungen landen dann nicht im gemeinsamen Mailing-Ordner. ' +
       'Bitte schließen und über „Jahresplanung starten“ im (synchronisierten) Mailing-Ordner öffnen.'),
@@ -264,6 +268,8 @@ async function settingsDialog() {
       h('h3', null, 'Version'),
       h('div', { class: 'verbox' },
         h('div', null, h('b', null, 'Programmversion ' + APP_INFO.version), h('span', { class: 'muted' }, ' · Stand ' + fmtIsoLocal(APP_INFO.date))),
+        h('div', { class: 'muted small' }, 'Geöffnete Datei: ' + (localPath() || location.href)),
+        h('div', { class: 'muted small' + (folderMismatch() ? ' warn' : '') }, 'Speichert in: ' + (ST.conn === 'ok' && ST.dir ? 'Ordner „' + ST.dir.name + '“' + (folderMismatch() ? ' – passt nicht zur geöffneten Datei!' : '') : ST.conn === 'needs-permission' ? 'Ordner „' + (ST.dir ? ST.dir.name : '?') + '“ (Freigabe fehlt noch)' : 'noch kein Speicherort gewählt')),
         h('div', { class: 'muted small' }, 'Datenstand Nr. ' + (+D.meta.rev || 0) + (D.meta.savedAt ? ' · zuletzt gespeichert ' + fmtStamp(D.meta.savedAt) + (D.meta.savedBy ? ' von ' + D.meta.savedBy : '') : ' · noch nicht gespeichert')),
         h('button', { class: 'link', onclick: e => { e.preventDefault(); showLog = !showLog; draw(); } }, showLog ? 'Änderungen ausblenden' : 'Was ist neu? (Änderungen anzeigen)')),
       showLog ? h('div', { class: 'changelog' }, CHANGELOG.map(c => h('div', { class: 'cl-v' },

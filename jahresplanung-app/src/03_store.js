@@ -14,6 +14,14 @@ function localPath() {
     return location.host ? '\\\\' + location.host + p.replace(/\//g, '\\') : p.replace(/^\/(?=[A-Za-z]:)/, '').replace(/\//g, '\\');
   } catch (e) { return null; }
 }
+// Passt der verbundene Speicherort zur geöffneten Datei? (Ordnername als Anhaltspunkt – Pfade gibt der Browser nicht heraus)
+function folderMismatch() {
+  const p = localPath();
+  if (!p || !ST.dir || ST.conn !== 'ok') return null;
+  const parts = p.split('\\'), parent = parts[parts.length - 2], grand = parts[parts.length - 3];
+  if (parent === ST.dir.name || (/^Jahresplanung/i.test(parent) && grand === ST.dir.name)) return null;
+  return { opened: parts.slice(0, -1).join('\\'), connected: ST.dir.name };
+}
 function openedFromDownloads() {
   const p = localPath();
   return location.protocol !== 'file:' || (p && /\\(Downloads|Download|INetCache|Temp)\\/i.test(p));
@@ -75,6 +83,7 @@ async function attachFolder(create) {
   const other = f.size ? parseFileText(await f.text()) : null;
   if (other && other.meta && other.meta.savedAt && other.meta.savedAt !== D.meta.savedAt && (!D.meta.savedAt || other.meta.savedAt > D.meta.savedAt)) externalChange(other);
   startWatch();
+  safeRender();                                 // u. a. Hinweis, falls Datei und Speicherort nicht zusammenpassen
   return true;
 }
 function askPermissionOnFirstClick() {
@@ -297,11 +306,12 @@ async function updateProgram() {
     return fail('Die neue Version konnte nicht in „' + (ST.html ? ST.html.name : currentFileName()) + '“ im Ordner „' + (ST.dir ? ST.dir.name : '?') + '“ geschrieben werden.');
   }
   // wurde die App aus einem anderen Ordner geöffnet, zeigt ein Neustart hier weiter die alte Version
-  const p = localPath(), parent = p ? p.split('\\').slice(-2)[0] : null;
-  if (parent && ST.dir && parent !== ST.dir.name && !/^Jahresplanung/i.test(parent)) {
-    await modal('Update gespeichert', h('div', { class: 'help' },
-      h('p', null, 'Version ' + (info ? info.version : '') + ' liegt jetzt im Mailing-Ordner „' + ST.dir.name + '“.'),
-      h('p', null, 'Geöffnet ist aber die Datei aus „' + parent + '“. Bitte dieses Fenster schließen und die App über „Jahresplanung starten“ im Mailing-Ordner öffnen.')));
+  const mm = folderMismatch();
+  if (mm) {
+    await modal('Update gespeichert – aber woanders', h('div', { class: 'help' },
+      h('p', null, 'Version ' + (info ? info.version : '') + ' liegt jetzt im verbundenen Ordner „' + mm.connected + '“.'),
+      h('p', null, 'Geöffnet ist aber die Datei aus:'), h('p', { class: 'pathbox' }, mm.opened),
+      h('p', null, 'Bitte dieses Fenster schließen und die App über „Jahresplanung starten“ in dem Ordner öffnen, in dem gespeichert werden soll.')));
     return;
   }
   toast('Update gespeichert – Neustart …', 'ok');

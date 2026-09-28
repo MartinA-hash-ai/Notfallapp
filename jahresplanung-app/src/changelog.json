@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.5.2",
+    "date": "2026-09-28T15:51",
+    "items": [
+      "Warnung, wenn die geöffnete Datei und der Speicherort nicht zusammenpassen (zwei Kopien arbeiten aneinander vorbei), mit Knopf „Speicherort neu wählen“",
+      "Einstellungen zeigen, welche Datei geöffnet ist und in welchen Ordner gespeichert wird",
+      "Programm-Update erkennt diesen Fall auch, wenn die Kopie in einem Ordner „Jahresplanung…“ liegt"
+    ]
+  },
+  {
     "version": "0.5.1",
     "date": "2026-09-28T15:37",
     "items": [
