@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.6.1",
+    "date": "2026-09-28T16:43",
+    "items": [
+      "Kalender: Terminliste unter den Monaten hebt nur noch hervor, wenn die Maus über der Schrift steht"
+    ]
+  },
+  {
     "version": "0.6",
     "date": "2026-09-28T16:21",
     "items": [

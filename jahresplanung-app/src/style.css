@@ -158,7 +158,7 @@ main.hl .chip.hl-on { transform: scale(1.25); box-shadow: 0 0 0 2px var(--card),
 .vcount { position: absolute; right: 1px; top: 1px; font-size: 9px; background: var(--card); border-radius: 6px; padding: 0 3px; line-height: 11px; box-shadow: 0 0 0 1px var(--line2); }
 .mlist { padding: 6px 10px 8px; font-size: 11.5px; border-top: 1px solid var(--line); min-height: 28px; }
 .mhol { color: var(--faint); margin-bottom: 3px; }
-.mline { cursor: pointer; padding: 1px 0; }
+.mline { cursor: pointer; padding: 1px 0; width: fit-content; max-width: 100%; }   /* Hervorheben nur über der Schrift, nicht in der leeren Zeile daneben */
 .mline .key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
 .mline b { font-weight: 600; }
 .mvac { margin-top: 3px; color: var(--muted); }
