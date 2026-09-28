@@ -71,8 +71,11 @@ function monthCard(y, mo, byDay, vacs, today, vb) {
     const per = new Map();
     for (let n = first; n <= last; n++) for (const e of byDay.get(n) || []) { if (!per.has(e.x.id)) per.set(e.x.id, { x: e.x, ev: [] }); per.get(e.x.id).ev.push(e); }
     for (const { x, ev } of per.values())
-      list.append(h('div', { class: 'mline', dataset: { m: x.id }, onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null), onclick: () => editMassnahme(x.id), style: { color: inkC(x.color) } },
-        h('span', { class: 'key', style: { background: x.color } }), h('b', null, x.m.name + ': '), ev.map(e => e.t + ' ' + fmtS(e.n)).join(' · ')));
+      list.append(h('div', { class: 'mline' + (UI.pin === x.id && UI.pinMonth === mo && !UI.printing ? ' pinned' : ''), dataset: { m: x.id },
+        tip: UI.pin === x.id ? null : 'Klicken: Maßnahme hervorheben', onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null),
+        onclick: e => { if (!e.target.closest('.mline-edit')) pinMassnahme(e.currentTarget, x.id, mo); }, style: { color: inkC(x.color) } },
+        h('span', { class: 'key', style: { background: x.color } }), h('b', null, x.m.name + ': '), ev.map(e => e.t + ' ' + fmtS(e.n)).join(' · '),
+        UI.pin === x.id && UI.pinMonth === mo && !UI.printing ? pinEditBtn(x.id) : null));
     const vm = vacs.filter(v => v.bis >= first && v.von <= last);
     if (vm.length) list.append(h('div', { class: 'mvac' }, 'Urlaub: ', vm.map(v => h('span', { class: 'vtag', style: { background: pastel(personColor(v.u.wer)), borderColor: personColor(v.u.wer) } },
       (v.u.wer || '?') + ' ' + fmtS(Math.max(v.von, first)) + (v.bis > v.von ? '–' + fmtS(Math.min(v.bis, last)) : '')))));

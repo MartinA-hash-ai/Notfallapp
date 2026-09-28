@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.6.2",
+    "date": "2026-09-28T17:00",
+    "items": [
+      "Kalender: Klick auf eine Zeile der Terminliste hält die Maßnahme hervorgehoben – daneben erscheint „Bearbeiten“; andere Maßnahmen lassen sich währenddessen per Maus hervorheben; Klick woanders (oder Esc) hebt die Auswahl auf"
+    ]
+  },
+  {
     "version": "0.6.1",
     "date": "2026-09-28T16:43",
     "items": [

@@ -126,12 +126,29 @@ function menuButton(label, items, align) {
   });
   return btn;
 }
+// Terminliste im Kalender: Klick hält die Maßnahme hervorgehoben, „Bearbeiten“ öffnet sie; Klick woanders hebt es auf
+function pinMassnahme(el, id, month) {
+  UI.pin = id; UI.pinMonth = month;
+  $$('.mline-edit').forEach(b => b.remove()); $$('.mline.pinned').forEach(l => l.classList.remove('pinned'));
+  el.classList.add('pinned'); el.append(pinEditBtn(id));
+  highlight(id);
+}
+const pinEditBtn = id => h('button', { class: 'mline-edit', tip: 'Maßnahme bearbeiten', onclick: e => { e.stopPropagation(); editMassnahme(id); } }, 'Bearbeiten');
+function unpin() {
+  if (!UI.pin) return;
+  UI.pin = null; UI.pinMonth = null;
+  $$('.mline-edit').forEach(b => b.remove()); $$('.mline.pinned').forEach(l => l.classList.remove('pinned'));
+  highlight(null);
+}
+document.addEventListener('click', e => { if (UI.pin && !e.target.closest('.mline, .modal, .backdrop, .menu')) unpin(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.pin && !$('.modal')) unpin(); });
 function closeMenu() { if (_openMenu) { _openMenu.m.remove(); _openMenu = null; } }
 document.addEventListener('click', () => closeMenu());
 
 /* ---------- Seitenleiste: was wird angezeigt? */
 function highlight(id) {
   const main = $('#main'); if (!main) return;
+  if (!id && UI.pin && UI.view === 'jahr' && C.byId.has(UI.pin)) id = UI.pin;   // nach dem Überfahren zurück zur festgehaltenen Maßnahme
   main.classList.toggle('hl', !!id);
   $$('[data-m]', main).forEach(e => e.classList.toggle('hl-on', e.dataset.m === id));
   $$('.day.span', main).forEach(c => { c.classList.remove('span', 'span-s', 'span-e'); c.style.removeProperty('--hc'); });
