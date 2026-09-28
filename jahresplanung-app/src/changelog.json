@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.5.1",
+    "date": "2026-09-28T15:37",
+    "items": [
+      "Programm-Update: verbindet zuerst den Mailing-Ordner, prüft danach, ob die neue Version wirklich in der Datei steht, und meldet jeden Fehler mit Grund",
+      "Programm-Update: Ausweg „Aktualisierte Datei herunterladen“, falls das Speichern im Ordner nicht klappt",
+      "Programm-Update: Hinweis, wenn die App aus einem anderen Ordner geöffnet wurde als dem Mailing-Ordner"
+    ]
+  },
+  {
     "version": "0.5",
     "date": "2026-09-28T15:25",
     "items": [

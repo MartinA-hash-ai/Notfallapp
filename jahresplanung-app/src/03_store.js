@@ -18,12 +18,12 @@ function openedFromDownloads() {
   const p = localPath();
   return location.protocol !== 'file:' || (p && /\\(Downloads|Download|INetCache|Temp)\\/i.test(p));
 }
-function buildFile(data) {
+function buildFile(data, css = $('#jp-style').textContent, js = $('#jp-app').textContent) {
   const json = JSON.stringify(data).replace(/</g, '\\u003c');
   const S = 'script';
   return '<!DOCTYPE html>\n<html lang="de">\n<head>\n<meta charset="utf-8">\n<meta name="viewport" content="width=device-width, initial-scale=1">\n' +
-    '<title>Jahresplanung Außenkommunikation</title>\n<link rel="icon" href="' + FAVICON + '">\n<style id="jp-style">' + $('#jp-style').textContent + '</style>\n</head>\n<body>\n<div id="app"></div>\n' +
-    '<' + S + ' type="application/json" id="jp-data">' + json + '</' + S + '>\n<' + S + ' id="jp-app">' + $('#jp-app').textContent + '</' + S + '>\n</body>\n</html>\n';
+    '<title>Jahresplanung Außenkommunikation</title>\n<link rel="icon" href="' + FAVICON + '">\n<style id="jp-style">' + css + '</style>\n</head>\n<body>\n<div id="app"></div>\n' +
+    '<' + S + ' type="application/json" id="jp-data">' + json + '</' + S + '>\n<' + S + ' id="jp-app">' + js + '</' + S + '>\n</body>\n</html>\n';
 }
 function parseFileText(text) {
   try {
@@ -268,19 +268,44 @@ async function openFile() {
 }
 // Neue Programmversion übernehmen: Code aus der gewählten Datei, Daten von hier
 async function updateProgram() {
-  if (!await confirmBox('Programm-Update einspielen', 'Wähle die neue Programmdatei (Jahresplanung_Aussenkommunikation.html aus dem Update-Paket). Deine Daten bleiben erhalten – nur das Programm wird ersetzt. Zur Sicherheit wird vorher eine Datensicherung (.json) heruntergeladen.', 'Datei wählen')) return;
+  if (!await confirmBox('Programm-Update einspielen', 'Wähle die neue Programmdatei (Jahresplanung_Aussenkommunikation.html aus dem entpackten Update-Paket). Deine Daten bleiben erhalten – nur das Programm wird ersetzt. Zur Sicherheit wird vorher eine Datensicherung (.json) heruntergeladen.', 'Datei wählen')) return;
   const got = await pickFileText('.html,.htm'); if (!got) return;
   const st = got.text.match(/<style id="jp-style">([\s\S]*?)<\/style>/), app = got.text.match(/<script id="jp-app">([\s\S]*)<\/script>\s*<\/body>/);
-  if (!st || !app) { toast('Das ist keine Jahresplanung-Programmdatei.', 'err'); return; }
+  if (!st || !app) { modal('Keine Programmdatei', h('p', null, '„' + got.name + '“ ist keine Jahresplanung-Programmdatei. Bitte die Datei Jahresplanung_Aussenkommunikation.html aus dem entpackten Update-Paket wählen.')); return; }
   const ver = (app[1].match(/const APP_INFO = (\{[^}]*\});/) || [])[1];
   let info = null; try { info = ver ? JSON.parse(ver) : null; } catch (e) { /* ältere Version ohne Nummer */ }
   if (!await confirmBox('Update übernehmen?', 'Installiert: Version ' + APP_INFO.version + ' · Neu: ' + (info ? 'Version ' + info.version + ' (' + fmtIsoLocal(info.date) + ')' : 'ohne Versionsnummer') + '. Danach startet das Programm neu.', 'Übernehmen')) return;
+  const newFile = () => { const data = JSON.parse(JSON.stringify(D)); data.meta.savedAt = new Date().toISOString(); data.meta.savedBy = UI.userName || ''; return buildFile(data, st[1], app[1]); };
+  // gelingt das Speichern im Ordner nicht: aktualisierte Datei zum Herunterladen anbieten
+  const fail = async reason => {
+    const dl = await modal('Update nicht gespeichert', h('div', { class: 'help' }, h('p', null, reason),
+      h('p', null, 'Ausweg: Lade die aktualisierte Datei herunter (neues Programm mit deinen aktuellen Daten) und ersetze damit im Explorer die Datei „' + currentFileName() + '“ im Mailing-Ordner. Vorher alle App-Fenster schließen.')),
+      [['Schließen', false], ['Aktualisierte Datei herunterladen', true, 'primary']]);
+    if (dl) download(currentFileName(), new Blob([newFile()], { type: 'text/html' }));
+  };
+  if (!FSA) { exportJSON(); return fail('Dieser Browser kann nicht direkt in den Mailing-Ordner schreiben (am besten Edge oder Chrome verwenden).'); }
+  if (ST.conn !== 'ok' && !await connectFolder()) return fail('Die App hat keinen Zugriff auf den Mailing-Ordner bekommen (Frage des Browsers abgelehnt oder Ordnerwahl abgebrochen).');
   exportJSON();
-  $('#jp-style').textContent = st[1];
-  $('#jp-app').textContent = app[1];
-  const ok = await saveAll({ manual: true, force: true });
-  if (ST.html && ok !== false) { toast('Update gespeichert – Neustart …', 'ok'); setTimeout(() => location.reload(), 900); }
-  else if (!ST.html) toast('Neue Datei heruntergeladen – ersetze damit die alte Datei im Mailing-Ordner.', 'warn');
+  for (let i = 0; i < 60 && ST.saving; i++) await new Promise(r => setTimeout(r, 100));   // laufendes Speichern abwarten
+  const oldCss = $('#jp-style').textContent, oldJs = $('#jp-app').textContent;
+  $('#jp-style').textContent = st[1]; $('#jp-app').textContent = app[1];
+  let ok = false, saved = '';
+  try { ok = await saveAll({ manual: true, force: true }); saved = ok ? await (await ST.html.getFile()).text() : ''; } catch (e) { console.warn(e); }
+  const savedVer = (saved.match(/const APP_INFO = \{"version": "([^"]+)"/) || [])[1];
+  if (!ok || !saved.includes(app[1].slice(-400)) || (info && savedVer !== info.version)) {
+    $('#jp-style').textContent = oldCss; $('#jp-app').textContent = oldJs;
+    return fail('Die neue Version konnte nicht in „' + (ST.html ? ST.html.name : currentFileName()) + '“ im Ordner „' + (ST.dir ? ST.dir.name : '?') + '“ geschrieben werden.');
+  }
+  // wurde die App aus einem anderen Ordner geöffnet, zeigt ein Neustart hier weiter die alte Version
+  const p = localPath(), parent = p ? p.split('\\').slice(-2)[0] : null;
+  if (parent && ST.dir && parent !== ST.dir.name && !/^Jahresplanung/i.test(parent)) {
+    await modal('Update gespeichert', h('div', { class: 'help' },
+      h('p', null, 'Version ' + (info ? info.version : '') + ' liegt jetzt im Mailing-Ordner „' + ST.dir.name + '“.'),
+      h('p', null, 'Geöffnet ist aber die Datei aus „' + parent + '“. Bitte dieses Fenster schließen und die App über „Jahresplanung starten“ im Mailing-Ordner öffnen.')));
+    return;
+  }
+  toast('Update gespeichert – Neustart …', 'ok');
+  setTimeout(() => location.reload(), 900);
 }
 async function exportJSON() {
   download('Jahresplanung_Daten_' + ds(todayDn()) + '.json', new Blob([JSON.stringify(D, null, 1)], { type: 'application/json' }));
