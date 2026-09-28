@@ -127,20 +127,29 @@ function menuButton(label, items, align) {
   return btn;
 }
 // Terminliste im Kalender: Klick hält die Maßnahme hervorgehoben, „Bearbeiten“ öffnet sie; Klick woanders hebt es auf
+const clearPinMarks = () => { $$('.mline-edit').forEach(b => b.remove()); $$('.mline.pinned, .chip.pinned').forEach(l => l.classList.remove('pinned')); };
 function pinMassnahme(el, id, month) {
-  UI.pin = id; UI.pinMonth = month;
-  $$('.mline-edit').forEach(b => b.remove()); $$('.mline.pinned').forEach(l => l.classList.remove('pinned'));
+  UI.pin = id; UI.pinMonth = month; UI.pinDay = null; UI.pinT = null;
+  clearPinMarks();
   el.classList.add('pinned'); el.append(pinEditBtn(id));
   highlight(id);
 }
-const pinEditBtn = id => h('button', { class: 'mline-edit', tip: 'Maßnahme bearbeiten', onclick: e => { e.stopPropagation(); editMassnahme(id); } }, 'Bearbeiten');
+// dasselbe für einen Klick auf S oder I im Kalender: „Bearbeiten“ erscheint direkt unter der Markierung
+function pinChip(el, id, n, t) {
+  UI.pin = id; UI.pinMonth = null; UI.pinDay = n; UI.pinT = t;
+  clearPinMarks();
+  el.classList.add('pinned');
+  const cell = el.closest('.day'); if (cell) cell.append(pinEditBtn(id, 'chip-edit'));
+  highlight(id);
+}
+const pinEditBtn = (id, cls = '') => h('button', { class: 'mline-edit ' + cls, tip: 'Maßnahme bearbeiten', onclick: e => { e.stopPropagation(); editMassnahme(id); } }, 'Bearbeiten');
 function unpin() {
   if (!UI.pin) return;
-  UI.pin = null; UI.pinMonth = null;
-  $$('.mline-edit').forEach(b => b.remove()); $$('.mline.pinned').forEach(l => l.classList.remove('pinned'));
+  UI.pin = null; UI.pinMonth = null; UI.pinDay = null; UI.pinT = null;
+  clearPinMarks();
   highlight(null);
 }
-document.addEventListener('click', e => { if (UI.pin && !e.target.closest('.mline, .modal, .backdrop, .menu')) unpin(); });
+document.addEventListener('click', e => { if (UI.pin && !e.target.closest('.mline, .chip, .mline-edit, .modal, .backdrop, .menu')) unpin(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.pin && !$('.modal')) unpin(); });
 function closeMenu() { if (_openMenu) { _openMenu.m.remove(); _openMenu = null; } }
 document.addEventListener('click', () => closeMenu());
@@ -151,16 +160,16 @@ function highlight(id) {
   if (!id && UI.pin && UI.view === 'jahr' && C.byId.has(UI.pin)) id = UI.pin;   // nach dem Überfahren zurück zur festgehaltenen Maßnahme
   main.classList.toggle('hl', !!id);
   $$('[data-m]', main).forEach(e => e.classList.toggle('hl-on', e.dataset.m === id));
-  $$('.day.span', main).forEach(c => { c.classList.remove('span', 'span-s', 'span-e'); c.style.removeProperty('--hc'); });
+  $$('.day.span', main).forEach(c => { c.classList.remove('span'); c.style.removeProperty('--hcl'); c.style.removeProperty('--hcr'); });
   const x = id && C.byId.get(id);
   if (!x || UI.verbund) return;                  // Verbund-Darstellung: die eigene Linie wird per CSS betont
-  const pts = [x.s, x.i, x.pal].filter(v => v != null);
+  const pts = [x.s, x.i, x.pal].filter(v => v != null).sort((p, q) => p - q);
   if (pts.length < 2) return;
   const a = Math.min(...pts), b = Math.max(...pts), cells = new Map($$('.day[data-dn]', main).map(c => [+c.dataset.dn, c]));
   for (let n = a; n <= b; n++) {
     const c = cells.get(n); if (!c) continue;
-    c.classList.add('span'); if (n === a) c.classList.add('span-s'); if (n === b) c.classList.add('span-e');
-    c.style.setProperty('--hc', x.color);
+    const [l, r] = lineHalves(n, pts, x.color);
+    c.classList.add('span'); c.style.setProperty('--hcl', l); c.style.setProperty('--hcr', r);
   }
 }
 function sideBar() {

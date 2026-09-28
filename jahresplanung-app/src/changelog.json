@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.6.3",
+    "date": "2026-09-28T17:10",
+    "items": [
+      "Kalender: Klick auf S oder I hält die Maßnahme hervorgehoben, „Bearbeiten“ erscheint direkt darunter (P öffnet weiterhin direkt)",
+      "Kalender: Verbindungslinie zweifarbig – vom ersten zum zweiten Termin heller, vom zweiten zum dritten kräftig (auch in der Verbund-Darstellung)",
+      "Startbildschirm: Malteser-Logo 50 % größer"
+    ]
+  },
+  {
     "version": "0.6.2",
     "date": "2026-09-28T17:00",
     "items": [

@@ -164,6 +164,8 @@ main.hl .chip.hl-on { transform: scale(1.25); box-shadow: 0 0 0 2px var(--card),
 .mline.pinned { background: var(--hover); border-radius: 4px; padding: 1px 4px; margin-left: -4px; }
 .mline-edit { margin-left: 8px; font-size: 11px; line-height: 1.3; padding: 0 7px; background: var(--head); border: 1px solid var(--line); color: var(--faint); border-radius: 5px; font-weight: 400; vertical-align: 1px; }
 .mline-edit:hover:not(:disabled) { color: var(--ink2); border-color: var(--line2); }
+.day > .chip-edit { position: absolute; z-index: 6; top: calc(100% - 7px); left: 50%; transform: translateX(-50%); margin: 0; white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+.chip.pinned { box-shadow: 0 0 0 2px var(--card), 0 0 0 3px var(--ink); }
 .mvac { margin-top: 3px; color: var(--muted); }
 .vtag { display: inline-block; font-size: 11px; padding: 0 5px; border-radius: 8px; border: 1px solid; margin: 1px 3px 1px 0; color: var(--ink); }
 
@@ -594,16 +596,11 @@ body.resizing, body.resizing * { cursor: col-resize !important; }
 /* Verbindungslinie beim Überfahren einer Maßnahme */
 .day > * { position: relative; z-index: 1; }
 .day > .vbars { position: absolute; }
-.day.span::before { content: ''; position: absolute; left: 0; right: 0; top: 25px; height: 4px; background: var(--hc); opacity: .6; z-index: 0; }
-.day.span-s::before { left: 50%; border-radius: 2px 0 0 2px; }
-.day.span-e::before { right: 50%; border-radius: 0 2px 2px 0; }
-.day.span-s.span-e::before { display: none; }
+.day.span::before { content: ''; position: absolute; left: 0; right: 0; top: 25px; height: 4px; background: linear-gradient(90deg, var(--hcl) 0 50%, var(--hcr) 50% 100%); opacity: .9; z-index: 0; }
 /* Verbund-Darstellung: dauerhafte Linien je Maßnahme, eigene Spur je Überlappung */
 .cal.verbund .day { height: 58px; }
-.day > .vbl { position: absolute; left: 0; right: 0; top: calc(37px + var(--ln) * 4px); height: 3px; background: var(--hc); opacity: .8; z-index: 0; pointer-events: none; }
-.day > .vbl.vs { left: 50%; border-radius: 2px 0 0 2px; }
-.day > .vbl.ve { right: 50%; border-radius: 0 2px 2px 0; }
-.day > .vbl.vs.ve { left: 44%; right: 44%; }
+.day > .vbl { position: absolute; left: 0; right: 0; top: calc(37px + var(--ln) * 4px); height: 3px; background: linear-gradient(90deg, var(--hcl) 0 50%, var(--hcr) 50% 100%); opacity: .9; z-index: 0; pointer-events: none; }
+.day > .vbl.one { left: 44%; right: 44%; background: var(--hc); }
 main.hl .vbl:not(.hl-on) { opacity: .12; }
 main.hl .day > .vbl.hl-on { opacity: 1; height: 4px; margin-top: -.5px; }
 /* Zeitleiste: Namen anklickbar */
@@ -647,11 +644,11 @@ main.hl .day > .vbl.hl-on { opacity: 1; height: 4px; margin-top: -.5px; }
 .splash-mid { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: -4vh; }
 .splash-anim { width: min(340px, 46vh); height: min(340px, 46vh); }
 .splash-anim svg { width: 100%; height: 100%; display: block; }
-.splash-logo { height: 34px; width: auto; margin-top: -58px; }
+.splash-logo { height: 51px; width: auto; margin-top: -58px; }
 .splash-ver { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--faint); letter-spacing: .03em; }
 html[data-theme=dark] .splash { background: var(--bg); }
 html[data-theme=dark] .brand .logo { height: 33px; }
-html[data-theme=dark] .splash-logo { height: 31px; }
+html[data-theme=dark] .splash-logo { height: 47px; }
 
 /* ---------- Druck */
 @page { size: A4 landscape; margin: 0; }   /* ohne Rand druckt der Browser keine Kopf-/Fußzeile (Dateipfad, Titel) */

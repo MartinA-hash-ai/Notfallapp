@@ -3,8 +3,16 @@
 function chipStyle(t, color) {
   return t === 'P' ? { background: color, color: onColor(color), borderColor: color } : { background: pastel(color), color: inkC(color), borderColor: darkNow() ? mix(color, 0.3, DARK_SURF) : mix(color, 0.35) };
 }
+// Verbindungslinie im Kalender: erster → zweiter Termin heller, zweiter → dritter kräftig.
+// Liefert die Farben der linken und rechten Tageshälfte (Linie läuft von Tagesmitte zu Tagesmitte).
+function lineHalves(n, pts, c) {
+  const light = darkNow() ? mix(c, 0.5, DARK_SURF) : mix(c, 0.62), a = pts[0], b = pts[pts.length - 1], mid = pts.length > 2 ? pts[1] : b;
+  const col = t => t < mid ? light : c;
+  return [n > a ? col(n - 0.25) : 'transparent', n < b ? col(n + 0.25) : 'transparent'];
+}
+const isPinnedChip = e => UI.pin === e.x.id && UI.pinDay === e.n && UI.pinT === e.t && !UI.printing;
 function chip(e, opts = {}) {
-  return h('span', { class: 'chip ' + e.t, dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
+  return h('span', { class: 'chip ' + e.t + (!opts.noClick && isPinnedChip(e) ? ' pinned' : ''), dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
     onpointerdown: opts.noClick ? null : ev => chipDrag(ev, e),
     onmouseenter: opts.noHl ? null : () => highlight(e.x.id), onmouseleave: opts.noHl ? null : () => highlight(null) }, e.t);
 }
@@ -34,7 +42,8 @@ function verbundLanes() {
   for (const x of C.ms.filter(visibleM)) {
     const pts = TYPES.filter(([t]) => UI.show[t]).map(([, k]) => x[k]).filter(v => v != null);
     if (pts.length < 2) continue;
-    out.push({ x, a: Math.min(...pts), b: Math.max(...pts) });
+    pts.sort((p, q) => p - q);
+    out.push({ x, a: pts[0], b: pts[pts.length - 1], pts });
   }
   out.sort((p, q) => p.a - q.a || q.b - p.b);
   for (const v of out) { let l = ends.findIndex(e => e < v.a); if (l < 0) { l = ends.length; ends.push(v.b); } else ends[l] = v.b; v.lane = l; }
@@ -48,8 +57,9 @@ function dayCell(n, evs, vacs, today, vb) {
     evs.length ? h('div', { class: 'chips' }, evs.map(e => chip(e))) : null,
     away.length ? h('div', { class: 'vbars' + (away.length > 1 ? ' multi' : '') }, away.slice(0, 4).map(v => h('span', { style: { background: personColor(v.u.wer) } })),
       away.length > 1 ? h('b', { class: 'vcount' }, away.length) : null) : null,
-    vb ? vb.filter(v => v.a <= n && n <= v.b).map(v => h('span', { class: 'vbl' + (n === v.a ? ' vs' : '') + (n === v.b ? ' ve' : ''), dataset: { m: v.x.id },
-      style: { '--hc': v.x.color, '--ln': String(v.lane % 4) } })) : null);
+    vb ? vb.filter(v => v.a <= n && n <= v.b).map(v => { const [l, r] = lineHalves(n, v.pts, v.x.color);
+      return h('span', { class: 'vbl' + (v.a === v.b ? ' one' : ''), dataset: { m: v.x.id }, style: { '--hcl': l, '--hcr': r, '--hc': v.x.color, '--ln': String(v.lane % 4) } }); }) : null,
+    UI.pin && UI.pinDay === n && !UI.printing && evs.some(isPinnedChip) ? pinEditBtn(UI.pin, 'chip-edit') : null);
 }
 function monthCard(y, mo, byDay, vacs, today, vb) {
   const first = mkdn(y, mo, 1), last = first + daysIn(y, mo) - 1, start = first - wd(first);
@@ -152,7 +162,7 @@ function chipDrag(ev, e) {
   const up = () => {
     const wasMoved = moved;
     stop();
-    if (!wasMoved) { editMassnahme(x.id); return; }
+    if (!wasMoved) { if (t === 'P') editMassnahme(x.id); else pinChip(el, x.id, e.n, t); return; }
     if (!dd) return;
     if (t === 'P') commit(d => { findM(d, x.id).pal = ds(x.pal + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (S und I mitverschoben)');
     else moveStartTo(x.id, t, (t === 'S' ? x.s : x.i) + dd);
