@@ -11,7 +11,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts'];
+const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');

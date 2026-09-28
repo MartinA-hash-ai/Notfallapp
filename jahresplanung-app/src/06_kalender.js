@@ -28,16 +28,30 @@ function dayTip(n, evs, away, hn) {
     away.length ? h('div', { class: 'tt-vac' }, 'Urlaub: ', away.map(vacTag)) : null,
     (!evs.length && !away.length && !hn) ? h('div', { class: 'muted' }, 'keine Termine') : null);
 }
-function dayCell(n, evs, vacs, today) {
+// Verbund-Darstellung: je Maßnahme eine farbige Linie von der ersten bis zur letzten angezeigten Markierung, eigene Spur je Überlappung
+function verbundLanes() {
+  const out = [], ends = [];
+  for (const x of C.ms.filter(visibleM)) {
+    const pts = TYPES.filter(([t]) => UI.show[t]).map(([, k]) => x[k]).filter(v => v != null);
+    if (pts.length < 2) continue;
+    out.push({ x, a: Math.min(...pts), b: Math.max(...pts) });
+  }
+  out.sort((p, q) => p.a - q.a || q.b - p.b);
+  for (const v of out) { let l = ends.findIndex(e => e < v.a); if (l < 0) { l = ends.length; ends.push(v.b); } else ends[l] = v.b; v.lane = l; }
+  return out;
+}
+function dayCell(n, evs, vacs, today, vb) {
   const hn = holName(n), w = wd(n), away = vacs.filter(v => v.von <= n && n <= v.bis);
   const cls = 'day' + (w >= 5 ? ' we' : '') + (hn ? ' hol' : '') + (n === today ? ' today' : '') + (away.length ? ' away' : '');
   return h('div', { class: cls, dataset: { dn: n }, tip: () => dayTip(n, evs, away, hn) },
     h('span', { class: 'dnum' }, ymd(n)[2]),
     evs.length ? h('div', { class: 'chips' }, evs.map(e => chip(e))) : null,
     away.length ? h('div', { class: 'vbars' + (away.length > 1 ? ' multi' : '') }, away.slice(0, 4).map(v => h('span', { style: { background: personColor(v.u.wer) } })),
-      away.length > 1 ? h('b', { class: 'vcount' }, away.length) : null) : null);
+      away.length > 1 ? h('b', { class: 'vcount' }, away.length) : null) : null,
+    vb ? vb.filter(v => v.a <= n && n <= v.b).map(v => h('span', { class: 'vbl' + (n === v.a ? ' vs' : '') + (n === v.b ? ' ve' : ''), dataset: { m: v.x.id },
+      style: { '--hc': v.x.color, '--ln': String(v.lane % 4) } })) : null);
 }
-function monthCard(y, mo, byDay, vacs, today) {
+function monthCard(y, mo, byDay, vacs, today, vb) {
   const first = mkdn(y, mo, 1), last = first + daysIn(y, mo) - 1, start = first - wd(first);
   const g = h('div', { class: 'mgrid' }, h('div', { class: 'wh kw' }, 'KW'), WD.map((d, i) => h('div', { class: 'wh' + (i >= 5 ? ' we' : '') }, d)));
   for (let w = 0; w < 6; w++) {
@@ -45,7 +59,7 @@ function monthCard(y, mo, byDay, vacs, today) {
     g.append(h('div', { class: 'kw' }, ws <= last ? isoWeek(ws) : ''));
     for (let d = 0; d < 7; d++) {
       const n = ws + d;
-      g.append(n < first || n > last ? h('div', { class: 'day out' }) : dayCell(n, byDay.get(n) || [], vacs, today));
+      g.append(n < first || n > last ? h('div', { class: 'day out' }) : dayCell(n, byDay.get(n) || [], vacs, today, vb));
     }
   }
   const card = h('section', { class: 'month' }, h('header', null, MON[mo - 1] + ' ' + y), g);
@@ -57,7 +71,7 @@ function monthCard(y, mo, byDay, vacs, today) {
     const per = new Map();
     for (let n = first; n <= last; n++) for (const e of byDay.get(n) || []) { if (!per.has(e.x.id)) per.set(e.x.id, { x: e.x, ev: [] }); per.get(e.x.id).ev.push(e); }
     for (const { x, ev } of per.values())
-      list.append(h('div', { class: 'mline', dataset: { m: x.id }, onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null), onclick: () => editMassnahme(x.id), style: { color: mix(x.color, 0.1, '#000000') } },
+      list.append(h('div', { class: 'mline', dataset: { m: x.id }, onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null), onclick: () => editMassnahme(x.id), style: { color: inkC(x.color) } },
         h('span', { class: 'key', style: { background: x.color } }), h('b', null, x.m.name + ': '), ev.map(e => e.t + ' ' + fmtS(e.n)).join(' · ')));
     const vm = vacs.filter(v => v.bis >= first && v.von <= last);
     if (vm.length) list.append(h('div', { class: 'mvac' }, 'Urlaub: ', vm.map(v => h('span', { class: 'vtag', style: { background: pastel(personColor(v.u.wer)), borderColor: personColor(v.u.wer) } },
@@ -71,8 +85,8 @@ function calendarBody() {
   const ev = eventsIn(mkdn(y, 1, 1), mkdn(y, 12, 31));
   const byDay = new Map();
   ev.forEach(e => { if (!byDay.has(e.n)) byDay.set(e.n, []); byDay.get(e.n).push(e); });
-  const vacs = C.vac.filter(vacVisible);
-  return h('div', { class: 'cal' }, Array.from({ length: 12 }, (_, i) => monthCard(y, i + 1, byDay, vacs, today)));
+  const vacs = C.vac.filter(vacVisible), vb = UI.verbund ? verbundLanes() : null;
+  return h('div', { class: 'cal' + (vb ? ' verbund' : '') }, Array.from({ length: 12 }, (_, i) => monthCard(y, i + 1, byDay, vacs, today, vb)));
 }
 
 /* ---------- Markierung im Kalender ziehen: P verschiebt das ganze Projekt, S/I nur dieses Datum */
@@ -119,7 +133,7 @@ function chipDrag(ev, e) {
     }
     clearMarks();
     if (t === 'P') { mark(p, 'P'); mark(s, 'S'); mark(i, 'I'); } else mark(t === 'S' ? s : i, t);
-    lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    setKids(lab, h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, m.clientX, m.clientY);
   };
   const stop = () => {

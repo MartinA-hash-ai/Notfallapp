@@ -23,24 +23,25 @@ async function pdfDialog() {
   const last = UI.pdfOpts || {};
   const f = {
     secs: Object.assign({ mass: true, kal: true, tl: true, ag: false, plaene: false, urlaub: false }, last.secs),
-    show: Object.assign({ S: true, I: true, P: true }, last.show), vac: last.vac !== false,
+    show: Object.assign({ S: true, I: true, P: true }, last.show), vac: last.vac !== false, verbund: !!UI.verbund,
     ms: new Set(list.map(x => x.id)),
   };
   const wrap = h('div', { class: 'form pdfform' });
   const draw = () => {
     const cb = (obj, k, label, extra) => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!obj[k], onchange: e => { obj[k] = e.target.checked; } }), label, extra || null);
-    wrap.replaceChildren(
+    setKids(wrap, 
       h('div', { class: 'pdf-top' }, h('p', { class: 'muted small' }, 'Wähle, was ins PDF soll. Jeder Bereich beginnt auf einer neuen Seite (A4 quer).'),
         h('button', { class: 'ghostbtn', tip: 'übernimmt Reiter, Filter und angezeigte Maßnahmen von der Ansicht, die gerade offen ist', onclick: e => { e.preventDefault(); fromView(); draw(); } }, '⟲ Wie aktuelle Ansicht')),
       h('div', { class: 'pdf-cols' },
         h('div', null, h('h3', null, 'Bereiche'), h('div', { class: 'checks' }, PDF_SECS.map(([k, l]) => cb(f.secs, k, l))),
-          h('h3', null, 'Termine'), h('div', { class: 'checks' }, cb(f.show, 'S', 'Start Selektion'), cb(f.show, 'I', 'Start inhaltliche Arbeit'), cb(f.show, 'P', 'PAL'), cb(f, 'vac', 'Urlaube anzeigen'))),
+          h('h3', null, 'Termine'), h('div', { class: 'checks' }, cb(f.show, 'S', 'Start Selektion'), cb(f.show, 'I', 'Start inhaltliche Arbeit'), cb(f.show, 'P', 'PAL'), cb(f, 'vac', 'Urlaube anzeigen'),
+            cb(f, 'verbund', 'Verbund-Darstellung im Kalender'))),
         msPicker(f.ms, list)));
   };
   const fromView = () => {
     f.secs = Object.fromEntries(PDF_SECS.map(([k]) => [k, (VIEW_SECS[UI.view] || []).includes(k) && (UI.secOpen[k] !== false)]));
     if (!Object.values(f.secs).some(Boolean)) f.secs.mass = true;
-    f.show = { ...UI.show }; f.vac = UI.showVac;
+    f.show = { ...UI.show }; f.vac = UI.showVac; f.verbund = !!UI.verbund;
     f.ms = new Set(list.filter(x => visibleM(x)).map(x => x.id));
     if (UI.view === 'plaene' && UI.planSel) { f.ms = new Set([UI.planSel]); f.secs.plaene = true; }
   };
@@ -54,9 +55,9 @@ async function pdfDialog() {
 }
 
 function printPDF(f) {
-  const keys = ['show', 'hiddenM', 'showVac', 'hiddenP', 'monthLists', 'tlPlans', 'tlPxd', 'planSel', 'planCompact', 'planColl', 'planPxd', 'view'];
+  const keys = ['show', 'hiddenM', 'showVac', 'hiddenP', 'monthLists', 'tlPlans', 'tlPxd', 'planSel', 'planCompact', 'planColl', 'planPxd', 'view', 'verbund'];
   const keep = {}; keys.forEach(k => { keep[k] = UI[k] instanceof Set ? new Set(UI[k]) : UI[k] && typeof UI[k] === 'object' ? JSON.parse(JSON.stringify(UI[k])) : UI[k]; });
-  UI.show = { ...f.show }; UI.showVac = f.vac; UI.hiddenP = new Set(); UI.monthLists = true; UI.tlPlans = false; UI.tlPxd = 0;
+  UI.show = { ...f.show }; UI.showVac = f.vac; UI.verbund = !!f.verbund; UI.hiddenP = new Set(); UI.monthLists = true; UI.tlPlans = false; UI.tlPxd = 0;
   UI.hiddenM = new Set(C.ms.filter(x => !f.ms.has(x.id)).map(x => x.id));
   UI.planCompact = true; UI.planColl = {}; UI.planPxd = 0;
   UI.printing = true;

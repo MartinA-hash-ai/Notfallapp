@@ -448,7 +448,7 @@ function barDrag(ev, ctx, mode) {
     if (isTask) { el.style.left = X(ns) + 'px'; el.style.width = Math.max(3, (ne - ns) * pxd) + 'px'; }
     else el.style.left = X(ne) + pxd / 2 + 'px';
     const w = s.wer ? C.vac.filter(v => v.u.wer === s.wer && v.von <= ne && v.bis >= ns).map(v => s.wer + ' Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis)) : [];
-    lab.replaceChildren(h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' (' + (ne - ns) + ' Tage)' : fmtW(ne)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    setKids(lab, h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' (' + (ne - ns) + ' Tage)' : fmtW(ne)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {

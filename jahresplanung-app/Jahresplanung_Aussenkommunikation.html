@@ -18,9 +18,9 @@
 }
 @media screen {
   html[data-theme=dark] {
-    --red: #ff3b3b; --red-d: #ff6b6b; --ink: #e8e8e8; --ink2: #d0d0d0; --muted: #a0a3a8; --faint: #7d8187; --line: #34363a; --line2: #45484d; --line3: #2a2c2f;
-    --bg: #151617; --card: #1e1f21; --input: #18191b; --soft: #222326; --head: #26272a; --hover: #2c2e31; --solid: #3a3d42;
-    --we: #262729; --hol1: #2b2c2f; --hol2: #3a3c40; --warn: #f0a24a; --warnbg: #3a2b14; --warnline: #7a5a22; --vorl: #ffb088; --vorlbg: #33231a;
+    --red: #ff3b3b; --red-d: #ff6b6b; --ink: #e8e8e8; --ink2: #d0d0d0; --muted: #a3a6ab; --faint: #83878d; --line: #3b3e43; --line2: #4b4e54; --line3: #33363a;
+    --bg: #141516; --card: #26282b; --input: #1e2022; --soft: #2b2d31; --head: #303236; --hover: #36383c; --solid: #44474c;
+    --we: #2e3034; --hol1: #33363a; --hol2: #43464b; --warn: #f0a24a; --warnbg: #3a2b14; --warnline: #7a5a22; --vorl: #ffb088; --vorlbg: #33231a;
     --errbg: #3b1d1c; --errline: #7a3430; --errink: #ffb4ab; --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6; --infobg: #25282c;
     --runbg: #1a2c40; --runink: #9ccaff; --flash: #5a5220; --chipbg: #3a3c40;
     --chk-line: #4a4d52; --chk-on: #2c2e31; --chk-mark: #8a8e94;
@@ -456,6 +456,13 @@ main.hl .tl-row[data-m]:not(.hl-on) > .tl-lab > *, main.hl .tl-row[data-m]:not(.
 .utable td:first-child { display: flex; align-items: center; }
 .utable tr.other td { opacity: .5; }
 .htable td { padding: 4px 6px; }
+.hcard .htable td { padding: 0 4px; height: 27px; }
+.hcard .htable th { padding: 4px 6px; }
+.hcard .htable td input:not([type=checkbox]) { padding: 1px 4px; }
+.hcard .htable td input[type=date] { width: 138px; }
+.hcard .htable td.acts { width: 30px; }
+.hcard .htable td.acts button { padding: 0 6px; }
+.hcard h3 { margin-top: 10px; }
 .htable tr.off td:not(.hchk) { opacity: .45; text-decoration: line-through; }
 .htable td.hchk { width: 26px; text-align: center; }
 .htable td.hchk input { vertical-align: middle; }
@@ -584,6 +591,13 @@ body.resizing, body.resizing * { cursor: col-resize !important; }
 .day.span-s::before { left: 50%; border-radius: 2px 0 0 2px; }
 .day.span-e::before { right: 50%; border-radius: 0 2px 2px 0; }
 .day.span-s.span-e::before { display: none; }
+/* Verbund-Darstellung: dauerhafte Linien je Maßnahme, eigene Spur je Überlappung */
+.cal.verbund .day { height: 58px; }
+.day > .vbl { position: absolute; left: 0; right: 0; top: calc(37px + var(--ln) * 4px); height: 3px; background: var(--hc); opacity: .8; z-index: 0; pointer-events: none; }
+.day > .vbl.vs { left: 50%; border-radius: 2px 0 0 2px; }
+.day > .vbl.ve { right: 50%; border-radius: 0 2px 2px 0; }
+.day > .vbl.vs.ve { left: 44%; right: 44%; }
+main.hl .vbl:not(.hl-on) { opacity: .12; }
 /* Zeitleiste: Namen anklickbar */
 .tl-lab.clickable, .tl-lab.clickable .nm { cursor: pointer; }
 .tl-lab.clickable:hover .nm { text-decoration: underline; }
@@ -618,6 +632,17 @@ body.resizing, body.resizing * { cursor: col-resize !important; }
   main { padding: 12px 12px 60px; }
   .actions { margin-left: 0; }
 }
+
+/* ---------- Startbildschirm */
+.splash { position: fixed; inset: 0; z-index: 300; background: var(--card); display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; transition: opacity .4s ease; }
+.splash.out { opacity: 0; pointer-events: none; }
+.splash-mid { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: -4vh; }
+.splash-anim { width: min(340px, 46vh); height: min(340px, 46vh); }
+.splash-anim svg { width: 100%; height: 100%; display: block; }
+.splash-logo { height: 34px; width: auto; margin-top: -58px; }
+.splash-ver { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--faint); letter-spacing: .03em; }
+html[data-theme=dark] .splash { background: var(--bg); }
+html[data-theme=dark] .splash-logo { background: #fff; border-radius: 6px; padding: 3px 6px; }
 
 /* ---------- Druck */
 @page { size: A4 landscape; margin: 0; }   /* ohne Rand druckt der Browser keine Kopf-/Fußzeile (Dateipfad, Titel) */
@@ -694,6 +719,8 @@ body.resizing, body.resizing * { cursor: col-resize !important; }
   .pd-plan .g-head .gm { height: 15px; } .pd-plan .g-head .gw { top: 15px; height: 14px; }
   .pd-plan .gcount, .pd-plan .gtog { display: none; }
   .pd-table td.pal.vorl { color: #9a3412; }
+  .cal.verbund .day { height: 22px; }
+  .day > .vbl { top: calc(11px + var(--ln) * 1.8px); height: 1.4px; }
 }
 #printdoc { display: none; }
 .pd-head { display: flex; align-items: center; gap: 14px; border-bottom: 2px solid var(--red); padding-bottom: 6px; margin-bottom: 8px; }
@@ -715,6 +742,14 @@ body.resizing, body.resizing * { cursor: col-resize !important; }
 .cl-v + .cl-v { border-top: 1px solid var(--line); margin-top: 6px; padding-top: 6px; }
 .changelog ul { margin: 4px 0 2px; padding-left: 18px; }
 .changelog li { margin: 2px 0; }
+.icsprev { border: 1px solid var(--line); border-radius: 8px; padding: 6px; max-height: 470px; overflow: auto; }
+.icsgrp { padding-bottom: 3px; border-bottom: 1px solid var(--line3); }
+.icsgrp:last-child { border-bottom: 0; }
+.icsgrp.off .mchk .nm { color: var(--faint); }
+.icsev { display: grid; grid-template-columns: 168px 1fr; gap: 6px; padding: 1px 4px 1px 28px; font-size: 12px; color: var(--ink2); }
+.icsev .d { white-space: nowrap; color: var(--muted); }
+.icsev .l { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.icsev.k-P .l { font-weight: 600; }
 .ics-presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
 .mspick { border: 1px solid var(--line); border-radius: 8px; padding: 6px; max-height: 380px; overflow: auto; }
 .pd-head .pd-stand { margin-left: auto; font-size: 9px; color: #888; text-align: right; }
@@ -736,8 +771,9 @@ body.resizing, body.resizing * { cursor: col-resize !important; }
 const LOGO = "data:image/png;base64,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";
 const MAILING_TEMPLATE = {"steps": [{"id": "g_sel", "typ": "gruppe", "name": "Selektion", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "sel_einleiten", "typ": "aufgabe", "name": "Selektion einleiten", "wer": "", "kommentar": "seitens Paderborn", "dauer": 2, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "freigabe_kati"}}, {"id": "interessen", "typ": "aufgabe", "name": "Interessensabwägung", "wer": "", "kommentar": "", "dauer": 14, "fortschritt": 0, "anker": {"art": "ende", "offset": 0, "ref": "sel_abg"}}, {"id": "freigabe_kati", "typ": "aufgabe", "name": "Freigabe Selektion Kati", "wer": "", "kommentar": "", "dauer": 5, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "sel_erstellen"}}, {"id": "sel_erstellen", "typ": "aufgabe", "name": "Selektion erstellen", "wer": "", "kommentar": "seitens Köln", "dauer": 52, "fortschritt": 0, "anker": {"art": "ende", "offset": 0, "ref": "freigaben"}}, {"id": "sel_abg", "typ": "ziel", "name": "Selektion abgeschlossen", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "ende", "offset": 0, "ref": "uebergabe"}}, {"id": "g_mail", "typ": "gruppe", "name": "Mailing", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "thema", "typ": "aufgabe", "name": "Thema definieren", "wer": "", "kommentar": "Recherche", "dauer": 1, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "texte"}}, {"id": "texte", "typ": "aufgabe", "name": "Texte erstellen", "wer": "", "kommentar": "", "dauer": 7, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "gestaltung"}}, {"id": "bilder", "typ": "aufgabe", "name": "Bilder einholen", "wer": "", "kommentar": "", "dauer": 7, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "gestaltung"}}, {"id": "layout", "typ": "meilenstein", "name": "Layoutphase", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "gestaltung"}}, {"id": "gestaltung", "typ": "aufgabe", "name": "Gestaltung", "wer": "", "kommentar": "", "dauer": 14, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "korrektur"}}, {"id": "korrektur", "typ": "aufgabe", "name": "Korrekturphase", "wer": "", "kommentar": "", "dauer": 5, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "freigaben"}}, {"id": "freigaben", "typ": "aufgabe", "name": "Freigaben einholen", "wer": "", "kommentar": "", "dauer": 14, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "uebergabe"}}, {"id": "uebergabe", "typ": "meilenstein", "name": "Übergabe an Lettershop", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "produktion"}}, {"id": "angebot", "typ": "aufgabe", "name": "Angebotsanfrage", "wer": "", "kommentar": "", "dauer": 41, "fortschritt": 0, "anker": {"art": "pal", "offset": 0}}, {"id": "produktion", "typ": "aufgabe", "name": "Produktion & Versand", "wer": "", "kommentar": "", "dauer": 17, "fortschritt": 0, "anker": {"art": "pal", "offset": 0}}, {"id": "briefkasten", "typ": "ziel", "name": "Briefkasten-Termin", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "pal", "offset": 0}}, {"id": "g_sm", "typ": "gruppe", "name": "Flankierung: Social Media", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "sm_texte", "typ": "aufgabe", "name": "Texte erstellen", "wer": "P/Ö", "kommentar": "Anke", "dauer": 3, "fortschritt": 0, "anker": {"art": "ende", "offset": 0, "ref": "sm_grafik"}}, {"id": "sm_grafik", "typ": "aufgabe", "name": "Grafik erstellen", "wer": "P/Ö", "kommentar": "", "dauer": 3, "fortschritt": 0, "anker": {"art": "ende", "offset": 0, "ref": "sm_v1"}}, {"id": "sm_v1", "typ": "meilenstein", "name": "Veröffentlichung 1", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "sm_v2", "typ": "meilenstein", "name": "Veröffentlichung 2", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "sm_v3", "typ": "meilenstein", "name": "Veröffentlichung 3", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "sm_v4", "typ": "meilenstein", "name": "Veröffentlichung 4", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "g_pr", "typ": "gruppe", "name": "Flankierung: Pressearbeit", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "pr_artikel", "typ": "aufgabe", "name": "Artikel erstellen", "wer": "P/Ö", "kommentar": "", "dauer": 3, "fortschritt": 0, "anker": {"art": "ende", "offset": 0, "ref": "pr_v1"}}, {"id": "pr_korrektur", "typ": "aufgabe", "name": "Korrekturphase", "wer": "P/Ö", "kommentar": "", "dauer": 3, "fortschritt": 0, "anker": {"art": "ende", "offset": 0, "ref": "pr_v1"}}, {"id": "pr_v1", "typ": "meilenstein", "name": "Veröffentlichung 1", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "pr_v2", "typ": "meilenstein", "name": "Veröffentlichung 2", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "pr_v3", "typ": "meilenstein", "name": "Veröffentlichung 3", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "pr_v4", "typ": "meilenstein", "name": "Veröffentlichung 4", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "g_dank", "typ": "gruppe", "name": "Dankbrief", "wer": "", "kommentar": "", "dauer": 0, "fortschritt": 0, "anker": {"art": "offen"}}, {"id": "db_texte", "typ": "aufgabe", "name": "Texte erstellen", "wer": "", "kommentar": "", "dauer": 5, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "db_versand"}}, {"id": "db_layout", "typ": "aufgabe", "name": "Layoutphase", "wer": "", "kommentar": "", "dauer": 5, "fortschritt": 0, "anker": {"art": "start", "offset": 0, "ref": "db_versand"}}, {"id": "db_versand", "typ": "aufgabe", "name": "Versand", "wer": "", "kommentar": "Briefkasten + 14 Tage", "dauer": 1, "fortschritt": 0, "anker": {"art": "pal", "offset": 14}}], "markS": "sel_einleiten", "markI": "thema"};
 const FAVICON = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='13' fill='%23E30714'/%3E%3Crect x='11' y='14' width='42' height='38' rx='5' fill='white'/%3E%3Crect x='11' y='14' width='42' height='10' rx='3' fill='%23404040'/%3E%3Cg fill='%23E30714'%3E%3Crect x='17' y='30' width='8' height='7' rx='1'/%3E%3Crect x='28' y='30' width='8' height='7' rx='1'/%3E%3Crect x='39' y='30' width='8' height='7' rx='1'/%3E%3Crect x='17' y='40' width='8' height='7' rx='1'/%3E%3Crect x='28' y='40' width='8' height='7' rx='1'/%3E%3C/g%3E%3C/svg%3E";
-const APP_INFO = {"version": "0.4", "date": "2026-09-28T14:28"};
-const CHANGELOG = [{"version": "0.4", "date": "2026-09-28T14:28", "items": ["Einstellungen: Personen verwalten (Name, Farbe), dunkles Design, Versionsnummer und Änderungsliste", "Einstellungen: Standard-Vorlauf und „Max. Starts pro Woche“ entfernt", "Programm-Update einspielen, ohne dass Daten verloren gehen (⋯-Menü)", "PDF-Export mit Auswahl von Bereichen und Maßnahmen, „Wie aktuelle Ansicht“, ohne Dateipfad und Browser-Kopfzeile", "Outlook-Export: Terminarten, Maßnahmen, Person, Zeitraum wählbar; Aufteilung in mehrere Dateien; alle Termine ganztägig", "Jahresplanung: Kopfzeile repariert, Auflage linksbündig, S/I/P rechts der Beschriftung, „PAL-Status“, PAL nur bei „vorläufig“ farbig, hellere Häkchen", "Warnungen: Vorziehen auch bei Feiertagen, bei Detailplänen und beim PAL", "Zeitleiste: S/I/P-Knöpfe bei „Was steht an?“, Hervorheben ohne durchscheinende Wochenenden, Werktage vor PAL, Maßnahmen-Auswahl bleibt offen", "Detailpläne: ganze Abschnitte einer Person zuordnen, neue Schritte standardmäßig eine Woche lang", "Urlaub & Feiertage: Feiertage lassen sich umbenennen, verschieben und abschalten"]}, {"version": "0.3", "date": "2026-09-28T09:23", "items": ["Malteser-Logo, Datensicherung exportieren/importieren, PDF-Jahresübersicht (3 Seiten)", "Maßnahmen-Tabelle: Start Selektion/Inhalt als Datum statt Vorlauf, Spaltenbreiten ziehbar, „Hauptverantwortlich“", "Kalender: Verbindungslinie beim Überfahren, Urlaub-Knopf zum Ein-/Ausblenden", "Zeitleiste: Mausrad-Zoom, Klick auf den Namen zeigt die ganze Maßnahme, Markierungen in der Tagesmitte", "Detailpläne: Abschnitte einklappen, Zeilen ziehen, Farbe je Person, Balken verschieben und in der Länge ändern, Zoom", "Urlaub: Dialog „neuen Urlaub eintragen“"]}, {"version": "0.2", "date": "2026-09-25T19:50", "items": ["Weniger Reiter, einklappbare Bereiche, Termine im Kalender ziehen, Monats-Zoom in der Zeitleiste", "Startknopf für den Mailing-Ordner (eigenes Programmfenster)", "Automatisches Speichern im Mailing-Ordner, Excel-Ansicht für Kolleg:innen in Teams"]}, {"version": "0.1", "date": "2026-09-25T13:28", "items": ["Erste Programmversion aus der Excel-Jahresplanung: Kalender, Zeitleiste, Detailpläne mit Gantt, Urlaub, Warnungen, Export nach Excel, Outlook und PDF"]}];
+const APP_INFO = {"version": "0.5", "date": "2026-09-28T15:25"};
+const CHANGELOG = [{"version": "0.5", "date": "2026-09-28T15:25", "items": ["Startbildschirm mit Animation in Malteser-Farben, Logo und Versionsnummer (abschaltbar in den Einstellungen, Klick überspringt)", "Dunkles Design: Kästen heller abgesetzt, damit sie sich klar vom Hintergrund abheben", "Warnungen: Knopf zeigt ✓, wenn nichts zu prüfen ist; Anzeige aktualisiert sich zuverlässig nach dem Freigeben des Ordners", "Outlook-Export: Liste aller Termine, die in der Datei landen – passt sich der Auswahl an", "Kalender: Verbund-Darstellung dauerhaft ein-/ausblendbar (auch im PDF)", "Feiertage: kompaktere Tabelle ohne Erklärtexte"]}, {"version": "0.4", "date": "2026-09-28T14:28", "items": ["Einstellungen: Personen verwalten (Name, Farbe), dunkles Design, Versionsnummer und Änderungsliste", "Einstellungen: Standard-Vorlauf und „Max. Starts pro Woche“ entfernt", "Programm-Update einspielen, ohne dass Daten verloren gehen (⋯-Menü)", "PDF-Export mit Auswahl von Bereichen und Maßnahmen, „Wie aktuelle Ansicht“, ohne Dateipfad und Browser-Kopfzeile", "Outlook-Export: Terminarten, Maßnahmen, Person, Zeitraum wählbar; Aufteilung in mehrere Dateien; alle Termine ganztägig", "Jahresplanung: Kopfzeile repariert, Auflage linksbündig, S/I/P rechts der Beschriftung, „PAL-Status“, PAL nur bei „vorläufig“ farbig, hellere Häkchen", "Warnungen: Vorziehen auch bei Feiertagen, bei Detailplänen und beim PAL", "Zeitleiste: S/I/P-Knöpfe bei „Was steht an?“, Hervorheben ohne durchscheinende Wochenenden, Werktage vor PAL, Maßnahmen-Auswahl bleibt offen", "Detailpläne: ganze Abschnitte einer Person zuordnen, neue Schritte standardmäßig eine Woche lang", "Urlaub & Feiertage: Feiertage lassen sich umbenennen, verschieben und abschalten"]}, {"version": "0.3", "date": "2026-09-28T09:23", "items": ["Malteser-Logo, Datensicherung exportieren/importieren, PDF-Jahresübersicht (3 Seiten)", "Maßnahmen-Tabelle: Start Selektion/Inhalt als Datum statt Vorlauf, Spaltenbreiten ziehbar, „Hauptverantwortlich“", "Kalender: Verbindungslinie beim Überfahren, Urlaub-Knopf zum Ein-/Ausblenden", "Zeitleiste: Mausrad-Zoom, Klick auf den Namen zeigt die ganze Maßnahme, Markierungen in der Tagesmitte", "Detailpläne: Abschnitte einklappen, Zeilen ziehen, Farbe je Person, Balken verschieben und in der Länge ändern, Zoom", "Urlaub: Dialog „neuen Urlaub eintragen“"]}, {"version": "0.2", "date": "2026-09-25T19:50", "items": ["Weniger Reiter, einklappbare Bereiche, Termine im Kalender ziehen, Monats-Zoom in der Zeitleiste", "Startknopf für den Mailing-Ordner (eigenes Programmfenster)", "Automatisches Speichern im Mailing-Ordner, Excel-Ansicht für Kolleg:innen in Teams"]}, {"version": "0.1", "date": "2026-09-25T13:28", "items": ["Erste Programmversion aus der Excel-Jahresplanung: Kalender, Zeitleiste, Detailpläne mit Gantt, Urlaub, Warnungen, Export nach Excel, Outlook und PDF"]}];
+const SPLASH_ANIM = {"v":"4.8.0","meta":{"g":"LottieFiles AE 1.0.0","a":"","k":"","d":"","tc":"#FFFFFF"},"fr":30,"ip":0,"op":75,"w":1500,"h":1500,"nm":"message_sent","ddd":0,"assets":[{"id":"comp_0","layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Shape Layer 4","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[750,750,0],"ix":2},"a":{"a":0,"k":[19,46,0],"ix":1},"s":{"a":0,"k":[124,124,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],"v":[[475.5,-168],[-275.403,166.387],[-240.194,386.403],[-219,240],[-123.565,296.419],[-216,223]],"c":false},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.6471,0.0,0.0588,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Shape 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":190.19019019019,"st":10.01001001001,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Shape Layer 3","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[750,750,0],"ix":2},"a":{"a":0,"k":[19,46,0],"ix":1},"s":{"a":0,"k":[124,124,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0],[0,0],[0,0],[0,0]],"v":[[488,-174],[-460,16],[-276,166],[-240,386],[-122,296],[4,404]],"c":true},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"fl","c":{"a":0,"k":[0.8902,0.0275,0.0784,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Shape 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":190.19019019019,"st":10.01001001001,"bm":0}]}],"layers":[{"ddd":0,"ind":1,"ty":4,"nm":"Shape Layer 4","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50.045,"s":[100]},{"t":60.0546875,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":45.04,"s":[1246,282,0],"to":[-3.667,52,0],"ti":[3.667,-52,0]},{"t":60.0546875,"s":[1224,594,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":1,"k":[{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":45.04,"s":[0,0,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":50.045,"s":[4,4,100]},{"t":60.0546875,"s":[0,0,100]}],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"d":1,"ty":"el","s":{"a":0,"k":[1500,1500],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"nm":"Ellipse Path 1","mn":"ADBE Vector Shape - Ellipse","hd":false},{"ty":"st","c":{"a":0,"k":[0.8902,0.0275,0.0784,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":240,"ix":5},"lc":1,"lj":1,"ml":4,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"fl","c":{"a":0,"k":[0.6471,0.0,0.0588,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Ellipse 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":80,"st":5,"bm":0},{"ddd":0,"ind":2,"ty":4,"nm":"Shape Layer 5","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50.045,"s":[100]},{"t":60.0546875,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":45.04,"s":[1246,282,0],"to":[20,-19.333,0],"ti":[-20,19.333,0]},{"t":60.0546875,"s":[1366,166,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":1,"k":[{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":45.04,"s":[0,0,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":50.045,"s":[4,4,100]},{"t":60.0546875,"s":[0,0,100]}],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"d":1,"ty":"el","s":{"a":0,"k":[1500,1500],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"nm":"Ellipse Path 1","mn":"ADBE Vector Shape - Ellipse","hd":false},{"ty":"st","c":{"a":0,"k":[0.8902,0.0275,0.0784,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":240,"ix":5},"lc":1,"lj":1,"ml":4,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"fl","c":{"a":0,"k":[0.6471,0.0,0.0588,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Ellipse 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":80,"st":5,"bm":0},{"ddd":0,"ind":3,"ty":4,"nm":"Shape Layer 3","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":50.045,"s":[100]},{"t":60.0546875,"s":[0]}],"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":45.04,"s":[1246,282,0],"to":[-55.833,11.333,0],"ti":[55.833,-11.333,0]},{"t":60.0546875,"s":[911,350,0]}],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":1,"k":[{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":45.04,"s":[0,0,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.333,0.333,0.333],"y":[0,0,0]},"t":50.045,"s":[4,4,100]},{"t":60.0546875,"s":[0,0,100]}],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"d":1,"ty":"el","s":{"a":0,"k":[1500,1500],"ix":2},"p":{"a":0,"k":[0,0],"ix":3},"nm":"Ellipse Path 1","mn":"ADBE Vector Shape - Ellipse","hd":false},{"ty":"st","c":{"a":0,"k":[0.8902,0.0275,0.0784,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":1,"k":[{"i":{"x":[0.833],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":45.04,"s":[240]},{"t":60.0546875,"s":[240]}],"ix":5},"lc":1,"lj":1,"ml":4,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"fl","c":{"a":0,"k":[0.6471,0.0,0.0588,1],"ix":4},"o":{"a":0,"k":100,"ix":5},"r":1,"bm":0,"nm":"Fill 1","mn":"ADBE Vector Graphic - Fill","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Ellipse 1","np":3,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":80,"st":5,"bm":0},{"ddd":0,"ind":4,"ty":0,"nm":"New_Plane","refId":"comp_0","sr":1,"ks":{"o":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.333],"y":[0]},"t":45.03,"s":[100]},{"t":49.0341796875,"s":[0]}],"ix":11},"r":{"a":1,"k":[{"i":{"x":[0.832],"y":[0.461]},"o":{"x":[0.621],"y":[0]},"t":24.009,"s":[0]},{"i":{"x":[0.833],"y":[0.861]},"o":{"x":[0.413],"y":[0.079]},"t":32.018,"s":[-15.977]},{"i":{"x":[0.705],"y":[0.886]},"o":{"x":[0.167],"y":[0.244]},"t":40.025,"s":[-283.577]},{"i":{"x":[0.757],"y":[1]},"o":{"x":[0.413],"y":[-6.015]},"t":45.03,"s":[-379.036]},{"t":49.0341796875,"s":[-377]}],"ix":10},"p":{"a":1,"k":[{"i":{"x":0.833,"y":0.829},"o":{"x":0.333,"y":0},"t":24.009,"s":[615,880,0],"to":[0,0,0],"ti":[98.064,301.65,0]},{"i":{"x":0.833,"y":0.899},"o":{"x":0.167,"y":0.081},"t":35.021,"s":[1190,405,0],"to":[-72.384,-287.264,0],"ti":[-26.681,-317.47,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.167,"y":0.197},"t":40.025,"s":[658.668,461.908,0],"to":[75.392,238.957,0],"ti":[-189.966,287.905,0]},{"t":49.0341796875,"s":[1200,320,0]}],"ix":2},"a":{"a":1,"k":[{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":15,"s":[564,826,0],"to":[29.5,-10.167,0],"ti":[-13,6.667,0]},{"i":{"x":0.667,"y":1},"o":{"x":0.333,"y":0},"t":24.009,"s":[741,765,0],"to":[13,-6.667,0],"ti":[16.5,-3.5,0]},{"t":31.0166015625,"s":[642,786,0]}],"ix":1},"s":{"a":1,"k":[{"i":{"x":[0.64,0.64,0.833],"y":[1,1,1]},"o":{"x":[0.145,0.145,0.167],"y":[0.231,0.231,0]},"t":15,"s":[80,80,100]},{"i":{"x":[0.376,0.376,0.833],"y":[0.139,0.139,1]},"o":{"x":[0.359,0.359,0.167],"y":[0,0,0]},"t":21.006,"s":[100,100,100]},{"i":{"x":[0.667,0.667,0.667],"y":[1,1,1]},"o":{"x":[0.127,0.127,0.167],"y":[0.214,0.214,0]},"t":27.013,"s":[80,80,100]},{"t":49.0341796875,"s":[20,20,100]}],"ix":6}},"ao":0,"w":1500,"h":1500,"ip":0,"op":75,"st":0,"bm":0},{"ddd":0,"ind":5,"ty":4,"nm":"Shape Layer 2","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[700,900,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-300,-124],[-65,67],[395,-459]],"c":false},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"tm","s":{"a":0,"k":0,"ix":1},"e":{"a":1,"k":[{"i":{"x":[0.174],"y":[0.832]},"o":{"x":[0.337],"y":[0]},"t":40.035,"s":[0]},{"t":62,"s":[82]}],"ix":2},"o":{"a":0,"k":0,"ix":3},"m":1,"ix":2,"nm":"Trim Paths 1","mn":"ADBE Vector Filter - Trim","hd":false},{"ty":"st","c":{"a":0,"k":[0.8902,0.0275,0.0784,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":88,"ix":5},"lc":2,"lj":1,"ml":4,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"tr","p":{"a":0,"k":[8,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Shape 1","np":4,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":80,"st":5,"bm":0},{"ddd":0,"ind":6,"ty":4,"nm":"Shape Layer 1","sr":1,"ks":{"o":{"a":0,"k":100,"ix":11},"r":{"a":0,"k":0,"ix":10},"p":{"a":0,"k":[708,900,0],"ix":2},"a":{"a":0,"k":[0,0,0],"ix":1},"s":{"a":0,"k":[100,100,100],"ix":6}},"ao":0,"shapes":[{"ty":"gr","it":[{"ind":0,"ty":"sh","ix":1,"ks":{"a":0,"k":{"i":[[0,0],[0,0],[0,0]],"o":[[0,0],[0,0],[0,0]],"v":[[-300,-124],[-65,67],[395,-459]],"c":false},"ix":2},"nm":"Path 1","mn":"ADBE Vector Shape - Group","hd":false},{"ty":"tm","s":{"a":0,"k":0,"ix":1},"e":{"a":1,"k":[{"i":{"x":[0.667],"y":[1]},"o":{"x":[0.167],"y":[0]},"t":40.035,"s":[0]},{"t":51.0458984375,"s":[96]}],"ix":2},"o":{"a":0,"k":0,"ix":3},"m":1,"ix":2,"nm":"Trim Paths 1","mn":"ADBE Vector Filter - Trim","hd":false},{"ty":"st","c":{"a":0,"k":[0.6471,0.0,0.0588,1],"ix":3},"o":{"a":0,"k":100,"ix":4},"w":{"a":0,"k":88,"ix":5},"lc":2,"lj":1,"ml":4,"bm":0,"nm":"Stroke 1","mn":"ADBE Vector Graphic - Stroke","hd":false},{"ty":"tr","p":{"a":0,"k":[0,0],"ix":2},"a":{"a":0,"k":[0,0],"ix":1},"s":{"a":0,"k":[100,100],"ix":3},"r":{"a":0,"k":0,"ix":6},"o":{"a":0,"k":100,"ix":7},"sk":{"a":0,"k":0,"ix":4},"sa":{"a":0,"k":0,"ix":5},"nm":"Transform"}],"nm":"Shape 1","np":4,"cix":2,"bm":0,"ix":1,"mn":"ADBE Vector Group","hd":false}],"ip":0,"op":80,"st":5,"bm":0}],"markers":[]};
 /* ===================================================================== Hilfsfunktionen: Datum, Farbe, DOM */
 
 const DAY = 86400000;
@@ -801,7 +837,7 @@ const mix = (h, t, w = '#ffffff') => { const a = hex2rgb(h), b = hex2rgb(w); ret
 // Farbtöne der Maßnahmen; im dunklen Modus zur dunklen Fläche hin gemischt (Druck und Excel immer hell)
 let DARK = false, LIGHT_ONLY = 0;
 const darkNow = () => DARK && !LIGHT_ONLY && !(typeof UI !== 'undefined' && UI.printing);
-const DARK_SURF = '#1e1f21';
+const DARK_SURF = '#26282b';
 const pastel = h => darkNow() ? mix(h, 0.66, DARK_SURF) : mix(h, 0.75);
 const midtone = h => darkNow() ? mix(h, 0.4, DARK_SURF) : mix(h, 0.45);
 const inkC = h => darkNow() ? mix(h, 0.45, '#ffffff') : mix(h, 0.12, '#000000');   // Schrift in Maßnahmenfarbe
@@ -836,6 +872,7 @@ function h(tag, props, ...kids) {
   return e;
 }
 const put = (parent, ...kids) => { parent.append(...kids.flat(Infinity).filter(k => k != null && k !== false)); return parent; };
+const setKids = (parent, ...kids) => { parent.replaceChildren(); return put(parent, ...kids); };   // ersetzt Inhalt, ignoriert null/Listen sauber
 function dateInput(value, fk, onCommit, extra = {}) {
   let start = value || '';
   const done = e => { const v = e.target.value; if (v !== start) { start = v; onCommit(v); } };
@@ -932,7 +969,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts'];
+const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -1240,7 +1277,7 @@ function askPermissionOnFirstClick() {
     ST.askArmed = false;
     if (ST.conn !== 'needs-permission' || !ST.dir) return;
     ST.perm = ST.dir.requestPermission({ mode: 'readwrite' }).then(async p => {
-      if (p === 'granted' && await attachFolder()) { updateSaveUI(); safeRender(); if (isDirty()) scheduleAutosave(); }
+      if (p === 'granted' && await attachFolder()) { updateSaveUI(); releasePointer(); safeRender(); if (isDirty()) scheduleAutosave(); }
       return p;
     }).catch(() => 'denied').finally(() => { ST.perm = null; });
   };
@@ -1537,18 +1574,18 @@ function icsItems(o) {
     if (!o.ms.has(x.id)) continue;
     for (const [t, k, lab] of TYPES) {
       if (!o.kinds[t] || x[k] == null || x[k] < a || x[k] > b || !match(x.m.verantwortlich)) continue;
-      out.push({ kind: t, mid: x.id, uid: x.id + '-' + t + '-' + ds(x[k]), a: x[k], b: x[k], summary: (t === 'P' ? 'PAL' : lab) + ' · ' + x.m.name,
+      out.push({ kind: t, mid: x.id, uid: x.id + '-' + t + '-' + ds(x[k]), a: x[k], b: x[k], lab: t === 'P' ? 'PAL' : lab, summary: (t === 'P' ? 'PAL' : lab) + ' · ' + x.m.name,
         desc: [x.m.name, TYPE_LABEL[t] + ': ' + fmtW(x[k]), x.pal != null && t !== 'P' ? 'PAL: ' + fmtW(x.pal) : '', t === 'P' && x.m.palStatus !== 'fest' ? 'PAL noch vorläufig' : '',
           x.m.verantwortlich ? 'Hauptverantwortlich: ' + x.m.verantwortlich : '', x.m.hinweis].filter(Boolean).join('\n') });
     }
     if (x.pc) for (const s of x.m.plan.steps) {
       const r = x.pc.map.get(s.id), isPoint = s.typ !== 'aufgabe', kind = isPoint ? 'ms' : 'steps';
       if (!o.kinds[kind] || !r || r.start == null || s.typ === 'gruppe' || r.end < a || r.start > b || !match(s.wer)) continue;
-      out.push({ kind, mid: x.id, uid: x.id + '-' + s.id, a: isPoint ? r.end : r.start, b: isPoint ? r.end : Math.max(r.start, r.end - 1),
+      out.push({ kind, mid: x.id, uid: x.id + '-' + s.id, a: isPoint ? r.end : r.start, b: isPoint ? r.end : Math.max(r.start, r.end - 1), lab: (isPoint ? '◆ ' : '') + s.name + (s.wer ? ' (' + s.wer + ')' : ''),
         summary: (isPoint ? '◆ ' : '') + s.name + ' · ' + x.m.name, desc: [x.m.name, s.wer ? 'Zugeordnet: ' + s.wer : '', s.kommentar, isPoint ? '' : fmtW(r.start) + ' – ' + fmtW(r.end)].filter(Boolean).join('\n') });
     }
   }
-  if (o.kinds.vac) for (const v of C.vac) if (v.bis >= a && v.von <= b && match(v.u.wer)) out.push({ kind: 'vac', mid: null, uid: 'u-' + v.u.id, a: v.von, b: v.bis, summary: 'Urlaub: ' + (v.u.wer || '?'), desc: v.u.notiz });
+  if (o.kinds.vac) for (const v of C.vac) if (v.bis >= a && v.von <= b && match(v.u.wer)) out.push({ kind: 'vac', mid: null, uid: 'u-' + v.u.id, a: v.von, b: v.bis, lab: 'Urlaub ' + (v.u.wer || '?'), summary: 'Urlaub: ' + (v.u.wer || '?'), desc: v.u.notiz });
   return out.sort((p, q) => p.a - q.a);
 }
 function icsFile(name, items) {
@@ -1564,13 +1601,37 @@ async function exportICS() {
   const o = { kinds: Object.assign({ S: true, I: true, P: true, steps: false, ms: false, vac: false }, last.kinds), ms: new Set(list.map(x => x.id)),
     person: '', range: last.range || 'year', from: mkdn(y, 1, 1), to: mkdn(y, 12, 31), split: last.split || 'one' };
   const persons = D.personen.map(p => p.name);
+  // Vorlauf der Maßnahmen dieses Jahres, der noch im Vorjahr liegt (z. B. Selektion im November für ein Januar-Mailing)
+  const firstDates = list.flatMap(x => [x.s, x.i, x.pal, ...(x.pc ? [...x.pc.map.values()].map(r => r.start) : [])]).filter(v => v != null);
   const wrap = h('div', { class: 'form' }), count = h('div', { class: 'calcline' });
   const range = () => {
-    if (o.range === 'year') { o.from = mkdn(y, 1, 1); o.to = mkdn(y, 12, 31); }
+    if (o.range === 'year') { o.from = Math.min(mkdn(y, 1, 1), ...firstDates); o.to = mkdn(y, 12, 31); }
     else if (o.range === 'rest') { o.from = Math.max(today, mkdn(y, 1, 1)); o.to = mkdn(y, 12, 31); }
+  };
+  const prev = h('div', { class: 'icsprev' });
+  const drawPrev = () => {
+    const all = icsItems(Object.assign({}, o, { ms: new Set(list.map(x => x.id)) }));
+    const when = e => e.a === e.b ? fmtW(e.a) : fmtS(e.a) + ' – ' + fmtW(e.b);
+    const line = e => h('div', { class: 'icsev k-' + e.kind }, h('span', { class: 'd' }, when(e)), h('span', { class: 'l' }, e.lab));
+    const boxes = [];
+    setKids(prev, 
+      h('div', { class: 'pop-h' }, 'Termine in der Datei', h('span', null,
+        h('button', { class: 'link', onclick: e => { e.preventDefault(); list.forEach(x => o.ms.add(x.id)); upd(); } }, 'alle'), ' · ',
+        h('button', { class: 'link', onclick: e => { e.preventDefault(); o.ms.clear(); upd(); } }, 'keine'))),
+      list.map(x => {
+        const ev = all.filter(e => e.mid === x.id), on = o.ms.has(x.id);
+        const b = h('input', { type: 'checkbox', checked: on, onchange: e => { e.target.checked ? o.ms.add(x.id) : o.ms.delete(x.id); upd(); } });
+        boxes.push(b);
+        return h('div', { class: 'icsgrp' + (on ? '' : ' off') },
+          h('label', { class: 'mchk' }, b, h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'),
+            h('span', { class: 'muted small' }, ev.length ? ev.length + ' Termin' + (ev.length > 1 ? 'e' : '') : 'keine Termine')),
+          on ? ev.map(line) : null);
+      }),
+      (() => { const v = all.filter(e => e.kind === 'vac'); return v.length ? h('div', { class: 'icsgrp' }, h('div', { class: 'mchk' }, h('b', null, 'Urlaube')), v.map(line)) : null; })());
   };
   const upd = () => {
     range();
+    drawPrev();
     const items = icsItems(o), files = o.split === 'one' ? 1 : new Set(items.map(e => o.split === 'kind' ? e.kind : e.mid || 'vac')).size;
     count.textContent = items.length + ' Termine' + (items.length ? ' · ' + files + (files === 1 ? ' Datei' : ' Dateien (als ZIP)') : '') + ' · alle ganztägig';
   };
@@ -1578,7 +1639,7 @@ async function exportICS() {
   const draw = () => {
     const cb = k => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!o.kinds[k], onchange: e => { o.kinds[k] = e.target.checked; upd(); } }), ICS_KINDS.find(q => q[0] === k)[1]);
     const radio = (name, val, label, key) => h('label', { class: 'check' }, h('input', { type: 'radio', name, checked: o[key] === val, onchange: () => { o[key] = val; draw(); } }), label);
-    wrap.replaceChildren(
+    setKids(wrap, 
       h('p', { class: 'muted small' }, 'Erstellt Kalenderdateien (.ics) für Outlook. Doppelklick auf die Datei → „Als neuen Kalender öffnen“ oder importieren.'),
       h('div', { class: 'ics-presets' }, h('span', { class: 'muted small' }, 'Schnellauswahl:'),
         h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ S: true }); } }, 'nur Selektions-Starts'),
@@ -1592,11 +1653,11 @@ async function exportICS() {
           h('h3', null, 'Person'), h('select', { onchange: e => { o.person = e.target.value; upd(); } }, h('option', { value: '' }, 'alle Personen'),
             persons.map(n => h('option', { value: n, selected: o.person === n }, n))),
           h('div', { class: 'muted small' }, 'Starts/PAL: hauptverantwortliche Person · Schritte: zugeordnete Person'),
-          h('h3', null, 'Zeitraum'), h('div', { class: 'checks' }, radio('rng', 'year', 'ganzes Jahr ' + y, 'range'), radio('rng', 'rest', 'ab heute bis Jahresende', 'range'), radio('rng', 'free', 'eigener Zeitraum', 'range'),
+          h('h3', null, 'Zeitraum'), h('div', { class: 'checks' }, radio('rng', 'year', 'alle Termine der Maßnahmen ' + y + (firstDates.some(n => n < mkdn(y, 1, 1)) ? ' (inkl. Vorlauf aus ' + (y - 1) + ')' : ''), 'range'), radio('rng', 'rest', 'ab heute bis Jahresende', 'range'), radio('rng', 'free', 'eigener Zeitraum', 'range'),
             o.range === 'free' ? h('div', { class: 'inl' }, h('input', { type: 'date', value: ds(o.from), onchange: e => { o.from = dn(e.target.value) ?? o.from; upd(); } }), '–',
               h('input', { type: 'date', value: ds(o.to), onchange: e => { o.to = dn(e.target.value) ?? o.to; upd(); } })) : null),
           h('h3', null, 'Dateien'), h('div', { class: 'checks' }, radio('spl', 'one', 'eine Kalenderdatei', 'split'), radio('spl', 'mass', 'je Maßnahme eine Datei', 'split'), radio('spl', 'kind', 'je Terminart eine Datei', 'split'))),
-        msPicker(o.ms, list, upd)),
+        prev),
       count,
       h('p', { class: 'muted small' }, 'Hinweis: Wiederholter Import kann Termine in Outlook doppelt anlegen. Am übersichtlichsten ist ein eigener Kalender „Jahresplanung“, den du vor einem neuen Import löschst.'));
     upd();
@@ -1642,9 +1703,15 @@ function requestRender() {
   if (_renderTimer) return;
   _renderTimer = setTimeout(renderNow, 0);
 }
+// Neu zeichnen erst nach dem Loslassen der Maus (sonst gehen Klicks verloren). Geht das Loslassen verloren
+// (z. B. weil der Browser beim Klick eine Berechtigungsfrage zeigt), holt die nächste Mausbewegung es nach.
+function releasePointer() { _pointerDown = false; if (_renderPending) { _renderPending = false; requestRender(); } }
 document.addEventListener('pointerdown', () => { _pointerDown = true; }, true);
-document.addEventListener('pointerup', () => { _pointerDown = false; if (_renderPending) { _renderPending = false; requestRender(); } }, true);
-document.addEventListener('pointercancel', () => { _pointerDown = false; if (_renderPending) { _renderPending = false; requestRender(); } }, true);
+document.addEventListener('pointerup', releasePointer, true);
+document.addEventListener('pointercancel', releasePointer, true);
+document.addEventListener('pointermove', e => { if (_pointerDown && e.buttons === 0) releasePointer(); }, true);
+window.addEventListener('blur', releasePointer);
+document.addEventListener('visibilitychange', releasePointer);
 function renderNow() {
   clearTimeout(_renderTimer); _renderTimer = null;
   if (!D) return;
@@ -1689,8 +1756,9 @@ function topBar() {
     h('div', { class: 'actions' },
       h('button', { class: 'icon', tip: 'Rückgängig (Strg+Z)', disabled: !UNDO.length, onclick: undo }, '↶'),
       h('button', { class: 'icon', tip: 'Wiederholen (Strg+Y)', disabled: !REDO.length, onclick: redo }, '↷'),
-      h('button', { class: 'warnbtn' + (nW ? ' has' : ''), tip: 'Warnungen und Hinweise für ' + UI.year, onclick: () => { UI.warnOpen = !UI.warnOpen; renderNow(); } },
-        '⚠ ', nW, nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
+      h('button', { class: 'warnbtn' + (nW ? ' has' : ''), tip: (nW ? nW + ' Warnung' + (nW > 1 ? 'en' : '') : 'Keine Warnungen') + (nI ? ', ' + nI + ' Hinweis' + (nI > 1 ? 'e' : '') : '') + ' für ' + UI.year,
+        onclick: () => { UI.warnOpen = !UI.warnOpen; renderNow(); } },
+        nW ? '⚠ ' + nW : '✓', nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
       menuButton('Export ▾', [
         ['PDF exportieren …', pdfDialog], null,
         ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS], null,
@@ -1866,12 +1934,13 @@ async function settingsDialog() {
   const draw = () => {
     const theme = UI.theme || 'light';
     const radio = (v, l) => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'theme', checked: theme === v, onchange: () => { setTheme(v); draw(); } }), l);
-    wrap.replaceChildren(
+    setKids(wrap, 
       h('h3', null, 'Allgemein'),
       row('Dein Name', h('input', { value: UI.userName || '', onchange: e => { UI.userName = e.target.value.trim(); saveUI(); } }), 'wird beim Speichern vermerkt („gespeichert von …“), nur in diesem Browser'),
       row('Planungsjahr beim Öffnen', h('input', { type: 'number', min: 2000, max: 2100, value: D.settings.year, onchange: e => { const v = +e.target.value; if (v >= 2000 && v <= 2100) commit(d => { d.settings.year = v; }); } })),
       h('h3', null, 'Darstellung'),
       h('div', { class: 'inl theme-pick' }, radio('light', 'Hell'), radio('dark', 'Dunkel'), radio('system', 'wie Windows')),
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.splash !== false, onchange: e => { UI.splash = e.target.checked; saveUI(); } }), 'Startbildschirm mit Animation beim Öffnen zeigen'),
       h('h3', null, 'Personen'),
       h('p', { class: 'muted small' }, 'Die Farbe gilt für Urlaube und Arbeitsschritte. Umbenennen ändert den Namen überall (Urlaube, Hauptverantwortliche, Arbeitsschritte).'),
       h('table', { class: 'grid ptable' }, h('tbody', null, D.personen.map(p => {
@@ -1964,16 +2033,30 @@ function dayTip(n, evs, away, hn) {
     away.length ? h('div', { class: 'tt-vac' }, 'Urlaub: ', away.map(vacTag)) : null,
     (!evs.length && !away.length && !hn) ? h('div', { class: 'muted' }, 'keine Termine') : null);
 }
-function dayCell(n, evs, vacs, today) {
+// Verbund-Darstellung: je Maßnahme eine farbige Linie von der ersten bis zur letzten angezeigten Markierung, eigene Spur je Überlappung
+function verbundLanes() {
+  const out = [], ends = [];
+  for (const x of C.ms.filter(visibleM)) {
+    const pts = TYPES.filter(([t]) => UI.show[t]).map(([, k]) => x[k]).filter(v => v != null);
+    if (pts.length < 2) continue;
+    out.push({ x, a: Math.min(...pts), b: Math.max(...pts) });
+  }
+  out.sort((p, q) => p.a - q.a || q.b - p.b);
+  for (const v of out) { let l = ends.findIndex(e => e < v.a); if (l < 0) { l = ends.length; ends.push(v.b); } else ends[l] = v.b; v.lane = l; }
+  return out;
+}
+function dayCell(n, evs, vacs, today, vb) {
   const hn = holName(n), w = wd(n), away = vacs.filter(v => v.von <= n && n <= v.bis);
   const cls = 'day' + (w >= 5 ? ' we' : '') + (hn ? ' hol' : '') + (n === today ? ' today' : '') + (away.length ? ' away' : '');
   return h('div', { class: cls, dataset: { dn: n }, tip: () => dayTip(n, evs, away, hn) },
     h('span', { class: 'dnum' }, ymd(n)[2]),
     evs.length ? h('div', { class: 'chips' }, evs.map(e => chip(e))) : null,
     away.length ? h('div', { class: 'vbars' + (away.length > 1 ? ' multi' : '') }, away.slice(0, 4).map(v => h('span', { style: { background: personColor(v.u.wer) } })),
-      away.length > 1 ? h('b', { class: 'vcount' }, away.length) : null) : null);
+      away.length > 1 ? h('b', { class: 'vcount' }, away.length) : null) : null,
+    vb ? vb.filter(v => v.a <= n && n <= v.b).map(v => h('span', { class: 'vbl' + (n === v.a ? ' vs' : '') + (n === v.b ? ' ve' : ''), dataset: { m: v.x.id },
+      style: { '--hc': v.x.color, '--ln': String(v.lane % 4) } })) : null);
 }
-function monthCard(y, mo, byDay, vacs, today) {
+function monthCard(y, mo, byDay, vacs, today, vb) {
   const first = mkdn(y, mo, 1), last = first + daysIn(y, mo) - 1, start = first - wd(first);
   const g = h('div', { class: 'mgrid' }, h('div', { class: 'wh kw' }, 'KW'), WD.map((d, i) => h('div', { class: 'wh' + (i >= 5 ? ' we' : '') }, d)));
   for (let w = 0; w < 6; w++) {
@@ -1981,7 +2064,7 @@ function monthCard(y, mo, byDay, vacs, today) {
     g.append(h('div', { class: 'kw' }, ws <= last ? isoWeek(ws) : ''));
     for (let d = 0; d < 7; d++) {
       const n = ws + d;
-      g.append(n < first || n > last ? h('div', { class: 'day out' }) : dayCell(n, byDay.get(n) || [], vacs, today));
+      g.append(n < first || n > last ? h('div', { class: 'day out' }) : dayCell(n, byDay.get(n) || [], vacs, today, vb));
     }
   }
   const card = h('section', { class: 'month' }, h('header', null, MON[mo - 1] + ' ' + y), g);
@@ -1993,7 +2076,7 @@ function monthCard(y, mo, byDay, vacs, today) {
     const per = new Map();
     for (let n = first; n <= last; n++) for (const e of byDay.get(n) || []) { if (!per.has(e.x.id)) per.set(e.x.id, { x: e.x, ev: [] }); per.get(e.x.id).ev.push(e); }
     for (const { x, ev } of per.values())
-      list.append(h('div', { class: 'mline', dataset: { m: x.id }, onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null), onclick: () => editMassnahme(x.id), style: { color: mix(x.color, 0.1, '#000000') } },
+      list.append(h('div', { class: 'mline', dataset: { m: x.id }, onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null), onclick: () => editMassnahme(x.id), style: { color: inkC(x.color) } },
         h('span', { class: 'key', style: { background: x.color } }), h('b', null, x.m.name + ': '), ev.map(e => e.t + ' ' + fmtS(e.n)).join(' · ')));
     const vm = vacs.filter(v => v.bis >= first && v.von <= last);
     if (vm.length) list.append(h('div', { class: 'mvac' }, 'Urlaub: ', vm.map(v => h('span', { class: 'vtag', style: { background: pastel(personColor(v.u.wer)), borderColor: personColor(v.u.wer) } },
@@ -2007,8 +2090,8 @@ function calendarBody() {
   const ev = eventsIn(mkdn(y, 1, 1), mkdn(y, 12, 31));
   const byDay = new Map();
   ev.forEach(e => { if (!byDay.has(e.n)) byDay.set(e.n, []); byDay.get(e.n).push(e); });
-  const vacs = C.vac.filter(vacVisible);
-  return h('div', { class: 'cal' }, Array.from({ length: 12 }, (_, i) => monthCard(y, i + 1, byDay, vacs, today)));
+  const vacs = C.vac.filter(vacVisible), vb = UI.verbund ? verbundLanes() : null;
+  return h('div', { class: 'cal' + (vb ? ' verbund' : '') }, Array.from({ length: 12 }, (_, i) => monthCard(y, i + 1, byDay, vacs, today, vb)));
 }
 
 /* ---------- Markierung im Kalender ziehen: P verschiebt das ganze Projekt, S/I nur dieses Datum */
@@ -2055,7 +2138,7 @@ function chipDrag(ev, e) {
     }
     clearMarks();
     if (t === 'P') { mark(p, 'P'); mark(s, 'S'); mark(i, 'I'); } else mark(t === 'S' ? s : i, t);
-    lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    setKids(lab, h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, m.clientX, m.clientY);
   };
   const stop = () => {
@@ -2329,7 +2412,7 @@ function tlDrag(ev, x, mode, pxd, place) {
     else { i += dd; n = i; txt = 'Start Inhalt: ' + fmtW(i) + ' · ' + workdaysBefore(i, x.pal) + ' Werktage vor PAL'; }
     place(s, i, p);
     const w = mode === 'move' ? [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(t => k > 0 || !/Samstag|Urlaub/.test(t)).map(t => ['PAL', 'S', 'I'][k] + ': ' + t)) : dateWarn(n, resp);
-    lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    setKids(lab, h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {
@@ -3083,7 +3166,7 @@ function barDrag(ev, ctx, mode) {
     if (isTask) { el.style.left = X(ns) + 'px'; el.style.width = Math.max(3, (ne - ns) * pxd) + 'px'; }
     else el.style.left = X(ne) + pxd / 2 + 'px';
     const w = s.wer ? C.vac.filter(v => v.u.wer === s.wer && v.von <= ne && v.bis >= ns).map(v => s.wer + ' Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis)) : [];
-    lab.replaceChildren(h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' (' + (ne - ns) + ' Tage)' : fmtW(ne)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    setKids(lab, h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' (' + (ne - ns) + ' Tage)' : fmtW(ne)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {
@@ -3256,10 +3339,9 @@ VIEW_FN.urlaub = main => {
         !D.urlaube.length ? h('p', { class: 'muted' }, 'Noch keine Urlaube eingetragen.') : null,
         h('div', { class: 'addline' }, h('button', { class: 'addbtn', onclick: addVac }, '+ neuen Urlaub eintragen')),
         h('p', { class: 'muted small screen-only' }, 'Personen und ihre Farben verwaltest du unter ⋯ → Einstellungen.')),
-      h('section', { class: 'card' }, h('h2', null, 'Feiertage NRW ' + y),
-        h('p', { class: 'muted small' }, 'Datum und Name lassen sich ändern, das Häkchen schaltet einen Feiertag ab. ↺ stellt den gesetzlichen Feiertag wieder her.'),
+      h('section', { class: 'card hcard' }, h('h2', null, 'Feiertage NRW ' + y),
         h('table', { class: 'grid htable' }, h('thead', null, h('tr', null, ['', 'Datum', 'Feiertag', ''].map(t => h('th', null, t)))), h('tbody', null, holRows)),
-        h('h3', { class: sonder.length ? '' : 'screen-only' }, 'Eigene freie Tage'), h('p', { class: 'muted small screen-only' }, 'z. B. Brückentage oder Betriebsausflug – zählen wie Feiertage (keine Arbeitstage, Warnung bei Terminen).'),
+        h('h3', { class: sonder.length ? '' : 'screen-only', tip: 'z. B. Brückentage oder Betriebsausflug – zählen wie Feiertage' }, 'Eigene freie Tage'),
         h('table', { class: 'grid htable' }, h('tbody', null, sonder.map(s => h('tr', null,
           h('td', null, dateInput(s.datum, 'st:' + s.id + ':datum', v => commit(d => { d.sondertage.find(q => q.id === s.id).datum = v; }))),
           h('td', null, h('input', { value: s.name || '', placeholder: 'Bezeichnung', onchange: e => commit(d => { d.sondertage.find(q => q.id === s.id).name = e.target.value; }) })),
@@ -3292,6 +3374,7 @@ function boot() {
   if (!UI.secOpen || typeof UI.secOpen !== 'object') UI.secOpen = {};
   checkDraft();
   renderNow();
+  showSplash();
   restoreFolder().then(() => { renderNow(); askPermissionOnFirstClick(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && isDirty() && ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); });
   if (!FSA) toast('Hinweis: Dieser Browser kann die Datei nicht direkt überschreiben – „Speichern“ lädt eine neue Datei herunter. Am besten Edge oder Chrome verwenden.', 'warn');
@@ -3371,7 +3454,9 @@ VIEW_FN.jahr = main => {
       closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
     section('kal', 'Kalender ' + UI.year, () => ({
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),
-        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten')],
+        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten'),
+        h('label', { class: 'check small', tip: 'verbindet S, I und PAL jeder Maßnahme dauerhaft mit einer Linie in ihrer Farbe' },
+          h('input', { type: 'checkbox', checked: !!UI.verbund, onchange: e => { UI.verbund = e.target.checked; renderNow(); } }), 'Verbund-Darstellung')],
       tools: [legendInline()],
       body: [calendarBody()] }), {
       info: 'Maus über Tag oder Markierung zeigt Details. Markierung anklicken = bearbeiten. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Strg+Z macht es rückgängig.' }));
@@ -3720,24 +3805,25 @@ async function pdfDialog() {
   const last = UI.pdfOpts || {};
   const f = {
     secs: Object.assign({ mass: true, kal: true, tl: true, ag: false, plaene: false, urlaub: false }, last.secs),
-    show: Object.assign({ S: true, I: true, P: true }, last.show), vac: last.vac !== false,
+    show: Object.assign({ S: true, I: true, P: true }, last.show), vac: last.vac !== false, verbund: !!UI.verbund,
     ms: new Set(list.map(x => x.id)),
   };
   const wrap = h('div', { class: 'form pdfform' });
   const draw = () => {
     const cb = (obj, k, label, extra) => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!obj[k], onchange: e => { obj[k] = e.target.checked; } }), label, extra || null);
-    wrap.replaceChildren(
+    setKids(wrap, 
       h('div', { class: 'pdf-top' }, h('p', { class: 'muted small' }, 'Wähle, was ins PDF soll. Jeder Bereich beginnt auf einer neuen Seite (A4 quer).'),
         h('button', { class: 'ghostbtn', tip: 'übernimmt Reiter, Filter und angezeigte Maßnahmen von der Ansicht, die gerade offen ist', onclick: e => { e.preventDefault(); fromView(); draw(); } }, '⟲ Wie aktuelle Ansicht')),
       h('div', { class: 'pdf-cols' },
         h('div', null, h('h3', null, 'Bereiche'), h('div', { class: 'checks' }, PDF_SECS.map(([k, l]) => cb(f.secs, k, l))),
-          h('h3', null, 'Termine'), h('div', { class: 'checks' }, cb(f.show, 'S', 'Start Selektion'), cb(f.show, 'I', 'Start inhaltliche Arbeit'), cb(f.show, 'P', 'PAL'), cb(f, 'vac', 'Urlaube anzeigen'))),
+          h('h3', null, 'Termine'), h('div', { class: 'checks' }, cb(f.show, 'S', 'Start Selektion'), cb(f.show, 'I', 'Start inhaltliche Arbeit'), cb(f.show, 'P', 'PAL'), cb(f, 'vac', 'Urlaube anzeigen'),
+            cb(f, 'verbund', 'Verbund-Darstellung im Kalender'))),
         msPicker(f.ms, list)));
   };
   const fromView = () => {
     f.secs = Object.fromEntries(PDF_SECS.map(([k]) => [k, (VIEW_SECS[UI.view] || []).includes(k) && (UI.secOpen[k] !== false)]));
     if (!Object.values(f.secs).some(Boolean)) f.secs.mass = true;
-    f.show = { ...UI.show }; f.vac = UI.showVac;
+    f.show = { ...UI.show }; f.vac = UI.showVac; f.verbund = !!UI.verbund;
     f.ms = new Set(list.filter(x => visibleM(x)).map(x => x.id));
     if (UI.view === 'plaene' && UI.planSel) { f.ms = new Set([UI.planSel]); f.secs.plaene = true; }
   };
@@ -3751,9 +3837,9 @@ async function pdfDialog() {
 }
 
 function printPDF(f) {
-  const keys = ['show', 'hiddenM', 'showVac', 'hiddenP', 'monthLists', 'tlPlans', 'tlPxd', 'planSel', 'planCompact', 'planColl', 'planPxd', 'view'];
+  const keys = ['show', 'hiddenM', 'showVac', 'hiddenP', 'monthLists', 'tlPlans', 'tlPxd', 'planSel', 'planCompact', 'planColl', 'planPxd', 'view', 'verbund'];
   const keep = {}; keys.forEach(k => { keep[k] = UI[k] instanceof Set ? new Set(UI[k]) : UI[k] && typeof UI[k] === 'object' ? JSON.parse(JSON.stringify(UI[k])) : UI[k]; });
-  UI.show = { ...f.show }; UI.showVac = f.vac; UI.hiddenP = new Set(); UI.monthLists = true; UI.tlPlans = false; UI.tlPxd = 0;
+  UI.show = { ...f.show }; UI.showVac = f.vac; UI.verbund = !!f.verbund; UI.hiddenP = new Set(); UI.monthLists = true; UI.tlPlans = false; UI.tlPxd = 0;
   UI.hiddenM = new Set(C.ms.filter(x => !f.ms.has(x.id)).map(x => x.id));
   UI.planCompact = true; UI.planColl = {}; UI.planPxd = 0;
   UI.printing = true;
@@ -3817,6 +3903,170 @@ function buildPrintDoc(f) {
   }
   if (pages.length) pages[pages.length - 1].classList.add('last');
   return h('div', { id: 'printdoc' }, pages);
+}
+
+/* ===================================================================== Startbildschirm mit Animation (kleine Lottie-Wiedergabe, offline) */
+
+// Unterstützt genau das, was die Startanimation braucht: Form- und Vorkompositions-Ebenen, Pfade, Ellipsen,
+// Füllung, Kontur, Pfad-Trimmen, Gruppen-Transformation und animierte Werte mit Bezier-Easing (auch räumlich).
+const Lottie = (() => {
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs) => { const e = document.createElementNS(SVGNS, tag); for (const k in attrs || {}) e.setAttribute(k, attrs[k]); return e; };
+  function easing(x1, y1, x2, y2) {
+    const cx = 3 * x1, bx = 3 * (x2 - x1) - cx, ax = 1 - cx - bx, cy = 3 * y1, by = 3 * (y2 - y1) - cy, ay = 1 - cy - by;
+    const X = t => ((ax * t + bx) * t + cx) * t, Y = t => ((ay * t + by) * t + cy) * t, dX = t => (3 * ax * t + 2 * bx) * t + cx;
+    return x => {
+      if (x <= 0) return 0; if (x >= 1) return 1;
+      let t = x;
+      for (let i = 0; i < 8; i++) { const e = X(t) - x, d = dX(t); if (Math.abs(e) < 1e-6) return Y(t); if (Math.abs(d) < 1e-6) break; t -= e / d; }
+      let a = 0, b = 1; t = x;
+      for (let i = 0; i < 40; i++) { const v = X(t); if (Math.abs(v - x) < 1e-6) break; if (v < x) a = t; else b = t; t = (a + b) / 2; }
+      return Y(t);
+    };
+  }
+  const arr = v => Array.isArray(v) ? v : [v];
+  const pick = (v, d) => { const a = arr(v); return a[Math.min(d, a.length - 1)]; };
+  // räumliche Bewegung entlang einer Bezier-Kurve, gleichmäßig nach Weglänge
+  function spatial(k) {
+    if (k._sp) return k._sp;
+    const P0 = k.s, P3 = k._next.s, P1 = P0.map((v, i) => v + (k.to[i] || 0)), P2 = P3.map((v, i) => v + (k.ti[i] || 0));
+    const pt = t => P0.map((_, i) => (1 - t) ** 3 * P0[i] + 3 * (1 - t) ** 2 * t * P1[i] + 3 * (1 - t) * t * t * P2[i] + t ** 3 * P3[i]);
+    const N = 150, pts = [pt(0)], len = [0];
+    for (let j = 1; j <= N; j++) { const q = pt(j / N), p = pts[j - 1]; pts.push(q); len.push(len[j - 1] + Math.hypot(q[0] - p[0], q[1] - p[1])); }
+    return (k._sp = { pts, len, total: len[N] });
+  }
+  function value(prop, t) {
+    if (!prop) return null;
+    if (!prop.a) return prop.k;
+    const K = prop.k;
+    if (!K._ready) { K.forEach((k, i) => { k._next = K[i + 1]; }); K._ready = true; }
+    if (t <= K[0].t) return K[0].s;
+    for (let n = 0; n < K.length - 1; n++) {
+      const a = K[n], b = K[n + 1];
+      if (t >= b.t && n < K.length - 2) continue;
+      if (t >= b.t) return b.s;
+      if (a.h) return a.s;
+      const u = (t - a.t) / (b.t - a.t), s = arr(a.s), e = arr(b.s);
+      if (!a._ease) a._ease = s.map((_, d) => easing(pick(a.o.x, d), pick(a.o.y, d), pick(a.i.x, d), pick(a.i.y, d)));
+      if (a.to && a.ti && (a.to.some(v => v) || a.ti.some(v => v))) {
+        const sp = spatial(a), want = clamp(a._ease[0](u), 0, 1) * sp.total;
+        let j = 1; while (j < sp.len.length - 1 && sp.len[j] < want) j++;
+        const f = sp.len[j] === sp.len[j - 1] ? 0 : (want - sp.len[j - 1]) / (sp.len[j] - sp.len[j - 1]);
+        return sp.pts[j - 1].map((v, i) => v + (sp.pts[j][i] - v) * f);
+      }
+      const out = s.map((v, d) => v + (e[d] - v) * a._ease[d](u));
+      return Array.isArray(a.s) ? out : out[0];
+    }
+    return K[K.length - 1].s;
+  }
+  const n0 = v => Array.isArray(v) ? v[0] : v;
+  function transform(ks, t) {
+    const p = value(ks.p, t) || [0, 0], a = value(ks.a, t) || [0, 0], s = value(ks.s, t) || [100, 100], r = n0(value(ks.r, t)) || 0;
+    return `translate(${p[0]},${p[1]}) rotate(${r}) scale(${s[0] / 100},${s[1] / 100}) translate(${-a[0]},${-a[1]})`;
+  }
+  const opac = (ks, t) => ks && ks.o ? n0(value(ks.o, t)) / 100 : 1;
+  const rgb = c => `rgb(${Math.round(c[0] * 255)},${Math.round(c[1] * 255)},${Math.round(c[2] * 255)})`;
+  function pathD(k) {
+    const { v, i, o, c } = k; if (!v || !v.length) return '';
+    let d = `M${v[0][0]},${v[0][1]}`;
+    const seg = (a, b) => { d += `C${v[a][0] + o[a][0]},${v[a][1] + o[a][1]} ${v[b][0] + i[b][0]},${v[b][1] + i[b][1]} ${v[b][0]},${v[b][1]}`; };
+    for (let n = 1; n < v.length; n++) seg(n - 1, n);
+    if (c) { seg(v.length - 1, 0); d += 'Z'; }
+    return d;
+  }
+  // baut die SVG-Elemente einmal auf und liefert Aktualisierer je Zeitpunkt
+  function buildShapes(items, parent, ups, getTime) {
+    const paths = items.filter(q => q.ty === 'sh' || q.ty === 'el'), trim = items.find(q => q.ty === 'tm');
+    // Reihenfolge wie in Lottie: was zuerst steht, liegt oben → in Listenreihenfolge sammeln, rückwärts einfügen
+    const nodes = [];
+    for (const it of items) {
+      if (it.ty === 'gr') {
+        const tr = (it.it || []).find(q => q.ty === 'tr'), ge = el('g');
+        if (tr) ups.push(() => { const t = getTime(); ge.setAttribute('transform', transform(tr, t)); ge.setAttribute('opacity', opac(tr, t)); });
+        buildShapes(it.it || [], ge, ups, getTime);
+        nodes.push(ge);
+      } else if (it.ty === 'fl' || it.ty === 'st') for (const ps of paths) nodes.push(styledPath(ps, it, trim, ups, getTime));
+    }
+    for (const nd of nodes.reverse()) parent.append(nd);
+  }
+  function styledPath(ps, st, trim, ups, getTime) {
+    const e = ps.ty === 'el' ? el('ellipse') : el('path', { d: pathD(ps.ks.a ? ps.ks.k[0].s[0] : ps.ks.k) });
+    if (st.ty === 'fl') e.setAttribute('stroke', 'none');
+    else { e.setAttribute('fill', 'none'); e.setAttribute('stroke-linecap', ['butt', 'butt', 'round', 'square'][st.lc || 1]); e.setAttribute('stroke-linejoin', ['miter', 'miter', 'round', 'bevel'][st.lj || 1]); }
+    if (trim && st.ty === 'st') e.setAttribute('pathLength', '100');
+    ups.push(() => {
+      const t = getTime();
+      if (ps.ty === 'el') { const sz = value(ps.s, t), p = value(ps.p, t); e.setAttribute('cx', p[0]); e.setAttribute('cy', p[1]); e.setAttribute('rx', sz[0] / 2); e.setAttribute('ry', sz[1] / 2); }
+      const c = value(st.c, t), o = n0(value(st.o, t)) / 100;
+      if (st.ty === 'fl') { e.setAttribute('fill', rgb(c)); e.setAttribute('fill-opacity', o); }
+      else { e.setAttribute('stroke', rgb(c)); e.setAttribute('stroke-opacity', o); e.setAttribute('stroke-width', n0(value(st.w, t))); }
+      if (trim && st.ty === 'st') {
+        const s = n0(value(trim.s, t)), en = n0(value(trim.e, t)), off = (n0(value(trim.o, t)) || 0) / 3.6, a = Math.min(s, en), b = Math.max(s, en);
+        if (b - a < 0.01) e.setAttribute('visibility', 'hidden');
+        else { e.removeAttribute('visibility'); e.setAttribute('stroke-dasharray', `${b - a} 200`); e.setAttribute('stroke-dashoffset', -(a + off)); }
+      }
+    });
+    return e;
+  }
+  function buildLayers(layers, assets, parent, ups, getCompTime) {
+    for (const L of layers.slice().reverse()) {
+      const g = el('g'), lt = getCompTime;                // Schlüsselbilder in Kompositionszeit (wie lottie-web)
+      ups.push(() => {
+        const ct = getCompTime(), vis = ct >= L.ip && ct < L.op;
+        g.setAttribute('display', vis ? 'inline' : 'none');
+        if (!vis) return;
+        const t = lt();
+        g.setAttribute('transform', transform(L.ks, t)); g.setAttribute('opacity', opac(L.ks, t));
+      });
+      if (L.ty === 4) buildShapes(L.shapes || [], g, ups, lt);
+      else if (L.ty === 0) { const asset = assets.find(a => a.id === L.refId); if (asset) buildLayers(asset.layers, assets, g, ups, () => (getCompTime() - (L.st || 0)) / (L.sr || 1)); }
+      parent.append(g);
+    }
+  }
+  function load(anim, box) {
+    const svg = el('svg', { viewBox: `0 0 ${anim.w} ${anim.h}`, preserveAspectRatio: 'xMidYMid meet', 'aria-hidden': 'true' });
+    let frame = anim.ip;
+    const ups = [];
+    buildLayers(anim.layers, anim.assets || [], svg, ups, () => frame);
+    box.append(svg);
+    const go = f => { frame = f; ups.forEach(u => u()); };
+    go(anim.ip);
+    return {
+      svg, goTo: go,
+      play(onDone) {
+        const t0 = performance.now(), dur = (anim.op - anim.ip) / anim.fr * 1000;
+        const step = now => {
+          const f = anim.ip + Math.min(1, (now - t0) / dur) * (anim.op - 1 - anim.ip);
+          go(f);
+          if (now - t0 < dur && svg.isConnected) requestAnimationFrame(step); else if (onDone) onDone();
+        };
+        requestAnimationFrame(step);
+      },
+    };
+  }
+  return { load };
+})();
+
+function showSplash() {
+  if (UI.splash === false || typeof SPLASH_ANIM === 'undefined') return;
+  if (navigator.webdriver && !window.__splashTest) return;             // automatisierte Tests
+  const reduce = window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const anim = h('div', { class: 'splash-anim' });
+  let closed = false;
+  const close = () => {
+    if (closed) return; closed = true;
+    box.classList.add('out');
+    document.removeEventListener('keydown', close, true);
+    setTimeout(() => box.remove(), 450);
+  };
+  const box = h('div', { class: 'splash', onclick: close, tip: null },
+    h('div', { class: 'splash-mid' }, anim, h('img', { class: 'splash-logo', src: LOGO, alt: 'Malteser' })),
+    h('div', { class: 'splash-ver' }, 'Version ' + APP_INFO.version));
+  document.body.append(box);
+  document.addEventListener('keydown', close, true);
+  const player = Lottie.load(JSON.parse(JSON.stringify(SPLASH_ANIM)), anim);
+  if (reduce) { player.goTo(SPLASH_ANIM.op - 1); setTimeout(close, 900); }
+  else player.play(() => setTimeout(close, 350));
 }
 </script>
 </body>

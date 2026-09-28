@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.5",
+    "date": "2026-09-28T15:25",
+    "items": [
+      "Startbildschirm mit Animation in Malteser-Farben, Logo und Versionsnummer (abschaltbar in den Einstellungen, Klick überspringt)",
+      "Dunkles Design: Kästen heller abgesetzt, damit sie sich klar vom Hintergrund abheben",
+      "Warnungen: Knopf zeigt ✓, wenn nichts zu prüfen ist; Anzeige aktualisiert sich zuverlässig nach dem Freigeben des Ordners",
+      "Outlook-Export: Liste aller Termine, die in der Datei landen – passt sich der Auswahl an",
+      "Kalender: Verbund-Darstellung dauerhaft ein-/ausblendbar (auch im PDF)",
+      "Feiertage: kompaktere Tabelle ohne Erklärtexte"
+    ]
+  },
+  {
     "version": "0.4",
     "date": "2026-09-28T14:28",
     "items": [

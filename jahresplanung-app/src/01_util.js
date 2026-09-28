@@ -62,7 +62,7 @@ const mix = (h, t, w = '#ffffff') => { const a = hex2rgb(h), b = hex2rgb(w); ret
 // Farbtöne der Maßnahmen; im dunklen Modus zur dunklen Fläche hin gemischt (Druck und Excel immer hell)
 let DARK = false, LIGHT_ONLY = 0;
 const darkNow = () => DARK && !LIGHT_ONLY && !(typeof UI !== 'undefined' && UI.printing);
-const DARK_SURF = '#1e1f21';
+const DARK_SURF = '#26282b';
 const pastel = h => darkNow() ? mix(h, 0.66, DARK_SURF) : mix(h, 0.75);
 const midtone = h => darkNow() ? mix(h, 0.4, DARK_SURF) : mix(h, 0.45);
 const inkC = h => darkNow() ? mix(h, 0.45, '#ffffff') : mix(h, 0.12, '#000000');   // Schrift in Maßnahmenfarbe
@@ -97,6 +97,7 @@ function h(tag, props, ...kids) {
   return e;
 }
 const put = (parent, ...kids) => { parent.append(...kids.flat(Infinity).filter(k => k != null && k !== false)); return parent; };
+const setKids = (parent, ...kids) => { parent.replaceChildren(); return put(parent, ...kids); };   // ersetzt Inhalt, ignoriert null/Listen sauber
 function dateInput(value, fk, onCommit, extra = {}) {
   let start = value || '';
   const done = e => { const v = e.target.value; if (v !== start) { start = v; onCommit(v); } };

@@ -242,7 +242,7 @@ function tlDrag(ev, x, mode, pxd, place) {
     else { i += dd; n = i; txt = 'Start Inhalt: ' + fmtW(i) + ' · ' + workdaysBefore(i, x.pal) + ' Werktage vor PAL'; }
     place(s, i, p);
     const w = mode === 'move' ? [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(t => k > 0 || !/Samstag|Urlaub/.test(t)).map(t => ['PAL', 'S', 'I'][k] + ': ' + t)) : dateWarn(n, resp);
-    lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    setKids(lab, h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {

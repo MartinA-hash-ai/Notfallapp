@@ -71,7 +71,9 @@ VIEW_FN.jahr = main => {
       closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
     section('kal', 'Kalender ' + UI.year, () => ({
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),
-        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten')],
+        h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten'),
+        h('label', { class: 'check small', tip: 'verbindet S, I und PAL jeder Maßnahme dauerhaft mit einer Linie in ihrer Farbe' },
+          h('input', { type: 'checkbox', checked: !!UI.verbund, onchange: e => { UI.verbund = e.target.checked; renderNow(); } }), 'Verbund-Darstellung')],
       tools: [legendInline()],
       body: [calendarBody()] }), {
       info: 'Maus über Tag oder Markierung zeigt Details. Markierung anklicken = bearbeiten. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Strg+Z macht es rückgängig.' }));

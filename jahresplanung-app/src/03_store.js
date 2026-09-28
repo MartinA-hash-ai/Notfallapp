@@ -85,7 +85,7 @@ function askPermissionOnFirstClick() {
     ST.askArmed = false;
     if (ST.conn !== 'needs-permission' || !ST.dir) return;
     ST.perm = ST.dir.requestPermission({ mode: 'readwrite' }).then(async p => {
-      if (p === 'granted' && await attachFolder()) { updateSaveUI(); safeRender(); if (isDirty()) scheduleAutosave(); }
+      if (p === 'granted' && await attachFolder()) { updateSaveUI(); releasePointer(); safeRender(); if (isDirty()) scheduleAutosave(); }
       return p;
     }).catch(() => 'denied').finally(() => { ST.perm = null; });
   };

@@ -60,18 +60,18 @@ function icsItems(o) {
     if (!o.ms.has(x.id)) continue;
     for (const [t, k, lab] of TYPES) {
       if (!o.kinds[t] || x[k] == null || x[k] < a || x[k] > b || !match(x.m.verantwortlich)) continue;
-      out.push({ kind: t, mid: x.id, uid: x.id + '-' + t + '-' + ds(x[k]), a: x[k], b: x[k], summary: (t === 'P' ? 'PAL' : lab) + ' · ' + x.m.name,
+      out.push({ kind: t, mid: x.id, uid: x.id + '-' + t + '-' + ds(x[k]), a: x[k], b: x[k], lab: t === 'P' ? 'PAL' : lab, summary: (t === 'P' ? 'PAL' : lab) + ' · ' + x.m.name,
         desc: [x.m.name, TYPE_LABEL[t] + ': ' + fmtW(x[k]), x.pal != null && t !== 'P' ? 'PAL: ' + fmtW(x.pal) : '', t === 'P' && x.m.palStatus !== 'fest' ? 'PAL noch vorläufig' : '',
           x.m.verantwortlich ? 'Hauptverantwortlich: ' + x.m.verantwortlich : '', x.m.hinweis].filter(Boolean).join('\n') });
     }
     if (x.pc) for (const s of x.m.plan.steps) {
       const r = x.pc.map.get(s.id), isPoint = s.typ !== 'aufgabe', kind = isPoint ? 'ms' : 'steps';
       if (!o.kinds[kind] || !r || r.start == null || s.typ === 'gruppe' || r.end < a || r.start > b || !match(s.wer)) continue;
-      out.push({ kind, mid: x.id, uid: x.id + '-' + s.id, a: isPoint ? r.end : r.start, b: isPoint ? r.end : Math.max(r.start, r.end - 1),
+      out.push({ kind, mid: x.id, uid: x.id + '-' + s.id, a: isPoint ? r.end : r.start, b: isPoint ? r.end : Math.max(r.start, r.end - 1), lab: (isPoint ? '◆ ' : '') + s.name + (s.wer ? ' (' + s.wer + ')' : ''),
         summary: (isPoint ? '◆ ' : '') + s.name + ' · ' + x.m.name, desc: [x.m.name, s.wer ? 'Zugeordnet: ' + s.wer : '', s.kommentar, isPoint ? '' : fmtW(r.start) + ' – ' + fmtW(r.end)].filter(Boolean).join('\n') });
     }
   }
-  if (o.kinds.vac) for (const v of C.vac) if (v.bis >= a && v.von <= b && match(v.u.wer)) out.push({ kind: 'vac', mid: null, uid: 'u-' + v.u.id, a: v.von, b: v.bis, summary: 'Urlaub: ' + (v.u.wer || '?'), desc: v.u.notiz });
+  if (o.kinds.vac) for (const v of C.vac) if (v.bis >= a && v.von <= b && match(v.u.wer)) out.push({ kind: 'vac', mid: null, uid: 'u-' + v.u.id, a: v.von, b: v.bis, lab: 'Urlaub ' + (v.u.wer || '?'), summary: 'Urlaub: ' + (v.u.wer || '?'), desc: v.u.notiz });
   return out.sort((p, q) => p.a - q.a);
 }
 function icsFile(name, items) {
@@ -87,13 +87,37 @@ async function exportICS() {
   const o = { kinds: Object.assign({ S: true, I: true, P: true, steps: false, ms: false, vac: false }, last.kinds), ms: new Set(list.map(x => x.id)),
     person: '', range: last.range || 'year', from: mkdn(y, 1, 1), to: mkdn(y, 12, 31), split: last.split || 'one' };
   const persons = D.personen.map(p => p.name);
+  // Vorlauf der Maßnahmen dieses Jahres, der noch im Vorjahr liegt (z. B. Selektion im November für ein Januar-Mailing)
+  const firstDates = list.flatMap(x => [x.s, x.i, x.pal, ...(x.pc ? [...x.pc.map.values()].map(r => r.start) : [])]).filter(v => v != null);
   const wrap = h('div', { class: 'form' }), count = h('div', { class: 'calcline' });
   const range = () => {
-    if (o.range === 'year') { o.from = mkdn(y, 1, 1); o.to = mkdn(y, 12, 31); }
+    if (o.range === 'year') { o.from = Math.min(mkdn(y, 1, 1), ...firstDates); o.to = mkdn(y, 12, 31); }
     else if (o.range === 'rest') { o.from = Math.max(today, mkdn(y, 1, 1)); o.to = mkdn(y, 12, 31); }
+  };
+  const prev = h('div', { class: 'icsprev' });
+  const drawPrev = () => {
+    const all = icsItems(Object.assign({}, o, { ms: new Set(list.map(x => x.id)) }));
+    const when = e => e.a === e.b ? fmtW(e.a) : fmtS(e.a) + ' – ' + fmtW(e.b);
+    const line = e => h('div', { class: 'icsev k-' + e.kind }, h('span', { class: 'd' }, when(e)), h('span', { class: 'l' }, e.lab));
+    const boxes = [];
+    setKids(prev, 
+      h('div', { class: 'pop-h' }, 'Termine in der Datei', h('span', null,
+        h('button', { class: 'link', onclick: e => { e.preventDefault(); list.forEach(x => o.ms.add(x.id)); upd(); } }, 'alle'), ' · ',
+        h('button', { class: 'link', onclick: e => { e.preventDefault(); o.ms.clear(); upd(); } }, 'keine'))),
+      list.map(x => {
+        const ev = all.filter(e => e.mid === x.id), on = o.ms.has(x.id);
+        const b = h('input', { type: 'checkbox', checked: on, onchange: e => { e.target.checked ? o.ms.add(x.id) : o.ms.delete(x.id); upd(); } });
+        boxes.push(b);
+        return h('div', { class: 'icsgrp' + (on ? '' : ' off') },
+          h('label', { class: 'mchk' }, b, h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'),
+            h('span', { class: 'muted small' }, ev.length ? ev.length + ' Termin' + (ev.length > 1 ? 'e' : '') : 'keine Termine')),
+          on ? ev.map(line) : null);
+      }),
+      (() => { const v = all.filter(e => e.kind === 'vac'); return v.length ? h('div', { class: 'icsgrp' }, h('div', { class: 'mchk' }, h('b', null, 'Urlaube')), v.map(line)) : null; })());
   };
   const upd = () => {
     range();
+    drawPrev();
     const items = icsItems(o), files = o.split === 'one' ? 1 : new Set(items.map(e => o.split === 'kind' ? e.kind : e.mid || 'vac')).size;
     count.textContent = items.length + ' Termine' + (items.length ? ' · ' + files + (files === 1 ? ' Datei' : ' Dateien (als ZIP)') : '') + ' · alle ganztägig';
   };
@@ -101,7 +125,7 @@ async function exportICS() {
   const draw = () => {
     const cb = k => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!o.kinds[k], onchange: e => { o.kinds[k] = e.target.checked; upd(); } }), ICS_KINDS.find(q => q[0] === k)[1]);
     const radio = (name, val, label, key) => h('label', { class: 'check' }, h('input', { type: 'radio', name, checked: o[key] === val, onchange: () => { o[key] = val; draw(); } }), label);
-    wrap.replaceChildren(
+    setKids(wrap, 
       h('p', { class: 'muted small' }, 'Erstellt Kalenderdateien (.ics) für Outlook. Doppelklick auf die Datei → „Als neuen Kalender öffnen“ oder importieren.'),
       h('div', { class: 'ics-presets' }, h('span', { class: 'muted small' }, 'Schnellauswahl:'),
         h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ S: true }); } }, 'nur Selektions-Starts'),
@@ -115,11 +139,11 @@ async function exportICS() {
           h('h3', null, 'Person'), h('select', { onchange: e => { o.person = e.target.value; upd(); } }, h('option', { value: '' }, 'alle Personen'),
             persons.map(n => h('option', { value: n, selected: o.person === n }, n))),
           h('div', { class: 'muted small' }, 'Starts/PAL: hauptverantwortliche Person · Schritte: zugeordnete Person'),
-          h('h3', null, 'Zeitraum'), h('div', { class: 'checks' }, radio('rng', 'year', 'ganzes Jahr ' + y, 'range'), radio('rng', 'rest', 'ab heute bis Jahresende', 'range'), radio('rng', 'free', 'eigener Zeitraum', 'range'),
+          h('h3', null, 'Zeitraum'), h('div', { class: 'checks' }, radio('rng', 'year', 'alle Termine der Maßnahmen ' + y + (firstDates.some(n => n < mkdn(y, 1, 1)) ? ' (inkl. Vorlauf aus ' + (y - 1) + ')' : ''), 'range'), radio('rng', 'rest', 'ab heute bis Jahresende', 'range'), radio('rng', 'free', 'eigener Zeitraum', 'range'),
             o.range === 'free' ? h('div', { class: 'inl' }, h('input', { type: 'date', value: ds(o.from), onchange: e => { o.from = dn(e.target.value) ?? o.from; upd(); } }), '–',
               h('input', { type: 'date', value: ds(o.to), onchange: e => { o.to = dn(e.target.value) ?? o.to; upd(); } })) : null),
           h('h3', null, 'Dateien'), h('div', { class: 'checks' }, radio('spl', 'one', 'eine Kalenderdatei', 'split'), radio('spl', 'mass', 'je Maßnahme eine Datei', 'split'), radio('spl', 'kind', 'je Terminart eine Datei', 'split'))),
-        msPicker(o.ms, list, upd)),
+        prev),
       count,
       h('p', { class: 'muted small' }, 'Hinweis: Wiederholter Import kann Termine in Outlook doppelt anlegen. Am übersichtlichsten ist ein eigener Kalender „Jahresplanung“, den du vor einem neuen Import löschst.'));
     upd();

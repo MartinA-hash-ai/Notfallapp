@@ -19,8 +19,23 @@ if not CHANGELOG[0].get('date'):
     from zoneinfo import ZoneInfo
     CHANGELOG[0]['date'] = datetime.now(ZoneInfo('Europe/Berlin')).strftime('%Y-%m-%dT%H:%M')
 APP_INFO = {'version': CHANGELOG[0]['version'], 'date': CHANGELOG[0]['date']}
+# Startanimation (Lottie) in Malteser-Farben umfärben: Dunkelblau → Dunkelrot, Hellblau → Malteser-Rot
+def recolor(o, pairs):
+    if isinstance(o, dict):
+        c = o.get('c')
+        if isinstance(c, dict) and not c.get('a') and isinstance(c.get('k'), list) and len(c['k']) == 4:
+            for src, dst in pairs:
+                if all(abs(x - y) < 0.01 for x, y in zip(c['k'][:3], src)):
+                    c['k'] = dst + [c['k'][3]]
+        for v in o.values(): recolor(v, pairs)
+    elif isinstance(o, list):
+        for v in o: recolor(v, pairs)
+    return o
+hexf = lambda h: [round(int(h[i:i + 2], 16) / 255, 4) for i in (1, 3, 5)]
+SPLASH = recolor(json.load(open(os.path.join(HERE, 'src', 'splash_original.json'), encoding='utf8')),
+                 [([0.0706, 0.5333, 0.7725], hexf('#A5000F')), ([0.2392, 0.7404, 1.0], hexf('#E30714'))])
 LOGO = 'data:image/png;base64,' + base64.b64encode(open(os.path.join(HERE, 'src', 'logo.png'), 'rb').read()).decode()
-js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";\nconst APP_INFO = " + json.dumps(APP_INFO) + ";\nconst CHANGELOG = " + json.dumps(CHANGELOG, ensure_ascii=False) + ";", 1)
+js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";\nconst APP_INFO = " + json.dumps(APP_INFO) + ";\nconst CHANGELOG = " + json.dumps(CHANGELOG, ensure_ascii=False) + ";\nconst SPLASH_ANIM = " + json.dumps(SPLASH, separators=(',', ':')) + ";", 1)
 for bad in ('</script', '<!--'):
     assert bad not in js.lower(), bad
 dj = json.dumps(data, ensure_ascii=False).replace('<', '\\u003c')

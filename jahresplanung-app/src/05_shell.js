@@ -11,9 +11,15 @@ function requestRender() {
   if (_renderTimer) return;
   _renderTimer = setTimeout(renderNow, 0);
 }
+// Neu zeichnen erst nach dem Loslassen der Maus (sonst gehen Klicks verloren). Geht das Loslassen verloren
+// (z. B. weil der Browser beim Klick eine Berechtigungsfrage zeigt), holt die nächste Mausbewegung es nach.
+function releasePointer() { _pointerDown = false; if (_renderPending) { _renderPending = false; requestRender(); } }
 document.addEventListener('pointerdown', () => { _pointerDown = true; }, true);
-document.addEventListener('pointerup', () => { _pointerDown = false; if (_renderPending) { _renderPending = false; requestRender(); } }, true);
-document.addEventListener('pointercancel', () => { _pointerDown = false; if (_renderPending) { _renderPending = false; requestRender(); } }, true);
+document.addEventListener('pointerup', releasePointer, true);
+document.addEventListener('pointercancel', releasePointer, true);
+document.addEventListener('pointermove', e => { if (_pointerDown && e.buttons === 0) releasePointer(); }, true);
+window.addEventListener('blur', releasePointer);
+document.addEventListener('visibilitychange', releasePointer);
 function renderNow() {
   clearTimeout(_renderTimer); _renderTimer = null;
   if (!D) return;
@@ -58,8 +64,9 @@ function topBar() {
     h('div', { class: 'actions' },
       h('button', { class: 'icon', tip: 'Rückgängig (Strg+Z)', disabled: !UNDO.length, onclick: undo }, '↶'),
       h('button', { class: 'icon', tip: 'Wiederholen (Strg+Y)', disabled: !REDO.length, onclick: redo }, '↷'),
-      h('button', { class: 'warnbtn' + (nW ? ' has' : ''), tip: 'Warnungen und Hinweise für ' + UI.year, onclick: () => { UI.warnOpen = !UI.warnOpen; renderNow(); } },
-        '⚠ ', nW, nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
+      h('button', { class: 'warnbtn' + (nW ? ' has' : ''), tip: (nW ? nW + ' Warnung' + (nW > 1 ? 'en' : '') : 'Keine Warnungen') + (nI ? ', ' + nI + ' Hinweis' + (nI > 1 ? 'e' : '') : '') + ' für ' + UI.year,
+        onclick: () => { UI.warnOpen = !UI.warnOpen; renderNow(); } },
+        nW ? '⚠ ' + nW : '✓', nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
       menuButton('Export ▾', [
         ['PDF exportieren …', pdfDialog], null,
         ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS], null,
@@ -235,12 +242,13 @@ async function settingsDialog() {
   const draw = () => {
     const theme = UI.theme || 'light';
     const radio = (v, l) => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'theme', checked: theme === v, onchange: () => { setTheme(v); draw(); } }), l);
-    wrap.replaceChildren(
+    setKids(wrap, 
       h('h3', null, 'Allgemein'),
       row('Dein Name', h('input', { value: UI.userName || '', onchange: e => { UI.userName = e.target.value.trim(); saveUI(); } }), 'wird beim Speichern vermerkt („gespeichert von …“), nur in diesem Browser'),
       row('Planungsjahr beim Öffnen', h('input', { type: 'number', min: 2000, max: 2100, value: D.settings.year, onchange: e => { const v = +e.target.value; if (v >= 2000 && v <= 2100) commit(d => { d.settings.year = v; }); } })),
       h('h3', null, 'Darstellung'),
       h('div', { class: 'inl theme-pick' }, radio('light', 'Hell'), radio('dark', 'Dunkel'), radio('system', 'wie Windows')),
+      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.splash !== false, onchange: e => { UI.splash = e.target.checked; saveUI(); } }), 'Startbildschirm mit Animation beim Öffnen zeigen'),
       h('h3', null, 'Personen'),
       h('p', { class: 'muted small' }, 'Die Farbe gilt für Urlaube und Arbeitsschritte. Umbenennen ändert den Namen überall (Urlaube, Hauptverantwortliche, Arbeitsschritte).'),
       h('table', { class: 'grid ptable' }, h('tbody', null, D.personen.map(p => {
