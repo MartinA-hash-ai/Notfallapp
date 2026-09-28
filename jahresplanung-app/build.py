@@ -35,7 +35,9 @@ hexf = lambda h: [round(int(h[i:i + 2], 16) / 255, 4) for i in (1, 3, 5)]
 SPLASH = recolor(json.load(open(os.path.join(HERE, 'src', 'splash_original.json'), encoding='utf8')),
                  [([0.0706, 0.5333, 0.7725], hexf('#A5000F')), ([0.2392, 0.7404, 1.0], hexf('#E30714'))])
 LOGO = 'data:image/png;base64,' + base64.b64encode(open(os.path.join(HERE, 'src', 'logo.png'), 'rb').read()).decode()
-js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";\nconst APP_INFO = " + json.dumps(APP_INFO) + ";\nconst CHANGELOG = " + json.dumps(CHANGELOG, ensure_ascii=False) + ";\nconst SPLASH_ANIM = " + json.dumps(SPLASH, separators=(',', ':')) + ";", 1)
+# weißes Logo (aus der Malteser-Vorlage „Logo_malteser_einfarbig_weiss.pdf“) für das dunkle Design
+LOGO_DARK = 'data:image/svg+xml;base64,' + base64.b64encode(open(os.path.join(HERE, 'src', 'logo_weiss.svg'), 'rb').read()).decode()
+js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst LOGO_DARK = " + json.dumps(LOGO_DARK) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";\nconst APP_INFO = " + json.dumps(APP_INFO) + ";\nconst CHANGELOG = " + json.dumps(CHANGELOG, ensure_ascii=False) + ";\nconst SPLASH_ANIM = " + json.dumps(SPLASH, separators=(',', ':')) + ";", 1)
 for bad in ('</script', '<!--'):
     assert bad not in js.lower(), bad
 dj = json.dumps(data, ensure_ascii=False).replace('<', '\\u003c')

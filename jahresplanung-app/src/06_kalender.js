@@ -94,7 +94,7 @@ function chipDrag(ev, e) {
   if (ev.button !== 0) return;
   ev.stopPropagation();
   const x = e.x, t = e.t, el = ev.currentTarget, sx = ev.clientX, sy = ev.clientY;
-  const locked = x.pc && t !== 'P';
+  const locked = t !== 'P' && !startMovable(x, t);
   el.setPointerCapture(ev.pointerId);
   let moved = false, dd = 0, ghost = null, lab = null, marks = [];
   const resp = (x.m.verantwortlich || '').trim();
@@ -109,7 +109,7 @@ function chipDrag(ev, e) {
   const move = m => {
     if (!moved) {
       if (Math.hypot(m.clientX - sx, m.clientY - sy) < 5) return;
-      if (locked) { toast('„' + x.m.name + '“ hat einen Detailplan – Start Selektion und Start Inhalt ergeben sich aus den Arbeitsschritten. Das PAL (P) lässt sich ziehen.', 'warn'); stop(); return; }
+      if (locked) { toast('Im Detailplan von „' + x.m.name + '“ ist kein Schritt als ' + TYPE_LABEL[t] + ' markiert (⋯-Menü am Schritt).', 'warn'); stop(); return; }
       moved = true; hideTip(); document.body.classList.add('dragging');
       el.classList.add('dragsrc');
       ghost = h('span', { class: 'chip ghost ' + t, style: chipStyle(t, x.color) }, t);
@@ -151,12 +151,8 @@ function chipDrag(ev, e) {
     stop();
     if (!wasMoved) { editMassnahme(x.id); return; }
     if (!dd) return;
-    commit(d => {
-      const m = findM(d, x.id);
-      if (t === 'P') m.pal = ds(x.pal + dd);
-      else if (t === 'S') m.vorlaufS = Math.max(0, x.vS - dd);
-      else m.vorlaufI = Math.max(0, x.vI - dd);
-    }, t === 'P' ? x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (S und I mitverschoben)' : x.m.name + ': ' + TYPE_LABEL[t] + ' → ' + fmtW((t === 'S' ? x.s : x.i) + dd));
+    if (t === 'P') commit(d => { findM(d, x.id).pal = ds(x.pal + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (S und I mitverschoben)');
+    else moveStartTo(x.id, t, (t === 'S' ? x.s : x.i) + dd);
   };
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerup', up);

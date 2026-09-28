@@ -65,6 +65,7 @@ const darkNow = () => DARK && !LIGHT_ONLY && !(typeof UI !== 'undefined' && UI.p
 const DARK_SURF = '#26282b';
 const pastel = h => darkNow() ? mix(h, 0.66, DARK_SURF) : mix(h, 0.75);
 const midtone = h => darkNow() ? mix(h, 0.4, DARK_SURF) : mix(h, 0.45);
+const logoSrc = () => darkNow() ? LOGO_DARK : LOGO;                      // weißes Logo im dunklen Design
 const inkC = h => darkNow() ? mix(h, 0.45, '#ffffff') : mix(h, 0.12, '#000000');   // Schrift in Maßnahmenfarbe
 function lum(h) {
   const [r, g, b] = hex2rgb(h).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });

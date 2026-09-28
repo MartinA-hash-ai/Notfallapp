@@ -5,6 +5,7 @@
   --errbg: #fdecea; --errline: #f5b5ae; --errink: #8a1c12; --okbg: #e8f5e9; --okline: #a5d6a7; --okink: #1b5e20; --infobg: #f1f3f5;
   --runbg: #e3f2fd; --runink: #0d47a1; --flash: #fff3a8; --chipbg: #e6e6e6;
   --chk-line: #d9d9d9; --chk-on: #f2f2f2; --chk-mark: #ababab;
+  --monthbg: #ffffff; --monthhead: #f0f0ed; --monthline: #d6d6d3; --monthout: #f7f7f5;
   --ok: #2e7d32; --focus: #1F77B4; --side: 250px; --radius: 8px;
   --hatch: repeating-linear-gradient(135deg, var(--hol1) 0 3px, var(--hol2) 3px 5px);
   color-scheme: light;
@@ -17,11 +18,11 @@
     --errbg: #3b1d1c; --errline: #7a3430; --errink: #ffb4ab; --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6; --infobg: #25282c;
     --runbg: #1a2c40; --runink: #9ccaff; --flash: #5a5220; --chipbg: #3a3c40;
     --chk-line: #4a4d52; --chk-on: #2c2e31; --chk-mark: #8a8e94;
+    --monthbg: #1d1f22; --monthhead: #373a3f; --monthline: #52555b; --monthout: #191a1d;
     --ok: #7fd08a; --focus: #5aa9e6;
     color-scheme: dark;
   }
   html[data-theme=dark] button.primary { color: #fff; }
-  html[data-theme=dark] .brand .logo { background: #fff; border-radius: 6px; padding: 2px 5px; }
   html[data-theme=dark] .chip.demo.P { background: #bdbdbd; color: #1e1f21; }
   html[data-theme=dark] .backdrop { background: rgba(0,0,0,.55); }
   html[data-theme=dark] .g-row.grp { background: rgba(255,255,255,.03); }
@@ -457,6 +458,15 @@ main.hl .tl-row[data-m]:not(.hl-on) > .tl-lab > *, main.hl .tl-row[data-m]:not(.
 .hcard .htable td.acts button { padding: 0 6px; }
 .hcard h3 { margin-top: 10px; }
 .htable tr.off td:not(.hchk) { opacity: .45; text-decoration: line-through; }
+.htable td.off:not(.hchk) { opacity: .45; text-decoration: line-through; }
+.ucols { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.hol2 { table-layout: fixed; }
+.hol2 td.hchk, .hol2 th:nth-child(4n+1) { width: 24px; }
+.hol2 td.hdate, .hol2 th:nth-child(4n+2) { width: 124px; }
+.hol2 td.hend, .hol2 th.hend, .hol2 th:nth-child(4n) { width: 26px; }
+.hol2 td.hend, .hol2 th.hend { border-right: 1px solid var(--line); }
+.hol2 td.hname input { text-overflow: ellipsis; }
+.hcard .hol2 td input[type=date] { width: 118px; }
 .htable td.hchk { width: 26px; text-align: center; }
 .htable td.hchk input { vertical-align: middle; }
 .persons { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -519,8 +529,9 @@ table.grid th input { margin: 0; }
 .mtable th { white-space: normal; line-height: 1.15; vertical-align: bottom; }
 td.vis, th.h-vis { width: 28px; text-align: center; }
 .mtable tr.hidden-m td:not(.vis) { opacity: .45; }
-.month { border-color: var(--line); border-radius: 10px; }
-.month > header { background: none; color: var(--ink); font-size: 14px; padding: 9px 12px 3px; }
+.month { background: var(--monthbg); border-color: var(--monthline); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
+.month > header { background: var(--monthhead); color: var(--ink); font-size: 14.5px; font-weight: 700; padding: 7px 12px; border-bottom: 1px solid var(--monthline); }
+.month .day.out { background: var(--monthout); }
 .mgrid .wh { border-bottom-color: var(--line3); }
 .mgrid .kw { border-right-color: var(--line3); }
 .day { border-right-color: var(--line3); border-bottom-color: var(--line3); }
@@ -591,6 +602,7 @@ body.resizing, body.resizing * { cursor: col-resize !important; }
 .day > .vbl.ve { right: 50%; border-radius: 0 2px 2px 0; }
 .day > .vbl.vs.ve { left: 44%; right: 44%; }
 main.hl .vbl:not(.hl-on) { opacity: .12; }
+main.hl .day > .vbl.hl-on { opacity: 1; height: 4px; margin-top: -.5px; }
 /* Zeitleiste: Namen anklickbar */
 .tl-lab.clickable, .tl-lab.clickable .nm { cursor: pointer; }
 .tl-lab.clickable:hover .nm { text-decoration: underline; }
@@ -635,7 +647,8 @@ main.hl .vbl:not(.hl-on) { opacity: .12; }
 .splash-logo { height: 34px; width: auto; margin-top: -58px; }
 .splash-ver { position: absolute; bottom: 14px; left: 0; right: 0; text-align: center; font-size: 11px; color: var(--faint); letter-spacing: .03em; }
 html[data-theme=dark] .splash { background: var(--bg); }
-html[data-theme=dark] .splash-logo { background: #fff; border-radius: 6px; padding: 3px 6px; }
+html[data-theme=dark] .brand .logo { height: 33px; }
+html[data-theme=dark] .splash-logo { height: 31px; }
 
 /* ---------- Druck */
 @page { size: A4 landscape; margin: 0; }   /* ohne Rand druckt der Browser keine Kopf-/Fußzeile (Dateipfad, Titel) */
@@ -701,7 +714,7 @@ html[data-theme=dark] .splash-logo { background: #fff; border-radius: 6px; paddi
   .pd-plan .pdates input { border: 0; padding: 0; width: 80px; font-size: 10px; }
   .pd-plan .pl-row, .pd-plan .g-row { height: 15px; font-size: 8.5px; }
   .pd-plan .pl-row.head, .pd-plan .g-head { height: 30px; }
-  .pd-urlaub .cols2 { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); }
+  .pd-urlaub .cols2 { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
   .pd-urlaub .card { padding: 8px 10px; margin-bottom: 8px; }
   .pd-urlaub .htable td, .pd-urlaub .utable td { padding: 1px 4px; }
   .pd-urlaub .htable input, .pd-urlaub .utable input { padding: 0 2px; font-size: 9px; }

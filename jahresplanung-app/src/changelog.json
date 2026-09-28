@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.6",
+    "date": "2026-09-28T16:21",
+    "items": [
+      "Dunkles Design: weißes Malteser-Logo (Kopfzeile und Startbildschirm)",
+      "Start Selektion und Start Inhalt lassen sich auch bei Maßnahmen mit Detailplan ziehen (Zeitleiste, Kalender) oder in der Tabelle eintippen – die Dauer der Arbeitsschritte davor passt sich an",
+      "Verbund-Darstellung: beim Überfahren nur noch eine, hervorgehobene Linie",
+      "Kalender: Monate deutlicher abgesetzt (Kopfleiste, Rahmen, eigene Fläche)",
+      "Feiertage zweispaltig – halb so hoch"
+    ]
+  },
+  {
     "version": "0.5.2",
     "date": "2026-09-28T15:51",
     "items": [

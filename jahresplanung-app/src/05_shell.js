@@ -55,7 +55,7 @@ function topBar() {
   const dirty = isDirty(), nW = C.warnings.filter(w => w.lvl === 'warn').length, nI = C.warnings.length - nW;
   const tab = ([k, label]) => h('button', { class: 'tab' + (UI.view === k ? ' on' : ''), onclick: () => { UI.view = k; renderNow(); $('#main').scrollTop = 0; } }, label);
   return h('header', { class: 'top' },
-    h('div', { class: 'brand' }, h('img', { class: 'logo', src: LOGO, alt: 'Malteser' }), h('div', null, h('strong', null, 'Jahresplanung Außenkommunikation'), h('span', null, 'Fundraising · Diözese Paderborn'))),
+    h('div', { class: 'brand' }, h('img', { class: 'logo', src: logoSrc(), alt: 'Malteser' }), h('div', null, h('strong', null, 'Jahresplanung Außenkommunikation'), h('span', null, 'Fundraising · Diözese Paderborn'))),
     h('div', { class: 'year' },
       h('button', { class: 'icon', 'aria-label': 'Vorjahr', onclick: () => { UI.year--; renderNow(); } }, '‹'),
       h('span', { class: 'y' }, UI.year),
@@ -136,7 +136,7 @@ function highlight(id) {
   $$('[data-m]', main).forEach(e => e.classList.toggle('hl-on', e.dataset.m === id));
   $$('.day.span', main).forEach(c => { c.classList.remove('span', 'span-s', 'span-e'); c.style.removeProperty('--hc'); });
   const x = id && C.byId.get(id);
-  if (!x) return;
+  if (!x || UI.verbund) return;                  // Verbund-Darstellung: die eigene Linie wird per CSS betont
   const pts = [x.s, x.i, x.pal].filter(v => v != null);
   if (pts.length < 2) return;
   const a = Math.min(...pts), b = Math.max(...pts), cells = new Map($$('.day[data-dn]', main).map(c => [+c.dataset.dn, c]));

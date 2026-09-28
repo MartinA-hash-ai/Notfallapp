@@ -67,8 +67,8 @@ function timelineSection() {
     const els = {
       seg1: h('div', { class: 'seg s1', style: { background: pastel(x.color), borderColor: x.color } }),
       seg2: h('div', { class: 'seg s2', style: { background: midtone(x.color), borderColor: x.color } }),
-      hS: h('div', { class: 'handle hs' + (x.pc ? ' locked' : ''), style: { background: x.color } }, h('i', null, 'S')),
-      hI: h('div', { class: 'handle hi' + (x.pc ? ' locked' : ''), style: { background: x.color } }, h('i', null, 'I')),
+      hS: h('div', { class: 'handle hs' + (startMovable(x, 'S') ? '' : ' locked'), style: { background: x.color } }, h('i', null, 'S')),
+      hI: h('div', { class: 'handle hi' + (startMovable(x, 'I') ? '' : ' locked'), style: { background: x.color } }, h('i', null, 'I')),
       dia: h('div', { class: 'dia', style: { background: x.color } }),
     };
     const place = (s, i, p) => {
@@ -84,8 +84,8 @@ function timelineSection() {
     place(x.s, x.i, x.pal);
     const tipFn = () => chipTip({ x, t: 'P' });
     [els.seg1, els.seg2, els.dia].forEach(e => { setTip(e, tipFn); e.addEventListener('pointerdown', ev => tlDrag(ev, x, 'move', pxd, place)); e.addEventListener('dblclick', () => editMassnahme(x.id)); });
-    setTip(els.hS, () => h('div', null, h('b', null, 'Start Selektion ' + fmtW(x.s)), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.s, x.pal) + ' Werktage vor PAL · ' : '') + (x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = verschieben'))));
-    setTip(els.hI, () => h('div', null, h('b', null, 'Start inhaltliche Arbeit ' + fmtW(x.i)), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.i, x.pal) + ' Werktage vor PAL · ' : '') + (x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = verschieben'))));
+    setTip(els.hS, () => h('div', null, h('b', null, 'Start Selektion ' + fmtW(x.s)), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.s, x.pal) + ' Werktage vor PAL · ' : '') + (x.pc ? 'ziehen = verschieben, der Detailplan passt sich an' : 'ziehen = verschieben'))));
+    setTip(els.hI, () => h('div', null, h('b', null, 'Start inhaltliche Arbeit ' + fmtW(x.i)), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.i, x.pal) + ' Werktage vor PAL · ' : '') + (x.pc ? 'ziehen = verschieben, der Detailplan passt sich an' : 'ziehen = verschieben'))));
     els.hS.addEventListener('pointerdown', ev => tlDrag(ev, x, 'S', pxd, place));
     els.hI.addEventListener('pointerdown', ev => tlDrag(ev, x, 'I', pxd, place));
     track.append(els.seg1, els.seg2, els.hS, els.hI, els.dia);
@@ -224,7 +224,7 @@ function timelineAfter() {
 }
 function tlDrag(ev, x, mode, pxd, place) {
   if (ev.button !== 0) return;
-  if (x.pc && mode !== 'move') { toast('Bei Maßnahmen mit Detailplan ergeben sich Start Selektion und Start Inhalt aus den Arbeitsschritten (Reiter „Detailpläne“).', 'warn'); return; }
+  if (mode !== 'move' && !startMovable(x, mode)) { toast('Im Detailplan von „' + x.m.name + '“ ist kein Schritt als ' + (mode === 'S' ? 'Start Selektion' : 'Start Inhalt') + ' markiert (⋯-Menü am Schritt).', 'warn'); return; }
   if (mode === 'move' && x.pal == null) return;
   ev.preventDefault(); hideTip();
   const el = ev.currentTarget, x0 = ev.clientX;
@@ -250,13 +250,8 @@ function tlDrag(ev, x, mode, pxd, place) {
     document.body.classList.remove('dragging');
     lab.remove();
     if (!dd) return;
-    commit(d => {
-      const m = findM(d, x.id);
-      if (mode === 'move') {
-        m.pal = ds(dn(m.pal) + dd);
-      } else if (mode === 'S') m.vorlaufS = Math.max(0, x.vS - dd);
-      else m.vorlaufI = Math.max(0, x.vI - dd);
-    }, mode === 'move' ? x.m.name + ': PAL → ' + fmtW(x.pal + dd) : x.m.name + ': Start verschoben');
+    if (mode === 'move') commit(d => { const m = findM(d, x.id); m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd));
+    else moveStartTo(x.id, mode, (mode === 'S' ? x.s : x.i) + dd);
   };
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerup', up, { once: true });

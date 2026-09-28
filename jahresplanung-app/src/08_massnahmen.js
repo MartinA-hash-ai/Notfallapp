@@ -105,7 +105,10 @@ function massnahmenSection() {
     const startCell = key => {
       const n = x[key], w = n != null ? dateWarn(n, resp) : [];
       const warnIcon = w.length ? h('span', { class: 'wi', tip: w.join('\n') }, '⚠') : null;
-      if (m.plan) return h('td', { class: 'date derived-date', tip: 'ergibt sich aus dem Detailplan' }, h('span', null, n != null ? fmtD(n) : '–'), warnIcon);
+      const T = key === 's' ? 'S' : 'I';
+      if (m.plan && !startMovable(x, T)) return h('td', { class: 'date derived-date', tip: 'ergibt sich aus dem Detailplan' }, h('span', null, n != null ? fmtD(n) : '–'), warnIcon);
+      if (m.plan) return h('td', { class: 'date', tip: 'Datum ändern – die Arbeitsschritte im Detailplan passen sich an' },
+        dateInput(n != null ? ds(n) : '', fk(key), v => { const d = dn(v); if (d != null) moveStartTo(id, T, d); }), warnIcon);
       return h('td', { class: 'date' }, x.pal == null ? h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–') :
         dateInput(n != null ? ds(n) : '', fk(key), v => setStartDate(id, key, v)), warnIcon);
     };

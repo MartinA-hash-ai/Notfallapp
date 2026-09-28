@@ -153,7 +153,7 @@ function showSplash() {
     setTimeout(() => box.remove(), 450);
   };
   const box = h('div', { class: 'splash', onclick: close, tip: null },
-    h('div', { class: 'splash-mid' }, anim, h('img', { class: 'splash-logo', src: LOGO, alt: 'Malteser' })),
+    h('div', { class: 'splash-mid' }, anim, h('img', { class: 'splash-logo', src: logoSrc(), alt: 'Malteser' })),
     h('div', { class: 'splash-ver' }, 'Version ' + APP_INFO.version));
   document.body.append(box);
   document.addEventListener('keydown', close, true);

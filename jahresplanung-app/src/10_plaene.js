@@ -49,6 +49,21 @@ function adjustMark(m, which, target) {
   }
   return { changed };
 }
+// Start Selektion/Inhalt einer Maßnahme auf ein Datum legen (Zeitleiste, Kalender): ohne Plan über den Vorlauf,
+// mit Detailplan über die Dauer der Schritte davor. Liefert die Meldung für den Hinweis.
+function startMovable(x, t) { return !x.m.plan || !!(t === 'S' ? x.m.plan.markS : x.m.plan.markI); }
+function moveStartTo(id, t, n) {
+  let res = null;
+  const x = C.byId.get(id), label = t === 'S' ? 'Start Selektion' : 'Start Inhalt';
+  commit(d => {
+    const m = findM(d, id), pal = dn(m.pal);
+    if (m.plan) res = adjustMark(m, t, n);
+    else if (pal != null) { if (t === 'S') m.vorlaufS = Math.max(0, pal - n); else m.vorlaufI = Math.max(0, pal - n); res = { changed: [] }; }
+  });
+  if (!res) return;
+  const det = res.changed.length ? ' – Detailplan: ' + res.changed.map(([nm, a, b]) => '„' + nm + '“ ' + a + ' → ' + b + ' Tage').join(', ') : '';
+  toast(x.m.name + ': ' + label + ' → ' + fmtW(n) + det + (res.partial ? ' (kürzer geht nicht)' : ''), res.partial ? 'warn' : '');
+}
 // Schritt auf neuen Beginn/Ende setzen (Verknüpfung bleibt, der Versatz wird angepasst)
 function setStepSpan(m, sid, ns, ne) {
   const s = m.plan.steps.find(q => q.id === sid);

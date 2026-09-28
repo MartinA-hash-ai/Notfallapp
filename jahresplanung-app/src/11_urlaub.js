@@ -97,15 +97,18 @@ VIEW_FN.urlaub = main => {
   const hol = [...holidaysNRW(y)].sort((p, q) => p[0] - q[0]);
   const setHol = (orig, fn) => commit(d => { const k = ds(orig), o = Object.assign({}, d.feiertage[k]); fn(o); Object.keys(o).forEach(q => { if (o[q] == null || o[q] === '' || o[q] === false) delete o[q]; });
     if (Object.keys(o).length) d.feiertage[k] = o; else delete d.feiertage[k]; });
-  const holRows = hol.map(([n, t]) => {
-    const o = ov[ds(n)] || {}, at = dn(o.datum) ?? n, changed = !!(o.name || o.datum || o.off);
-    return h('tr', { class: o.off ? 'off' : '' },
-      h('td', { class: 'hchk' }, h('input', { type: 'checkbox', checked: !o.off, tip: o.off ? 'gilt nicht – anklicken zum Aktivieren' : 'gilt als Feiertag', 'aria-label': 'gilt',
+  // zweispaltig: erst links von oben nach unten, dann rechts weiter
+  const holCells = ([n, t]) => {
+    const o = ov[ds(n)] || {}, at = dn(o.datum) ?? n, changed = !!(o.name || o.datum || o.off), off = o.off ? ' off' : '';
+    return [
+      h('td', { class: 'hchk' + off }, h('input', { type: 'checkbox', checked: !o.off, tip: o.off ? 'gilt nicht – anklicken zum Aktivieren' : 'gilt als Feiertag', 'aria-label': 'gilt',
         onchange: e => setHol(n, q => { q.off = !e.target.checked; }) })),
-      h('td', null, dateInput(ds(at), 'hol:' + ds(n) + ':d', v => setHol(n, q => { q.datum = v && dn(v) !== n ? v : null; }))),
-      h('td', null, h('input', { value: o.name || t, 'data-fk': 'hol:' + ds(n) + ':n', onchange: e => setHol(n, q => { const v = e.target.value.trim(); q.name = v && v !== t ? v : null; }) })),
-      h('td', { class: 'acts' }, changed ? h('button', { class: 'icon', tip: 'zurücksetzen auf „' + t + ', ' + fmtD(n) + '“', 'aria-label': 'zurücksetzen', onclick: () => setHol(n, q => { q.name = q.datum = null; q.off = false; }) }, '↺') : null));
-  });
+      h('td', { class: 'hdate' + off }, dateInput(ds(at), 'hol:' + ds(n) + ':d', v => setHol(n, q => { q.datum = v && dn(v) !== n ? v : null; }))),
+      h('td', { class: 'hname' + off }, h('input', { value: o.name || t, title: o.name || t, 'data-fk': 'hol:' + ds(n) + ':n', onchange: e => setHol(n, q => { const v = e.target.value.trim(); q.name = v && v !== t ? v : null; }) })),
+      h('td', { class: 'acts hend' }, changed ? h('button', { class: 'icon', tip: 'zurücksetzen auf „' + t + ', ' + fmtD(n) + '“', 'aria-label': 'zurücksetzen', onclick: () => setHol(n, q => { q.name = q.datum = null; q.off = false; }) }, '↺') : null)];
+  };
+  const half = Math.ceil(hol.length / 2);
+  const holRows = Array.from({ length: half }, (_, r) => h('tr', null, holCells(hol[r]), hol[r + half] ? holCells(hol[r + half]) : h('td', { colspan: 4 })));
   const sonder = D.sondertage.slice().sort((p, q) => (dn(p.datum) ?? 0) - (dn(q.datum) ?? 0));
   put(main,
     h('div', { class: 'view-head' }, h('h1', null, 'Urlaub & Feiertage ' + y),
@@ -113,14 +116,14 @@ VIEW_FN.urlaub = main => {
     personList(),
     h('section', { class: 'card' }, h('h2', null, 'Übersicht ' + y), h('p', { class: 'muted small' }, 'Jede Zeile eine Person. Oben „Abwesend gesamt“: gelb = 1, orange = 2, rot = 3 und mehr Personen gleichzeitig. Maus darüber zeigt die Namen.'),
       h('div', { class: 'um-wrap', 'data-keep-scroll': 'um' }, matrix)),
-    h('div', { class: 'cols2' },
+    h('div', { class: 'cols2 ucols' },
       h('section', { class: 'card' }, h('h2', null, 'Urlaube / Abwesenheiten'),
         h('table', { class: 'grid utable' }, h('thead', null, h('tr', null, ['Wer', 'Von', 'Bis', 'Arbeitstage', 'Notiz', '', ''].map(t => h('th', null, t)))), list),
         !D.urlaube.length ? h('p', { class: 'muted' }, 'Noch keine Urlaube eingetragen.') : null,
         h('div', { class: 'addline' }, h('button', { class: 'addbtn', onclick: addVac }, '+ neuen Urlaub eintragen')),
         h('p', { class: 'muted small screen-only' }, 'Personen und ihre Farben verwaltest du unter ⋯ → Einstellungen.')),
       h('section', { class: 'card hcard' }, h('h2', null, 'Feiertage NRW ' + y),
-        h('table', { class: 'grid htable' }, h('thead', null, h('tr', null, ['', 'Datum', 'Feiertag', ''].map(t => h('th', null, t)))), h('tbody', null, holRows)),
+        h('table', { class: 'grid htable hol2' }, h('thead', null, h('tr', null, ['', 'Datum', 'Feiertag', '', '', 'Datum', 'Feiertag', ''].map((t, i) => h('th', { class: i === 3 ? 'hend' : '' }, t)))), h('tbody', null, holRows)),
         h('h3', { class: sonder.length ? '' : 'screen-only', tip: 'z. B. Brückentage oder Betriebsausflug – zählen wie Feiertage' }, 'Eigene freie Tage'),
         h('table', { class: 'grid htable' }, h('tbody', null, sonder.map(s => h('tr', null,
           h('td', null, dateInput(s.datum, 'st:' + s.id + ':datum', v => commit(d => { d.sondertage.find(q => q.id === s.id).datum = v; }))),
