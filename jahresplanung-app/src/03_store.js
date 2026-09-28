@@ -77,8 +77,23 @@ async function attachFolder(create) {
   startWatch();
   return true;
 }
+function askPermissionOnFirstClick() {
+  if (!FSA || ST.conn !== 'needs-permission' || ST.askArmed) return;
+  ST.askArmed = true;
+  const ask = () => {
+    document.removeEventListener('pointerdown', ask, true); document.removeEventListener('keydown', ask, true);
+    ST.askArmed = false;
+    if (ST.conn !== 'needs-permission' || !ST.dir) return;
+    ST.perm = ST.dir.requestPermission({ mode: 'readwrite' }).then(async p => {
+      if (p === 'granted' && await attachFolder()) { updateSaveUI(); safeRender(); if (isDirty()) scheduleAutosave(); }
+      return p;
+    }).catch(() => 'denied').finally(() => { ST.perm = null; });
+  };
+  document.addEventListener('pointerdown', ask, true); document.addEventListener('keydown', ask, true);
+}
 async function connectFolder() {
   if (!FSA) return false;
+  if (ST.perm) { await ST.perm; if (ST.conn === 'ok') return true; }
   try {
     if (ST.dir && ST.conn === 'needs-permission') {
       if (await ST.dir.requestPermission({ mode: 'readwrite' }) === 'granted' && await attachFolder()) { updateSaveUI(); return true; }

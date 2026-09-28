@@ -14,13 +14,7 @@ function chipTip(e) {
   return h('div', null,
     h('div', { class: 'tt-title', style: { borderColor: x.color } }, m.name || '(ohne Namen)'),
     x.s != null ? line('S', x.s) : null, x.i != null ? line('I', x.i) : null, x.pal != null ? line('P', x.pal) : null,
-    h('div', { class: 'tt-meta' }, [
-      m.palStatus !== 'fest' ? 'PAL vorläufig' : 'PAL fest',
-      m.verantwortlich ? 'Verantwortlich: ' + m.verantwortlich : null,
-      m.plan ? 'mit Detailplan' : (x.vS != null ? 'Vorlauf ' + x.vS + ' / ' + (x.vI ?? '–') + ' Tage' : null),
-      m.art ? 'Bitte: ' + m.art : null].filter(Boolean).join(' · ')),
-    m.hinweis ? h('div', { class: 'tt-note' }, m.hinweis) : null,
-    h('div', { class: 'tt-foot' }, 'Klicken = bearbeiten · ziehen = ' + (e.t === 'P' ? 'ganzes Projekt verschieben' : x.pc ? 'im Detailplan ändern' : 'nur dieses Datum verschieben')));
+  );
 }
 function vacTag(v) {
   const c = personColor(v.u.wer);
@@ -119,7 +113,7 @@ function chipDrag(ev, e) {
       w = [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(q => k > 0 || !/Samstag|Urlaub/.test(q)).map(q => ['PAL', 'S', 'I'][k] + ': ' + q));
     } else {
       const n = (t === 'S' ? s : i) + dd;
-      txt = TYPE_LABEL[t] + ' ' + fmtW(n) + ' · Vorlauf ' + (p - n) + ' Tage';
+      txt = TYPE_LABEL[t] + ' ' + fmtW(n) + ' · ' + (p - n) + ' Tage vor PAL';
       w = dateWarn(n, resp);
       if (t === 'S') s = n; else i = n;
     }

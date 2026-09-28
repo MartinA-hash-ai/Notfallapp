@@ -3,75 +3,193 @@
 const STEP_TYPES = { gruppe: 'Abschnitt', aufgabe: 'Aufgabe', meilenstein: 'Meilenstein', ziel: 'Ziel' };
 const PL_ROW = 32;
 
+/* ---------- Rechenhilfen am Datenobjekt */
+// Schritte, deren Dauer den Beginn des markierten Schritts bestimmt (entlang der Verknüpfungen bis zum PAL)
+function influencingChain(p, markId) {
+  const byId = new Map(p.steps.map(s => [s.id, s])), out = [], seen = new Set();
+  let cur = byId.get(markId);
+  if (!cur) return out;
+  if (cur.typ === 'aufgabe') out.push(cur);
+  while (cur && !seen.has(cur.id)) {
+    seen.add(cur.id);
+    const a = cur.anker || {};
+    if (a.art !== 'start' && a.art !== 'ende') break;
+    const ref = byId.get(a.ref);
+    if (!ref) break;
+    if (a.art === 'start' && ref.typ === 'aufgabe') out.push(ref);
+    cur = ref;
+  }
+  return out;
+}
+// Start Selektion / Start Inhalt auf ein Datum legen: die Dauer des längsten Schritts dazwischen passt sich an
+function adjustMark(m, which, target) {
+  const p = m.plan, mark = which === 'S' ? p.markS : p.markI, other = which === 'S' ? p.markI : p.markS;
+  const r = planCalc(m).map.get(mark);
+  if (!r || r.start == null || target == null) return null;
+  let delta = r.start - target;
+  if (!delta) return { changed: [] };
+  const theirs = new Set(other ? influencingChain(p, other).map(s => s.id) : []);
+  const mine = influencingChain(p, mark);
+  let pool = mine.filter(s => !theirs.has(s.id));
+  if (!pool.length) pool = mine;
+  if (!pool.length) return null;
+  pool = pool.slice().sort((a, b) => (+b.dauer || 0) - (+a.dauer || 0));
+  const changed = [];
+  if (delta > 0) { changed.push([pool[0].name, +pool[0].dauer || 0, (+pool[0].dauer || 0) + delta]); pool[0].dauer = (+pool[0].dauer || 0) + delta; }
+  else {
+    let rest = -delta;
+    for (const s of pool) {
+      const take = Math.min(Math.max(0, (+s.dauer || 0) - 1), rest);
+      if (!take) continue;
+      changed.push([s.name, +s.dauer, +s.dauer - take]); s.dauer = +s.dauer - take; rest -= take;
+      if (!rest) break;
+    }
+    if (rest) return { changed, partial: true };
+  }
+  return { changed };
+}
+// Schritt auf neuen Beginn/Ende setzen (Verknüpfung bleibt, der Versatz wird angepasst)
+function setStepSpan(m, sid, ns, ne) {
+  const s = m.plan.steps.find(q => q.id === sid);
+  if (!s || s.typ === 'gruppe') return;
+  if (s.typ !== 'aufgabe') ns = ne;
+  const r = planCalc(m).map.get(sid) || {};
+  const a = s.anker || { art: 'offen' };
+  const pal = dn(m.pal);
+  if (a.art === 'fest') s.anker = { art: 'fest', datum: ds(ne) };
+  else if (r.end == null || a.art === 'offen') s.anker = pal != null ? { art: 'pal', offset: ne - pal } : { art: 'fest', datum: ds(ne) };
+  else a.offset = (+a.offset || 0) + (ne - r.end);
+  if (s.typ === 'aufgabe') s.dauer = Math.max(0, ne - ns);
+}
+
+/* ---------- Anlegen, Entfernen, Schritte */
 async function createPlan(id) {
   const x = C.byId.get(id); if (!x) return;
   const others = C.ms.filter(o => o.m.plan && o.id !== id);
-  let src = 'mailing';
+  const f = { src: 'mailing', pal: x.m.pal || '', s: x.s != null ? ds(x.s) : '', i: x.i != null ? ds(x.i) : '' };
+  const row = (label, inp) => h('label', { class: 'frow' }, h('span', null, label), inp);
   const ok = await modal('Detailplan anlegen für „' + x.m.name + '“', h('div', { class: 'form' },
-    h('p', null, 'Die Arbeitsschritte werden rückwärts vom PAL aus terminiert. Start Selektion und Start inhaltliche Arbeit der Maßnahme ergeben sich dann aus dem Plan.'),
-    h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', checked: true, onchange: () => { src = 'mailing'; } }), 'Vorlage Mailing (Schritte wie Sommer-/Weihnachtsmailing)'),
-    others.map(o => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { src = o.id; } }), 'Kopie des Plans von „' + o.m.name + '“')),
-    h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { src = 'leer'; } }), 'Leerer Plan')),
+    h('p', null, 'Die Arbeitsschritte werden rückwärts vom PAL aus geplant. Gib PAL, Start Selektion und Start inhaltliche Arbeit an – die Dauer der Schritte dazwischen passt sich an.'),
+    h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', checked: true, onchange: () => { f.src = 'mailing'; } }), 'Vorlage Mailing (Schritte wie Sommer-/Weihnachtsmailing)'),
+    others.map(o => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { f.src = o.id; } }), 'Kopie des Plans von „' + o.m.name + '“')),
+    h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { f.src = 'leer'; } }), 'Leerer Plan'),
+    row('PAL (Briefkasten)', h('input', { type: 'date', value: f.pal, oninput: e => { f.pal = e.target.value; } })),
+    row('Start Selektion', h('input', { type: 'date', value: f.s, oninput: e => { f.s = e.target.value; } })),
+    row('Start inhaltliche Arbeit', h('input', { type: 'date', value: f.i, oninput: e => { f.i = e.target.value; } }))),
     [['Abbrechen', false], ['Anlegen', true, 'primary']]);
   if (!ok) return;
+  let info = [];
   commit(d => {
     const m = findM(d, id);
     let plan;
-    if (src === 'mailing') plan = JSON.parse(JSON.stringify(MAILING_TEMPLATE));
-    else if (src === 'leer') plan = { steps: [{ id: 'g1', typ: 'gruppe', name: 'Arbeitsschritte' }, { id: uid(), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: { art: 'pal', offset: 0 } }], markS: null, markI: null };
-    else plan = JSON.parse(JSON.stringify(findM(d, src).plan));
+    if (f.src === 'mailing') plan = JSON.parse(JSON.stringify(MAILING_TEMPLATE));
+    else if (f.src === 'leer') plan = { steps: [{ id: 'g1', typ: 'gruppe', name: 'Arbeitsschritte' }, { id: uid(), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: { art: 'pal', offset: 0 } }], markS: null, markI: null };
+    else plan = JSON.parse(JSON.stringify(findM(d, f.src).plan));
     plan.steps.forEach(s => { s.fortschritt = 0; });
     m.plan = plan;
+    if (f.pal) m.pal = f.pal;
+    for (const [k, v] of [['S', f.s], ['I', f.i]]) if (v && dn(m.pal) != null) { const r = adjustMark(m, k, dn(v)); if (r && r.changed.length) info = info.concat(r.changed); }
   }, 'Detailplan angelegt');
+  if (info.length) toast('Angepasst: ' + info.map(([n, a, b]) => n + ' ' + a + ' → ' + b + ' Tage').join(', '));
   UI.view = 'plaene'; UI.planSel = id; renderNow();
 }
 async function removePlan(id) {
   const x = C.byId.get(id);
-  if (!await confirmBox('Detailplan entfernen', `Den Detailplan von „${x.m.name}“ löschen? Die aktuellen Vorläufe (${x.vS ?? '–'} / ${x.vI ?? '–'} Tage) bleiben als feste Werte erhalten.`, 'Entfernen')) return;
+  if (!await confirmBox('Detailplan entfernen', `Den Detailplan von „${x.m.name}“ löschen? Start Selektion (${fmtS(x.s)}) und Start Inhalt (${fmtS(x.i)}) bleiben als feste Termine erhalten.`, 'Entfernen')) return;
   commit(d => { const m = findM(d, id); m.vorlaufS = x.vS; m.vorlaufI = x.vI; m.plan = null; }, 'Detailplan entfernt');
 }
 function setStep(mid, sid, fn, msg) { commit(d => { const s = findM(d, mid).plan.steps.find(q => q.id === sid); if (s) fn(s); }, msg); }
-function moveStep(mid, sid, dir) {
-  commit(d => { const st = findM(d, mid).plan.steps, i = st.findIndex(q => q.id === sid), j = i + dir; if (j < 0 || j >= st.length) return; [st[i], st[j]] = [st[j], st[i]]; });
+function setMarkDate(mid, which, v) {
+  const n = dn(v); if (n == null) return;
+  let res = null;
+  commit(d => { res = adjustMark(findM(d, mid), which, n); });
+  if (!res) toast('Dieser Plan hat keinen Schritt als „Start ' + (which === 'S' ? 'Selektion' : 'Inhalt') + '“ markiert (⋯-Menü am Schritt).', 'warn');
+  else if (res.changed.length) toast('Angepasst: ' + res.changed.map(([nm, a, b]) => nm + ' ' + a + ' → ' + b + ' Tage').join(', ') + (res.partial ? ' – kürzer geht nicht' : ''), res.partial ? 'warn' : '');
 }
-function addStep(mid, afterId, typ = 'aufgabe') {
+function groupBlocks(steps) {                 // Abschnitt-Index → [von, bis) im Array
+  const out = new Map();
+  steps.forEach((s, i) => {
+    if (s.typ !== 'gruppe') return;
+    let j = i + 1; while (j < steps.length && steps[j].typ !== 'gruppe') j++;
+    out.set(s.id, [i, j]);
+  });
+  return out;
+}
+async function newStepDialog(mid, gid) {
+  const x = C.byId.get(mid), p = x.m.plan, pc = x.pc;
+  const blocks = groupBlocks(p.steps), [gi, gj] = gid ? blocks.get(gid) : [-1, p.steps.length];
+  const inGroup = p.steps.slice(gi + 1, gj).map(s => pc.map.get(s.id)).filter(r => r && r.end != null);
+  const e0 = inGroup.length ? Math.max(...inGroup.map(r => r.end)) : (x.pal ?? todayDn());
+  const f = { name: '', typ: 'aufgabe', wer: '', kom: '', start: ds(e0 - 5), end: ds(e0) };
+  const row = (label, inp) => h('label', { class: 'frow' }, h('span', null, label), inp);
+  const grpName = gid ? p.steps[gi].name : 'Plan';
+  const ok = await modal('Neuer Arbeitsschritt in „' + grpName + '“', h('div', { class: 'form' }, personList(),
+    row('Arbeitsschritt', h('input', { placeholder: 'z. B. Texte abstimmen', oninput: e => { f.name = e.target.value; } })),
+    row('Typ', h('select', { onchange: e => { f.typ = e.target.value; } }, ['aufgabe', 'meilenstein', 'ziel'].map(k => h('option', { value: k }, STEP_TYPES[k])))),
+    row('Zugeordnet', h('input', { list: 'dl-personen', placeholder: 'Name', oninput: e => { f.wer = e.target.value.trim(); } })),
+    row('Beginn', h('input', { type: 'date', value: f.start, oninput: e => { f.start = e.target.value; } })),
+    row('Ende (bei Meilenstein: Datum)', h('input', { type: 'date', value: f.end, oninput: e => { f.end = e.target.value; } })),
+    row('Kommentar', h('input', { oninput: e => { f.kom = e.target.value; } }))),
+    [['Abbrechen', false], ['Anlegen', true, 'primary']]);
+  if (!ok) return;
+  const ne = dn(f.end) ?? dn(f.start) ?? e0, ns = f.typ === 'aufgabe' ? Math.min(dn(f.start) ?? ne, ne) : ne;
   const nid = uid();
   commit(d => {
-    const p = findM(d, mid).plan, i = afterId ? p.steps.findIndex(q => q.id === afterId) : p.steps.length - 1;
-    const s = typ === 'gruppe' ? { id: nid, typ, name: 'Neuer Abschnitt' } : { id: nid, typ, name: 'Neuer Schritt', wer: '', kommentar: '', dauer: 5, fortschritt: 0, anker: { art: 'pal', offset: 0 } };
-    p.steps.splice(i + 1, 0, s);
-  });
+    const m = findM(d, mid), steps = m.plan.steps;
+    const pal = dn(m.pal);
+    const s = { id: nid, typ: f.typ, name: f.name.trim() || 'Neuer Schritt', wer: f.wer, kommentar: f.kom, dauer: f.typ === 'aufgabe' ? ne - ns : 0, fortschritt: 0,
+      anker: pal != null ? { art: 'pal', offset: ne - pal } : { art: 'fest', datum: ds(ne) } };
+    const bl = gid ? groupBlocks(steps).get(gid) : null;
+    steps.splice(bl ? bl[1] : steps.length, 0, s);
+  }, 'Arbeitsschritt angelegt');
+  if (gid) delete UI.planColl[mid + ':' + gid];
+}
+function addGroup(mid) {
+  const nid = uid();
+  commit(d => { findM(d, mid).plan.steps.push({ id: nid, typ: 'gruppe', name: 'Neuer Abschnitt' }); });
   UI.focusFk = 'st:' + nid + ':name';
 }
 function deleteStep(mid, sid) {
-  let n = 0;
+  let lostMark = [];
   commit(d => {
-    const p = findM(d, mid).plan;
+    const m = findM(d, mid), p = m.plan, pc = planCalc(m), del = p.steps.find(q => q.id === sid);
+    if (!del) return;
+    const da = del.anker || { art: 'offen' }, pal = dn(m.pal);
     p.steps = p.steps.filter(q => q.id !== sid);
-    p.steps.forEach(q => { if (q.anker && q.anker.ref === sid) { q.anker = { art: 'offen' }; n++; } });
-    if (p.markS === sid) p.markS = null;
-    if (p.markI === sid) p.markI = null;
-  }, 'Schritt gelöscht');
-  if (n) toast(n + ' Schritt(e) hingen an diesem Schritt und sind jetzt „offen“.', 'warn');
+    // wer am gelöschten Schritt hing, hängt jetzt an dessen Bezugspunkt – die Termine bleiben gleich
+    p.steps.forEach(q => {
+      if (!q.anker || q.anker.ref !== sid) return;
+      const r = pc.map.get(q.id) || {}, qo = +q.anker.offset || 0;
+      const shift = qo + (q.anker.art === 'start' && del.typ === 'aufgabe' ? -(Math.round(+del.dauer || 0)) : 0);
+      if (da.art === 'pal' || da.art === 'start' || da.art === 'ende') q.anker = { art: da.art, ref: da.ref, offset: (+da.offset || 0) + shift };
+      else if (r.end != null) q.anker = pal != null ? { art: 'pal', offset: r.end - pal } : { art: 'fest', datum: ds(r.end) };
+      else q.anker = { art: 'offen' };
+      if (q.anker.art === 'pal') delete q.anker.ref;
+    });
+    if (p.markS === sid) { p.markS = null; lostMark.push('Start Selektion'); }
+    if (p.markI === sid) { p.markI = null; lostMark.push('Start inhaltliche Arbeit'); }
+  }, 'Gelöscht');
+  if (lostMark.length) toast(lostMark.join(' und ') + ' ist jetzt keinem Schritt mehr zugeordnet – im ⋯-Menü eines Schritts neu festlegen.', 'warn');
+}
+function moveRows(mid, fromId, beforeId) {      // Schritt oder ganzen Abschnitt verschieben
+  commit(d => {
+    const steps = findM(d, mid).plan.steps, i = steps.findIndex(s => s.id === fromId);
+    if (i < 0) return;
+    let j = i + 1;
+    if (steps[i].typ === 'gruppe') while (j < steps.length && steps[j].typ !== 'gruppe') j++;
+    const block = steps.splice(i, j - i);
+    let k = beforeId ? steps.findIndex(s => s.id === beforeId) : steps.length;
+    if (k < 0) k = steps.length;
+    if (block[0].typ === 'gruppe' && k < steps.length && steps[k].typ !== 'gruppe') {   // Abschnitt nie mitten in einen anderen legen
+      while (k < steps.length && steps[k].typ !== 'gruppe') k++;
+    }
+    steps.splice(k, 0, ...block);
+  });
 }
 
-function anchorSelect(x, s) {
-  const a = s.anker || { art: 'offen' }, cur = a.art === 'start' || a.art === 'ende' ? a.art + ':' + a.ref : a.art;
-  const others = [];
-  let grp = '';
-  for (const o of x.m.plan.steps) { if (o.typ === 'gruppe') { grp = o.name; continue; } if (o.id !== s.id) others.push([o, grp]); }
-  const opt = (v, t) => h('option', { value: v, selected: v === cur }, t);
-  return h('select', { class: 'anchor', 'data-fk': 'st:' + s.id + ':anker', onchange: e => {
-    const v = e.target.value, [art, ref] = v.split(':');
-    setStep(x.id, s.id, st => { st.anker = { art, offset: art === 'pal' || art === 'start' || art === 'ende' ? (+(st.anker || {}).offset || 0) : 0 }; if (ref) st.anker.ref = ref; if (art === 'fest') st.anker.datum = ds((x.pc.map.get(s.id) || {}).end ?? x.pal ?? todayDn()); });
-  } },
-  opt('pal', 'PAL (Briefkasten)'),
-  h('optgroup', { label: 'Beginn von …' }, others.map(([o, g]) => opt('start:' + o.id, o.name + (g ? ' (' + g + ')' : '')))),
-  h('optgroup', { label: 'Ende von …' }, others.map(([o, g]) => opt('ende:' + o.id, o.name + (g ? ' (' + g + ')' : '')))),
-  opt('fest', 'festes Datum'), opt('offen', 'offen (ohne Datum)'));
-}
-
+/* ---------- Ansicht */
 VIEW_FN.plaene = main => {
+  if (!UI.planColl || typeof UI.planColl !== 'object') UI.planColl = {};
   const withPlan = C.ms.filter(x => x.m.plan);
   const cand = C.ms.filter(x => !x.m.plan && (x.pal == null || inYear(x, UI.year)));
   if (!withPlan.some(x => x.id === UI.planSel)) UI.planSel = (withPlan.find(x => inYear(x, UI.year)) || withPlan[0] || {}).id || null;
@@ -82,37 +200,58 @@ VIEW_FN.plaene = main => {
     cand.length ? h('span', { class: 'pnew' }, h('select', { onchange: e => { newFor = e.target.value; } }, cand.map(x => h('option', { value: x.id }, x.m.name))),
       h('button', { onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
-    h('p', { class: 'muted' }, 'Wie das Gantt im Excel: Jeder Schritt endet an einem Bezugspunkt (PAL, Beginn oder Ende eines anderen Schritts) und beginnt „Dauer“ Kalendertage davor.')), tabs);
+    h('span', { class: 'info', tip: 'Jeder Schritt hängt an einem Bezugspunkt (PAL oder einem anderen Schritt). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);
   if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan vorhanden. Oben eine Maßnahme wählen und „Detailplan anlegen“.')); return; }
-  const m = x.m, p = m.plan, pc = x.pc, today = todayDn();
-  const stepOpts = sel => p.steps.filter(s => s.typ !== 'gruppe').map(s => h('option', { value: s.id, selected: sel === s.id }, s.name));
-  put(main, h('div', { class: 'phead', style: { borderColor: x.color } },
-    h('div', { class: 'pt' }, h('h2', { style: { color: mix(x.color, 0.1, '#000000') } }, m.name),
-      h('label', { class: 'inl' }, 'PAL ', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null)), h('span', { class: 'wdn' }, x.pal != null ? WDL[wd(x.pal)] : ''))),
-    h('div', { class: 'pmarks' },
-      h('label', null, h('span', { class: 'chip S', style: chipStyle('S', x.color) }, 'S'), ' Start Selektion = Beginn von ',
-        h('select', { onchange: e => commit(d => { findM(d, m.id).plan.markS = e.target.value || null; }) }, h('option', { value: '' }, '–'), stepOpts(p.markS)),
-        h('b', null, ' ' + fmtW(x.s)), h('span', { class: 'muted' }, x.vS != null ? ' (Vorlauf ' + x.vS + ' Tage)' : '')),
-      h('label', null, h('span', { class: 'chip I', style: chipStyle('I', x.color) }, 'I'), ' Start inhaltliche Arbeit = Beginn von ',
-        h('select', { onchange: e => commit(d => { findM(d, m.id).plan.markI = e.target.value || null; }) }, h('option', { value: '' }, '–'), stepOpts(p.markI)),
-        h('b', null, ' ' + fmtW(x.i)), h('span', { class: 'muted' }, x.vI != null ? ' (Vorlauf ' + x.vI + ' Tage)' : ''))),
-    h('div', { class: 'tools' },
-      h('button', { onclick: () => addStep(m.id, null) }, '+ Schritt'), h('button', { onclick: () => addStep(m.id, null, 'gruppe') }, '+ Abschnitt'),
-      h('button', { class: 'icon', 'aria-label': 'Gantt verkleinern', onclick: () => { UI.planPxd = clamp((UI.planPxd || fitP) / 1.4, 2, 40); renderNow(); } }, '−'),
-      h('button', { class: 'icon', 'aria-label': 'Gantt vergrößern', onclick: () => { UI.planPxd = clamp((UI.planPxd || fitP) * 1.4, 2, 40); renderNow(); } }, '+'),
-      UI.planPxd ? h('button', { onclick: () => { UI.planPxd = 0; renderNow(); } }, 'Einpassen') : null,
-      h('button', { class: 'danger', onclick: () => removePlan(m.id) }, 'Plan entfernen'))));
+  const m = x.m, p = m.plan, pc = x.pc, today = todayDn(), compact = !!UI.planCompact;
+  const persons = [...new Set(p.steps.filter(s => s.typ === 'aufgabe').map(s => s.wer || ''))];
+  const barColor = w => w ? personColor(w) : '#9E9E9E';
 
-  // ---- Zeitraum des Gantt
+  // ---- Zeitraum und Maßstab
   const dates = [...pc.map.values()].flatMap(r => [r.start, r.end]).filter(v => v != null).concat(x.pal != null ? [x.pal] : []);
   const g0 = dates.length ? Math.min(...dates) - 4 : (x.pal ?? today) - 60, g1 = dates.length ? Math.max(...dates) + 6 : (x.pal ?? today) + 14;
-  const a0 = g0 - wd(g0), a1 = g1 + (6 - wd(g1)), fitP = Math.max(3, (innerWidth - 1030 - 70) / (a1 - a0 + 1)), pxd = UI.printing ? Math.max(3, 620 / (a1 - a0 + 1)) : (UI.planPxd || fitP), W = (a1 - a0 + 1) * pxd, X = n => (n - a0) * pxd;
+  const a0 = g0 - wd(g0), a1 = g1 + (6 - wd(g1)), nd = a1 - a0 + 1;
+  const tableW = compact ? 272 : 852;
+  const fitP = Math.max(2, (innerWidth - tableW - 14 - 70) / nd);
+  const pxd = UI.printing ? Math.max(3, 620 / nd) : (UI.planPxd || fitP), W = nd * pxd, X = n => (n - a0) * pxd;
+
+  put(main, h('div', { class: 'phead', style: { borderColor: x.color } },
+    h('div', { class: 'pt' }, h('h2', { style: { color: mix(x.color, 0.1, '#000000') } }, m.name)),
+    h('div', { class: 'pdates' },
+      h('label', { class: 'inl' }, h('span', { class: 'chip demo P' }, 'P'), 'PAL', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null))),
+      h('label', { class: 'inl', tip: p.markS ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Kein Schritt als Start Selektion markiert (⋯-Menü am Schritt)' },
+        h('span', { class: 'chip demo S' }, 'S'), 'Start Selektion', dateInput(x.s != null ? ds(x.s) : '', 'pl:s', v => setMarkDate(m.id, 'S', v), { disabled: !p.markS })),
+      h('label', { class: 'inl', tip: p.markI ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Kein Schritt als Start Inhalt markiert (⋯-Menü am Schritt)' },
+        h('span', { class: 'chip demo I' }, 'I'), 'Start inhaltliche Arbeit', dateInput(x.i != null ? ds(x.i) : '', 'pl:i', v => setMarkDate(m.id, 'I', v), { disabled: !p.markI }))),
+    h('div', { class: 'plegend' }, persons.map(w => h('span', { class: 'pleg' }, h('span', { class: 'pbox', style: { background: mix(barColor(w), 0.45), borderColor: barColor(w) } }), w || 'nicht zugeordnet'))),
+    h('div', { class: 'tools' },
+      h('span', { class: 'segs' },
+        h('button', { class: 'seg-btn', tip: 'verkleinern (oder Mausrad)', onclick: () => { UI.planPxd = clamp((UI.planPxd || fitP) / 1.4, 2, 60); renderNow(); } }, '−'),
+        h('button', { class: 'seg-btn', tip: 'vergrößern (oder Mausrad)', onclick: () => { UI.planPxd = clamp((UI.planPxd || fitP) * 1.4, 2, 60); renderNow(); } }, '+'),
+        h('button', { class: 'seg-btn', tip: 'Ansicht zurücksetzen (ganzer Plan)', onclick: () => { UI.planPxd = 0; UI.planScrollReset = true; renderNow(); } }, 'Zurücksetzen')),
+      h('button', { class: 'ghostbtn danger', onclick: () => removePlan(m.id) }, 'Plan entfernen'))));
+
+  // ---- Kopf und Hintergrund des Gantt
   const ghead = h('div', { class: 'g-head', style: { width: W + 'px' } });
-  for (let n = a0; n <= a1;) { const [yy, mm] = ymd(n), e = Math.min(a1, mkdn(yy, mm, daysIn(yy, mm))); ghead.append(h('div', { class: 'gm', style: { left: X(n) + 'px', width: (e - n + 1) * pxd + 'px' } }, (e - n + 1) * pxd > 60 ? MON[mm - 1] + ' ' + yy : MONS[mm - 1])); n = e + 1; }
+  for (let n = a0; n <= a1;) { const [yy, mm] = ymd(n), e = Math.min(a1, mkdn(yy, mm, daysIn(yy, mm))); ghead.append(h('div', { class: 'gm', style: { left: X(n) + 'px', width: (e - n + 1) * pxd + 'px' } }, h('span', null, (e - n + 1) * pxd > 60 ? MON[mm - 1] + ' ' + yy : (e - n + 1) * pxd > 22 ? MONS[mm - 1] : ''))); n = e + 1; }
   for (let n = a0; n <= a1; n += 7) ghead.append(h('div', { class: 'gw', style: { left: X(n) + 'px', width: 7 * pxd + 'px' } }, pxd * 7 > 40 ? 'KW ' + isoWeek(n) : pxd * 7 > 16 ? isoWeek(n) : ''));
   if (pxd >= 14) for (let n = a0; n <= a1; n++) ghead.append(h('div', { class: 'gd' + (wd(n) >= 5 ? ' we' : ''), style: { left: X(n) + 'px', width: pxd + 'px' } }, ymd(n)[2]));
-  const gbg = h('div', { class: 'g-bg', style: { width: W + 'px', height: p.steps.length * PL_ROW + 'px' } });
+
+  // ---- Zeilen (Abschnitte einklappbar, „+ neuer Arbeitsschritt“ am Ende jedes Abschnitts)
+  const blocks = groupBlocks(p.steps), rows = [];
+  let curG = null;
+  p.steps.forEach((s, idx) => {
+    if (s.typ === 'gruppe') {
+      if (curG) rows.push({ add: curG });
+      curG = s.id;
+      rows.push({ s, idx, group: true });
+      return;
+    }
+    if (curG && UI.planColl[m.id + ':' + curG]) return;
+    rows.push({ s, idx });
+  });
+  if (curG) rows.push({ add: curG }); else rows.push({ add: null });
+  const gbg = h('div', { class: 'g-bg', style: { width: W + 'px' } });
   for (let n = a0; n <= a1; n++) {
     if (wd(n) >= 5) gbg.append(h('div', { class: 'we', style: { left: X(n) + 'px', width: pxd + 'px' } }));
     const hn = holName(n); if (hn) gbg.append(h('div', { class: 'hol', style: { left: X(n) + 'px', width: pxd + 'px' }, tip: 'Feiertag: ' + hn }));
@@ -121,87 +260,195 @@ VIEW_FN.plaene = main => {
   if (x.pal != null) gbg.append(h('div', { class: 'palline', style: { left: X(x.pal) + pxd / 2 + 'px' } }, h('span', null, 'PAL')));
 
   const trows = [], grows = [];
-  let grp = '';
-  p.steps.forEach((s, idx) => {
-    const r = pc.map.get(s.id) || {}, fk = f => 'st:' + s.id + ':' + f, isG = s.typ === 'gruppe';
-    if (isG) grp = s.name;
-    const away = !isG && s.wer && r.start != null ? C.vac.filter(v => v.u.wer === s.wer && v.von <= Math.max(r.end, r.start) && v.bis >= r.start) : [];
-    const acts = menuButton('⋯', [['Schritt darunter einfügen', () => addStep(m.id, s.id)], ['Abschnitt darunter einfügen', () => addStep(m.id, s.id, 'gruppe')],
-      ['Nach oben', () => moveStep(m.id, s.id, -1)], ['Nach unten', () => moveStep(m.id, s.id, 1)], null, ['Löschen', () => deleteStep(m.id, s.id)]], 'right');
-    const a = s.anker || { art: 'offen' };
-    trows.push(h('div', { class: 'pl-row' + (isG ? ' grp' : '') + (away.length ? ' conflict' : ''), dataset: { flash: 'step:' + s.id } },
-      h('div', { class: 'c-move' }, h('button', { class: 'mini', disabled: idx === 0, 'aria-label': 'nach oben', onclick: () => moveStep(m.id, s.id, -1) }, '▲'), h('button', { class: 'mini', disabled: idx === p.steps.length - 1, 'aria-label': 'nach unten', onclick: () => moveStep(m.id, s.id, 1) }, '▼')),
-      h('div', { class: 'c-name' }, h('input', { value: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) })),
-      isG ? h('div', { class: 'c-rest muted' }, 'Abschnitt') : [
-        h('div', { class: 'c-typ' }, h('select', { 'data-fk': fk('typ'), onchange: e => setStep(m.id, s.id, st => { st.typ = e.target.value; }) }, Object.entries(STEP_TYPES).filter(([k]) => k !== 'gruppe').map(([k, t]) => h('option', { value: k, selected: s.typ === k }, t)))),
-        h('div', { class: 'c-wer' }, h('input', { value: s.wer || '', list: 'dl-personen', placeholder: '–', 'data-fk': fk('wer'), onchange: e => setStep(m.id, s.id, st => { st.wer = e.target.value.trim(); }) }),
+  let grpName = '';
+  for (const row of rows) {
+    if (row.add !== undefined) {
+      if (row.add && UI.planColl[m.id + ':' + row.add]) continue;
+      trows.push(h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div'), h('div', { class: 'c-add' },
+        h('button', { class: 'addbtn', onclick: () => newStepDialog(m.id, row.add) }, '+ neuer Arbeitsschritt'))));
+      grows.push(h('div', { class: 'g-row addrow' }));
+      continue;
+    }
+    const s = row.s, r = pc.map.get(s.id) || {}, fk = f => 'st:' + s.id + ':' + f;
+    const grip = h('span', { class: 'rgrip', tip: 'ziehen zum Verschieben', 'aria-label': 'verschieben', onpointerdown: e => rowDrag(e, m.id, s.id) }, '⋮⋮');
+    if (row.group) {
+      grpName = s.name;
+      const coll = !!UI.planColl[m.id + ':' + s.id], [gi, gj] = blocks.get(s.id);
+      const inner = p.steps.slice(gi + 1, gj), spans = inner.map(q => pc.map.get(q.id)).filter(q => q && q.start != null);
+      trows.push(h('div', { class: 'pl-row grp' + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
+        h('div', { class: 'c-grip' }, grip),
+        h('div', { class: 'c-name gname' },
+          h('button', { class: 'gtog', 'aria-expanded': String(!coll), tip: coll ? 'ausklappen' : 'einklappen', onclick: () => { coll ? delete UI.planColl[m.id + ':' + s.id] : UI.planColl[m.id + ':' + s.id] = 1; saveUI(); renderNow(); } }, coll ? '▸' : '▾'),
+          h('input', { value: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }),
+          h('span', { class: 'gcount' }, inner.length + ' Schritte')),
+        compact ? null : h('div', { class: 'c-rest' }),
+        h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, s.id)], ['Neuer Abschnitt', () => addGroup(m.id)], null,
+          ['Abschnitt löschen (Schritte bleiben)', () => deleteStep(m.id, s.id)]], 'right'))));
+      const g = h('div', { class: 'g-row grp' });
+      if (spans.length) {
+        const a = Math.min(...spans.map(q => q.start)), b = Math.max(...spans.map(q => q.end));
+        g.append(h('div', { class: 'g-sum', style: { left: X(a) + 'px', width: Math.max(3, (b - a) * pxd) + 'px' }, tip: s.name + ': ' + fmtW(a) + ' – ' + fmtW(b) }));
+      }
+      grows.push(g);
+      continue;
+    }
+    const away = s.wer && r.start != null ? C.vac.filter(v => v.u.wer === s.wer && v.von <= Math.max(r.end, r.start) && v.bis >= r.start) : [];
+    const isTask = s.typ === 'aufgabe';
+    const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return; commit(d => { const q = r.end != null ? r.end : ns + Math.max(1, +s.dauer || 1); setStepSpan(findM(d, m.id), s.id, Math.min(ns, q), q); }); }) : null;
+    const endInp = dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; commit(d => { const q = r.start != null ? r.start : ne - (+s.dauer || 0); setStepSpan(findM(d, m.id), s.id, Math.min(q, ne), ne); }); });
+    const markTag = s.id === p.markS ? h('span', { class: 'chip demo S mark', tip: 'Start Selektion' }, 'S') : s.id === p.markI ? h('span', { class: 'chip demo I mark', tip: 'Start inhaltliche Arbeit' }, 'I') : null;
+    trows.push(h('div', { class: 'pl-row' + (away.length ? ' conflict' : '') + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
+      h('div', { class: 'c-grip' }, grip),
+      h('div', { class: 'c-name' }, h('input', { value: s.name, title: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }), markTag),
+      compact ? null : [
+        h('div', { class: 'c-typ' }, h('select', { 'data-fk': fk('typ'), onchange: e => setStep(m.id, s.id, st => { st.typ = e.target.value; }) }, ['aufgabe', 'meilenstein', 'ziel'].map(k => h('option', { value: k, selected: s.typ === k }, STEP_TYPES[k])))),
+        h('div', { class: 'c-wer' }, h('span', { class: 'pbox', style: { background: s.wer ? mix(barColor(s.wer), 0.45) : 'transparent', borderColor: s.wer ? barColor(s.wer) : 'transparent' } }),
+          h('input', { value: s.wer || '', list: 'dl-personen', placeholder: '–', 'data-fk': fk('wer'), onchange: e => setStep(m.id, s.id, st => { st.wer = e.target.value.trim(); }) }),
           away.length ? h('span', { class: 'wi warn', tip: s.wer + ' hat Urlaub: ' + away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ') }, '⚠') : null),
-        h('div', { class: 'c-kom' }, h('input', { value: s.kommentar || '', placeholder: '–', 'data-fk': fk('kom'), onchange: e => setStep(m.id, s.id, st => { st.kommentar = e.target.value; }) })),
-        h('div', { class: 'c-dur' }, s.typ === 'aufgabe' ? h('input', { type: 'number', min: 0, value: s.dauer ?? 0, 'data-fk': fk('dur'), onchange: e => setStep(m.id, s.id, st => { st.dauer = Math.max(0, Math.round(+e.target.value || 0)); }) }) : null),
-        h('div', { class: 'c-anchor' }, anchorSelect(x, s),
-          a.art === 'fest' ? dateInput(a.datum, fk('datum'), v => setStep(m.id, s.id, st => { st.anker.datum = v; })) :
-          (a.art === 'pal' || a.art === 'start' || a.art === 'ende') ? h('input', { type: 'number', class: 'off', value: a.offset || 0, tip: 'Tage Versatz (+ später, − früher)', 'data-fk': fk('off'),
-            onchange: e => setStep(m.id, s.id, st => { st.anker.offset = Math.round(+e.target.value || 0); }) }) : null),
-        h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : s.typ === 'aufgabe' ? fmtWS(r.start) : ''),
-        h('div', { class: 'c-date' }, r.err ? '' : fmtWS(r.end)),
-        h('div', { class: 'c-pct' }, s.typ === 'aufgabe' ? h('input', { type: 'number', min: 0, max: 100, step: 10, value: +s.fortschritt || 0, 'data-fk': fk('pct'),
-          onchange: e => setStep(m.id, s.id, st => { st.fortschritt = clamp(Math.round(+e.target.value || 0), 0, 100); }) }) : null)],
-      h('div', { class: 'c-acts' }, acts)));
+        h('div', { class: 'c-kom' }, h('input', { value: s.kommentar || '', title: s.kommentar || '', placeholder: '–', 'data-fk': fk('kom'), onchange: e => setStep(m.id, s.id, st => { st.kommentar = e.target.value; }) })),
+        h('div', { class: 'c-dur' }, isTask ? h('input', { type: 'number', min: 0, value: s.dauer ?? 0, 'data-fk': fk('dur'), tip: 'Dauer in Tagen', onchange: e => setStep(m.id, s.id, st => { st.dauer = Math.max(0, Math.round(+e.target.value || 0)); }) }) : null),
+        h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : startInp),
+        h('div', { class: 'c-date' }, r.err ? '' : endInp)],
+      h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, curGroupOf(p.steps, row.idx))],
+        ['Als Start Selektion markieren', () => commit(d => { findM(d, m.id).plan.markS = s.id; }, s.name + ' = Start Selektion')],
+        ['Als Start inhaltliche Arbeit markieren', () => commit(d => { findM(d, m.id).plan.markI = s.id; }, s.name + ' = Start Inhalt')], null,
+        ['Löschen', () => deleteStep(m.id, s.id)]], 'right'))));
     // Gantt-Zeile
-    const g = h('div', { class: 'g-row' + (isG ? ' grp' : '') });
-    if (!isG && s.wer) for (const v of C.vac.filter(v => v.u.wer === s.wer && v.bis >= a0 && v.von <= a1))
+    const g = h('div', { class: 'g-row' });
+    if (s.wer) for (const v of C.vac.filter(v => v.u.wer === s.wer && v.bis >= a0 && v.von <= a1))
       g.append(h('div', { class: 'g-vac', style: { left: X(Math.max(v.von, a0)) + 'px', width: (Math.min(v.bis, a1) - Math.max(v.von, a0) + 1) * pxd + 'px' }, tip: s.wer + ': Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis) }));
-    if (!isG && r.start != null) {
-      const tip = () => h('div', null, h('b', null, s.name), grp ? h('span', { class: 'muted' }, ' (' + grp + ')') : null,
-        h('div', null, s.typ === 'aufgabe' ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' · ' + s.dauer + ' Tage' : STEP_TYPES[s.typ] + ': ' + fmtW(r.end)),
+    if (r.start != null) {
+      const gname = grpName;
+      const tip = () => h('div', null, h('b', null, s.name), gname ? h('span', { class: 'muted' }, ' (' + gname + ')') : null,
+        h('div', null, isTask ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' · ' + s.dauer + ' Tage' : STEP_TYPES[s.typ] + ': ' + fmtW(r.end)),
         s.wer ? h('div', null, 'Zugeordnet: ' + s.wer) : null, s.kommentar ? h('div', { class: 'muted' }, s.kommentar) : null,
         away.length ? h('div', { class: 'warn' }, '⚠ ' + s.wer + ' hat in dieser Zeit Urlaub') : null,
-        s.typ === 'aufgabe' ? h('div', { class: 'tt-foot' }, 'Linke Kante ziehen = Dauer ändern') : null);
-      if (s.typ === 'aufgabe') {
-        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : ''), tip, style: { left: X(r.start) + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: pastel(x.color), borderColor: x.color } },
-          h('span', { class: 'prog', style: { width: clamp(+s.fortschritt || 0, 0, 100) + '%', background: midtone(x.color) } }),
-          (r.end - r.start) * pxd > 70 ? h('span', { class: 'lbl' }, s.name) : null);
-        const grip = h('span', { class: 'grip', 'aria-label': 'Dauer ändern' });
-        grip.addEventListener('pointerdown', ev => durDrag(ev, x, s, r, pxd, bar, X));
-        bar.append(grip);
+        h('div', { class: 'tt-foot' }, isTask ? 'Ziehen = verschieben · Enden ziehen = Dauer ändern' : 'Ziehen = verschieben'));
+      const ctx = { x, s, r, pxd, X };
+      if (isTask) {
+        const c = barColor(s.wer);
+        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : ''), tip, style: { left: X(r.start) + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: mix(c, 0.45), borderColor: c } },
+          (r.end - r.start) * pxd > 70 ? h('span', { class: 'lbl' }, s.name) : null,
+          h('span', { class: 'grip gl', onpointerdown: e => barDrag(e, ctx, 'left') }), h('span', { class: 'grip gr', onpointerdown: e => barDrag(e, ctx, 'right') }));
+        bar.addEventListener('pointerdown', e => { if (!e.target.classList.contains('grip')) barDrag(e, ctx, 'move'); });
+        ctx.el = bar;
         g.append(bar);
-      } else g.append(h('div', { class: 'g-dia' + (s.typ === 'ziel' ? ' ziel' : ''), tip, style: { left: X(r.end) + pxd / 2 + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color } }));
+      } else {
+        const dia = h('div', { class: 'g-dia' + (s.typ === 'ziel' ? ' ziel' : ''), tip, style: { left: X(r.end) + pxd / 2 + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color }, onpointerdown: e => barDrag(e, ctx, 'move') });
+        ctx.el = dia;
+        g.append(dia);
+      }
     }
     grows.push(g);
-  });
-  const thead = h('div', { class: 'pl-row head' }, h('div', { class: 'c-move' }), h('div', { class: 'c-name' }, 'Arbeitsschritt'), h('div', { class: 'c-typ' }, 'Typ'), h('div', { class: 'c-wer' }, 'Zugeordnet'),
-    h('div', { class: 'c-kom' }, 'Kommentar'), h('div', { class: 'c-dur' }, 'Dauer'), h('div', { class: 'c-anchor' }, 'endet am … (± Tage)'), h('div', { class: 'c-date' }, 'Start'), h('div', { class: 'c-date' }, 'Ende'),
-    h('div', { class: 'c-pct' }, '%'), h('div', { class: 'c-acts' }));
-  put(main, personList(), h('div', { class: 'pl-split' },
-    h('div', { class: 'pl-table' }, thead, trows),
-    (() => { const g = h('div', { class: 'pl-gantt', 'data-keep-scroll': 'plg' }, h('div', { style: { width: W + 'px' } }, ghead, h('div', { class: 'g-body' }, gbg, grows))); tlPan(g); return g; })()));
+  }
+  const thead = h('div', { class: 'pl-row head' + (compact ? ' compact' : '') }, h('div', { class: 'c-grip' }), h('div', { class: 'c-name' }, 'Arbeitsschritt'),
+    compact ? null : [h('div', { class: 'c-typ' }, 'Typ'), h('div', { class: 'c-wer' }, 'Zugeordnet'), h('div', { class: 'c-kom' }, 'Kommentar'), h('div', { class: 'c-dur' }, 'Dauer'),
+      h('div', { class: 'c-date' }, 'Beginn'), h('div', { class: 'c-date' }, 'Ende')], h('div', { class: 'c-acts' }));
+  const gantt = h('div', { class: 'pl-gantt', 'data-keep-scroll': 'plg' }, h('div', { style: { width: W + 'px' } }, ghead, h('div', { class: 'g-body' }, gbg, grows)));
+  tlPan(gantt);
+  planWheel(gantt, a0, fitP);
+  UI._pl = { a0, pxd };
+  put(main, personList(), h('div', { class: 'pl-split' + (compact ? ' compact' : '') },
+    h('div', { class: 'pl-table' }, thead, trows,
+      h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div'), h('div', { class: 'c-add' }, h('button', { class: 'addbtn', onclick: () => addGroup(m.id) }, '+ neuer Abschnitt')))),
+    h('div', { class: 'pl-divider' }, h('button', { class: 'divbtn', tip: compact ? 'alle Spalten zeigen' : 'nur Arbeitsschritte zeigen – mehr Platz für das Gantt', 'aria-label': 'Tabelle ein-/ausklappen',
+      onclick: () => { UI.planCompact = !compact; UI.planPxd = 0; saveUI(); renderNow(); } }, compact ? '›' : '‹')),
+    gantt));
 };
+function curGroupOf(steps, idx) { for (let i = idx; i >= 0; i--) if (steps[i].typ === 'gruppe') return steps[i].id; return null; }
 VIEW_FN['plaene:after'] = () => {
   if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
+  const g = $('.pl-gantt');
+  if (g && UI._pl) {
+    if (UI.planAnchor) { g.scrollLeft = Math.max(0, (UI.planAnchor.d - UI._pl.a0) * UI._pl.pxd - UI.planAnchor.off); UI.planAnchor = null; }
+    if (UI.planScrollReset) { g.scrollLeft = 0; UI.planScrollReset = false; }
+  }
 };
-function durDrag(ev, x, s, r, pxd, bar, X) {
+let _planWheel = null;
+function planWheel(box, a0, fit) {
+  box.addEventListener('wheel', ev => {
+    if (Math.abs(ev.deltaX) > Math.abs(ev.deltaY) || ev.shiftKey) return;
+    ev.preventDefault();
+    const r = box.getBoundingClientRect(), off = ev.clientX - r.left, cur = UI._pl ? UI._pl.pxd : fit;
+    const base = _planWheel ? _planWheel.pxd : cur;
+    if (!_planWheel) _planWheel = { d: a0 + (box.scrollLeft + off) / cur, off };
+    _planWheel.pxd = clamp(base * (ev.deltaY < 0 ? 1.2 : 1 / 1.2), Math.min(fit, 2), 60);
+    requestAnimationFrame(() => {
+      if (!_planWheel) return;
+      const w = _planWheel; _planWheel = null;
+      UI.planPxd = w.pxd <= fit * 1.001 ? 0 : w.pxd; UI.planAnchor = { d: w.d, off: w.off };
+      renderNow();
+    });
+  }, { passive: false });
+}
+
+/* ---------- Balken ziehen: verschieben oder Dauer ändern */
+function barDrag(ev, ctx, mode) {
   if (ev.button !== 0) return;
   ev.preventDefault(); ev.stopPropagation(); hideTip();
-  const el = ev.currentTarget, sx = ev.clientX;
+  const { x, s, r, pxd, X, el } = ctx, sx = ev.clientX;
   el.setPointerCapture(ev.pointerId);
   document.body.classList.add('dragging');
   const lab = h('div', { class: 'drag-lab' }); document.body.append(lab);
-  let dur = +s.dauer || 0;
+  let ns = r.start, ne = r.end, moved = false;
+  const isTask = s.typ === 'aufgabe';
   const move = e => {
     const dd = Math.round((e.clientX - sx) / pxd);
-    dur = Math.max(0, (+s.dauer || 0) - dd);
-    const st = r.end - dur;
-    bar.style.left = X(st) + 'px'; bar.style.width = Math.max(3, dur * pxd) + 'px';
-    const w = dateWarn(st, s.wer);
-    lab.replaceChildren(h('b', null, s.name + ': ' + dur + ' Tage'), h('div', null, 'Beginn ' + fmtW(st)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    if (dd) moved = true;
+    if (mode === 'move') { ns = r.start + dd; ne = r.end + dd; }
+    else if (mode === 'left') { ns = Math.min(r.start + dd, r.end); ne = r.end; }
+    else { ns = r.start; ne = Math.max(r.end + dd, r.start); }
+    if (isTask) { el.style.left = X(ns) + 'px'; el.style.width = Math.max(3, (ne - ns) * pxd) + 'px'; }
+    else el.style.left = X(ne) + pxd / 2 + 'px';
+    const w = s.wer ? C.vac.filter(v => v.u.wer === s.wer && v.von <= ne && v.bis >= ns).map(v => s.wer + ' Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis)) : [];
+    lab.replaceChildren(h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' (' + (ne - ns) + ' Tage)' : fmtW(ne)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
   const up = () => {
-    el.removeEventListener('pointermove', move); document.body.classList.remove('dragging'); lab.remove();
-    if (dur !== (+s.dauer || 0)) setStep(x.id, s.id, st => { st.dauer = dur; }, s.name + ': Dauer ' + dur + ' Tage');
+    el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+    document.body.classList.remove('dragging'); lab.remove();
+    if (!moved || (ns === r.start && ne === r.end)) return;
+    commit(d => setStepSpan(findM(d, x.id), s.id, ns, ne), s.name + ': ' + (isTask ? fmtS(ns) + '–' + fmtS(ne) : fmtS(ne)));
   };
   el.addEventListener('pointermove', move);
-  el.addEventListener('pointerup', up, { once: true });
-  el.addEventListener('pointercancel', up, { once: true });
+  el.addEventListener('pointerup', up);
+  el.addEventListener('pointercancel', up);
   move(ev);
+}
+
+/* ---------- Zeilen ziehen: Reihenfolge ändern */
+function rowDrag(ev, mid, sid) {
+  if (ev.button !== 0) return;
+  ev.preventDefault(); hideTip();
+  const table = ev.currentTarget.closest('.pl-table'), src = ev.currentTarget.closest('.pl-row');
+  document.body.classList.add('dragging');
+  src.classList.add('dragrow');
+  let target = null, after = false;
+  const clear = () => $$('.pl-row.drop-before, .pl-row.drop-after', table).forEach(r => r.classList.remove('drop-before', 'drop-after'));
+  const move = e => {
+    clear();
+    const rows = $$('.pl-row[data-rid]', table);
+    let best = null;
+    for (const r of rows) { const b = r.getBoundingClientRect(); if (e.clientY >= b.top && e.clientY < b.bottom) { best = r; after = e.clientY > b.top + b.height / 2; break; } }
+    if (!best && rows.length) { const last = rows[rows.length - 1]; if (e.clientY >= last.getBoundingClientRect().bottom) { best = last; after = true; } }
+    target = best;
+    if (best && best !== src) best.classList.add(after ? 'drop-after' : 'drop-before');
+  };
+  const up = () => {
+    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+    document.body.classList.remove('dragging'); src.classList.remove('dragrow'); clear();
+    if (!target || target === src) return;
+    const steps = findM(D, mid).plan.steps, ti = steps.findIndex(s => s.id === target.dataset.rid);
+    let beforeId;
+    if (!after) beforeId = target.dataset.rid;
+    else {
+      let j = ti + 1;
+      const tgt = steps[ti];
+      if (tgt.typ === 'gruppe' && UI.planColl[mid + ':' + tgt.id]) while (j < steps.length && steps[j].typ !== 'gruppe') j++;
+      beforeId = j < steps.length ? steps[j].id : null;
+    }
+    if (beforeId === sid) return;
+    moveRows(mid, sid, beforeId);
+  };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
 }

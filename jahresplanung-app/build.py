@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Baut die App zu einer einzigen, offline lauffähigen HTML-Datei (Programm + Daten)."""
-import glob, json, os, sys, zipfile
+import base64, glob, json, os, sys, zipfile
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'Jahresplanung_Aussenkommunikation.html')
@@ -12,7 +12,8 @@ FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
            "%3Crect x='11' y='14' width='42' height='38' rx='5' fill='white'/%3E%3Crect x='11' y='14' width='42' height='10' rx='3' fill='%23404040'/%3E"
            "%3Cg fill='%23E30714'%3E%3Crect x='17' y='30' width='8' height='7' rx='1'/%3E%3Crect x='28' y='30' width='8' height='7' rx='1'/%3E"
            "%3Crect x='39' y='30' width='8' height='7' rx='1'/%3E%3Crect x='17' y='40' width='8' height='7' rx='1'/%3E%3Crect x='28' y='40' width='8' height='7' rx='1'/%3E%3C/g%3E%3C/svg%3E")
-js = js.replace("'use strict';", "'use strict';\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";", 1)
+LOGO = 'data:image/png;base64,' + base64.b64encode(open(os.path.join(HERE, 'src', 'logo.png'), 'rb').read()).decode()
+js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";", 1)
 for bad in ('</script', '<!--'):
     assert bad not in js.lower(), bad
 dj = json.dumps(data, ensure_ascii=False).replace('<', '\\u003c')

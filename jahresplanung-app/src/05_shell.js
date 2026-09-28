@@ -49,7 +49,7 @@ function topBar() {
   const dirty = isDirty(), nW = C.warnings.filter(w => w.lvl === 'warn').length, nI = C.warnings.length - nW;
   const tab = ([k, label]) => h('button', { class: 'tab' + (UI.view === k ? ' on' : ''), onclick: () => { UI.view = k; renderNow(); $('#main').scrollTop = 0; } }, label);
   return h('header', { class: 'top' },
-    h('div', { class: 'brand' }, h('span', { class: 'mark', 'aria-hidden': 'true' }), h('div', null, h('strong', null, 'Jahresplanung Außenkommunikation'), h('span', null, 'Fundraising · Diözese Paderborn'))),
+    h('div', { class: 'brand' }, h('img', { class: 'logo', src: LOGO, alt: 'Malteser' }), h('div', null, h('strong', null, 'Jahresplanung Außenkommunikation'), h('span', null, 'Fundraising · Diözese Paderborn'))),
     h('div', { class: 'year' },
       h('button', { class: 'icon', 'aria-label': 'Vorjahr', onclick: () => { UI.year--; renderNow(); } }, '‹'),
       h('span', { class: 'y' }, UI.year),
@@ -61,7 +61,9 @@ function topBar() {
       h('button', { class: 'warnbtn' + (nW ? ' has' : ''), tip: 'Warnungen und Hinweise für ' + UI.year, onclick: () => { UI.warnOpen = !UI.warnOpen; renderNow(); } },
         '⚠ ', nW, nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
       menuButton('Export ▾', [
-        ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS], ['Drucken / als PDF speichern', printView]]),
+        ['PDF: Jahresübersicht (Maßnahmen, Kalender, Zeitleiste)', printYearPDF], ['Aktuelle Ansicht drucken', printView], null,
+        ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS], null,
+        ['Datensicherung exportieren (.json)', exportJSON], ['Datensicherung importieren …', openFile]]),
       saveBox(),
       menuButton('⋯', [
         [(UI.autoSave === false ? '☐' : '☑') + ' Automatisch speichern', () => { UI.autoSave = UI.autoSave === false; saveUI(); if (UI.autoSave && isDirty()) scheduleAutosave(); renderNow(); toast('Automatisch speichern ' + (UI.autoSave ? 'an' : 'aus')); }],
@@ -119,6 +121,17 @@ function highlight(id) {
   const main = $('#main'); if (!main) return;
   main.classList.toggle('hl', !!id);
   $$('[data-m]', main).forEach(e => e.classList.toggle('hl-on', e.dataset.m === id));
+  $$('.day.span', main).forEach(c => { c.classList.remove('span', 'span-s', 'span-e'); c.style.removeProperty('--hc'); });
+  const x = id && C.byId.get(id);
+  if (!x) return;
+  const pts = [x.s, x.i, x.pal].filter(v => v != null);
+  if (pts.length < 2) return;
+  const a = Math.min(...pts), b = Math.max(...pts), cells = new Map($$('.day[data-dn]', main).map(c => [+c.dataset.dn, c]));
+  for (let n = a; n <= b; n++) {
+    const c = cells.get(n); if (!c) continue;
+    c.classList.add('span'); if (n === a) c.classList.add('span-s'); if (n === b) c.classList.add('span-e');
+    c.style.setProperty('--hc', x.color);
+  }
 }
 function sideBar() {
   const y = UI.year;
@@ -164,7 +177,7 @@ function fixDate(w) {
     x.m.name + ': ' + (w.fix.t === 'S' ? 'Start Selektion' : 'Start Inhalt') + ' → ' + fmtW(w.fix.to));
 }
 async function fixAll(list) {
-  if (!await confirmBox('Alle vorziehen', list.length + ' Starts werden auf den jeweils vorherigen Arbeitstag gelegt (Vorlauf wird angepasst). Strg+Z macht es rückgängig.', 'Vorziehen')) return;
+  if (!await confirmBox('Alle vorziehen', list.length + ' Starts werden auf den jeweils vorherigen Arbeitstag gelegt. Strg+Z macht es rückgängig.', 'Vorziehen')) return;
   commit(d => { for (const w of list) { const x = C.byId.get(w.mid), m = findM(d, w.mid); if (!x || !m) continue; if (w.fix.t === 'S') m.vorlaufS = x.pal - w.fix.to; else m.vorlaufI = x.pal - w.fix.to; } }, list.length + ' Starts vorgezogen');
 }
 function warnPanel() {
@@ -172,7 +185,7 @@ function warnPanel() {
   const vorl = C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year && x.m.palStatus !== 'fest').length;
   const item = w => h('div', { class: 'witem ' + w.lvl },
     h('button', { class: 'wtext', onclick: () => goTo(w) }, w.text),
-    w.fix ? h('button', { class: 'wfix', tip: 'Vorlauf so ändern, dass der Termin auf den vorherigen Arbeitstag fällt', onclick: () => fixDate(w) }, 'auf ' + fmtWS(w.fix.to) + ' vorziehen') : null);
+    w.fix ? h('button', { class: 'wfix', tip: 'Termin auf den vorherigen Arbeitstag legen', onclick: () => fixDate(w) }, 'auf ' + fmtWS(w.fix.to) + ' vorziehen') : null);
   return h('aside', { class: 'warnpanel' },
     h('header', null, h('h2', null, 'Warnungen ' + UI.year), h('button', { class: 'icon', 'aria-label': 'Schließen', onclick: () => { UI.warnOpen = false; renderNow(); } }, '✕')),
     h('div', { class: 'wbody' },
@@ -216,7 +229,8 @@ function helpDialog() {
     p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen.'),
     h('h3', null, 'Bedienung'),
     p('Jahresplanung: oben die Maßnahmen, darunter der Kalender – beide Bereiche lassen sich mit ▾ ein- und ausklappen. Maus über einen Tag oder eine Markierung zeigt die Details. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Klick öffnet die Maßnahme.'),
-    p('Zeitleiste: Klick auf einen Monat zoomt hinein, mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL, die Griffe S und I ändern den Vorlauf. Darunter „Was steht an?“. Strg+Z macht jede Änderung rückgängig.'),
+    p('Zeitleiste: Mausrad zoomt, Klick auf einen Monat zoomt hinein, Klick auf den Namen einer Maßnahme zeigt sie ganz. Mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL, die Griffe S und I verschieben nur diesen Start. Darunter „Was steht an?“. Strg+Z macht jede Änderung rückgängig.'),
+    p('Detailpläne: Abschnitte mit ▾ ein- und ausklappen, Zeilen am ⋮⋮-Griff hoch/runter ziehen. Balken im Gantt ziehen verschiebt den Schritt, an den Enden ziehen ändert die Dauer; die Farbe zeigt, wer zugeordnet ist. ‹ zwischen Tabelle und Gantt blendet die Spalten aus.'),
     p('Maßnahmen mit Detailplan (z. B. Sommer- und Weihnachtsmailing) berechnen Start Selektion und Start Inhalt aus den Arbeitsschritten – wie im Excel-Gantt.')), null, { wide: true });
 }
 

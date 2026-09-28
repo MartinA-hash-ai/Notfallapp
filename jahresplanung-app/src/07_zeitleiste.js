@@ -20,7 +20,7 @@ function timelineSection() {
   const y = UI.year, today = todayDn();
   const rows = C.ms.filter(x => visibleM(x) && inYear(x, y));
   const [x0, x1] = tlRange(rows, y), nd = x1 - x0 + 1;
-  const label = UI.printing ? 215 : TL_LABEL;
+  const label = UI.printing ? 255 : TL_LABEL;
   const avail = UI.printing ? 1040 - label : Math.max(500, innerWidth - label - 66);
   const pxd = UI.printing ? avail / nd : (UI.tlPxd || avail / nd);
   const W = Math.round(nd * pxd), X = n => (n - x0) * pxd;
@@ -56,10 +56,11 @@ function timelineSection() {
   for (const x of rows) {
     const ws = (warnBy.get(x.id) || []).filter(w => w.lvl === 'warn');
     const open = x.pc && (UI.tlPlans || tlOpen.has(x.id));
-    const lab = h('div', { class: 'tl-lab', dataset: { m: x.id }, onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null) },
+    const lab = h('div', { class: 'tl-lab clickable', dataset: { m: x.id }, tip: 'Klicken: auf diese Maßnahme zoomen', onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null),
+      onclick: e => { if (!e.target.closest('button')) tlZoomTo(x); } },
       x.pc ? h('button', { class: 'tog', 'aria-label': 'Detailplan auf-/zuklappen', onclick: () => { tlOpen.has(x.id) ? tlOpen.delete(x.id) : tlOpen.add(x.id); renderNow(); } }, open ? '▾' : '▸') : h('span', { class: 'tog' }),
       h('span', { class: 'dot', style: { background: x.color } }),
-      h('span', { class: 'nm', ondblclick: () => editMassnahme(x.id) }, x.m.name || '(ohne Namen)'),
+      h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'),
       ws.length ? h('span', { class: 'wicon', tip: () => h('div', null, ws.map(w => h('div', null, '⚠ ' + w.text))) }, '⚠') : null,
       h('span', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : ''), tip: x.m.palStatus !== 'fest' ? 'PAL vorläufig' : 'PAL fest' }, x.pal != null ? fmtS(x.pal) : '–'));
     const track = h('div', { class: 'tl-track', style: { width: W + 'px' } });
@@ -71,10 +72,11 @@ function timelineSection() {
       dia: h('div', { class: 'dia', style: { background: x.color } }),
     };
     const place = (s, i, p) => {
-      const L = (n, e) => { e.style.left = X(n) + 'px'; };
-      const seg = (e, a, b, on) => { e.style.display = on ? '' : 'none'; if (on) { e.style.left = X(a) + 'px'; e.style.width = Math.max(2, X(b) - X(a)) + 'px'; } };
+      const Cx = n => X(n) + pxd / 2;                       // alles auf die Tagesmitte
+      const L = (n, e) => { e.style.left = Cx(n) + 'px'; };
+      const seg = (e, a, b, on) => { e.style.display = on ? '' : 'none'; if (on) { e.style.left = Cx(a) + 'px'; e.style.width = Math.max(2, Cx(b) - Cx(a)) + 'px'; } };
       seg(els.seg1, s, i != null ? i : p, s != null && (i != null ? s < i : p != null));
-      seg(els.seg2, i != null ? i : s, p != null ? p + 1 : i, i != null && p != null);
+      seg(els.seg2, i != null ? i : s, p != null ? p : i, i != null && p != null);
       els.hS.style.display = s != null ? '' : 'none'; if (s != null) L(s, els.hS);
       els.hI.style.display = i != null ? '' : 'none'; if (i != null) L(i, els.hI);
       els.dia.style.display = p != null ? '' : 'none'; if (p != null) els.dia.style.left = X(p) + pxd / 2 + 'px';
@@ -82,8 +84,8 @@ function timelineSection() {
     place(x.s, x.i, x.pal);
     const tipFn = () => chipTip({ x, t: 'P' });
     [els.seg1, els.seg2, els.dia].forEach(e => { setTip(e, tipFn); e.addEventListener('pointerdown', ev => tlDrag(ev, x, 'move', pxd, place)); e.addEventListener('dblclick', () => editMassnahme(x.id)); });
-    setTip(els.hS, () => h('div', null, h('b', null, 'Start Selektion ' + fmtW(x.s)), h('div', { class: 'muted' }, x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = Vorlauf Selektion ändern (' + x.vS + ' Tage)')));
-    setTip(els.hI, () => h('div', null, h('b', null, 'Start inhaltliche Arbeit ' + fmtW(x.i)), h('div', { class: 'muted' }, x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = Vorlauf Inhalt ändern (' + x.vI + ' Tage)')));
+    setTip(els.hS, () => h('div', null, h('b', null, 'Start Selektion ' + fmtW(x.s)), h('div', { class: 'muted' }, x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = Start Selektion verschieben (' + x.vS + ' Tage vor PAL)')));
+    setTip(els.hI, () => h('div', null, h('b', null, 'Start inhaltliche Arbeit ' + fmtW(x.i)), h('div', { class: 'muted' }, x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = Start Inhalt verschieben (' + x.vI + ' Tage vor PAL)')));
     els.hS.addEventListener('pointerdown', ev => tlDrag(ev, x, 'S', pxd, place));
     els.hI.addEventListener('pointerdown', ev => tlDrag(ev, x, 'I', pxd, place));
     track.append(els.seg1, els.seg2, els.hS, els.hI, els.dia);
@@ -126,18 +128,6 @@ function timelineSection() {
     body.append(h('div', { class: 'tl-row vac' }, h('div', { class: 'tl-lab' }, h('span', { class: 'nm muted' }, 'mehrere gleichzeitig')), t));
   }
 
-  // ---- Auslastung: Starts je Kalenderwoche
-  const load = h('div', { class: 'tl-track', style: { width: W + 'px' } }), max = +D.settings.maxStarts || 2;
-  for (let n = x0 - wd(x0); n <= x1; n += 7) {
-    const list = C.ms.flatMap(x => [['S', x.s], ['I', x.i]].filter(([, v]) => v != null && v >= n && v < n + 7).map(([t]) => t + ' ' + x.m.name));
-    if (!list.length) continue;
-    const a = Math.max(n, x0);
-    load.append(h('div', { class: 'load' + (list.length > max ? ' over' : ''), style: { left: X(a) + 'px', width: Math.max(3, 7 * pxd - 2) + 'px', height: Math.min(22, 5 + list.length * 5) + 'px' },
-      tip: () => h('div', null, h('b', null, 'KW ' + isoWeek(n) + ': ' + list.length + ' Start' + (list.length > 1 ? 's' : '')), list.map(l => h('div', null, l)),
-        list.length > max ? h('div', { class: 'warn' }, 'mehr als ' + max + ' Starts in einer Woche') : null) }, pxd * 7 >= 14 ? list.length : ''));
-  }
-  body.append(h('div', { class: 'tl-row load-row' }, h('div', { class: 'tl-lab' }, h('b', null, 'Starts je Woche'), h('span', { class: 'muted small' }, ' (S + I)')), load));
-
   const head = h('div', { class: 'tl-head' }, h('div', { class: 'tl-lab corner' }, 'Maßnahme', h('span', null, 'PAL')), h('div', { class: 'tl-track', style: { width: W + 'px' } }, months, weeks, days));
   const tl = h('div', { class: 'tl', 'data-keep-scroll': 'tl' }, h('div', { class: 'tl-inner', style: { width: label + W + 'px', '--lab': label + 'px' } }, head, h('div', { class: 'tl-bodywrap' }, bg, body)));
   const zoom = f => { const c = tlCenter(); UI.tlPxd = clamp((UI.tlPxd || pxd) * f, 1.5, 60); UI.tlFocusCenter = c; renderNow(); };
@@ -145,6 +135,7 @@ function timelineSection() {
     const [yy, mm] = ymd(n), dim = daysIn(yy, mm), vis = Math.max(300, (($('.tl') || {}).clientWidth || innerWidth - 70) - label);
     UI.tlPxd = clamp(vis / dim, 1.5, 60); UI.tlFocus = n; renderNow();
   });
+  tlWheel(tl, x0, nd, avail, label);
   UI._tl = { x0, pxd, label };
   const zoomed = UI.tlPxd && UI.tlPxd * nd > avail + 10;
   return {
@@ -157,6 +148,36 @@ function timelineSection() {
       h('button', { class: 'ghostbtn', onclick: () => { if (!zoomed) { UI.tlPxd = clamp((avail / nd) * 4, 1.5, 60); UI.tlFocusCenter = today; renderNow(); } else scrollTlTo(today); } }, 'Heute')],
     body: [tl],
   };
+}
+function tlZoomTo(x) {
+  const pts = [x.s, x.i, x.pal].filter(v => v != null);
+  if (!pts.length) return;
+  const a = Math.min(...pts), b = Math.max(...pts), tl = $('.tl');
+  const vis = Math.max(300, ((tl && tl.clientWidth) || innerWidth - 70) - (UI._tl ? UI._tl.label : TL_LABEL));
+  const span = b - a + 1, pad = Math.max(2, Math.round(span * 0.06));
+  UI.tlPxd = clamp(vis / (span + 2 * pad), 1.5, 60); UI.tlFocus = a - pad;
+  renderNow();
+}
+// Mausrad über der Zeitleiste: hinein-/herauszoomen (der Tag unter der Maus bleibt stehen)
+let _wheelPending = null;
+function tlWheel(box, x0, nd, avail, label) {
+  box.addEventListener('wheel', ev => {
+    if (Math.abs(ev.deltaX) > Math.abs(ev.deltaY) || ev.shiftKey) return;           // seitlich scrollen wie gewohnt
+    const r = box.getBoundingClientRect(), off = ev.clientX - r.left - label;
+    if (off < 0) return;                                                             // über den Namen: normal scrollen
+    ev.preventDefault();
+    const cur = UI._tl ? UI._tl.pxd : avail / nd, fit = avail / nd;
+    const base = _wheelPending ? _wheelPending.pxd : cur;
+    let np = clamp(base * (ev.deltaY < 0 ? 1.2 : 1 / 1.2), fit, 60);
+    if (!_wheelPending) _wheelPending = { d: x0 + (box.scrollLeft + off) / cur, off };
+    _wheelPending.pxd = np;
+    requestAnimationFrame(() => {
+      if (!_wheelPending) return;
+      const w = _wheelPending; _wheelPending = null;
+      UI.tlPxd = w.pxd <= fit * 1.001 ? 0 : w.pxd; UI.tlAnchor = { d: w.d, off: w.off };
+      renderNow();
+    });
+  }, { passive: false });
 }
 function tlCenter() {
   const tl = $('.tl'); if (!tl || !UI._tl) return null;
@@ -199,6 +220,7 @@ function timelineAfter() {
   if (UI.flash && UI.flash.startsWith('n:')) { scrollTlTo(+UI.flash.slice(2)); UI.flash = null; }
   if (UI.tlFocus != null) { tl.scrollLeft = Math.max(0, (UI.tlFocus - UI._tl.x0) * UI._tl.pxd); UI.tlFocus = null; }
   if (UI.tlFocusCenter != null) { scrollTlTo(UI.tlFocusCenter); UI.tlFocusCenter = null; }
+  if (UI.tlAnchor) { tl.scrollLeft = Math.max(0, (UI.tlAnchor.d - UI._tl.x0) * UI._tl.pxd - UI.tlAnchor.off); UI.tlAnchor = null; }
 }
 function tlDrag(ev, x, mode, pxd, place) {
   if (ev.button !== 0) return;
@@ -216,8 +238,8 @@ function tlDrag(ev, x, mode, pxd, place) {
     dd = Math.round((e.clientX - x0) / pxd);
     let s = x.s, i = x.i, p = x.pal, txt, n;
     if (mode === 'move') { s = s != null ? s + dd : s; i = i != null ? i + dd : i; p += dd; n = p; txt = 'PAL: ' + fmtW(p); }
-    else if (mode === 'S') { s += dd; n = s; txt = 'Start Selektion: ' + fmtW(s) + ' · Vorlauf ' + (x.pal - s) + ' Tage'; }
-    else { i += dd; n = i; txt = 'Start Inhalt: ' + fmtW(i) + ' · Vorlauf ' + (x.pal - i) + ' Tage'; }
+    else if (mode === 'S') { s += dd; n = s; txt = 'Start Selektion: ' + fmtW(s) + ' · ' + (x.pal - s) + ' Tage vor PAL'; }
+    else { i += dd; n = i; txt = 'Start Inhalt: ' + fmtW(i) + ' · ' + (x.pal - i) + ' Tage vor PAL'; }
     place(s, i, p);
     const w = mode === 'move' ? [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(t => k > 0 || !/Samstag|Urlaub/.test(t)).map(t => ['PAL', 'S', 'I'][k] + ': ' + t)) : dateWarn(n, resp);
     lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
@@ -234,7 +256,7 @@ function tlDrag(ev, x, mode, pxd, place) {
         m.pal = ds(dn(m.pal) + dd);
       } else if (mode === 'S') m.vorlaufS = Math.max(0, x.vS - dd);
       else m.vorlaufI = Math.max(0, x.vI - dd);
-    }, mode === 'move' ? x.m.name + ': PAL → ' + fmtW(x.pal + dd) : x.m.name + ': Vorlauf geändert');
+    }, mode === 'move' ? x.m.name + ': PAL → ' + fmtW(x.pal + dd) : x.m.name + ': Start verschoben');
   };
   el.addEventListener('pointermove', move);
   el.addEventListener('pointerup', up, { once: true });

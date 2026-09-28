@@ -67,6 +67,32 @@ async function copyToNextYear() {
 }
 
 /* ---------- Tabelle */
+const MCOLS = [
+  { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 180, t: 'Maßnahme' }, { k: 'resp', w: 138, t: 'Hauptverantwortlich' },
+  { k: 'auflage', w: 60, t: 'Auflage' }, { k: 's', w: 136, t: 'Start Selektion', chip: 'S' }, { k: 'i', w: 136, t: 'Start Inhalt', chip: 'I' }, { k: 'pal', w: 136, t: 'PAL', chip: 'P' },
+  { k: 'status', w: 80, t: 'Status' }, { k: 'art', w: 66, t: 'Bitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
+  { k: 'warns', w: 34, fixed: true }, { k: 'acts', w: 34, fixed: true }];
+const colW = c => (UI.colW && UI.colW[c.k]) || c.w;
+function tableWidth() { return MCOLS.reduce((s, c) => s + (colW(c) || c.flex || 0), 0); }
+function colResize(ev, c) {
+  ev.preventDefault(); ev.stopPropagation();
+  const th = ev.currentTarget.parentElement, col = $('col[data-k="' + c.k + '"]'), table = th.closest('table');
+  const w0 = th.getBoundingClientRect().width, x0 = ev.clientX;
+  document.body.classList.add('dragging', 'resizing');
+  const move = e => {
+    const w = Math.max(40, Math.round(w0 + e.clientX - x0));
+    col.style.width = w + 'px';
+    UI.colW = Object.assign({}, UI.colW, { [c.k]: w });
+    table.style.width = 'max(100%, ' + tableWidth() + 'px)';
+  };
+  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.classList.remove('dragging', 'resizing'); saveUI(); };
+  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+}
+function setStartDate(id, key, v) {
+  const x = C.byId.get(id); if (!x || x.pal == null) return;
+  const n = dn(v); if (n == null) return;
+  setM(id, key === 's' ? 'vorlaufS' : 'vorlaufI', Math.max(0, x.pal - n), x.m.name + ': ' + (key === 's' ? 'Start Selektion' : 'Start Inhalt') + ' → ' + fmtW(n));
+}
 function massnahmenSection() {
   const y = UI.year;
   const rows = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === y);
@@ -75,10 +101,14 @@ function massnahmenSection() {
   const tb = h('tbody');
   for (const x of rows) {
     const m = x.m, id = x.id, fk = f => 'm:' + id + ':' + f;
-    const ws = warnBy.get(id) || [];
-    const dateCell = (n, warnList) => h('td', { class: 'calc' + (n != null && ymd(n)[0] !== y ? ' other' : ''), tip: n != null ? WDL[wd(n)] + ', ' + fmtD(n) : null },
-      h('span', null, n == null ? '–' : WD[wd(n)] + ' ' + fmtS(n) + String(ymd(n)[0]).slice(2)), warnList.length ? h('span', { class: 'wi', tip: warnList.join('\n') }, '⚠') : null);
-    const resp = (m.verantwortlich || '').trim();
+    const ws = warnBy.get(id) || [], resp = (m.verantwortlich || '').trim();
+    const startCell = key => {
+      const n = x[key], w = n != null ? dateWarn(n, resp) : [];
+      const warnIcon = w.length ? h('span', { class: 'wi', tip: w.join('\n') }, '⚠') : null;
+      if (m.plan) return h('td', { class: 'date derived-date', tip: 'ergibt sich aus dem Detailplan' }, h('span', null, n != null ? fmtD(n) : '–'), warnIcon);
+      return h('td', { class: 'date' }, x.pal == null ? h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–') :
+        dateInput(n != null ? ds(n) : '', fk(key), v => setStartDate(id, key, v)), warnIcon);
+    };
     tb.append(h('tr', { dataset: { m: id, flash: 'm:' + id }, class: visibleM(x) ? '' : 'hidden-m', onmouseenter: () => highlight(id), onmouseleave: () => highlight(null) },
       h('td', { class: 'vis' }, h('input', { type: 'checkbox', checked: visibleM(x), tip: 'im Kalender und in der Zeitleiste anzeigen', 'aria-label': 'anzeigen',
         onchange: e => { e.target.checked ? UI.hiddenM.delete(id) : UI.hiddenM.add(id); renderNow(); } })),
@@ -86,25 +116,24 @@ function massnahmenSection() {
       h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: mix(x.color, 0.1, '#000000') }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
       h('td', { class: 'resp' }, h('input', { value: m.verantwortlich || '', list: 'dl-personen', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
       h('td', { class: 'num' }, h('input', { type: 'number', min: 0, value: m.auflage ?? '', 'data-fk': fk('auflage'), placeholder: '–', onchange: e => setM(id, 'auflage', numOrNull(e.target.value)) })),
-      dateCell(x.s, x.s != null ? dateWarn(x.s, resp) : []),
-      h('td', { class: 'num' }, m.plan ? h('span', { class: 'derived', tip: 'aus dem Detailplan berechnet' }, x.vS ?? '–') :
-        h('input', { type: 'number', min: 0, value: m.vorlaufS ?? '', 'data-fk': fk('vs'), onchange: e => setM(id, 'vorlaufS', numOrNull(e.target.value)) })),
-      dateCell(x.i, x.i != null ? dateWarn(x.i, resp) : []),
-      h('td', { class: 'num' }, m.plan ? h('span', { class: 'derived', tip: 'aus dem Detailplan berechnet' }, x.vI ?? '–') :
-        h('input', { type: 'number', min: 0, value: m.vorlaufI ?? '', 'data-fk': fk('vi'), onchange: e => setM(id, 'vorlaufI', numOrNull(e.target.value)) })),
-      h('td', { class: 'pal' + (m.palStatus !== 'fest' ? ' vorl' : '') },
-        dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null))),
+      startCell('s'), startCell('i'),
+      h('td', { class: 'date pal' + (m.palStatus !== 'fest' ? ' vorl' : '') }, dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null))),
       h('td', null, h('button', { class: 'status ' + (m.palStatus === 'fest' ? 'fest' : 'vorl'), 'data-fk': fk('status'), tip: 'Klicken zum Umschalten',
         onclick: () => setM(id, 'palStatus', m.palStatus === 'fest' ? 'vorläufig' : 'fest') }, m.palStatus === 'fest' ? 'fest' : 'vorläufig')),
       h('td', { class: 'art' }, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
-      h('td', { class: 'hinweis' }, h('input', { value: m.hinweis || '', 'data-fk': fk('hinweis'), placeholder: '–', onchange: e => setM(id, 'hinweis', e.target.value) })),
+      h('td', { class: 'hinweis' }, h('input', { value: m.hinweis || '', title: m.hinweis || '', 'data-fk': fk('hinweis'), placeholder: '–', onchange: e => setM(id, 'hinweis', e.target.value) })),
       h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', tip: 'Detailplan öffnen', onclick: () => { UI.view = 'plaene'; UI.planSel = id; renderNow(); } }, 'Plan ›') :
         h('button', { class: 'pill ghost', tip: 'Arbeitsschritte mit Gantt anlegen', onclick: () => createPlan(id) }, '+ Plan')),
       h('td', { class: 'warns' }, ws.length ? h('span', { class: 'wi ' + (ws.some(w => w.lvl === 'warn') ? 'warn' : 'info'), tip: () => h('div', null, ws.map(w => h('div', null, (w.lvl === 'warn' ? '⚠ ' : 'ℹ ') + w.text))) }, ws.length) : null),
       h('td', { class: 'acts' }, menuButton('⋯', [['Bearbeiten …', () => editMassnahme(id)], ['Duplizieren', () => duplicateMassnahme(id)], ['Löschen', () => deleteMassnahme(id)]], 'right'))));
   }
-  const head = ['', '', 'Maßnahme', 'Verantwortlich', 'Auflage', 'Start Selektion', 'Vorlauf S', 'Start Inhalt', 'Vorlauf I', 'PAL', 'Status', 'Bitte', 'Hinweis', 'Plan', '', ''];
   const nWarn = C.warnings.filter(w => w.mid && rows.some(x => x.id === w.mid) && w.lvl === 'warn').length;
+  const ths = MCOLS.map(c => h('th', { class: c.k },
+    c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(visibleM), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
+      onchange: e => { rows.forEach(x => e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) :
+    [c.chip ? h('span', { class: 'chip demo ' + c.chip }, c.chip) : null, c.t || '',
+     c.fixed ? null : h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c),
+       ondblclick: () => { if (UI.colW) delete UI.colW[c.k]; saveUI(); renderNow(); } })]));
   return {
     summary: rows.length + ' Maßnahmen' + (nWarn ? ' · ⚠ ' + nWarn : ''),
     tools: [
@@ -112,10 +141,9 @@ function massnahmenSection() {
       h('button', { class: 'ghostbtn', onclick: copyToNextYear }, 'Ins Folgejahr kopieren …'),
       h('button', { class: 'primary', onclick: () => addMassnahme(y) }, '+ Maßnahme')],
     body: [personList(),
-      h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable' },
-        h('thead', null, h('tr', null, head.map((t, i) => h('th', { class: ['vis', 'col', 'name', '', 'num', 'calc', 'num', 'calc', 'num', 'pal', '', '', 'hinweis', 'plan', 'warns', 'acts'][i] || '',
-          tip: i === 0 ? 'Häkchen = im Kalender und in der Zeitleiste anzeigen' : i === 6 || i === 8 ? 'Vorlauf in Kalendertagen vor dem PAL' : null },
-          i === 0 ? h('input', { type: 'checkbox', checked: rows.every(visibleM), 'aria-label': 'alle anzeigen', onchange: e => { rows.forEach(x => e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) : t)))), tb)),
+      h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable', style: { width: 'max(100%, ' + tableWidth() + 'px)' } },
+        h('colgroup', null, MCOLS.map(c => h('col', { dataset: { k: c.k }, style: colW(c) ? { width: colW(c) + 'px' } : null }))),
+        h('thead', null, h('tr', null, ths)), tb)),
       !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
         C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null],
   };
@@ -128,11 +156,16 @@ async function editMassnahme(id) {
   const row = (label, inp, hint) => h('label', { class: 'frow' }, h('span', null, label), inp, hint ? h('small', null, hint) : null);
   const sw = h('button', { class: 'swatch big', style: { background: m.farbe }, onclick: e => { e.preventDefault(); e.stopPropagation(); colorPicker(sw, m.farbe, c => { m.farbe = c; sw.style.background = c; }); } });
   const calc = h('div', { class: 'calcline' });
-  const upd = () => {
+  const sIn = h('input', { type: 'date', oninput: e => { const v = dn(e.target.value), pal = dn(m.pal); m.vorlaufS = v != null && pal != null ? pal - v : m.vorlaufS; upd(true); } });
+  const iIn = h('input', { type: 'date', oninput: e => { const v = dn(e.target.value), pal = dn(m.pal); m.vorlaufI = v != null && pal != null ? pal - v : m.vorlaufI; upd(true); } });
+  const upd = keepInputs => {
     const pal = dn(m.pal);
     if (m.plan) { const pc = planCalc(m); calc.textContent = 'Start Selektion ' + fmtW(pc.s) + ' · Start Inhalt ' + fmtW(pc.i) + ' (aus Detailplan)'; return; }
     const s = pal != null && isNum(m.vorlaufS) ? pal - m.vorlaufS : null, i = pal != null && isNum(m.vorlaufI) ? pal - m.vorlaufI : null;
-    calc.textContent = 'Start Selektion ' + fmtW(s) + ' · Start inhaltliche Arbeit ' + fmtW(i);
+    if (!keepInputs) { sIn.value = s != null ? ds(s) : ''; iIn.value = i != null ? ds(i) : ''; }
+    sIn.disabled = iIn.disabled = pal == null;
+    calc.textContent = pal == null ? 'Erst den PAL eintragen – Start Selektion und Start Inhalt verschieben sich mit dem PAL.'
+      : [s != null ? 'Selektion ' + (pal - s) + ' Tage vor PAL' : '', i != null ? 'Inhalt ' + (pal - i) + ' Tage vor PAL' : ''].filter(Boolean).join(' · ');
   };
   upd();
   const body = h('div', { class: 'form' }, personList(),
@@ -140,11 +173,10 @@ async function editMassnahme(id) {
     h('div', { class: 'frow' }, h('span', null, 'Farbe'), sw),
     row('PAL (Briefkasten-Termin)', h('div', { class: 'inl' }, h('input', { type: 'date', value: m.pal || '', oninput: e => { m.pal = e.target.value || null; upd(); } }),
       h('select', { onchange: e => { m.palStatus = e.target.value; } }, ['vorläufig', 'fest'].map(v => h('option', { value: v, selected: m.palStatus === v }, 'PAL ' + v))))),
-    m.plan ? null : row('Vorlauf Selektion / Inhalt (Tage)', h('div', { class: 'inl' },
-      h('input', { type: 'number', min: 0, value: m.vorlaufS ?? '', oninput: e => { m.vorlaufS = numOrNull(e.target.value); upd(); } }),
-      h('input', { type: 'number', min: 0, value: m.vorlaufI ?? '', oninput: e => { m.vorlaufI = numOrNull(e.target.value); upd(); } }))),
+    m.plan ? null : row('Start Selektion', sIn),
+    m.plan ? null : row('Start inhaltliche Arbeit', iIn),
     calc,
-    row('Verantwortlich', h('input', { value: m.verantwortlich || '', list: 'dl-personen', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
+    row('Hauptverantwortlich', h('input', { value: m.verantwortlich || '', list: 'dl-personen', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
     row('Auflage', h('input', { type: 'number', min: 0, value: m.auflage ?? '', oninput: e => { m.auflage = numOrNull(e.target.value); } })),
     row('Art der Zuwendungs-/Zuweisungsbitte', h('select', { onchange: e => { m.art = e.target.value; } }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
     row('Hinweis', h('textarea', { rows: 2, oninput: e => { m.hinweis = e.target.value; } }, m.hinweis || '')));

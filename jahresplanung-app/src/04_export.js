@@ -70,7 +70,7 @@ async function exportICS() {
     for (const [t, k, lab] of TYPES) {
       if (!o[t] || x[k] == null || x[k] < a || x[k] > b) continue;
       L.push(...icsEvent(x.id + '-' + t + '-' + ds(x[k]), x[k], x[k], (t === 'P' ? 'PAL' : lab) + ' · ' + x.m.name,
-        [x.m.name, TYPE_LABEL[t] + ': ' + fmtW(x[k]), x.pal != null && t !== 'P' ? 'PAL: ' + fmtW(x.pal) : '', t === 'P' && x.m.palStatus !== 'fest' ? 'PAL noch vorläufig' : '', x.m.verantwortlich ? 'Verantwortlich: ' + x.m.verantwortlich : '', x.m.hinweis].filter(Boolean).join('\n')));
+        [x.m.name, TYPE_LABEL[t] + ': ' + fmtW(x[k]), x.pal != null && t !== 'P' ? 'PAL: ' + fmtW(x.pal) : '', t === 'P' && x.m.palStatus !== 'fest' ? 'PAL noch vorläufig' : '', x.m.verantwortlich ? 'Hauptverantwortlich: ' + x.m.verantwortlich : '', x.m.hinweis].filter(Boolean).join('\n')));
       n++;
     }
     if (o.steps && x.pc) for (const s of x.m.plan.steps) {

@@ -122,7 +122,7 @@ function viewWorkbook(opts = {}) {
   // 1. Übersicht
   {
     const rows = [[{ v: 'Jahresplanung Außenkommunikation ' + y, st: XS.title }], [{ v: hint, st: XS.note }], [],
-      ['', 'Maßnahme', 'Start Selektion', 'Start inhaltliche Arbeit', 'PAL', 'PAL-Status', 'Verantwortlich', 'Art der Bitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
+      ['', 'Maßnahme', 'Start Selektion', 'Start inhaltliche Arbeit', 'PAL', 'PAL-Status', 'Hauptverantwortlich', 'Art der Bitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
     for (const x of ms) {
       const bd = { border: 'thin', v: 'top' };
       rows.push([{ v: '', st: { fill: x.color, border: 'thin' } }, { v: x.m.name, st: { ...bd, b: true, color: darker(x.color) } },
@@ -263,7 +263,7 @@ function viewWorkbook(opts = {}) {
   // 4. Termine (chronologisch)
   {
     const ev = eventsIn(a, b, true);
-    const rows = [['Datum', 'KW', 'Maßnahme', 'Termin', 'Verantwortlich', 'Hinweis'].map(t => ({ v: t, st: XS.head })),
+    const rows = [['Datum', 'KW', 'Maßnahme', 'Termin', 'Hauptverantwortlich', 'Hinweis'].map(t => ({ v: t, st: XS.head })),
       ...ev.map(e => {
         const notes = [];
         const hn = holName(e.n); if (hn) notes.push('Feiertag: ' + hn); else if (wd(e.n) >= 5) notes.push(WDL[wd(e.n)]);
@@ -276,16 +276,16 @@ function viewWorkbook(opts = {}) {
 
   // 5. Detailpläne
   {
-    const rows = [['Maßnahme', 'Abschnitt', 'Arbeitsschritt', 'Typ', 'Zugeordnet', 'Kommentar', 'Start', 'Dauer (Tage)', 'Ende', 'Fortschritt (%)'].map(t => ({ v: t, st: XS.head }))];
+    const rows = [['Maßnahme', 'Abschnitt', 'Arbeitsschritt', 'Typ', 'Zugeordnet', 'Kommentar', 'Start', 'Dauer (Tage)', 'Ende'].map(t => ({ v: t, st: XS.head }))];
     for (const x of ms) if (x.pc) {
       let grp = '';
       for (const s of x.m.plan.steps) {
         if (s.typ === 'gruppe') { grp = s.name; continue; }
         const r = x.pc.map.get(s.id) || {};
-        rows.push([{ v: x.m.name, st: { color: darker(x.color), b: true } }, grp, s.name, STEP_TYPES[s.typ], s.wer || '', s.kommentar || '', XD(r.start), s.typ === 'aufgabe' ? +s.dauer || 0 : '', XD(r.end), s.typ === 'aufgabe' ? +s.fortschritt || 0 : '']);
+        rows.push([{ v: x.m.name, st: { color: darker(x.color), b: true } }, grp, s.name, STEP_TYPES[s.typ], s.wer ? { v: s.wer, st: { fill: pastel(personColor(s.wer)) } } : '', s.kommentar || '', XD(r.start), s.typ === 'aufgabe' ? +s.dauer || 0 : '', XD(r.end)]);
       }
     }
-    sheets.push({ name: 'Detailpläne', cols: [24, 22, 28, 12, 14, 24, 16, 10, 16, 12], rows, freeze: 'A2', filter: rows.length > 1 ? 'A1:J' + rows.length : null, protect });
+    sheets.push({ name: 'Detailpläne', cols: [24, 22, 28, 12, 14, 24, 16, 10, 16], rows, freeze: 'A2', filter: rows.length > 1 ? 'A1:I' + rows.length : null, protect });
   }
 
   // 6. Urlaub und Feiertage

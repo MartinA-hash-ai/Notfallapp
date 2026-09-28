@@ -22,7 +22,7 @@ function boot() {
   if (!UI.secOpen || typeof UI.secOpen !== 'object') UI.secOpen = {};
   checkDraft();
   renderNow();
-  restoreFolder().then(() => renderNow());
+  restoreFolder().then(() => { renderNow(); askPermissionOnFirstClick(); });
   document.addEventListener('visibilitychange', () => { if (document.hidden && isDirty() && ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); });
   if (!FSA) toast('Hinweis: Dieser Browser kann die Datei nicht direkt überschreiben – „Speichern“ lädt eine neue Datei herunter. Am besten Edge oder Chrome verwenden.', 'warn');
 }

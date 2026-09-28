@@ -1,9 +1,26 @@
 /* ===================================================================== Ansicht: Urlaub & Feiertage */
 
-function addVac() {
-  const nid = uid(), t = todayDn();
-  commit(d => d.urlaube.push({ id: nid, wer: UI.userName || (d.personen[0] || {}).name || '', von: ds(Math.max(t, mkdn(UI.year, 1, 1))), bis: ds(Math.max(t, mkdn(UI.year, 1, 1)) + 4), notiz: '' }), 'Urlaub angelegt');
-  UI.focusFk = 'u:' + nid + ':wer';
+async function addVac() {
+  const f = { wer: UI.userName || '', von: '', bis: '', notiz: '' };
+  const info = h('div', { class: 'calcline' });
+  const upd = () => {
+    const a = dn(f.von), b = dn(f.bis) ?? a;
+    info.textContent = a == null ? '' : b < a ? '„Bis“ liegt vor „Von“.' : workdays(a, b) + ' Arbeitstage (ohne Wochenenden und Feiertage)';
+  };
+  const row = (label, inp) => h('label', { class: 'frow' }, h('span', null, label), inp);
+  const bis = h('input', { type: 'date', oninput: e => { f.bis = e.target.value; upd(); } });
+  const ok = await modal('Neuen Urlaub eintragen', h('div', { class: 'form' }, personList(),
+    row('Person', h('input', { value: f.wer, list: 'dl-personen', placeholder: 'Name', oninput: e => { f.wer = e.target.value.trim(); } })),
+    row('Von', h('input', { type: 'date', oninput: e => { f.von = e.target.value; if (!f.bis || dn(f.bis) < dn(f.von)) { f.bis = f.von; bis.value = f.von; } upd(); } })),
+    row('Bis', bis),
+    row('Notiz', h('input', { placeholder: 'optional, z. B. Fortbildung', oninput: e => { f.notiz = e.target.value; } })), info),
+    [['Abbrechen', false], ['Eintragen', true, 'primary']]);
+  if (!ok) return;
+  let a = dn(f.von), b = dn(f.bis) ?? a;
+  if (a == null) { toast('Kein Datum eingetragen – nichts gespeichert.', 'warn'); return; }
+  if (b < a) [a, b] = [b, a];
+  if (!f.wer) toast('Ohne Person eingetragen – bitte in der Liste ergänzen.', 'warn');
+  commit(d => d.urlaube.push({ id: uid(), wer: f.wer, von: ds(a), bis: ds(b), notiz: f.notiz.trim() }), 'Urlaub eingetragen: ' + (f.wer || '?') + ' ' + fmtS(a) + '–' + fmtS(b));
 }
 function setVac(id, fn) { commit(d => { const u = d.urlaube.find(q => q.id === id); if (u) fn(u); }); }
 async function renamePerson(p) {
@@ -99,7 +116,8 @@ VIEW_FN.urlaub = main => {
     h('div', { class: 'cols2' },
       h('section', { class: 'card' }, h('h2', null, 'Urlaube / Abwesenheiten'),
         h('table', { class: 'grid utable' }, h('thead', null, h('tr', null, ['Wer', 'Von', 'Bis', 'Arbeitstage', 'Notiz', '', ''].map(t => h('th', null, t)))), list),
-        !D.urlaube.length ? h('p', { class: 'muted' }, 'Noch keine Urlaube eingetragen. ', h('button', { class: 'link', onclick: addVac }, 'Urlaub eintragen')) : null,
+        !D.urlaube.length ? h('p', { class: 'muted' }, 'Noch keine Urlaube eingetragen.') : null,
+        h('div', { class: 'addline' }, h('button', { class: 'addbtn', onclick: addVac }, '+ neuen Urlaub eintragen')),
         h('h3', null, 'Personen'), h('p', { class: 'muted small' }, 'Farbe anklicken zum Ändern. Neue Namen bei Urlauben oder Arbeitsschritten werden automatisch ergänzt.'), plist),
       h('section', { class: 'card' }, h('h2', null, 'Feiertage NRW ' + y),
         h('table', { class: 'grid htable' }, h('tbody', null, hol.map(([n, t]) => h('tr', null, h('td', null, fmtW(n)), h('td', null, t))))),

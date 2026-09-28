@@ -52,6 +52,11 @@ function vacDropdown() {
     'Urlaub: ', h('b', null, UI.showVac ? (UI.hiddenP.size ? 'teilweise' : 'an') : 'aus'), ' ▾');
   return vBtn;
 }
+function vacPill() {
+  const on = UI.showVac && !UI.hiddenP.size;
+  return h('button', { class: 'tpill' + (on ? ' on' : ''), 'aria-pressed': String(on), tip: on ? 'alle Urlaube ausblenden' : 'alle Urlaube einblenden',
+    onclick: () => { if (on) UI.showVac = false; else { UI.showVac = true; UI.hiddenP.clear(); } renderNow(); } }, h('span', { class: 'lg vac' }), 'Urlaub');
+}
 const legendInline = () => h('span', { class: 'legend-inline' }, h('span', { class: 'lg we' }), 'Wochenende', h('span', { class: 'lg hol' }), 'Feiertag', h('span', { class: 'lg vac' }), 'Urlaub', h('span', { class: 'lg today' }), 'heute');
 function filterBar(extra) {
   return h('div', { class: 'filterbar' }, typePills(), h('span', { class: 'sep' }), massnahmenDropdown(), vacDropdown(), extra, legendInline());
@@ -108,10 +113,10 @@ function filterBar(extra) {
 VIEW_FN.jahr = main => {
   put(main,
     section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
-      info: 'Sortiert automatisch nach PAL. Start Selektion = PAL − Vorlauf Selektion, Start inhaltliche Arbeit = PAL − Vorlauf Inhalt (Kalendertage). Bei Maßnahmen mit Detailplan kommen die Vorläufe aus den Arbeitsschritten. Häkchen links = im Kalender anzeigen.',
+      info: 'Sortiert automatisch nach PAL. Start Selektion und Start Inhalt wandern mit, wenn sich der PAL verschiebt. Bei Maßnahmen mit Detailplan ergeben sie sich aus den Arbeitsschritten. Häkchen links = im Kalender anzeigen. Spaltenbreite am rechten Rand der Überschrift ziehen (Doppelklick = Standard).',
       closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
     section('kal', 'Kalender ' + UI.year, () => ({
-      lead: [typePills(), h('span', { class: 'sep' }), vacDropdown(),
+      lead: [typePills(), vacPill(), h('span', { class: 'sep' }),
         h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten')],
       tools: [legendInline()],
       body: [calendarBody()] }), {
@@ -125,7 +130,7 @@ VIEW_FN['jahr:after'] = () => {
 VIEW_FN.zeit = main => {
   put(main, filterBar(),
     section('tl', 'Zeitleiste ' + UI.year, timelineSection, {
-      info: 'Klick auf einen Monat zoomt hinein; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL (S und I wandern mit), die Griffe S und I ändern den Vorlauf. Doppelklick öffnet die Maßnahme.' }),
+      info: 'Mausrad zoomt, Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL (S und I wandern mit), die Griffe S und I verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
     section('ag', 'Was steht an?', agendaSection, { info: 'Termine, Arbeitsschritte, Urlaube und Feiertage der nächsten Wochen. Häkchen = Arbeitsschritt erledigt.' }));
 };
 VIEW_FN['zeit:after'] = () => timelineAfter();
