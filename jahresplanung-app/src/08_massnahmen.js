@@ -68,9 +68,9 @@ async function copyToNextYear() {
 
 /* ---------- Tabelle */
 const MCOLS = [
-  { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 180, t: 'Maßnahme' }, { k: 'resp', w: 138, t: 'Hauptverantwortlich' },
-  { k: 'auflage', w: 60, t: 'Auflage' }, { k: 's', w: 136, t: 'Start Selektion', chip: 'S' }, { k: 'i', w: 136, t: 'Start Inhalt', chip: 'I' }, { k: 'pal', w: 136, t: 'PAL', chip: 'P' },
-  { k: 'status', w: 80, t: 'Status' }, { k: 'art', w: 66, t: 'Bitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
+  { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 180, t: 'Maßnahme' }, { k: 'resp', w: 150, t: 'Hauptverantwortlich' },
+  { k: 'auflage', w: 68, t: 'Auflage' }, { k: 's', w: 136, t: 'Start Selektion', chip: 'S' }, { k: 'i', w: 136, t: 'Start Inhalt', chip: 'I' }, { k: 'pal', w: 136, t: 'PAL', chip: 'P' },
+  { k: 'status', w: 84, t: 'PAL-Status' }, { k: 'art', w: 66, t: 'Bitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
   { k: 'warns', w: 34, fixed: true }, { k: 'acts', w: 34, fixed: true }];
 const colW = c => (UI.colW && UI.colW[c.k]) || c.w;
 function tableWidth() { return MCOLS.reduce((s, c) => s + (colW(c) || c.flex || 0), 0); }
@@ -113,7 +113,7 @@ function massnahmenSection() {
       h('td', { class: 'vis' }, h('input', { type: 'checkbox', checked: visibleM(x), tip: 'im Kalender und in der Zeitleiste anzeigen', 'aria-label': 'anzeigen',
         onchange: e => { e.target.checked ? UI.hiddenM.delete(id) : UI.hiddenM.add(id); renderNow(); } })),
       h('td', { class: 'col' }, h('button', { class: 'swatch', style: { background: x.color }, tip: 'Farbe ändern', 'aria-label': 'Farbe ändern', onclick: e => { e.stopPropagation(); colorPicker(e.currentTarget, x.color, c => setM(id, 'farbe', c)); } })),
-      h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: mix(x.color, 0.1, '#000000') }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
+      h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: inkC(x.color) }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
       h('td', { class: 'resp' }, h('input', { value: m.verantwortlich || '', list: 'dl-personen', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
       h('td', { class: 'num' }, h('input', { type: 'number', min: 0, value: m.auflage ?? '', 'data-fk': fk('auflage'), placeholder: '–', onchange: e => setM(id, 'auflage', numOrNull(e.target.value)) })),
       startCell('s'), startCell('i'),
@@ -128,10 +128,10 @@ function massnahmenSection() {
       h('td', { class: 'acts' }, menuButton('⋯', [['Bearbeiten …', () => editMassnahme(id)], ['Duplizieren', () => duplicateMassnahme(id)], ['Löschen', () => deleteMassnahme(id)]], 'right'))));
   }
   const nWarn = C.warnings.filter(w => w.mid && rows.some(x => x.id === w.mid) && w.lvl === 'warn').length;
-  const ths = MCOLS.map(c => h('th', { class: c.k },
+  const ths = MCOLS.map(c => h('th', { class: 'h-' + c.k },
     c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(visibleM), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
       onchange: e => { rows.forEach(x => e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) :
-    [c.chip ? h('span', { class: 'chip demo ' + c.chip }, c.chip) : null, c.t || '',
+    [c.t || '', c.chip ? h('span', { class: 'chip demo ' + c.chip }, c.chip) : null,
      c.fixed ? null : h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c),
        ondblclick: () => { if (UI.colW) delete UI.colW[c.k]; saveUI(); renderNow(); } })]));
   return {
@@ -165,7 +165,7 @@ async function editMassnahme(id) {
     if (!keepInputs) { sIn.value = s != null ? ds(s) : ''; iIn.value = i != null ? ds(i) : ''; }
     sIn.disabled = iIn.disabled = pal == null;
     calc.textContent = pal == null ? 'Erst den PAL eintragen – Start Selektion und Start Inhalt verschieben sich mit dem PAL.'
-      : [s != null ? 'Selektion ' + (pal - s) + ' Tage vor PAL' : '', i != null ? 'Inhalt ' + (pal - i) + ' Tage vor PAL' : ''].filter(Boolean).join(' · ');
+      : [s != null ? 'Selektion ' + workdaysBefore(s, pal) + ' Werktage vor PAL' : '', i != null ? 'Inhalt ' + workdaysBefore(i, pal) + ' Werktage vor PAL' : ''].filter(Boolean).join(' · ');
   };
   upd();
   const body = h('div', { class: 'form' }, personList(),

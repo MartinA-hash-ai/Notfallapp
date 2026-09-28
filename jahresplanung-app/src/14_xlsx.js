@@ -110,7 +110,11 @@ const XS = {
 const XD = (n, t = 'dw', st) => n == null ? '' : { v: n, t, st };
 const darker = c => mix(c, 0.15, '#000000');
 
-function viewWorkbook(opts = {}) {
+function viewWorkbook(opts = {}) {             // Excel immer in heller Optik
+  LIGHT_ONLY++;
+  try { return viewWorkbookLight(opts); } finally { LIGHT_ONLY--; }
+}
+function viewWorkbookLight(opts = {}) {
   const y = UI.year, a = mkdn(y, 1, 1), b = mkdn(y, 12, 31), protect = opts.protect !== false;
   const stand = D.meta.savedAt ? 'Stand: gespeichert ' + fmtStamp(D.meta.savedAt) + (D.meta.savedBy ? ' von ' + D.meta.savedBy : '') : 'Stand: ' + fmtD(todayDn());
   const hint = protect ? 'Nur zur Ansicht – bearbeitet wird im Programm („Jahresplanung starten“). Änderungen hier werden beim nächsten Speichern überschrieben. ' + stand : stand;
@@ -251,12 +255,6 @@ function viewWorkbook(opts = {}) {
       });
       rows.push(row, []);
     }
-    const max = +D.settings.maxStarts || 2, lrow = [{ v: 'Starts je Woche (S + I)', st: { b: true, sz: 9, border: 'thin' } }, ''];
-    weeks.forEach((n, j) => {
-      const cnt = C.ms.reduce((s, x) => s + [x.s, x.i].filter(v => v != null && v >= n && v <= n + 6).length, 0);
-      lrow[j + W0] = cnt ? { v: cnt, st: { sz: 7, b: true, h: 'center', border: 'thin', fill: cnt > max ? '#F4B6B0' : '#E7EAEE' } } : { v: '', st: { border: 'thin' } };
-    });
-    rows.push(lrow);
     sheets.push({ name: 'Zeitleiste', cols: [30, 11, ...weeks.map(() => 2.9)], rows, merges, heights, freeze: 'C5', protect, grid: false });
   }
 
@@ -294,7 +292,7 @@ function viewWorkbook(opts = {}) {
       ...C.vac.filter(v => v.bis >= a && v.von <= b).sort((p, q) => p.von - q.von)
         .map(v => [{ v: v.u.wer || '?', st: { fill: pastel(personColor(v.u.wer)) } }, XD(v.von), XD(v.bis), workdays(v.von, v.bis), v.u.notiz || ''])];
     rows.push([], [{ v: 'Feiertage NRW ' + y, st: XS.sub }]);
-    const hols = [...holidaysNRW(y)].concat(D.sondertage.filter(s => dn(s.datum) != null && ymd(dn(s.datum))[0] === y).map(s => [dn(s.datum), (s.name || 'freier Tag') + ' (eigener freier Tag)']))
+    const hols = [...holidays(y)].concat(D.sondertage.filter(s => dn(s.datum) != null && ymd(dn(s.datum))[0] === y).map(s => [dn(s.datum), (s.name || 'freier Tag') + ' (eigener freier Tag)']))
       .sort((p, q) => p[0] - q[0]);
     hols.forEach(([n, t]) => rows.push([XD(n), { v: t, st: {} }]));
     sheets.push({ name: 'Urlaub & Feiertage', cols: [18, 16, 16, 12, 30], rows, freeze: 'A2', protect });

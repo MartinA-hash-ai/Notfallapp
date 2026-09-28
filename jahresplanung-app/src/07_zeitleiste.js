@@ -84,8 +84,8 @@ function timelineSection() {
     place(x.s, x.i, x.pal);
     const tipFn = () => chipTip({ x, t: 'P' });
     [els.seg1, els.seg2, els.dia].forEach(e => { setTip(e, tipFn); e.addEventListener('pointerdown', ev => tlDrag(ev, x, 'move', pxd, place)); e.addEventListener('dblclick', () => editMassnahme(x.id)); });
-    setTip(els.hS, () => h('div', null, h('b', null, 'Start Selektion ' + fmtW(x.s)), h('div', { class: 'muted' }, x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = Start Selektion verschieben (' + x.vS + ' Tage vor PAL)')));
-    setTip(els.hI, () => h('div', null, h('b', null, 'Start inhaltliche Arbeit ' + fmtW(x.i)), h('div', { class: 'muted' }, x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = Start Inhalt verschieben (' + x.vI + ' Tage vor PAL)')));
+    setTip(els.hS, () => h('div', null, h('b', null, 'Start Selektion ' + fmtW(x.s)), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.s, x.pal) + ' Werktage vor PAL · ' : '') + (x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = verschieben'))));
+    setTip(els.hI, () => h('div', null, h('b', null, 'Start inhaltliche Arbeit ' + fmtW(x.i)), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.i, x.pal) + ' Werktage vor PAL · ' : '') + (x.pc ? 'ergibt sich aus dem Detailplan' : 'ziehen = verschieben'))));
     els.hS.addEventListener('pointerdown', ev => tlDrag(ev, x, 'S', pxd, place));
     els.hI.addEventListener('pointerdown', ev => tlDrag(ev, x, 'I', pxd, place));
     track.append(els.seg1, els.seg2, els.hS, els.hI, els.dia);
@@ -238,8 +238,8 @@ function tlDrag(ev, x, mode, pxd, place) {
     dd = Math.round((e.clientX - x0) / pxd);
     let s = x.s, i = x.i, p = x.pal, txt, n;
     if (mode === 'move') { s = s != null ? s + dd : s; i = i != null ? i + dd : i; p += dd; n = p; txt = 'PAL: ' + fmtW(p); }
-    else if (mode === 'S') { s += dd; n = s; txt = 'Start Selektion: ' + fmtW(s) + ' · ' + (x.pal - s) + ' Tage vor PAL'; }
-    else { i += dd; n = i; txt = 'Start Inhalt: ' + fmtW(i) + ' · ' + (x.pal - i) + ' Tage vor PAL'; }
+    else if (mode === 'S') { s += dd; n = s; txt = 'Start Selektion: ' + fmtW(s) + ' · ' + workdaysBefore(s, x.pal) + ' Werktage vor PAL'; }
+    else { i += dd; n = i; txt = 'Start Inhalt: ' + fmtW(i) + ' · ' + workdaysBefore(i, x.pal) + ' Werktage vor PAL'; }
     place(s, i, p);
     const w = mode === 'move' ? [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(t => k > 0 || !/Samstag|Urlaub/.test(t)).map(t => ['PAL', 'S', 'I'][k] + ': ' + t)) : dateWarn(n, resp);
     lab.replaceChildren(h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);

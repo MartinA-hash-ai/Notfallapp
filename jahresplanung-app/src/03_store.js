@@ -145,6 +145,7 @@ async function saveAll(opts = {}) {
     const data = JSON.parse(JSON.stringify(D));
     data.meta.savedAt = new Date().toISOString();
     data.meta.savedBy = UI.userName || '';
+    data.meta.rev = (+D.meta.rev || 0) + 1;                 // Datenstand-Nummer, zählt jedes Speichern
     const w = await ST.html.createWritable();
     await w.write(buildFile(data)); await w.close();
     ST.stamp = (await ST.html.getFile()).lastModified;
@@ -173,7 +174,7 @@ async function saveAll(opts = {}) {
 function save() { return saveAll({ manual: true }); }
 async function saveDownload() {
   const data = JSON.parse(JSON.stringify(D));
-  data.meta.savedAt = new Date().toISOString(); data.meta.savedBy = UI.userName || '';
+  data.meta.savedAt = new Date().toISOString(); data.meta.savedBy = UI.userName || ''; data.meta.rev = (+D.meta.rev || 0) + 1;
   download(currentFileName(), new Blob([buildFile(data)], { type: 'text/html' }));
   D.meta = data.meta; SAVED_JSON = JSON.stringify(D); clearDraft(); updateSaveUI();
   modal('Als Download gespeichert', h('div', null,
@@ -264,6 +265,22 @@ async function openFile() {
   const data = parseFileText(got.text);
   if (!data || !Array.isArray(data.massnahmen)) { toast('In dieser Datei wurden keine Planungsdaten gefunden.', 'err'); return; }
   commit(d => { const n = normalize(JSON.parse(JSON.stringify(data))); n.meta = d.meta; Object.keys(d).forEach(k => delete d[k]); Object.assign(d, n); }, 'Daten aus „' + got.name + '“ übernommen');
+}
+// Neue Programmversion übernehmen: Code aus der gewählten Datei, Daten von hier
+async function updateProgram() {
+  if (!await confirmBox('Programm-Update einspielen', 'Wähle die neue Programmdatei (Jahresplanung_Aussenkommunikation.html aus dem Update-Paket). Deine Daten bleiben erhalten – nur das Programm wird ersetzt. Zur Sicherheit wird vorher eine Datensicherung (.json) heruntergeladen.', 'Datei wählen')) return;
+  const got = await pickFileText('.html,.htm'); if (!got) return;
+  const st = got.text.match(/<style id="jp-style">([\s\S]*?)<\/style>/), app = got.text.match(/<script id="jp-app">([\s\S]*)<\/script>\s*<\/body>/);
+  if (!st || !app) { toast('Das ist keine Jahresplanung-Programmdatei.', 'err'); return; }
+  const ver = (app[1].match(/const APP_INFO = (\{[^}]*\});/) || [])[1];
+  let info = null; try { info = ver ? JSON.parse(ver) : null; } catch (e) { /* ältere Version ohne Nummer */ }
+  if (!await confirmBox('Update übernehmen?', 'Installiert: Version ' + APP_INFO.version + ' · Neu: ' + (info ? 'Version ' + info.version + ' (' + fmtIsoLocal(info.date) + ')' : 'ohne Versionsnummer') + '. Danach startet das Programm neu.', 'Übernehmen')) return;
+  exportJSON();
+  $('#jp-style').textContent = st[1];
+  $('#jp-app').textContent = app[1];
+  const ok = await saveAll({ manual: true, force: true });
+  if (ST.html && ok !== false) { toast('Update gespeichert – Neustart …', 'ok'); setTimeout(() => location.reload(), 900); }
+  else if (!ST.html) toast('Neue Datei heruntergeladen – ersetze damit die alte Datei im Mailing-Ordner.', 'warn');
 }
 async function exportJSON() {
   download('Jahresplanung_Daten_' + ds(todayDn()) + '.json', new Blob([JSON.stringify(D, null, 1)], { type: 'application/json' }));

@@ -61,7 +61,7 @@ function topBar() {
       h('button', { class: 'warnbtn' + (nW ? ' has' : ''), tip: 'Warnungen und Hinweise für ' + UI.year, onclick: () => { UI.warnOpen = !UI.warnOpen; renderNow(); } },
         '⚠ ', nW, nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
       menuButton('Export ▾', [
-        ['PDF: Jahresübersicht (Maßnahmen, Kalender, Zeitleiste)', printYearPDF], ['Aktuelle Ansicht drucken', printView], null,
+        ['PDF exportieren …', pdfDialog], null,
         ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS], null,
         ['Datensicherung exportieren (.json)', exportJSON], ['Datensicherung importieren …', openFile]]),
       saveBox(),
@@ -69,6 +69,8 @@ function topBar() {
         [(UI.autoSave === false ? '☐' : '☑') + ' Automatisch speichern', () => { UI.autoSave = UI.autoSave === false; saveUI(); if (UI.autoSave && isDirty()) scheduleAutosave(); renderNow(); toast('Automatisch speichern ' + (UI.autoSave ? 'an' : 'aus')); }],
         ['Speicherort (Mailing-Ordner) neu wählen …', async () => { ST.conn = 'none'; ST.dir = null; await connectFolder(); renderNow(); }], null,
         ['Daten aus anderer Datei übernehmen …', openFile], ['Kopie speichern unter …', saveCopy], ['Daten als JSON sichern', exportJSON], null,
+        [(DARK ? '☀ Helles Design' : '☾ Dunkles Design'), () => setTheme(DARK ? 'light' : 'dark')],
+        ['Programm-Update einspielen …', updateProgram], null,
         ['Einstellungen …', settingsDialog], ['Hilfe', helpDialog]], 'right')));
 }
 
@@ -171,47 +173,103 @@ function goTo(w) {
   else if (w.n != null) { UI.view = 'zeit'; UI.secOpen.tl = true; UI.flash = 'n:' + w.n; }
   renderNow();
 }
+// Termin auf den Arbeitstag davor legen (bei Detailplänen passt sich die Dauer eines Schritts an)
+function applyFix(d, w) {
+  const m = findM(d, w.mid), pal = dn(m && m.pal);
+  if (!m || pal == null) return false;
+  if (w.fix.t === 'P') { m.pal = ds(w.fix.to); return true; }
+  if (m.plan) return !!adjustMark(m, w.fix.t, w.fix.to);
+  if (w.fix.t === 'S') m.vorlaufS = pal - w.fix.to; else m.vorlaufI = pal - w.fix.to;
+  return true;
+}
+const FIX_LABEL = { S: 'Start Selektion', I: 'Start Inhalt', P: 'PAL' };
 function fixDate(w) {
-  const x = C.byId.get(w.mid); if (!x || x.pal == null) return;
-  commit(d => { const m = findM(d, w.mid); if (w.fix.t === 'S') m.vorlaufS = x.pal - w.fix.to; else m.vorlaufI = x.pal - w.fix.to; },
-    x.m.name + ': ' + (w.fix.t === 'S' ? 'Start Selektion' : 'Start Inhalt') + ' → ' + fmtW(w.fix.to));
+  const x = C.byId.get(w.mid); if (!x) return;
+  commit(d => applyFix(d, w), x.m.name + ': ' + FIX_LABEL[w.fix.t] + ' → ' + fmtW(w.fix.to) + (x.m.plan && w.fix.t !== 'P' ? ' (Dauer im Detailplan angepasst)' : ''));
 }
 async function fixAll(list) {
-  if (!await confirmBox('Alle vorziehen', list.length + ' Starts werden auf den jeweils vorherigen Arbeitstag gelegt. Strg+Z macht es rückgängig.', 'Vorziehen')) return;
-  commit(d => { for (const w of list) { const x = C.byId.get(w.mid), m = findM(d, w.mid); if (!x || !m) continue; if (w.fix.t === 'S') m.vorlaufS = x.pal - w.fix.to; else m.vorlaufI = x.pal - w.fix.to; } }, list.length + ' Starts vorgezogen');
+  if (!await confirmBox('Alle vorziehen', list.length + ' Termine werden auf den jeweils vorherigen Arbeitstag gelegt (ein PAL auf Samstag bleibt erlaubt). Bei Detailplänen passt sich die Dauer eines Arbeitsschritts an. Strg+Z macht es rückgängig.', 'Vorziehen')) return;
+  // nacheinander, weil sich Termine derselben Maßnahme gegenseitig beeinflussen können
+  commit(d => { for (const w of list) applyFix(d, w); }, list.length + ' Termine vorgezogen');
 }
 function warnPanel() {
   const W = C.warnings, warn = W.filter(w => w.lvl === 'warn'), info = W.filter(w => w.lvl !== 'warn');
   const vorl = C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year && x.m.palStatus !== 'fest').length;
   const item = w => h('div', { class: 'witem ' + w.lvl },
     h('button', { class: 'wtext', onclick: () => goTo(w) }, w.text),
-    w.fix ? h('button', { class: 'wfix', tip: 'Termin auf den vorherigen Arbeitstag legen', onclick: () => fixDate(w) }, 'auf ' + fmtWS(w.fix.to) + ' vorziehen') : null);
+    w.fix ? h('button', { class: 'wfix', tip: w.fix.t === 'P' ? 'PAL auf den Tag davor legen (Samstag ist erlaubt)' : 'Termin auf den vorherigen Arbeitstag legen', onclick: () => fixDate(w) }, 'auf ' + fmtWS(w.fix.to) + ' vorziehen') : null);
   return h('aside', { class: 'warnpanel' },
     h('header', null, h('h2', null, 'Warnungen ' + UI.year), h('button', { class: 'icon', 'aria-label': 'Schließen', onclick: () => { UI.warnOpen = false; renderNow(); } }, '✕')),
     h('div', { class: 'wbody' },
       vorl ? h('p', { class: 'wsum' }, vorl + ' PAL-Termine sind noch vorläufig.') : null,
       warn.length ? [h('h3', null, 'Bitte prüfen (' + warn.length + ')'),
-        warn.filter(w => w.fix).length > 1 ? h('button', { class: 'fixall', onclick: () => fixAll(warn.filter(w => w.fix)) }, 'Alle ' + warn.filter(w => w.fix).length + ' Starts am Wochenende/Feiertag auf den Arbeitstag davor legen') : null,
+        warn.filter(w => w.fix).length > 1 ? h('button', { class: 'fixall', onclick: () => fixAll(warn.filter(w => w.fix)) }, 'Alle ' + warn.filter(w => w.fix).length + ' Termine am Wochenende/Feiertag auf den Arbeitstag davor legen') : null,
         warn.map(item)] : h('p', { class: 'ok' }, '✓ Keine Konflikte gefunden.'),
       info.length ? [h('h3', null, 'Hinweise (' + info.length + ')'), info.map(item)] : null,
-      h('p', { class: 'muted small' }, 'Geprüft werden: Starts am Wochenende oder Feiertag, PAL an Sonn-/Feiertagen, Termine im Urlaub (des/der Verantwortlichen), ' +
-        'Arbeitsschritte im Urlaub der zugeordneten Person, überfällige Schritte und mehr als ' + D.settings.maxStarts + ' Starts pro Kalenderwoche.')));
+      h('p', { class: 'muted small' }, 'Geprüft werden: Starts am Wochenende oder Feiertag, PAL an Sonn-/Feiertagen, Termine im Urlaub der hauptverantwortlichen Person, ' +
+        'Arbeitsschritte im Urlaub der zugeordneten Person und überfällige Schritte.')));
 }
 
 /* ---------- Einstellungen, Hilfe */
+/* ---------- Darstellung: hell / dunkel / wie Windows */
+const MQ_DARK = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+function applyTheme() {
+  const t = UI.theme || 'light';
+  DARK = t === 'dark' || (t === 'system' && !!MQ_DARK && MQ_DARK.matches);
+  document.documentElement.dataset.theme = DARK ? 'dark' : 'light';
+}
+if (MQ_DARK && MQ_DARK.addEventListener) MQ_DARK.addEventListener('change', () => { if (UI.theme === 'system') { applyTheme(); renderNow(); } });
+function setTheme(t) { UI.theme = t; saveUI(); applyTheme(); renderNow(); }
+const fmtIsoLocal = s => { if (!s) return '–'; const [d, t] = s.split('T'); const [y, m, dd] = d.split('-'); return dd + '.' + m + '.' + y + (t ? ', ' + t.slice(0, 5) + ' Uhr' : ''); };
+
+/* ---------- Einstellungen: alles wirkt sofort, Personen hier zentral verwalten */
 async function settingsDialog() {
-  const f = { name: UI.userName, max: D.settings.maxStarts, vs: D.settings.vorlaufS, vi: D.settings.vorlaufI, year: D.settings.year };
-  const row = (label, inp, hint) => h('label', { class: 'frow' }, h('span', null, label), inp, hint ? h('small', null, hint) : null);
-  const ok = await modal('Einstellungen', h('div', { class: 'form' },
-    row('Dein Name', h('input', { value: f.name, oninput: e => { f.name = e.target.value; } }), 'wird beim Speichern vermerkt („gespeichert von …“), nur in diesem Browser'),
-    row('Max. Starts pro Kalenderwoche', h('input', { type: 'number', min: 1, max: 20, value: f.max, oninput: e => { f.max = +e.target.value; } }), 'darüber erscheint eine Warnung'),
-    row('Standard-Vorlauf Selektion (Tage)', h('input', { type: 'number', min: 0, value: f.vs, oninput: e => { f.vs = +e.target.value; } }), 'für neue Maßnahmen'),
-    row('Standard-Vorlauf Inhalt (Tage)', h('input', { type: 'number', min: 0, value: f.vi, oninput: e => { f.vi = +e.target.value; } })),
-    row('Planungsjahr beim Öffnen', h('input', { type: 'number', min: 2000, max: 2100, value: f.year, oninput: e => { f.year = +e.target.value; } }))),
-    [['Abbrechen', false], ['Übernehmen', true, 'primary']]);
-  if (!ok) return;
-  UI.userName = f.name.trim();
-  commit(d => { d.settings.maxStarts = f.max || 2; d.settings.vorlaufS = f.vs; d.settings.vorlaufI = f.vi; d.settings.year = f.year || d.settings.year; });
+  const wrap = h('div', { class: 'form settings' });
+  let showLog = false, newName = '';
+  const row = (label, inp, hint) => h('div', { class: 'frow' }, h('span', null, label), inp, hint ? h('small', null, hint) : null);
+  const usage = n => {
+    const u = D.urlaube.filter(v => v.wer === n).length, m = D.massnahmen.filter(q => q.verantwortlich === n).length,
+      st = D.massnahmen.reduce((a, q) => a + (q.plan?.steps || []).filter(s => s.wer === n && s.typ !== 'gruppe').length, 0);
+    return [u ? u + ' Urlaub' + (u > 1 ? 'e' : '') : '', m ? m + '× hauptverantwortlich' : '', st ? st + ' Schritt' + (st > 1 ? 'e' : '') : ''].filter(Boolean).join(' · ');
+  };
+  const draw = () => {
+    const theme = UI.theme || 'light';
+    const radio = (v, l) => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'theme', checked: theme === v, onchange: () => { setTheme(v); draw(); } }), l);
+    wrap.replaceChildren(
+      h('h3', null, 'Allgemein'),
+      row('Dein Name', h('input', { value: UI.userName || '', onchange: e => { UI.userName = e.target.value.trim(); saveUI(); } }), 'wird beim Speichern vermerkt („gespeichert von …“), nur in diesem Browser'),
+      row('Planungsjahr beim Öffnen', h('input', { type: 'number', min: 2000, max: 2100, value: D.settings.year, onchange: e => { const v = +e.target.value; if (v >= 2000 && v <= 2100) commit(d => { d.settings.year = v; }); } })),
+      h('h3', null, 'Darstellung'),
+      h('div', { class: 'inl theme-pick' }, radio('light', 'Hell'), radio('dark', 'Dunkel'), radio('system', 'wie Windows')),
+      h('h3', null, 'Personen'),
+      h('p', { class: 'muted small' }, 'Die Farbe gilt für Urlaube und Arbeitsschritte. Umbenennen ändert den Namen überall (Urlaube, Hauptverantwortliche, Arbeitsschritte).'),
+      h('table', { class: 'grid ptable' }, h('tbody', null, D.personen.map(p => {
+        const used = usage(p.name);
+        return h('tr', null,
+          h('td', { class: 'pcol' }, h('input', { type: 'color', value: p.farbe, 'aria-label': 'Farbe von ' + p.name, onchange: e => { commit(d => { d.personen.find(q => q.name === p.name).farbe = e.target.value; }); draw(); } })),
+          h('td', null, h('input', { value: p.name, 'aria-label': 'Name', onchange: e => { renamePersonTo(p.name, e.target.value); draw(); } })),
+          h('td', { class: 'muted small' }, used || 'nicht verwendet'),
+          h('td', { class: 'acts' }, used ? null : h('button', { class: 'icon', tip: 'entfernen', 'aria-label': 'entfernen', onclick: () => { commit(d => { d.personen = d.personen.filter(q => q.name !== p.name); }); draw(); } }, '✕')));
+      }))),
+      h('div', { class: 'inl addline' }, h('input', { placeholder: 'neue Person', value: newName, oninput: e => { newName = e.target.value; },
+        onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addP(); } } }), h('button', { class: 'addbtn', onclick: e => { e.preventDefault(); addP(); } }, '+ Person hinzufügen')),
+      h('h3', null, 'Version'),
+      h('div', { class: 'verbox' },
+        h('div', null, h('b', null, 'Programmversion ' + APP_INFO.version), h('span', { class: 'muted' }, ' · Stand ' + fmtIsoLocal(APP_INFO.date))),
+        h('div', { class: 'muted small' }, 'Datenstand Nr. ' + (+D.meta.rev || 0) + (D.meta.savedAt ? ' · zuletzt gespeichert ' + fmtStamp(D.meta.savedAt) + (D.meta.savedBy ? ' von ' + D.meta.savedBy : '') : ' · noch nicht gespeichert')),
+        h('button', { class: 'link', onclick: e => { e.preventDefault(); showLog = !showLog; draw(); } }, showLog ? 'Änderungen ausblenden' : 'Was ist neu? (Änderungen anzeigen)')),
+      showLog ? h('div', { class: 'changelog' }, CHANGELOG.map(c => h('div', { class: 'cl-v' },
+        h('div', { class: 'cl-h' }, h('b', null, 'Version ' + c.version), h('span', { class: 'muted small' }, ' · ' + fmtIsoLocal(c.date))),
+        h('ul', null, c.items.map(t => h('li', null, t)))))) : null);
+  };
+  const addP = () => {
+    const nv = newName.trim(); if (!nv) return;
+    if (D.personen.some(q => q.name === nv)) { toast('„' + nv + '“ gibt es schon.', 'warn'); return; }
+    commit(d => { const used = new Set(d.personen.map(q => q.farbe)); d.personen.push({ name: nv, farbe: PERSON_COLORS.find(c => !used.has(c)) || '#888888' }); });
+    newName = ''; draw();
+  };
+  draw();
+  await modal('Einstellungen', wrap, [['Schließen', true, 'primary']], { wide: true });
   renderNow();
 }
 function helpDialog() {
@@ -240,6 +298,7 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => save(), 30); }
   else if ((e.ctrlKey || e.metaKey) && k === 'z' && !e.shiftKey && !inField) { e.preventDefault(); undo(); }
   else if ((e.ctrlKey || e.metaKey) && (k === 'y' || (k === 'z' && e.shiftKey)) && !inField) { e.preventDefault(); redo(); }
+  else if ((e.ctrlKey || e.metaKey) && k === 'p' && !$('.modal')) { e.preventDefault(); pdfDialog(); }
 });
 window.addEventListener('beforeunload', e => { if (D && isDirty()) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('beforeprint', () => { if (!UI.printing) { UI.printing = true; renderNow(); } });

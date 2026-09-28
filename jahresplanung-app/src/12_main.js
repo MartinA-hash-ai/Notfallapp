@@ -10,7 +10,7 @@ function flashTarget() {
   setTimeout(() => e.classList.remove('flash'), 2200);
 }
 function boot() {
-  loadUI();
+  loadUI(); applyTheme();
   let d = null;
   try { const el = $('#jp-data'); d = el && el.textContent.trim() ? JSON.parse(el.textContent) : null; } catch (e) { console.error(e); }
   document.body.append(h('div', { id: 'toasts', 'aria-live': 'polite' }));

@@ -1,7 +1,7 @@
 /* ===================================================================== Ansicht: Jahreskalender */
 
 function chipStyle(t, color) {
-  return t === 'P' ? { background: color, color: onColor(color), borderColor: color } : { background: pastel(color), color: mix(color, 0.15, '#000000'), borderColor: mix(color, 0.35) };
+  return t === 'P' ? { background: color, color: onColor(color), borderColor: color } : { background: pastel(color), color: inkC(color), borderColor: darkNow() ? mix(color, 0.3, DARK_SURF) : mix(color, 0.35) };
 }
 function chip(e, opts = {}) {
   return h('span', { class: 'chip ' + e.t, dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
@@ -113,7 +113,7 @@ function chipDrag(ev, e) {
       w = [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(q => k > 0 || !/Samstag|Urlaub/.test(q)).map(q => ['PAL', 'S', 'I'][k] + ': ' + q));
     } else {
       const n = (t === 'S' ? s : i) + dd;
-      txt = TYPE_LABEL[t] + ' ' + fmtW(n) + ' · ' + (p - n) + ' Tage vor PAL';
+      txt = TYPE_LABEL[t] + ' ' + fmtW(n) + ' · ' + workdaysBefore(n, p) + ' Werktage vor PAL';
       w = dateWarn(n, resp);
       if (t === 'S') s = n; else i = n;
     }

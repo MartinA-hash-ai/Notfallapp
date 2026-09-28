@@ -59,8 +59,13 @@ function holidaysNRW(y) {
 const hex2rgb = h => { h = String(h || '#888888').replace('#', ''); if (h.length === 3) h = h.split('').map(c => c + c).join(''); return [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16) || 0); };
 const rgb2hex = r => '#' + r.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
 const mix = (h, t, w = '#ffffff') => { const a = hex2rgb(h), b = hex2rgb(w); return rgb2hex(a.map((v, i) => v + (b[i] - v) * t)); };
-const pastel = h => mix(h, 0.75);
-const midtone = h => mix(h, 0.45);
+// Farbtöne der Maßnahmen; im dunklen Modus zur dunklen Fläche hin gemischt (Druck und Excel immer hell)
+let DARK = false, LIGHT_ONLY = 0;
+const darkNow = () => DARK && !LIGHT_ONLY && !(typeof UI !== 'undefined' && UI.printing);
+const DARK_SURF = '#1e1f21';
+const pastel = h => darkNow() ? mix(h, 0.66, DARK_SURF) : mix(h, 0.75);
+const midtone = h => darkNow() ? mix(h, 0.4, DARK_SURF) : mix(h, 0.45);
+const inkC = h => darkNow() ? mix(h, 0.45, '#ffffff') : mix(h, 0.12, '#000000');   // Schrift in Maßnahmenfarbe
 function lum(h) {
   const [r, g, b] = hex2rgb(h).map(v => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;

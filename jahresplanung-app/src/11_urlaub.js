@@ -23,17 +23,16 @@ async function addVac() {
   commit(d => d.urlaube.push({ id: uid(), wer: f.wer, von: ds(a), bis: ds(b), notiz: f.notiz.trim() }), 'Urlaub eingetragen: ' + (f.wer || '?') + ' ' + fmtS(a) + '–' + fmtS(b));
 }
 function setVac(id, fn) { commit(d => { const u = d.urlaube.find(q => q.id === id); if (u) fn(u); }); }
-async function renamePerson(p) {
-  let nv = p.name;
-  const ok = await modal('Person umbenennen', h('div', { class: 'form' }, h('label', { class: 'frow' }, h('span', null, 'Name'), h('input', { value: p.name, oninput: e => { nv = e.target.value.trim(); } })),
-    h('p', { class: 'muted small' }, 'Der Name wird auch bei Urlauben, Verantwortlichen und Arbeitsschritten geändert.')), [['Abbrechen', false], ['Umbenennen', true, 'primary']]);
-  if (!ok || !nv || nv === p.name) return;
-  const old = p.name;
+function renamePersonTo(old, nv) {
+  nv = (nv || '').trim();
+  if (!nv || nv === old) return false;
+  if (D.personen.some(q => q.name === nv)) { toast('„' + nv + '“ gibt es schon.', 'warn'); return false; }
   commit(d => {
     const q = d.personen.find(z => z.name === old); if (q) q.name = nv;
     d.urlaube.forEach(u => { if (u.wer === old) u.wer = nv; });
     d.massnahmen.forEach(m => { if (m.verantwortlich === old) m.verantwortlich = nv; (m.plan?.steps || []).forEach(s => { if (s.wer === old) s.wer = nv; }); });
-  }, 'Umbenannt');
+  }, old + ' → ' + nv + ' (überall umbenannt)');
+  return true;
 }
 function personUsed(n) {
   return D.urlaube.some(u => u.wer === n) || D.massnahmen.some(m => m.verantwortlich === n || (m.plan?.steps || []).some(s => s.wer === n));
@@ -93,21 +92,22 @@ VIEW_FN.urlaub = main => {
       h('td', { class: 'acts' }, h('button', { class: 'icon', 'aria-label': 'Urlaub löschen', tip: 'löschen', onclick: () => commit(d => { d.urlaube = d.urlaube.filter(q => q.id !== v.id); }, 'Urlaub gelöscht') }, '✕'))));
   }
 
-  // ---- Personen
-  const plist = h('div', { class: 'persons' }, D.personen.map(p => h('div', { class: 'person' },
-    h('input', { type: 'color', value: p.farbe, tip: 'Farbe', 'aria-label': 'Farbe von ' + p.name, onchange: e => commit(d => { d.personen.find(q => q.name === p.name).farbe = e.target.value; }) }),
-    h('button', { class: 'link', tip: 'umbenennen', onclick: () => renamePerson(p) }, p.name),
-    !personUsed(p.name) ? h('button', { class: 'icon small', 'aria-label': 'entfernen', tip: 'entfernen', onclick: () => commit(d => { d.personen = d.personen.filter(q => q.name !== p.name); }) }, '✕') : null)),
-    h('button', { onclick: async () => {
-      let nv = '';
-      const ok = await modal('Person hinzufügen', h('label', { class: 'frow' }, h('span', null, 'Name'), h('input', { oninput: e => { nv = e.target.value.trim(); } })), [['Abbrechen', false], ['Hinzufügen', true, 'primary']]);
-      if (ok && nv) commit(d => { if (!d.personen.some(q => q.name === nv)) { const used = new Set(d.personen.map(q => q.farbe)); d.personen.push({ name: nv, farbe: PERSON_COLORS.find(c => !used.has(c)) || '#888888' }); } });
-    } }, '+ Person'));
-
-  // ---- Feiertage und eigene freie Tage
+  // ---- Feiertage (bearbeitbar) und eigene freie Tage
+  const ov = D.feiertage || {};
   const hol = [...holidaysNRW(y)].sort((p, q) => p[0] - q[0]);
+  const setHol = (orig, fn) => commit(d => { const k = ds(orig), o = Object.assign({}, d.feiertage[k]); fn(o); Object.keys(o).forEach(q => { if (o[q] == null || o[q] === '' || o[q] === false) delete o[q]; });
+    if (Object.keys(o).length) d.feiertage[k] = o; else delete d.feiertage[k]; });
+  const holRows = hol.map(([n, t]) => {
+    const o = ov[ds(n)] || {}, at = dn(o.datum) ?? n, changed = !!(o.name || o.datum || o.off);
+    return h('tr', { class: o.off ? 'off' : '' },
+      h('td', { class: 'hchk' }, h('input', { type: 'checkbox', checked: !o.off, tip: o.off ? 'gilt nicht – anklicken zum Aktivieren' : 'gilt als Feiertag', 'aria-label': 'gilt',
+        onchange: e => setHol(n, q => { q.off = !e.target.checked; }) })),
+      h('td', null, dateInput(ds(at), 'hol:' + ds(n) + ':d', v => setHol(n, q => { q.datum = v && dn(v) !== n ? v : null; }))),
+      h('td', null, h('input', { value: o.name || t, 'data-fk': 'hol:' + ds(n) + ':n', onchange: e => setHol(n, q => { const v = e.target.value.trim(); q.name = v && v !== t ? v : null; }) })),
+      h('td', { class: 'acts' }, changed ? h('button', { class: 'icon', tip: 'zurücksetzen auf „' + t + ', ' + fmtD(n) + '“', 'aria-label': 'zurücksetzen', onclick: () => setHol(n, q => { q.name = q.datum = null; q.off = false; }) }, '↺') : null));
+  });
   const sonder = D.sondertage.slice().sort((p, q) => (dn(p.datum) ?? 0) - (dn(q.datum) ?? 0));
-  put(main, 
+  put(main,
     h('div', { class: 'view-head' }, h('h1', null, 'Urlaub & Feiertage ' + y),
       h('div', { class: 'tools' }, h('button', { class: 'primary', onclick: addVac }, '+ Urlaub'))),
     personList(),
@@ -118,14 +118,15 @@ VIEW_FN.urlaub = main => {
         h('table', { class: 'grid utable' }, h('thead', null, h('tr', null, ['Wer', 'Von', 'Bis', 'Arbeitstage', 'Notiz', '', ''].map(t => h('th', null, t)))), list),
         !D.urlaube.length ? h('p', { class: 'muted' }, 'Noch keine Urlaube eingetragen.') : null,
         h('div', { class: 'addline' }, h('button', { class: 'addbtn', onclick: addVac }, '+ neuen Urlaub eintragen')),
-        h('h3', null, 'Personen'), h('p', { class: 'muted small' }, 'Farbe anklicken zum Ändern. Neue Namen bei Urlauben oder Arbeitsschritten werden automatisch ergänzt.'), plist),
+        h('p', { class: 'muted small screen-only' }, 'Personen und ihre Farben verwaltest du unter ⋯ → Einstellungen.')),
       h('section', { class: 'card' }, h('h2', null, 'Feiertage NRW ' + y),
-        h('table', { class: 'grid htable' }, h('tbody', null, hol.map(([n, t]) => h('tr', null, h('td', null, fmtW(n)), h('td', null, t))))),
-        h('h3', null, 'Eigene freie Tage'), h('p', { class: 'muted small' }, 'z. B. Brückentage oder Betriebsausflug – zählen wie Feiertage (keine Arbeitstage, Warnung bei Terminen).'),
+        h('p', { class: 'muted small' }, 'Datum und Name lassen sich ändern, das Häkchen schaltet einen Feiertag ab. ↺ stellt den gesetzlichen Feiertag wieder her.'),
+        h('table', { class: 'grid htable' }, h('thead', null, h('tr', null, ['', 'Datum', 'Feiertag', ''].map(t => h('th', null, t)))), h('tbody', null, holRows)),
+        h('h3', { class: sonder.length ? '' : 'screen-only' }, 'Eigene freie Tage'), h('p', { class: 'muted small screen-only' }, 'z. B. Brückentage oder Betriebsausflug – zählen wie Feiertage (keine Arbeitstage, Warnung bei Terminen).'),
         h('table', { class: 'grid htable' }, h('tbody', null, sonder.map(s => h('tr', null,
           h('td', null, dateInput(s.datum, 'st:' + s.id + ':datum', v => commit(d => { d.sondertage.find(q => q.id === s.id).datum = v; }))),
           h('td', null, h('input', { value: s.name || '', placeholder: 'Bezeichnung', onchange: e => commit(d => { d.sondertage.find(q => q.id === s.id).name = e.target.value; }) })),
           h('td', { class: 'acts' }, h('button', { class: 'icon', 'aria-label': 'löschen', onclick: () => commit(d => { d.sondertage = d.sondertage.filter(q => q.id !== s.id); }) }, '✕')))))),
-        h('button', { onclick: () => commit(d => d.sondertage.push({ id: uid(), datum: ds(mkdn(y, 1, 2)), name: 'Brückentag' })) }, '+ freier Tag'))));
+        h('div', { class: 'addline' }, h('button', { class: 'addbtn', onclick: () => commit(d => d.sondertage.push({ id: uid(), datum: ds(mkdn(y, 1, 2)), name: 'Brückentag' })) }, '+ freier Tag')))));
 };
 VIEW_FN['urlaub:after'] = VIEW_FN['plaene:after'];

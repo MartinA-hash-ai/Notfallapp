@@ -12,8 +12,15 @@ FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox
            "%3Crect x='11' y='14' width='42' height='38' rx='5' fill='white'/%3E%3Crect x='11' y='14' width='42' height='10' rx='3' fill='%23404040'/%3E"
            "%3Cg fill='%23E30714'%3E%3Crect x='17' y='30' width='8' height='7' rx='1'/%3E%3Crect x='28' y='30' width='8' height='7' rx='1'/%3E"
            "%3Crect x='39' y='30' width='8' height='7' rx='1'/%3E%3Crect x='17' y='40' width='8' height='7' rx='1'/%3E%3Crect x='28' y='40' width='8' height='7' rx='1'/%3E%3C/g%3E%3C/svg%3E")
+# Versionsnummer und Änderungsliste (neueste zuerst); ohne Datum gilt die Bauzeit
+CHANGELOG = json.load(open(os.path.join(HERE, 'src', 'changelog.json'), encoding='utf8'))
+if not CHANGELOG[0].get('date'):
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+    CHANGELOG[0]['date'] = datetime.now(ZoneInfo('Europe/Berlin')).strftime('%Y-%m-%dT%H:%M')
+APP_INFO = {'version': CHANGELOG[0]['version'], 'date': CHANGELOG[0]['date']}
 LOGO = 'data:image/png;base64,' + base64.b64encode(open(os.path.join(HERE, 'src', 'logo.png'), 'rb').read()).decode()
-js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";", 1)
+js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";\nconst APP_INFO = " + json.dumps(APP_INFO) + ";\nconst CHANGELOG = " + json.dumps(CHANGELOG, ensure_ascii=False) + ";", 1)
 for bad in ('</script', '<!--'):
     assert bad not in js.lower(), bad
 dj = json.dumps(data, ensure_ascii=False).replace('<', '\\u003c')

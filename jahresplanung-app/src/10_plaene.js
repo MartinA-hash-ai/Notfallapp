@@ -2,6 +2,7 @@
 
 const STEP_TYPES = { gruppe: 'Abschnitt', aufgabe: 'Aufgabe', meilenstein: 'Meilenstein', ziel: 'Ziel' };
 const PL_ROW = 32;
+const DEF_DAYS = 7;                            // Standarddauer neuer bzw. noch nicht geplanter Schritte
 
 /* ---------- Rechenhilfen am Datenobjekt */
 // Schritte, deren Dauer den Beginn des markierten Schritts bestimmt (entlang der Verknüpfungen bis zum PAL)
@@ -83,12 +84,19 @@ async function createPlan(id) {
     const m = findM(d, id);
     let plan;
     if (f.src === 'mailing') plan = JSON.parse(JSON.stringify(MAILING_TEMPLATE));
-    else if (f.src === 'leer') plan = { steps: [{ id: 'g1', typ: 'gruppe', name: 'Arbeitsschritte' }, { id: uid(), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: { art: 'pal', offset: 0 } }], markS: null, markI: null };
+    else if (f.src === 'leer') {
+      const pal = dn(f.pal || m.pal), mk = (name, start) => ({ id: uid(), typ: 'aufgabe', name, dauer: DEF_DAYS, fortschritt: 0, wer: '', kommentar: '',
+        anker: pal != null ? { art: 'pal', offset: start + DEF_DAYS - pal } : { art: 'fest', datum: ds(start + DEF_DAYS) } });
+      const sS = dn(f.s) != null ? mk('Selektion', dn(f.s)) : null, sI = dn(f.i) != null ? mk('Inhaltliche Arbeit', dn(f.i)) : null;
+      plan = { steps: [{ id: uid(), typ: 'gruppe', name: 'Arbeitsschritte' }, sS, sI,
+        { id: uid(), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: pal != null ? { art: 'pal', offset: 0 } : { art: 'offen' } }].filter(Boolean),
+        markS: sS ? sS.id : null, markI: sI ? sI.id : null };
+    }
     else plan = JSON.parse(JSON.stringify(findM(d, f.src).plan));
     plan.steps.forEach(s => { s.fortschritt = 0; });
     m.plan = plan;
     if (f.pal) m.pal = f.pal;
-    for (const [k, v] of [['S', f.s], ['I', f.i]]) if (v && dn(m.pal) != null) { const r = adjustMark(m, k, dn(v)); if (r && r.changed.length) info = info.concat(r.changed); }
+    if (f.src !== 'leer') for (const [k, v] of [['S', f.s], ['I', f.i]]) if (v && dn(m.pal) != null) { const r = adjustMark(m, k, dn(v)); if (r && r.changed.length) info = info.concat(r.changed); }
   }, 'Detailplan angelegt');
   if (info.length) toast('Angepasst: ' + info.map(([n, a, b]) => n + ' ' + a + ' → ' + b + ' Tage').join(', '));
   UI.view = 'plaene'; UI.planSel = id; renderNow();
@@ -115,20 +123,51 @@ function groupBlocks(steps) {                 // Abschnitt-Index → [von, bis) 
   });
   return out;
 }
+// wer ist dem Abschnitt zugeordnet? (einheitlich / gemischt / niemand)
+function groupPerson(p, gid) {
+  if (!gid) return { wer: '', mixed: false };
+  const bl = groupBlocks(p.steps).get(gid); if (!bl) return { wer: '', mixed: false };
+  const names = [...new Set(p.steps.slice(bl[0] + 1, bl[1]).map(s => s.wer || ''))];
+  if (names.length === 1) return { wer: names[0], mixed: false };
+  return { wer: names.length ? '' : (p.steps[bl[0]].wer || ''), mixed: names.length > 1 };
+}
+function setGroupPerson(mid, gid, wer) {
+  let n = 0;
+  commit(d => {
+    const steps = findM(d, mid).plan.steps, bl = groupBlocks(steps).get(gid); if (!bl) return;
+    steps[bl[0]].wer = wer;
+    steps.slice(bl[0] + 1, bl[1]).forEach(s => { if ((s.wer || '') !== wer) n++; s.wer = wer; });
+  }, null);
+  if (n) toast(n + ' Schritt' + (n === 1 ? '' : 'e') + (wer ? ' → ' + wer : ': Zuordnung entfernt'));
+}
+async function groupPersonDialog(mid, gid) {
+  const p = C.byId.get(mid).m.plan, g = p.steps.find(s => s.id === gid), cur = groupPerson(p, gid);
+  let wer = cur.wer;
+  const ok = await modal('Abschnitt „' + g.name + '“ zuordnen', h('div', { class: 'form' }, personList(),
+    h('label', { class: 'frow' }, h('span', null, 'Person'), h('input', { list: 'dl-personen', value: wer, placeholder: cur.mixed ? 'gemischt' : 'Name', oninput: e => { wer = e.target.value.trim(); } })),
+    h('p', { class: 'muted small' }, 'Alle Arbeitsschritte dieses Abschnitts bekommen diese Person. Leer lassen entfernt die Zuordnung.')),
+    [['Abbrechen', false], ['Zuordnen', true, 'primary']]);
+  if (ok) setGroupPerson(mid, gid, wer);
+}
 async function newStepDialog(mid, gid) {
   const x = C.byId.get(mid), p = x.m.plan, pc = x.pc;
   const blocks = groupBlocks(p.steps), [gi, gj] = gid ? blocks.get(gid) : [-1, p.steps.length];
   const inGroup = p.steps.slice(gi + 1, gj).map(s => pc.map.get(s.id)).filter(r => r && r.end != null);
   const e0 = inGroup.length ? Math.max(...inGroup.map(r => r.end)) : (x.pal ?? todayDn());
-  const f = { name: '', typ: 'aufgabe', wer: '', kom: '', start: ds(e0 - 5), end: ds(e0) };
+  const grp = gid ? p.steps[gi] : null;
+  const f = { name: '', typ: 'aufgabe', wer: groupPerson(p, gid).wer || '', kom: '', start: ds(e0 - DEF_DAYS), end: ds(e0) };
   const row = (label, inp) => h('label', { class: 'frow' }, h('span', null, label), inp);
-  const grpName = gid ? p.steps[gi].name : 'Plan';
+  const grpName = grp ? grp.name : 'Plan';
+  let touchedS = false, touchedE = false;
+  const inS = h('input', { type: 'date', value: f.start, oninput: e => { f.start = e.target.value; touchedS = true; const a = dn(f.start); if (a != null && (!touchedE || dn(f.end) == null || dn(f.end) < a)) { f.end = ds(a + DEF_DAYS); inE.value = f.end; } } });
+  const inE = h('input', { type: 'date', value: f.end, oninput: e => { f.end = e.target.value; touchedE = true; const b = dn(f.end); if (b != null && (!touchedS || dn(f.start) == null || dn(f.start) > b)) { f.start = ds(b - DEF_DAYS); inS.value = f.start; } } });
   const ok = await modal('Neuer Arbeitsschritt in „' + grpName + '“', h('div', { class: 'form' }, personList(),
     row('Arbeitsschritt', h('input', { placeholder: 'z. B. Texte abstimmen', oninput: e => { f.name = e.target.value; } })),
     row('Typ', h('select', { onchange: e => { f.typ = e.target.value; } }, ['aufgabe', 'meilenstein', 'ziel'].map(k => h('option', { value: k }, STEP_TYPES[k])))),
-    row('Zugeordnet', h('input', { list: 'dl-personen', placeholder: 'Name', oninput: e => { f.wer = e.target.value.trim(); } })),
-    row('Beginn', h('input', { type: 'date', value: f.start, oninput: e => { f.start = e.target.value; } })),
-    row('Ende (bei Meilenstein: Datum)', h('input', { type: 'date', value: f.end, oninput: e => { f.end = e.target.value; } })),
+    row('Zugeordnet', h('input', { list: 'dl-personen', placeholder: 'Name', value: f.wer, oninput: e => { f.wer = e.target.value.trim(); } })),
+    row('Beginn', inS),
+    row('Ende (bei Meilenstein: Datum)', inE),
+    h('p', { class: 'muted small' }, 'Vorbelegt ist eine Woche. Änderst du nur ein Datum, zieht das andere mit.'),
     row('Kommentar', h('input', { oninput: e => { f.kom = e.target.value; } }))),
     [['Abbrechen', false], ['Anlegen', true, 'primary']]);
   if (!ok) return;
@@ -213,17 +252,17 @@ VIEW_FN.plaene = main => {
   const a0 = g0 - wd(g0), a1 = g1 + (6 - wd(g1)), nd = a1 - a0 + 1;
   const tableW = compact ? 272 : 852;
   const fitP = Math.max(2, (innerWidth - tableW - 14 - 70) / nd);
-  const pxd = UI.printing ? Math.max(3, 620 / nd) : (UI.planPxd || fitP), W = nd * pxd, X = n => (n - a0) * pxd;
+  const pxd = UI.printing ? Math.max(2, (compact ? 1030 - 250 : 620) / nd) : (UI.planPxd || fitP), W = nd * pxd, X = n => (n - a0) * pxd;
 
   put(main, h('div', { class: 'phead', style: { borderColor: x.color } },
-    h('div', { class: 'pt' }, h('h2', { style: { color: mix(x.color, 0.1, '#000000') } }, m.name)),
+    h('div', { class: 'pt' }, h('h2', { style: { color: inkC(x.color) } }, m.name)),
     h('div', { class: 'pdates' },
       h('label', { class: 'inl' }, h('span', { class: 'chip demo P' }, 'P'), 'PAL', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null))),
       h('label', { class: 'inl', tip: p.markS ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Kein Schritt als Start Selektion markiert (⋯-Menü am Schritt)' },
         h('span', { class: 'chip demo S' }, 'S'), 'Start Selektion', dateInput(x.s != null ? ds(x.s) : '', 'pl:s', v => setMarkDate(m.id, 'S', v), { disabled: !p.markS })),
       h('label', { class: 'inl', tip: p.markI ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Kein Schritt als Start Inhalt markiert (⋯-Menü am Schritt)' },
         h('span', { class: 'chip demo I' }, 'I'), 'Start inhaltliche Arbeit', dateInput(x.i != null ? ds(x.i) : '', 'pl:i', v => setMarkDate(m.id, 'I', v), { disabled: !p.markI }))),
-    h('div', { class: 'plegend' }, persons.map(w => h('span', { class: 'pleg' }, h('span', { class: 'pbox', style: { background: mix(barColor(w), 0.45), borderColor: barColor(w) } }), w || 'nicht zugeordnet'))),
+    h('div', { class: 'plegend' }, persons.map(w => h('span', { class: 'pleg' }, h('span', { class: 'pbox', style: { background: midtone(barColor(w)), borderColor: barColor(w) } }), w || 'nicht zugeordnet'))),
     h('div', { class: 'tools' },
       h('span', { class: 'segs' },
         h('button', { class: 'seg-btn', tip: 'verkleinern (oder Mausrad)', onclick: () => { UI.planPxd = clamp((UI.planPxd || fitP) / 1.4, 2, 60); renderNow(); } }, '−'),
@@ -274,15 +313,19 @@ VIEW_FN.plaene = main => {
     if (row.group) {
       grpName = s.name;
       const coll = !!UI.planColl[m.id + ':' + s.id], [gi, gj] = blocks.get(s.id);
-      const inner = p.steps.slice(gi + 1, gj), spans = inner.map(q => pc.map.get(q.id)).filter(q => q && q.start != null);
+      const inner = p.steps.slice(gi + 1, gj), spans = inner.map(q => pc.map.get(q.id)).filter(q => q && q.start != null), gp = groupPerson(p, s.id);
       trows.push(h('div', { class: 'pl-row grp' + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
         h('div', { class: 'c-grip' }, grip),
         h('div', { class: 'c-name gname' },
           h('button', { class: 'gtog', 'aria-expanded': String(!coll), tip: coll ? 'ausklappen' : 'einklappen', onclick: () => { coll ? delete UI.planColl[m.id + ':' + s.id] : UI.planColl[m.id + ':' + s.id] = 1; saveUI(); renderNow(); } }, coll ? '▸' : '▾'),
           h('input', { value: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }),
           h('span', { class: 'gcount' }, inner.length + ' Schritte')),
-        compact ? null : h('div', { class: 'c-rest' }),
-        h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, s.id)], ['Neuer Abschnitt', () => addGroup(m.id)], null,
+        compact ? null : [h('div', { class: 'c-typ' }),
+          h('div', { class: 'c-wer', tip: 'Person für den ganzen Abschnitt – gilt für alle Schritte darin' },
+            gp.wer ? h('span', { class: 'pbox', style: { background: midtone(barColor(gp.wer)), borderColor: barColor(gp.wer) } }) : null,
+            h('input', { value: gp.wer, list: 'dl-personen', placeholder: gp.mixed ? 'gemischt' : '–', 'data-fk': fk('gwer'), onchange: e => setGroupPerson(m.id, s.id, e.target.value.trim()) })),
+          h('div', { class: 'c-grest muted small' }, spans.length ? fmtS(Math.min(...spans.map(q => q.start))) + ' – ' + fmtS(Math.max(...spans.map(q => q.end))) : '')],
+        h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, s.id)], ['Ganzen Abschnitt zuordnen …', () => groupPersonDialog(m.id, s.id)], ['Neuer Abschnitt', () => addGroup(m.id)], null,
           ['Abschnitt löschen (Schritte bleiben)', () => deleteStep(m.id, s.id)]], 'right'))));
       const g = h('div', { class: 'g-row grp' });
       if (spans.length) {
@@ -294,15 +337,19 @@ VIEW_FN.plaene = main => {
     }
     const away = s.wer && r.start != null ? C.vac.filter(v => v.u.wer === s.wer && v.von <= Math.max(r.end, r.start) && v.bis >= r.start) : [];
     const isTask = s.typ === 'aufgabe';
-    const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return; commit(d => { const q = r.end != null ? r.end : ns + Math.max(1, +s.dauer || 1); setStepSpan(findM(d, m.id), s.id, Math.min(ns, q), q); }); }) : null;
-    const endInp = dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; commit(d => { const q = r.start != null ? r.start : ne - (+s.dauer || 0); setStepSpan(findM(d, m.id), s.id, Math.min(q, ne), ne); }); });
+    // Beginn ändern: Ende bleibt (liegt der Beginn danach, wandert das Ende mit). Noch ohne Termin: eine Woche.
+    const len = +s.dauer > 0 ? +s.dauer : DEF_DAYS;
+    const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return;
+      commit(d => { const ne = r.end != null && r.start != null && ns <= r.end ? r.end : ns + len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
+    const endInp = dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return;
+      commit(d => { const ns = !isTask ? ne : r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
     const markTag = s.id === p.markS ? h('span', { class: 'chip demo S mark', tip: 'Start Selektion' }, 'S') : s.id === p.markI ? h('span', { class: 'chip demo I mark', tip: 'Start inhaltliche Arbeit' }, 'I') : null;
     trows.push(h('div', { class: 'pl-row' + (away.length ? ' conflict' : '') + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
       h('div', { class: 'c-grip' }, grip),
       h('div', { class: 'c-name' }, h('input', { value: s.name, title: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }), markTag),
       compact ? null : [
         h('div', { class: 'c-typ' }, h('select', { 'data-fk': fk('typ'), onchange: e => setStep(m.id, s.id, st => { st.typ = e.target.value; }) }, ['aufgabe', 'meilenstein', 'ziel'].map(k => h('option', { value: k, selected: s.typ === k }, STEP_TYPES[k])))),
-        h('div', { class: 'c-wer' }, h('span', { class: 'pbox', style: { background: s.wer ? mix(barColor(s.wer), 0.45) : 'transparent', borderColor: s.wer ? barColor(s.wer) : 'transparent' } }),
+        h('div', { class: 'c-wer' }, h('span', { class: 'pbox', style: { background: s.wer ? midtone(barColor(s.wer)) : 'transparent', borderColor: s.wer ? barColor(s.wer) : 'transparent' } }),
           h('input', { value: s.wer || '', list: 'dl-personen', placeholder: '–', 'data-fk': fk('wer'), onchange: e => setStep(m.id, s.id, st => { st.wer = e.target.value.trim(); }) }),
           away.length ? h('span', { class: 'wi warn', tip: s.wer + ' hat Urlaub: ' + away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ') }, '⚠') : null),
         h('div', { class: 'c-kom' }, h('input', { value: s.kommentar || '', title: s.kommentar || '', placeholder: '–', 'data-fk': fk('kom'), onchange: e => setStep(m.id, s.id, st => { st.kommentar = e.target.value; }) })),
@@ -327,7 +374,7 @@ VIEW_FN.plaene = main => {
       const ctx = { x, s, r, pxd, X };
       if (isTask) {
         const c = barColor(s.wer);
-        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : ''), tip, style: { left: X(r.start) + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: mix(c, 0.45), borderColor: c } },
+        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : ''), tip, style: { left: X(r.start) + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: midtone(c), borderColor: c } },
           (r.end - r.start) * pxd > 70 ? h('span', { class: 'lbl' }, s.name) : null,
           h('span', { class: 'grip gl', onpointerdown: e => barDrag(e, ctx, 'left') }), h('span', { class: 'grip gr', onpointerdown: e => barDrag(e, ctx, 'right') }));
         bar.addEventListener('pointerdown', e => { if (!e.target.classList.contains('grip')) barDrag(e, ctx, 'move'); });

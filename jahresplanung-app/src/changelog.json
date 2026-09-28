@@ -1,0 +1,46 @@
+[
+  {
+    "version": "0.4",
+    "date": "2026-09-28T14:28",
+    "items": [
+      "Einstellungen: Personen verwalten (Name, Farbe), dunkles Design, Versionsnummer und Änderungsliste",
+      "Einstellungen: Standard-Vorlauf und „Max. Starts pro Woche“ entfernt",
+      "Programm-Update einspielen, ohne dass Daten verloren gehen (⋯-Menü)",
+      "PDF-Export mit Auswahl von Bereichen und Maßnahmen, „Wie aktuelle Ansicht“, ohne Dateipfad und Browser-Kopfzeile",
+      "Outlook-Export: Terminarten, Maßnahmen, Person, Zeitraum wählbar; Aufteilung in mehrere Dateien; alle Termine ganztägig",
+      "Jahresplanung: Kopfzeile repariert, Auflage linksbündig, S/I/P rechts der Beschriftung, „PAL-Status“, PAL nur bei „vorläufig“ farbig, hellere Häkchen",
+      "Warnungen: Vorziehen auch bei Feiertagen, bei Detailplänen und beim PAL",
+      "Zeitleiste: S/I/P-Knöpfe bei „Was steht an?“, Hervorheben ohne durchscheinende Wochenenden, Werktage vor PAL, Maßnahmen-Auswahl bleibt offen",
+      "Detailpläne: ganze Abschnitte einer Person zuordnen, neue Schritte standardmäßig eine Woche lang",
+      "Urlaub & Feiertage: Feiertage lassen sich umbenennen, verschieben und abschalten"
+    ]
+  },
+  {
+    "version": "0.3",
+    "date": "2026-09-28T09:23",
+    "items": [
+      "Malteser-Logo, Datensicherung exportieren/importieren, PDF-Jahresübersicht (3 Seiten)",
+      "Maßnahmen-Tabelle: Start Selektion/Inhalt als Datum statt Vorlauf, Spaltenbreiten ziehbar, „Hauptverantwortlich“",
+      "Kalender: Verbindungslinie beim Überfahren, Urlaub-Knopf zum Ein-/Ausblenden",
+      "Zeitleiste: Mausrad-Zoom, Klick auf den Namen zeigt die ganze Maßnahme, Markierungen in der Tagesmitte",
+      "Detailpläne: Abschnitte einklappen, Zeilen ziehen, Farbe je Person, Balken verschieben und in der Länge ändern, Zoom",
+      "Urlaub: Dialog „neuen Urlaub eintragen“"
+    ]
+  },
+  {
+    "version": "0.2",
+    "date": "2026-09-25T19:50",
+    "items": [
+      "Weniger Reiter, einklappbare Bereiche, Termine im Kalender ziehen, Monats-Zoom in der Zeitleiste",
+      "Startknopf für den Mailing-Ordner (eigenes Programmfenster)",
+      "Automatisches Speichern im Mailing-Ordner, Excel-Ansicht für Kolleg:innen in Teams"
+    ]
+  },
+  {
+    "version": "0.1",
+    "date": "2026-09-25T13:28",
+    "items": [
+      "Erste Programmversion aus der Excel-Jahresplanung: Kalender, Zeitleiste, Detailpläne mit Gantt, Urlaub, Warnungen, Export nach Excel, Outlook und PDF"
+    ]
+  }
+]

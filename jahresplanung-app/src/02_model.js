@@ -9,9 +9,9 @@ const UNDO = [], REDO = [];
 const UI = {
   view: 'jahr', year: null, secOpen: {}, show: { S: true, I: true, P: true }, hiddenM: new Set(), hiddenP: new Set(),
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
-  planPxd: 0, planColl: {}, warnOpen: false, allYears: false, sidebar: true, userName: '',
+  planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl'];
+const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -38,6 +38,7 @@ function normalize(d) {
   d.meta = Object.assign({ savedAt: null, savedBy: '' }, d.meta);
   d.settings = Object.assign(emptyData().settings, d.settings);
   ['personen', 'massnahmen', 'urlaube', 'sondertage'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
+  if (!d.feiertage || typeof d.feiertage !== 'object' || Array.isArray(d.feiertage)) d.feiertage = {};
   d.massnahmen.forEach(m => {
     m.id = m.id || uid(); m.name = m.name || ''; m.farbe = m.farbe || '#7F7F7F';
     if (!('palStatus' in m)) m.palStatus = 'vorläufig';
@@ -49,16 +50,33 @@ function normalize(d) {
   return d;
 }
 
-/* ---------- Feiertage inkl. eigener freier Tage */
+/* ---------- Feiertage (NRW, bearbeitbar) inkl. eigener freier Tage */
+// D.feiertage: { 'JJJJ-MM-TT' (gesetzliches Datum): { name?, datum?, off? } }
+let _holYear = new Map();
+function holidays(y) {
+  if (_holYear.has(y)) return _holYear.get(y);
+  const out = new Map(), ov = (D && D.feiertage) || {};
+  for (const [n, t] of holidaysNRW(y)) {
+    const o = ov[ds(n)] || {};
+    if (o.off) continue;
+    out.set(dn(o.datum) ?? n, o.name || t);
+  }
+  _holYear.set(y, out);
+  return out;
+}
 function holName(n) {
   const y = ymd(n)[0];
-  const f = holidaysNRW(y).get(n);
+  const f = holidays(y).get(n);
   if (f) return f;
   const s = D.sondertage.find(x => dn(x.datum) === n);
   return s ? (s.name || 'freier Tag') : null;
 }
 const isWorkday = n => wd(n) < 5 && !holName(n);
 function prevWorkday(n) { let k = n; while (!isWorkday(k) && n - k < 14) k--; return k; }
+// PAL darf auf einen Samstag fallen, aber nicht auf Sonntag oder Feiertag
+function prevPalDay(n) { let k = n; while ((wd(k) === 6 || holName(k)) && n - k < 14) k--; return k; }
+// Werktage (Mo–Fr ohne Feiertage) von n bis zum Tag vor dem PAL
+const workdaysBefore = (n, pal) => n == null || pal == null ? null : n < pal ? workdays(n, pal - 1) : -workdays(pal, n - 1);
 function workdays(a, b) { let c = 0; for (let n = a; n <= b; n++) if (isWorkday(n)) c++; return c; }
 
 /* ---------- Personen */
@@ -112,6 +130,7 @@ function planCalc(m) {
 /* ---------- Alles Abgeleitete für eine Darstellung */
 let C = null;
 function derive() {
+  _holYear = new Map();
   const ms = D.massnahmen.map(m => {
     const pal = dn(m.pal);
     let s = null, i = null, pc = null;
@@ -159,9 +178,11 @@ function computeWarnings() {
     const chk = (n, lab, isPal) => {
       if (n == null) return;
       const w = wd(n), hn = holName(n);
-      const fix = !isPal && !x.m.plan ? { t: lab === 'Start Selektion' ? 'S' : 'I', to: prevWorkday(n) } : null;
+      const t = isPal ? 'P' : lab === 'Start Selektion' ? 'S' : 'I';
+      const planLocked = !isPal && x.m.plan && (t === 'S' ? !x.m.plan.markS : !x.m.plan.markI);
+      const fix = planLocked ? null : { t, to: isPal ? prevPalDay(n) : prevWorkday(n) };
       if (hn) W.push({ lvl: 'warn', mid: x.id, n, fix, text: `${nm}: ${lab} fällt auf den Feiertag „${hn}“ (${fmtW(n)})` });
-      else if ((!isPal && w >= 5) || (isPal && w === 6)) W.push({ lvl: 'warn', mid: x.id, n, fix: w >= 5 ? fix : null, text: `${nm}: ${lab} fällt auf einen ${WDL[w]} (${fmtD(n)})` });
+      else if ((!isPal && w >= 5) || (isPal && w === 6)) W.push({ lvl: 'warn', mid: x.id, n, fix, text: `${nm}: ${lab} fällt auf einen ${WDL[w]} (${fmtD(n)})` });
       const resp = (x.m.verantwortlich || '').trim();
       const away = vacOn(n).filter(v => !resp || v.u.wer === resp);
       if (away.length && !isPal) W.push({ lvl: resp ? 'warn' : 'info', mid: x.id, n,
@@ -183,19 +204,6 @@ function computeWarnings() {
         W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.end, text: `${nm} › ${s.name}: überfällig seit ${fmtD(r.end)} (${+s.fortschritt || 0} % erledigt)` });
     }
   }
-  // Auslastung: zu viele Starts in einer Kalenderwoche
-  const weeks = new Map();
-  for (const x of C.ms) for (const [t, k] of [['S', 's'], ['I', 'i']]) {
-    const n = x[k];
-    if (n == null || isoWeekYear(n) !== y) continue;
-    const key = isoWeek(n);
-    if (!weeks.has(key)) weeks.set(key, []);
-    weeks.get(key).push({ t, x, n });
-  }
-  const max = +D.settings.maxStarts || 2;
-  for (const [w, list] of [...weeks].sort((a, b) => a[0] - b[0]))
-    if (list.length > max) W.push({ lvl: 'warn', n: list[0].n, week: w,
-      text: `KW ${w}: ${list.length} Starts in einer Woche (${list.map(e => e.t + ' ' + e.x.m.name).join(', ')})` });
   return W;
 }
 
