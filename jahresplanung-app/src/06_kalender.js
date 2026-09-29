@@ -162,7 +162,7 @@ function chipDrag(ev, e) {
   const up = () => {
     const wasMoved = moved;
     stop();
-    if (!wasMoved) { if (t === 'P') editMassnahme(x.id); else pinChip(el, x.id, e.n, t); return; }
+    if (!wasMoved) { pinChip(el, x.id, e.n, t); return; }
     if (!dd) return;
     if (t === 'P') commit(d => { findM(d, x.id).pal = ds(x.pal + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (S und I mitverschoben)');
     else moveStartTo(x.id, t, (t === 'S' ? x.s : x.i) + dd);

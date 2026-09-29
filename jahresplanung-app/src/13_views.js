@@ -76,7 +76,7 @@ VIEW_FN.jahr = main => {
           h('input', { type: 'checkbox', checked: !!UI.verbund, onchange: e => { UI.verbund = e.target.checked; renderNow(); } }), 'Verbund-Darstellung')],
       tools: [legendInline()],
       body: [calendarBody()] }), {
-      info: 'Maus über Tag oder Markierung zeigt Details. Klick auf S, I oder eine Zeile der Terminliste hält die Maßnahme hervorgehoben („Bearbeiten“ daneben öffnet sie), Klick woanders oder Esc hebt das auf. Klick auf P öffnet die Maßnahme direkt. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Strg+Z macht es rückgängig.' }));
+      info: 'Maus über Tag oder Markierung zeigt Details. Klick auf S, I, P oder eine Zeile der Terminliste hält die Maßnahme hervorgehoben („Bearbeiten“ daneben öffnet sie), Klick woanders oder Esc hebt das auf. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Strg+Z macht es rückgängig.' }));
 };
 VIEW_FN['jahr:after'] = () => {
   if (UI.pin) highlight(UI.pin);                 // festgehaltene Maßnahme nach dem Neuzeichnen wieder hervorheben
