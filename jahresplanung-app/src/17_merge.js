@@ -56,7 +56,7 @@ function applyPick(data, c) {
 }
 
 /* ---------- Anzeige */
-const FIELD_LABEL = { name: 'Name', pal: 'PAL', palStatus: 'PAL-Status', vorlaufS: 'Start Selektion', vorlaufI: 'Start Inhalt', verantwortlich: 'Hauptverantwortlich',
+const FIELD_LABEL = { name: 'Name', pal: 'PAL', palStatus: 'PAL-Status', vorlauf: 'Starts der Bereiche', ende: 'Enden der Bereiche', bereiche: 'Bereiche', verantwortlich: 'Hauptverantwortlich',
   auflage: 'Auflage', art: 'Bitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
 function recLabel(coll, rec, key) {
   rec = rec || {};
@@ -72,7 +72,8 @@ function valText(coll, field, v, rec) {
   if (coll === 'feiertage') return !v ? 'wie gesetzlich' : v.off ? 'abgeschaltet' : [v.name, v.datum ? 'am ' + fmtD(dn(v.datum)) : ''].filter(Boolean).join(' ') || 'geändert';
   if (v == null || v === '') return '–';
   if (['pal', 'von', 'bis', 'datum'].includes(field)) return fmtW(dn(v));
-  if (field === 'vorlaufS' || field === 'vorlaufI') { const p = dn(rec && rec.pal); return p != null && isNum(v) ? fmtW(p - v) : v + ' Tage vor PAL'; }
+  if (field === 'vorlauf' || field === 'ende') { const p = dn(rec && rec.pal); const e = Object.entries(v || {}); return e.length ? e.map(([k, n]) => k + ' ' + (p != null ? fmtS(p - n) : n + ' T.')).join(' · ') : '–'; }
+  if (field === 'bereiche' && Array.isArray(v)) return v.map(p => p.key + ' ' + p.name).join(', ');
   if (field === 'plan') return v && v.steps ? v.steps.length + ' Schritte' : 'kein Detailplan';
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
   return String(v).slice(0, 80);
@@ -139,4 +140,62 @@ async function compareDialog(other, label) {
     if (i >= 0) arr[i] = clone(it.rec); else arr.push(clone(it.rec));
   }
   return normalize(out);
+}
+
+/* ---------- Änderungsprotokoll: lesbare Beschreibung, was sich zwischen zwei Ständen geändert hat */
+function describeChanges(a, b, max = 12) {
+  const out = [];
+  for (const [coll, key] of MERGE_COLL) {
+    const A = new Map((a[coll] || []).map(r => [r[key], r])), B = new Map((b[coll] || []).map(r => [r[key], r]));
+    for (const [k, r] of B) {
+      const o = A.get(k), lab = recLabel(coll, r, k);
+      if (!o) { out.push(lab + ' angelegt'); continue; }
+      if (JS(o) === JS(r)) continue;
+      for (const f of [...new Set([...Object.keys(o), ...Object.keys(r)])].filter(f => JS(o[f]) !== JS(r[f]))) {
+        if (f === 'plan') out.push(lab + ': ' + planChange(o.plan, r.plan));
+        else if (f === 'vorlauf' || f === 'ende') {
+          const pa = dn(o.pal), pb = dn(r.pal), va = o[f] || {}, vb = r[f] || {};
+          for (const ph of new Set([...Object.keys(va), ...Object.keys(vb)])) if (va[ph] !== vb[ph])
+            out.push(lab + ': ' + (f === 'ende' ? 'Ende ' + phName(ph) : startLabel(ph)) + ' ' + (va[ph] != null && pa != null ? fmtS(pa - va[ph]) : '–') + ' → ' + (vb[ph] != null && pb != null ? fmtS(pb - vb[ph]) : '–'));
+        } else out.push(lab + ': ' + fieldName(coll, f) + ' ' + valText(coll, f, o[f], o) + ' → ' + valText(coll, f, r[f], r));
+      }
+    }
+    for (const [k, o] of A) if (!B.has(k)) out.push(recLabel(coll, o, k) + ' gelöscht');
+  }
+  if (JS(a.feiertage) !== JS(b.feiertage)) out.push('Feiertage geändert');
+  const sa = a.settings || {}, sb = b.settings || {};
+  if (JS(sa.bereiche) !== JS(sb.bereiche)) out.push('Bereiche: ' + (sb.bereiche || []).map(p => p.key + ' ' + p.name).join(', '));
+  if (sa.year !== sb.year) out.push('Planungsjahr ' + sa.year + ' → ' + sb.year);
+  return out.length > max ? out.slice(0, max).concat('… und ' + (out.length - max) + ' weitere Änderungen') : out;
+}
+function planChange(p, q) {
+  if (!p) return 'Detailplan angelegt';
+  if (!q) return 'Detailplan entfernt';
+  const A = new Map(p.steps.map(s => [s.id, s])), B = new Map(q.steps.map(s => [s.id, s])), parts = [];
+  const what = (o, s, k) => k === 'dauer' ? 'Dauer ' + (+o.dauer || 0) + ' → ' + (+s.dauer || 0) + ' Tage' : k === 'wer' ? 'Person ' + (o.wer || '–') + ' → ' + (s.wer || '–')
+    : k === 'fortschritt' ? (+s.fortschritt >= 100 ? 'erledigt' : 'Fortschritt ' + (+s.fortschritt || 0) + ' %') : k === 'bereich' ? 'Bereich ' + (s.bereich ? s.bereich + ' ' + phName(s.bereich) : '–')
+    : k === 'anker' ? 'Termin verschoben' : k === 'name' ? 'umbenannt (vorher „' + o.name + '“)' : k === 'typ' ? 'jetzt ' + (STEP_TYPES[s.typ] || s.typ) : k === 'kommentar' ? 'Kommentar geändert' : k;
+  for (const [id, s] of B) {
+    const o = A.get(id);
+    if (!o) parts.push('„' + s.name + '“ neu');
+    else if (JS(o) !== JS(s)) parts.push('„' + s.name + '“ ' + ['name', 'dauer', 'wer', 'anker', 'bereich', 'typ', 'fortschritt', 'kommentar'].filter(k => JS(o[k]) !== JS(s[k])).map(k => what(o, s, k)).join(', '));
+  }
+  for (const [id, s] of A) if (!B.has(id)) parts.push('„' + s.name + '“ gelöscht');
+  if (!parts.length && JS(p.marks) !== JS(q.marks)) parts.push('Beginn eines Bereichs neu festgelegt');
+  if (!parts.length) parts.push('Reihenfolge geändert');
+  return 'Detailplan: ' + parts.slice(0, 4).join('; ') + (parts.length > 4 ? ' … (' + (parts.length - 4) + ' weitere)' : '');
+}
+function logDialog() {
+  let q = '';
+  const list = h('div', { class: 'logview' });
+  const draw = () => {
+    const ents = (D.log || []).slice().reverse().filter(e => !q || (e.by || '').toLowerCase().includes(q) || (e.items || []).some(t => t.toLowerCase().includes(q)));
+    setKids(list, ents.length ? ents.slice(0, 200).map(e => h('div', { class: 'logent' },
+      h('div', { class: 'loghead' }, h('b', null, fmtStamp(e.at)), e.by ? ' · ' + e.by : ''),
+      h('ul', null, (e.items || []).map(t => h('li', null, t))))) : h('p', { class: 'muted' }, q ? 'Nichts gefunden.' : 'Noch keine Änderungen protokolliert – das Protokoll beginnt mit Version 0.8.'));
+  };
+  draw();
+  modal('Änderungsprotokoll', h('div', { class: 'form' },
+    h('p', { class: 'muted small' }, 'Bei jedem Speichern hält die App fest, wer was geändert hat (die letzten ' + LOG_MAX + ' Speicherungen). Neueste oben.'),
+    h('input', { placeholder: 'suchen, z. B. „Sommermailing“ oder „Eva“', oninput: e => { q = e.target.value.trim().toLowerCase(); draw(); } }), list), null, { wide: true });
 }

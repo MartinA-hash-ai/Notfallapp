@@ -50,7 +50,7 @@ const { chromium, ok, open, finish } = require('./lib');
   // ---- E: „Alle vorziehen“ – PAL am Sonntag, Start Selektion am Samstag
   const e = await p.evaluate(() => {
     UI.view = 'jahr';
-    commit(d => { d.massnahmen = d.massnahmen.filter(m => m.plan); d.massnahmen.push({ id: 'fx', name: 'Vorziehtest', farbe: '#1F77B4', pal: '2027-03-14', palStatus: 'fest', vorlaufS: 36, vorlaufI: 1 }); });
+    commit(d => { d.massnahmen = d.massnahmen.filter(m => m.plan); d.massnahmen.push({ id: 'fx', name: 'Vorziehtest', farbe: '#1F77B4', pal: '2027-03-14', palStatus: 'fest', vorlauf: { S: 36, I: 1 } }); });
     derive();
     const w = C.warnings.filter(w => w.fix && w.mid === 'fx').map(w => w.fix.t + ' → ' + fmtW(w.fix.to));
     return w;
@@ -62,7 +62,7 @@ const { chromium, ok, open, finish } = require('./lib');
 
   // ---- F: einzelnes PAL-Vorziehen zieht ein dadurch aufs Wochenende gerutschtes S mit
   const f = await p.evaluate(() => {
-    commit(d => { const m = findM(d, 'fx'); m.pal = '2027-03-21'; m.vorlaufS = 6; m.vorlaufI = 5; });   // PAL So 21.03., S Mo 15.03. – PAL auf Sa schiebt S auf So 14.03.
+    commit(d => { const m = findM(d, 'fx'); m.pal = '2027-03-21'; m.vorlauf = { S: 6, I: 5 }; });   // PAL So 21.03., S Mo 15.03. – PAL auf Sa schiebt S auf So 14.03.
     derive(); const w = C.warnings.find(w => w.fix && w.mid === 'fx' && w.fix.t === 'P'); fixDate(w); derive();
     const x = C.byId.get('fx'); return [fmtW(x.pal), fmtW(x.s), C.warnings.filter(w => w.fix && w.mid === 'fx').map(w => w.text)];
   });

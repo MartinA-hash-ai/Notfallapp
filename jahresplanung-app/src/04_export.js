@@ -51,17 +51,18 @@ function icsEvent(uidv, a, b, summary, desc) {
     'SUMMARY:' + icsEsc(summary), desc ? 'DESCRIPTION:' + icsEsc(desc) : null, 'CATEGORIES:Jahresplanung', 'TRANSP:TRANSPARENT',
     'X-MICROSOFT-CDO-BUSYSTATUS:FREE', 'END:VEVENT'].filter(Boolean);
 }
-const ICS_KINDS = [['S', 'Start Selektion'], ['I', 'Start inhaltliche Arbeit'], ['P', 'PAL (Briefkasten)'], ['steps', 'Arbeitsschritte aus Detailplänen'], ['ms', 'Meilensteine/Ziele aus Detailplänen'], ['vac', 'Urlaube']];
+const icsKinds = () => [...PH().map(p => [p.key, startLabel(p.key)]), ['P', 'PAL (Briefkasten)'], ['steps', 'Arbeitsschritte aus Detailplänen'], ['ms', 'Meilensteine/Ziele aus Detailplänen'], ['vac', 'Urlaube']];
 // alle wählbaren Kalendereinträge; jeder Eintrag ist ganztägig
 function icsItems(o) {
   const a = o.from, b = o.to, out = [];
   const who = o.person, match = n => !who || (n || '') === who;
   for (const x of C.ms) {
     if (!o.ms.has(x.id)) continue;
-    for (const [t, k, lab] of TYPES) {
-      if (!o.kinds[t] || x[k] == null || x[k] < a || x[k] > b || !match(x.m.verantwortlich)) continue;
-      out.push({ kind: t, mid: x.id, uid: x.id + '-' + t + '-' + ds(x[k]), a: x[k], b: x[k], lab: t === 'P' ? 'PAL' : lab, summary: (t === 'P' ? 'PAL' : lab) + ' · ' + x.m.name,
-        desc: [x.m.name, TYPE_LABEL[t] + ': ' + fmtW(x[k]), x.pal != null && t !== 'P' ? 'PAL: ' + fmtW(x.pal) : '', t === 'P' && x.m.palStatus !== 'fest' ? 'PAL noch vorläufig' : '',
+    for (const t of evKeys()) {
+      const n = evDate(x, t), lab = startLabel(t);
+      if (!o.kinds[t] || n == null || n < a || n > b || !match(x.m.verantwortlich)) continue;
+      out.push({ kind: t, mid: x.id, uid: x.id + '-' + t + '-' + ds(n), a: n, b: n, lab, summary: lab + ' · ' + x.m.name,
+        desc: [x.m.name, TYPE_LABEL[t] + ': ' + fmtW(n), x.pal != null && t !== 'P' ? 'PAL: ' + fmtW(x.pal) + ' (' + workdaysBefore(n, x.pal) + ' Werktage davor)' : '', t === 'P' && x.m.palStatus !== 'fest' ? 'PAL noch vorläufig' : '',
           x.m.verantwortlich ? 'Hauptverantwortlich: ' + x.m.verantwortlich : '', x.m.hinweis].filter(Boolean).join('\n') });
     }
     if (x.pc) for (const s of x.m.plan.steps) {
@@ -84,11 +85,12 @@ const fileSafe = s => String(s).replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_
 async function exportICS() {
   const y = UI.year, list = C.ms.filter(x => inYear(x, y)), today = todayDn();
   const last = UI.icsOpts || {};
-  const o = { kinds: Object.assign({ S: true, I: true, P: true, steps: false, ms: false, vac: false }, last.kinds), ms: new Set(list.map(x => x.id)),
+  const allStarts = Object.fromEntries(evKeys().map(k => [k, true]));
+  const o = { kinds: Object.assign({ ...allStarts, steps: false, ms: false, vac: false }, last.kinds), ms: new Set(list.map(x => x.id)),
     person: '', range: last.range || 'year', from: mkdn(y, 1, 1), to: mkdn(y, 12, 31), split: last.split || 'one' };
   const persons = D.personen.map(p => p.name);
   // Vorlauf der Maßnahmen dieses Jahres, der noch im Vorjahr liegt (z. B. Selektion im November für ein Januar-Mailing)
-  const firstDates = list.flatMap(x => [x.s, x.i, x.pal, ...(x.pc ? [...x.pc.map.values()].map(r => r.start) : [])]).filter(v => v != null);
+  const firstDates = list.flatMap(x => [...Object.values(x.st), x.pal, ...(x.pc ? [...x.pc.map.values()].map(r => r.start) : [])]).filter(v => v != null);
   const wrap = h('div', { class: 'form' }), count = h('div', { class: 'calcline' });
   const range = () => {
     if (o.range === 'year') { o.from = Math.min(mkdn(y, 1, 1), ...firstDates); o.to = mkdn(y, 12, 31); }
@@ -121,21 +123,20 @@ async function exportICS() {
     const items = icsItems(o), files = o.split === 'one' ? 1 : new Set(items.map(e => o.split === 'kind' ? e.kind : e.mid || 'vac')).size;
     count.textContent = items.length + ' Termine' + (items.length ? ' · ' + files + (files === 1 ? ' Datei' : ' Dateien (als ZIP)') : '') + ' · alle ganztägig';
   };
-  const preset = kinds => { o.kinds = Object.assign({ S: false, I: false, P: false, steps: false, ms: false, vac: false }, kinds); draw(); };
+  const preset = kinds => { o.kinds = Object.assign(Object.fromEntries(icsKinds().map(([k]) => [k, false])), kinds); draw(); };
   const draw = () => {
-    const cb = k => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!o.kinds[k], onchange: e => { o.kinds[k] = e.target.checked; upd(); } }), ICS_KINDS.find(q => q[0] === k)[1]);
+    const cb = k => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!o.kinds[k], onchange: e => { o.kinds[k] = e.target.checked; upd(); } }), icsKinds().find(q => q[0] === k)[1]);
     const radio = (name, val, label, key) => h('label', { class: 'check' }, h('input', { type: 'radio', name, checked: o[key] === val, onchange: () => { o[key] = val; draw(); } }), label);
     setKids(wrap, 
       h('p', { class: 'muted small' }, 'Erstellt Kalenderdateien (.ics) für Outlook. Doppelklick auf die Datei → „Als neuen Kalender öffnen“ oder importieren.'),
       h('div', { class: 'ics-presets' }, h('span', { class: 'muted small' }, 'Schnellauswahl:'),
-        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ S: true }); } }, 'nur Selektions-Starts'),
-        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ I: true }); } }, 'nur Inhalts-Starts'),
+        PH().map(p => h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ [p.key]: true }); } }, 'nur Start ' + p.name)),
         h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ P: true }); } }, 'nur PAL'),
-        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ S: true, I: true, P: true }); } }, 'alle Starts + PAL'),
-        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ S: true, I: true, P: true, steps: true, ms: true }); } }, 'alles aus den Maßnahmen')),
+        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ ...allStarts }); } }, 'alle Starts + PAL'),
+        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ ...allStarts, steps: true, ms: true }); } }, 'alles aus den Maßnahmen')),
       h('div', { class: 'pdf-cols' },
         h('div', null,
-          h('h3', null, 'Termine'), h('div', { class: 'checks' }, ICS_KINDS.map(([k]) => cb(k))),
+          h('h3', null, 'Termine'), h('div', { class: 'checks' }, icsKinds().map(([k]) => cb(k))),
           h('h3', null, 'Person'), h('select', { onchange: e => { o.person = e.target.value; upd(); } }, h('option', { value: '' }, 'alle Personen'),
             persons.map(n => h('option', { value: n, selected: o.person === n }, n))),
           h('div', { class: 'muted small' }, 'Starts/PAL: hauptverantwortliche Person · Schritte: zugeordnete Person'),
@@ -156,7 +157,7 @@ async function exportICS() {
   const items = icsItems(o);
   if (!items.length) { toast('Keine Termine für diese Auswahl.', 'warn'); return; }
   const base = 'Jahresplanung_' + y + (o.person ? '_' + fileSafe(o.person) : '');
-  const kindName = k => ({ S: 'Start_Selektion', I: 'Start_Inhalt', P: 'PAL', steps: 'Arbeitsschritte', ms: 'Meilensteine', vac: 'Urlaube' })[k];
+  const kindName = k => ({ P: 'PAL', steps: 'Arbeitsschritte', ms: 'Meilensteine', vac: 'Urlaube' })[k] || fileSafe('Start_' + phName(k));
   const onlyKind = Object.keys(o.kinds).filter(k => o.kinds[k]);
   if (o.split === 'one') {
     const suffix = onlyKind.length === 1 ? '_' + kindName(onlyKind[0]) : o.ms.size === 1 ? '_' + fileSafe(C.byId.get([...o.ms][0]).m.name) : '';

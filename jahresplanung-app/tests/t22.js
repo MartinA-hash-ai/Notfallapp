@@ -8,7 +8,7 @@ const path = require('path');
   // ---- A: beide ändern Verschiedenes → Zusammenführen ohne Rückfrage
   { const p = await open(b); pages.push(p); await connect(p);
     await p.evaluate(() => { UI.autoSave = false; commit(d => { d.massnahmen[1].hinweis = 'MEIN HINWEIS'; }); });
-    const theirs = evaSaves(await readF(p), d => { d.massnahmen[2].pal = '2027-06-18'; d.massnahmen.push({ id: 'evaneu', name: 'Evas neue Maßnahme', farbe: '#1F77B4', pal: '2027-08-20', palStatus: 'vorläufig', vorlaufS: 70, vorlaufI: 50 }); });
+    const theirs = evaSaves(await readF(p), d => { d.massnahmen[2].pal = '2027-06-18'; d.massnahmen.push({ id: 'evaneu', name: 'Evas neue Maßnahme', farbe: '#1F77B4', pal: '2027-08-20', palStatus: 'vorläufig', vorlauf: { S: 70, I: 50 } }); });
     await writeF(p, theirs);
     await p.evaluate(() => saveAll({ manual: true })); await p.waitForTimeout(300);
     ok(await p.evaluate(() => !!ST.conflict), 'A: Konflikt erkannt');
@@ -37,13 +37,13 @@ const path = require('path');
 
   // ---- C: OneDrive-Konfliktkopie im Ordner → Vergleichen, übernehmen, wegräumen
   { const p = await open(b); pages.push(p); await connect(p);
-    const copy = evaSaves(await readF(p), d => { d.massnahmen.push({ id: 'ausKopie', name: 'Maßnahme aus der Kopie', farbe: '#2CA02C', pal: '2027-09-10', palStatus: 'vorläufig', vorlaufS: 70, vorlaufI: 50 }); d.massnahmen[5].hinweis = 'anders in der Kopie'; });
+    const copy = evaSaves(await readF(p), d => { d.massnahmen.push({ id: 'ausKopie', name: 'Maßnahme aus der Kopie', farbe: '#2CA02C', pal: '2027-09-10', palStatus: 'vorläufig', vorlauf: { S: 70, I: 50 } }); d.massnahmen[5].hinweis = 'anders in der Kopie'; });
     await writeF(p, copy, 'Jahresplanung_Aussenkommunikation-LAPTOP-EVA.html');
     await p.evaluate(() => scanCopies()); await p.waitForTimeout(300); await p.evaluate(() => renderNow());
     ok((await banners(p)).some(t => /LAPTOP-EVA/.test(t) && /gleichzeitig/.test(t)), 'C: Hinweis auf die Konfliktkopie');
     await p.click('.banner button:has-text("Vergleichen")'); await p.waitForTimeout(300);
     const q = await p.evaluate(() => document.querySelector('.modal').innerText.replace(/\s+/g, ' '));
-    ok(/Nur dort vorhanden \(1\)/i.test(q) && /Unterschiedlich \(1\)/i.test(q), 'C: Vergleich zeigt 1 neue und 1 abweichende Maßnahme');
+    ok(/Nur dort vorhanden \(1\)/i.test(q) && /Unterschiedlich \(1\)/i.test(q), 'C: Vergleich zeigt 1 neue und 1 abweichende Maßnahme' + (/Unterschiedlich \(1\)/i.test(q) ? '' : ': ' + q.slice(0, 600)));
     await p.click('.modal footer button.primary'); await p.waitForTimeout(300);            // Standard: nur das Neue übernehmen
     ok(/wegräumen/i.test(await p.evaluate(() => document.querySelector('.modal h2').textContent)), 'C: danach Frage „Kopie wegräumen?“');
     await p.click('.modal footer button.primary'); await p.waitForTimeout(3500);

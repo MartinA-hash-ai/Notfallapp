@@ -12,14 +12,15 @@ function dateWarn(n, resp) {
 function tlRange(rows, y) {
   let x0 = mkdn(y, 1, 1);
   const x1 = mkdn(y, 12, 31);
-  const mins = rows.flatMap(r => [r.s, r.i, r.pal]).filter(v => v != null && v < x0 && v >= x0 - 400);
+  const mins = rows.flatMap(r => [...Object.values(r.st), r.pal]).filter(v => v != null && v < x0 && v >= x0 - 400);
   if (mins.length) { const [yy, mm] = ymd(Math.min(...mins)); x0 = mkdn(yy, mm, 1); }
   return [x0, x1];
 }
-function timelineSection() {
+// opts (für das PDF): only = nur diese Maßnahmen, rangeRows = Zeitraum aus diesen Maßnahmen, noVac = ohne Urlaubszeilen
+function timelineSection(opts = {}) {
   const y = UI.year, today = todayDn();
-  const rows = C.ms.filter(x => visibleM(x) && inYear(x, y));
-  const [x0, x1] = tlRange(rows, y), nd = x1 - x0 + 1;
+  const all = C.ms.filter(x => visibleM(x) && inYear(x, y)), rows = opts.only ? all.filter(x => opts.only.has(x.id)) : all;
+  const [x0, x1] = tlRange(opts.rangeRows || rows, y), nd = x1 - x0 + 1;
   const label = UI.printing ? 255 : TL_LABEL;
   const avail = UI.printing ? 1040 - label : Math.max(500, innerWidth - label - 66);
   const pxd = UI.printing ? avail / nd : (UI.tlPxd || avail / nd);
@@ -64,31 +65,38 @@ function timelineSection() {
       ws.length ? h('span', { class: 'wicon', tip: () => h('div', null, ws.map(w => h('div', null, '⚠ ' + w.text))) }, '⚠') : null,
       h('span', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : ''), tip: x.m.palStatus !== 'fest' ? 'PAL vorläufig' : 'PAL fest' }, x.pal != null ? fmtS(x.pal) : '–'));
     const track = h('div', { class: 'tl-track', style: { width: W + 'px' } });
-    const els = {
-      seg1: h('div', { class: 'seg s1', style: { background: pastel(x.color), borderColor: x.color } }),
-      seg2: h('div', { class: 'seg s2', style: { background: midtone(x.color), borderColor: x.color } }),
-      hS: h('div', { class: 'handle hs' + (startMovable(x, 'S') ? '' : ' locked'), style: { background: x.color } }, h('i', null, 'S')),
-      hI: h('div', { class: 'handle hi' + (startMovable(x, 'I') ? '' : ' locked'), style: { background: x.color } }, h('i', null, 'I')),
-      dia: h('div', { class: 'dia', style: { background: x.color } }),
-    };
-    const place = (s, i, p) => {
+    // je Bereich ein Balken (hell → kräftiger), Griffe mit Buchstaben am Start; überlappen Bereiche, liegen sie in eigenen Spuren
+    const phs = PH().filter(p => x.st[p.key] != null);
+    const tone = f => darkNow() ? mix(x.color, 0.66 - 0.26 * f, DARK_SURF) : mix(x.color, 0.75 - 0.30 * f);
+    const segs = {}, hands = {}, dia = h('div', { class: 'dia', style: { background: x.color } });
+    phs.forEach((p, j) => {
+      segs[p.key] = h('div', { class: 'seg', dataset: { k: p.key }, style: { background: tone(phs.length > 1 ? j / (phs.length - 1) : 0), borderColor: x.color } });
+      hands[p.key] = h('div', { class: 'handle h-' + p.key + (startMovable(x, p.key) ? '' : ' locked'), style: { background: x.color } }, h('i', null, p.key));
+    });
+    const place = (st, en, pal) => {
       const Cx = n => X(clamp(n, x0 - 2, x1 + 2)) + pxd / 2;   // alles auf die Tagesmitte; weit Entferntes an den Rand
-      const L = (n, e) => { e.style.left = Cx(n) + 'px'; };
-      const seg = (e, a, b, on) => { e.style.display = on ? '' : 'none'; if (on) { e.style.left = Cx(a) + 'px'; e.style.width = Math.max(2, Cx(b) - Cx(a)) + 'px'; } };
-      seg(els.seg1, s, i != null ? i : p, s != null && (i != null ? s < i : p != null));
-      seg(els.seg2, i != null ? i : s, p != null ? p : i, i != null && p != null);
-      els.hS.style.display = s != null ? '' : 'none'; if (s != null) L(s, els.hS);
-      els.hI.style.display = i != null ? '' : 'none'; if (i != null) L(i, els.hI);
-      els.dia.style.display = p != null ? '' : 'none'; if (p != null) els.dia.style.left = X(p) + pxd / 2 + 'px';
+      const ks = phs.map(p => p.key).filter(k => st[k] != null);
+      const over = ks.some((a, i) => ks.some((b, j) => i < j && st[a] < en[b] && st[b] < en[a]));
+      const order = ks.slice().sort((a, b) => st[a] - st[b]);
+      ks.forEach((k, j) => {
+        const e = segs[k], a = st[k], b = en[k] != null ? en[k] : a, oi = order.indexOf(k);
+        e.style.display = b > a ? '' : 'none';
+        e.style.left = Cx(a) + 'px'; e.style.width = Math.max(2, Cx(b) - Cx(a)) + 'px';
+        e.style.setProperty('--ln', over ? j : 0); e.style.setProperty('--lns', over ? ks.length : 1);
+        e.classList.toggle('first', !over && oi === 0); e.classList.toggle('last', !over && oi === order.length - 1); e.classList.toggle('lane', over);
+        hands[k].style.display = ''; hands[k].style.left = Cx(a) + 'px';
+      });
+      dia.style.display = pal != null ? '' : 'none'; if (pal != null) dia.style.left = X(pal) + pxd / 2 + 'px';
     };
-    place(x.s, x.i, x.pal);
+    place(x.st, x.en, x.pal);
     const tipFn = () => chipTip({ x, t: 'P' });
-    [els.seg1, els.seg2, els.dia].forEach(e => { setTip(e, tipFn); e.addEventListener('pointerdown', ev => tlDrag(ev, x, 'move', pxd, place)); e.addEventListener('dblclick', () => editMassnahme(x.id)); });
-    setTip(els.hS, () => h('div', null, h('b', null, 'Start Selektion ' + fmtW(x.s)), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.s, x.pal) + ' Werktage vor PAL · ' : '') + (x.pc ? 'ziehen = verschieben, der Detailplan passt sich an' : 'ziehen = verschieben'))));
-    setTip(els.hI, () => h('div', null, h('b', null, 'Start inhaltliche Arbeit ' + fmtW(x.i)), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.i, x.pal) + ' Werktage vor PAL · ' : '') + (x.pc ? 'ziehen = verschieben, der Detailplan passt sich an' : 'ziehen = verschieben'))));
-    els.hS.addEventListener('pointerdown', ev => tlDrag(ev, x, 'S', pxd, place));
-    els.hI.addEventListener('pointerdown', ev => tlDrag(ev, x, 'I', pxd, place));
-    track.append(els.seg1, els.seg2, els.hS, els.hI, els.dia);
+    [...Object.values(segs), dia].forEach(e => { setTip(e, tipFn); e.addEventListener('pointerdown', ev => tlDrag(ev, x, 'move', pxd, place)); e.addEventListener('dblclick', () => editMassnahme(x.id)); });
+    for (const p of phs) {
+      setTip(hands[p.key], () => h('div', null, h('b', null, startLabel(p.key) + ' ' + fmtW(x.st[p.key])), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.st[p.key], x.pal) + ' Werktage vor PAL · ' : '') +
+        (x.enx[p.key] != null ? 'bis ' + fmtWS(x.en[p.key]) + ' · ' : '') + (x.pc ? 'ziehen = verschieben, der Detailplan passt sich an' : 'ziehen = verschieben'))));
+      hands[p.key].addEventListener('pointerdown', ev => tlDrag(ev, x, p.key, pxd, place));
+    }
+    track.append(...Object.values(segs), ...Object.values(hands), dia);
     body.append(h('div', { class: 'tl-row', dataset: { m: x.id, flash: 'm:' + x.id } }, lab, track));
     if (open) for (const s of x.m.plan.steps) {
       const r = x.pc.map.get(s.id);
@@ -109,7 +117,7 @@ function timelineSection() {
   // ---- Urlaube je Person
   const vacs = C.vac.filter(v => vacVisible(v) && v.bis >= x0 && v.von <= x1);
   const people = [...new Set(vacs.map(v => v.u.wer || '?'))].sort((a, b) => a.localeCompare(b, 'de'));
-  if (people.length) {
+  if (people.length && !opts.noVac) {
     body.append(h('div', { class: 'tl-row sep' }, h('div', { class: 'tl-lab' }, h('b', null, 'Urlaub')), h('div', { class: 'tl-track', style: { width: W + 'px' } })));
     for (const p of people) {
       const t = h('div', { class: 'tl-track', style: { width: W + 'px' } });
@@ -151,7 +159,7 @@ function timelineSection() {
   };
 }
 function tlZoomTo(x) {
-  const pts = [x.s, x.i, x.pal].filter(v => v != null);
+  const pts = [...Object.values(x.st), x.pal].filter(v => v != null);
   if (!pts.length) return;
   const a = Math.min(...pts), b = Math.max(...pts), tl = $('.tl');
   const vis = Math.max(300, ((tl && tl.clientWidth) || innerWidth - 70) - (UI._tl ? UI._tl.label : TL_LABEL));
@@ -219,7 +227,7 @@ function timelineAfter() {
 }
 function tlDrag(ev, x, mode, pxd, place) {
   if (ev.button !== 0) return;
-  if (mode !== 'move' && !startMovable(x, mode)) { toast('Im Detailplan von „' + x.m.name + '“ ist kein Schritt als ' + (mode === 'S' ? 'Start Selektion' : 'Start Inhalt') + ' markiert (⋯-Menü am Schritt).', 'warn'); return; }
+  if (mode !== 'move' && !startMovable(x, mode)) { toast('Im Detailplan von „' + x.m.name + '“ gehört noch kein Abschnitt zum Bereich „' + phName(mode) + '“.', 'warn'); return; }
   if (mode === 'move' && x.pal == null) return;
   ev.preventDefault(); hideTip();
   const el = ev.currentTarget, x0 = ev.clientX;
@@ -230,22 +238,22 @@ function tlDrag(ev, x, mode, pxd, place) {
   const resp = (x.m.verantwortlich || '').trim();
   const move = e => {
     dd = Math.round((e.clientX - x0) / pxd);
-    let s = x.s, i = x.i, p = x.pal, txt, n;
-    if (mode === 'move') { s = s != null ? s + dd : s; i = i != null ? i + dd : i; p += dd; n = p; txt = 'PAL: ' + fmtW(p); }
-    else if (mode === 'S') { s += dd; n = s; txt = 'Start Selektion: ' + fmtW(s) + ' · ' + workdaysBefore(s, x.pal) + ' Werktage vor PAL'; }
-    else { i += dd; n = i; txt = 'Start Inhalt: ' + fmtW(i) + ' · ' + workdaysBefore(i, x.pal) + ' Werktage vor PAL'; }
-    place(s, i, p);
-    const w = mode === 'move' ? [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(t => k > 0 || !/Samstag|Urlaub/.test(t)).map(t => ['PAL', 'S', 'I'][k] + ': ' + t)) : dateWarn(n, resp);
+    const st = Object.assign({}, x.st), enx = Object.assign({}, x.enx);
+    let p = x.pal, txt, n;
+    if (mode === 'move') { for (const k of Object.keys(st)) st[k] += dd; for (const k of Object.keys(enx)) enx[k] += dd; p += dd; n = p; txt = 'PAL: ' + fmtW(p); }
+    else { st[mode] += dd; n = st[mode]; txt = startLabel(mode) + ': ' + fmtW(n) + ' · ' + workdaysBefore(n, x.pal) + ' Werktage vor PAL'; }
+    place(st, phaseEnds(st, enx, p), p);
+    const w = mode === 'move' ? [['PAL', p], ...PH().filter(q => st[q.key] != null).map(q => [q.key, st[q.key]])].flatMap(([k, v]) => dateWarn(v, resp).filter(t => k !== 'PAL' || !/Samstag|Urlaub/.test(t)).map(t => k + ': ' + t)) : dateWarn(n, resp);
     setKids(lab, h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
   const end = okay => {
     document.body.classList.remove('dragging');
     lab.remove();
-    if (!okay) { place(x.s, x.i, x.pal); return; }          // abgebrochen: Balken zurück an den alten Platz
+    if (!okay) { place(x.st, x.en, x.pal); return; }        // abgebrochen: Balken zurück an den alten Platz
     if (!dd) return;
     if (mode === 'move') commit(d => { const m = findM(d, x.id); if (m && dn(m.pal) != null) m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd));
-    else moveStartTo(x.id, mode, (mode === 'S' ? x.s : x.i) + dd);
+    else moveStartTo(x.id, mode, x.st[mode] + dd);
   };
   dragSession(ev, el, move, end);
   move(ev);

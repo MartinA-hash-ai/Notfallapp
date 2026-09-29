@@ -128,16 +128,18 @@ function viewWorkbookLight(opts = {}) {
   // 1. Übersicht
   {
     const rows = [[{ v: 'Jahresplanung Außenkommunikation ' + y, st: XS.title }], [{ v: hint, st: XS.note }], [],
-      ['', 'Maßnahme', 'Start Selektion', 'Start inhaltliche Arbeit', 'PAL', 'PAL-Status', 'Hauptverantwortlich', 'Art der Bitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
+      ['', 'Maßnahme', ...PH().map(p => 'Start ' + p.name), ...PH().map(p => 'WT bis PAL (' + p.key + ')'), 'PAL', 'PAL-Status', 'Hauptverantwortlich', 'Art der Bitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
     for (const x of ms) {
       const bd = { border: 'thin', v: 'top' };
       rows.push([{ v: '', st: { fill: x.color, border: 'thin' } }, { v: x.m.name, st: { ...bd, b: true, color: darker(x.color) } },
-        XD(x.s, 'dw', bd), XD(x.i, 'dw', bd), XD(x.pal, 'dw', { ...bd, b: true }), { v: x.m.palStatus, st: bd }, { v: x.m.verantwortlich || '', st: bd },
+        ...PH().map(p => XD(x.st[p.key] ?? null, 'dw', bd)), ...PH().map(p => x.st[p.key] != null && x.pal != null ? { v: workdaysBefore(x.st[p.key], x.pal), st: bd } : { v: '', st: bd }),
+        XD(x.pal, 'dw', { ...bd, b: true }), { v: x.m.palStatus, st: bd }, { v: x.m.verantwortlich || '', st: bd },
         { v: x.m.art || '', st: bd }, isNum(x.m.auflage) ? { v: +x.m.auflage, st: bd } : { v: '', st: bd }, { v: x.m.hinweis || '', st: { ...bd, wrap: true } },
         { v: (warnBy.get(x.id) || []).join('; '), st: { ...bd, wrap: true, color: '#B45309' } }]);
     }
-    sheets.push({ name: 'Übersicht', cols: [2.5, 30, 15, 17, 15, 11, 15, 12, 9, 40, 55], rows, merges: ['A1:K1', 'A2:K2'], heights: { 0: 22, 3: 30 },
-      freeze: 'C5', filter: ms.length ? 'A4:K' + (4 + ms.length) : null, protect, grid: false });
+    const nc = 11 + 2 * PH().length - 2, lc = colName(nc - 1);
+    sheets.push({ name: 'Übersicht', cols: [2.5, 30, ...PH().map(() => 15), ...PH().map(() => 8), 15, 11, 15, 12, 9, 40, 55], rows, merges: ['A1:' + lc + '1', 'A2:' + lc + '2'], heights: { 0: 22, 3: 30 },
+      freeze: 'C5', filter: ms.length ? 'A4:' + lc + (4 + ms.length) : null, protect, grid: false });
   }
 
   // 2. Kalender: 12 Monate wie im Programm (S/I/P farbig)
@@ -147,7 +149,7 @@ function viewWorkbookLight(opts = {}) {
     const set = (r, c, v) => { (rows[r] = rows[r] || [])[c] = v; };
     set(0, 0, { v: 'Jahresplanung Außenkommunikation ' + y + ' – Kalender', st: XS.title }); merges.push('A1:AI1'); heights[0] = 22;
     set(1, 0, { v: hint, st: XS.note }); merges.push('A2:AI2');
-    set(2, 0, { v: 'P = PAL (kräftige Farbe der Maßnahme) · S = Start Selektion · I = Start inhaltliche Arbeit (Pastellton) · hellgrau = Wochenende · dunkelgrau = Feiertag NRW', st: { sz: 9, color: '#404040' } }); merges.push('A3:AI3');
+    set(2, 0, { v: 'P = PAL (kräftige Farbe der Maßnahme) · ' + PH().map(p => p.key + ' = Start ' + p.name).join(' · ') + ' (Pastellton) · hellgrau = Wochenende · dunkelgrau = Feiertag NRW', st: { sz: 9, color: '#404040' } }); merges.push('A3:AI3');
     const evAll = eventsIn(a, b, true), byDay = new Map();
     evAll.forEach(e => { if (!byDay.has(e.n)) byDay.set(e.n, []); byDay.get(e.n).push(e); });
     let r = 4;
@@ -180,7 +182,7 @@ function viewWorkbookLight(opts = {}) {
         const hols = []; for (let n = first; n <= last; n++) { const hn = holName(n); if (hn) hols.push(fmtS(n) + ' ' + hn); }
         if (hols.length) lines.push({ v: hols.join(' · '), st: { sz: 8, color: '#8C8C8C' } });
         for (let n = first; n <= last; n++) for (const e of byDay.get(n) || []) { if (!per.has(e.x.id)) per.set(e.x.id, { x: e.x, ev: [] }); per.get(e.x.id).ev.push(e); }
-        for (const { x, ev } of per.values()) lines.push({ v: x.m.name + ':  ' + ev.map(e => e.t + ' ' + fmtS(e.n)).join(' · '), st: { sz: 8, b: true, color: darker(x.color) } });
+        for (const { x, ev } of per.values()) lines.push({ v: ev.map(e => e.t + ' ' + fmtS(e.n)).join(' · ') + '  ' + x.m.name, st: { sz: 8, b: true, color: darker(x.color) } });
         const vm = C.vac.filter(v => v.bis >= first && v.von <= last);
         if (vm.length) lines.push({ v: 'Urlaub: ' + vm.map(v => (v.u.wer || '?') + ' ' + fmtS(Math.max(v.von, first)) + (v.bis > v.von ? '–' + fmtS(Math.min(v.bis, last)) : '')).join(', '), st: { sz: 8, color: '#8A6D00' } });
         lists.push(lines);
@@ -230,10 +232,14 @@ function viewWorkbookLight(opts = {}) {
         const e = n + 6, has = v => v != null && v >= n && v <= e;
         const st = { sz: 7, h: 'center', v: 'center', border: 'thin', b: true };
         let v = '';
-        const selEnd = x.i != null ? x.i : x.pal;
+        // Woche im Bereich: der späteste Bereich, der in dieser Woche läuft, bestimmt die Farbe (hell → kräftiger)
+        const phs = PH().filter(p => x.st[p.key] != null), inW = phs.map((p, i) => [p, i]).filter(([p]) => x.st[p.key] <= e && (x.en[p.key] ?? x.st[p.key]) >= n);
         if (has(x.pal)) { Object.assign(st, { fill: x.color, color: onColor(x.color) }); v = 'P'; }
-        else if (x.i != null && x.pal != null && x.i <= e && x.pal >= n) { Object.assign(st, { fill: midtone(x.color), color: darker(x.color) }); v = has(x.i) ? 'I' : ''; }
-        else if (x.s != null && selEnd != null && x.s <= e && selEnd > n) { Object.assign(st, { fill: pastel(x.color), color: darker(x.color) }); v = has(x.s) ? 'S' : ''; }
+        else if (inW.length) {
+          const [p, i] = inW[inW.length - 1], f = phs.length > 1 ? i / (phs.length - 1) : 0;
+          Object.assign(st, { fill: mix(x.color, 0.75 - 0.30 * f), color: darker(x.color) });
+          v = phs.filter(q => has(x.st[q.key])).map(q => q.key).join('');
+        }
         row[j + W0] = { v, st };
       });
       rows.push(row);
@@ -280,7 +286,7 @@ function viewWorkbookLight(opts = {}) {
     for (const x of ms) if (x.pc) {
       let grp = '';
       for (const s of x.m.plan.steps) {
-        if (s.typ === 'gruppe') { grp = s.name; continue; }
+        if (s.typ === 'gruppe') { grp = s.name + (s.bereich ? ' (' + s.bereich + ' · ' + phName(s.bereich) + ')' : ''); continue; }
         const r = x.pc.map.get(s.id) || {};
         rows.push([{ v: x.m.name, st: { color: darker(x.color), b: true } }, grp, s.name, STEP_TYPES[s.typ], s.wer ? { v: s.wer, st: { fill: pastel(personColor(s.wer)) } } : '', s.kommentar || '', XD(r.start), s.typ === 'aufgabe' ? +s.dauer || 0 : '', XD(r.end)]);
       }
@@ -298,6 +304,13 @@ function viewWorkbookLight(opts = {}) {
       .sort((p, q) => p[0] - q[0]);
     hols.forEach(([n, t]) => rows.push([XD(n), { v: t, st: {} }]));
     sheets.push({ name: 'Urlaub & Feiertage', cols: [18, 16, 16, 12, 30], rows, freeze: 'A2', protect });
+  }
+
+  // 7. Änderungsprotokoll (neueste oben)
+  {
+    const rows = [['Gespeichert', 'Von', 'Änderung'].map(t => ({ v: t, st: XS.head }))];
+    for (const e of (D.log || []).slice().reverse().slice(0, 200)) for (const t of e.items || []) rows.push([fmtStamp(e.at), e.by || '', { v: t, st: { wrap: true } }]);
+    sheets.push({ name: 'Änderungen', cols: [22, 14, 100], rows, freeze: 'A2', protect });
   }
   return xlsxBlob(sheets, { readOnly: protect });
 }

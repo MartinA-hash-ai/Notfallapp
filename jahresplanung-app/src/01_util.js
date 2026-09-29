@@ -230,15 +230,24 @@ function toast(text, kind = '') {
   setTimeout(() => t.classList.add('out'), 3200);
   setTimeout(() => t.remove(), 3700);
 }
+// Doppelklick auf Knöpfe: der zweite Klick zählt nicht (sonst: zwei Einträge gelöscht/angelegt, Fenster auf und gleich wieder zu).
+// Ausnahmen: Knöpfe, die man bewusst schnell hintereinander drückt (Zoom, Jahr, Rückgängig …)
+document.addEventListener('click', e => {
+  if (e.detail < 2) return;
+  const b = e.target.closest && e.target.closest('button, .mline-edit, [role=menuitem]');
+  if (!b || b.closest('.seg-btn, .year, [data-repeat], .segs')) return;
+  e.preventDefault(); e.stopImmediatePropagation();
+}, true);
 function modal(title, body, buttons, opts = {}) {
   return new Promise(resolve => {
+    const opened = Date.now();
     const close = v => { back.remove(); document.removeEventListener('keydown', key); resolve(v); };
     const key = e => { if (e.key === 'Escape') close(null); };
     const box = h('div', { class: 'modal' + (opts.wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true' },
       h('header', null, h('h2', null, title), h('button', { class: 'icon', 'aria-label': 'Schließen', onclick: () => close(null) }, '✕')),
       h('div', { class: 'modal-body' }, body),
       h('footer', null, (buttons || [['OK', true, 'primary']]).map(([label, val, cls]) => h('button', { class: cls || '', onclick: () => close(typeof val === 'function' ? val() : val) }, label))));
-    const back = h('div', { class: 'backdrop', onmousedown: e => { if (e.target === back) close(null); } }, box);
+    const back = h('div', { class: 'backdrop', onmousedown: e => { if (e.target === back && e.detail < 2 && Date.now() - opened > 400) close(null); } }, box);
     document.body.append(back);
     document.addEventListener('keydown', key);
     const f = box.querySelector('input,select,textarea,footer button.primary');
@@ -248,6 +257,17 @@ function modal(title, body, buttons, opts = {}) {
 const confirmBox = (title, text, yes = 'Ja', no = 'Abbrechen') =>
   modal(title, h('p', null, text), [[no, false], [yes, true, 'primary']]).then(v => v === true);
 
+// Menü/Popover neben dem Auslöser platzieren – passt es unten nicht hin, öffnet es nach oben; nie außerhalb des Fensters
+function placeMenu(m, r, align) {
+  m.style.maxHeight = ''; m.style.overflow = '';
+  const mr = m.getBoundingClientRect(), W = innerWidth, H = innerHeight;
+  let top = r.bottom + 4;
+  if (top + mr.height > H - 8) { const up = r.top - mr.height - 4; top = up >= 8 ? up : Math.max(8, H - 8 - mr.height); }
+  if (mr.height > H - 16) { top = 8; m.style.maxHeight = (H - 16) + 'px'; m.style.overflow = 'auto'; }
+  m.style.top = top + 'px';
+  if (align === 'right') { m.style.left = ''; m.style.right = Math.max(8, W - r.right) + 'px'; }
+  else { m.style.right = ''; m.style.left = clamp(r.left, 8, Math.max(8, W - mr.width - 8)) + 'px'; }
+}
 function download(filename, blob) {
   const a = h('a', { href: URL.createObjectURL(blob), download: filename });
   document.body.append(a); a.click(); a.remove();

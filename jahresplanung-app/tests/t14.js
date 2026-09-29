@@ -57,7 +57,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
 
   // ---------- Outlook-Vorschau
   await p.click('header button:has-text("Export")'); await p.click('.menu button:has-text("Outlook")'); await p.waitForTimeout(150);
-  await p.click('.modal button:has-text("nur Selektions-Starts")'); await p.waitForTimeout(100);
+  await p.click('.modal button:has-text("nur Start Selektion")'); await p.waitForTimeout(100);
   const pv1 = await p.evaluate(() => [...document.querySelectorAll('.icsev')].map(e => e.textContent));
   await p.click('.modal button:has-text("alle Starts + PAL")'); await p.waitForTimeout(100);
   const pv2 = await p.evaluate(() => [document.querySelectorAll('.icsev').length, [...document.querySelectorAll('.icsgrp')][0].textContent.slice(0, 160)]);
@@ -65,7 +65,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   // eine Maßnahme abwählen → deren Termine verschwinden aus der Liste
   await p.click('.icsgrp >> nth=0 >> input'); await p.waitForTimeout(100);
   const pv3 = await p.evaluate(() => [document.querySelectorAll('.icsev').length, document.querySelector('.modal .calcline').textContent]);
-  ok(pv1.length && pv1.every(t => /Start Selektion/.test(t)) && pv1.length === 10 && pv2[0] === 30 && pv3[0] === 27,
+  ok(pv1.length && pv1.every(t => /Start Selektion/.test(t)) && pv1.length === 10 && pv2[0] === 32 && pv3[0] === 29,
     'Terminliste im Outlook-Export: nur S ' + pv1.length + ', S+I+P ' + pv2[0] + ', ohne 1. Maßnahme ' + pv3[0] + ' (' + pv3[1] + ') · ' + pv2[1]);
   await p.click('.modal footer button:has-text("Abbrechen")');
 

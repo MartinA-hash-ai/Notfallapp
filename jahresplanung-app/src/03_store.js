@@ -100,6 +100,7 @@ async function attachFolder(create) {
   noteNewer(text, other);
   startWatch();
   scanCopies();
+  presenceTick();
   safeRender();                                 // u. a. Hinweis, falls Datei und Speicherort nicht zusammenpassen
   return true;
 }
@@ -110,6 +111,43 @@ function noteNewer(text, other) {
   if (!ST.newer) { ST.newer = { version: v, by: other && other.meta ? other.meta.savedBy : '' }; clearTimeout(ST.timer); ST.timer = null; safeRender(); }
   return true;
 }
+// Name für Protokoll und Anwesenheit: Hinweis oben, solange keiner eingetragen ist (blockiert nichts)
+function nameBanner() {
+  let v = '';
+  const take = () => { if (!v) return; UI.userName = v; saveUI(); presenceTick(); renderNow(); toast('Danke, ' + v + '!', 'ok'); };
+  return h('div', { class: 'banner warn' },
+    h('span', null, 'Wie heißt du? Der Name steht im Änderungsprotokoll („gespeichert von …“) und zeigt den anderen, wer die Jahresplanung gerade geöffnet hat.'),
+    h('input', { placeholder: 'Vorname', 'data-fk': 'username', style: 'width:140px', oninput: e => { v = e.target.value.trim(); }, onkeydown: e => { if (e.key === 'Enter') take(); } }),
+    h('button', { class: 'primary', onclick: take }, 'Übernehmen'),
+    h('button', { onclick: () => { UI.nameLater = true; renderNow(); } }, 'Später'));
+}
+/* ---------- Wer arbeitet gerade? Jedes offene App-Fenster legt im Unterordner „Jahresplanung (automatisch)“ eine kleine
+   Anwesenheitsdatei ab und erneuert sie alle 30 Sekunden. OneDrive gleicht sie ab – die Anzeige kann also etwas nachhinken. */
+const APP_DIR = 'Jahresplanung (automatisch)', INST = uid(), PRESENCE = { others: [], key: '', since: null };
+async function presenceTick() {
+  if (!FSA || ST.conn !== 'ok' || !ST.htmlDir || document.hidden) return;
+  try {
+    const dir = await ST.htmlDir.getDirectoryHandle(APP_DIR, { create: true }), mine = 'anwesend-' + INST + '.json';
+    PRESENCE.since = PRESENCE.since || new Date().toISOString();
+    const w = await (await dir.getFileHandle(mine, { create: true })).createWritable();
+    await w.write(JSON.stringify({ name: UI.userName || '', inst: INST, since: PRESENCE.since, at: new Date().toISOString(), edit: LAST_EDIT, version: APP_INFO.version })); await w.close();
+    const others = [], now = Date.now();
+    for await (const [n, e] of dir.entries()) {
+      if (e.kind !== 'file' || !/^anwesend-.+\.json$/.test(n) || n === mine) continue;
+      try {
+        const o = JSON.parse(await (await e.getFile()).text()), age = now - Date.parse(o.at);
+        if (!(age < 86400000)) { dir.removeEntry(n).catch(() => {}); continue; }      // alte Dateien aufräumen
+        if (age < 180000) others.push(o);
+      } catch (x) { /* halb synchronisiert: nächstes Mal */ }
+    }
+    const key = JSON.stringify(others.map(o => [o.inst, o.name, o.edit]));
+    if (key !== PRESENCE.key) { PRESENCE.key = key; PRESENCE.others = others; safeRender(); }
+  } catch (e) { console.warn(e); }
+}
+window.addEventListener('pagehide', () => {
+  if (ST.htmlDir && ST.conn === 'ok') ST.htmlDir.getDirectoryHandle(APP_DIR).then(d => d.removeEntry('anwesend-' + INST + '.json')).catch(() => {});
+});
+document.addEventListener('visibilitychange', () => { if (!document.hidden) presenceTick(); });
 function reloadForNewer() {
   saveDraft();                                  // ungespeicherte Änderungen bleiben im Browser und werden nach dem Neustart angeboten
   window.__jpReload = true;
@@ -190,10 +228,11 @@ async function saveAll(opts = {}) {
     data.meta.savedAt = new Date().toISOString();
     data.meta.savedBy = UI.userName || '';
     data.meta.rev = (+D.meta.rev || 0) + 1;                 // Datenstand-Nummer, zählt jedes Speichern
+    data.log = logWithEntry(data.meta);                     // Änderungsprotokoll: was seit dem letzten Speichern geändert wurde
     const w = await ST.html.createWritable();
     await w.write(buildFile(data)); await w.close();
     ST.stamp = (await ST.html.getFile()).lastModified;
-    D.meta = data.meta; SAVED_JSON = JSON.stringify(D); clearDraft();
+    D.meta = data.meta; D.log = data.log; SAVED_JSON = JSON.stringify(D); clearDraft();
     ST.lastSave = new Date(); ST.conflict = null;
     if (ST.fail) { if (ST.fail.n > 1) toast('Wieder gespeichert.', 'ok'); ST.fail = null; }
     clearTimeout(ST.retry); ST.retry = null;
@@ -219,6 +258,16 @@ async function saveAll(opts = {}) {
   }
 }
 function save() { return saveAll({ manual: true }); }
+// Protokoll = bisherige Einträge (aus Datei und aktuellem Stand zusammengeführt) + ein Eintrag mit den Änderungen seit dem letzten Speichern
+function logWithEntry(meta) {
+  let base = {}; try { base = JSON.parse(SAVED_JSON) || {}; } catch (e) { /* */ }
+  const seen = new Set(), all = [];
+  for (const e of [...(base.log || []), ...(D.log || [])]) { const k = e.at + '|' + e.by + '|' + (e.items || []).join('|'); if (!seen.has(k)) { seen.add(k); all.push(e); } }
+  all.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  const items = base.massnahmen ? describeChanges(base, D) : [];
+  if (items.length) all.push({ at: meta.savedAt, by: meta.savedBy || '', items });
+  return all.slice(-LOG_MAX);
+}
 // Ansichts-Excel (für Teams) schreiben; klappt es nicht (z. B. gerade in Excel geöffnet), später erneut versuchen
 async function writeViewXlsx() {
   clearTimeout(ST.xlsxTimer); ST.xlsxTimer = null;
@@ -236,8 +285,9 @@ async function writeViewXlsx() {
 async function saveDownload() {
   const data = JSON.parse(JSON.stringify(D));
   data.meta.savedAt = new Date().toISOString(); data.meta.savedBy = UI.userName || ''; data.meta.rev = (+D.meta.rev || 0) + 1;
+  data.log = logWithEntry(data.meta);
   download(currentFileName(), new Blob([buildFile(data)], { type: 'text/html' }));
-  D.meta = data.meta; SAVED_JSON = JSON.stringify(D); clearDraft(); updateSaveUI();
+  D.meta = data.meta; D.log = data.log; SAVED_JSON = JSON.stringify(D); clearDraft(); updateSaveUI();
   modal('Als Download gespeichert', h('div', null,
     h('p', null, `Dieser Browser kann nicht direkt in den Ordner speichern. Die Datei „${currentFileName()}“ liegt jetzt in deinem Download-Ordner – ersetze damit die bisherige Datei.`),
     h('p', null, 'Die Excel-Ansicht wird nur in Microsoft Edge oder Google Chrome automatisch aktualisiert.')));
@@ -276,6 +326,7 @@ function startWatch() {
     if (ST.conn !== 'ok' || ST.saving || document.hidden) return;
     ST.tick++;
     if (ST.tick % 4 === 0) scanCopies();                          // etwa jede Minute: Konfliktkopien von OneDrive?
+    if (ST.tick % 2 === 0) presenceTick();                        // alle 30 Sekunden: wer arbeitet noch in der Jahresplanung?
     if (ST.conflict) return;
     try {
       const f = await ST.html.getFile();

@@ -68,7 +68,7 @@ const path = require('path');
       commit(d => { const m = findM(d, x.id); const st = m.plan.steps.find(s => s.typ === 'aufgabe'); st.anker = { art: 'fest', datum: '2190-01-06' }; m.plan.steps.filter(s => s.typ === 'aufgabe')[1].anker = { art: 'fest', datum: '20277-01-06' }; });
       UI.planSel = x.id; UI.view = 'plaene';
       let t0 = performance.now(); renderNow(); const tPlan = performance.now() - t0;
-      commit(d => { d.massnahmen.find(m => !m.plan && m.pal).vorlaufS = 36500; });
+      commit(d => { d.massnahmen.find(m => !m.plan && m.pal).vorlauf.S = 36500; });
       UI.view = 'zeit'; t0 = performance.now(); renderNow(); const tTl = performance.now() - t0;
       return [Math.round(tPlan), Math.round(tTl), C.warnings.filter(w => /Datum prüfen/.test(w.text)).length];
     });

@@ -50,18 +50,18 @@ const URL = T.URL;
   log('Drag-Label:', (await p.textContent('.drag-lab')).replace(/\s+/g, ' '));
   await p.mouse.up(); await p.waitForTimeout(150);
   log('PAL nach Ziehen:', await p.evaluate(() => D.massnahmen.find(m => m.id === 'm3').pal), 'dirty:', await p.evaluate(() => isDirty()));
-  const hs = await (await p.$('.tl-row[data-m="m3"] .handle.hs')).boundingBox();
+  const hs = await (await p.$('.tl-row[data-m="m3"] .handle.h-S')).boundingBox();
   await p.mouse.move(hs.x + 5, hs.y + 10); await p.mouse.down(); await p.mouse.move(hs.x + 5 - 10 * pxd, hs.y + 10, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(150);
-  log('Vorlauf S nach Griff:', await p.evaluate(() => D.massnahmen.find(m => m.id === 'm3').vorlaufS));
+  log('Vorlauf S nach Griff:', await p.evaluate(() => D.massnahmen.find(m => m.id === 'm3').vorlauf.S));
   await p.keyboard.press('Control+z'); await p.waitForTimeout(100);
-  log('nach Strg+Z Vorlauf S:', await p.evaluate(() => D.massnahmen.find(m => m.id === 'm3').vorlaufS));
+  log('nach Strg+Z Vorlauf S:', await p.evaluate(() => D.massnahmen.find(m => m.id === 'm3').vorlauf.S));
   await p.screenshot({ path: 'tl2.png' });
 
   // --- Detailplan: Dauer „Selektion erstellen“ 52 -> 60
   await p.click('nav.tabs >> text=Detailpläne'); await p.waitForTimeout(150);
   const durInp = await p.$('[data-fk="st:sel_erstellen:dur"]');
   await durInp.fill('60'); await durInp.press('Enter'); await durInp.evaluate(e => e.blur()); await p.waitForTimeout(150);
-  log('Sommer S / Vorlauf:', await p.evaluate(() => { const x = C.ms.find(x => x.m.name === 'Sommermailing'); return fmtW(x.s) + ' / ' + x.vS; }));
+  log('Sommer S / Vorlauf:', await p.evaluate(() => { const x = C.ms.find(x => x.m.name === 'Sommermailing'); return fmtW(x.s) + ' / ' + (x.pal - x.s); }));
   await p.screenshot({ path: 'plaene2.png' });
 
   // --- Warnungen

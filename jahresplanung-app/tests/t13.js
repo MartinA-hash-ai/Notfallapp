@@ -19,8 +19,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(th[0] === 'PAL-Status' && th[1] === '0px', 'Kopf „PAL-Status“ ohne runde Ecken ' + JSON.stringify(th));
   const al = await p.evaluate(() => getComputedStyle(document.querySelector('.mtable td.num input')).textAlign);
   ok(al === 'left' || al === 'start', 'Auflage linksbündig: ' + al);
-  const ord = await p.evaluate(() => { const t = document.querySelector('.mtable th.h-s'); return [...t.childNodes].map(n => n.nodeType === 3 ? 'T:' + n.textContent : n.className).join(' | '); });
-  ok(/^T:Start Selektion \| chip demo S/.test(ord), 'Symbol rechts von der Beschriftung: ' + ord);
+  const ord = await p.evaluate(() => { const t = document.querySelector('.mtable th.h-ph_S'); return [...t.childNodes].map(n => n.nodeType === 3 ? 'T:' + n.textContent : n.className).join(' | '); });
+  ok(/^T:Selektion \| chip demo ph/.test(ord), 'Symbol rechts von der Beschriftung: ' + ord);
   const palBg = await p.evaluate(() => {
     const x = C.ms[0]; commit(d => { d.massnahmen.find(m => m.id === x.id).palStatus = 'fest'; }); renderNow();
     const td = document.querySelector('tr[data-m="' + x.id + '"] td.pal'), td2 = document.querySelector('tr[data-m="' + C.ms[1].id + '"] td.pal');
@@ -35,7 +35,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   // ---------- Warnungen: Vorziehen auch bei Feiertag, Detailplan und PAL
   const w1 = await p.evaluate(() => {
     const x = C.ms.find(x => !x.m.plan && x.pal != null);
-    commit(d => { const m = d.massnahmen.find(q => q.id === x.id); m.vorlaufS = dn(m.pal) - mkdn(2027, 5, 6); }); derive();   // Christi Himmelfahrt
+    commit(d => { const m = d.massnahmen.find(q => q.id === x.id); m.vorlauf = Object.assign({}, m.vorlauf, { S: dn(m.pal) - mkdn(2027, 5, 6) }); }); derive();   // Christi Himmelfahrt
     const a = C.warnings.find(w => w.mid === x.id && /Feiertag/.test(w.text));
     const plan = C.warnings.find(w => /Sommermailing: Start Selektion/.test(w.text));
     return [a && a.fix && ds(a.fix.to), plan && plan.fix && ds(plan.fix.to), C.warnings.filter(w => w.fix).length];
@@ -50,13 +50,13 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   // ---------- Zeitleiste
   await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(200);
   const pills = await p.evaluate(() => [document.querySelectorAll('.filterbar .tpill').length, document.querySelectorAll('.sec[data-sec="ag"] .sec-h .tpill').length]);
-  ok(pills[0] === 0 && pills[1] === 3, 'S/I/P-Knöpfe bei „Was steht an?“ ' + JSON.stringify(pills));
+  ok(pills[0] === 0 && pills[1] === 4, 'S/I/D/P-Knöpfe bei „Was steht an?“ ' + JSON.stringify(pills));
   const op = await p.evaluate(() => { const x = C.ms[2]; highlight(x.id); const other = document.querySelector('.tl-row[data-m]:not(.hl-on) .tl-lab'); const r = [getComputedStyle(other).opacity, getComputedStyle(other.closest('.tl-row')).opacity, getComputedStyle(other.querySelector('.nm')).opacity, getComputedStyle(other).backgroundColor]; return r; });
   ok(op[0] === '1' && op[1] === '1' && +op[2] < 0.5, 'Hervorheben: Namensfeld bleibt deckend ' + JSON.stringify(op));
   await p.evaluate(() => { document.querySelector('.tl').scrollLeft = 300; }); await p.waitForTimeout(100);
   await p.screenshot({ path: 'r7_tl_hl.png', clip: { x: 0, y: 90, width: 1600, height: 460 } });
   await p.evaluate(() => highlight(null));
-  const hs = await p.evaluate(() => { const x = C.ms.find(x => !x.pc && x.s != null); const e = document.querySelector('.tl-row[data-m="' + x.id + '"] .handle.hs'); e.scrollIntoView({ block: 'center', inline: 'center' }); const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2, workdays(x.s, x.pal - 1)]; });
+  const hs = await p.evaluate(() => { const x = C.ms.find(x => !x.pc && x.s != null); const e = document.querySelector('.tl-row[data-m="' + x.id + '"] .handle.h-S'); e.scrollIntoView({ block: 'center', inline: 'center' }); const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2, workdays(x.s, x.pal - 1)]; });
   await p.mouse.move(hs[0] - 20, hs[1]); await p.mouse.move(hs[0], hs[1], { steps: 3 }); await p.waitForTimeout(500);
   const tt = await p.evaluate(() => document.querySelector('#tip.on') ? document.querySelector('#tip').innerText : '');
   ok(tt.includes(hs[2] + ' Werktage vor PAL'), 'Tooltip S: ' + tt.replace(/\n/g, ' / '));
@@ -97,17 +97,17 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const ur = await p.evaluate(id => { const r = C.byId.get(UI.planSel).pc.map.get(id); return [ds(r.start), ds(r.end)]; }, und);
   const udur = await p.evaluate(id => C.byId.get(UI.planSel).m.plan.steps.find(s => s.id === id).dauer, und);
   ok(ur[1] === '2027-10-20' && Math.round((Date.parse(ur[1]) - Date.parse(ur[0])) / 864e5) === (udur || 7), 'Schritt ohne Termin, nur Ende gesetzt: ' + ur.join('–') + ' (Dauer ' + udur + ')');
-  // Leerer Plan mit S und I
+  // Vorlage „Bereiche“ mit S und I
   const lp = await p.evaluate(() => C.ms.find(x => !x.m.plan && x.pal != null).id);
   await p.evaluate(id => { createPlan(id); }, lp); await p.waitForTimeout(150);
-  await p.click('.modal label:has-text("Leerer Plan") input');
+  await p.click('.modal label:has-text("Vorlage Bereiche") input');
   const md = await p.$$('.modal input[type=date]');
   const palv = await md[0].inputValue();
   const tS = await p.evaluate(v => ds(dn(v) - 60), palv), tI = await p.evaluate(v => ds(dn(v) - 40), palv);
   await md[1].fill(tS); await md[1].dispatchEvent('input'); await md[2].fill(tI); await md[2].dispatchEvent('input');
   await p.click('.modal button:has-text("Anlegen")'); await p.waitForTimeout(250);
   const lpr = await p.evaluate(id => { const x = C.byId.get(id); return [ds(x.s), ds(x.i), x.m.plan.steps.length, x.m.plan.steps.map(s => s.name).join(',')]; }, lp);
-  ok(lpr[0] === tS && lpr[1] === tI, 'Leerer Plan übernimmt S/I: ' + JSON.stringify(lpr));
+  ok(lpr[0] === tS && lpr[1] === tI, 'Vorlage Bereiche übernimmt S/I: ' + JSON.stringify(lpr));
   await p.screenshot({ path: 'r7_plan_leer.png', clip: { x: 0, y: 0, width: 1600, height: 460 } });
 
   // ---------- Urlaub & Feiertage
@@ -178,7 +178,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
 
   // ---------- Outlook-Export
   await p.click('header button:has-text("Export")'); await p.click('.menu button:has-text("Outlook")'); await p.waitForTimeout(150);
-  await p.click('.modal button:has-text("nur Selektions-Starts")'); await p.waitForTimeout(100);
+  await p.click('.modal button:has-text("nur Start Selektion")'); await p.waitForTimeout(100);
   const cnt = await p.evaluate(() => document.querySelector('.modal .calcline').textContent);
   await p.screenshot({ path: 'r7_ics_dialog.png' });
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.modal button:has-text("Kalenderdatei erstellen")')]);

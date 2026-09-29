@@ -74,7 +74,7 @@ function agendaSection() {
     sec.append(row(it));
   }
   if (!items.length && !running.length) {
-    const next = C.ms.filter(visibleM).flatMap(x => TYPES.filter(([t]) => UI.show[t]).map(([t, k]) => ({ n: x[k], t, x }))).filter(e => e.n != null && e.n > to).sort((a, b) => a.n - b.n)[0];
+    const next = C.ms.filter(visibleM).flatMap(x => evKeys().filter(showType).map(t => ({ n: evDate(x, t), t, x }))).filter(e => e.n != null && e.n > to).sort((a, b) => a.n - b.n)[0];
     list.append(h('div', { class: 'empty' }, 'In diesem Zeitraum steht nichts an.',
       next ? h('div', null, 'Nächster Termin: ', chip(next), ' ' + next.x.m.name + ' – ' + TYPE_LABEL[next.t] + ' am ' + fmtW(next.n) + ' (' + relDays(next.n, today) + ') ',
         h('button', { class: 'link', onclick: () => { UI.agendaFrom = next.n - wd(next.n); renderNow(); } }, 'dorthin springen')) : null));

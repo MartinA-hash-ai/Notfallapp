@@ -21,7 +21,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const heads = await p.evaluate(() => [...document.querySelectorAll('.mtable thead th')].map(t => t.textContent.trim()));
   ok(heads.includes('Hauptverantwortlich') && !heads.some(t => /Vorlauf/.test(t)), 'Spalten: ' + heads.filter(Boolean).join(' | '));
   const chipHeads = await p.evaluate(() => [...document.querySelectorAll('.mtable thead th .chip')].map(c => c.textContent));
-  ok(chipHeads.join('') === 'SIP', 'S/I/P-Kästchen in Spaltenköpfen ' + chipHeads.join(''));
+  ok(chipHeads.join('') === 'SIDP', 'S/I/D/P-Kästchen in Spaltenköpfen ' + chipHeads.join(''));
   // Spaltenbreite ziehen
   const rs = await p.evaluate(() => { const th = [...document.querySelectorAll('.mtable thead th')].find(t => t.textContent.trim() === 'Maßnahme'); const g = th.querySelector('.col-rs').getBoundingClientRect(); return [g.x + g.width / 2, g.y + g.height / 2, th.getBoundingClientRect().width]; });
   await p.mouse.move(rs[0], rs[1]); await p.mouse.down(); await p.mouse.move(rs[0] + 80, rs[1], { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(150);
@@ -31,7 +31,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   // Startdatum ändern (ohne Plan)
   const noPlan = await p.evaluate(() => { const x = C.ms.find(x => !x.m.plan && x.pal != null); return x && [x.id, x.m.name, ds(x.s)]; });
   if (noPlan) {
-    const inp = p.locator(`[data-fk="m:${noPlan[0]}:s"]`);
+    const inp = p.locator(`[data-fk="m:${noPlan[0]}:S"]`);
     if (await inp.count()) {
       await inp.fill('2027-01-04'); await inp.press('Enter'); await p.waitForTimeout(200);
       const s = await p.evaluate(id => ds(C.byId.get(id).s), noPlan[0]);
@@ -124,7 +124,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(g1[0] === g0[1] && g1[1] === g0[0] && blockOk, 'Abschnitt als Block verschoben: ' + g0.slice(0, 2).join(',') + ' → ' + g1.slice(0, 2).join(','));
   await p.evaluate(() => { undo(); UI.planColl = {}; renderNow(); }); await p.waitForTimeout(100);
   // Balken verschieben
-  const bar = await p.evaluate(() => { const x = C.byId.get(UI.planSel); const s = x.m.plan.steps.find(s => s.typ === 'aufgabe' && x.pc.map.get(s.id).start != null && (+s.dauer) >= 3 && s.id !== x.m.plan.markS && s.id !== x.m.plan.markI); const r = x.pc.map.get(s.id); const el = document.querySelector('.pl-row[data-rid="' + s.id + '"]'); const idx = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')].indexOf(el); const b = document.querySelectorAll('.g-body > .g-row')[idx].querySelector('.g-bar'); b.scrollIntoView({ block: 'center', inline: 'center' }); const bb = b.getBoundingClientRect(); return { id: s.id, name: s.name, start: r.start, end: r.end, x: bb.x, y: bb.y + bb.height / 2, w: bb.width, pxd: UI._pl.pxd }; });
+  const bar = await p.evaluate(() => { const x = C.byId.get(UI.planSel); const s = x.m.plan.steps.find(s => s.typ === 'aufgabe' && x.pc.map.get(s.id).start != null && (+s.dauer) >= 3 && !Object.values(x.pc.ph).some(q => q.mark === s.id)); const r = x.pc.map.get(s.id); const el = document.querySelector('.pl-row[data-rid="' + s.id + '"]'); const idx = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')].indexOf(el); const b = document.querySelectorAll('.g-body > .g-row')[idx].querySelector('.g-bar'); b.scrollIntoView({ block: 'center', inline: 'center' }); const bb = b.getBoundingClientRect(); return { id: s.id, name: s.name, start: r.start, end: r.end, x: bb.x, y: bb.y + bb.height / 2, w: bb.width, pxd: UI._pl.pxd }; });
   await p.mouse.move(bar.x + bar.w / 2, bar.y); await p.mouse.down(); await p.mouse.move(bar.x + bar.w / 2 + bar.pxd * 3 + 1, bar.y, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(200);
   let r = await p.evaluate(id => { const x = C.byId.get(UI.planSel); const r = x.pc.map.get(id); return [r.start, r.end]; }, bar.id);
   ok(r[0] - bar.start === 3 && r[1] - bar.end === 3, '„' + bar.name + '“ um 3 Tage verschoben (' + (r[0] - bar.start) + '/' + (r[1] - bar.end) + ')');
@@ -159,11 +159,11 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.click('.divbtn'); await p.waitForTimeout(150);
   // S/I-Datum im Kopf
   const si0 = await p.evaluate(() => { const x = C.byId.get(UI.planSel); return [x.s, x.i, x.pal]; });
-  const sIn = p.locator('[data-fk="pl:s"]');
+  const sIn = p.locator('[data-fk="pl:S"]');
   await sIn.fill(await p.evaluate(n => ds(n - 5), si0[0])); await sIn.press('Enter'); await p.waitForTimeout(250);
   const si1 = await p.evaluate(() => { const x = C.byId.get(UI.planSel); return [x.s, x.i, x.pal]; });
   ok(si1[0] === si0[0] - 5 && si1[1] === si0[1] && si1[2] === si0[2], 'Start Selektion −5 Tage, Inhalt und PAL bleiben (' + (si1[0] - si0[0]) + '/' + (si1[1] - si0[1]) + ')');
-  const iIn = p.locator('[data-fk="pl:i"]');
+  const iIn = p.locator('[data-fk="pl:I"]');
   await iIn.fill(await p.evaluate(n => ds(n + 3), si0[1])); await iIn.press('Enter'); await p.waitForTimeout(250);
   const si2 = await p.evaluate(() => { const x = C.byId.get(UI.planSel); return [x.s, x.i, x.pal]; });
   ok(si2[1] === si0[1] + 3 && si2[0] === si1[0] && si2[2] === si0[2], 'Start Inhalt +3 Tage, Selektion und PAL bleiben (' + (si2[0] - si1[0]) + '/' + (si2[1] - si0[1]) + ')');

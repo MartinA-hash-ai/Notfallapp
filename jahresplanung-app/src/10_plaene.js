@@ -22,14 +22,15 @@ function influencingChain(p, markId) {
   }
   return out;
 }
-// Start Selektion / Start Inhalt auf ein Datum legen: die Dauer des längsten Schritts dazwischen passt sich an
+// Start eines Bereichs auf ein Datum legen: die Dauer des längsten Schritts davor (bis zum PAL) passt sich an,
+// Schritte, von denen die Starts der anderen Bereiche abhängen, bleiben möglichst unberührt
 function adjustMark(m, which, target) {
-  const p = m.plan, mark = which === 'S' ? p.markS : p.markI, other = which === 'S' ? p.markI : p.markS;
-  const r = planCalc(m).map.get(mark);
+  const p = m.plan, pc = planCalc(m), ph = pc.ph[which], mark = ph && ph.mark;
+  const r = mark && pc.map.get(mark);
   if (!r || r.start == null || target == null) return null;
   let delta = r.start - target;
   if (!delta) return { changed: [] };
-  const theirs = new Set(other ? influencingChain(p, other).map(s => s.id) : []);
+  const theirs = new Set(Object.keys(pc.ph).filter(k => k !== which).flatMap(k => influencingChain(p, pc.ph[k].mark).map(s => s.id)));
   const mine = influencingChain(p, mark);
   let pool = mine.filter(s => !theirs.has(s.id));
   if (!pool.length) pool = mine;
@@ -51,20 +52,24 @@ function adjustMark(m, which, target) {
 }
 // Start Selektion/Inhalt einer Maßnahme auf ein Datum legen (Zeitleiste, Kalender): ohne Plan über den Vorlauf,
 // mit Detailplan über die Dauer der Schritte davor. Liefert die Meldung für den Hinweis.
-function startMovable(x, t) { return !x.m.plan || !!(t === 'S' ? x.m.plan.markS : x.m.plan.markI); }
+function startMovable(x, t) { return !x.m.plan || !!(x.pc && x.pc.ph[t]); }
 function moveStartTo(id, t, n) {
   let res = null;
-  const x = C.byId.get(id), label = t === 'S' ? 'Start Selektion' : 'Start Inhalt';
+  const x = C.byId.get(id), label = startLabel(t);
   commit(d => {
     const m = findM(d, id); if (!m) return;
     const pal = dn(m.pal);
     if (m.plan) res = adjustMark(m, t, n);
-    else if (pal != null) { if (t === 'S') m.vorlaufS = Math.max(0, pal - n); else m.vorlaufI = Math.max(0, pal - n); res = { changed: [] }; }
+    else if (pal != null) { m.vorlauf = Object.assign({}, m.vorlauf, { [t]: Math.max(0, pal - n) }); res = { changed: [] }; }
   });
   if (!res) return;
+  derive();
+  const now = C.byId.get(id), got = now ? now.st[t] : n;
   const det = res.changed.length ? ' – Detailplan: ' + res.changed.map(([nm, a, b]) => '„' + nm + '“ ' + a + ' → ' + b + ' Tage').join(', ') : '';
-  toast(x.m.name + ': ' + label + ' → ' + fmtW(n) + det + (res.partial ? ' (kürzer geht nicht)' : ''), res.partial ? 'warn' : '');
+  toast(x.m.name + ': ' + label + ' → ' + fmtW(got) + det + (got !== n ? ' (gewünscht war ' + fmtWS(n) + ' – weiter geht es nicht)' : ''), got !== n ? 'warn' : '');
 }
+// Start als Werktage vor dem PAL angeben: der späteste Arbeitstag, ab dem noch so viele Werktage bis zum PAL bleiben
+function dateForWT(pal, w) { let n = pal, c = 0; while (c < w && pal - n < 3000) { n--; if (isWorkday(n)) c++; } return n; }
 // Schritt auf neuen Beginn/Ende setzen (Verknüpfung bleibt, der Versatz wird angepasst)
 function setStepSpan(m, sid, ns, ne) {
   const s = m.plan.steps.find(q => q.id === sid);
@@ -80,54 +85,79 @@ function setStepSpan(m, sid, ns, ne) {
 }
 
 /* ---------- Anlegen, Entfernen, Schritte */
+// Vorlage „Bereiche“: je Bereich ein Abschnitt mit einem Arbeitsschritt, rückwärts verkettet bis zum PAL (Briefkasten-Termin als Ziel)
+function phasePlan(pal, starts) {
+  const list = PH().filter(p => starts[p.key] != null).sort((a, b) => starts[a.key] - starts[b.key]);
+  const steps = [], tasks = [];
+  list.forEach(p => { const g = { id: uid(), typ: 'gruppe', name: p.name, bereich: p.key }, t = { id: uid(), typ: 'aufgabe', name: p.name, dauer: DEF_DAYS, fortschritt: 0, wer: '', kommentar: '' }; steps.push(g, t); tasks.push([t, starts[p.key]]); });
+  tasks.forEach(([t, a], i) => {
+    const next = tasks[i + 1];
+    const end = next ? next[1] : pal != null ? pal : a + DEF_DAYS;
+    t.dauer = Math.max(0, end - a);
+    t.anker = next ? { art: 'start', ref: next[0].id, offset: 0 } : pal != null ? { art: 'pal', offset: 0 } : { art: 'fest', datum: ds(end) };
+  });
+  const goal = { id: uid(), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: pal != null ? { art: 'pal', offset: 0 } : { art: 'offen' } };
+  if (!steps.length) steps.push({ id: uid(), typ: 'gruppe', name: 'Arbeitsschritte' });
+  steps.push(goal);
+  return { steps, marks: {} };
+}
 async function createPlan(id) {
   const x = C.byId.get(id); if (!x) return;
   const others = C.ms.filter(o => o.m.plan && o.id !== id);
-  const f = { src: 'mailing', pal: x.m.pal || '', s: x.s != null ? ds(x.s) : '', i: x.i != null ? ds(x.i) : '' };
+  const pal0 = dn(x.m.pal);
+  const f = { src: 'mailing', pal: x.m.pal || '', st: {} };
+  for (const p of PH()) f.st[p.key] = x.st[p.key] != null ? ds(x.st[p.key]) : '';   // leer = wie in der Vorlage
   const row = (label, inp) => h('label', { class: 'frow' }, h('span', null, label), inp);
   const ok = await modal('Detailplan anlegen für „' + x.m.name + '“', h('div', { class: 'form' },
-    h('p', null, 'Die Arbeitsschritte werden rückwärts vom PAL aus geplant. Gib PAL, Start Selektion und Start inhaltliche Arbeit an – die Dauer der Schritte dazwischen passt sich an.'),
+    h('p', null, 'Die Arbeitsschritte werden rückwärts vom PAL aus geplant. Jeder Abschnitt kann einem Bereich (' + PH().map(p => p.key + ' ' + p.name).join(', ') + ') zugeordnet werden – dessen Start erscheint dann im Kalender.'),
     h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', checked: true, onchange: () => { f.src = 'mailing'; } }), 'Vorlage Mailing (Schritte wie Sommer-/Weihnachtsmailing)'),
+    h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { f.src = 'bereiche'; } }), 'Vorlage Bereiche: je Bereich ein Abschnitt (' + PH().map(p => p.name).join(', ') + ', dann PAL) – zum Ausbauen'),
     others.map(o => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { f.src = o.id; } }), 'Kopie des Plans von „' + o.m.name + '“')),
-    h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { f.src = 'leer'; } }), 'Leerer Plan'),
     row('PAL (Briefkasten)', h('input', { type: 'date', value: f.pal, oninput: e => { f.pal = e.target.value; } })),
-    row('Start Selektion', h('input', { type: 'date', value: f.s, oninput: e => { f.s = e.target.value; } })),
-    row('Start inhaltliche Arbeit', h('input', { type: 'date', value: f.i, oninput: e => { f.i = e.target.value; } }))),
+    PH().map(p => row(startLabel(p.key), h('input', { type: 'date', value: f.st[p.key], oninput: e => { f.st[p.key] = e.target.value; } })))),
     [['Abbrechen', false], ['Anlegen', true, 'primary']]);
   if (!ok) return;
   let info = [];
   commit(d => {
     const m = findM(d, id);
     let plan;
-    if (f.src === 'mailing') plan = JSON.parse(JSON.stringify(MAILING_TEMPLATE));
-    else if (f.src === 'leer') {
-      const pal = dn(f.pal || m.pal), mk = (name, start) => ({ id: uid(), typ: 'aufgabe', name, dauer: DEF_DAYS, fortschritt: 0, wer: '', kommentar: '',
-        anker: pal != null ? { art: 'pal', offset: start + DEF_DAYS - pal } : { art: 'fest', datum: ds(start + DEF_DAYS) } });
-      const sS = dn(f.s) != null ? mk('Selektion', dn(f.s)) : null, sI = dn(f.i) != null ? mk('Inhaltliche Arbeit', dn(f.i)) : null;
-      plan = { steps: [{ id: uid(), typ: 'gruppe', name: 'Arbeitsschritte' }, sS, sI,
-        { id: uid(), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: pal != null ? { art: 'pal', offset: 0 } : { art: 'offen' } }].filter(Boolean),
-        markS: sS ? sS.id : null, markI: sI ? sI.id : null };
-    }
-    else plan = JSON.parse(JSON.stringify(findM(d, f.src).plan));
+    const pal = dn(f.pal || m.pal), starts = Object.fromEntries(PH().map(p => [p.key, dn(f.st[p.key])]).filter(([, v]) => v != null));
+    if (f.src === 'mailing') plan = migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key));
+    else if (f.src === 'bereiche') plan = phasePlan(pal, Object.assign(Object.fromEntries(PH().filter(p => pal != null && isNum(p.vorlauf)).map(p => [p.key, pal - p.vorlauf])), starts));
+    else { const src = findM(d, f.src).plan; plan = JSON.parse(JSON.stringify(src)); }
+    plan.marks = plan.marks || {};
     plan.steps.forEach(s => { s.fortschritt = 0; });
+    if (f.src !== 'mailing' && f.src !== 'bereiche') {      // Kopie: feste Termine um den PAL-Abstand verschieben
+      const sp = dn(findM(d, f.src).pal);
+      if (sp != null && pal != null) plan.steps.forEach(s => { if (s.anker && s.anker.art === 'fest' && dn(s.anker.datum) != null) s.anker.datum = ds(dn(s.anker.datum) + (pal - sp)); });
+    }
     m.plan = plan;
     if (f.pal) m.pal = f.pal;
-    if (f.src !== 'leer') for (const [k, v] of [['S', f.s], ['I', f.i]]) if (v && dn(m.pal) != null) { const r = adjustMark(m, k, dn(v)); if (r && r.changed.length) info = info.concat(r.changed); }
+    // vom PAL aus rückwärts anpassen (spätester Bereich zuerst), sonst verschiebt ein späterer Bereich die früheren wieder
+    if (f.src !== 'bereiche' && dn(m.pal) != null) for (const k of Object.keys(starts).sort((a, b) => starts[b] - starts[a])) {
+      const r = adjustMark(m, k, starts[k]);
+      if (r && r.changed.length) info = info.concat(r.changed);
+    }
   }, 'Detailplan angelegt');
   if (info.length) toast('Angepasst: ' + info.map(([n, a, b]) => n + ' ' + a + ' → ' + b + ' Tage').join(', '));
   UI.view = 'plaene'; UI.planSel = id; renderNow();
 }
 async function removePlan(id) {
   const x = C.byId.get(id);
-  if (!await confirmBox('Detailplan entfernen', `Den Detailplan von „${x.m.name}“ löschen? Start Selektion (${fmtS(x.s)}) und Start Inhalt (${fmtS(x.i)}) bleiben als feste Termine erhalten.`, 'Entfernen')) return;
-  commit(d => { const m = findM(d, id); m.vorlaufS = x.vS; m.vorlaufI = x.vI; m.plan = null; }, 'Detailplan entfernt');
+  const keep = PH().filter(p => x.st[p.key] != null);
+  if (!await confirmBox('Detailplan entfernen', `Den Detailplan von „${x.m.name}“ löschen? ` + (keep.length ? keep.map(p => startLabel(p.key) + ' (' + fmtS(x.st[p.key]) + ')').join(', ') + ' bleiben als Termine erhalten.' : ''), 'Entfernen')) return;
+  commit(d => {
+    const m = findM(d, id);
+    if (x.pal != null) { m.vorlauf = {}; m.ende = {}; for (const p of keep) { m.vorlauf[p.key] = x.pal - x.st[p.key]; if (x.enx[p.key] != null) m.ende[p.key] = x.pal - x.enx[p.key]; } }
+    m.plan = null;
+  }, 'Detailplan entfernt');
 }
 function setStep(mid, sid, fn, msg) { commit(d => { const m = findM(d, mid), s = m && m.plan && m.plan.steps.find(q => q.id === sid); if (s) fn(s); }, msg); }
 function setMarkDate(mid, which, v) {
   const n = dn(v); if (n == null) return;
   let res = null;
   commit(d => { res = adjustMark(findM(d, mid), which, n); });
-  if (!res) toast('Dieser Plan hat keinen Schritt als „Start ' + (which === 'S' ? 'Selektion' : 'Inhalt') + '“ markiert (⋯-Menü am Schritt).', 'warn');
+  if (!res) toast('In diesem Plan gehört noch kein Abschnitt zum Bereich „' + phName(which) + '“ (Bereich am Abschnitt wählen).', 'warn');
   else if (res.changed.length) toast('Angepasst: ' + res.changed.map(([nm, a, b]) => nm + ' ' + a + ' → ' + b + ' Tage').join(', ') + (res.partial ? ' – kürzer geht nicht' : ''), res.partial ? 'warn' : '');
 }
 function groupBlocks(steps) {                 // Abschnitt-Index → [von, bis) im Array
@@ -146,6 +176,9 @@ function groupPerson(p, gid) {
   const names = [...new Set(p.steps.slice(bl[0] + 1, bl[1]).map(s => s.wer || ''))];
   if (names.length === 1) return { wer: names[0], mixed: false };
   return { wer: names.length ? '' : (p.steps[bl[0]].wer || ''), mixed: names.length > 1 };
+}
+function setGroupBereich(mid, gid, k) {
+  commit(d => { const g = findM(d, mid).plan.steps.find(q => q.id === gid); if (g) { if (k) g.bereich = k; else delete g.bereich; } }, k ? 'Abschnitt → Bereich ' + phName(k) : 'Abschnitt ohne Bereich');
 }
 function setGroupPerson(mid, gid, wer) {
   let n = 0;
@@ -221,10 +254,10 @@ function deleteStep(mid, sid) {
       else q.anker = { art: 'offen' };
       if (q.anker.art === 'pal') delete q.anker.ref;
     });
-    if (p.markS === sid) { p.markS = null; lostMark.push('Start Selektion'); }
-    if (p.markI === sid) { p.markI = null; lostMark.push('Start inhaltliche Arbeit'); }
+    for (const k of Object.keys(p.marks || {})) if (p.marks[k] === sid) delete p.marks[k];
+    if (del.typ === 'gruppe' && del.bereich && !p.steps.some(q => q.typ === 'gruppe' && q.bereich === del.bereich)) lostMark.push(phName(del.bereich));
   }, 'Gelöscht');
-  if (lostMark.length) toast(lostMark.join(' und ') + ' ist jetzt keinem Schritt mehr zugeordnet – im ⋯-Menü eines Schritts neu festlegen.', 'warn');
+  if (lostMark.length) toast('Der Bereich „' + lostMark.join(', ') + '“ hat jetzt keinen Abschnitt mehr – an einem anderen Abschnitt wählen.', 'warn');
 }
 function moveRows(mid, fromId, beforeId) {      // Schritt oder ganzen Abschnitt verschieben
   commit(d => {
@@ -275,10 +308,8 @@ VIEW_FN.plaene = main => {
     h('div', { class: 'pt' }, h('h2', { style: { color: inkC(x.color) } }, m.name)),
     h('div', { class: 'pdates' },
       h('label', { class: 'inl' }, h('span', { class: 'chip demo P' }, 'P'), 'PAL', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null))),
-      h('label', { class: 'inl', tip: p.markS ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Kein Schritt als Start Selektion markiert (⋯-Menü am Schritt)' },
-        h('span', { class: 'chip demo S' }, 'S'), 'Start Selektion', dateInput(x.s != null ? ds(x.s) : '', 'pl:s', v => setMarkDate(m.id, 'S', v), { disabled: !p.markS })),
-      h('label', { class: 'inl', tip: p.markI ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Kein Schritt als Start Inhalt markiert (⋯-Menü am Schritt)' },
-        h('span', { class: 'chip demo I' }, 'I'), 'Start inhaltliche Arbeit', dateInput(x.i != null ? ds(x.i) : '', 'pl:i', v => setMarkDate(m.id, 'I', v), { disabled: !p.markI }))),
+      PH().map(ph => h('label', { class: 'inl', tip: pc.ph[ph.key] ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Noch kein Abschnitt mit Bereich „' + ph.name + '“ (Bereich am Abschnitt wählen)' },
+        h('span', { class: 'chip demo ph' }, ph.key), startLabel(ph.key), dateInput(x.st[ph.key] != null ? ds(x.st[ph.key]) : '', 'pl:' + ph.key, v => setMarkDate(m.id, ph.key, v), { disabled: !pc.ph[ph.key] })))),
     h('div', { class: 'plegend' }, persons.map(w => h('span', { class: 'pleg' }, h('span', { class: 'pbox', style: { background: midtone(barColor(w)), borderColor: barColor(w) } }), w || 'nicht zugeordnet'))),
     h('div', { class: 'tools' },
       h('span', { class: 'segs' },
@@ -336,12 +367,14 @@ VIEW_FN.plaene = main => {
         h('div', { class: 'c-name gname' },
           h('button', { class: 'gtog', 'aria-expanded': String(!coll), tip: coll ? 'ausklappen' : 'einklappen', onclick: () => { coll ? delete UI.planColl[m.id + ':' + s.id] : UI.planColl[m.id + ':' + s.id] = 1; saveUI(); renderNow(); } }, coll ? '▸' : '▾'),
           h('input', { value: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }),
-          h('span', { class: 'gcount' }, inner.length + ' Schritte')),
+          h('select', { class: 'gber' + (s.bereich ? ' on' : ''), 'data-fk': fk('ber'), tip: 'Bereich dieses Abschnitts – sein Beginn erscheint als Start im Kalender, in der Tabelle und in der Zeitleiste',
+            onchange: e => setGroupBereich(m.id, s.id, e.target.value) }, h('option', { value: '' }, '– ohne Bereich'), PH().map(q => h('option', { value: q.key, selected: s.bereich === q.key }, q.key + ' ' + q.name))),
+          compact ? h('span', { class: 'gcount' }, inner.length) : null),
         compact ? null : [h('div', { class: 'c-typ' }),
           h('div', { class: 'c-wer', tip: 'Person für den ganzen Abschnitt – gilt für alle Schritte darin' },
             gp.wer ? h('span', { class: 'pbox', style: { background: midtone(barColor(gp.wer)), borderColor: barColor(gp.wer) } }) : null,
             h('input', { value: gp.wer, list: 'dl-personen', placeholder: gp.mixed ? 'gemischt' : '–', 'data-fk': fk('gwer'), onchange: e => setGroupPerson(m.id, s.id, e.target.value.trim()) })),
-          h('div', { class: 'c-grest muted small' }, spans.length ? fmtS(Math.min(...spans.map(q => q.start))) + ' – ' + fmtS(Math.max(...spans.map(q => q.end))) : '')],
+          h('div', { class: 'c-grest muted small' }, (spans.length ? fmtS(Math.min(...spans.map(q => q.start))) + ' – ' + fmtS(Math.max(...spans.map(q => q.end))) + ' · ' : '') + inner.length + ' Schritte')],
         h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, s.id)], ['Ganzen Abschnitt zuordnen …', () => groupPersonDialog(m.id, s.id)], ['Neuer Abschnitt', () => addGroup(m.id)], null,
           ['Abschnitt löschen (Schritte bleiben)', () => deleteStep(m.id, s.id)]], 'right'))));
       const g = h('div', { class: 'g-row grp' });
@@ -360,7 +393,8 @@ VIEW_FN.plaene = main => {
       commit(d => { const ne = r.end != null && r.start != null && ns <= r.end ? r.end : ns + len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
     const endInp = dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return;
       commit(d => { const ns = !isTask ? ne : r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
-    const markTag = s.id === p.markS ? h('span', { class: 'chip demo S mark', tip: 'Start Selektion' }, 'S') : s.id === p.markI ? h('span', { class: 'chip demo I mark', tip: 'Start inhaltliche Arbeit' }, 'I') : null;
+    const markK = Object.keys(pc.ph).find(k => pc.ph[k].mark === s.id), secK = curBereich(p.steps, row.idx);
+    const markTag = markK ? h('span', { class: 'chip demo ph mark', tip: startLabel(markK) + ' (Beginn des Bereichs)' }, markK) : null;
     trows.push(h('div', { class: 'pl-row' + (away.length ? ' conflict' : '') + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
       h('div', { class: 'c-grip' }, grip),
       h('div', { class: 'c-name' }, h('input', { value: s.name, title: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }), markTag),
@@ -374,8 +408,8 @@ VIEW_FN.plaene = main => {
         h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : startInp),
         h('div', { class: 'c-date' }, r.err ? '' : endInp)],
       h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, curGroupOf(p.steps, row.idx))],
-        ['Als Start Selektion markieren', () => commit(d => { findM(d, m.id).plan.markS = s.id; }, s.name + ' = Start Selektion')],
-        ['Als Start inhaltliche Arbeit markieren', () => commit(d => { findM(d, m.id).plan.markI = s.id; }, s.name + ' = Start Inhalt')], null,
+        secK ? ['Als Beginn von „' + phName(secK) + '“ festlegen', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks, { [secK]: s.id }); }, s.name + ' = ' + startLabel(secK))] : false,
+        secK && p.marks && p.marks[secK] ? ['Beginn von „' + phName(secK) + '“ automatisch (frühester Schritt)', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks); delete pl.marks[secK]; })] : false, null,
         ['Löschen', () => deleteStep(m.id, s.id)]], 'right'))));
     // Gantt-Zeile
     const g = h('div', { class: 'g-row' });
@@ -420,6 +454,7 @@ VIEW_FN.plaene = main => {
     gantt));
 };
 function curGroupOf(steps, idx) { for (let i = idx; i >= 0; i--) if (steps[i].typ === 'gruppe') return steps[i].id; return null; }
+function curBereich(steps, idx) { for (let i = idx; i >= 0; i--) if (steps[i].typ === 'gruppe') return steps[i].bereich || null; return null; }
 VIEW_FN['plaene:after'] = () => {
   if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
   const g = $('.pl-gantt');

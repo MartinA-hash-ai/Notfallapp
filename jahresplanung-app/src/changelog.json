@@ -1,5 +1,23 @@
 [
   {
+    "version": "0.8",
+    "date": "",
+    "items": [
+      "Bereiche: Selektion (S), Inhalt (I) und neu Produktion (D) bis zum PAL – überall im Programm (Tabelle, Kalender, Zeitleiste, Detailpläne, Was steht an?, Outlook, Excel, PDF). Weitere Bereiche mit eigenem Buchstaben lassen sich in den Einstellungen anlegen",
+      "Ein Bereich läuft von seinem Start bis zum nächsten Start (der letzte bis zum PAL); bei Bedarf mit eigenem Ende (Bearbeiten-Fenster) – bei Detailplänen ergibt sich der Zeitraum aus den Schritten des Abschnitts",
+      "Detailpläne: jeder Abschnitt wird einem Bereich zugeordnet; neue Vorlage „Bereiche“ (je Bereich ein Abschnitt, dann PAL). Sommer- und Weihnachtsmailing wurden automatisch umgestellt („Mailing“ geteilt in Inhalt und Produktion)",
+      "Maßnahmen-Tabelle: Umschalter „📅 Datum | ⏱ Werktage“ – die Starts als Datum oder als Werktage bis zum PAL (auch eintippen); 🏖-Hinweis, wenn jemand, der im Detailplan in diesem Bereich eingetragen ist, Urlaub hat",
+      "Kalender: Terminliste mit den Symbolen links und ohne Datum; „Bearbeiten“ steht nach einem Klick hinter den Zeilen der Maßnahme (nicht mehr unter der Markierung); die Verbindungslinie wird je Bereich kräftiger",
+      "Zeitleiste: je Bereich ein Balken mit Griff; überlappende Bereiche liegen übereinander",
+      "Wer arbeitet gerade? Anzeige „👥 Name“ in der Kopfzeile und ein Hinweis, wenn jemand anderes gerade ändert (über OneDrive, kann etwa eine Minute nachhinken)",
+      "Änderungsprotokoll: bei jedem Speichern wird festgehalten, wer was geändert hat (⋯ → Änderungsprotokoll, auch als Blatt „Änderungen“ in der Excel-Ansicht)",
+      "Datenprüfung: Auffälligkeiten (ungültige Daten, Leerzeichen in Namen, lose Verknüpfungen …) werden gemeldet und auf Knopfdruck repariert (⋯ → Daten prüfen)",
+      "Doppelklicks lösen nichts mehr doppelt aus (✕ löscht nur einen Eintrag, „+ Maßnahme“ legt eine an, Fenster bleiben offen)",
+      "Farbwahl im Bearbeiten-Fenster funktioniert; Menüs öffnen am unteren Rand nach oben; die Warnliste verdeckt bei 150 % Skalierung keine Knöpfe mehr",
+      "PDF: die Zeitleiste wird auf mehrere Seiten verteilt, jede Seite mit Monatsleiste"
+    ]
+  },
+  {
     "version": "0.7",
     "date": "",
     "items": [

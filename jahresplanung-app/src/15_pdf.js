@@ -23,7 +23,7 @@ async function pdfDialog() {
   const last = UI.pdfOpts || {};
   const f = {
     secs: Object.assign({ mass: true, kal: true, tl: true, ag: false, plaene: false, urlaub: false }, last.secs),
-    show: Object.assign({ S: true, I: true, P: true }, last.show), vac: last.vac !== false, verbund: !!UI.verbund,
+    show: Object.assign(Object.fromEntries(evKeys().map(k => [k, true])), last.show), vac: last.vac !== false, verbund: !!UI.verbund,
     ms: new Set(list.map(x => x.id)),
   };
   const wrap = h('div', { class: 'form pdfform' });
@@ -34,14 +34,14 @@ async function pdfDialog() {
         h('button', { class: 'ghostbtn', tip: 'übernimmt Reiter, Filter und angezeigte Maßnahmen von der Ansicht, die gerade offen ist', onclick: e => { e.preventDefault(); fromView(); draw(); } }, '⟲ Wie aktuelle Ansicht')),
       h('div', { class: 'pdf-cols' },
         h('div', null, h('h3', null, 'Bereiche'), h('div', { class: 'checks' }, PDF_SECS.map(([k, l]) => cb(f.secs, k, l))),
-          h('h3', null, 'Termine'), h('div', { class: 'checks' }, cb(f.show, 'S', 'Start Selektion'), cb(f.show, 'I', 'Start inhaltliche Arbeit'), cb(f.show, 'P', 'PAL'), cb(f, 'vac', 'Urlaube anzeigen'),
+          h('h3', null, 'Termine'), h('div', { class: 'checks' }, evKeys().map(t => cb(f.show, t, TYPE_LABEL[t])), cb(f, 'vac', 'Urlaube anzeigen'),
             cb(f, 'verbund', 'Verbund-Darstellung im Kalender'))),
         msPicker(f.ms, list)));
   };
   const fromView = () => {
     f.secs = Object.fromEntries(PDF_SECS.map(([k]) => [k, (VIEW_SECS[UI.view] || []).includes(k) && (UI.secOpen[k] !== false)]));
     if (!Object.values(f.secs).some(Boolean)) f.secs.mass = true;
-    f.show = { ...UI.show }; f.vac = UI.showVac; f.verbund = !!UI.verbund;
+    f.show = Object.fromEntries(evKeys().map(k => [k, showType(k)])); f.vac = UI.showVac; f.verbund = !!UI.verbund;
     f.ms = new Set(list.filter(x => visibleM(x)).map(x => x.id));
     if (UI.view === 'plaene' && UI.planSel) { f.ms = new Set([UI.planSel]); f.secs.plaene = true; }
   };
@@ -54,8 +54,9 @@ async function pdfDialog() {
   printPDF(f);
 }
 
+const TL_PER_PAGE = 16;
 function printPDF(f) {
-  const keys = ['show', 'hiddenM', 'showVac', 'hiddenP', 'monthLists', 'tlPlans', 'tlPxd', 'planSel', 'planCompact', 'planColl', 'planPxd', 'view', 'verbund'];
+  const keys = ['show', 'hiddenM', 'showVac', 'hiddenP', 'monthLists', 'tlPlans', 'tlPxd', 'planSel', 'planCompact', 'planColl', 'planPxd', 'view', 'verbund', '_tl', '_pl'];
   const keep = {}; keys.forEach(k => { keep[k] = UI[k] instanceof Set ? new Set(UI[k]) : UI[k] && typeof UI[k] === 'object' ? JSON.parse(JSON.stringify(UI[k])) : UI[k]; });
   UI.show = { ...f.show }; UI.showVac = f.vac; UI.verbund = !!f.verbund; UI.hiddenP = new Set(); UI.monthLists = true; UI.tlPlans = false; UI.tlPxd = 0;
   UI.hiddenM = new Set(C.ms.filter(x => !f.ms.has(x.id)).map(x => x.id));
@@ -92,19 +93,26 @@ function buildPrintDoc(f) {
   const ms = C.ms.filter(x => f.ms.has(x.id) && inYear(x, y));
   const pages = [];
   if (f.secs.mass) {
-    const chipH = t => h('span', { class: 'chip demo ' + t }, t);
+    const chipH = t => h('span', { class: 'chip demo ' + (t === 'P' ? 'P' : 'ph') }, t);
     pages.push(page('Maßnahmen ' + y, h('table', { class: 'pd-table' },
       h('thead', null, h('tr', null, h('th'), h('th', null, 'Maßnahme'), h('th', null, 'Hauptverantwortlich'), h('th', null, 'Auflage'),
-        h('th', null, 'Start Selektion ', chipH('S')), h('th', null, 'Start Inhalt ', chipH('I')), h('th', null, 'PAL ', chipH('P')), h('th', null, 'PAL-Status'), h('th', null, 'Bitte'), h('th', null, 'Hinweis'))),
+        PH().map(p => h('th', null, 'Start ' + p.name + ' ', chipH(p.key))), h('th', null, 'PAL ', chipH('P')), h('th', null, 'PAL-Status'), h('th', null, 'Bitte'), h('th', null, 'Hinweis'))),
       h('tbody', null, ms.map(x => h('tr', null,
         h('td', null, h('span', { class: 'dot', style: { background: x.color } })),
         h('td', { class: 'nm', style: { color: inkC(x.color) } }, x.m.name),
         h('td', null, x.m.verantwortlich || ''), h('td', { class: 'num' }, isNum(x.m.auflage) ? (+x.m.auflage).toLocaleString('de-DE') : ''),
-        h('td', null, fmtW(x.s)), h('td', null, fmtW(x.i)), h('td', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : '') }, fmtW(x.pal)),
+        PH().map(p => h('td', null, x.st[p.key] != null ? fmtW(x.st[p.key]) + (x.pal != null ? ' · ' + workdaysBefore(x.st[p.key], x.pal) + ' WT' : '') : '–')), h('td', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : '') }, fmtW(x.pal)),
         h('td', null, x.m.palStatus), h('td', null, x.m.art || ''), h('td', { class: 'hinweis' }, x.m.hinweis || '')))))));
   }
   if (f.secs.kal) pages.push(page('Kalender ' + y, calendarBody()));
-  if (f.secs.tl) pages.push(page('Zeitleiste ' + y, timelineSection().body));
+  // Zeitleiste seitenweise: je Seite höchstens TL_PER_PAGE Maßnahmen, jede Seite mit eigener Monatsleiste, Urlaube auf der letzten
+  if (f.secs.tl) {
+    const all = C.ms.filter(x => visibleM(x) && inYear(x, y)), n = Math.max(1, Math.ceil(all.length / TL_PER_PAGE));
+    for (let i = 0; i < n; i++) {
+      const part = all.slice(i * TL_PER_PAGE, (i + 1) * TL_PER_PAGE);
+      pages.push(page('Zeitleiste ' + y + (n > 1 ? ' (' + (i + 1) + '/' + n + ')' : ''), timelineSection({ only: new Set(part.map(x => x.id)), rangeRows: all, noVac: i < n - 1 }).body));
+    }
+  }
   if (f.secs.ag) { const a = agendaSection(); pages.push(page('Was steht an? · ' + (a.summary || ''), a.body)); }
   if (f.secs.plaene) for (const x of ms.filter(x => x.pc)) {
     UI.planSel = x.id;

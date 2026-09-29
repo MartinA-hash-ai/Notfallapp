@@ -21,16 +21,15 @@ function section(key, title, fn, opts = {}) {
 function popover(anchor, content) {
   closeMenu();
   const m = h('div', { class: 'menu pop', onclick: e => e.stopPropagation() }, content);
-  const r = anchor.getBoundingClientRect();
-  m.style.top = (r.bottom + 4) + 'px'; m.style.left = Math.min(r.left, innerWidth - 300) + 'px';
   document.body.append(m);
-  _openMenu = { m, btn: anchor };
+  placeMenu(m, anchor.getBoundingClientRect());
+  _openMenu = { m, btn: anchor, at: performance.now() };
 }
 /* ---------- Anzeige-Einstellungen (einzeln, damit sie im jeweiligen Bereich sitzen können) */
 function typePills() {
-  const typeBtn = (t, label) => h('button', { class: 'tpill' + (UI.show[t] ? ' on' : ''), 'aria-pressed': String(UI.show[t]), tip: (UI.show[t] ? 'ausblenden: ' : 'einblenden: ') + label,
-    onclick: () => { UI.show[t] = !UI.show[t]; renderNow(); } }, h('span', { class: 'chip demo ' + t }, t), label);
-  return [typeBtn('S', 'Selektion'), typeBtn('I', 'Inhalt'), typeBtn('P', 'PAL')];
+  const typeBtn = (t, label) => h('button', { class: 'tpill' + (showType(t) ? ' on' : ''), 'aria-pressed': String(showType(t)), tip: (showType(t) ? 'ausblenden: ' : 'einblenden: ') + label,
+    onclick: () => { UI.show[t] = !showType(t); renderNow(); } }, h('span', { class: 'chip demo ' + (t === 'P' ? 'P' : 'ph') }, t), label);
+  return evKeys().map(t => typeBtn(t, phName(t)));
 }
 const syncPop = (e, on) => $$('input[type=checkbox]', e.target.closest('.menu')).forEach(c => { c.checked = on; });
 function massnahmenDropdown() {
@@ -67,16 +66,16 @@ function filterBar(extra) {
 VIEW_FN.jahr = main => {
   put(main,
     section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
-      info: 'Sortiert automatisch nach PAL. Start Selektion und Start Inhalt wandern mit, wenn sich der PAL verschiebt. Bei Maßnahmen mit Detailplan ergeben sie sich aus den Arbeitsschritten. Häkchen links = im Kalender anzeigen. Spaltenbreite am rechten Rand der Überschrift ziehen (Doppelklick = Standard).',
+      info: 'Sortiert automatisch nach PAL. Je Bereich (' + PH().map(p => p.key + ' ' + p.name).join(', ') + ') steht der Start – als Datum oder als Werktage bis zum PAL (Umschalter „📅 Datum | ⏱ Werktage“ oben rechts). Die Starts wandern mit, wenn sich der PAL verschiebt; bei Maßnahmen mit Detailplan ergeben sie sich aus den Abschnitten. 🏖 = jemand, der im Detailplan in diesem Bereich eingetragen ist, hat Urlaub. Häkchen links = im Kalender anzeigen. Spaltenbreite am rechten Rand der Überschrift ziehen (Doppelklick = Standard).',
       closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
     section('kal', 'Kalender ' + UI.year, () => ({
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),
         h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten'),
-        h('label', { class: 'check small', tip: 'verbindet S, I und PAL jeder Maßnahme dauerhaft mit einer Linie in ihrer Farbe' },
+        h('label', { class: 'check small', tip: 'verbindet die Starts der Bereiche und das PAL jeder Maßnahme dauerhaft mit einer Linie in ihrer Farbe' },
           h('input', { type: 'checkbox', checked: !!UI.verbund, onchange: e => { UI.verbund = e.target.checked; renderNow(); } }), 'Verbund-Darstellung')],
       tools: [legendInline()],
       body: [calendarBody()] }), {
-      info: 'Maus über Tag oder Markierung zeigt Details. Klick auf S, I, P oder eine Zeile der Terminliste hält die Maßnahme hervorgehoben („Bearbeiten“ daneben öffnet sie), Klick woanders oder Esc hebt das auf. Markierung ziehen: P verschiebt das ganze Projekt (S und I wandern mit), S oder I verschiebt nur dieses Datum. Strg+Z macht es rückgängig.' }));
+      info: 'Maus über Tag oder Markierung zeigt Details. Klick auf eine Markierung (' + evKeys().join(', ') + ') oder eine Zeile der Terminliste hält die Maßnahme hervorgehoben – „Bearbeiten“ steht dann hinter ihren Zeilen in der Terminliste. Klick woanders oder Esc hebt das auf. Markierung ziehen: P verschiebt das ganze Projekt (alle Bereiche wandern mit), ein Start verschiebt nur diesen Bereich. Die Linie wird vom ersten Bereich bis zum PAL kräftiger. Strg+Z macht es rückgängig.' }));
 };
 VIEW_FN['jahr:after'] = () => {
   if (UI.pin) highlight(UI.pin);                 // festgehaltene Maßnahme nach dem Neuzeichnen wieder hervorheben
@@ -87,7 +86,7 @@ VIEW_FN['jahr:after'] = () => {
 VIEW_FN.zeit = main => {
   put(main, filterBar(),
     section('tl', 'Zeitleiste ' + UI.year, timelineSection, {
-      info: 'Mausrad zoomt, Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL (S und I wandern mit), die Griffe S und I verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
-    section('ag', 'Was steht an?', () => Object.assign(agendaSection(), { lead: typePills() }), { info: 'Termine, Arbeitsschritte, Urlaube und Feiertage der nächsten Wochen. Mit Selektion, Inhalt und PAL wählst du, welche Termine in der Liste stehen. Häkchen = Arbeitsschritt erledigt.' }));
+      info: 'Mausrad zoomt, Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Je Bereich ein Balken (hell → kräftig bis zum PAL); überlappen Bereiche, liegen sie übereinander. Balken ziehen verschiebt den PAL (alle Bereiche wandern mit), die Griffe mit Buchstaben verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
+    section('ag', 'Was steht an?', () => Object.assign(agendaSection(), { lead: typePills() }), { info: 'Termine, Arbeitsschritte, Urlaube und Feiertage der nächsten Wochen. Mit den Knöpfen der Bereiche und PAL wählst du, welche Termine in der Liste stehen. Häkchen = Arbeitsschritt erledigt.' }));
 };
 VIEW_FN['zeit:after'] = () => timelineAfter();

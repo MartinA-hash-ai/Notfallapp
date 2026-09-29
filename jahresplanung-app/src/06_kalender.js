@@ -3,26 +3,27 @@
 function chipStyle(t, color) {
   return t === 'P' ? { background: color, color: onColor(color), borderColor: color } : { background: pastel(color), color: inkC(color), borderColor: darkNow() ? mix(color, 0.3, DARK_SURF) : mix(color, 0.35) };
 }
-// Verbindungslinie im Kalender: erster → zweiter Termin heller, zweiter → dritter kräftig.
-// Liefert die Farben der linken und rechten Tageshälfte (Linie läuft von Tagesmitte zu Tagesmitte).
+// Verbindungslinie im Kalender: vom ersten Termin an von hell nach kräftig – jedes Teilstück (Bereich) etwas kräftiger,
+// das letzte bis zum PAL in voller Farbe. Liefert die Farben der linken und rechten Tageshälfte (Linie von Tagesmitte zu Tagesmitte).
 function lineHalves(n, pts, c) {
-  const light = darkNow() ? mix(c, 0.5, DARK_SURF) : mix(c, 0.62), a = pts[0], b = pts[pts.length - 1], mid = pts.length > 2 ? pts[1] : b;
-  const col = t => t < mid ? light : c;
+  const a = pts[0], b = pts[pts.length - 1], k = pts.length - 1;
+  const tone = f => f <= 0 ? c : darkNow() ? mix(c, 0.5 * f, DARK_SURF) : mix(c, 0.62 * f);
+  const col = t => { let i = 0; while (i < k - 1 && t >= pts[i + 1]) i++; return tone(k <= 1 ? 1 : (k - 1 - i) / (k - 1)); };
   return [n > a ? col(n - 0.25) : 'transparent', n < b ? col(n + 0.25) : 'transparent'];
 }
 const isPinnedChip = e => UI.pin === e.x.id && UI.pinDay === e.n && UI.pinT === e.t && !UI.printing;
 function chip(e, opts = {}) {
-  return h('span', { class: 'chip ' + e.t + (!opts.noClick && isPinnedChip(e) ? ' pinned' : ''), dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
+  return h('span', { class: 'chip ' + (e.t === 'P' ? '' : 'ph ') + e.t + (opts.cls ? ' ' + opts.cls : '') + (!opts.noClick && isPinnedChip(e) ? ' pinned' : ''), dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
     onpointerdown: opts.noClick ? null : ev => chipDrag(ev, e),
     onmouseenter: opts.noHl ? null : () => highlight(e.x.id), onmouseleave: opts.noHl ? null : () => highlight(null) }, e.t);
 }
 function chipTip(e) {
   const x = e.x, m = x.m;
-  const line = (t, n) => h('div', { class: 'tt-row' + (t === e.t ? ' cur' : '') }, h('span', { class: 'chip ' + t, style: chipStyle(t, x.color) }, t), ' ', TYPE_LABEL[t], h('b', null, ' ' + fmtW(n)));
+  const line = (t, n) => h('div', { class: 'tt-row' + (t === e.t ? ' cur' : '') }, h('span', { class: 'chip ' + (t === 'P' ? '' : 'ph ') + t, style: chipStyle(t, x.color) }, t), ' ', TYPE_LABEL[t], h('b', null, ' ' + fmtW(n)),
+    t !== 'P' && x.pal != null ? h('span', { class: 'muted' }, ' · ' + workdaysBefore(n, x.pal) + ' WT vor PAL' + (x.enx[t] != null ? ' · bis ' + fmtWS(x.en[t]) : '')) : null);
   return h('div', null,
     h('div', { class: 'tt-title', style: { borderColor: x.color } }, m.name || '(ohne Namen)'),
-    x.s != null ? line('S', x.s) : null, x.i != null ? line('I', x.i) : null, x.pal != null ? line('P', x.pal) : null,
-  );
+    evKeys().map(t => evDate(x, t) != null ? line(t, evDate(x, t)) : null));
 }
 function vacTag(v) {
   const c = personColor(v.u.wer);
@@ -40,7 +41,7 @@ function dayTip(n, evs, away, hn) {
 function verbundLanes() {
   const out = [], ends = [];
   for (const x of C.ms.filter(visibleM)) {
-    const pts = TYPES.filter(([t]) => UI.show[t]).map(([, k]) => x[k]).filter(v => v != null);
+    const pts = evKeys().filter(showType).map(t => evDate(x, t)).filter(v => v != null);
     if (pts.length < 2) continue;
     pts.sort((p, q) => p - q);
     out.push({ x, a: pts[0], b: pts[pts.length - 1], pts });
@@ -59,7 +60,7 @@ function dayCell(n, evs, vacs, today, vb) {
       away.length > 1 ? h('b', { class: 'vcount' }, away.length) : null) : null,
     vb ? vb.filter(v => v.a <= n && n <= v.b).map(v => { const [l, r] = lineHalves(n, v.pts, v.x.color);
       return h('span', { class: 'vbl' + (v.a === v.b ? ' one' : ''), dataset: { m: v.x.id }, style: { '--hcl': l, '--hcr': r, '--hc': v.x.color, '--ln': String(v.lane % 4) } }); }) : null,
-    UI.pin && UI.pinDay === n && !UI.printing && evs.some(isPinnedChip) ? pinEditBtn(UI.pin, 'chip-edit') : null);
+    UI.pin && UI.pinDay === n && !UI.printing && !UI.monthLists && evs.some(isPinnedChip) ? pinEditBtn(UI.pin, 'chip-edit') : null);   // mit Terminliste steht „Bearbeiten“ dort
 }
 function monthCard(y, mo, byDay, vacs, today, vb) {
   const first = mkdn(y, mo, 1), last = first + daysIn(y, mo) - 1, start = first - wd(first);
@@ -80,12 +81,15 @@ function monthCard(y, mo, byDay, vacs, today, vb) {
     if (hols.length) list.append(h('div', { class: 'mhol' }, hols.join(' · ')));
     const per = new Map();
     for (let n = first; n <= last; n++) for (const e of byDay.get(n) || []) { if (!per.has(e.x.id)) per.set(e.x.id, { x: e.x, ev: [] }); per.get(e.x.id).ev.push(e); }
-    for (const { x, ev } of per.values())
-      list.append(h('div', { class: 'mline' + (UI.pin === x.id && UI.pinMonth === mo && !UI.printing ? ' pinned' : ''), dataset: { m: x.id },
-        tip: UI.pin === x.id ? null : 'Klicken: Maßnahme hervorheben', onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null),
+    // je Maßnahme eine Zeile: links die Termine des Monats (S, I, D, P …), dann der Name; festgehalten: „Bearbeiten“ dahinter
+    for (const { x, ev } of per.values()) {
+      const pinned = UI.pin === x.id && !UI.printing;
+      list.append(h('div', { class: 'mline' + (pinned ? ' pinned' : ''), dataset: { m: x.id },
+        tip: pinned ? null : 'Klicken: Maßnahme hervorheben', onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null),
         onclick: e => { if (!e.target.closest('.mline-edit')) pinMassnahme(e.currentTarget, x.id, mo); }, style: { color: inkC(x.color) } },
-        h('span', { class: 'key', style: { background: x.color } }), h('b', null, x.m.name + ': '), ev.map(e => e.t + ' ' + fmtS(e.n)).join(' · '),
-        UI.pin === x.id && UI.pinMonth === mo && !UI.printing ? pinEditBtn(x.id) : null));
+        h('span', { class: 'lchips' }, ev.map(e => chip(e, { noClick: true, noHl: true, cls: 'lc' }))), h('b', null, x.m.name || '(ohne Namen)'),
+        pinned ? pinEditBtn(x.id) : null));
+    }
     const vm = vacs.filter(v => v.bis >= first && v.von <= last);
     if (vm.length) list.append(h('div', { class: 'mvac' }, 'Urlaub: ', vm.map(v => h('span', { class: 'vtag', style: { background: pastel(personColor(v.u.wer)), borderColor: personColor(v.u.wer) } },
       (v.u.wer || '?') + ' ' + fmtS(Math.max(v.von, first)) + (v.bis > v.von ? '–' + fmtS(Math.min(v.bis, last)) : '')))));
@@ -121,7 +125,7 @@ function chipDrag(ev, e) {
   const move = m => {
     if (!moved) {
       if (Math.hypot(m.clientX - sx, m.clientY - sy) < 5) return;
-      if (locked) { toast('Im Detailplan von „' + x.m.name + '“ ist kein Schritt als ' + TYPE_LABEL[t] + ' markiert (⋯-Menü am Schritt).', 'warn'); sess.cancel(); return; }
+      if (locked) { toast('Im Detailplan von „' + x.m.name + '“ gehört noch kein Abschnitt zum Bereich „' + phName(t) + '“.', 'warn'); sess.cancel(); return; }
       moved = true; hideTip(); document.body.classList.add('dragging');
       el.classList.add('dragsrc');
       ghost = h('span', { class: 'chip ghost ' + t, style: chipStyle(t, x.color) }, t);
@@ -132,19 +136,19 @@ function chipDrag(ev, e) {
     const under = document.elementFromPoint(m.clientX, m.clientY);
     const cell = under && under.closest('.day[data-dn]');
     if (cell) dd = +cell.dataset.dn - e.n;
-    let s = x.s, i = x.i, p = x.pal, txt, w;
+    const st = Object.assign({}, x.st);
+    let p = x.pal, txt, w;
     if (t === 'P') {
-      p += dd; if (s != null) s += dd; if (i != null) i += dd;
-      txt = 'PAL ' + fmtW(p) + (s != null ? ' · S ' + fmtWS(s) : '') + (i != null ? ' · I ' + fmtWS(i) : '');
-      w = [p, s, i].flatMap((v, k) => v == null ? [] : dateWarn(v, resp).filter(q => k > 0 || !/Samstag|Urlaub/.test(q)).map(q => ['PAL', 'S', 'I'][k] + ': ' + q));
+      p += dd; for (const k of Object.keys(st)) st[k] += dd;
+      txt = 'PAL ' + fmtW(p) + PH().filter(q => st[q.key] != null).map(q => ' · ' + q.key + ' ' + fmtWS(st[q.key])).join('');
+      w = [['PAL', p], ...PH().filter(q => st[q.key] != null).map(q => [q.key, st[q.key]])].flatMap(([k, v]) => dateWarn(v, resp).filter(q => k !== 'PAL' || !/Samstag|Urlaub/.test(q)).map(q => k + ': ' + q));
     } else {
-      const n = (t === 'S' ? s : i) + dd;
-      txt = TYPE_LABEL[t] + ' ' + fmtW(n) + ' · ' + workdaysBefore(n, p) + ' Werktage vor PAL';
-      w = dateWarn(n, resp);
-      if (t === 'S') s = n; else i = n;
+      st[t] += dd;
+      txt = TYPE_LABEL[t] + ' ' + fmtW(st[t]) + ' · ' + workdaysBefore(st[t], p) + ' Werktage vor PAL';
+      w = dateWarn(st[t], resp);
     }
     clearMarks();
-    if (t === 'P') { mark(p, 'P'); mark(s, 'S'); mark(i, 'I'); } else mark(t === 'S' ? s : i, t);
+    if (t === 'P') { mark(p, 'P'); for (const k of Object.keys(st)) mark(st[k], k); } else mark(st[t], t);
     setKids(lab, h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, m.clientX, m.clientY);
   };
@@ -157,8 +161,8 @@ function chipDrag(ev, e) {
     if (!okay) return;
     if (!moved) { pinChip(el, x.id, e.n, t); return; }
     if (!dd) return;
-    if (t === 'P') commit(d => { const m = findM(d, x.id); if (m && dn(m.pal) != null) m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (S und I mitverschoben)');
-    else moveStartTo(x.id, t, (t === 'S' ? x.s : x.i) + dd);
+    if (t === 'P') commit(d => { const m = findM(d, x.id); if (m && dn(m.pal) != null) m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (alle Bereiche mitverschoben)');
+    else moveStartTo(x.id, t, x.st[t] + dd);
   };
   const sess = dragSession(ev, el, move, end);
 }
