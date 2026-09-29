@@ -107,6 +107,16 @@ main { padding: 16px 24px 60px; min-width: 0; overflow-x: auto; }
 .cols2 { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 16px; }
 .side-open { font-size: 12px; }
 .error { padding: 20px; color: var(--red-d); }
+.fatal { max-width: 640px; margin: 12vh auto; padding: 24px 28px; background: var(--card); border: 1px solid var(--errline); border-radius: 10px; color: var(--ink); }
+.fatal h2 { margin: 0 0 10px; color: var(--red-d); }
+input[type=date]:invalid { border-color: var(--red); background: var(--errbg); }
+.banners .banner button { flex: none; }
+.mergeform .mrow { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.mergeform .mrow:last-child { border-bottom: 0; }
+.mergeform .mlab { font-weight: 600; margin-bottom: 4px; }
+.mergeform .mrow .check { display: flex; gap: 6px; align-items: baseline; margin: 2px 0; }
+.mergeform .mdiff { margin: 2px 0 0 26px; }
+.mergeform h3 { margin: 14px 0 4px; }
 .inl { display: inline-flex; align-items: center; gap: 6px; }
 
 /* ---------- Seitenleiste */

@@ -84,7 +84,7 @@ function agendaSection() {
     summary: fmtWS(from) + ' – ' + fmtWS(to),
     tools: [
       h('span', { class: 'segs' }, [1, 2, 4, 8, 12].map(wBtn)),
-      h('label', { class: 'inl small' }, 'ab ', dateInput(ds(from), 'ag:from', v => { if (dn(v) != null) { UI.agendaFrom = dn(v); renderNow(); } })),
+      h('label', { class: 'inl small' }, 'ab ', dateInput(ds(from), 'ag:from', v => { if (dn(v) != null) { UI.agendaFrom = dn(v); requestRender(); } })),
       UI.agendaFrom != null && UI.agendaFrom !== today ? h('button', { class: 'ghostbtn', onclick: () => { UI.agendaFrom = null; renderNow(); } }, 'Heute') : null,
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: withSteps, onchange: e => { UI.agendaSteps = e.target.checked; renderNow(); } }), 'Arbeitsschritte'),
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: withVac, onchange: e => { UI.agendaVac = e.target.checked; renderNow(); } }), 'Urlaub/Feiertage')],

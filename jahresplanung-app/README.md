@@ -26,6 +26,10 @@ Direkt aus der Teams-/SharePoint-Weboberfläche läuft die App nicht (SharePoint
 - Startknopf: `launcher/Jahresplanung starten.cmd` (nur ASCII, CRLF)
 - Bauen: `python3 build.py` → `Jahresplanung_Aussenkommunikation.html` und `Jahresplanung_fuer_Mailing-Ordner.zip`
 
+- Tests: `sh tests/run.sh` (alle) oder `sh tests/run.sh t21` (einer) – laufen mit Playwright/Chromium gegen die
+  gebaute Datei; Bilder, PDFs und Downloads landen in `tests/out/`. Playwright wird global gesucht oder über
+  `PLAYWRIGHT_PATH`. Vor jeder Auslieferung: bauen, alle Tests grün.
+
 Achtung: Die gebaute Datei enthält die Startdaten. Eine Datei, in der schon gearbeitet wurde, nicht durch
-einen neuen Build ersetzen – stattdessen die neue Version öffnen und über „⋯ → Andere Datei öffnen …“
-die Daten aus der alten Datei übernehmen, dann speichern.
+einen neuen Build ersetzen – stattdessen in der laufenden App „⋯ → Programm-Update einspielen …“ nutzen
+(tauscht nur das Programm, die Daten bleiben).

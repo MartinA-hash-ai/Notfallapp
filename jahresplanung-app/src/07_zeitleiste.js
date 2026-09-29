@@ -12,7 +12,7 @@ function dateWarn(n, resp) {
 function tlRange(rows, y) {
   let x0 = mkdn(y, 1, 1);
   const x1 = mkdn(y, 12, 31);
-  const mins = rows.flatMap(r => [r.s, r.i, r.pal]).filter(v => v != null && v < x0);
+  const mins = rows.flatMap(r => [r.s, r.i, r.pal]).filter(v => v != null && v < x0 && v >= x0 - 400);
   if (mins.length) { const [yy, mm] = ymd(Math.min(...mins)); x0 = mkdn(yy, mm, 1); }
   return [x0, x1];
 }
@@ -72,7 +72,7 @@ function timelineSection() {
       dia: h('div', { class: 'dia', style: { background: x.color } }),
     };
     const place = (s, i, p) => {
-      const Cx = n => X(n) + pxd / 2;                       // alles auf die Tagesmitte
+      const Cx = n => X(clamp(n, x0 - 2, x1 + 2)) + pxd / 2;   // alles auf die Tagesmitte; weit Entferntes an den Rand
       const L = (n, e) => { e.style.left = Cx(n) + 'px'; };
       const seg = (e, a, b, on) => { e.style.display = on ? '' : 'none'; if (on) { e.style.left = Cx(a) + 'px'; e.style.width = Math.max(2, Cx(b) - Cx(a)) + 'px'; } };
       seg(els.seg1, s, i != null ? i : p, s != null && (i != null ? s < i : p != null));
@@ -96,9 +96,10 @@ function timelineSection() {
       const t = h('div', { class: 'tl-track', style: { width: W + 'px' } });
       if (r && r.start != null) {
         const tip = () => h('div', null, h('b', null, s.name), h('div', null, s.typ === 'aufgabe' ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' (' + s.dauer + ' Tage)' : fmtW(r.end)), s.wer ? h('div', { class: 'muted' }, 'Zugeordnet: ' + s.wer) : null);
-        if (s.typ === 'aufgabe') t.append(h('div', { class: 'sbar', tip, style: { left: X(r.start) + 'px', width: Math.max(2, X(r.end) - X(r.start)) + 'px', background: pastel(x.color), borderColor: x.color } },
+        const ra = clamp(r.start, x0 - 2, x1 + 2), rb = clamp(r.end, x0 - 2, x1 + 2);
+        if (s.typ === 'aufgabe') t.append(h('div', { class: 'sbar', tip, style: { left: X(ra) + 'px', width: Math.max(2, X(rb) - X(ra)) + 'px', background: pastel(x.color), borderColor: x.color } },
           h('span', { style: { width: clamp(+s.fortschritt || 0, 0, 100) + '%', background: x.color } })));
-        else t.append(h('div', { class: 'sdia' + (s.typ === 'ziel' ? ' ziel' : ''), tip, style: { left: X(r.end) + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color } }));
+        else t.append(h('div', { class: 'sdia' + (s.typ === 'ziel' ? ' ziel' : ''), tip, style: { left: X(rb) + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color } }));
       }
       body.append(h('div', { class: 'tl-row sub' }, h('div', { class: 'tl-lab' }, h('span', { class: 'nm' }, s.name), s.wer ? h('span', { class: 'who', style: { background: pastel(personColor(s.wer)) } }, s.wer) : null), t));
     }
@@ -197,17 +198,11 @@ function tlPan(box, onMonth) {
       e.preventDefault();
       box.scrollLeft = sl - dx;
     };
-    const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      window.removeEventListener('pointercancel', up);
-      box.classList.remove('panning'); document.body.classList.remove('dragging');
-      if (!moved && mz && onMonth) onMonth(+mz.dataset.mz);
-    };
     ev.preventDefault();
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-    window.addEventListener('pointercancel', up);
+    dragSession(ev, null, move, okay => {
+      box.classList.remove('panning'); document.body.classList.remove('dragging');
+      if (okay && !moved && mz && onMonth) onMonth(+mz.dataset.mz);
+    });
   });
 }
 
@@ -228,7 +223,6 @@ function tlDrag(ev, x, mode, pxd, place) {
   if (mode === 'move' && x.pal == null) return;
   ev.preventDefault(); hideTip();
   const el = ev.currentTarget, x0 = ev.clientX;
-  el.setPointerCapture(ev.pointerId);
   document.body.classList.add('dragging');
   const lab = h('div', { class: 'drag-lab' });
   document.body.append(lab);
@@ -245,16 +239,14 @@ function tlDrag(ev, x, mode, pxd, place) {
     setKids(lab, h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
-  const up = () => {
-    el.removeEventListener('pointermove', move);
+  const end = okay => {
     document.body.classList.remove('dragging');
     lab.remove();
+    if (!okay) { place(x.s, x.i, x.pal); return; }          // abgebrochen: Balken zurück an den alten Platz
     if (!dd) return;
-    if (mode === 'move') commit(d => { const m = findM(d, x.id); m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd));
+    if (mode === 'move') commit(d => { const m = findM(d, x.id); if (m && dn(m.pal) != null) m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd));
     else moveStartTo(x.id, mode, (mode === 'S' ? x.s : x.i) + dd);
   };
-  el.addEventListener('pointermove', move);
-  el.addEventListener('pointerup', up, { once: true });
-  el.addEventListener('pointercancel', up, { once: true });
+  dragSession(ev, el, move, end);
   move(ev);
 }

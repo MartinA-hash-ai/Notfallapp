@@ -2,13 +2,19 @@
 setlocal
 rem ======================================================================
 rem  Jahresplanung Aussenkommunikation - Start im eigenen Programmfenster
-rem  Sucht die Programmdatei (Jahresplanung*.html) neben dieser Datei oder
-rem  im Unterordner "Jahresplanung ..." und oeffnet sie in Microsoft Edge
+rem  Oeffnet die Programmdatei Jahresplanung_Aussenkommunikation.html neben
+rem  dieser Datei oder im Unterordner "Jahresplanung ..." in Microsoft Edge
 rem  als App-Fenster (ohne Adressleiste und Tabs).
+rem  Zuerst immer der genaue Dateiname - Kopien wie "...-LAPTOP.html" oder
+rem  "... (1).html" (entstehen z. B. bei OneDrive-Konflikten) werden nur
+rem  genommen, wenn die Hauptdatei fehlt.
 rem ======================================================================
 
+set "JP_NAME=Jahresplanung_Aussenkommunikation.html"
 set "JP_APP="
-for %%F in ("%~dp0Jahresplanung*.html") do if not defined JP_APP set "JP_APP=%%~fF"
+if exist "%~dp0%JP_NAME%" set "JP_APP=%~dp0%JP_NAME%"
+if not defined JP_APP for /d %%D in ("%~dp0Jahresplanung*") do if not defined JP_APP if exist "%%~fD\%JP_NAME%" set "JP_APP=%%~fD\%JP_NAME%"
+if not defined JP_APP for %%F in ("%~dp0Jahresplanung*.html") do if not defined JP_APP set "JP_APP=%%~fF"
 if not defined JP_APP for /d %%D in ("%~dp0Jahresplanung*") do for %%F in ("%%~fD\Jahresplanung*.html") do if not defined JP_APP set "JP_APP=%%~fF"
 if not defined JP_APP goto :notfound
 

@@ -108,7 +108,6 @@ function chipDrag(ev, e) {
   ev.stopPropagation();
   const x = e.x, t = e.t, el = ev.currentTarget, sx = ev.clientX, sy = ev.clientY;
   const locked = t !== 'P' && !startMovable(x, t);
-  el.setPointerCapture(ev.pointerId);
   let moved = false, dd = 0, ghost = null, lab = null, marks = [];
   const resp = (x.m.verantwortlich || '').trim();
   const clearMarks = () => { marks.forEach(c => { c.classList.remove('drop'); c.style.removeProperty('--dc'); c.removeAttribute('data-drop'); }); marks = []; };
@@ -122,7 +121,7 @@ function chipDrag(ev, e) {
   const move = m => {
     if (!moved) {
       if (Math.hypot(m.clientX - sx, m.clientY - sy) < 5) return;
-      if (locked) { toast('Im Detailplan von „' + x.m.name + '“ ist kein Schritt als ' + TYPE_LABEL[t] + ' markiert (⋯-Menü am Schritt).', 'warn'); stop(); return; }
+      if (locked) { toast('Im Detailplan von „' + x.m.name + '“ ist kein Schritt als ' + TYPE_LABEL[t] + ' markiert (⋯-Menü am Schritt).', 'warn'); sess.cancel(); return; }
       moved = true; hideTip(); document.body.classList.add('dragging');
       el.classList.add('dragsrc');
       ghost = h('span', { class: 'chip ghost ' + t, style: chipStyle(t, x.color) }, t);
@@ -149,25 +148,17 @@ function chipDrag(ev, e) {
     setKids(lab, h('b', null, txt), dd ? h('span', { class: 'muted' }, ' (' + (dd > 0 ? '+' : '') + dd + ' Tage)') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, m.clientX, m.clientY);
   };
-  const stop = () => {
-    el.removeEventListener('pointermove', move);
-    el.removeEventListener('pointerup', up);
-    el.removeEventListener('pointercancel', stop);
+  const end = okay => {                        // Loslassen übernimmt; Abbruch (Rechtsklick, Esc, Fensterwechsel) lässt alles, wie es war
     document.body.classList.remove('dragging');
     el.classList.remove('dragsrc');
     clearMarks();
     if (ghost) ghost.remove();
     if (lab) lab.remove();
-  };
-  const up = () => {
-    const wasMoved = moved;
-    stop();
-    if (!wasMoved) { pinChip(el, x.id, e.n, t); return; }
+    if (!okay) return;
+    if (!moved) { pinChip(el, x.id, e.n, t); return; }
     if (!dd) return;
-    if (t === 'P') commit(d => { findM(d, x.id).pal = ds(x.pal + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (S und I mitverschoben)');
+    if (t === 'P') commit(d => { const m = findM(d, x.id); if (m && dn(m.pal) != null) m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (S und I mitverschoben)');
     else moveStartTo(x.id, t, (t === 'S' ? x.s : x.i) + dd);
   };
-  el.addEventListener('pointermove', move);
-  el.addEventListener('pointerup', up);
-  el.addEventListener('pointercancel', stop);
+  const sess = dragSession(ev, el, move, end);
 }

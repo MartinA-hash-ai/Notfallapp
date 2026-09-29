@@ -56,7 +56,8 @@ function moveStartTo(id, t, n) {
   let res = null;
   const x = C.byId.get(id), label = t === 'S' ? 'Start Selektion' : 'Start Inhalt';
   commit(d => {
-    const m = findM(d, id), pal = dn(m.pal);
+    const m = findM(d, id); if (!m) return;
+    const pal = dn(m.pal);
     if (m.plan) res = adjustMark(m, t, n);
     else if (pal != null) { if (t === 'S') m.vorlaufS = Math.max(0, pal - n); else m.vorlaufI = Math.max(0, pal - n); res = { changed: [] }; }
   });
@@ -121,7 +122,7 @@ async function removePlan(id) {
   if (!await confirmBox('Detailplan entfernen', `Den Detailplan von „${x.m.name}“ löschen? Start Selektion (${fmtS(x.s)}) und Start Inhalt (${fmtS(x.i)}) bleiben als feste Termine erhalten.`, 'Entfernen')) return;
   commit(d => { const m = findM(d, id); m.vorlaufS = x.vS; m.vorlaufI = x.vI; m.plan = null; }, 'Detailplan entfernt');
 }
-function setStep(mid, sid, fn, msg) { commit(d => { const s = findM(d, mid).plan.steps.find(q => q.id === sid); if (s) fn(s); }, msg); }
+function setStep(mid, sid, fn, msg) { commit(d => { const m = findM(d, mid), s = m && m.plan && m.plan.steps.find(q => q.id === sid); if (s) fn(s); }, msg); }
 function setMarkDate(mid, which, v) {
   const n = dn(v); if (n == null) return;
   let res = null;
@@ -262,7 +263,8 @@ VIEW_FN.plaene = main => {
   const barColor = w => w ? personColor(w) : '#9E9E9E';
 
   // ---- Zeitraum und Maßstab
-  const dates = [...pc.map.values()].flatMap(r => [r.start, r.end]).filter(v => v != null).concat(x.pal != null ? [x.pal] : []);
+  const ref = x.pal ?? today;                  // Tippfehler im Jahr (z. B. 20277) nicht mitzeichnen – dafür gibt es eine Warnung
+  const dates = [...pc.map.values()].flatMap(r => [r.start, r.end]).filter(v => v != null && Math.abs(v - ref) <= FAR).concat(x.pal != null ? [x.pal] : []);
   const g0 = dates.length ? Math.min(...dates) - 4 : (x.pal ?? today) - 60, g1 = dates.length ? Math.max(...dates) + 6 : (x.pal ?? today) + 14;
   const a0 = g0 - wd(g0), a1 = g1 + (6 - wd(g1)), nd = a1 - a0 + 1;
   const tableW = compact ? 272 : 852;
@@ -368,7 +370,7 @@ VIEW_FN.plaene = main => {
           h('input', { value: s.wer || '', list: 'dl-personen', placeholder: '–', 'data-fk': fk('wer'), onchange: e => setStep(m.id, s.id, st => { st.wer = e.target.value.trim(); }) }),
           away.length ? h('span', { class: 'wi warn', tip: s.wer + ' hat Urlaub: ' + away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ') }, '⚠') : null),
         h('div', { class: 'c-kom' }, h('input', { value: s.kommentar || '', title: s.kommentar || '', placeholder: '–', 'data-fk': fk('kom'), onchange: e => setStep(m.id, s.id, st => { st.kommentar = e.target.value; }) })),
-        h('div', { class: 'c-dur' }, isTask ? h('input', { type: 'number', min: 0, value: s.dauer ?? 0, 'data-fk': fk('dur'), tip: 'Dauer in Tagen', onchange: e => setStep(m.id, s.id, st => { st.dauer = Math.max(0, Math.round(+e.target.value || 0)); }) }) : null),
+        h('div', { class: 'c-dur' }, isTask ? h('input', { type: 'number', min: 0, max: MAX_DAUER, value: s.dauer ?? 0, 'data-fk': fk('dur'), tip: 'Dauer in Tagen', onchange: e => { const v = Math.round(+e.target.value || 0); if (v > MAX_DAUER) toast('Höchstens ' + MAX_DAUER + ' Tage – auf ' + MAX_DAUER + ' gesetzt.', 'warn'); setStep(m.id, s.id, st => { st.dauer = clamp(v, 0, MAX_DAUER); }); } }) : null),
         h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : startInp),
         h('div', { class: 'c-date' }, r.err ? '' : endInp)],
       h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, curGroupOf(p.steps, row.idx))],
@@ -449,7 +451,6 @@ function barDrag(ev, ctx, mode) {
   if (ev.button !== 0) return;
   ev.preventDefault(); ev.stopPropagation(); hideTip();
   const { x, s, r, pxd, X, el } = ctx, sx = ev.clientX;
-  el.setPointerCapture(ev.pointerId);
   document.body.classList.add('dragging');
   const lab = h('div', { class: 'drag-lab' }); document.body.append(lab);
   let ns = r.start, ne = r.end, moved = false;
@@ -466,15 +467,16 @@ function barDrag(ev, ctx, mode) {
     setKids(lab, h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' (' + (ne - ns) + ' Tage)' : fmtW(ne)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
-  const up = () => {
-    el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up);
+  const end = okay => {
     document.body.classList.remove('dragging'); lab.remove();
+    if (!okay) {                                  // abgebrochen: Balken zurück
+      if (isTask) { el.style.left = X(r.start) + 'px'; el.style.width = Math.max(3, (r.end - r.start) * pxd) + 'px'; } else el.style.left = X(r.end) + pxd / 2 + 'px';
+      return;
+    }
     if (!moved || (ns === r.start && ne === r.end)) return;
-    commit(d => setStepSpan(findM(d, x.id), s.id, ns, ne), s.name + ': ' + (isTask ? fmtS(ns) + '–' + fmtS(ne) : fmtS(ne)));
+    commit(d => { const m = findM(d, x.id); if (m && m.plan) setStepSpan(m, s.id, ns, ne); }, s.name + ': ' + (isTask ? fmtS(ns) + '–' + fmtS(ne) : fmtS(ne)));
   };
-  el.addEventListener('pointermove', move);
-  el.addEventListener('pointerup', up);
-  el.addEventListener('pointercancel', up);
+  dragSession(ev, el, move, end);
   move(ev);
 }
 
@@ -496,11 +498,12 @@ function rowDrag(ev, mid, sid) {
     target = best;
     if (best && best !== src) best.classList.add(after ? 'drop-after' : 'drop-before');
   };
-  const up = () => {
-    window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up);
+  const end = okay => {
     document.body.classList.remove('dragging'); src.classList.remove('dragrow'); clear();
-    if (!target || target === src) return;
-    const steps = findM(D, mid).plan.steps, ti = steps.findIndex(s => s.id === target.dataset.rid);
+    if (!okay || !target || target === src) return;
+    const m0 = findM(D, mid); if (!m0 || !m0.plan) return;
+    const steps = m0.plan.steps, ti = steps.findIndex(s => s.id === target.dataset.rid);
+    if (ti < 0) return;
     let beforeId;
     if (!after) beforeId = target.dataset.rid;
     else {
@@ -512,5 +515,5 @@ function rowDrag(ev, mid, sid) {
     if (beforeId === sid) return;
     moveRows(mid, sid, beforeId);
   };
-  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  dragSession(ev, ev.currentTarget, move, end);
 }

@@ -110,9 +110,11 @@ const XS = {
 const XD = (n, t = 'dw', st) => n == null ? '' : { v: n, t, st };
 const darker = c => mix(c, 0.15, '#000000');
 
-function viewWorkbook(opts = {}) {             // Excel immer in heller Optik
+function viewWorkbook(opts = {}) {             // Excel immer in heller Optik; opts.year: dieses Jahr zeigen (Ansichts-Excel: Planungsjahr)
+  const keep = UI.year, other = opts.year && opts.year !== UI.year;
   LIGHT_ONLY++;
-  try { return viewWorkbookLight(opts); } finally { LIGHT_ONLY--; }
+  if (other) { UI.year = opts.year; derive(); }
+  try { return viewWorkbookLight(opts); } finally { LIGHT_ONLY--; if (other) { UI.year = keep; derive(); } }
 }
 function viewWorkbookLight(opts = {}) {
   const y = UI.year, a = mkdn(y, 1, 1), b = mkdn(y, 12, 31), protect = opts.protect !== false;

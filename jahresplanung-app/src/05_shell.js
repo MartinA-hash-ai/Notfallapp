@@ -20,9 +20,16 @@ document.addEventListener('pointercancel', releasePointer, true);
 document.addEventListener('pointermove', e => { if (_pointerDown && e.buttons === 0) releasePointer(); }, true);
 window.addEventListener('blur', releasePointer);
 document.addEventListener('visibilitychange', releasePointer);
+let _rendering = false;
 function renderNow() {
   clearTimeout(_renderTimer); _renderTimer = null;
   if (!D) return;
+  if (_rendering) { requestRender(); return; }            // z. B. ein Feld verliert beim Neuzeichnen den Fokus und will selbst neu zeichnen
+  if (DRAG) DRAG.cancel();                                  // Ziehen sauber beenden, bevor das Element verschwindet
+  _rendering = true;
+  try { renderInner(); } finally { _rendering = false; }
+}
+function renderInner() {
   hideTip();
   const app = $('#app');
   // Fokus und Scrollpositionen merken
@@ -30,7 +37,14 @@ function renderNow() {
   const selS = ae && 'selectionStart' in ae ? (() => { try { return [ae.selectionStart, ae.selectionEnd]; } catch (e) { return null; } })() : null;
   const main0 = $('#main'), sc = main0 ? [main0.scrollTop, main0.scrollLeft] : [0, 0];
   const inner = $$('[data-keep-scroll]').map(e => [e.dataset.keepScroll, e.scrollLeft, e.scrollTop]);
-  derive();
+  try { derive(); }
+  catch (e) {                                               // Daten lassen sich nicht auswerten: nicht leer weiterarbeiten, sondern sichern lassen
+    console.error(e);
+    $('#app').replaceChildren(h('div', { class: 'fatal' }, h('h2', null, 'Die Daten lassen sich nicht anzeigen'), h('p', null, String((e && e.message) || e)),
+      h('p', null, 'Bitte die Daten sichern und die Datei an den/die Verantwortliche(n) geben. Nichts wurde überschrieben.'),
+      h('button', { class: 'primary', onclick: exportJSON }, 'Daten sichern (.json)'), ' ', h('button', { onclick: () => openFile() }, 'Datensicherung laden …')));
+    return;
+  }
   document.body.classList.toggle('printing', !!UI.printing);
   const main = h('main', { id: 'main', class: 'view-' + UI.view });
   try { (VIEW_FN[UI.view] || VIEW_FN.kalender)(main); }
@@ -83,12 +97,32 @@ function topBar() {
 
 function banners() {
   const out = h('div', { class: 'banners' });
+  if (BROKEN) out.append(h('div', { class: 'banner err' },
+    h('span', null, 'Die Planungsdaten dieser Datei sind beschädigt. Speichern ist gesperrt, damit nichts überschrieben wird.'),
+    h('button', { class: 'primary', onclick: brokenDialog }, 'Wiederherstellen …')));
+  if (ST.newer) out.append(h('div', { class: 'banner err' },
+    h('span', null, 'Im Mailing-Ordner liegt eine neuere Programmversion (' + ST.newer.version + (ST.newer.by ? ', eingespielt von ' + ST.newer.by : '') + '). Dieses Fenster läuft noch mit Version ' + APP_INFO.version +
+      ' und speichert deshalb nicht mehr – sonst käme die alte Version zurück.' + (isDirty() ? ' Deine ungespeicherten Änderungen werden nach dem Neustart angeboten.' : '')),
+    h('button', { class: 'primary', onclick: reloadForNewer }, 'Jetzt neu starten')));
+  if (FSA && ST.conn === 'ok' && inCopy() && ST.mainExists) out.append(h('div', { class: 'banner err' },
+    h('span', null, 'Geöffnet ist „' + currentFileName() + '“ – eine Kopie. Die gemeinsame Planung steht in „' + DEFAULT_FILE + '“; Änderungen hier landen nur in der Kopie.'),
+    h('button', { class: 'primary', onclick: openMainFile }, 'Hauptdatei öffnen')));
+  for (const c of ST.copies.filter(c => !copyHidden(c))) out.append(h('div', { class: 'banner warn' },
+    h('span', null, 'Im Mailing-Ordner liegt die Kopie „' + c.name + '“' + (c.meta.savedAt ? ' (gespeichert ' + fmtStamp(c.meta.savedAt) + (c.meta.savedBy ? ' von ' + c.meta.savedBy : '') + ')' : '') +
+      (c.same ? ' – inhaltlich gleich wie hier.' : '. So etwas legt OneDrive an, wenn zwei Personen gleichzeitig gespeichert haben – darin können Änderungen stehen, die hier fehlen.')),
+    h('button', { class: 'primary', onclick: () => handleCopy(c) }, c.same ? 'Wegräumen …' : 'Vergleichen …'),
+    h('button', { onclick: () => { UI.copiesSeen = Object.assign({}, UI.copiesSeen, { [c.key]: 1 }); saveUI(); renderNow(); } }, 'Ausblenden')));
+  if (ST.fail && isDirty() && ST.fail.n >= 2 && ST.conn === 'ok') out.append(h('div', { class: 'banner warn' },
+    h('span', null, 'Speichern klappt gerade nicht (' + ST.fail.msg + '). Die App versucht es automatisch weiter; deine Änderungen sind so lange im Browser gesichert. ' +
+      'Bleibt das so: prüfen, ob OneDrive läuft und die Datei nicht anderweitig geöffnet ist.'),
+    h('button', { class: 'primary', onclick: () => saveAll({ manual: true }) }, 'Jetzt erneut versuchen')));
   if (ST.conflict) {
     const o = ST.conflict.other.meta || {};
     out.append(h('div', { class: 'banner err' },
-      h('span', null, (o.savedBy || 'Jemand') + ' hat ' + fmtStamp(o.savedAt) + ' einen neueren Stand gespeichert, während du Änderungen gemacht hast. Welcher Stand soll gelten?'),
-      h('button', { onclick: () => resolveConflict(false) }, 'Stand von ' + (o.savedBy || 'der Datei') + ' laden'),
-      h('button', { class: 'primary', onclick: () => resolveConflict(true) }, 'Meinen Stand speichern')));
+      h('span', null, (o.savedBy || 'Jemand') + ' hat ' + fmtStamp(o.savedAt) + ' einen neueren Stand gespeichert, während du Änderungen gemacht hast. Am besten zusammenführen: Änderungen beider Seiten bleiben erhalten, bei Überschneidungen fragt die App nach.'),
+      h('button', { class: 'primary', onclick: () => resolveConflict('merge') }, 'Zusammenführen …'),
+      h('button', { onclick: () => resolveConflict('theirs') }, 'Nur Stand von ' + (o.savedBy || 'der Datei') + ' laden'),
+      h('button', { onclick: () => resolveConflict('mine') }, 'Nur meinen Stand speichern')));
   } else if (FSA && ST.conn !== 'ok' && isDirty()) out.append(h('div', { class: 'banner warn' },
     h('span', null, 'Deine Änderungen sind noch nicht gespeichert.' + (ST.conn === 'needs-permission' ? ' Ein Klick genügt – der Browser fragt kurz, ob die App den Ordner bearbeiten darf.' : ' Einmal den Mailing-Ordner wählen, danach speichert die App automatisch.')),
     h('button', { class: 'primary', onclick: () => save() }, ST.conn === 'needs-permission' ? 'Speichern aktivieren' : 'Speicherort wählen')));
@@ -104,8 +138,9 @@ function banners() {
       'Bitte schließen und über „Jahresplanung starten“ im (synchronisierten) Mailing-Ordner öffnen.'),
     h('button', { onclick: () => { UI.dlHintClosed = true; renderNow(); } }, 'Trotzdem hier arbeiten')));
   if (DRAFT_OFFER) out.append(h('div', { class: 'banner warn' },
-    h('span', null, `In diesem Browser gibt es ungespeicherte Änderungen vom ${fmtStamp(DRAFT_OFFER.at)}.`),
-    h('button', { class: 'primary', onclick: restoreDraft }, 'Wiederherstellen'),
+    h('span', null, `In diesem Browser gibt es ungespeicherte Änderungen vom ${fmtStamp(DRAFT_OFFER.at)}.` +
+      (DRAFT_OFFER.sameBase ? '' : ' Die Datei wurde seitdem neu gespeichert' + (D.meta.savedBy ? ' (von ' + D.meta.savedBy + ')' : '') + ' – beim Wiederherstellen werden beide Stände zusammengeführt.')),
+    h('button', { class: 'primary', onclick: restoreDraft }, DRAFT_OFFER.sameBase ? 'Wiederherstellen' : 'Zusammenführen …'),
     h('button', { onclick: () => { clearDraft(); renderNow(); } }, 'Verwerfen')));
   return out;
 }
@@ -220,14 +255,44 @@ function applyFix(d, w) {
   return true;
 }
 const FIX_LABEL = { S: 'Start Selektion', I: 'Start Inhalt', P: 'PAL' };
+// Vorziehen in Runden: erst alle PAL-Termine (sie verschieben S und I mit), dann S/I neu prüfen – bis nichts mehr übrig ist.
+// Nur innerhalb von commit aufrufen (d ist dann D, derive() rechnet mit dem geänderten Stand).
+function fixRounds(d, mids, types) {
+  let n = 0;
+  for (let round = 0; round < 8; round++) {
+    derive();
+    const ws = C.warnings.filter(w => w.fix && mids.has(w.mid) && (!types || types(w)));
+    if (!ws.length) break;
+    const ps = ws.filter(w => w.fix.t === 'P'), batch = ps.length ? ps : ws;
+    let done = 0;
+    for (const w of batch) if (applyFix(d, w)) done++;
+    n += done;
+    if (!done) break;
+  }
+  return n;
+}
 function fixDate(w) {
   const x = C.byId.get(w.mid); if (!x) return;
-  commit(d => applyFix(d, w), x.m.name + ': ' + FIX_LABEL[w.fix.t] + ' → ' + fmtW(w.fix.to) + (x.m.plan && w.fix.t !== 'P' ? ' (Dauer im Detailplan angepasst)' : ''));
+  const had = new Set(C.warnings.filter(q => q.mid === w.mid && q.fix).map(q => q.fix.t));
+  const s0 = x.s, i0 = x.i;
+  commit(d => {
+    if (!applyFix(d, w) || w.fix.t !== 'P') return;
+    // PAL vorgezogen: S und I wandern mit – rutschen sie dadurch neu aufs Wochenende, gleich mit vorziehen
+    fixRounds(d, new Set([w.mid]), q => q.fix.t !== 'P' && !had.has(q.fix.t));
+  });
+  derive();
+  const y = C.byId.get(w.mid), more = y ? [['S', s0, y.s], ['I', i0, y.i]].filter(([t, a, b]) => w.fix.t === 'P' && a != null && b != null && b !== a - (x.pal - y.pal)) : [];
+  toast(x.m.name + ': ' + FIX_LABEL[w.fix.t] + ' → ' + fmtW(w.fix.to) + (more.length ? ' · ' + more.map(([t, , b]) => FIX_LABEL[t] + ' → ' + fmtW(b)).join(' · ') : '') +
+    (x.m.plan && (w.fix.t !== 'P' || more.length) ? ' (Dauer im Detailplan angepasst)' : ''));
 }
 async function fixAll(list) {
-  if (!await confirmBox('Alle vorziehen', list.length + ' Termine werden auf den jeweils vorherigen Arbeitstag gelegt (ein PAL auf Samstag bleibt erlaubt). Bei Detailplänen passt sich die Dauer eines Arbeitsschritts an. Strg+Z macht es rückgängig.', 'Vorziehen')) return;
-  // nacheinander, weil sich Termine derselben Maßnahme gegenseitig beeinflussen können
-  commit(d => { for (const w of list) applyFix(d, w); }, list.length + ' Termine vorgezogen');
+  if (!await confirmBox('Alle vorziehen', list.length + ' Termine werden auf den jeweils vorherigen Arbeitstag gelegt (ein PAL auf Samstag bleibt erlaubt). Zuerst die PAL-Termine, danach Start Selektion und Start Inhalt – so landet nichts neu am Wochenende. Bei Detailplänen passt sich die Dauer eines Arbeitsschritts an. Strg+Z macht es rückgängig.', 'Vorziehen')) return;
+  const mids = new Set(list.map(w => w.mid));
+  let n = 0;
+  commit(d => { n = fixRounds(d, mids); });
+  derive();
+  const left = C.warnings.filter(w => w.fix && mids.has(w.mid)).length;
+  toast(n + ' Termin' + (n === 1 ? '' : 'e') + ' vorgezogen' + (left ? ' – ' + left + ' ließ' + (left === 1 ? '' : 'en') + ' sich nicht automatisch lösen (siehe Warnungen)' : ''), left ? 'warn' : 'ok');
 }
 function warnPanel() {
   const W = C.warnings, warn = W.filter(w => w.lvl === 'warn'), info = W.filter(w => w.lvl !== 'warn');
@@ -275,7 +340,8 @@ async function settingsDialog() {
     setKids(wrap, 
       h('h3', null, 'Allgemein'),
       row('Dein Name', h('input', { value: UI.userName || '', onchange: e => { UI.userName = e.target.value.trim(); saveUI(); } }), 'wird beim Speichern vermerkt („gespeichert von …“), nur in diesem Browser'),
-      row('Planungsjahr beim Öffnen', h('input', { type: 'number', min: 2000, max: 2100, value: D.settings.year, onchange: e => { const v = +e.target.value; if (v >= 2000 && v <= 2100) commit(d => { d.settings.year = v; }); } })),
+      row('Planungsjahr', h('input', { type: 'number', min: 2000, max: 2099, value: D.settings.year, onchange: e => { const v = +e.target.value; if (v >= 2000 && v <= 2099) commit(d => { d.settings.year = v; }); } }),
+        'mit diesem Jahr öffnet die App; die Excel-Ansicht in Teams zeigt immer dieses Jahr'),
       h('h3', null, 'Darstellung'),
       h('div', { class: 'inl theme-pick' }, radio('light', 'Hell'), radio('dark', 'Dunkel'), radio('system', 'wie Windows')),
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.splash !== false, onchange: e => { UI.splash = e.target.checked; saveUI(); } }), 'Startbildschirm mit Animation beim Öffnen zeigen'),
@@ -322,7 +388,9 @@ function helpDialog() {
     p('Beim ersten Mal einmal den Mailing-Ordner wählen und „Bearbeiten zulassen“. Danach speichert die App automatisch wenige Sekunden nach jeder Änderung – in die Programmdatei und in die Ansichts-Excel „' + VIEW_XLSX + '“. Bei jedem neuen Start fragt der Browser einmal kurz nach („Speichern aktivieren“).'),
     p('Die Excel-Ansicht ist für alle, die nur in Teams hineinschauen: Sie zeigt immer den zuletzt gespeicherten Stand (Übersicht, Kalender, Zeitleiste, Termine, Detailpläne, Urlaub). Sie ist schreibgeschützt; Änderungen dort würden beim nächsten Speichern überschrieben.'),
     h('h3', null, 'Im Team'),
-    p('Es sollte immer nur eine Person gleichzeitig ändern. Die App prüft alle 15 Sekunden, ob jemand anderes gespeichert hat: Ohne eigene offene Änderungen lädt sie den neuen Stand automatisch, sonst fragt sie, welcher Stand gelten soll.'),
+    p('Es sollte immer nur eine Person gleichzeitig ändern. Die App prüft alle 15 Sekunden, ob jemand anderes gespeichert hat: Ohne eigene offene Änderungen lädt sie den neuen Stand automatisch, sonst bietet sie an, beide Stände zusammenzuführen (bei Überschneidungen fragt sie nach).'),
+    p('Haben zwei Personen fast gleichzeitig gespeichert, legt OneDrive manchmal eine Kopie mit dem Computernamen an (z. B. „…-LAPTOP.html“). Die App meldet solche Kopien; über „Vergleichen …“ lassen sich fehlende Einträge übernehmen, danach wird die Kopie weggeräumt.'),
+    p('Nach einem Programm-Update bitte alle offenen App-Fenster schließen und neu öffnen. Ein Fenster mit älterer Version merkt das und speichert nicht mehr, bis es neu gestartet wurde.'),
     h('h3', null, 'Datenschutz'),
     p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen.'),
     h('h3', null, 'Bedienung'),
@@ -334,11 +402,12 @@ function helpDialog() {
 
 /* ---------- Tastatur */
 document.addEventListener('keydown', e => {
+  if (DRAG) return;
   const k = e.key.toLowerCase(), inField = /^(INPUT|TEXTAREA|SELECT)$/.test((document.activeElement || {}).tagName || '');
-  if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => save(), 30); }
+  if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); if ($('.modal')) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => save(), 30); }
   else if ((e.ctrlKey || e.metaKey) && k === 'z' && !e.shiftKey && !inField) { e.preventDefault(); undo(); }
   else if ((e.ctrlKey || e.metaKey) && (k === 'y' || (k === 'z' && e.shiftKey)) && !inField) { e.preventDefault(); redo(); }
   else if ((e.ctrlKey || e.metaKey) && k === 'p' && !$('.modal')) { e.preventDefault(); pdfDialog(); }
 });
-window.addEventListener('beforeunload', e => { if (D && isDirty()) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { if (D && isDirty() && !window.__jpReload) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('beforeprint', () => { if (!UI.printing) { UI.printing = true; renderNow(); } });

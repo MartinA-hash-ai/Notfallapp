@@ -11,7 +11,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund'];
+const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -32,20 +32,38 @@ function emptyData() {
   return { version: DATA_VERSION, meta: { savedAt: null, savedBy: '' }, settings: { year: new Date().getFullYear() + 1, maxStarts: 2, vorlaufS: 76, vorlaufI: 58 },
     personen: [], massnahmen: [], urlaube: [], sondertage: [] };
 }
+// Daten aus Datei, Import oder Entwurf in eine sichere Form bringen: kaputte Einträge weglassen, Texte als Text
+const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+const str = v => typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '';
+const dateStr = v => typeof v === 'string' && v ? v : null;
 function normalize(d) {
   const e = emptyData();
-  d = Object.assign(e, d || {});
-  d.meta = Object.assign({ savedAt: null, savedBy: '' }, d.meta);
-  d.settings = Object.assign(emptyData().settings, d.settings);
-  ['personen', 'massnahmen', 'urlaube', 'sondertage'].forEach(k => { if (!Array.isArray(d[k])) d[k] = []; });
-  if (!d.feiertage || typeof d.feiertage !== 'object' || Array.isArray(d.feiertage)) d.feiertage = {};
+  d = Object.assign(e, isObj(d) ? d : {});
+  d.meta = Object.assign({ savedAt: null, savedBy: '' }, isObj(d.meta) ? d.meta : {});
+  d.settings = Object.assign(emptyData().settings, isObj(d.settings) ? d.settings : {});
+  ['personen', 'massnahmen', 'urlaube', 'sondertage'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(isObj) : []; });
+  if (!isObj(d.feiertage)) d.feiertage = {};
+  d.personen = d.personen.filter(p => str(p.name).trim());
+  d.personen.forEach(p => { p.name = str(p.name).trim(); if (typeof p.farbe !== 'string') p.farbe = '#888888'; });
+  const ids = new Set(), freshId = v => { let id = str(v); if (!id || ids.has(id)) id = uid(); ids.add(id); return id; };
   d.massnahmen.forEach(m => {
-    m.id = m.id || uid(); m.name = m.name || ''; m.farbe = m.farbe || '#7F7F7F';
+    m.id = freshId(m.id); m.name = str(m.name); m.farbe = typeof m.farbe === 'string' && m.farbe ? m.farbe : '#7F7F7F';
+    m.verantwortlich = str(m.verantwortlich); m.hinweis = str(m.hinweis); m.pal = dateStr(m.pal);
     if (!('palStatus' in m)) m.palStatus = 'vorläufig';
-    if (m.plan) { m.plan.steps = m.plan.steps || []; m.plan.steps.forEach(s => { s.id = s.id || uid(); s.anker = s.anker || { art: 'offen' }; }); }
+    if (m.plan != null && !isObj(m.plan)) m.plan = null;
+    if (m.plan) {
+      m.plan.steps = Array.isArray(m.plan.steps) ? m.plan.steps.filter(isObj) : [];
+      const sids = new Set();
+      m.plan.steps.forEach(s => {
+        s.id = str(s.id) && !sids.has(str(s.id)) ? str(s.id) : uid(); sids.add(s.id);
+        s.name = str(s.name); s.wer = str(s.wer); s.kommentar = str(s.kommentar);
+        if (!['gruppe', 'aufgabe', 'meilenstein', 'ziel'].includes(s.typ)) s.typ = 'aufgabe';
+        if (!isObj(s.anker)) s.anker = { art: 'offen' };
+      });
+    }
   });
-  d.urlaube.forEach(u => { u.id = u.id || uid(); });
-  d.sondertage.forEach(s => { s.id = s.id || uid(); });
+  d.urlaube.forEach(u => { u.id = freshId(u.id); u.wer = str(u.wer); u.von = dateStr(u.von); u.bis = dateStr(u.bis); });
+  d.sondertage.forEach(s => { s.id = freshId(s.id); s.name = str(s.name); s.datum = dateStr(s.datum); });
   d.version = DATA_VERSION;
   return d;
 }
@@ -72,9 +90,9 @@ function holName(n) {
   return s ? (s.name || 'freier Tag') : null;
 }
 const isWorkday = n => wd(n) < 5 && !holName(n);
-function prevWorkday(n) { let k = n; while (!isWorkday(k) && n - k < 14) k--; return k; }
+function prevWorkday(n) { let k = n; while (!isWorkday(k) && n - k < 60) k--; return k; }
 // PAL darf auf einen Samstag fallen, aber nicht auf Sonntag oder Feiertag
-function prevPalDay(n) { let k = n; while ((wd(k) === 6 || holName(k)) && n - k < 14) k--; return k; }
+function prevPalDay(n) { let k = n; while ((wd(k) === 6 || holName(k)) && n - k < 60) k--; return k; }
 // Werktage (Mo–Fr ohne Feiertage) von n bis zum Tag vor dem PAL
 const workdaysBefore = (n, pal) => n == null || pal == null ? null : n < pal ? workdays(n, pal - 1) : -workdays(pal, n - 1);
 function workdays(a, b) { let c = 0; for (let n = a; n <= b; n++) if (isWorkday(n)) c++; return c; }
@@ -88,8 +106,8 @@ function personColor(name) {
 }
 function ensurePersons(d) {
   const names = new Set();
-  d.urlaube.forEach(u => u.wer && names.add(u.wer.trim()));
-  d.massnahmen.forEach(m => { if (m.verantwortlich) names.add(m.verantwortlich.trim()); (m.plan?.steps || []).forEach(s => s.wer && names.add(s.wer.trim())); });
+  d.urlaube.forEach(u => names.add(str(u.wer).trim()));
+  d.massnahmen.forEach(m => { names.add(str(m.verantwortlich).trim()); (m.plan?.steps || []).forEach(s => names.add(str(s.wer).trim())); });
   for (const n of names) if (n && !d.personen.some(p => p.name === n)) {
     const used = new Set(d.personen.map(p => p.farbe));
     d.personen.push({ name: n, farbe: PERSON_COLORS.find(c => !used.has(c)) || PERSON_COLORS[d.personen.length % PERSON_COLORS.length] });
@@ -97,6 +115,8 @@ function ensurePersons(d) {
 }
 
 /* ---------- Detailplan: Rückwärtsterminierung wie im Excel-Gantt */
+const MAX_DAUER = 730;                        // längste Dauer eines Arbeitsschritts in Tagen
+const FAR = 1100;                             // Termine mehr als ~3 Jahre vom PAL entfernt: Tippfehler vermuten
 function planCalc(m) {
   const pal = dn(m.pal), steps = m.plan ? m.plan.steps : [];
   const byId = new Map(steps.map(s => [s.id, s]));
@@ -109,14 +129,14 @@ function planCalc(m) {
     const a = s.anker || { art: 'offen' }, off = +a.offset || 0;
     if (s.typ !== 'gruppe') {
       if (a.art === 'pal') e = pal != null ? pal + off : null;
-      else if (a.art === 'fest') e = dn(a.datum);
+      else if (a.art === 'fest') { e = dn(a.datum); if (e == null && a.datum) err = 'ungültiges Datum „' + a.datum + '“'; }
       else if (a.art === 'start' || a.art === 'ende') {
         const r = byId.get(a.ref);
         if (!r) err = 'Bezug fehlt';
         else { const rc = calc(r); if (rc.err) err = rc.err; const b = a.art === 'start' ? rc.start : rc.end; e = b != null ? b + off : null; }
       }
     }
-    const dur = s.typ === 'aufgabe' ? Math.max(0, Math.round(+s.dauer || 0)) : 0;
+    const dur = s.typ === 'aufgabe' ? clamp(Math.round(+s.dauer || 0), 0, MAX_DAUER) : 0;
     const out = { start: e != null ? e - dur : null, end: e, err };
     busy.delete(s.id);
     res.set(s.id, out);
@@ -143,7 +163,8 @@ function derive() {
   });
   ms.sort((a, b) => (a.pal ?? 1e9) - (b.pal ?? 1e9) || a.m.name.localeCompare(b.m.name, 'de'));
   const byId = new Map(ms.map(x => [x.id, x]));
-  const vac = D.urlaube.map(u => ({ u, von: dn(u.von), bis: dn(u.bis) || dn(u.von) })).filter(v => v.von != null && v.bis >= v.von);
+  const vac = D.urlaube.map(u => ({ u, von: dn(u.von), bis: dn(u.bis) || dn(u.von) })).filter(v => v.von != null && v.bis >= v.von)
+    .map(v => v.bis - v.von > 400 ? Object.assign(v, { bis: v.von + 400, tooLong: true }) : v);   // Tippfehler im Jahr bremst sonst alle Ansichten
   C = { ms, byId, vac };
   C.warnings = computeWarnings();
   return C;
@@ -174,7 +195,7 @@ function computeWarnings() {
   const relevant = C.ms.filter(x => inYear(x, y) || x.pal == null);
   for (const x of relevant) {
     const nm = x.m.name || '(ohne Namen)';
-    if (x.pal == null) { W.push({ lvl: 'info', mid: x.id, text: nm + ': kein PAL eingetragen' }); continue; }
+    if (x.pal == null) { W.push(x.m.pal ? { lvl: 'warn', mid: x.id, text: `${nm}: PAL „${x.m.pal}“ ist kein gültiges Datum – bitte prüfen` } : { lvl: 'info', mid: x.id, text: nm + ': kein PAL eingetragen' }); continue; }
     const chk = (n, lab, isPal) => {
       if (n == null) return;
       const w = wd(n), hn = holName(n);
@@ -189,12 +210,19 @@ function computeWarnings() {
         text: `${nm}: ${lab} am ${fmtW(n)} – im Urlaub: ${[...new Set(away.map(v => v.u.wer || '?'))].join(', ')}` });
     };
     chk(x.s, 'Start Selektion'); chk(x.i, 'Start inhaltliche Arbeit'); chk(x.pal, 'PAL', true);
+    for (const [n, lab] of [[x.s, 'Start Selektion'], [x.i, 'Start inhaltliche Arbeit']]) {
+      if (n == null) continue;
+      if (n > x.pal) W.push({ lvl: 'warn', mid: x.id, n, text: `${nm}: ${lab} (${fmtD(n)}) liegt nach dem PAL (${fmtD(x.pal)}) – Datum prüfen` });
+      else if (x.pal - n > FAR) W.push({ lvl: 'warn', mid: x.id, n, text: `${nm}: ${lab} (${fmtD(n)}) liegt mehr als drei Jahre vor dem PAL – Datum prüfen` });
+    }
     if (x.s != null && x.i != null && x.s > x.i) W.push({ lvl: 'info', mid: x.id, text: `${nm}: Start inhaltliche Arbeit liegt vor Start Selektion` });
     if (x.pc) for (const s of x.m.plan.steps) {
       const r = x.pc.map.get(s.id);
       if (!r) continue;
-      if (r.err) W.push({ lvl: 'warn', mid: x.id, step: s.id, text: `${nm} › ${s.name}: ${r.err} in der Verknüpfung` });
+      if (r.err) W.push({ lvl: 'warn', mid: x.id, step: s.id, text: `${nm} › ${s.name}: ${r.err}` + (/^ungültig/.test(r.err) ? ' – Datum prüfen' : ' in der Verknüpfung') });
       if (r.start == null || s.typ === 'gruppe') continue;
+      if (Math.abs(r.start - x.pal) > FAR || Math.abs(r.end - x.pal) > FAR)
+        W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.end, text: `${nm} › ${s.name}: Termin ${fmtD(r.start)} – ${fmtD(r.end)} liegt mehr als drei Jahre vom PAL entfernt – Datum prüfen` });
       if (s.wer) {
         const away = C.vac.filter(v => v.u.wer === s.wer && v.von <= r.end && v.bis >= r.start);
         if (away.length) W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.start,
@@ -204,14 +232,22 @@ function computeWarnings() {
         W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.end, text: `${nm} › ${s.name}: überfällig seit ${fmtD(r.end)} (${+s.fortschritt || 0} % erledigt)` });
     }
   }
+  for (const u of D.urlaube) if ((u.von && dn(u.von) == null) || (u.bis && dn(u.bis) == null))
+    W.push({ lvl: 'warn', text: `Urlaub ${u.wer || '?'}: „${u.von || ''}“ – „${u.bis || ''}“ ist kein gültiges Datum – bitte prüfen` });
+  for (const v of C.vac) if (v.tooLong && (ymd(v.von)[0] === y || ymd(v.bis)[0] === y))
+    W.push({ lvl: 'warn', n: v.von, text: `Urlaub ${v.u.wer || '?'} ab ${fmtD(v.von)} endet erst am ${fmtD(dn(v.u.bis))} – Datum prüfen` });
   return W;
 }
 
 /* ---------- Änderungen, Rückgängig */
 function commit(fn, msg) {
   const before = JSON.stringify(D);
-  fn(D);
-  ensurePersons(D);
+  try { fn(D); ensurePersons(D); }
+  catch (e) {                                 // Fehler mitten in der Änderung: alles zurück, nichts halb geändert speichern
+    console.error(e); D = JSON.parse(before); derive(); requestRender();
+    toast('Die Änderung ließ sich nicht ausführen – es wurde nichts verändert. (' + ((e && e.message) || e) + ')', 'err');
+    return false;
+  }
   const after = JSON.stringify(D);
   if (before === after) return false;
   UNDO.push(before); if (UNDO.length > 100) UNDO.shift();

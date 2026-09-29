@@ -1,5 +1,27 @@
 [
   {
+    "version": "0.7",
+    "date": "",
+    "items": [
+      "Update-Schutz: Ein noch offenes Fenster mit älterer Version erkennt eine neuere Programmversion im Ordner, speichert nicht mehr und bittet um Neustart – das Update wird nicht mehr zurückgedreht",
+      "Speichern: klappt es einmal nicht (Datei kurz gesperrt), versucht die App es automatisch erneut und zeigt ehrlich „Nicht gespeichert“ an; die Excel-Ansicht wird ebenfalls nachgeholt",
+      "Gleichzeitiges Arbeiten: Konflikte lassen sich zusammenführen – Änderungen beider Seiten bleiben erhalten, nur bei echten Überschneidungen fragt die App",
+      "OneDrive-Konfliktkopien im Mailing-Ordner werden erkannt; Vergleichen, Übernehmen und Wegräumen per Knopf. Hinweis, wenn eine Kopie statt der Hauptdatei geöffnet ist",
+      "Startknopf öffnet immer die Hauptdatei (nicht mehr versehentlich eine Kopie)",
+      "Ungespeicherte Änderungen aus dem Browser gehen nicht mehr verloren, wenn inzwischen jemand anderes gespeichert hat – sie werden zusammengeführt",
+      "„Maßnahme bearbeiten“ überschreibt keine Änderungen anderer mehr (nur die im Fenster geänderten Felder werden übernommen)",
+      "Datumsfelder: nur vollständige Daten im Bereich Planungsjahr ± 5 Jahre; Tippfehler wie „20277“ oder „27“ werden abgewiesen, halb gelöschte Daten nicht mehr als „leer“ gespeichert",
+      "Warnungen bei unplausiblen Terminen (Start nach dem PAL, Termine Jahre vom PAL entfernt, extrem lange Urlaube); solche Werte bremsen die Ansichten nicht mehr aus",
+      "„Alle vorziehen“: erst PAL, dann Start Selektion/Inhalt – nichts landet mehr neu auf einem Wochenende; auch beim einzelnen PAL-Vorziehen",
+      "Ziehen im Kalender, in der Zeitleiste und im Detailplan: Rechtsklick, Esc oder Fensterwechsel brechen sauber ab (nichts bleibt „hängen“, nichts wird versehentlich verschoben)",
+      "Beschädigte Datei: die App startet nicht mehr leer, sondern sperrt das Speichern und bietet Wege zur Wiederherstellung an",
+      "Excel-Ansicht in Teams zeigt immer das Planungsjahr aus den Einstellungen – nicht das Jahr, das jemand gerade ansieht",
+      "Programm-Update warnt, wenn die gewählte Datei älter ist als die installierte Version",
+      "Strg+S in einem offenen Fenster öffnet keinen zweiten Dialog mehr; ein Fehler mitten in einer Änderung nimmt die Änderung vollständig zurück",
+      "Interne Tests liegen jetzt im Projekt (Ordner tests)"
+    ]
+  },
+  {
     "version": "0.6.4",
     "date": "",
     "items": [

@@ -85,8 +85,15 @@ function colResize(ev, c) {
     UI.colW = Object.assign({}, UI.colW, { [c.k]: w });
     table.style.width = 'max(100%, ' + tableWidth() + 'px)';
   };
-  const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); document.body.classList.remove('dragging', 'resizing'); saveUI(); };
-  window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+  const w1 = UI.colW && UI.colW[c.k];
+  dragSession(ev, ev.currentTarget, move, okay => {
+    document.body.classList.remove('dragging', 'resizing');
+    if (!okay) {                                  // abgebrochen: alte Breite zurück
+      UI.colW = Object.assign({}, UI.colW); if (w1) UI.colW[c.k] = w1; else delete UI.colW[c.k];
+      col.style.width = (colW(c) || c.flex || 0) + 'px'; table.style.width = 'max(100%, ' + tableWidth() + 'px)';
+    }
+    saveUI();
+  });
 }
 function setStartDate(id, key, v) {
   const x = C.byId.get(id); if (!x || x.pal == null) return;
@@ -155,7 +162,7 @@ function massnahmenSection() {
 /* ---------- Bearbeiten-Dialog (aus Kalender und Zeitleiste) */
 async function editMassnahme(id) {
   const x = C.byId.get(id); if (!x) return;
-  const m = JSON.parse(JSON.stringify(x.m));
+  const m = JSON.parse(JSON.stringify(x.m)), orig = JSON.parse(JSON.stringify(x.m));
   const row = (label, inp, hint) => h('label', { class: 'frow' }, h('span', null, label), inp, hint ? h('small', null, hint) : null);
   const sw = h('button', { class: 'swatch big', style: { background: m.farbe }, onclick: e => { e.preventDefault(); e.stopPropagation(); colorPicker(sw, m.farbe, c => { m.farbe = c; sw.style.background = c; }); } });
   const calc = h('div', { class: 'calcline' });
@@ -186,5 +193,9 @@ async function editMassnahme(id) {
   const res = await modal('Maßnahme bearbeiten', body, [['Löschen', 'del', 'danger left'], ['Abbrechen', false], ['Übernehmen', true, 'primary']]);
   if (res === 'del') return deleteMassnahme(id);
   if (res !== true) return;
-  commit(d => { const i = d.massnahmen.findIndex(q => q.id === id); if (i >= 0) d.massnahmen[i] = m; }, 'Änderung übernommen');
+  // nur, was im Dialog geändert wurde – was jemand anderes inzwischen geändert hat (z. B. der Detailplan), bleibt erhalten
+  const changedKeys = [...new Set([...Object.keys(orig), ...Object.keys(m)])].filter(k => JSON.stringify(orig[k]) !== JSON.stringify(m[k]));
+  if (!changedKeys.length) return;
+  if (!findM(D, id)) { toast('Diese Maßnahme wurde inzwischen gelöscht – die Änderung wurde nicht übernommen.', 'warn'); return; }
+  commit(d => { const cur = findM(d, id); for (const k of changedKeys) { if (m[k] === undefined) delete cur[k]; else cur[k] = JSON.parse(JSON.stringify(m[k])); } }, 'Änderung übernommen');
 }

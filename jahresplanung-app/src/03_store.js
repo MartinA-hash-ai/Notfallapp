@@ -2,6 +2,15 @@
 
 const DEFAULT_FILE = 'Jahresplanung_Aussenkommunikation.html';
 let DRAFT_OFFER = null;
+let BROKEN = null;                            // Daten der geöffneten Datei unlesbar: Speichern gesperrt, bis gültige Daten geladen sind
+
+// Programmversion einer gespeicherten Datei (null bei sehr alten Dateien) und Vergleich „0.6.4“ < „0.7“
+const fileVersion = text => ((text || '').match(/const APP_INFO = \{"version": "([^"]+)"/) || [])[1] || null;
+function verCmp(a, b) {
+  const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number);
+  for (let i = 0; i < Math.max(x.length, y.length); i++) { const d = (x[i] || 0) - (y[i] || 0); if (d) return d > 0 ? 1 : -1; }
+  return 0;
+}
 
 function currentFileName() {
   try { const n = decodeURIComponent(location.pathname.split('/').pop() || ''); if (/\.html?$/i.test(n)) return n; } catch (e) { /* */ }
@@ -45,7 +54,8 @@ const fmtStamp = iso => { if (!iso) return 'unbekannt'; const d = new Date(iso);
 
 /* ---------- Speichern über Ordnerzugriff: Programmdatei + Ansichts-Excel, automatisch nach Änderungen */
 const VIEW_XLSX = 'Jahresplanung – aktueller Stand.xlsx';
-const ST = { dir: null, html: null, stamp: null, conn: 'none', saving: false, again: false, conflict: null, lastSave: null, xlsxErr: null, timer: null, watch: null };
+const ST = { dir: null, html: null, htmlDir: null, stamp: null, conn: 'none', saving: false, again: false, conflict: null, lastSave: null, xlsxErr: null, timer: null, watch: null,
+  newer: null, fail: null, retry: null, xlsxTimer: null, copies: [], tick: 0 };
 const FSA = 'showDirectoryPicker' in window;
 
 // Ordner-Zugriff im Browser merken (IndexedDB), damit beim nächsten Start ein Klick reicht
@@ -64,27 +74,46 @@ async function restoreFolder() {
   if (p === 'granted') await attachFolder(); else ST.conn = 'needs-permission';
   updateSaveUI();
 }
+// Programmdatei im Ordner suchen (auch im Unterordner „Jahresplanung …“); liefert Datei und Ordner
 async function findHtml(dir) {
   const name = currentFileName();
-  try { return await dir.getFileHandle(name); } catch (e) { /* weiter suchen */ }
+  try { return { file: await dir.getFileHandle(name), dir }; } catch (e) { /* weiter suchen */ }
   const subs = [], files = [];
   for await (const [n, e] of dir.entries()) { if (e.kind === 'directory' && /^Jahresplanung/i.test(n)) subs.push(e); if (e.kind === 'file' && /^Jahresplanung.*\.html?$/i.test(n)) files.push(e); }
-  for (const sd of subs) { try { return await sd.getFileHandle(name); } catch (e) { /* */ } }
-  return files[0] || null;
+  for (const sd of subs) { try { return { file: await sd.getFileHandle(name), dir: sd }; } catch (e) { /* */ } }
+  const main = files.find(f => f.name === DEFAULT_FILE) || files[0];
+  return main ? { file: main, dir } : null;
 }
 async function attachFolder(create) {
-  let hf = await findHtml(ST.dir);
-  if (!hf && create) hf = await ST.dir.getFileHandle(currentFileName(), { create: true });
-  if (!hf) { ST.conn = 'none'; return false; }
-  ST.html = hf;
-  const f = await hf.getFile();
+  let found = await findHtml(ST.dir);
+  if (!found && create) found = { file: await ST.dir.getFileHandle(currentFileName(), { create: true }), dir: ST.dir };
+  if (!found) { ST.conn = 'none'; return false; }
+  ST.html = found.file; ST.htmlDir = found.dir;
+  const f = await ST.html.getFile();
   ST.stamp = f.lastModified;
   ST.conn = 'ok';
-  const other = f.size ? parseFileText(await f.text()) : null;
-  if (other && other.meta && other.meta.savedAt && other.meta.savedAt !== D.meta.savedAt && (!D.meta.savedAt || other.meta.savedAt > D.meta.savedAt)) externalChange(other);
+  const text = f.size ? await f.text() : '', other = text ? parseFileText(text) : null;
+  if (other && BROKEN) {                        // geöffnete Datei kaputt, die im Ordner lesbar: diese nehmen
+    BROKEN = null; D = normalize(other); SAVED_JSON = JSON.stringify(D); UNDO.length = 0; REDO.length = 0;
+    toast('Die geöffnete Datei war beschädigt – der Stand aus dem Mailing-Ordner wurde geladen.', 'ok');
+  } else if (other && other.meta && other.meta.savedAt && other.meta.savedAt !== D.meta.savedAt && (!D.meta.savedAt || other.meta.savedAt > D.meta.savedAt)) externalChange(other, f.lastModified);
+  noteNewer(text, other);
   startWatch();
+  scanCopies();
   safeRender();                                 // u. a. Hinweis, falls Datei und Speicherort nicht zusammenpassen
   return true;
+}
+// Liegt im Ordner eine neuere Programmversion? Dann nicht mehr speichern (sonst käme die alte Version zurück)
+function noteNewer(text, other) {
+  const v = fileVersion(text);
+  if (!v || verCmp(v, APP_INFO.version) <= 0) return false;
+  if (!ST.newer) { ST.newer = { version: v, by: other && other.meta ? other.meta.savedBy : '' }; clearTimeout(ST.timer); ST.timer = null; safeRender(); }
+  return true;
+}
+function reloadForNewer() {
+  saveDraft();                                  // ungespeicherte Änderungen bleiben im Browser und werden nach dem Neustart angeboten
+  window.__jpReload = true;
+  location.reload();
 }
 function askPermissionOnFirstClick() {
   if (!FSA || ST.conn !== 'needs-permission' || ST.askArmed) return;
@@ -130,12 +159,14 @@ async function connectFolder() {
   }
 }
 function scheduleAutosave() {
-  clearTimeout(ST.timer);
-  if (UI.autoSave === false || ST.conn !== 'ok' || ST.conflict) return;
-  ST.timer = setTimeout(() => saveAll({ auto: true }), 2500);
+  clearTimeout(ST.timer); ST.timer = null;
+  if (UI.autoSave === false || ST.conn !== 'ok' || ST.conflict || ST.newer || BROKEN) return;
+  ST.timer = setTimeout(() => { ST.timer = null; saveAll({ auto: true }); }, 2500);
 }
 async function saveAll(opts = {}) {
-  clearTimeout(ST.timer);
+  clearTimeout(ST.timer); ST.timer = null;
+  if (BROKEN) { if (!opts.auto) toast('Speichern ist gesperrt: Die Daten dieser Datei waren beschädigt. Erst eine Datensicherung laden (Hinweis oben).', 'err'); return false; }
+  if (ST.newer && !opts.force) { if (!opts.auto) toast('Im Ordner liegt eine neuere Programmversion (' + ST.newer.version + '). Bitte zuerst neu starten (Hinweis oben).', 'err'); return false; }
   if (ST.saving) { ST.again = true; return false; }
   if (!FSA) return saveDownload();
   if (ST.conn !== 'ok') {
@@ -147,8 +178,12 @@ async function saveAll(opts = {}) {
   try {
     const f = await ST.html.getFile();
     if (!opts.force && ST.stamp != null && f.lastModified !== ST.stamp) {
-      const other = parseFileText(await f.text());
-      if (other && other.meta && other.meta.savedAt !== D.meta.savedAt) { ST.saving = false; externalChange(other); return false; }
+      const text = await f.text(), other = parseFileText(text);
+      if (noteNewer(text, other)) { ST.saving = false; if (!isDirty() && other) externalChange(other, f.lastModified); return false; }
+      if (!other && text.length) {                // Datei gerade unlesbar (z. B. halb synchronisiert): nicht blind überschreiben
+        ST.saving = false; throw Object.assign(new Error('Die Datei im Ordner ist gerade nicht lesbar (wird sie synchronisiert?)'), { name: 'Unreadable' });
+      }
+      if (other && other.meta && other.meta.savedAt !== D.meta.savedAt) { ST.saving = false; externalChange(other, f.lastModified); return false; }
       ST.stamp = f.lastModified;
     }
     const data = JSON.parse(JSON.stringify(D));
@@ -160,18 +195,21 @@ async function saveAll(opts = {}) {
     ST.stamp = (await ST.html.getFile()).lastModified;
     D.meta = data.meta; SAVED_JSON = JSON.stringify(D); clearDraft();
     ST.lastSave = new Date(); ST.conflict = null;
-    try {
-      derive();
-      const xh = await ST.dir.getFileHandle(VIEW_XLSX, { create: true });
-      const xw = await xh.createWritable(); await xw.write(viewWorkbook()); await xw.close();
-      ST.xlsxErr = null;
-    } catch (e) { console.warn(e); ST.xlsxErr = (e && e.message) || String(e); }
+    if (ST.fail) { if (ST.fail.n > 1) toast('Wieder gespeichert.', 'ok'); ST.fail = null; }
+    clearTimeout(ST.retry); ST.retry = null;
+    await writeViewXlsx();
     if (!opts.auto) toast(ST.xlsxErr ? 'Gespeichert – aber die Excel-Ansicht konnte nicht aktualisiert werden.' : 'Gespeichert (Programm und Excel-Ansicht)', ST.xlsxErr ? 'warn' : 'ok');
     return true;
   } catch (e) {
     console.warn(e);
-    if (e && (e.name === 'NotAllowedError' || e.name === 'SecurityError')) ST.conn = 'needs-permission';
-    toast('Speichern fehlgeschlagen: ' + ((e && e.message) || e), 'err');
+    const perm = e && (e.name === 'NotAllowedError' || e.name === 'SecurityError');
+    ST.fail = { msg: (e && e.message) || String(e), n: (ST.fail ? ST.fail.n : 0) + 1, at: new Date() };
+    if (perm) { ST.conn = 'needs-permission'; askPermissionOnFirstClick(); }
+    else {                                        // z. B. Datei kurz gesperrt (OneDrive, Virenscanner): automatisch erneut versuchen
+      clearTimeout(ST.retry);
+      ST.retry = setTimeout(() => { ST.retry = null; if (isDirty()) saveAll({ auto: true }); }, Math.min(60000, 5000 * 2 ** (ST.fail.n - 1)));
+    }
+    if (!opts.auto || ST.fail.n === 1) toast('Speichern fehlgeschlagen: ' + ST.fail.msg + (perm ? '' : ' – neuer Versuch läuft automatisch.'), 'err');
     return false;
   } finally {
     ST.saving = false;
@@ -181,6 +219,20 @@ async function saveAll(opts = {}) {
   }
 }
 function save() { return saveAll({ manual: true }); }
+// Ansichts-Excel (für Teams) schreiben; klappt es nicht (z. B. gerade in Excel geöffnet), später erneut versuchen
+async function writeViewXlsx() {
+  clearTimeout(ST.xlsxTimer); ST.xlsxTimer = null;
+  if (!ST.dir || ST.conn !== 'ok') return;
+  try {
+    derive();
+    const xh = await ST.dir.getFileHandle(VIEW_XLSX, { create: true });
+    const xw = await xh.createWritable(); await xw.write(viewWorkbook({ year: +D.settings.year || UI.year })); await xw.close();
+    if (ST.xlsxErr) { ST.xlsxErr = null; safeRender(); }
+  } catch (e) {
+    console.warn(e); ST.xlsxErr = (e && e.message) || String(e);
+    ST.xlsxTimer = setTimeout(writeViewXlsx, 30000);
+  }
+}
 async function saveDownload() {
   const data = JSON.parse(JSON.stringify(D));
   data.meta.savedAt = new Date().toISOString(); data.meta.savedBy = UI.userName || ''; data.meta.rev = (+D.meta.rev || 0) + 1;
@@ -206,34 +258,52 @@ async function saveCopy() {
 }
 
 /* ---------- Änderungen anderer erkennen (die Datei wird per OneDrive synchronisiert) */
-function externalChange(other) {
-  if (!isDirty()) {
-    D = normalize(other); SAVED_JSON = JSON.stringify(D); UNDO.length = 0; REDO.length = 0; ST.conflict = null;
+function externalChange(other, stamp) {
+  if (!isDirty() || BROKEN) {
+    D = normalize(other); SAVED_JSON = JSON.stringify(D); UNDO.length = 0; REDO.length = 0; ST.conflict = null; BROKEN = null;
+    if (stamp != null) ST.stamp = stamp;
     toast('Neuer Stand geladen (gespeichert ' + fmtStamp(other.meta.savedAt) + (other.meta.savedBy ? ' von ' + other.meta.savedBy : '') + ')', 'ok');
     safeRender();
   } else {
-    ST.conflict = { other };
-    clearTimeout(ST.timer);
+    ST.conflict = { other, stamp };
+    clearTimeout(ST.timer); ST.timer = null;
     safeRender();
   }
 }
 function startWatch() {
   clearInterval(ST.watch);
   ST.watch = setInterval(async () => {
-    if (ST.conn !== 'ok' || ST.saving || ST.conflict || document.hidden) return;
+    if (ST.conn !== 'ok' || ST.saving || document.hidden) return;
+    ST.tick++;
+    if (ST.tick % 4 === 0) scanCopies();                          // etwa jede Minute: Konfliktkopien von OneDrive?
+    if (ST.conflict) return;
     try {
       const f = await ST.html.getFile();
-      if (f.lastModified === ST.stamp) return;
-      const other = parseFileText(await f.text());
-      ST.stamp = f.lastModified;
-      if (other && other.meta && other.meta.savedAt !== D.meta.savedAt) externalChange(other);
+      if (f.lastModified !== ST.stamp) {
+        const text = await f.text(), other = parseFileText(text);
+        if (!other) return;                                        // Datei kurz nicht lesbar (Synchronisierung): beim nächsten Mal
+        ST.stamp = f.lastModified;
+        if (noteNewer(text, other)) { if (!isDirty()) externalChange(other, f.lastModified); return; }
+        if (other.meta && other.meta.savedAt !== D.meta.savedAt) { externalChange(other, f.lastModified); return; }
+      }
+      // Sicherheitsnetz: ungespeichert, aber kein Speichern geplant → jetzt speichern
+      if (isDirty() && !ST.timer && !ST.retry && UI.autoSave !== false && !ST.newer && !BROKEN) saveAll({ auto: true });
     } catch (e) { /* Datei kurz nicht lesbar (Synchronisierung) */ }
   }, 15000);
 }
-function resolveConflict(keepMine) {
+// Konflikt lösen: zusammenführen (empfohlen), meinen Stand behalten oder den anderen laden
+async function resolveConflict(how) {
   const c = ST.conflict; if (!c) return;
-  if (keepMine) { ST.conflict = null; saveAll({ force: true }); }
-  else { ST.conflict = null; UNDO.push(JSON.stringify(D)); D = normalize(c.other); SAVED_JSON = JSON.stringify(D); clearDraft(); toast('Stand von ' + (c.other.meta.savedBy || 'der Datei') + ' geladen – deine Änderung ist mit Strg+Z zurückholbar (dann speichern).', 'ok'); }
+  if (how === 'merge') {
+    const theirs = normalize(JSON.parse(JSON.stringify(c.other)));
+    const merged = await mergeWithUI(JSON.parse(SAVED_JSON), D, theirs, c.other.meta.savedBy || 'der/die andere');
+    if (!merged || ST.conflict !== c) return;
+    ST.conflict = null; UNDO.push(JSON.stringify(D)); REDO.length = 0;
+    D = merged; SAVED_JSON = JSON.stringify(theirs); if (c.stamp != null) ST.stamp = c.stamp;
+    toast('Zusammengeführt – wird gespeichert.', 'ok');
+    changed(); saveAll({ auto: true });
+  } else if (how === 'mine') { ST.conflict = null; saveAll({ force: true }); }
+  else { ST.conflict = null; UNDO.push(JSON.stringify(D)); D = normalize(c.other); SAVED_JSON = JSON.stringify(D); if (c.stamp != null) ST.stamp = c.stamp; clearDraft(); toast('Stand von ' + (c.other.meta.savedBy || 'der Datei') + ' geladen – deine Änderung ist mit Strg+Z zurückholbar (dann speichern).', 'ok'); }
   renderNow();
 }
 // neu zeichnen, aber nicht mitten im Tippen
@@ -252,9 +322,12 @@ function saveBox() {
   let label, cls = 'save', tip;
   if (!FSA) { label = dirty ? '● Speichern' : '✓ Gespeichert'; cls += dirty ? ' primary dirty' : ''; tip = 'Speichern lädt die Datei herunter (Browser ohne Ordnerzugriff)'; }
   else if (ST.saving) { label = 'Speichert …'; tip = 'wird gespeichert'; }
+  else if (BROKEN) { label = '⚠ Speichern gesperrt'; cls += ' primary'; tip = 'Die Daten dieser Datei waren beschädigt – siehe Hinweis oben'; }
+  else if (ST.newer) { label = '⚠ Neustart nötig'; cls += ' primary'; tip = 'Im Ordner liegt eine neuere Programmversion – siehe Hinweis oben'; }
   else if (ST.conflict) { label = '⚠ Konflikt'; cls += ' primary'; tip = 'Jemand anderes hat zwischendurch gespeichert – siehe Hinweis oben'; }
   else if (ST.conn === 'none') { label = 'Speichern …'; cls += ' primary' + (dirty ? ' dirty' : ''); tip = 'Einmal den Mailing-Ordner wählen – danach speichert die App automatisch'; }
   else if (ST.conn === 'needs-permission') { label = '🔓 Speichern aktivieren'; cls += ' primary'; tip = 'Ein Klick: der Browser fragt, ob die App den Ordner bearbeiten darf'; }
+  else if (ST.fail && dirty) { label = '⚠ Nicht gespeichert'; cls += ' primary dirty'; tip = 'Speichern fehlgeschlagen: ' + ST.fail.msg + '. Neuer Versuch läuft automatisch – oder hier klicken.'; }
   else if (dirty) { label = UI.autoSave === false ? '● Speichern' : '● wird gespeichert …'; cls += ' primary dirty'; tip = 'Jetzt speichern (Strg+S)'; }
   else { label = '✓ Gespeichert' + (t ? ' ' + t : ''); cls += ' ok'; tip = 'Programm und Excel-Ansicht sind aktuell' + (ST.xlsxErr ? ' (Excel-Ansicht: Fehler)' : ''); }
   return h('button', { id: 'savebox', class: cls, tip, onclick: () => save() }, label);
@@ -267,22 +340,44 @@ function pickFileText(accept = '.html,.htm,.json') {
     document.body.append(inp); inp.click();
   });
 }
-async function openFile() {
-  if (!await confirmBox('Daten übernehmen', 'Die Daten aus einer anderen Jahresplanung-Datei (HTML oder JSON) ersetzen den aktuellen Stand. Danach wird gespeichert. Strg+Z macht es rückgängig.', 'Datei wählen')) return;
+async function openFile(noAsk) {
+  if (!noAsk && !await confirmBox('Daten übernehmen', 'Die Daten aus einer anderen Jahresplanung-Datei (HTML oder JSON) ersetzen den aktuellen Stand. Danach wird gespeichert. Strg+Z macht es rückgängig.', 'Datei wählen')) return;
   const got = await pickFileText();
   if (!got) return;
   const data = parseFileText(got.text);
   if (!data || !Array.isArray(data.massnahmen)) { toast('In dieser Datei wurden keine Planungsdaten gefunden.', 'err'); return; }
-  commit(d => { const n = normalize(JSON.parse(JSON.stringify(data))); n.meta = d.meta; Object.keys(d).forEach(k => delete d[k]); Object.assign(d, n); }, 'Daten aus „' + got.name + '“ übernommen');
+  if (commit(d => { const n = normalize(JSON.parse(JSON.stringify(data))); n.meta = d.meta; Object.keys(d).forEach(k => delete d[k]); Object.assign(d, n); }, 'Daten aus „' + got.name + '“ übernommen') && BROKEN) {
+    BROKEN = null; toast('Daten geladen – Speichern ist wieder möglich.', 'ok'); scheduleAutosave(); renderNow();
+  }
+}
+// Beim Start: Daten der Datei unlesbar → erklären und Wege zurück anbieten (nichts überschreiben)
+async function brokenDialog() {
+  if (!BROKEN) return;
+  const dr = readDraft();
+  const r = await modal('Planungsdaten beschädigt', h('div', { class: 'help' },
+    h('p', null, 'Die Planungsdaten in dieser Datei lassen sich nicht lesen (' + BROKEN.reason + '). Die App zeigt deshalb nichts an und speichert nicht – so wird die Datei nicht mit einem leeren Stand überschrieben.'),
+    h('p', null, 'Wege zurück:'),
+    h('ul', null,
+      dr ? h('li', null, 'den Stand aus diesem Browser vom ' + fmtStamp(dr.at) + ' wiederherstellen') : null,
+      h('li', null, 'eine Datensicherung (.json) oder eine ältere Kopie der Programmdatei laden'),
+      h('li', null, 'in Teams/SharePoint im Mailing-Ordner über „Versionsverlauf“ eine ältere Fassung der Datei wiederherstellen und neu starten'))),
+    [['Nur ansehen', false], dr ? ['Browser-Stand wiederherstellen', 'draft'] : null, ['Datensicherung laden …', 'file', 'primary']].filter(Boolean));
+  if (r === 'draft') {
+    UNDO.push(JSON.stringify(D)); D = normalize(dr.data); BROKEN = null; DRAFT_OFFER = null;
+    changed(); toast('Stand aus dem Browser wiederhergestellt – wird gespeichert.', 'ok');
+  } else if (r === 'file') await openFile(true);
 }
 // Neue Programmversion übernehmen: Code aus der gewählten Datei, Daten von hier
 async function updateProgram() {
+  if (BROKEN) { toast('Erst die beschädigten Daten wiederherstellen (Hinweis oben) – sonst würde das Update einen leeren Stand speichern.', 'err'); return; }
   if (!await confirmBox('Programm-Update einspielen', 'Wähle die neue Programmdatei (Jahresplanung_Aussenkommunikation.html aus dem entpackten Update-Paket). Deine Daten bleiben erhalten – nur das Programm wird ersetzt. Zur Sicherheit wird vorher eine Datensicherung (.json) heruntergeladen.', 'Datei wählen')) return;
   const got = await pickFileText('.html,.htm'); if (!got) return;
   const st = got.text.match(/<style id="jp-style">([\s\S]*?)<\/style>/), app = got.text.match(/<script id="jp-app">([\s\S]*)<\/script>\s*<\/body>/);
   if (!st || !app) { modal('Keine Programmdatei', h('p', null, '„' + got.name + '“ ist keine Jahresplanung-Programmdatei. Bitte die Datei Jahresplanung_Aussenkommunikation.html aus dem entpackten Update-Paket wählen.')); return; }
   const ver = (app[1].match(/const APP_INFO = (\{[^}]*\});/) || [])[1];
   let info = null; try { info = ver ? JSON.parse(ver) : null; } catch (e) { /* ältere Version ohne Nummer */ }
+  if ((!info || verCmp(info.version, APP_INFO.version) < 0) && !await confirmBox('Ältere Version?', 'Die gewählte Datei hat ' + (info ? 'Version ' + info.version : 'keine Versionsnummer') +
+    ' und ist älter als die installierte Version ' + APP_INFO.version + '. Damit würde das Programm zurückgestuft. Wirklich einspielen?', 'Trotzdem einspielen')) return;
   if (!await confirmBox('Update übernehmen?', 'Installiert: Version ' + APP_INFO.version + ' · Neu: ' + (info ? 'Version ' + info.version + ' (' + fmtIsoLocal(info.date) + ')' : 'ohne Versionsnummer') + '. Danach startet das Programm neu.', 'Übernehmen')) return;
   const newFile = () => { const data = JSON.parse(JSON.stringify(D)); data.meta.savedAt = new Date().toISOString(); data.meta.savedBy = UI.userName || ''; return buildFile(data, st[1], app[1]); };
   // gelingt das Speichern im Ordner nicht: aktualisierte Datei zum Herunterladen anbieten
@@ -325,26 +420,84 @@ async function exportJSON() {
 const draftKey = () => 'jp-draft:' + location.pathname;
 function saveDraft() {
   try {
-    if (isDirty()) localStorage.setItem(draftKey(), JSON.stringify({ base: D.meta.savedAt, at: new Date().toISOString(), data: D }));
+    if (isDirty() && !BROKEN) localStorage.setItem(draftKey(), JSON.stringify({ base: D.meta.savedAt, baseData: SAVED_JSON, at: new Date().toISOString(), data: D }));
     else localStorage.removeItem(draftKey());
   } catch (e) { /* kein Speicher verfügbar */ }
 }
 function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) { /* */ } DRAFT_OFFER = null; }
+function readDraft() { try { const d = JSON.parse(localStorage.getItem(draftKey()) || 'null'); return d && d.data ? d : null; } catch (e) { return null; } }
 function checkDraft() {
-  try {
-    const d = JSON.parse(localStorage.getItem(draftKey()) || 'null');
-    if (!d || !d.data) return;
-    if (d.base !== D.meta.savedAt || JSON.stringify(d.data) === SAVED_JSON) { localStorage.removeItem(draftKey()); return; }
-    DRAFT_OFFER = d;
-  } catch (e) { /* */ }
+  const d = readDraft(); if (!d) return;
+  if (BROKEN) { DRAFT_OFFER = null; return; }                       // wird im Dialog zur beschädigten Datei angeboten
+  if (JSON.stringify(normalize(JSON.parse(JSON.stringify(d.data)))) === SAVED_JSON) { clearDraft(); return; }   // nichts Neues
+  DRAFT_OFFER = Object.assign(d, { sameBase: d.base === D.meta.savedAt });
 }
-function restoreDraft() {
-  if (!DRAFT_OFFER) return;
+async function restoreDraft() {
+  const dr = DRAFT_OFFER; if (!dr) return;
+  let next;
+  if (dr.sameBase) next = normalize(dr.data);
+  else {                                                            // inzwischen neu gespeichert: nur die eigenen Änderungen darüberlegen
+    const base = dr.baseData ? JSON.parse(dr.baseData) : null;
+    next = base ? await mergeWithUI(normalize(base), normalize(dr.data), JSON.parse(SAVED_JSON), D.meta.savedBy || 'der aktuelle Stand')
+      : await compareDialog(normalize(dr.data), 'deinen ungespeicherten Änderungen vom ' + fmtStamp(dr.at));
+    if (!next) return;
+  }
   UNDO.push(JSON.stringify(D));
-  D = normalize(DRAFT_OFFER.data);
+  D = next;
   DRAFT_OFFER = null;
   changed();
-  toast('Ungespeicherte Änderungen wiederhergestellt – bitte speichern.', 'ok');
+  toast('Ungespeicherte Änderungen wiederhergestellt – werden gespeichert.', 'ok');
+}
+
+const BASE_NAME = DEFAULT_FILE.replace(/\.html$/, '');
+const isCopyName = n => n !== DEFAULT_FILE && n.toLowerCase().startsWith(BASE_NAME.toLowerCase()) && /\.html?$/i.test(n);
+const inCopy = () => currentFileName() !== DEFAULT_FILE && isCopyName(currentFileName());
+let _scanBusy = false;
+async function scanCopies() {
+  if (_scanBusy || !ST.htmlDir || ST.conn !== 'ok') return;
+  _scanBusy = true;
+  try {
+    const found = [];
+    ST.mainExists = false;
+    for await (const [n, e] of ST.htmlDir.entries()) {
+      if (e.kind !== 'file') continue;
+      if (n === DEFAULT_FILE) ST.mainExists = true;
+      if (!isCopyName(n) || n === currentFileName()) continue;
+      const f = await e.getFile(), key = n + '@' + f.lastModified;
+      const old = ST.copies.find(c => c.key === key);
+      if (old) { found.push(old); continue; }
+      const data = parseFileText(await f.text());
+      if (!data || !Array.isArray(data.massnahmen)) continue;
+      const nd = normalize(JSON.parse(JSON.stringify(data)));
+      found.push({ name: n, key, handle: e, data: nd, meta: nd.meta, same: sameContent(nd, D) });
+    }
+    const before = ST.copies.map(c => c.key).join('|');
+    ST.copies = inCopy() ? [] : found;
+    if (ST.copies.map(c => c.key).join('|') !== before || inCopy()) safeRender();
+  } catch (e) { console.warn(e); }
+  finally { _scanBusy = false; }
+}
+const copyHidden = c => !!(UI.copiesSeen && UI.copiesSeen[c.key]);
+async function handleCopy(c) {
+  if (!c.same) {
+    const next = await compareDialog(c.data, '„' + c.name + '“' + (c.meta.savedBy ? ' (gespeichert ' + fmtStamp(c.meta.savedAt) + ' von ' + c.meta.savedBy + ')' : ''));
+    if (!next) return;
+    UNDO.push(JSON.stringify(D)); REDO.length = 0; D = next; changed();
+  }
+  if (await confirmBox('Kopie wegräumen?', '„' + c.name + '“ wird in den Unterordner „' + TIDY_DIR + '“ verschoben. Dort bleibt sie erhalten, stört aber nicht mehr.', 'Wegräumen', 'Liegen lassen')) {
+    try {
+      const sub = await ST.htmlDir.getDirectoryHandle(TIDY_DIR, { create: true });
+      const w = await (await sub.getFileHandle(c.name, { create: true })).createWritable(); await w.write(await (await c.handle.getFile()).text()); await w.close();
+      await ST.htmlDir.removeEntry(c.name);
+      ST.copies = ST.copies.filter(q => q !== c); toast('„' + c.name + '“ weggeräumt.', 'ok');
+    } catch (e) { toast('Wegräumen nicht möglich: ' + ((e && e.message) || e), 'err'); }
+  } else { UI.copiesSeen = Object.assign({}, UI.copiesSeen, { [c.key]: 1 }); saveUI(); }
+  renderNow();
+}
+const TIDY_DIR = 'Konfliktkopien (erledigt)';
+function openMainFile() {
+  const go = () => { window.__jpReload = true; location.href = new URL(encodeURIComponent(DEFAULT_FILE), location.href).href; };
+  if (isDirty() && ST.conn === 'ok') saveAll({ manual: true }).then(ok => { if (ok) go(); }); else go();
 }
 
 function loadData(d) {

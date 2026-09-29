@@ -1,0 +1,36 @@
+const { chromium } = require('./pw');
+const T = require('./common');
+const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
+(async () => { const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1600, height: 1000 } })).newPage();
+const errs = []; p.on('pageerror', e => errs.push(e.message));
+await p.goto(T.URL); await p.waitForTimeout(300);
+const st = () => p.evaluate(() => ({ hl: document.querySelector('#main').classList.contains('hl'), on: [...new Set($$('.cal .chip.hl-on').map(c => C.byId.get(c.dataset.m).m.name))].join(','),
+  pin: UI.pin && C.byId.get(UI.pin).m.name, btn: $$('.mline-edit').length, modal: !!$('.modal') }));
+const lines = await p.evaluate(() => { const ls = $$('.mlist .mline'); ls[2].scrollIntoView({ block: 'center' }); return ls.slice(0, 4).map(l => { const r = l.getBoundingClientRect(); return { x: r.x + 30, y: r.y + r.height / 2, name: C.byId.get(l.dataset.m).m.name, right: r.right }; }); });
+const A = lines.find(l => l.name === 'Projekt-Update 1') || lines[2], B = lines.find(l => l.name !== A.name);
+await p.mouse.click(A.x, A.y); await p.waitForTimeout(150);
+let s = await st();
+ok(s.hl && s.pin === A.name && s.on === A.name && s.btn === 1 && !s.modal, 'Klick auf Terminzeile hält „' + A.name + '“ hervorgehoben, „Bearbeiten“ sichtbar, kein Dialog ' + JSON.stringify(s));
+await p.screenshot({ path: 'r11_pin.png' });
+const Bp = await p.evaluate(n => { const l = $$('.mlist .mline').find(l => C.byId.get(l.dataset.m).m.name === n && !l.classList.contains('pinned')); const r = l.getBoundingClientRect(); return { x: r.x + 30, y: r.y + r.height / 2, right: r.right }; }, B.name);
+Object.assign(B, Bp);
+await p.mouse.move(B.x, B.y, { steps: 3 }); await p.waitForTimeout(120);
+const sb = await st();
+const nb = await p.evaluate(() => { const hd = document.querySelector('.cal .month header'); const r = hd.getBoundingClientRect(); return [r.x + r.width - 20, r.y + r.height / 2]; });
+await p.mouse.move(nb[0], nb[1], { steps: 3 }); await p.waitForTimeout(120);
+const sback = await st();
+ok(sb.on === B.name && sback.on === A.name && sback.pin === A.name, 'Überfahren „' + B.name + '“ hebt diese hervor, danach zurück zu „' + A.name + '“');
+await p.click('.mline-edit'); await p.waitForTimeout(150);
+const sm = await st();
+ok(sm.modal && /Maßnahme bearbeiten/.test(await p.textContent('.modal h2')), '„Bearbeiten“ öffnet den Dialog');
+await p.click('.modal footer button:has-text("Abbrechen")'); await p.waitForTimeout(150);
+ok((await st()).pin === A.name, 'nach dem Schließen des Dialogs bleibt die Hervorhebung');
+await p.evaluate(() => { commit(d => { d.massnahmen[0].hinweis = 'x'; }); }); await p.waitForTimeout(200);
+const sr = await st();
+ok(sr.pin === A.name && sr.hl && sr.btn === 1, 'Hervorhebung übersteht Neuzeichnen');
+await p.mouse.click(1500, 40 + 300); await p.waitForTimeout(150);   // irgendwo anders (Kalenderfläche ohne Terminzeile)
+const sc = await st();
+ok(!sc.pin && !sc.hl && sc.btn === 0, 'Klick woanders hebt die Auswahl auf ' + JSON.stringify(sc));
+await p.mouse.click(A.x, A.y); await p.waitForTimeout(100); await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+ok(!(await st()).pin, 'Esc hebt die Auswahl ebenfalls auf');
+console.log('ERR', errs.join('|') || 'keine'); await b.close(); })();

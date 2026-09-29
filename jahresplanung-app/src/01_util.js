@@ -3,8 +3,17 @@
 
 const DAY = 86400000;
 const p2 = v => String(v).padStart(2, '0');
-const mkdn = (y, m, d) => Math.round(Date.UTC(y, m - 1, d) / DAY);          // Tagesnummer (Tage seit 1970, UTC)
-const dn = s => { if (!s) return null; const [y, m, d] = String(s).split('-').map(Number); return (y && m && d) ? mkdn(y, m, d) : null; };
+// Tagesnummer (Tage seit 1970, UTC); Jahre unter 100 nicht als 19xx deuten
+const mkdn = (y, m, d) => { if (y >= 100) return Math.round(Date.UTC(y, m - 1, d) / DAY); const t = new Date(0); t.setUTCFullYear(y, m - 1, d); return Math.round(t.getTime() / DAY); };
+// Datumstext 'JJJJ-MM-TT' → Tagesnummer; unmögliche oder unplausible Daten (z. B. 30.02., Jahr 0027 oder 20277) ergeben null
+const DATE_YMIN = 1900, DATE_YMAX = 2200;
+const dn = s => {
+  if (!s) return null;
+  const q = /^(\d{4})-(\d{1,2})-(\d{1,2})(?:$|T)/.exec(String(s).trim()); if (!q) return null;
+  const y = +q[1], m = +q[2], d = +q[3];
+  if (y < DATE_YMIN || y > DATE_YMAX || m < 1 || m > 12 || d < 1 || d > new Date(Date.UTC(y, m, 0)).getUTCDate()) return null;
+  return mkdn(y, m, d);
+};
 const ymd = n => { const d = new Date(n * DAY); return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()]; };
 const ds = n => { const [y, m, d] = ymd(n); return y + '-' + p2(m) + '-' + p2(d); };
 const todayDn = () => { const t = new Date(); return mkdn(t.getFullYear(), t.getMonth() + 1, t.getDate()); };
@@ -81,6 +90,7 @@ const PERSON_COLORS = ['#E0A100', '#5E81AC', '#B55D9C', '#3E9E8F', '#D0643C', '#
 const PROPS = new Set(['value', 'checked', 'disabled', 'selected', 'readOnly', 'indeterminate', 'min', 'max', 'step', 'type']);
 function h(tag, props, ...kids) {
   const e = document.createElement(tag);
+  if (tag === 'input' && props && props.type === 'date') props = guardDate(props);
   if (props) for (const [k, v] of Object.entries(props)) {
     if (v == null || v === false) continue;
     if (k === 'class') e.className = v;
@@ -99,9 +109,43 @@ function h(tag, props, ...kids) {
 }
 const put = (parent, ...kids) => { parent.append(...kids.flat(Infinity).filter(k => k != null && k !== false)); return parent; };
 const setKids = (parent, ...kids) => { parent.replaceChildren(); return put(parent, ...kids); };   // ersetzt Inhalt, ignoriert null/Listen sauber
+/* ---------- Datumsfelder: nur vollständige und plausible Daten übernehmen (Planungsjahr ± 5 Jahre, höchstens 2000–2099) */
+const DATE_SPAN = 5;
+function dateBounds(v) {
+  const y0 = (typeof UI !== 'undefined' && UI.year) || new Date().getFullYear(), yv = parseInt(v, 10);
+  const lo = Math.max(2000, Math.min(y0, yv >= 2000 && yv <= 2099 ? yv : y0) - DATE_SPAN);
+  const hi = Math.min(2099, Math.max(y0, yv >= 2000 && yv <= 2099 ? yv : y0) + DATE_SPAN);
+  return [lo, hi];
+}
+function dateProblem(el) {                    // null = in Ordnung; sonst der Grund
+  if (el.validity && el.validity.badInput) return 'Datum unvollständig';
+  const v = el.value; if (!v) return null;
+  const y = parseInt(v, 10), lo = parseInt(el.min, 10) || 2000, hi = parseInt(el.max, 10) || 2099;
+  if (dn(v) == null || y < lo || y > hi) return 'Das Jahr ' + y + ' liegt außerhalb von ' + lo + '–' + hi;
+  return null;
+}
+function guardDate(props) {
+  const [lo, hi] = dateBounds(props.value);
+  const p = Object.assign({ min: lo + '-01-01', max: hi + '-12-31', 'data-last-ok': props.value || '' }, props);
+  for (const k of ['oninput', 'onchange']) if (typeof p[k] === 'function') {
+    const f = p[k];
+    p[k] = e => { if (dateProblem(e.target)) return; e.target.dataset.lastOk = e.target.value; f(e); };
+  }
+  const fo = p.onfocus;
+  p.onfocus = e => { if (!dateProblem(e.target)) e.target.dataset.lastOk = e.target.value; if (fo) fo(e); };
+  if (!p.onblur) p.onblur = e => {             // unvollständig verlassen: letzten gültigen Wert zurückholen
+    const pr = dateProblem(e.target);
+    if (pr) { e.target.value = e.target.dataset.lastOk || ''; toast(pr + ' – nicht übernommen.', 'warn'); }
+  };
+  return p;
+}
 function dateInput(value, fk, onCommit, extra = {}) {
   let start = value || '';
-  const done = e => { const v = e.target.value; if (v !== start) { start = v; onCommit(v); } };
+  const done = e => {
+    const el = e.target, pr = dateProblem(el);
+    if (pr) { if (e.type === 'blur') { el.value = start; toast(pr + ' – nicht übernommen.', 'warn'); } return; }
+    const v = el.value; if (v !== start) { start = v; onCommit(v); }
+  };
   return h('input', Object.assign({ type: 'date', value: value || '', 'data-fk': fk,
     onfocus: e => { start = e.target.value; },
     onchange: e => { if (document.activeElement !== e.target) done(e); },
@@ -112,6 +156,34 @@ const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+/* ---------- Ziehen mit der Maus: Loslassen übernimmt; Rechtsklick, Esc, Fensterwechsel oder verlorene Maus brechen ab */
+let DRAG = null;                               // laufendes Ziehen (Tastenkürzel ruhen solange)
+function dragSession(ev, el, onMove, onEnd) {
+  const pid = ev.pointerId;
+  if (el) try { el.setPointerCapture(pid); } catch (x) { /* ohne Einfangen weiter */ }
+  let over = false;
+  const on = (t, n, f, o) => t.addEventListener(n, f, o), off = (t, n, f, o) => t.removeEventListener(n, f, o);
+  const fin = (okay, e) => {
+    if (over) return; over = true; if (DRAG === sess) DRAG = null;
+    off(window, 'pointermove', mv, true); off(window, 'pointerup', up, true); off(window, 'pointercancel', cancel, true);
+    off(window, 'keydown', key, true); off(window, 'contextmenu', ctx, true); off(window, 'blur', cancel); off(document, 'visibilitychange', cancel);
+    if (el) { off(el, 'lostpointercapture', cancel); try { if (el.hasPointerCapture(pid)) el.releasePointerCapture(pid); } catch (x) { /* */ } }
+    onEnd(okay, e);
+  };
+  const mv = e => { if (e.pointerId !== pid) return; if (e.buttons === 0) fin(false, e); else onMove(e); };
+  const up = e => { if (e.pointerId === pid) fin(e.button === 0 || e.button === -1, e); };
+  const cancel = e => fin(false, e);
+  const ctx = e => { e.preventDefault(); fin(false, e); };
+  const key = e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fin(false, e); } else if (e.ctrlKey || e.metaKey) { e.preventDefault(); e.stopPropagation(); } };
+  on(window, 'pointermove', mv, true); on(window, 'pointerup', up, true); on(window, 'pointercancel', cancel, true);
+  on(window, 'keydown', key, true); on(window, 'contextmenu', ctx, true); on(window, 'blur', cancel); on(document, 'visibilitychange', cancel);
+  if (el) on(el, 'lostpointercapture', cancel);
+  const sess = { cancel: () => fin(false, null) };
+  if (DRAG) DRAG.cancel();
+  DRAG = sess;
+  return sess;
+}
 
 /* ---------- Tooltip (ein gemeinsames Element, Inhalt wird beim Überfahren erzeugt) */
 const TIPS = new WeakMap();
