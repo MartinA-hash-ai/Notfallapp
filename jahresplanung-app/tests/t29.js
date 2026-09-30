@@ -58,6 +58,8 @@ const { chromium, ok, open, finish } = require('./lib');
   const mk = await p.evaluate(gid => [[...document.querySelectorAll('.pl-row.grp')].map(r => (r.querySelector('.gname .chip.mark') || {}).textContent || '-').join(''),
     document.querySelectorAll('.pl-row:not(.grp) .chip.mark').length, [...document.querySelector('[data-fk="st:' + gid + ':ber"]').options].map(o => o.textContent).join('|')], gid);
   ok(mk[0].startsWith('SID') && mk[0].endsWith('X') && mk[1] === 0 && mk[2] === '– ohne Bereich|Selektion|Inhalt|Produktion|X-Test', 'E: Zeichen in den Abschnittszeilen (' + mk[0] + '), keines mehr an den Schritten; Auswahl nur mit Namen');
+  const gp = await p.evaluate(() => [...document.querySelectorAll('.pl-row.grp .gber')].map(s => parseFloat(getComputedStyle(s).paddingRight)));
+  ok(gp.length && gp.every(v => v >= 14), 'E: Bereichsauswahl am Abschnitt lässt rechts Platz für den Pfeil (Text läuft nicht darunter)');
   const al = await p.evaluate(() => { const a = getComputedStyle(document.querySelector('.pl-table .addlink')), n = getComputedStyle(document.querySelector('.pl-row:not(.grp):not(.head) .c-name input')); return [a.color, n.color]; });
   const sum = c => (c.match(/\d+/g) || []).slice(0, 3).reduce((q, v) => q + +v, 0);
   ok(sum(al[0]) >= 600, 'E: „+ Aufgabe“ / „+ Abschnitt“ ganz hellgrau (' + al[0] + ')');

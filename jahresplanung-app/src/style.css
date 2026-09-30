@@ -876,7 +876,7 @@ html[data-theme=dark] .pl-row select, html[data-theme=dark] .pl-row select:hover
 .pl-row .c-kom input { color: var(--faint); font-style: italic; }
 /* Abschnittszeile: Name bekommt die Typ-Spalte dazu, Bereich dezent, Anzahl und Zeitraum rechtsbündig */
 .pl-row.grp:not(.compact) .c-name.gname { grid-column: 2 / span 2; }
-.pl-row .gber { width: auto; max-width: 118px; font-size: 11px; color: var(--faint); font-weight: 400; margin-left: 6px; }
+.pl-row .gber { width: auto; max-width: 132px; font-size: 11px; color: var(--faint); font-weight: 400; margin-left: 6px; padding: 1px 16px 1px 3px; text-overflow: ellipsis; }   /* rechts Platz für den Pfeil */
 .pl-row .gber.on { font-weight: 400; color: var(--muted); }
 .pl-row .c-grest { text-align: right; padding: 0 8px 0 6px; overflow: hidden; text-overflow: ellipsis; }
 /* „+ Aufgabe“ / „+ Abschnitt“: ohne Kasten, fett, linksbündig mit den Namen */
