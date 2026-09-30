@@ -931,3 +931,8 @@ html[data-theme=dark] .mtable td input[type=date].noval:not(:focus) { background
   .pd-plan .phead .ph-top .plegend { padding-top: 0; }
   .pd-plan .phead .ph-top h2 { margin-top: 0; }
 }
+
+/* 0.8.8 Hinweis an den Kalender-Kästchen: je Termin eine Zeile */
+.tt-row.one { white-space: nowrap; gap: 6px; }
+.tt-row.one b { font-weight: 600; }
+.tt-row.one.cur b { font-weight: 700; }

@@ -28,8 +28,9 @@ function chip(e, opts = {}) {
 }
 function chipTip(e) {
   const x = e.x, m = x.m;
-  const line = (t, n) => h('div', { class: 'tt-row' + (t === e.t ? ' cur' : '') }, h('span', { class: 'chip ' + (t === 'P' ? '' : 'ph ') + t, style: chipStyle(t, x.color) }, sym(t)), ' ', TYPE_LABEL[t], h('b', null, ' ' + fmtW(n)),
-    t !== 'P' && x.pal != null ? h('span', { class: 'muted' }, ' · ' + workdaysBefore(n, x.pal) + ' WT vor PAL' + (x.enx[t] != null ? ' · bis ' + fmtWS(x.en[t]) : '')) : null);
+  // je Termin eine Zeile: Kästchen, „Start Selektion: Fr 02.04.2027 · 53 WT“
+  const line = (t, n) => h('div', { class: 'tt-row one' + (t === e.t ? ' cur' : '') }, h('span', { class: 'chip ' + (t === 'P' ? '' : 'ph ') + t, style: chipStyle(t, x.color) }, sym(t)),
+    h('span', null, startLabel(t) + ': ', h('b', null, fmtW(n)), t !== 'P' && x.pal != null ? h('span', { class: 'muted' }, ' · ' + workdaysBefore(n, x.pal) + ' WT') : null));
   return h('div', null,
     h('div', { class: 'tt-title', style: { borderColor: x.color } }, m.name || '(ohne Namen)'),
     evKeys().map(t => evDate(x, t) != null ? line(t, evDate(x, t)) : null));

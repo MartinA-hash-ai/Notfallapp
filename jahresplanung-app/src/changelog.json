@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.8.7",
+    "version": "0.8.8",
     "date": "",
+    "items": [
+      "Kalender: der Hinweis an den Kästchen ist einfacher – je Termin eine Zeile, z. B. „S Start Selektion: Fr 02.04.2027 · 53 WT“ (gilt auch in der Zeitleiste)",
+      "Häkchen „anzeigen“ bei den Maßnahmen: sind alle angehakt, bleibt nach einem Klick nur diese Maßnahme angehakt; sind alle aus, wird nur die angeklickte angehakt; sonst wird sie umgeschaltet. Strg+Klick schaltet immer nur diese eine um. Gleich in der Seitenleiste und im Filter der Zeitleiste"
+    ]
+  },
+  {
+    "version": "0.8.7",
+    "date": "2026-09-30T12:09",
     "items": [
       "Detailplan: in der Abschnittszeile läuft der Text der Bereichsauswahl (z. B. „– ohne Bereich“) nicht mehr unter den Pfeil"
     ]

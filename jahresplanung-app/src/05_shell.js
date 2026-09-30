@@ -250,7 +250,7 @@ function sideBar() {
       h('button', { class: 'link', onclick: () => { UI.hiddenM.clear(); renderNow(); } }, 'alle'), ' · ',
       h('button', { class: 'link', onclick: () => { ms.forEach(x => UI.hiddenM.add(x.id)); renderNow(); } }, 'keine'))),
       ms.length ? ms.map(x => h('label', { class: 'mchk', dataset: { m: x.id }, onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null) },
-        h('input', { type: 'checkbox', checked: visibleM(x), onchange: e => { e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id); renderNow(); } }),
+        h('input', { type: 'checkbox', checked: visibleM(x), onclick: e => { toggleVisible(x.id, ms, e); renderNow(); } }),
         h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'),
         h('span', { class: 'pal' }, x.pal != null ? fmtS(x.pal) : ''))) : h('p', { class: 'muted small' }, 'Keine Maßnahmen in ' + y)),
     h('section', null, h('h3', null, 'Urlaub'),

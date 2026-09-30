@@ -38,7 +38,8 @@ function massnahmenDropdown() {
     h('div', { class: 'pop-h' }, 'Maßnahmen anzeigen', h('span', null,
       h('button', { class: 'link', onclick: e => { UI.hiddenM.clear(); syncPop(e, true); renderNow(); } }, 'alle'), ' · ',
       h('button', { class: 'link', onclick: e => { ms.forEach(x => UI.hiddenM.add(x.id)); syncPop(e, false); renderNow(); } }, 'keine'))),
-    ms.map(x => h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: visibleM(x), onchange: ev => { ev.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id); renderNow(); } }),
+    ms.map(x => h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: visibleM(x), dataset: { vm: x.id },
+      onclick: ev => { toggleVisible(x.id, ms, ev); $$('input[data-vm]', ev.target.closest('.menu')).forEach(c => { c.checked = !UI.hiddenM.has(c.dataset.vm); }); renderNow(); } }),
       h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'), h('span', { class: 'pal' }, x.pal != null ? fmtS(x.pal) : ''))))); } },
     'Maßnahmen: ', h('b', null, shown === ms.length ? 'alle' : shown + ' von ' + ms.length), ' ▾');
   return mBtn;
@@ -66,7 +67,7 @@ function filterBar(extra) {
 VIEW_FN.jahr = main => {
   put(main,
     section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
-      info: 'Sortiert automatisch nach PAL. Je Bereich (' + PH().map(p => sym(p.key) + ' ' + p.name).join(', ') + ') steht der Start – als Datum oder als Werktage bis zum PAL (Schalter „Datum – Werktage“ über den Spalten der Bereiche). Die Starts wandern mit, wenn sich der PAL verschiebt; bei Maßnahmen mit Detailplan ergeben sie sich aus den Abschnitten. 🏖 = jemand, der im Detailplan in diesem Bereich eingetragen ist, hat Urlaub. Häkchen links = im Kalender anzeigen. Spaltenbreite am rechten Rand der Überschrift ziehen – dabei ändert sich nur die Nachbarspalte rechts; die Breiten bleiben auch nach Neustart und Update erhalten (Doppelklick = Standard).',
+      info: 'Sortiert automatisch nach PAL. Je Bereich (' + PH().map(p => sym(p.key) + ' ' + p.name).join(', ') + ') steht der Start – als Datum oder als Werktage bis zum PAL (Schalter „Datum – Werktage“ über den Spalten der Bereiche). Die Starts wandern mit, wenn sich der PAL verschiebt; bei Maßnahmen mit Detailplan ergeben sie sich aus den Abschnitten. 🏖 = jemand, der im Detailplan in diesem Bereich eingetragen ist, hat Urlaub. Häkchen links = im Kalender und in der Zeitleiste anzeigen; sind alle angehakt, zeigt ein Klick nur noch diese Maßnahme (Strg+Klick: nur diese eine umschalten), das Häkchen im Kopf schaltet alle. Spaltenbreite am rechten Rand der Überschrift ziehen – dabei ändert sich nur die Nachbarspalte rechts; die Breiten bleiben auch nach Neustart und Update erhalten (Doppelklick = Standard).',
       closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
     section('kal', 'Kalender ' + UI.year, () => ({
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),

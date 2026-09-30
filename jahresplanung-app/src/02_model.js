@@ -289,6 +289,13 @@ function derive() {
 }
 const vacOn = n => C.vac.filter(v => v.von <= n && n <= v.bis);
 const visibleM = x => !UI.hiddenM.has(x.id);
+// Häkchen „anzeigen“: sind alle angehakt, bleibt nach dem Klick nur diese Maßnahme angehakt; sind alle aus, wird nur diese angehakt;
+// sonst wird sie umgeschaltet. Strg+Klick schaltet immer nur diese eine um.
+function toggleVisible(id, list, ev) {
+  const plain = !(ev && (ev.ctrlKey || ev.metaKey));
+  if (plain && list.length > 1 && list.every(visibleM)) list.forEach(x => { if (x.id === id) UI.hiddenM.delete(x.id); else UI.hiddenM.add(x.id); });
+  else if (UI.hiddenM.has(id)) UI.hiddenM.delete(id); else UI.hiddenM.add(id);
+}
 const TYPE_LABEL = new Proxy({}, { get: (o, t) => t === 'P' ? 'PAL (Briefkasten)' : typeof t === 'string' ? startLabel(t) : undefined });
 const showType = t => !UI.show || UI.show[t] !== false;             // neue Bereiche sind automatisch sichtbar
 
