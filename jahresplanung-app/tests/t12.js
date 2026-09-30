@@ -52,7 +52,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.screenshot({ path: 'r6_hoverline.png' });
   await p.evaluate(() => highlight(null));
   // Kalender-Tooltip
-  const tipTxt = await p.evaluate(() => { const c = document.querySelector('.cal .chip.P'); c.scrollIntoView({ block: 'center' }); const r = c.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
+  await p.evaluate(() => document.querySelector('.cal .chip.P').scrollIntoView({ block: 'center' })); await p.waitForTimeout(250);   // Scroll-Ereignis abwarten (es schließt Tooltips)
+  const tipTxt = await p.evaluate(() => { const r = document.querySelector('.cal .chip.P').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; });
   await p.mouse.move(tipTxt[0], tipTxt[1]); await p.waitForTimeout(500);
   const tip = await p.evaluate(() => { const t = document.querySelector('#tip'); return t && t.classList.contains('on') ? t.innerText : ''; });
   ok(tip && !/Vorlauf|Verantwortlich|Status/.test(tip), 'Kalender-Tooltip: ' + tip.replace(/\n/g, ' / '));

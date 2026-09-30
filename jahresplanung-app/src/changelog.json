@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.8.3",
+    "version": "0.8.4",
     "date": "",
+    "items": [
+      "Detailplan: das Zeichen des Bereichs (z. B. S, I, D, X) steht jetzt in der Abschnittszeile statt am ersten Arbeitsschritt; die Auswahl daneben zeigt nur noch den Namen",
+      "Detailplan-Gantt: alle Abschnittsbalken wieder einheitlich grau – auch bei neuen Bereichen oder einer eigenen Linie (die Linien-Einstellung gilt für Kalender und Zeitleiste)",
+      "„+ Aufgabe“ und „+ Abschnitt“ ganz hellgrau, damit sie in den Hintergrund treten (beim Darüberfahren dunkler)"
+    ]
+  },
+  {
+    "version": "0.8.3",
+    "date": "2026-09-30T10:20",
     "items": [
       "Einstellungen „Bereiche und Markierungen“: je Bereich zusätzlich die Linie wählbar – abgestuft (wie bisher, von hell nach kräftig), pastell, kräftig, gestreift oder nur Rahmen, mit Vorschau",
       "Die Linie gilt für die Verbindungslinie im Kalender (auch in der Verbund-Darstellung), die Balken der Bereiche in der Zeitleiste, die Abschnittsbalken im Detailplan-Gantt (Abschnitte ohne Bereich bleiben grau) sowie PDF und Excel-Zeitleiste"

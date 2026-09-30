@@ -881,8 +881,8 @@ html[data-theme=dark] .pl-row select, html[data-theme=dark] .pl-row select:hover
 .pl-row .c-grest { text-align: right; padding: 0 8px 0 6px; overflow: hidden; text-overflow: ellipsis; }
 /* „+ Aufgabe“ / „+ Abschnitt“: ohne Kasten, fett, linksbündig mit den Namen */
 .pl-row.addrow .c-add { grid-column: 1 / -1; padding-left: 26px; }
-.addlink { border: 0; background: none; padding: 2px 0; font-weight: 700; font-size: 12.5px; color: var(--ink2); cursor: pointer; }
-.addlink:hover { color: var(--red); background: none; }
+.addlink { border: 0; background: none; padding: 2px 0; font-weight: 700; font-size: 12.5px; color: var(--line2); cursor: pointer; }
+.addlink:hover, .addlink:focus-visible { color: var(--muted); background: none; }
 
 /* 0.8.2 Markierungen: graue Muster-Kästchen (Legenden, Spaltenköpfe) im eingestellten Stil */
 .chip.demo.st-pastell { background: var(--chipbg); color: var(--ink2); border-color: var(--line2); }
@@ -901,11 +901,13 @@ html[data-theme=dark] .pl-row select, html[data-theme=dark] .pl-row select:hover
 
 /* 0.8.3 Linien je Bereich: Zeitleiste „nur Rahmen“, Detailplan-Abschnittsbalken, Vorschau in den Einstellungen */
 .seg.outline { border-width: 1.5px; }
-.g-sum[class*="ln-"] { border-radius: 2px; }
-.g-sum.ln-rahmen { background: transparent !important; border: 1px solid var(--c); box-sizing: border-box; }
 .modal.settingsw { max-width: 860px; }
 .btable td.lcol { white-space: nowrap; }
 .btable td.lcol select { width: 150px; }
 .btable .lprev { display: flex; gap: 4px; margin-top: 4px; }
 .btable .lprev .lp { display: block; width: 44px; height: 5px; border-radius: 1px; }
 .btable .lprev .lp.ln-rahmen { background: transparent !important; border: 1px solid var(--c); box-sizing: border-box; height: 6px; }
+
+/* 0.8.4 Bereichszeichen in der Abschnittszeile */
+.gname .chip.mark { flex: none; margin-left: 6px; cursor: default; }
+.gname .chip.mark + .gber { margin-left: 3px; }

@@ -389,8 +389,9 @@ VIEW_FN.plaene = main => {
         h('div', { class: 'c-name gname' },
           h('button', { class: 'gtog', 'aria-expanded': String(!coll), tip: coll ? 'ausklappen' : 'einklappen', onclick: () => { coll ? delete UI.planColl[m.id + ':' + s.id] : UI.planColl[m.id + ':' + s.id] = 1; saveUI(); renderNow(); } }, coll ? '▸' : '▾'),
           h('input', { value: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }),
+          groupMark(s, pc, p),
           h('select', { class: 'gber' + (s.bereich ? ' on' : ''), 'data-fk': fk('ber'), tip: 'Bereich dieses Abschnitts – sein Beginn erscheint als Start im Kalender, in der Tabelle und in der Zeitleiste',
-            onchange: e => setGroupBereich(m.id, s.id, e.target.value) }, h('option', { value: '' }, '– ohne Bereich'), PH().map(q => h('option', { value: q.key, selected: s.bereich === q.key }, sym(q.key) + ' ' + q.name))),
+            onchange: e => setGroupBereich(m.id, s.id, e.target.value) }, h('option', { value: '' }, '– ohne Bereich'), PH().map(q => h('option', { value: q.key, selected: s.bereich === q.key }, q.name))),
           compact ? h('span', { class: 'gcount' }, inner.length) : null),
         compact ? null : [
           h('div', { class: 'c-wer', tip: 'Person für den ganzen Abschnitt – gilt für alle Schritte darin' },
@@ -402,8 +403,7 @@ VIEW_FN.plaene = main => {
       const g = h('div', { class: 'g-row grp' });
       if (spans.length) {
         const a = Math.min(...spans.map(q => q.start)), b = Math.max(...spans.map(q => q.end));
-        const lk = s.bereich && phase(s.bereich) && lineOf(s.bereich) !== 'auto' ? s.bereich : null;   // Linie des Bereichs (Einstellungen), sonst grau wie bisher
-        g.append(h('div', { class: 'g-sum' + (lk ? ' ln-' + lineOf(lk) : ''), style: Object.assign({ left: X(a) + 'px', width: Math.max(3, (b - a) * pxd) + 'px' }, lk ? { background: lineBg(lk, x.color), '--c': x.color } : {}), tip: s.name + ': ' + fmtW(a) + ' – ' + fmtW(b) }));
+        g.append(h('div', { class: 'g-sum', style: { left: X(a) + 'px', width: Math.max(3, (b - a) * pxd) + 'px' }, tip: s.name + ': ' + fmtW(a) + ' – ' + fmtW(b) }));   // immer grau – Abschnitte sehen alle gleich aus
       }
       grows.push(g);
       continue;
@@ -417,12 +417,10 @@ VIEW_FN.plaene = main => {
       commit(d => { const ne = !fresh && r.end != null && r.start != null && ns <= r.end ? r.end : ns + len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
     const endInp = dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; UI.freshStep = null;
       commit(d => { const ns = !isTask ? ne : !fresh && r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
-    const markK = Object.keys(pc.ph).find(k => pc.ph[k].mark === s.id), secK = curBereich(p.steps, row.idx);
-    const markTag = markK ? demoChip(markK, 'mark') : null;
-    if (markTag) setTip(markTag, startLabel(markK) + ' (Beginn des Bereichs)');
+    const secK = curBereich(p.steps, row.idx);
     trows.push(h('div', { class: 'pl-row' + (away.length ? ' conflict' : '') + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
       h('div', { class: 'c-grip' }, grip),
-      h('div', { class: 'c-name' }, h('input', { value: s.name, title: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }), markTag),
+      h('div', { class: 'c-name' }, h('input', { value: s.name, title: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) })),
       compact ? null : [
         h('div', { class: 'c-typ' }, h('select', { 'data-fk': fk('typ'), onchange: e => setStep(m.id, s.id, st => { st.typ = e.target.value; }) }, ['aufgabe', 'meilenstein', 'ziel'].map(k => h('option', { value: k, selected: s.typ === k }, STEP_TYPES[k])))),
         h('div', { class: 'c-wer' }, h('span', { class: 'pbox', style: { background: s.wer ? midtone(barColor(s.wer)) : 'transparent', borderColor: s.wer ? barColor(s.wer) : 'transparent' } }),
@@ -478,6 +476,14 @@ VIEW_FN.plaene = main => {
       onclick: () => { UI.planCompact = !compact; UI.planPxd = 0; saveUI(); renderNow(); } }, compact ? '›' : '‹')),
     gantt));
 };
+// Zeichen des Bereichs in der Abschnittszeile (nicht mehr am ersten Schritt); Hinweis: Start und womit er beginnt
+function groupMark(g, pc, p) {
+  const k = g.bereich; if (!k || !phase(k)) return null;
+  const ph = pc.ph[k], first = ph && ph.mark ? p.steps.find(q => q.id === ph.mark) : null;
+  const c = demoChip(k, 'mark');
+  setTip(c, startLabel(k) + (ph && ph.start != null ? ': ' + fmtW(ph.start) : ' – noch ohne Termin') + (first ? ' · beginnt mit „' + first.name + '“' : ''));
+  return c;
+}
 function curGroupOf(steps, idx) { for (let i = idx; i >= 0; i--) if (steps[i].typ === 'gruppe') return steps[i].id; return null; }
 function curBereich(steps, idx) { for (let i = idx; i >= 0; i--) if (steps[i].typ === 'gruppe') return steps[i].bereich || null; return null; }
 VIEW_FN['plaene:after'] = () => {
