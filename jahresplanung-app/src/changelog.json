@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.8.9",
+    "version": "0.8.10",
     "date": "",
+    "items": [
+      "PDF Maßnahmen-Übersicht: bei den Starts oben das Datum, darunter klein die Werktage bis zum PAL",
+      "PDF Kalender: passt auf eine Seite – schmaler Kopf ohne Logo, kompaktere Terminlisten; bei sehr vielen Terminen wird der Kalender automatisch etwas verkleinert"
+    ]
+  },
+  {
+    "version": "0.8.9",
+    "date": "2026-09-30T12:26",
     "items": [
       "Häkchen „anzeigen“: wird die letzte angehakte Maßnahme abgewählt, sind wieder alle angehakt",
       "Klick auf eine Maßnahme im Kalender wählt vorübergehend nur diese aus – die Tabelle zeigt dann nur bei ihr ein Häkchen; wird sie im Kalender wieder gelöst (Klick daneben oder Esc), gilt wieder die vorherige Auswahl. Ein Häkchen-Klick in der Zeit übernimmt „nur diese“ als Ausgangspunkt"

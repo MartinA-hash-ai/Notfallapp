@@ -936,3 +936,18 @@ html[data-theme=dark] .mtable td input[type=date].noval:not(:focus) { background
 .tt-row.one { white-space: nowrap; gap: 6px; }
 .tt-row.one b { font-weight: 600; }
 .tt-row.one.cur b { font-weight: 700; }
+
+/* 0.8.10 PDF: Maßnahmen-Tabelle mit Datum und darunter Werktagen; Kalender kompakt auf einer Seite */
+.pd-table td.st { white-space: nowrap; }
+.pd-table td.st .wt { font-size: 9px; color: #777; margin-top: 1px; }
+.pd-head.slim { gap: 10px; border-bottom-width: 1px; padding-bottom: 3px; margin-bottom: 5px; }
+.pd-head.slim h1 { font-size: 13px; }
+@media print {
+  .pd-kal .month > header { padding: 2px 8px; font-size: 11px; line-height: 13px; }
+  .pd-kal .mgrid .wh { line-height: 10px; }
+  .pd-kal .mlist { padding: 2px 5px; font-size: 7.5px; line-height: 10px; min-height: 0; }
+  .pd-kal .mhol { line-height: 10px; }
+  .pd-kal .mline { padding: 0; line-height: 11px; }
+  .pd-kal .mline .lchips { margin-right: 3px; vertical-align: -1px; gap: 1px; }
+  .pd-kal .mline .chip.lc { height: 10px; min-width: 10px; font-size: 7px; line-height: 8px; padding: 0 1px; }
+}

@@ -83,16 +83,34 @@ window.addEventListener('afterprint', () => {
   if (PRINT_TITLE != null) { document.title = PRINT_TITLE; PRINT_TITLE = null; }
 });
 
+// Kalender auf eine A4-Seite: Höhe aus festen Zeilenhöhen (Druck-CSS) abschätzen, bei Bedarf verkleinern.
+// 210 mm Seite − 2 × 9 mm Rand − schmaler Kopf ≈ 690 px; mit Reserve für andere Schriften/Browser 620 px.
+const CAL_FIT = 620;
+function fitCalendar(box) {
+  const months = $$('.month', box), verbund = !!$('.cal.verbund', box);
+  const hMonth = m => {
+    const mhol = $('.mhol', m), lines = $$('.mline', m).length + (mhol ? Math.ceil(mhol.textContent.length / 58) : 0);
+    return 17 + 11 + 6 * ((verbund ? 22 : 19) + 1) + 8 + 11 * lines;
+  };
+  let total = 0;
+  for (let i = 0; i < months.length; i += 4) total += Math.max(...months.slice(i, i + 4).map(hMonth));
+  total += 5 * (Math.ceil(months.length / 4) - 1) + 4;
+  if (total > CAL_FIT) box.style.zoom = String(Math.max(0.6, CAL_FIT / total).toFixed(3));
+  box.dataset.est = String(total);
+}
 function buildPrintDoc(f) {
   const y = UI.year;
   const stand = 'Stand ' + fmtD(todayDn()) + (D.meta.savedAt ? ' · gespeichert ' + fmtStamp(D.meta.savedAt) : '');
   const head = title => h('header', { class: 'pd-head' }, h('img', { src: LOGO, alt: 'Malteser' }),
     h('div', null, h('h1', null, title), h('span', null, 'Fundraising · Diözese Paderborn')), h('span', { class: 'pd-stand' }, stand));
+  // schmaler Kopf ohne Logo (Kalender: alles muss auf eine Seite)
+  const slimHead = title => h('header', { class: 'pd-head slim' }, h('h1', null, title), h('span', { class: 'pd-stand' }, stand));
   // Seitenrahmen: Kopf- und Fußabstand wiederholen sich auf jeder Druckseite
-  const page = (title, ...content) => h('section', { class: 'pd-page' }, h('table', { class: 'pd-frame' },
+  const frame = (hd, content) => h('section', { class: 'pd-page' }, h('table', { class: 'pd-frame' },
     h('thead', null, h('tr', null, h('td', null, h('div', { class: 'pd-sp' })))),
-    h('tbody', null, h('tr', null, h('td', null, head(title), content))),
+    h('tbody', null, h('tr', null, h('td', null, hd, content))),
     h('tfoot', null, h('tr', null, h('td', null, h('div', { class: 'pd-sp' }))))));
+  const page = (title, ...content) => frame(head(title), content);
   const ms = C.ms.filter(x => f.ms.has(x.id) && inYear(x, y));
   const pages = [];
   if (f.secs.mass) {
@@ -104,10 +122,11 @@ function buildPrintDoc(f) {
         h('td', null, h('span', { class: 'dot', style: { background: x.color } })),
         h('td', { class: 'nm', style: { color: inkC(x.color) } }, x.m.name),
         h('td', null, x.m.verantwortlich || ''), h('td', { class: 'num' }, isNum(x.m.auflage) ? (+x.m.auflage).toLocaleString('de-DE') : ''),
-        PH().map(p => h('td', null, x.st[p.key] != null ? fmtW(x.st[p.key]) + (x.pal != null ? ' · ' + workdaysBefore(x.st[p.key], x.pal) + ' WT' : '') : '–')), h('td', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : '') }, fmtW(x.pal)),
+        PH().map(p => h('td', { class: 'st' }, x.st[p.key] != null ? [h('div', null, fmtW(x.st[p.key])), x.pal != null ? h('div', { class: 'wt' }, workdaysBefore(x.st[p.key], x.pal) + ' WT') : null] : '–')),   // oben Datum, darunter Werktage
+        h('td', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : '') }, fmtW(x.pal)),
         h('td', null, x.m.palStatus), h('td', null, x.m.art || ''), h('td', { class: 'hinweis' }, x.m.hinweis || '')))))));
   }
-  if (f.secs.kal) pages.push(page('Kalender ' + y, calendarBody()));
+  if (f.secs.kal) { const cal = h('div', { class: 'pd-kal' }, calendarBody()); fitCalendar(cal); pages.push(frame(slimHead('Kalender ' + y), cal)); }
   // Zeitleiste seitenweise: je Seite höchstens TL_PER_PAGE Maßnahmen, jede Seite mit eigener Monatsleiste, Urlaube auf der letzten
   if (f.secs.tl) {
     const all = C.ms.filter(x => visibleM(x) && inYear(x, y)), n = Math.max(1, Math.ceil(all.length / TL_PER_PAGE));
