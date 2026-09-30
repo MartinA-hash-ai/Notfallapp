@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.9.3",
+    "version": "0.9.4",
     "date": "",
+    "items": [
+      "Kalender: ohne Detailplan läuft die Linie eines Abschnitts bis zum PAL (bzw. bis zum eingetragenen Ende) statt nur bis zum Start des nächsten Bereichs"
+    ]
+  },
+  {
+    "version": "0.9.3",
+    "date": "2026-09-30T15:44",
     "items": [
       "Kalender: ist der letzte angezeigte Termin einer Maßnahme nicht der PAL (z. B. nur „D“ eingeblendet), läuft die Linie bis zum Ende dieses Abschnitts weiter – mit kleinem Endstrich; so sieht man, wie lange der Bereich dauert (Ende laut Detailplan, sonst bis zum nächsten Start bzw. PAL)"
     ]

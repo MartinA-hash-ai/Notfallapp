@@ -1,4 +1,4 @@
-// 0.9.3 Nur ein Bereich angezeigt: die Linie zeigt, wie lange dieser Abschnitt läuft (bis zu seinem Ende statt nur den Starttag)
+// 0.9.3/0.9.4 Nur ein Bereich angezeigt: die Linie zeigt, wie lange dieser Abschnitt läuft (bis zu seinem Ende statt nur den Starttag)
 const { chromium, ok, open, finish } = require('./lib');
 (async () => {
   const b = await chromium.launch(), pages = [];
@@ -33,5 +33,15 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => { UI.pin = null; UI.show = Object.assign({}, UI.show, { S: false, I: false, D: true, P: false }); UI.verbund = true; renderNow(); }); await p.waitForTimeout(200);
   const d = await p.evaluate(id => { const c = [...document.querySelectorAll('.day > .vbl[data-m="' + id + '"]')].map(e => +e.parentElement.dataset.dn); return c.length ? [Math.min(...c), Math.max(...c)] : null; }, sm);
   ok(d && d[0] === ph.st.D && d[1] === ph.en.D, 'D: Verbund – Linie über den Abschnitt Produktion (' + JSON.stringify(d) + ')');
+
+  // ---- E: ohne Detailplan läuft der Abschnitt bis zum PAL (nicht nur bis zum nächsten Start); eingetragenes Ende gilt
+  await p.evaluate(() => { UI.verbund = false; UI.show = Object.assign({}, UI.show, { S: true, I: false, D: false, P: false }); renderNow(); }); await p.waitForTimeout(150);
+  const pu = await p.evaluate(() => C.ms.find(x => x.m.name === 'Projekt-Update 1').id);
+  const q = await p.evaluate(id => { const x = C.byId.get(id); UI.pin = id; renderNow(); highlight(id); return { plan: !!x.m.plan, s: x.st.S, i: x.st.I, pal: x.pal }; }, pu); await p.waitForTimeout(150);
+  const e = await span();
+  ok(!q.plan && q.i != null && q.i < q.pal && e && e[0] === q.s && e[1] === q.pal, 'E: ohne Detailplan, nur S – Linie bis zum PAL statt bis Start Inhalt (' + JSON.stringify(e) + ')');
+  await p.evaluate(([id, n]) => { commit(d => { const m = d.massnahmen.find(m => m.id === id); m.ende = { S: n }; }); renderNow(); highlight(id); }, [pu, q.pal - q.i]); await p.waitForTimeout(150);
+  const e2 = await span();
+  ok(e2 && e2[0] === q.s && e2[1] === q.i, 'E: mit eingetragenem Ende – Linie bis dorthin (' + JSON.stringify(e2) + ')');
   await finish(b, pages);
 })();
