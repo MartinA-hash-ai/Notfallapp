@@ -27,26 +27,31 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click(sel); await p.waitForTimeout(150); await p.keyboard.press('ArrowDown'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
   ok(await p.evaluate(([id, sid]) => findM(D, id).plan.steps.find(q => q.id === sid).wer, [sm, sid]) === all[0], 'A: Pfeiltasten + Enter wählen (' + all[0] + ')');
 
-  // ---- B: Briefkasten-Termin (PAL) ist ein eigener Abschnitt
-  const pal = await p.evaluate(id => { const st = C.byId.get(id).m.plan.steps, gi = st.findIndex(s => s.typ === 'gruppe' && s.pal), s = st[gi + 1];
-    return [gi >= 0, s && s.pal && s.name, st[gi - 1] && st.slice(0, gi).reverse().find(q => q.typ === 'gruppe').name, st.filter(q => q.pal).length,
-      getComputedStyle(document.querySelector('.pl-row.palrow .c-name input')).color, getComputedStyle(document.querySelector('.pl-row.palgrp .gname input')).color, document.querySelector('.pl-row.palrow .paltyp').textContent]; }, sm);
-  ok(pal[0] && pal[1] === 'Briefkasten-Termin' && pal[2] === 'Produktion' && pal[3] === 2, 'B: eigener Abschnitt mit dem Briefkasten-Termin direkt nach „' + pal[2] + '“');
-  ok(/^rgb\(227, 7, 20\)$/.test(pal[4]) && pal[4] === pal[5] && pal[6] === 'PAL', 'B: Briefkasten-Termin und Abschnitt rot, Typ „PAL“');
+  // ---- B: Briefkasten-Termin (PAL) ist eine feste, rote Zeile im Plan (kein eigener Abschnitt)
+  const pal = await p.evaluate(id => { const st = C.byId.get(id).m.plan.steps, i = st.findIndex(s => s.pal), row = document.querySelector('.pl-row.palrow'), inp = row.querySelector('.c-name input'), cs = getComputedStyle(inp);
+    return [i >= 0 && st[i].name, st.slice(0, i).reverse().find(q => q.typ === 'gruppe').name, st.filter(q => q.pal).length, st.some(q => q.typ === 'gruppe' && q.pal), cs.color, cs.fontWeight,
+      row.querySelector('.paltyp').textContent, !!row.querySelector('.pallock'), !!row.querySelector('input[type=date]'), (row.querySelector('.paldate') || {}).textContent]; }, sm);
+  ok(pal[0] === 'Briefkasten-Termin' && pal[1] === 'Produktion' && pal[2] === 1 && !pal[3], 'B: Briefkasten-Termin als Zeile im Abschnitt „' + pal[1] + '“, kein eigener Abschnitt');
+  ok(/^rgb\(227, 7, 20\)$/.test(pal[4]) && +pal[5] < 600 && pal[6] === 'PAL', 'B: rot, nicht fett, Typ „PAL“');
+  ok(pal[7] && !pal[8] && /^\d\d\.\d\d\.\d{4}$/.test(pal[9]), 'B: Datum fest (' + pal[9] + ') mit Schloss, kein Eingabefeld');
   const allPlans = await p.evaluate(() => C.ms.filter(x => x.m.plan).map(x => x.m.plan.steps.filter(s => s.pal).length).join(','));
-  ok(/^(2,)*2$/.test(allPlans), 'B: jeder Detailplan hat den PAL-Abschnitt (' + allPlans + ')');
-  const pid = await p.evaluate(id => C.byId.get(id).m.plan.steps.find(s => s.pal && s.typ !== 'gruppe').id, sm);
+  ok(/^(1,)*1$/.test(allPlans), 'B: jeder Detailplan hat genau einen Briefkasten-Termin (' + allPlans + ')');
+  const pid = await p.evaluate(id => C.byId.get(id).m.plan.steps.find(s => s.pal).id, sm);
   await p.evaluate(([id, pid]) => deleteStep(id, pid), [sm, pid]); await p.waitForTimeout(100);
   ok(await p.evaluate(([id, pid]) => findM(D, id).plan.steps.some(s => s.id === pid), [sm, pid]), 'B: Briefkasten-Termin lässt sich nicht löschen');
-  await p.fill(`[data-fk="st:${pid}:end"]`, '2027-06-25'); await p.press(`[data-fk="st:${pid}:end"]`, 'Enter'); await p.waitForTimeout(200);
-  ok(await p.evaluate(id => findM(D, id).pal, sm) === '2027-06-25', 'B: Datum am Briefkasten-Termin ändern = PAL ändern');
-  await p.evaluate(() => undo()); await p.waitForTimeout(100);
-  const fresh = await p.evaluate(() => { const d = normalize({ settings: { year: 2027 }, massnahmen: [{ id: 'q', name: 'Q', pal: '2027-05-01', plan: { steps: [{ id: 'g1', typ: 'gruppe', name: 'Produktion' }, { id: 'a', typ: 'aufgabe', name: 'A', dauer: 5, anker: { art: 'pal', offset: -5 } }, { id: 'z', typ: 'ziel', name: 'Briefkasten-Termin', anker: { art: 'pal', offset: 0 } }, { id: 'g2', typ: 'gruppe', name: 'Dankbrief' }] } }] });
-    return d.massnahmen[0].plan.steps.map(s => s.id).join(','); });
-  ok(fresh === 'g1,a,g-pal-z,z,g2', 'B: alte Pläne werden umgestellt (' + fresh + ')');
+  const dia = await p.evaluate(pid => { const rows = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')], i = rows.findIndex(r => r.dataset.rid === pid), e = document.querySelectorAll('.g-body > .g-row')[i].querySelector('.g-dia');
+    e.scrollIntoView({ block: 'center', inline: 'center' }); const q = e.getBoundingClientRect(); return [q.x + q.width / 2, q.y + q.height / 2, e.classList.contains('fixed')]; }, pid);
+  const pal0 = await p.evaluate(id => findM(D, id).pal, sm);
+  await p.mouse.move(dia[0], dia[1]); await p.mouse.down(); await p.mouse.move(dia[0] + 60, dia[1], { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(200);
+  ok(dia[2] && await p.evaluate(id => findM(D, id).pal, sm) === pal0, 'B: die PAL-Raute im Gantt lässt sich nicht verschieben');
+  const fresh = await p.evaluate(() => { const mk = steps => normalize({ settings: { year: 2027 }, massnahmen: [{ id: 'q', name: 'Q', pal: '2027-05-01', plan: { steps } }] }).massnahmen[0].plan.steps.map(s => s.id + (s.pal ? '*' : '')).join(',');
+    const base = () => [{ id: 'g1', typ: 'gruppe', name: 'Produktion' }, { id: 'a', typ: 'aufgabe', name: 'A', dauer: 5, anker: { art: 'pal', offset: -5 } }];
+    return [mk(base().concat({ id: 'z', typ: 'ziel', name: 'Briefkasten-Termin', anker: { art: 'pal', offset: 0 } }, { id: 'g2', typ: 'gruppe', name: 'Dankbrief' })),
+      mk(base().concat({ id: 'g-pal-z', typ: 'gruppe', name: 'Briefkasten-Termin (PAL)', pal: true }, { id: 'z', typ: 'ziel', name: 'Briefkasten-Termin', pal: true, anker: { art: 'pal', offset: 0 } }, { id: 'g2', typ: 'gruppe', name: 'Dankbrief' }))]; });
+  ok(fresh[0] === 'g1,a,z*,g2' && fresh[1] === 'g1,a,z*,g2', 'B: alte Pläne und der PAL-Abschnitt aus 0.9 werden umgestellt (' + fresh.join(' | ') + ')');
   const idem = await p.evaluate(() => { const a = JSON.stringify(D), b = JSON.stringify(normalize(JSON.parse(a))); const n1 = normalize({ settings: { year: 2027 }, massnahmen: [{ id: 'q', name: 'Q', pal: '2027-05-01', plan: { steps: [{ id: 'g1', typ: 'gruppe', name: 'X' }] } }] }), n2 = normalize(JSON.parse(JSON.stringify(n1)));
     return [a === b, JSON.stringify(n1) === JSON.stringify(n2), n1.massnahmen[0].plan.steps.map(s => s.typ + (s.pal ? '*' : '')).join(',')]; });
-  ok(idem[0] && idem[1] && idem[2] === 'gruppe,gruppe*,ziel*', 'B: erneutes Prüfen ändert nichts mehr (auch bei Plan ohne Briefkasten-Termin: ' + idem[2] + ')');
+  ok(idem[0] && idem[1] && idem[2] === 'gruppe,ziel*', 'B: erneutes Prüfen ändert nichts mehr (Plan ohne Briefkasten-Termin bekommt einen: ' + idem[2] + ')');
 
   // ---- C: Abschnitt als Ganzes verschieben (Gantt-Balken ziehen)
   const grp = await p.evaluate(id => { const x = C.byId.get(id), st = x.m.plan.steps, g = st.find(s => s.typ === 'gruppe' && s.bereich === 'I'), bl = groupBlocks(st).get(g.id);

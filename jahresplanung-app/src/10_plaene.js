@@ -53,9 +53,19 @@ function adjustMark(m, which, target) {
 // Start Selektion/Inhalt einer Maßnahme auf ein Datum legen (Zeitleiste, Kalender): ohne Plan über den Vorlauf,
 // mit Detailplan über die Dauer der Schritte davor. Liefert die Meldung für den Hinweis.
 function startMovable(x, t) { return !x.m.plan || !!(x.pc && x.pc.ph[t]); }
-function moveStartTo(id, t, n) {
+async function moveStartTo(id, t, n) {
   let res = null;
   const x = C.byId.get(id), label = startLabel(t);
+  if (!x) return;
+  // Detailplan: erst probeweise – reicht das Kürzen der Schritte nicht, nachfragen statt nur zu warnen
+  if (x.m.plan) {
+    const test = JSON.parse(JSON.stringify(x.m)), r0 = adjustMark(test, t, n);
+    if (r0 && r0.partial) {
+      const how = await startMoveAsk(x, t, n, planCalc(test).ph[t].start, r0.changed);
+      if (!how) return;
+      if (how === 'section') { const gid = curGroupOf(x.m.plan.steps, x.m.plan.steps.findIndex(q => q.id === x.pc.ph[t].mark)); if (gid) shiftGroup(id, gid, n - x.st[t]); return; }
+    }
+  }
   commit(d => {
     const m = findM(d, id); if (!m) return;
     const pal = dn(m.pal);
@@ -66,8 +76,23 @@ function moveStartTo(id, t, n) {
   derive();
   const now = C.byId.get(id), got = now ? now.st[t] : n;
   const det = res.changed.length ? ' – Detailplan: ' + res.changed.map(([nm, a, b]) => '„' + nm + '“ ' + a + ' → ' + b + ' Tage').join(', ') : '';
-  toast(x.m.name + ': ' + label + ' → ' + fmtW(got) + det + (got !== n ? ' (gewünscht war ' + fmtWS(n) + ' – weiter geht es nicht)' : ''), got !== n ? 'warn' : '');
+  toast(x.m.name + ': ' + label + ' → ' + fmtW(got) + det);
 }
+// Warum geht der Start nicht weiter? Die Schritte behalten ihr Ende und werden nur kürzer (mindestens 1 Tag).
+function startMoveAsk(x, t, want, reach, changed) {
+  const ph = x.pc.ph[t], ms = ph && x.m.plan.steps.find(q => q.id === ph.mark), a = (ms && ms.anker) || {};
+  const ref = a.ref && x.m.plan.steps.find(q => q.id === a.ref);
+  const hang = !ms ? '' : '„' + ms.name + '“ ' + (a.art === 'start' && ref ? 'hängt am Beginn von „' + ref.name + '“' : a.art === 'ende' && ref ? 'hängt am Ende von „' + ref.name + '“' : a.art === 'pal' ? 'hängt am PAL' : a.art === 'fest' ? 'hat ein festes Datum' : 'hat kein festes Ende') + '.';
+  const cut = (changed || []).map(([nm, o, nw]) => '„' + nm + '“ ' + o + ' → ' + nw + (nw === 1 ? ' Tag' : ' Tage')).join(', ');
+  const why = hang + ' Beim Verschieben des Starts behalten die Schritte ihr Ende und werden kürzer – kürzer als 1 Tag geht nicht' + (cut ? ' (dafür: ' + cut + ')' : '') + '.';
+  const gid = ms ? curGroupOf(x.m.plan.steps, x.m.plan.steps.indexOf(ms)) : null, g = gid && x.m.plan.steps.find(q => q.id === gid), dd = want - x.st[t];
+  return modal(label2(t) + ' verschieben', h('div', { class: 'form' },
+    h('p', null, 'Gewünscht: ', h('b', null, fmtW(want)), '. Durch Kürzen der Schritte geht es nur bis ', h('b', null, fmtW(reach)), '.'),
+    h('p', { class: 'muted' }, why),
+    g ? h('p', { class: 'muted' }, 'Alternative: den ganzen Abschnitt „' + g.name + '“ um ' + (dd > 0 ? '+' : '') + dd + ' Tage verschieben – alle Schritte darin behalten ihre Dauer.') : null),
+    [['Abbrechen', null], ['Nur bis ' + fmtS(reach), 'partial'], g ? ['Ganzen Abschnitt verschieben', 'section', 'primary'] : false].filter(Boolean), { wide: true });
+}
+const label2 = t => startLabel(t);
 // Start als Werktage vor dem PAL angeben: der späteste Arbeitstag, ab dem noch so viele Werktage bis zum PAL bleiben
 function dateForWT(pal, w) { let n = pal, c = 0; while (c < w && pal - n < 3000) { n--; if (isWorkday(n)) c++; } return n; }
 // Schritt auf neuen Beginn/Ende setzen (Verknüpfung bleibt, der Versatz wird angepasst)
@@ -165,7 +190,7 @@ async function createPlan(id) {
     }
     plan.marks = plan.marks || {};
     plan.steps.forEach(s => { s.fortschritt = 0; });
-    ensurePalGroup(plan);                                  // Briefkasten-Termin (PAL) als eigener Abschnitt
+    ensurePalStep(plan);                                   // Briefkasten-Termin (PAL) als feste Zeile
     m.plan = plan;
     m.pal = ds(pal);
     // vom PAL aus rückwärts anpassen (spätester Bereich zuerst), sonst verschiebt ein späterer Bereich die früheren wieder
@@ -375,7 +400,7 @@ VIEW_FN.plaene = main => {
   let grpName = '', grpEls = null;                // grpEls: Balken des aktuellen Abschnitts (ziehen am Abschnittsbalken verschiebt alle)
   for (const row of rows) {
     if (row.add !== undefined) {
-      if (row.add && (UI.planColl[m.id + ':' + row.add] || (p.steps.find(q => q.id === row.add) || {}).pal)) continue;   // im PAL-Abschnitt keine „+ Aufgabe“
+      if (row.add && UI.planColl[m.id + ':' + row.add]) continue;
       trows.push(h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div', { class: 'c-add' },
         h('button', { class: 'addlink', onclick: () => addStep(m.id, row.add) }, '+ Aufgabe'))));
       grows.push(h('div', { class: 'g-row addrow' }));
@@ -383,20 +408,6 @@ VIEW_FN.plaene = main => {
     }
     const s = row.s, r = pc.map.get(s.id) || {}, fk = f => 'st:' + s.id + ':' + f;
     const grip = h('span', { class: 'rgrip', tip: 'ziehen zum Verschieben', 'aria-label': 'verschieben', onpointerdown: e => rowDrag(e, m.id, s.id) }, '⋮⋮');
-    if (row.group && s.pal) {                        // Briefkasten-Termin (PAL): eigener Abschnitt, rot, ohne Bereich/Person, nicht löschbar
-      grpName = s.name; grpEls = null;
-      const coll = !!UI.planColl[m.id + ':' + s.id];
-      trows.push(h('div', { class: 'pl-row grp palgrp' + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
-        h('div', { class: 'c-grip' }, grip),
-        h('div', { class: 'c-name gname' },
-          h('button', { class: 'gtog', 'aria-expanded': String(!coll), tip: coll ? 'ausklappen' : 'einklappen', onclick: () => { coll ? delete UI.planColl[m.id + ':' + s.id] : UI.planColl[m.id + ':' + s.id] = 1; saveUI(); renderNow(); } }, coll ? '▸' : '▾'),
-          h('input', { class: 'palname', value: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }),
-          demoChip('P', 'mark')),
-        compact ? null : [h('div', { class: 'c-wer' }), h('div', { class: 'c-grest small palinfo' }, x.pal != null ? 'PAL ' + fmtW(x.pal) : 'noch ohne PAL')],
-        h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Abschnitt', () => addGroup(m.id)]], 'right'))));
-      grows.push(h('div', { class: 'g-row grp' }));
-      continue;
-    }
     if (row.group) {
       grpName = s.name; grpEls = [];
       const coll = !!UI.planColl[m.id + ':' + s.id], [gi, gj] = blocks.get(s.id);
@@ -436,7 +447,7 @@ VIEW_FN.plaene = main => {
     const len = +s.dauer > 0 ? +s.dauer : DEF_DAYS, fresh = UI.freshStep === s.id;
     const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return; UI.freshStep = null;
       commit(d => { const ne = !fresh && r.end != null && r.start != null && ns <= r.end ? r.end : ns + len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
-    const endInp = s.pal ? dateInput(m.pal || '', fk('end'), v => { if (v) setM(m.id, 'pal', v); }, { title: 'Briefkasten-Termin = PAL der Maßnahme' })   // PAL-Zeile: Datum ist das PAL
+    const endInp = s.pal ? h('span', { class: 'paldate', tip: 'Fester Termin: das PAL der Maßnahme – ändern oben im Kopf oder in der Maßnahmen-Tabelle' }, x.pal != null ? fmtD(x.pal) : '–', h('span', { class: 'pallock', 'aria-label': 'fest' }))
       : dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; UI.freshStep = null;
       commit(d => { const ns = !isTask ? ne : !fresh && r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
     const secK = curBereich(p.steps, row.idx);
@@ -477,7 +488,7 @@ VIEW_FN.plaene = main => {
         ctx.el = bar;
         g.append(bar); if (grpEls) grpEls.push(bar);
       } else {
-        const dia = h('div', { class: 'g-dia' + (s.typ === 'ziel' ? ' ziel' : ''), tip, style: { left: X(r.end) + pxd / 2 + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color }, onpointerdown: e => barDrag(e, ctx, 'move') });
+        const dia = h('div', { class: 'g-dia' + (s.typ === 'ziel' ? ' ziel' : '') + (s.pal ? ' fixed' : ''), tip, style: { left: X(r.end) + pxd / 2 + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color }, onpointerdown: s.pal ? null : e => barDrag(e, ctx, 'move') });   // PAL: fest
         ctx.el = dia;
         g.append(dia); if (grpEls && !s.pal) grpEls.push(dia);
       }

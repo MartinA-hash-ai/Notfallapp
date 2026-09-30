@@ -65,25 +65,18 @@ function emptyData() {
     personen: [], massnahmen: [], urlaube: [], sondertage: [], log: [] };
 }
 // Detailplan aus Version ≤ 0.7 (markierte Schritte S/I) auf Abschnitte mit Bereich umstellen; „Mailing“ wird in Inhalt und Produktion geteilt
-// Der Briefkasten-Termin (PAL) steht immer in einem eigenen Abschnitt – dort, wo er bisher im Plan stand (meist nach der Produktion).
-// Er hängt fest am PAL (Ziel, Abstand 0) und lässt sich nicht löschen. Feste Kennungen, damit gleichzeitiges Umstellen nicht kollidiert.
+// Der Briefkasten-Termin (PAL) ist eine feste Zeile im Plan: Ziel, hängt am PAL (Abstand 0), rot markiert, nicht löschbar.
+// Version 0.9 hatte dafür einen eigenen Abschnitt – der wird wieder aufgelöst, die Zeile gehört dann zum Abschnitt davor.
 const isPalStep = s => !!s && s.typ !== 'gruppe' && s.pal === true;
-function ensurePalGroup(plan) {
+function ensurePalStep(plan) {
   const st = plan.steps;
+  for (let i = st.length - 1; i >= 0; i--) if (st[i].typ === 'gruppe' && st[i].pal) st.splice(i, 1);
   let pi = st.findIndex(isPalStep);
   if (pi < 0) pi = st.findIndex(s => s.typ === 'ziel' && isObj(s.anker) && s.anker.art === 'pal' && !(+s.anker.offset));
   if (pi < 0) { st.push({ id: 'pal-' + (st.length ? st[0].id : 'x'), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: { art: 'pal', offset: 0 } }); pi = st.length - 1; }
   const ps = st[pi];
   Object.assign(ps, { typ: 'ziel', pal: true, anker: { art: 'pal', offset: 0 } }); delete ps.bereich;
-  st.forEach((q, i) => { if (i !== pi && q.typ !== 'gruppe') delete q.pal; });
-  const groups = st.map((q, i) => [q, i]).filter(([q]) => q.typ === 'gruppe' && q.pal);
-  groups.slice(1).forEach(([q]) => { delete q.pal; });
-  let gi = groups.length ? groups[0][1] : -1;
-  if (gi >= 0 && pi === gi + 1) return plan;
-  st.splice(pi, 1);
-  if (gi >= 0) { gi = st.findIndex(q => q.typ === 'gruppe' && q.pal); st.splice(gi + 1, 0, ps); return plan; }
-  let j = pi; while (j < st.length && st[j].typ !== 'gruppe') j++;             // Ende des Abschnitts, in dem er stand
-  st.splice(j, 0, { id: 'g-pal-' + ps.id, typ: 'gruppe', name: 'Briefkasten-Termin (PAL)', pal: true, wer: '', kommentar: '', anker: { art: 'offen' } }, ps);   // vollständig, damit erneutes Prüfen nichts ändert
+  st.forEach((q, i) => { if (i !== pi) delete q.pal; });
   return plan;
 }
 function migratePlan(plan, keys) {
@@ -173,7 +166,7 @@ function normalize(d) {
         if (!isObj(s.anker)) s.anker = { art: 'offen' };
         if (s.typ === 'gruppe') { if (s.bereich && !keys.includes(s.bereich)) delete s.bereich; } else delete s.bereich;
       });
-      ensurePalGroup(m.plan);
+      ensurePalStep(m.plan);
       m.plan.marks = isObj(m.plan.marks) ? m.plan.marks : {};
       for (const k of Object.keys(m.plan.marks)) if (!keys.includes(k) || !m.plan.steps.some(q => q.id === m.plan.marks[k])) delete m.plan.marks[k];
     }

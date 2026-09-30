@@ -18,6 +18,8 @@ const path = require('path');
     await p.mouse.click(c[0], c[1]); await p.waitForTimeout(150);
     await p.dblclick('.mline .mline-edit >> nth=0'); await p.waitForTimeout(300);
     ok(await p.evaluate(() => !!document.querySelector('.modal')), 'A: Doppelklick auf „Bearbeiten“ – das Fenster bleibt offen');
+    await p.click('.modal footer button:has-text("Abbrechen")'); await p.waitForTimeout(150);
+    await p.evaluate(id => { editMassnahme(id); }, id); await p.waitForTimeout(200);
     // Farbwahl im Bearbeiten-Fenster
     await p.click('.modal .swatch.big'); await p.waitForTimeout(150);
     const sw = await p.evaluate(() => { const s = document.querySelector('.menu.colors .sw:not(.on)'); const r = s.getBoundingClientRect(); const top = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2); return [top === s, s.style.background]; });

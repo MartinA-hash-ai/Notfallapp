@@ -104,7 +104,7 @@ const path = require('path');
     const pv = await p.evaluate(() => [document.querySelector('[data-fk="np:S"]').value, document.querySelector('[data-fk="np:I"]').value]);
     ok(pv[0] === pre[0] && pv[1] === pre[1], 'D: Starts der Maßnahme vorbelegt (' + pv.join(', ') + ')');
     await p.click('.modal .tpl-complex'); await p.waitForTimeout(250);
-    const k = await p.evaluate(id => { const x = C.byId.get(id), st = x.m.plan.steps, tpl = ensurePalGroup(migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key))).steps;
+    const k = await p.evaluate(id => { const x = C.byId.get(id), st = x.m.plan.steps, tpl = ensurePalStep(migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key))).steps;
       return [st.length === tpl.length, st.map(s => s.name).join() === tpl.map(s => s.name).join(), st.every(s => !s.wer), tpl.some(s => s.wer), ds(x.st.S), ds(x.st.I)]; }, id2);
     ok(k[0] && k[1] && k[2] && k[3] && k[4] === pre[0] && k[5] === pre[1], 'D: Komplex → Aufbau wie Mailing-Vorlage, ohne Personen, Starts ' + k[4] + ' / ' + k[5]);
 

@@ -22,7 +22,7 @@ const sback = await st();
 ok(sb.on === B.name && sback.on === A.name && sback.pin === A.name, 'Überfahren „' + B.name + '“ hebt diese hervor, danach zurück zu „' + A.name + '“');
 await p.click('.mline-edit'); await p.waitForTimeout(150);
 const sm = await st();
-ok(sm.modal && /Maßnahme bearbeiten/.test(await p.textContent('.modal h2')), '„Bearbeiten“ öffnet den Dialog');
+ok(sm.modal && /Detailplan anlegen/.test(await p.textContent('.modal h2')), '„Bearbeiten“ bei einer Maßnahme ohne Detailplan bietet das Anlegen an');
 await p.click('.modal footer button:has-text("Abbrechen")'); await p.waitForTimeout(150);
 ok((await st()).pin === A.name, 'nach dem Schließen des Dialogs bleibt die Hervorhebung');
 await p.evaluate(() => { commit(d => { d.massnahmen[0].hinweis = 'x'; }); }); await p.waitForTimeout(200);

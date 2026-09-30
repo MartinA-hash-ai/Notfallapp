@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.9",
+    "version": "0.9.1",
     "date": "",
+    "items": [
+      "Kalender: „Bearbeiten“ öffnet den Detailplan der Maßnahme; gibt es noch keinen, das Fenster zum Anlegen (Einfach / Komplex / Kopie). Das Bearbeiten-Fenster gibt es weiter über ⋯ in der Maßnahmen-Tabelle",
+      "Start im Kalender oder in der Zeitleiste verschieben (Detailplan): reicht das Kürzen der Schritte nicht, fragt die App mit Begründung nach – „Nur bis …“ oder „Ganzen Abschnitt verschieben“ – statt nur zu warnen",
+      "Detailplan: der Briefkasten-Termin ist wieder eine normale Zeile im Abschnitt (kein eigener Abschnitt), rot, nicht fett; das Datum ist fest (Schloss) und die Raute im Gantt lässt sich nicht ziehen – das PAL ändert man im Kopf oder in der Tabelle"
+    ]
+  },
+  {
+    "version": "0.9",
+    "date": "2026-09-30T14:34",
     "items": [
       "Namensfelder (Detailplan, Hauptverantwortlich, Urlaub): ein Klick zeigt immer alle Personen – auch wenn schon ein Name eingetragen ist; Tippen filtert, „– niemand“ leert das Feld, ein neuer Name wird mit Enter als Person angelegt",
       "Detailplan: ganzen Abschnitt verschieben – den grauen Abschnittsbalken im Gantt ziehen oder im ⋯-Menü „Abschnitt verschieben …“; alle Schritte darin wandern mit",

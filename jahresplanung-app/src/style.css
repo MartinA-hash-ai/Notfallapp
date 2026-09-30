@@ -969,10 +969,10 @@ header.top.two-rows .brand strong { max-width: none; }
 .menu.pcombo .pc-new { padding: 5px 9px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line3); margin-top: 3px; }
 
 /* 0.9 Detailplan: Briefkasten-Termin (PAL) als eigener Abschnitt, rot hervorgehoben; Abschnittsbalken ziehbar */
-.pl-row input.palname { color: var(--red); font-weight: 700; }
+.pl-row input.palname { color: var(--red); font-weight: 400; }
 .pl-row.palgrp .c-name.gname { grid-column: 2 / span 2; }
 .pl-row.palgrp .chip.mark { margin-left: 6px; }
-.pl-row .paltyp { color: var(--red); font-weight: 700; font-size: 11.5px; padding-left: 4px; }
+.pl-row .paltyp { color: var(--red); font-weight: 400; font-size: 12px; padding-left: 4px; }
 .pl-row .c-grest.palinfo { color: var(--red); font-weight: 600; text-align: right; padding: 0 8px 0 6px; grid-column: 5 / span 4; }
 .g-sum { cursor: grab; }
 .g-sum:hover { background: var(--muted); }
@@ -983,3 +983,8 @@ body.dragging .g-sum { cursor: grabbing; }
 .mtable td.art select, .mtable td.art select:hover, .mtable td.art select:focus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23bdbdbd'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 5px center; }
 html[data-theme=dark] .mtable td.art select, html[data-theme=dark] .mtable td.art select:hover, html[data-theme=dark] .mtable td.art select:focus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236b6e73'/%3E%3C/svg%3E"); }
 @media print { .mtable td.art select { background-image: none !important; } }
+
+/* 0.9.1 Briefkasten-Termin (PAL): Zeile im Abschnitt, rot, fester Termin mit Schloss */
+.pl-row .paldate { display: inline-flex; align-items: center; gap: 6px; padding-left: 4px; font-size: 12px; color: var(--ink2); }
+.pl-row .pallock { width: 10px; height: 12px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='12' viewBox='0 0 10 12'%3E%3Cpath d='M2.5 5V3.5a2.5 2.5 0 0 1 5 0V5' fill='none' stroke='%23b5b5b5' stroke-width='1.3'/%3E%3Crect x='1' y='5' width='8' height='6.5' rx='1.2' fill='%23b5b5b5'/%3E%3C/svg%3E") no-repeat center; flex: none; }
+.g-dia.fixed { cursor: default; }

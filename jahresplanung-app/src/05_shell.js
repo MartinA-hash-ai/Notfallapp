@@ -202,7 +202,14 @@ function pinChip(el, id, n, t) {
   markPinned(id, el);
   highlight(id); syncVisBoxes();
 }
-const pinEditBtn = (id, cls = '') => h('button', { class: 'mline-edit ' + cls, tip: 'Maßnahme bearbeiten', onclick: e => { e.stopPropagation(); editMassnahme(id); } }, 'Bearbeiten');
+// „Bearbeiten“ im Kalender: zum Detailplan – gibt es noch keinen, das Fenster zum Anlegen (Einfach / Komplex / Kopie)
+function openPlanFor(id) {
+  const x = C.byId.get(id); if (!x) return;
+  if (x.m.plan) { unpin(); UI.view = 'plaene'; UI.planSel = id; renderNow(); window.scrollTo(0, 0); }
+  else createPlan(id);
+}
+const pinEditBtn = (id, cls = '') => { const x = C.byId.get(id);
+  return h('button', { class: 'mline-edit ' + cls, tip: x && x.m.plan ? 'Detailplan öffnen' : 'Noch kein Detailplan – anlegen', onclick: e => { e.stopPropagation(); openPlanFor(id); } }, 'Bearbeiten'); };
 function unpin() {
   if (!UI.pin) return;
   UI.pin = null; UI.pinMonth = null; UI.pinDay = null; UI.pinT = null;
