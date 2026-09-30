@@ -20,6 +20,13 @@ function lineHalves(n, pts, c) {
   return [n > a ? col(n - 0.25) : 'none', n < b ? col(n + 0.25) : 'none'];
 }
 const linePts = (x, keys) => keys.map(k => ({ n: evDate(x, k), k })).filter(p => p.n != null).sort((p, q) => p.n - q.n);
+// Linie einer Maßnahme über die angezeigten Termine; ist der letzte nicht der PAL, läuft sie bis zum Ende seines Abschnitts weiter –
+// so sieht man auch bei nur einem angezeigten Bereich, wie lange er dauert (Ende: Abschnitt im Detailplan, sonst nächster Start bzw. PAL)
+function spanPts(x) {
+  const pts = linePts(x, evKeys().filter(showType)), last = pts[pts.length - 1];
+  if (last && last.k !== 'P') { const e = Math.max(...pts.filter(p => p.k !== 'P').map(p => x.en[p.k] ?? p.n)); if (e > last.n) pts.push({ n: e, k: null }); }
+  return pts;
+}
 const isPinnedChip = e => UI.pin === e.x.id && UI.pinDay === e.n && UI.pinT === e.t && !UI.printing;
 function chip(e, opts = {}) {
   return h('span', { class: 'chip ' + (e.t === 'P' ? '' : 'ph ') + e.t + (opts.cls ? ' ' + opts.cls : '') + (!opts.noClick && isPinnedChip(e) ? ' pinned' : ''), dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
@@ -60,7 +67,7 @@ function dayTip(n, evs, away, hn) {
 function verbundLanes() {
   const out = [], ends = [];
   for (const x of C.ms.filter(visibleM)) {
-    const pts = linePts(x, evKeys().filter(showType));
+    const pts = spanPts(x);
     if (pts.length < 2) continue;
     out.push({ x, a: pts[0].n, b: pts[pts.length - 1].n, pts });
   }

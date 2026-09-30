@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.9.2",
+    "version": "0.9.3",
     "date": "",
+    "items": [
+      "Kalender: ist der letzte angezeigte Termin einer Maßnahme nicht der PAL (z. B. nur „D“ eingeblendet), läuft die Linie bis zum Ende dieses Abschnitts weiter – mit kleinem Endstrich; so sieht man, wie lange der Bereich dauert (Ende laut Detailplan, sonst bis zum nächsten Start bzw. PAL)"
+    ]
+  },
+  {
+    "version": "0.9.2",
+    "date": "2026-09-30T15:10",
     "items": [
       "Kalender: ist eine Maßnahme angeklickt (festgehalten), blendet ein Klick auf einen Buchstaben in ihrer Terminzeile unter dem Monat diesen Bereich aus – wie die Knöpfe oben; ausgeblendete Buchstaben bleiben dort blass stehen und blenden per Klick wieder ein",
       "Die Verbindungslinie beim Hervorheben berücksichtigt ausgeblendete Bereiche"

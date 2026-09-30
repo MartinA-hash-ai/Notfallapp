@@ -240,10 +240,10 @@ function highlight(id) {
   if (!id && UI.pin && UI.view === 'jahr' && C.byId.has(UI.pin)) id = UI.pin;   // nach dem Überfahren zurück zur festgehaltenen Maßnahme
   main.classList.toggle('hl', !!id);
   $$('[data-m]', main).forEach(e => e.classList.toggle('hl-on', e.dataset.m === id));
-  $$('.day.span', main).forEach(c => { c.classList.remove('span'); c.style.removeProperty('--hcl'); c.style.removeProperty('--hcr'); });
+  $$('.day.span', main).forEach(c => { c.classList.remove('span', 'span-end'); c.style.removeProperty('--hcl'); c.style.removeProperty('--hcr'); c.style.removeProperty('--hce'); });
   const x = id && C.byId.get(id);
   if (!x || UI.verbund) return;                  // Verbund-Darstellung: die eigene Linie wird per CSS betont
-  const pts = linePts(x, evKeys().filter(showType));          // ausgeblendete Bereiche gehören nicht zur Linie
+  const pts = spanPts(x);          // ausgeblendete Bereiche gehören nicht zur Linie, der letzte angezeigte läuft bis zu seinem Ende
   if (pts.length < 2) return;
   const a = pts[0].n, b = pts[pts.length - 1].n, cells = new Map($$('.day[data-dn]', main).map(c => [+c.dataset.dn, c]));
   for (let n = a; n <= b; n++) {
@@ -251,6 +251,8 @@ function highlight(id) {
     const [l, r] = lineHalves(n, pts, x.color);
     c.classList.add('span'); c.style.setProperty('--hcl', l); c.style.setProperty('--hcr', r);
   }
+  const ec = pts[pts.length - 1].k === null && cells.get(b);          // Ende des Abschnitts ohne eigenen Termin: kleiner Strich
+  if (ec) { ec.classList.add('span-end'); ec.style.setProperty('--hce', x.color); }
 }
 function sideBar() {
   const y = UI.year;
