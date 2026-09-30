@@ -73,7 +73,7 @@ function valText(coll, field, v, rec) {
   if (v == null || v === '') return '–';
   if (['pal', 'von', 'bis', 'datum'].includes(field)) return fmtW(dn(v));
   if (field === 'vorlauf' || field === 'ende') { const p = dn(rec && rec.pal); const e = Object.entries(v || {}); return e.length ? e.map(([k, n]) => k + ' ' + (p != null ? fmtS(p - n) : n + ' T.')).join(' · ') : '–'; }
-  if (field === 'bereiche' && Array.isArray(v)) return v.map(p => (p.zeichen || p.key) + ' ' + p.name + (p.stil && p.stil !== 'pastell' ? ' (' + (STILE[p.stil] || p.stil) + ')' : '')).join(', ');
+  if (field === 'bereiche' && Array.isArray(v)) return v.map(p => (p.zeichen || p.key) + ' ' + p.name + (p.stil && p.stil !== 'pastell' ? ' (' + (STILE[p.stil] || p.stil) + ')' : '') + (p.linie && p.linie !== 'auto' ? ' Linie ' + (LINIEN[p.linie] || p.linie) : '')).join(', ');
   if (coll === 'settings' && field === 'pal' && v && typeof v === 'object') return 'PAL-Markierung ' + (v.zeichen || 'P') + ' (' + (STILE[v.stil] || v.stil || '') + ')';
   if (field === 'plan') return v && v.steps ? v.steps.length + ' Schritte' : 'kein Detailplan';
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);

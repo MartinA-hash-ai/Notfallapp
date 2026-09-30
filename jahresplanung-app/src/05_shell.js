@@ -228,9 +228,9 @@ function highlight(id) {
   $$('.day.span', main).forEach(c => { c.classList.remove('span'); c.style.removeProperty('--hcl'); c.style.removeProperty('--hcr'); });
   const x = id && C.byId.get(id);
   if (!x || UI.verbund) return;                  // Verbund-Darstellung: die eigene Linie wird per CSS betont
-  const pts = [...Object.values(x.st), x.pal].filter(v => v != null).sort((p, q) => p - q);
+  const pts = linePts(x, evKeys());
   if (pts.length < 2) return;
-  const a = Math.min(...pts), b = Math.max(...pts), cells = new Map($$('.day[data-dn]', main).map(c => [+c.dataset.dn, c]));
+  const a = pts[0].n, b = pts[pts.length - 1].n, cells = new Map($$('.day[data-dn]', main).map(c => [+c.dataset.dn, c]));
   for (let n = a; n <= b; n++) {
     const c = cells.get(n); if (!c) continue;
     const [l, r] = lineHalves(n, pts, x.color);
@@ -371,6 +371,15 @@ function setSym(k, v) {
   const who = symOwner(z); if (who && who !== k) { toast('„' + z + '“ ist schon vergeben (' + phName(who) + ').', 'warn'); return; }
   commit(d => { if (k === 'P') d.settings.pal = Object.assign({}, DEF_PAL, d.settings.pal, { zeichen: z }); else { const b = d.settings.bereiche.find(q => q.key === k); if (b) b.zeichen = z; } }, phName(k) + ': Zeichen ' + z);
 }
+function lineSelect(k, draw) {
+  return h('select', { 'aria-label': 'Linie ' + phName(k), onchange: e => { const v = e.target.value;
+    commit(d => { const b = d.settings.bereiche.find(q => q.key === k); if (b) b.linie = v; }); draw(); } },
+    Object.entries(LINIEN).map(([v, l]) => h('option', { value: v, selected: lineOf(k) === v }, l)));
+}
+function linePreview(k, i) {
+  const n = PH().length, f = n > 1 ? (n - 1 - i) / (n - 1) : 1;
+  return h('span', { class: 'lprev' }, ['#C2185B', '#1F77B4'].map(c => h('span', { class: 'lp ln-' + lineOf(k), style: { background: lineBg(k, c, f), '--c': c } })));
+}
 function stilSelect(k, draw) {
   return h('select', { 'aria-label': 'Aussehen ' + phName(k), onchange: e => { const v = e.target.value;
     commit(d => { if (k === 'P') d.settings.pal = Object.assign({}, DEF_PAL, d.settings.pal, { stil: v }); else { const b = d.settings.bereiche.find(q => q.key === k); if (b) b.stil = v; } }); draw(); } },
@@ -411,14 +420,15 @@ async function settingsDialog() {
       h('div', { class: 'inl theme-pick' }, radio('light', 'Hell'), radio('dark', 'Dunkel'), radio('system', 'wie Windows')),
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.splash !== false, onchange: e => { UI.splash = e.target.checked; saveUI(); } }), 'Startbildschirm mit Animation beim Öffnen zeigen'),
       h('h3', null, 'Bereiche und Markierungen'),
-      h('p', { class: 'muted small' }, 'Die Phasen jeder Maßnahme bis zum PAL, in zeitlicher Reihenfolge. Das Zeichen erscheint als Markierung im Kalender, in der Zeitleiste, in der Tabelle und in den Exporten – Aussehen wählbar. Im Detailplan wird jeder Abschnitt einem Bereich zugeordnet. Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start.'),
+      h('p', { class: 'muted small' }, 'Die Phasen jeder Maßnahme bis zum PAL, in zeitlicher Reihenfolge. Das Zeichen erscheint als Markierung im Kalender, in der Zeitleiste, in der Tabelle und in den Exporten. Die Linie ist das Teilstück des Bereichs: Verbindungslinie im Kalender, Balken in der Zeitleiste, Abschnittsbalken im Detailplan-Gantt. „Abgestuft“ = von hell (erster Bereich) nach kräftig (letzter). Im Detailplan wird jeder Abschnitt einem Bereich zugeordnet. Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start.'),
       h('table', { class: 'grid ptable btable' },
-        h('thead', null, h('tr', null, h('th', null, 'Vorschau'), h('th', null, 'Zeichen'), h('th', null, 'Begriff'), h('th', null, 'Aussehen'), h('th'), h('th'))),
+        h('thead', null, h('tr', null, h('th', null, 'Vorschau'), h('th', null, 'Zeichen'), h('th', null, 'Begriff'), h('th', null, 'Markierung'), h('th', null, 'Linie'), h('th'), h('th'))),
         h('tbody', null, PH().map((b, i) => h('tr', { dataset: { key: b.key } },
         h('td', { class: 'prev' }, markPreview(b.key)),
         h('td', { class: 'zcol' }, h('input', { value: sym(b.key), maxlength: 1, 'aria-label': 'Zeichen für ' + b.name, onchange: e => { setSym(b.key, e.target.value); draw(); } })),
         h('td', null, h('input', { value: b.name, 'aria-label': 'Name des Bereichs ' + sym(b.key), onchange: e => { const nv = e.target.value.trim(); if (nv) commit(d => { d.settings.bereiche[i].name = nv; }); draw(); } })),
         h('td', { class: 'scol' }, stilSelect(b.key, draw)),
+        h('td', { class: 'lcol' }, lineSelect(b.key, draw), linePreview(b.key, i)),
         h('td', { class: 'muted small' }, bUsage(b.key) || 'nicht verwendet'),
         h('td', { class: 'acts' },
           h('button', { class: 'icon', tip: 'früher', 'aria-label': 'früher', 'data-repeat': true, disabled: i === 0, onclick: () => { commit(d => { const l = d.settings.bereiche; [l[i - 1], l[i]] = [l[i], l[i - 1]]; }); draw(); } }, '↑'),
@@ -429,7 +439,7 @@ async function settingsDialog() {
           h('td', { class: 'zcol' }, h('input', { value: sym('P'), maxlength: 1, 'aria-label': 'Zeichen für das PAL', onchange: e => { setSym('P', e.target.value); draw(); } })),
           h('td', null, h('b', null, 'PAL'), h('span', { class: 'muted small' }, ' (Briefkasten, fest)')),
           h('td', { class: 'scol' }, stilSelect('P', draw)),
-          h('td'), h('td')))),
+          h('td', { class: 'muted small' }, 'Punkt – keine Linie'), h('td'), h('td')))),
       h('div', { class: 'inl addline' },
         h('input', { placeholder: 'Buchstabe', maxlength: 1, style: 'width:86px', value: newKey, oninput: e => { newKey = e.target.value.toUpperCase(); e.target.value = newKey; } }),
         h('input', { placeholder: 'Name, z. B. Versand', value: newBName, oninput: e => { newBName = e.target.value; }, onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addB(); } } }),
@@ -475,7 +485,7 @@ async function settingsDialog() {
     newName = ''; draw();
   };
   draw();
-  await modal('Einstellungen', wrap, [['Schließen', true, 'primary']], { wide: true });
+  await modal('Einstellungen', wrap, [['Schließen', true, 'primary']], { wide: true, cls: 'settingsw' });
   renderNow();
 }
 function helpDialog() {

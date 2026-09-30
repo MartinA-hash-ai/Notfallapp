@@ -40,7 +40,7 @@ await p.evaluate(() => undo()); await p.waitForTimeout(100);
 const ln = await p.evaluate(id => { highlight(id); const x = C.byId.get(id); const g = n => { const c = document.querySelector('.day[data-dn="' + n + '"]'); return [c.style.getPropertyValue('--hcl'), c.style.getPropertyValue('--hcr')]; };
   const r = [g(x.s), g(x.s + 3), g(x.i), g(x.i + 3), g(x.pal)]; highlight(null); return [r, x.color]; }, id);
 const [[s0, sMid, iDay, iMid, pDay], col] = ln;
-ok(s0[0] === 'transparent' && sMid[0] === sMid[1] && sMid[0] !== iMid[0] && iDay[0] === sMid[0] && iDay[1] === iMid[0] && pDay[1] === 'transparent',
+ok(s0[0] === 'none' && sMid[0] === sMid[1] && sMid[0] !== iMid[0] && iDay[0] === sMid[0] && iDay[1] === iMid[0] && pDay[1] === 'none',
   'Linie: S→I heller (' + sMid[0] + '), I→PAL kräftig (' + iMid[0] + '), Wechsel genau am I-Tag');
 await p.evaluate(() => { UI.verbund = true; renderNow(); });
 const vb = await p.evaluate(id => { const x = C.byId.get(id); const v = n => { const e = document.querySelector('.day[data-dn="' + n + '"] .vbl[data-m="' + id + '"]'); return e && [e.style.getPropertyValue('--hcl'), e.style.getPropertyValue('--hcr')]; }; return [v(x.s + 3), v(x.i + 3)]; }, id);

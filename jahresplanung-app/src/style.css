@@ -627,10 +627,10 @@ body.resizing, body.resizing * { cursor: col-resize !important; }
 /* Verbindungslinie beim Überfahren einer Maßnahme */
 .day > * { position: relative; z-index: 1; }
 .day > .vbars { position: absolute; }
-.day.span::before { content: ''; position: absolute; left: 0; right: 0; top: 25px; height: 4px; background: linear-gradient(90deg, var(--hcl) 0 50%, var(--hcr) 50% 100%); opacity: .9; z-index: 0; }
+.day.span::before { content: ''; position: absolute; left: 0; right: 0; top: 25px; height: 4px; background: var(--hcl) left / 50% 100% no-repeat, var(--hcr) right / 50% 100% no-repeat; opacity: .9; z-index: 0; }
 /* Verbund-Darstellung: dauerhafte Linien je Maßnahme, eigene Spur je Überlappung */
 .cal.verbund .day { height: 58px; }
-.day > .vbl { position: absolute; left: 0; right: 0; top: calc(37px + var(--ln) * 4px); height: 3px; background: linear-gradient(90deg, var(--hcl) 0 50%, var(--hcr) 50% 100%); opacity: .9; z-index: 0; pointer-events: none; }
+.day > .vbl { position: absolute; left: 0; right: 0; top: calc(37px + var(--ln) * 4px); height: 3px; background: var(--hcl) left / 50% 100% no-repeat, var(--hcr) right / 50% 100% no-repeat; opacity: .9; z-index: 0; pointer-events: none; }
 .day > .vbl.one { left: 44%; right: 44%; background: var(--hc); }
 main.hl .vbl:not(.hl-on) { opacity: .12; }
 main.hl .day > .vbl.hl-on { opacity: 1; height: 4px; margin-top: -.5px; }
@@ -898,3 +898,14 @@ html[data-theme=dark] .pl-row select, html[data-theme=dark] .pl-row select:hover
 .btable td.acts { white-space: nowrap; width: 1%; }
 .btable td.muted.small { font-size: 11px; line-height: 1.25; }
 .btable th { font-size: 11px; }
+
+/* 0.8.3 Linien je Bereich: Zeitleiste „nur Rahmen“, Detailplan-Abschnittsbalken, Vorschau in den Einstellungen */
+.seg.outline { border-width: 1.5px; }
+.g-sum[class*="ln-"] { border-radius: 2px; }
+.g-sum.ln-rahmen { background: transparent !important; border: 1px solid var(--c); box-sizing: border-box; }
+.modal.settingsw { max-width: 860px; }
+.btable td.lcol { white-space: nowrap; }
+.btable td.lcol select { width: 150px; }
+.btable .lprev { display: flex; gap: 4px; margin-top: 4px; }
+.btable .lprev .lp { display: block; width: 44px; height: 5px; border-radius: 1px; }
+.btable .lprev .lp.ln-rahmen { background: transparent !important; border: 1px solid var(--c); box-sizing: border-box; height: 6px; }

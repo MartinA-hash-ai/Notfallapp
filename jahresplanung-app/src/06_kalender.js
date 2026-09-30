@@ -13,12 +13,13 @@ function chipStyle(t, color) {
 }
 // Verbindungslinie im Kalender: vom ersten Termin an von hell nach kräftig – jedes Teilstück (Bereich) etwas kräftiger,
 // das letzte bis zum PAL in voller Farbe. Liefert die Farben der linken und rechten Tageshälfte (Linie von Tagesmitte zu Tagesmitte).
+// pts: [{ n, k }] nach Datum sortiert; das Teilstück ab pts[i] gehört zum Bereich pts[i].k – sein Aussehen kommt aus den Einstellungen („Linie“).
 function lineHalves(n, pts, c) {
-  const a = pts[0], b = pts[pts.length - 1], k = pts.length - 1;
-  const tone = f => f <= 0 ? c : darkNow() ? mix(c, 0.5 * f, DARK_SURF) : mix(c, 0.62 * f);
-  const col = t => { let i = 0; while (i < k - 1 && t >= pts[i + 1]) i++; return tone(k <= 1 ? 1 : (k - 1 - i) / (k - 1)); };
-  return [n > a ? col(n - 0.25) : 'transparent', n < b ? col(n + 0.25) : 'transparent'];
+  const a = pts[0].n, b = pts[pts.length - 1].n, k = pts.length - 1;
+  const col = t => { let i = 0; while (i < k - 1 && t >= pts[i + 1].n) i++; return lineBg(pts[i].k, c, k <= 1 ? 1 : (k - 1 - i) / (k - 1)); };
+  return [n > a ? col(n - 0.25) : 'none', n < b ? col(n + 0.25) : 'none'];
 }
+const linePts = (x, keys) => keys.map(k => ({ n: evDate(x, k), k })).filter(p => p.n != null).sort((p, q) => p.n - q.n);
 const isPinnedChip = e => UI.pin === e.x.id && UI.pinDay === e.n && UI.pinT === e.t && !UI.printing;
 function chip(e, opts = {}) {
   return h('span', { class: 'chip ' + (e.t === 'P' ? '' : 'ph ') + e.t + (opts.cls ? ' ' + opts.cls : '') + (!opts.noClick && isPinnedChip(e) ? ' pinned' : ''), dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
@@ -49,10 +50,9 @@ function dayTip(n, evs, away, hn) {
 function verbundLanes() {
   const out = [], ends = [];
   for (const x of C.ms.filter(visibleM)) {
-    const pts = evKeys().filter(showType).map(t => evDate(x, t)).filter(v => v != null);
+    const pts = linePts(x, evKeys().filter(showType));
     if (pts.length < 2) continue;
-    pts.sort((p, q) => p - q);
-    out.push({ x, a: pts[0], b: pts[pts.length - 1], pts });
+    out.push({ x, a: pts[0].n, b: pts[pts.length - 1].n, pts });
   }
   out.sort((p, q) => p.a - q.a || q.b - p.b);
   for (const v of out) { let l = ends.findIndex(e => e < v.a); if (l < 0) { l = ends.length; ends.push(v.b); } else ends[l] = v.b; v.lane = l; }

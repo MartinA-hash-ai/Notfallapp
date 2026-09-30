@@ -47,6 +47,18 @@ const SYM_RE = /^[A-Z0-9ÄÖÜ]$/;
 const palMark = () => (D && D.settings && isObj(D.settings.pal)) ? D.settings.pal : DEF_PAL;
 const sym = k => k === 'P' ? palMark().zeichen || 'P' : ((phase(k) || {}).zeichen || k);
 const stilOf = k => k === 'P' ? palMark().stil || 'kraeftig' : ((phase(k) || {}).stil || 'pastell');
+// Linie je Bereich (Kalender-Verbindungslinie, Zeitleiste, Detailplan-Gantt): „abgestuft“ = wie bisher, von hell nach kräftig
+const LINIEN = Object.assign({ auto: 'Abgestuft (Standard)' }, STILE);
+const lineOf = k => k === 'P' ? 'auto' : ((phase(k) || {}).linie || 'auto');
+// Hintergrund einer Linie/eines Balkens als Bild (für background) – f: Abstufung bei „abgestuft“ (1 = hellste, 0 = volle Farbe)
+function lineBg(k, c, f = 0) {
+  const st = lineOf(k), dk = darkNow(), solid = v => 'linear-gradient(' + v + ', ' + v + ')';
+  if (st === 'kraeftig') return solid(c);
+  if (st === 'pastell') return solid(pastel(c));
+  if (st === 'streifen') return 'repeating-linear-gradient(135deg, ' + c + ' 0 2px, ' + pastel(c) + ' 2px 4px)';
+  if (st === 'rahmen') return 'linear-gradient(' + c + ' 0 1px, transparent 1px calc(100% - 1px), ' + c + ' calc(100% - 1px))';
+  return solid(f <= 0 ? c : dk ? mix(c, 0.5 * f, DARK_SURF) : mix(c, 0.62 * f));
+}
 const demoChip = (k, cls) => h('span', { class: 'chip demo ' + (k === 'P' ? 'P' : 'ph') + ' st-' + stilOf(k) + (cls ? ' ' + cls : '') }, sym(k));
 function emptyData() {
   return { version: DATA_VERSION, meta: { savedAt: null, savedBy: '' }, settings: { year: new Date().getFullYear() + 1, bereiche: JSON.parse(JSON.stringify(DEF_BEREICHE)) },
@@ -83,7 +95,7 @@ function normBereiche(list, st) {
     if (!isObj(p)) continue;
     const key = str(p.key).trim().toUpperCase();
     if (!PHASE_KEY_RE.test(key) || seen.has(key)) continue;
-    seen.add(key); out.push({ key, name: str(p.name).trim() || key, vorlauf: isNum(p.vorlauf) ? Math.round(+p.vorlauf) : null, zeichen: str(p.zeichen).trim().toUpperCase(), stil: STILE[p.stil] ? p.stil : 'pastell' });
+    seen.add(key); out.push({ key, name: str(p.name).trim() || key, vorlauf: isNum(p.vorlauf) ? Math.round(+p.vorlauf) : null, zeichen: str(p.zeichen).trim().toUpperCase(), stil: STILE[p.stil] ? p.stil : 'pastell', linie: LINIEN[p.linie] ? p.linie : 'auto' });
   }
   return out;
 }

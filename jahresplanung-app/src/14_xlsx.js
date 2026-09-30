@@ -239,7 +239,8 @@ function viewWorkbookLight(opts = {}) {
         if (has(x.pal)) { Object.assign(st, { fill: x.color, color: onColor(x.color) }); v = sym('P'); }
         else if (inW.length) {
           const [p, i] = inW[inW.length - 1], f = phs.length > 1 ? i / (phs.length - 1) : 0;
-          Object.assign(st, { fill: mix(x.color, 0.75 - 0.30 * f), color: darker(x.color) });
+          const ln = lineOf(p.key);
+          Object.assign(st, ln === 'kraeftig' ? { fill: x.color, color: onColor(x.color) } : ln === 'rahmen' ? { color: darker(x.color) } : ln === 'auto' ? { fill: mix(x.color, 0.75 - 0.30 * f), color: darker(x.color) } : { fill: pastel(x.color), color: darker(x.color) });
           v = phs.filter(q => has(x.st[q.key])).map(q => sym(q.key)).join('');
         }
         row[j + W0] = { v, st };

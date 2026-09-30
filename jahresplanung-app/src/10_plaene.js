@@ -402,7 +402,8 @@ VIEW_FN.plaene = main => {
       const g = h('div', { class: 'g-row grp' });
       if (spans.length) {
         const a = Math.min(...spans.map(q => q.start)), b = Math.max(...spans.map(q => q.end));
-        g.append(h('div', { class: 'g-sum', style: { left: X(a) + 'px', width: Math.max(3, (b - a) * pxd) + 'px' }, tip: s.name + ': ' + fmtW(a) + ' – ' + fmtW(b) }));
+        const lk = s.bereich && phase(s.bereich) && lineOf(s.bereich) !== 'auto' ? s.bereich : null;   // Linie des Bereichs (Einstellungen), sonst grau wie bisher
+        g.append(h('div', { class: 'g-sum' + (lk ? ' ln-' + lineOf(lk) : ''), style: Object.assign({ left: X(a) + 'px', width: Math.max(3, (b - a) * pxd) + 'px' }, lk ? { background: lineBg(lk, x.color), '--c': x.color } : {}), tip: s.name + ': ' + fmtW(a) + ' – ' + fmtW(b) }));
       }
       grows.push(g);
       continue;

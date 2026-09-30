@@ -68,9 +68,10 @@ function timelineSection(opts = {}) {
     // je Bereich ein Balken (hell → kräftiger), Griffe mit Buchstaben am Start; überlappen Bereiche, liegen sie in eigenen Spuren
     const phs = PH().filter(p => x.st[p.key] != null);
     const tone = f => darkNow() ? mix(x.color, 0.66 - 0.26 * f, DARK_SURF) : mix(x.color, 0.75 - 0.30 * f);
+    const segBg = (k, f) => lineOf(k) === 'auto' ? tone(f) : lineOf(k) === 'rahmen' ? 'var(--card)' : lineBg(k, x.color);   // Aussehen je Bereich (Einstellungen „Linie“)
     const segs = {}, hands = {}, dia = h('div', { class: 'dia', style: { background: x.color } });
     phs.forEach((p, j) => {
-      segs[p.key] = h('div', { class: 'seg', dataset: { k: p.key }, style: { background: tone(phs.length > 1 ? j / (phs.length - 1) : 0), borderColor: x.color } });
+      segs[p.key] = h('div', { class: 'seg' + (lineOf(p.key) === 'rahmen' ? ' outline' : ''), dataset: { k: p.key }, style: { background: segBg(p.key, phs.length > 1 ? j / (phs.length - 1) : 0), borderColor: x.color } });
       hands[p.key] = h('div', { class: 'handle h-' + p.key + (startMovable(x, p.key) ? '' : ' locked'), style: { background: x.color } }, h('i', null, sym(p.key)));
     });
     const place = (st, en, pal) => {

@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.8.2",
+    "version": "0.8.3",
     "date": "",
+    "items": [
+      "Einstellungen „Bereiche und Markierungen“: je Bereich zusätzlich die Linie wählbar – abgestuft (wie bisher, von hell nach kräftig), pastell, kräftig, gestreift oder nur Rahmen, mit Vorschau",
+      "Die Linie gilt für die Verbindungslinie im Kalender (auch in der Verbund-Darstellung), die Balken der Bereiche in der Zeitleiste, die Abschnittsbalken im Detailplan-Gantt (Abschnitte ohne Bereich bleiben grau) sowie PDF und Excel-Zeitleiste"
+    ]
+  },
+  {
+    "version": "0.8.2",
+    "date": "2026-09-30T09:54",
     "items": [
       "Maßnahmen-Tabelle: Schalter „Datum – Werktage“ dezenter und heller; Werktage-Felder ohne Pfeile – eintippen oder ins Feld klicken und mit dem Mausrad hoch/runter",
       "Detailplan-Kopf neu geordnet: oben Name und PAL, die Legende oben rechts; darunter die Starts der Bereiche. Die Knöpfe −/+/Zurücksetzen sind weg (Zoomen weiter mit dem Mausrad, ganz herausdrehen zeigt den ganzen Plan)",
