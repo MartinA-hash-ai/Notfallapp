@@ -26,6 +26,15 @@ function chip(e, opts = {}) {
     onpointerdown: opts.noClick ? null : ev => chipDrag(ev, e),
     onmouseenter: opts.noHl ? null : () => highlight(e.x.id), onmouseleave: opts.noHl ? null : () => highlight(null) }, sym(e.t));
 }
+// Festgehaltene Maßnahme: Klick auf einen Buchstaben in ihrer Terminzeile blendet diesen Bereich aus/ein (wie die Knöpfe oben)
+function typeToggles(list) {
+  return list.map(e => {
+    const el = e.hidden ? h('span', { class: 'chip lc off ' + (e.t === 'P' ? '' : 'ph ') + e.t, style: chipStyle(e.t, e.x.color) }, sym(e.t)) : chip(e, { noClick: true, noHl: true, noTip: true, cls: 'lc tog' });
+    setTip(el, (e.hidden ? 'Klicken: „' + phName(e.t) + '“ wieder einblenden' : 'Klicken: „' + phName(e.t) + '“ ausblenden') + ' (gilt für alle Maßnahmen)');
+    el.addEventListener('click', ev => { ev.stopPropagation(); UI.show = Object.assign({}, UI.show, { [e.t]: !!e.hidden }); saveUI(); renderNow(); });
+    return el;
+  });
+}
 function chipTip(e) {
   const x = e.x, m = x.m;
   // je Termin eine Zeile: Kästchen, „Start Selektion: Fr 02.04.2027 · 53 WT“
@@ -90,13 +99,20 @@ function monthCard(y, mo, byDay, vacs, today, vb) {
     if (hols.length) list.append(h('div', { class: 'mhol' }, hols.join(' · ')));
     const per = new Map();
     for (let n = first; n <= last; n++) for (const e of byDay.get(n) || []) { if (!per.has(e.x.id)) per.set(e.x.id, { x: e.x, ev: [] }); per.get(e.x.id).ev.push(e); }
+    // festgehaltene Maßnahme: auch ausgeblendete Bereiche als blasse Buchstaben zeigen (zum Wiedereinblenden)
+    const px = UI.pin && !UI.printing ? C.byId.get(UI.pin) : null;
+    const hiddenIn = x => evKeys().filter(t => !showType(t)).map(t => ({ t, n: evDate(x, t), x, hidden: true })).filter(e => e.n != null && e.n >= first && e.n <= last);
+    if (px && visibleM(px) && !per.has(px.id) && hiddenIn(px).length) per.set(px.id, { x: px, ev: [] });
     // je Maßnahme eine Zeile: links die Termine des Monats (S, I, D, P …), dann der Name; festgehalten: „Bearbeiten“ dahinter
     for (const { x, ev } of per.values()) {
       const pinned = UI.pin === x.id && !UI.printing;
       list.append(h('div', { class: 'mline' + (pinned ? ' pinned' : ''), dataset: { m: x.id },
         tip: pinned ? null : 'Klicken: Maßnahme hervorheben', onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null),
         onclick: e => { if (!e.target.closest('.mline-edit')) pinMassnahme(e.currentTarget, x.id, mo); }, style: { color: inkC(x.color) } },
-        h('span', { class: 'lchips' }, ev.map(e => chip(e, { noClick: true, noHl: true, cls: 'lc' }))), h('b', null, x.m.name || '(ohne Namen)'),
+        h('span', { class: 'lchips' }, pinned ? typeToggles(ev.concat(hiddenIn(x)).sort((a, b) => a.n - b.n || evKeys().indexOf(a.t) - evKeys().indexOf(b.t)))
+          : ev.map(e => { const c = chip(e, { noClick: true, noHl: true, cls: 'lc' });   // wird die Maßnahme gerade festgehalten, schaltet der Buchstabe
+              c.addEventListener('click', ev2 => { if (UI.pin !== e.x.id) return; ev2.stopPropagation(); UI.show = Object.assign({}, UI.show, { [e.t]: false }); saveUI(); renderNow(); });
+              return c; })), h('b', null, x.m.name || '(ohne Namen)'),
         pinned ? pinEditBtn(x.id) : null));
     }
     const vm = vacs.filter(v => v.bis >= first && v.von <= last);

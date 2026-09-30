@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.9.1",
+    "version": "0.9.2",
     "date": "",
+    "items": [
+      "Kalender: ist eine Maßnahme angeklickt (festgehalten), blendet ein Klick auf einen Buchstaben in ihrer Terminzeile unter dem Monat diesen Bereich aus – wie die Knöpfe oben; ausgeblendete Buchstaben bleiben dort blass stehen und blenden per Klick wieder ein",
+      "Die Verbindungslinie beim Hervorheben berücksichtigt ausgeblendete Bereiche"
+    ]
+  },
+  {
+    "version": "0.9.1",
+    "date": "2026-09-30T14:51",
     "items": [
       "Kalender: „Bearbeiten“ öffnet den Detailplan der Maßnahme; gibt es noch keinen, das Fenster zum Anlegen (Einfach / Komplex / Kopie). Das Bearbeiten-Fenster gibt es weiter über ⋯ in der Maßnahmen-Tabelle",
       "Start im Kalender oder in der Zeitleiste verschieben (Detailplan): reicht das Kürzen der Schritte nicht, fragt die App mit Begründung nach – „Nur bis …“ oder „Ganzen Abschnitt verschieben“ – statt nur zu warnen",

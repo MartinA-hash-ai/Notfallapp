@@ -243,7 +243,7 @@ function highlight(id) {
   $$('.day.span', main).forEach(c => { c.classList.remove('span'); c.style.removeProperty('--hcl'); c.style.removeProperty('--hcr'); });
   const x = id && C.byId.get(id);
   if (!x || UI.verbund) return;                  // Verbund-Darstellung: die eigene Linie wird per CSS betont
-  const pts = linePts(x, evKeys());
+  const pts = linePts(x, evKeys().filter(showType));          // ausgeblendete Bereiche gehören nicht zur Linie
   if (pts.length < 2) return;
   const a = pts[0].n, b = pts[pts.length - 1].n, cells = new Map($$('.day[data-dn]', main).map(c => [+c.dataset.dn, c]));
   for (let n = a; n <= b; n++) {
