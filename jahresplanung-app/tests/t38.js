@@ -34,6 +34,13 @@ const { chromium, ok, open, finish } = require('./lib');
   const d = await p.evaluate(id => { const c = [...document.querySelectorAll('.day > .vbl[data-m="' + id + '"]')].map(e => +e.parentElement.dataset.dn); return c.length ? [Math.min(...c), Math.max(...c)] : null; }, sm);
   ok(d && d[0] === ph.st.D && d[1] === ph.en.D, 'D: Verbund – Linie über den Abschnitt Produktion (' + JSON.stringify(d) + ')');
 
+  // ---- F: ein Schritt im Abschnitt endet nach dem PAL → Linie endet trotzdem am PAL
+  await p.evaluate(() => { UI.verbund = false; renderNow(); });
+  const f = await p.evaluate(id => { commit(d => { const s = d.massnahmen.find(m => m.id === id).plan.steps.find(s => s.id === 'produktion'); s.anker = { art: 'pal', offset: 6 }; });
+    UI.pin = id; renderNow(); highlight(id); const x = C.byId.get(id); const c = [...document.querySelectorAll('.day.span')].map(e => +e.dataset.dn); return [x.en.D > x.pal, Math.max(...c) === x.pal, +document.querySelector('.day.span-end').dataset.dn === x.pal]; }, sm);
+  ok(f[0] && f[1] && f[2], 'F: Schritt „Produktion & Versand“ endet nach dem PAL – Linie und Endstrich trotzdem am PAL (' + f + ')');
+  await p.evaluate(() => undo()); await p.waitForTimeout(100);
+
   // ---- E: ohne Detailplan läuft der Abschnitt bis zum PAL (nicht nur bis zum nächsten Start); eingetragenes Ende gilt
   await p.evaluate(() => { UI.verbund = false; UI.show = Object.assign({}, UI.show, { S: true, I: false, D: false, P: false }); renderNow(); }); await p.waitForTimeout(150);
   const pu = await p.evaluate(() => C.ms.find(x => x.m.name === 'Projekt-Update 1').id);
@@ -43,5 +50,11 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(([id, n]) => { commit(d => { const m = d.massnahmen.find(m => m.id === id); m.ende = { S: n }; }); renderNow(); highlight(id); }, [pu, q.pal - q.i]); await p.waitForTimeout(150);
   const e2 = await span();
   ok(e2 && e2[0] === q.s && e2[1] === q.i, 'E: mit eingetragenem Ende – Linie bis dorthin (' + JSON.stringify(e2) + ')');
+
+  // ---- G: Detailplan – in der PAL-Zeile steht rechts das P (an der Stelle des Kalendersymbols)
+  await p.evaluate(id => { UI.view = 'plaene'; UI.planSel = id; renderNow(); }, sm); await p.waitForTimeout(200);
+  const g = await p.evaluate(() => { const r = document.querySelector('.pl-row.palrow'), c = r.querySelector('.paldate .palchip'), cell = r.querySelectorAll('.c-date')[1];
+    return c ? [c.textContent, !!r.querySelector('.pallock'), Math.round(cell.getBoundingClientRect().right - c.getBoundingClientRect().right)] : null; });
+  ok(g && g[0] === 'P' && g[1] && g[2] <= 6, 'G: PAL-Zeile mit Schloss und „P“ rechts (' + JSON.stringify(g) + ')');
   await finish(b, pages);
 })();

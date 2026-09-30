@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.9.4",
+    "version": "0.9.5",
     "date": "",
+    "items": [
+      "Kalender: die Linie eines Abschnitts endet spätestens am PAL – auch wenn ein Schritt darin später endet",
+      "Detailplan: in der Zeile „Briefkasten-Termin“ steht rechts neben dem Schloss das P des PAL"
+    ]
+  },
+  {
+    "version": "0.9.4",
+    "date": "2026-09-30T15:59",
     "items": [
       "Kalender: ohne Detailplan läuft die Linie eines Abschnitts bis zum PAL (bzw. bis zum eingetragenen Ende) statt nur bis zum Start des nächsten Bereichs"
     ]

@@ -447,7 +447,7 @@ VIEW_FN.plaene = main => {
     const len = +s.dauer > 0 ? +s.dauer : DEF_DAYS, fresh = UI.freshStep === s.id;
     const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return; UI.freshStep = null;
       commit(d => { const ne = !fresh && r.end != null && r.start != null && ns <= r.end ? r.end : ns + len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
-    const endInp = s.pal ? h('span', { class: 'paldate', tip: 'Fester Termin: das PAL der Maßnahme – ändern oben im Kopf oder in der Maßnahmen-Tabelle' }, x.pal != null ? fmtD(x.pal) : '–', h('span', { class: 'pallock', 'aria-label': 'fest' }))
+    const endInp = s.pal ? h('span', { class: 'paldate', tip: 'Fester Termin: das PAL der Maßnahme – ändern oben im Kopf oder in der Maßnahmen-Tabelle' }, x.pal != null ? fmtD(x.pal) : '–', h('span', { class: 'pallock', 'aria-label': 'fest' }), demoChip('P', 'palchip'))
       : dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; UI.freshStep = null;
       commit(d => { const ns = !isTask ? ne : !fresh && r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
     const secK = curBereich(p.steps, row.idx);

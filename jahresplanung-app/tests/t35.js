@@ -33,7 +33,7 @@ const { chromium, ok, open, finish } = require('./lib');
       row.querySelector('.paltyp').textContent, !!row.querySelector('.pallock'), !!row.querySelector('input[type=date]'), (row.querySelector('.paldate') || {}).textContent]; }, sm);
   ok(pal[0] === 'Briefkasten-Termin' && pal[1] === 'Produktion' && pal[2] === 1 && !pal[3], 'B: Briefkasten-Termin als Zeile im Abschnitt „' + pal[1] + '“, kein eigener Abschnitt');
   ok(/^rgb\(227, 7, 20\)$/.test(pal[4]) && +pal[5] < 600 && pal[6] === 'PAL', 'B: rot, nicht fett, Typ „PAL“');
-  ok(pal[7] && !pal[8] && /^\d\d\.\d\d\.\d{4}$/.test(pal[9]), 'B: Datum fest (' + pal[9] + ') mit Schloss, kein Eingabefeld');
+  ok(pal[7] && !pal[8] && /^\d\d\.\d\d\.\d{4}P$/.test(pal[9]), 'B: Datum fest (' + pal[9] + ') mit Schloss und P, kein Eingabefeld');
   const allPlans = await p.evaluate(() => C.ms.filter(x => x.m.plan).map(x => x.m.plan.steps.filter(s => s.pal).length).join(','));
   ok(/^(1,)*1$/.test(allPlans), 'B: jeder Detailplan hat genau einen Briefkasten-Termin (' + allPlans + ')');
   const pid = await p.evaluate(id => C.byId.get(id).m.plan.steps.find(s => s.pal).id, sm);

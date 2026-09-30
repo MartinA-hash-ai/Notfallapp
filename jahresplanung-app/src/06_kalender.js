@@ -21,11 +21,16 @@ function lineHalves(n, pts, c) {
 }
 const linePts = (x, keys) => keys.map(k => ({ n: evDate(x, k), k })).filter(p => p.n != null).sort((p, q) => p.n - q.n);
 // Linie einer Maßnahme über die angezeigten Termine; ist der letzte nicht der PAL, läuft sie bis zum Ende seines Abschnitts weiter –
-// so sieht man auch bei nur einem angezeigten Bereich, wie lange er dauert (Ende: Abschnitt im Detailplan, ohne Detailplan das eingetragene Ende, sonst der PAL)
+// so sieht man auch bei nur einem angezeigten Bereich, wie lange er dauert (Ende: Abschnitt im Detailplan, ohne Detailplan das eingetragene Ende, sonst der PAL).
+// Über den PAL hinaus geht die Linie nicht – auch wenn ein Schritt des Abschnitts später endet.
 function spanPts(x) {
   const pts = linePts(x, evKeys().filter(showType)), last = pts[pts.length - 1];
   const end = p => x.pc ? x.en[p.k] : x.enx[p.k] ?? x.pal;
-  if (last && last.k !== 'P') { const e = Math.max(...pts.filter(p => p.k !== 'P').map(p => end(p) ?? p.n)); if (e > last.n) pts.push({ n: e, k: null }); }
+  if (last && last.k !== 'P') {
+    let e = Math.max(...pts.filter(p => p.k !== 'P').map(p => end(p) ?? p.n));
+    if (x.pal != null && last.n <= x.pal) e = Math.min(e, x.pal);
+    if (e > last.n) pts.push({ n: e, k: null });
+  }
   return pts;
 }
 const isPinnedChip = e => UI.pin === e.x.id && UI.pinDay === e.n && UI.pinT === e.t && !UI.printing;
