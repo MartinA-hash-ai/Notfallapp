@@ -79,7 +79,7 @@ const colW = c => c.flex ? 0 : (UI.colW && UI.colW[colKey(c)]) || c.w;   // Hinw
 function tableWidth() { return mcols().reduce((s, c) => s + (colW(c) || c.flex || 0), 0); }
 // Kopfzeile der Bereiche: „Start der“ / „Selektion“ in zwei Zeilen (eigene Bereiche: „Start“ / Name)
 const PH_HEAD = { Selektion: ['Start der', 'Selektion'], Inhalt: ['Start des', 'Inhalts'], Produktion: ['Start der', 'Produktion'] };
-const phHead = p => PH_HEAD[p.name] || ['Start', p.name];
+const phHead = p => wtView() ? ['Zeit bis PAL für', p.name] : PH_HEAD[p.name] || ['Start', p.name];   // Werktage-Ansicht: „Zeit bis PAL für“ / „Selektion“
 // Schalter über den Spalten der Bereiche: links Datum, rechts Werktage bis zum PAL
 function viewSwitch() {
   const on = wtView(), set = v => { UI.startView = v; saveUI(); renderNow(); };

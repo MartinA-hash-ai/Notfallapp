@@ -141,13 +141,22 @@ function guardDate(props) {
 }
 function dateInput(value, fk, onCommit, extra = {}) {
   let start = value || '';
+  const mark = el => el.classList.toggle('noval', !el.value);   // leeres Feld: in Tabellen ein hellgrauer Strich statt „tt.mm.jjjj“
   const done = e => {
     const el = e.target, pr = dateProblem(el);
-    if (pr) { if (e.type === 'blur') { el.value = start; toast(pr + ' – nicht übernommen.', 'warn'); } return; }
+    if (pr) { if (e.type === 'blur') { el.value = start; mark(el); toast(pr + ' – nicht übernommen.', 'warn'); } return; }
+    mark(el);
     const v = el.value; if (v !== start) { start = v; onCommit(v); }
   };
-  return h('input', Object.assign({ type: 'date', value: value || '', 'data-fk': fk,
-    onfocus: e => { start = e.target.value; },
+  return h('input', Object.assign({ type: 'date', value: value || '', 'data-fk': fk, class: value ? null : 'noval',
+    onfocus: e => { start = e.target.value; e.target.classList.remove('noval'); },
+    onmousedown: e => {                        // leeres Feld (Strich): Klick öffnet das volle Feld, Klick aufs Kalendersymbol die Datumsauswahl
+      const el = e.target; if (!el.classList.contains('noval')) return;
+      const onIcon = e.clientX > el.getBoundingClientRect().right - 20;
+      el.classList.remove('noval');
+      if (onIcon) { e.preventDefault(); el.focus(); try { el.showPicker(); } catch (x) { /* ältere Browser: Feld ist offen */ } }
+    },
+    oninput: e => mark(e.target),
     onchange: e => { if (document.activeElement !== e.target) done(e); },
     onblur: done,
     onkeydown: e => { if (e.key === 'Enter') e.target.blur(); } }, extra));

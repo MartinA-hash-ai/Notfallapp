@@ -911,3 +911,10 @@ html[data-theme=dark] .pl-row select, html[data-theme=dark] .pl-row select:hover
 /* 0.8.4 Bereichszeichen in der Abschnittszeile */
 .gname .chip.mark { flex: none; margin-left: 6px; cursor: default; }
 .gname .chip.mark + .gber { margin-left: 3px; }
+
+/* 0.8.5 Maßnahmen-Tabelle: Kalendersymbole dezenter; leeres Datum als hellgrauer Strich mit Kalendersymbol daneben */
+.mtable input[type=date]::-webkit-calendar-picker-indicator { opacity: .3; cursor: pointer; margin-left: 2px; }
+.mtable input[type=date]:hover::-webkit-calendar-picker-indicator, .mtable input[type=date]:focus::-webkit-calendar-picker-indicator { opacity: .65; }
+.mtable td input[type=date].noval:not(:focus) { width: 42px !important; padding-left: 19px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='2'%3E%3Crect width='9' height='1.5' fill='%23c4c4c4'/%3E%3C/svg%3E") !important; background-repeat: no-repeat !important; background-position: 5px 50% !important; }
+.mtable input[type=date].noval:not(:focus)::-webkit-datetime-edit { display: none; }
+html[data-theme=dark] .mtable td input[type=date].noval:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='2'%3E%3Crect width='9' height='1.5' fill='%235a5d63'/%3E%3C/svg%3E") !important; }

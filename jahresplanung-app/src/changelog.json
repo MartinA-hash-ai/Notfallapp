@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.8.4",
+    "version": "0.8.5",
     "date": "",
+    "items": [
+      "Maßnahmen-Tabelle in der Werktage-Ansicht: Spaltenköpfe „Zeit bis PAL für“ / „Selektion“ (bzw. Inhalt, Produktion)",
+      "Leere Datumsfelder in der Maßnahmen-Tabelle zeigen einen hellgrauen Strich mit dezentem Kalendersymbol statt „tt.mm.jjjj“; Klick auf den Strich öffnet das Feld zum Eintippen, Klick aufs Symbol die Datumsauswahl",
+      "Kalendersymbole in der Maßnahmen-Tabelle dezenter (beim Darüberfahren deutlicher)"
+    ]
+  },
+  {
+    "version": "0.8.4",
+    "date": "2026-09-30T11:05",
     "items": [
       "Detailplan: das Zeichen des Bereichs (z. B. S, I, D, X) steht jetzt in der Abschnittszeile statt am ersten Arbeitsschritt; die Auswahl daneben zeigt nur noch den Namen",
       "Detailplan-Gantt: alle Abschnittsbalken wieder einheitlich grau – auch bei neuen Bereichen oder einer eigenen Linie (die Linien-Einstellung gilt für Kalender und Zeitleiste)",
