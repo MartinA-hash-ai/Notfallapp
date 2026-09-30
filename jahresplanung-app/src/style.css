@@ -951,3 +951,9 @@ html[data-theme=dark] .mtable td input[type=date].noval:not(:focus) { background
   .pd-kal .mline .lchips { margin-right: 3px; vertical-align: -1px; gap: 1px; }
   .pd-kal .mline .chip.lc { height: 10px; min-width: 10px; font-size: 7px; line-height: 8px; padding: 0 1px; }
 }
+
+/* 0.8.11 Kopfzeile bei schmalem Fenster: Reiter in eine eigene zweite Zeile, oben Logo, Titel, Jahr und Knöpfe */
+header.top.two-rows { row-gap: 0; }
+header.top.two-rows .actions { order: 2; margin-left: auto; padding: 6px 0; }
+header.top.two-rows nav.tabs { order: 3; flex-basis: 100%; margin-left: -9px; }
+header.top.two-rows .brand strong { max-width: none; }

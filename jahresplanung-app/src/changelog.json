@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.8.10",
+    "version": "0.8.11",
     "date": "",
+    "items": [
+      "Kopfzeile bei kleinerem Fenster: oben Logo, Titel, Jahr und die Knöpfe, die Reiter (Jahresplanung … Urlaub & Feiertage) in einer eigenen zweiten Zeile; bei breitem Fenster wie bisher alles in einer Zeile"
+    ]
+  },
+  {
+    "version": "0.8.10",
+    "date": "2026-09-30T13:37",
     "items": [
       "PDF Maßnahmen-Übersicht: bei den Starts oben das Datum, darunter klein die Werktage bis zum PAL",
       "PDF Kalender: passt auf eine Seite – schmaler Kopf ohne Logo, kompaktere Terminlisten; bei sehr vielen Terminen wird der Kalender automatisch etwas verkleinert"

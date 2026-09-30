@@ -216,7 +216,15 @@ document.addEventListener('click', () => closeMenu());
 // Menüs stehen fest am Bildschirm: beim Scrollen der Seite (nicht im Menü selbst) schließen
 document.addEventListener('scroll', e => { if (_openMenu && performance.now() - (_openMenu.at || 0) > 300 && !(e.target instanceof Node && _openMenu.m.contains(e.target))) closeMenu(); }, true);
 // Warnliste beginnt unter der Kopfzeile – die kann bei 150 % Skalierung zweizeilig sein
-function syncTopHeight() { const t = $('header.top'); if (t) document.documentElement.style.setProperty('--toph', Math.round(t.getBoundingClientRect().height) + 'px'); }
+// Kopfzeile: passt nicht alles in eine Zeile, kommen die Reiter (Jahresplanung … Urlaub & Feiertage) in eine eigene zweite Zeile;
+// oben bleiben Logo, Titel, Jahr und die Knöpfe rechts
+function layoutHeader() {
+  const t = $('header.top'); if (!t) return;
+  t.classList.remove('two-rows');
+  const kids = [...t.children].filter(e => e.offsetParent !== null), top0 = kids.length ? kids[0].offsetTop : 0;
+  if (kids.some(e => e.offsetTop > top0 + 4)) t.classList.add('two-rows');
+}
+function syncTopHeight() { layoutHeader(); const t = $('header.top'); if (t) document.documentElement.style.setProperty('--toph', Math.round(t.getBoundingClientRect().height) + 'px'); }
 window.addEventListener('resize', syncTopHeight);
 
 /* ---------- Seitenleiste: was wird angezeigt? */
