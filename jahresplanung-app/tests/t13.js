@@ -79,13 +79,13 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(gw.length && gw.every(w => w === 'Eva'), 'Abschnitt → Eva: ' + gw.join(','));
   await p.screenshot({ path: 'r7_plan_gruppe.png', clip: { x: 0, y: 0, width: 1600, height: 560 } });
   // Dialog: nur Beginn ändern → Ende eine Woche später
-  await p.click('.pl-table .addbtn >> nth=0'); await p.waitForTimeout(150);
-  const pre = await p.evaluate(() => [...document.querySelectorAll('.modal input[type=date]')].map(i => i.value).concat(document.querySelector('.modal input[list="dl-personen"]').value));
-  const d = await p.$$('.modal input[type=date]');
-  await d[0].fill('2027-05-10'); await d[0].dispatchEvent('input'); await p.waitForTimeout(50);
-  const post = await p.evaluate(() => [...document.querySelectorAll('.modal input[type=date]')].map(i => i.value));
-  await p.fill('.modal input[placeholder^="z. B."]', 'Wochenschritt');
-  await p.click('.modal button:has-text("Anlegen")'); await p.waitForTimeout(200);
+  await p.click('.pl-table .addlink:has-text("+ Aufgabe") >> nth=0'); await p.waitForTimeout(200);
+  const nfk = await p.evaluate(() => document.activeElement.dataset.fk.split(':')[1]);
+  const rowV = () => p.evaluate(id => ['start', 'end', 'wer'].map(f => document.querySelector('[data-fk="st:' + id + ':' + f + '"]').value), nfk);
+  const pre = await rowV();
+  await p.fill(`[data-fk="st:${nfk}:start"]`, '2027-05-10'); await p.press(`[data-fk="st:${nfk}:start"]`, 'Enter'); await p.waitForTimeout(150);
+  const post = (await rowV()).slice(0, 2);
+  await p.fill(`[data-fk="st:${nfk}:name"]`, 'Wochenschritt'); await p.press(`[data-fk="st:${nfk}:name"]`, 'Enter'); await p.waitForTimeout(150);
   const nsr = await p.evaluate(() => { const x = C.byId.get(UI.planSel), s = x.m.plan.steps.find(s => s.name === 'Wochenschritt'), r = x.pc.map.get(s.id); return [ds(r.start), ds(r.end), s.wer]; });
   ok(pre[1] && (Math.round((Date.parse(pre[1]) - Date.parse(pre[0])) / 864e5) === 7) && post[1] === '2027-05-17' && nsr[0] === '2027-05-10' && nsr[1] === '2027-05-17' && nsr[2] === 'Eva',
     'Neuer Schritt: Vorbelegung ' + pre.join('/') + ', Beginn geändert → ' + post.join('–') + ', angelegt ' + nsr.join(' '));

@@ -28,7 +28,7 @@ function popover(anchor, content) {
 /* ---------- Anzeige-Einstellungen (einzeln, damit sie im jeweiligen Bereich sitzen können) */
 function typePills() {
   const typeBtn = (t, label) => h('button', { class: 'tpill' + (showType(t) ? ' on' : ''), 'aria-pressed': String(showType(t)), tip: (showType(t) ? 'ausblenden: ' : 'einblenden: ') + label,
-    onclick: () => { UI.show[t] = !showType(t); renderNow(); } }, h('span', { class: 'chip demo ' + (t === 'P' ? 'P' : 'ph') }, t), label);
+    onclick: () => { UI.show[t] = !showType(t); renderNow(); } }, demoChip(t), label);
   return evKeys().map(t => typeBtn(t, phName(t)));
 }
 const syncPop = (e, on) => $$('input[type=checkbox]', e.target.closest('.menu')).forEach(c => { c.checked = on; });
@@ -66,7 +66,7 @@ function filterBar(extra) {
 VIEW_FN.jahr = main => {
   put(main,
     section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
-      info: 'Sortiert automatisch nach PAL. Je Bereich (' + PH().map(p => p.key + ' ' + p.name).join(', ') + ') steht der Start – als Datum oder als Werktage bis zum PAL (Schalter „Datum – Werktage“ über den Spalten der Bereiche). Die Starts wandern mit, wenn sich der PAL verschiebt; bei Maßnahmen mit Detailplan ergeben sie sich aus den Abschnitten. 🏖 = jemand, der im Detailplan in diesem Bereich eingetragen ist, hat Urlaub. Häkchen links = im Kalender anzeigen. Spaltenbreite am rechten Rand der Überschrift ziehen – dabei ändert sich nur die Nachbarspalte rechts; die Breiten bleiben auch nach Neustart und Update erhalten (Doppelklick = Standard).',
+      info: 'Sortiert automatisch nach PAL. Je Bereich (' + PH().map(p => sym(p.key) + ' ' + p.name).join(', ') + ') steht der Start – als Datum oder als Werktage bis zum PAL (Schalter „Datum – Werktage“ über den Spalten der Bereiche). Die Starts wandern mit, wenn sich der PAL verschiebt; bei Maßnahmen mit Detailplan ergeben sie sich aus den Abschnitten. 🏖 = jemand, der im Detailplan in diesem Bereich eingetragen ist, hat Urlaub. Häkchen links = im Kalender anzeigen. Spaltenbreite am rechten Rand der Überschrift ziehen – dabei ändert sich nur die Nachbarspalte rechts; die Breiten bleiben auch nach Neustart und Update erhalten (Doppelklick = Standard).',
       closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
     section('kal', 'Kalender ' + UI.year, () => ({
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),

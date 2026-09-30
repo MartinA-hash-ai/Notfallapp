@@ -241,7 +241,7 @@ function sideBar() {
   const y = UI.year;
   const ms = C.ms.filter(x => inYear(x, y));
   const typeBtn = (t, label) => h('label', { class: 'tchk' }, h('input', { type: 'checkbox', checked: showType(t), onchange: e => { UI.show[t] = e.target.checked; renderNow(); } }),
-    h('span', { class: 'chip demo ' + (t === 'P' ? 'P' : 'ph') }, t), label);
+    demoChip(t), label);
   const persons = [...new Set([...D.personen.map(p => p.name), ...C.vac.map(v => v.u.wer).filter(Boolean)])];
   return h('aside', { class: 'side' },
     h('button', { class: 'icon collapse', tip: 'Seitenleiste ausblenden', onclick: () => { UI.sidebar = false; renderNow(); } }, '«'),
@@ -359,9 +359,26 @@ function bUsage(k) {
   const m = D.massnahmen.filter(q => !q.plan && q.vorlauf && isNum(q.vorlauf[k])).length, pl = D.massnahmen.filter(q => q.plan && q.plan.steps.some(s => s.typ === 'gruppe' && s.bereich === k)).length;
   return [m ? m + ' Maßnahme' + (m > 1 ? 'n' : '') : '', pl ? pl + ' Detailpl' + (pl > 1 ? 'äne' : 'an') : ''].filter(Boolean).join(' · ');
 }
+// Markierungen: Vorschau in zwei Beispielfarben, Zeichen ändern (eindeutig), Aussehen wählen
+const symOwner = z => sym('P') === z ? 'P' : (PH().find(q => sym(q.key) === z) || {}).key || null;
+function markPreview(k) {
+  return [demoChip(k), ...['#C2185B', '#1F77B4'].map(c => h('span', { class: 'chip', style: chipStyle(k, c) }, sym(k)))];
+}
+function setSym(k, v) {
+  const z = String(v || '').trim().toUpperCase();
+  if (z === sym(k)) return;
+  if (!SYM_RE.test(z)) { toast('Bitte einen Buchstaben (A–Z) oder eine Ziffer eingeben.', 'warn'); return; }
+  const who = symOwner(z); if (who && who !== k) { toast('„' + z + '“ ist schon vergeben (' + phName(who) + ').', 'warn'); return; }
+  commit(d => { if (k === 'P') d.settings.pal = Object.assign({}, DEF_PAL, d.settings.pal, { zeichen: z }); else { const b = d.settings.bereiche.find(q => q.key === k); if (b) b.zeichen = z; } }, phName(k) + ': Zeichen ' + z);
+}
+function stilSelect(k, draw) {
+  return h('select', { 'aria-label': 'Aussehen ' + phName(k), onchange: e => { const v = e.target.value;
+    commit(d => { if (k === 'P') d.settings.pal = Object.assign({}, DEF_PAL, d.settings.pal, { stil: v }); else { const b = d.settings.bereiche.find(q => q.key === k); if (b) b.stil = v; } }); draw(); } },
+    Object.entries(STILE).map(([v, l]) => h('option', { value: v, selected: stilOf(k) === v }, l)));
+}
 async function removeBereich(k) {
   const u = bUsage(k);
-  if (!await confirmBox('Bereich entfernen', 'Bereich „' + k + ' · ' + phName(k) + '“ entfernen?' + (u ? ' Er wird bei ' + u + ' verwendet: die Starts dieses Bereichs werden gelöscht, Abschnitte in Detailplänen verlieren die Zuordnung (die Arbeitsschritte bleiben).' : ''), 'Entfernen')) return;
+  if (!await confirmBox('Bereich entfernen', 'Bereich „' + sym(k) + ' · ' + phName(k) + '“ entfernen?' + (u ? ' Er wird bei ' + u + ' verwendet: die Starts dieses Bereichs werden gelöscht, Abschnitte in Detailplänen verlieren die Zuordnung (die Arbeitsschritte bleiben).' : ''), 'Entfernen')) return;
   commit(d => {
     d.settings.bereiche = d.settings.bereiche.filter(q => q.key !== k);
     for (const m of d.massnahmen) {
@@ -369,7 +386,7 @@ async function removeBereich(k) {
       if (m.ende) delete m.ende[k];
       if (m.plan) { m.plan.steps.forEach(s => { if (s.bereich === k) delete s.bereich; }); if (m.plan.marks) delete m.plan.marks[k]; }
     }
-  }, 'Bereich ' + k + ' entfernt');
+  }, 'Bereich ' + sym(k) + ' entfernt');
 }
 
 /* ---------- Einstellungen: alles wirkt sofort, Personen hier zentral verwalten */
@@ -393,16 +410,26 @@ async function settingsDialog() {
       h('h3', null, 'Darstellung'),
       h('div', { class: 'inl theme-pick' }, radio('light', 'Hell'), radio('dark', 'Dunkel'), radio('system', 'wie Windows')),
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.splash !== false, onchange: e => { UI.splash = e.target.checked; saveUI(); } }), 'Startbildschirm mit Animation beim Öffnen zeigen'),
-      h('h3', null, 'Bereiche'),
-      h('p', { class: 'muted small' }, 'Die Phasen jeder Maßnahme bis zum PAL, in zeitlicher Reihenfolge. Der Buchstabe erscheint im Kalender, in der Zeitleiste und in der Tabelle; im Detailplan wird jeder Abschnitt einem Bereich zugeordnet. Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start. P ist für das PAL reserviert.'),
-      h('table', { class: 'grid ptable btable' }, h('tbody', null, PH().map((b, i) => h('tr', null,
-        h('td', { class: 'pcol' }, h('span', { class: 'chip demo ph' }, b.key)),
-        h('td', null, h('input', { value: b.name, 'aria-label': 'Name des Bereichs ' + b.key, onchange: e => { const nv = e.target.value.trim(); if (nv) commit(d => { d.settings.bereiche[i].name = nv; }); draw(); } })),
+      h('h3', null, 'Bereiche und Markierungen'),
+      h('p', { class: 'muted small' }, 'Die Phasen jeder Maßnahme bis zum PAL, in zeitlicher Reihenfolge. Das Zeichen erscheint als Markierung im Kalender, in der Zeitleiste, in der Tabelle und in den Exporten – Aussehen wählbar. Im Detailplan wird jeder Abschnitt einem Bereich zugeordnet. Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start.'),
+      h('table', { class: 'grid ptable btable' },
+        h('thead', null, h('tr', null, h('th', null, 'Vorschau'), h('th', null, 'Zeichen'), h('th', null, 'Begriff'), h('th', null, 'Aussehen'), h('th'), h('th'))),
+        h('tbody', null, PH().map((b, i) => h('tr', { dataset: { key: b.key } },
+        h('td', { class: 'prev' }, markPreview(b.key)),
+        h('td', { class: 'zcol' }, h('input', { value: sym(b.key), maxlength: 1, 'aria-label': 'Zeichen für ' + b.name, onchange: e => { setSym(b.key, e.target.value); draw(); } })),
+        h('td', null, h('input', { value: b.name, 'aria-label': 'Name des Bereichs ' + sym(b.key), onchange: e => { const nv = e.target.value.trim(); if (nv) commit(d => { d.settings.bereiche[i].name = nv; }); draw(); } })),
+        h('td', { class: 'scol' }, stilSelect(b.key, draw)),
         h('td', { class: 'muted small' }, bUsage(b.key) || 'nicht verwendet'),
         h('td', { class: 'acts' },
           h('button', { class: 'icon', tip: 'früher', 'aria-label': 'früher', 'data-repeat': true, disabled: i === 0, onclick: () => { commit(d => { const l = d.settings.bereiche; [l[i - 1], l[i]] = [l[i], l[i - 1]]; }); draw(); } }, '↑'),
           h('button', { class: 'icon', tip: 'später', 'aria-label': 'später', 'data-repeat': true, disabled: i === PH().length - 1, onclick: () => { commit(d => { const l = d.settings.bereiche; [l[i + 1], l[i]] = [l[i], l[i + 1]]; }); draw(); } }, '↓'),
-          h('button', { class: 'icon', tip: 'entfernen', 'aria-label': 'entfernen', onclick: async () => { await removeBereich(b.key); draw(); } }, '✕')))))),
+          h('button', { class: 'icon', tip: 'entfernen', 'aria-label': 'entfernen', onclick: async () => { await removeBereich(b.key); draw(); } }, '✕')))),
+        h('tr', { class: 'palrow', dataset: { key: 'P' } },
+          h('td', { class: 'prev' }, markPreview('P')),
+          h('td', { class: 'zcol' }, h('input', { value: sym('P'), maxlength: 1, 'aria-label': 'Zeichen für das PAL', onchange: e => { setSym('P', e.target.value); draw(); } })),
+          h('td', null, h('b', null, 'PAL'), h('span', { class: 'muted small' }, ' (Briefkasten, fest)')),
+          h('td', { class: 'scol' }, stilSelect('P', draw)),
+          h('td'), h('td')))),
       h('div', { class: 'inl addline' },
         h('input', { placeholder: 'Buchstabe', maxlength: 1, style: 'width:86px', value: newKey, oninput: e => { newKey = e.target.value.toUpperCase(); e.target.value = newKey; } }),
         h('input', { placeholder: 'Name, z. B. Versand', value: newBName, oninput: e => { newBName = e.target.value; }, onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addB(); } } }),
@@ -431,11 +458,14 @@ async function settingsDialog() {
         h('ul', null, c.items.map(t => h('li', null, t)))))) : null);
   };
   const addB = () => {
-    const k = newKey.trim().toUpperCase(), nm = newBName.trim();
-    if (!PHASE_KEY_RE.test(k)) { toast('Bitte einen Buchstaben A–Z wählen (P ist für das PAL reserviert).', 'warn'); return; }
-    if (PH().some(q => q.key === k)) { toast('„' + k + '“ ist schon vergeben.', 'warn'); return; }
+    const z = newKey.trim().toUpperCase(), nm = newBName.trim();
+    if (!SYM_RE.test(z)) { toast('Bitte einen Buchstaben (A–Z) oder eine Ziffer wählen.', 'warn'); return; }
+    const who = symOwner(z); if (who) { toast('„' + z + '“ ist schon vergeben (' + phName(who) + ').', 'warn'); return; }
     if (!nm) { toast('Bitte einen Namen für den Bereich eingeben.', 'warn'); return; }
-    commit(d => { d.settings.bereiche.push({ key: k, name: nm, vorlauf: null }); }, 'Bereich ' + k + ' · ' + nm + ' angelegt');
+    // interner Schlüssel: der Buchstabe selbst, wenn frei – sonst ein anderer freier (das angezeigte Zeichen bleibt „z“)
+    const keys = new Set(PH().map(q => q.key)), k = PHASE_KEY_RE.test(z) && !keys.has(z) ? z : [...'ABCDEFGHIJKLMNOQRSTUVWXYZ'].find(c => !keys.has(c));
+    if (!k) { toast('Es sind schon zu viele Bereiche angelegt.', 'warn'); return; }
+    commit(d => { d.settings.bereiche.push({ key: k, name: nm, vorlauf: null, zeichen: z, stil: 'pastell' }); }, 'Bereich ' + z + ' · ' + nm + ' angelegt');
     newKey = ''; newBName = ''; draw();
   };
   const addP = () => {
@@ -463,7 +493,7 @@ function helpDialog() {
     p('Nach einem Programm-Update bitte alle offenen App-Fenster schließen und neu öffnen. Ein Fenster mit älterer Version merkt das und speichert nicht mehr, bis es neu gestartet wurde.'),
     p('Oben rechts zeigt „👥 Name“, wer die Jahresplanung gerade ebenfalls geöffnet hat (über OneDrive, kann etwa eine Minute nachhinken). Unter ⋯ → „Änderungsprotokoll“ steht, wer wann was geändert hat.'),
     h('h3', null, 'Bereiche'),
-    p('Jede Maßnahme läuft in Bereichen auf das PAL zu – ' + PH().map(q => q.key + ' = ' + q.name).join(', ') + ', P = PAL. Ein Bereich beginnt an seinem Start und läuft bis zum nächsten Start (der letzte bis zum PAL); im Bearbeiten-Fenster kann er ein eigenes Ende bekommen. In den Einstellungen lassen sich Bereiche umbenennen, umsortieren und neue mit eigenem Buchstaben anlegen. In der Tabelle zeigt der Schalter „Datum – Werktage“ über den Spalten der Bereiche die Starts als Datum oder als Werktage bis zum PAL.'),
+    p('Jede Maßnahme läuft in Bereichen auf das PAL zu – ' + PH().map(q => sym(q.key) + ' = ' + q.name).join(', ') + ', ' + sym('P') + ' = PAL. Ein Bereich beginnt an seinem Start und läuft bis zum nächsten Start (der letzte bis zum PAL); im Bearbeiten-Fenster kann er ein eigenes Ende bekommen. In den Einstellungen lassen sich Bereiche umbenennen, umsortieren und neue mit eigenem Buchstaben anlegen. In der Tabelle zeigt der Schalter „Datum – Werktage“ über den Spalten der Bereiche die Starts als Datum oder als Werktage bis zum PAL.'),
     p('Im Detailplan gehört jeder Abschnitt zu einem Bereich (Auswahl am Abschnitt). Der früheste Schritt des Abschnitts ist dessen Start – oder der Schritt, der im ⋯-Menü als „Beginn“ festgelegt ist.'),
     h('h3', null, 'Datenschutz'),
     p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen.'),

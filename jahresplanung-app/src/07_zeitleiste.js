@@ -71,7 +71,7 @@ function timelineSection(opts = {}) {
     const segs = {}, hands = {}, dia = h('div', { class: 'dia', style: { background: x.color } });
     phs.forEach((p, j) => {
       segs[p.key] = h('div', { class: 'seg', dataset: { k: p.key }, style: { background: tone(phs.length > 1 ? j / (phs.length - 1) : 0), borderColor: x.color } });
-      hands[p.key] = h('div', { class: 'handle h-' + p.key + (startMovable(x, p.key) ? '' : ' locked'), style: { background: x.color } }, h('i', null, p.key));
+      hands[p.key] = h('div', { class: 'handle h-' + p.key + (startMovable(x, p.key) ? '' : ' locked'), style: { background: x.color } }, h('i', null, sym(p.key)));
     });
     const place = (st, en, pal) => {
       const Cx = n => X(clamp(n, x0 - 2, x1 + 2)) + pxd / 2;   // alles auf die Tagesmitte; weit Entferntes an den Rand

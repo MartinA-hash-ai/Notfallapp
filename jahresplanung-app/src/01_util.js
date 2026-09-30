@@ -152,6 +152,19 @@ function dateInput(value, fk, onCommit, extra = {}) {
     onblur: done,
     onkeydown: e => { if (e.key === 'Enter') e.target.blur(); } }, extra));
 }
+// Werktage-Felder ohne Pfeile: eintippen oder – solange das Feld angeklickt ist – mit dem Mausrad hoch/runter.
+// Ohne Fokus scrollt das Mausrad die Seite wie gewohnt. Übernommen wird kurz nach dem letzten Dreh.
+function wheelStep(e) {
+  const inp = e.currentTarget;
+  if (document.activeElement !== inp) return;
+  e.preventDefault();
+  const lo = inp.min !== '' ? +inp.min : -Infinity, hi = inp.max !== '' ? +inp.max : Infinity;
+  const v = clamp((isNum(inp.value) ? Math.round(+inp.value) : 0) + (e.deltaY < 0 ? 1 : -1), lo, hi);
+  if (String(v) === inp.value) return;
+  inp.value = v;
+  inp.dispatchEvent(new Event('input', { bubbles: true }));
+  clearTimeout(inp._wheelT); inp._wheelT = setTimeout(() => inp.dispatchEvent(new Event('change', { bubbles: true })), 450);
+}
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

@@ -147,9 +147,9 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.mouse.move(gb[0], gb[1]); await p.mouse.wheel(0, -300); await p.waitForTimeout(250); await p.mouse.wheel(0, -300); await p.waitForTimeout(250);
   const pp1 = await p.evaluate(() => UI._pl.pxd);
   ok(pp1 > pp0 * 1.3, 'Mausrad zoomt Gantt ' + pp0.toFixed(2) + ' → ' + pp1.toFixed(2));
-  await p.click('.phead button:has-text("Zurücksetzen")'); await p.waitForTimeout(150);
-  const pp2 = await p.evaluate(() => [UI._pl.pxd, UI.planPxd]);
-  ok(Math.abs(pp2[0] - pp0) < 0.01 && pp2[1] === 0, 'Zurücksetzen ' + pp2[0].toFixed(2));
+  for (let i = 0; i < 6; i++) { await p.mouse.wheel(0, 300); await p.waitForTimeout(120); }
+  const pp2 = await p.evaluate(() => [UI._pl.pxd, UI.planPxd, !!document.querySelector('.phead .segs')]);
+  ok(Math.abs(pp2[0] - pp0) < 0.01 && pp2[1] === 0 && !pp2[2], 'Mausrad zurück zeigt wieder den ganzen Plan ' + pp2[0].toFixed(2) + ' (ohne −/+/Zurücksetzen)');
   // Tabelle einklappen
   const gw0 = await p.evaluate(() => document.querySelector('.pl-gantt').clientWidth);
   await p.click('.divbtn'); await p.waitForTimeout(200);
@@ -170,13 +170,14 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.evaluate(() => { undo(); undo(); });
   // Neuer Arbeitsschritt
   const nStep0 = await p.evaluate(() => C.byId.get(UI.planSel).m.plan.steps.length);
-  await p.click('.pl-table .addbtn >> nth=0'); await p.waitForTimeout(150);
+  await p.click('.pl-table .addlink:has-text("+ Aufgabe") >> nth=0'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !document.querySelector('.modal') && /^st:.*:name$/.test(document.activeElement.dataset.fk || '') && document.activeElement.value === 'Neue Aufgabe'), '„+ Aufgabe“ legt ohne Fenster eine Zeile an, Name ist markiert');
   await p.screenshot({ path: 'r6_newstep.png' });
-  await p.fill('.modal input[placeholder^="z. B."]', 'Testschritt');
-  await p.fill('.modal input[list="dl-personen"]', 'Eva');
-  const dates = await p.$$('.modal input[type=date]');
-  await dates[0].fill('2027-05-03'); await dates[1].fill('2027-05-07');
-  await p.click('.modal button:has-text("Anlegen")'); await p.waitForTimeout(200);
+  await p.keyboard.type('Testschritt'); await p.keyboard.press('Tab'); await p.waitForTimeout(150);
+  const nsid = await p.evaluate(() => C.byId.get(UI.planSel).m.plan.steps.find(s => s.name === 'Testschritt').id);
+  await p.fill(`[data-fk="st:${nsid}:wer"]`, 'Eva'); await p.press(`[data-fk="st:${nsid}:wer"]`, 'Enter'); await p.waitForTimeout(150);
+  await p.fill(`[data-fk="st:${nsid}:start"]`, '2027-05-03'); await p.press(`[data-fk="st:${nsid}:start"]`, 'Enter'); await p.waitForTimeout(150);
+  await p.fill(`[data-fk="st:${nsid}:end"]`, '2027-05-07'); await p.press(`[data-fk="st:${nsid}:end"]`, 'Enter'); await p.waitForTimeout(200);
   const ns = await p.evaluate(() => { const x = C.byId.get(UI.planSel); const st = x.m.plan.steps; const i = st.findIndex(s => s.name === 'Testschritt'); const s = st[i]; const r = x.pc.map.get(s.id); let g = null; for (let j = i; j >= 0; j--) if (st[j].typ === 'gruppe') { g = st[j].name; break; } return [st.length, ds(r.start), ds(r.end), s.wer, g, st.filter(q => q.typ === 'gruppe')[0].name]; });
   ok(ns[0] === nStep0 + 1 && ns[1] === '2027-05-03' && ns[2] === '2027-05-07' && ns[3] === 'Eva' && ns[4] === ns[5], 'Neuer Arbeitsschritt ' + JSON.stringify(ns));
   // Datum in Tabelle ändern

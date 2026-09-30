@@ -73,7 +73,8 @@ function valText(coll, field, v, rec) {
   if (v == null || v === '') return '–';
   if (['pal', 'von', 'bis', 'datum'].includes(field)) return fmtW(dn(v));
   if (field === 'vorlauf' || field === 'ende') { const p = dn(rec && rec.pal); const e = Object.entries(v || {}); return e.length ? e.map(([k, n]) => k + ' ' + (p != null ? fmtS(p - n) : n + ' T.')).join(' · ') : '–'; }
-  if (field === 'bereiche' && Array.isArray(v)) return v.map(p => p.key + ' ' + p.name).join(', ');
+  if (field === 'bereiche' && Array.isArray(v)) return v.map(p => (p.zeichen || p.key) + ' ' + p.name + (p.stil && p.stil !== 'pastell' ? ' (' + (STILE[p.stil] || p.stil) + ')' : '')).join(', ');
+  if (coll === 'settings' && field === 'pal' && v && typeof v === 'object') return 'PAL-Markierung ' + (v.zeichen || 'P') + ' (' + (STILE[v.stil] || v.stil || '') + ')';
   if (field === 'plan') return v && v.steps ? v.steps.length + ' Schritte' : 'kein Detailplan';
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
   return String(v).slice(0, 80);
@@ -164,7 +165,8 @@ function describeChanges(a, b, max = 12) {
   }
   if (JS(a.feiertage) !== JS(b.feiertage)) out.push('Feiertage geändert');
   const sa = a.settings || {}, sb = b.settings || {};
-  if (JS(sa.bereiche) !== JS(sb.bereiche)) out.push('Bereiche: ' + (sb.bereiche || []).map(p => p.key + ' ' + p.name).join(', '));
+  if (JS(sa.bereiche) !== JS(sb.bereiche)) out.push('Bereiche: ' + (sb.bereiche || []).map(p => (p.zeichen || p.key) + ' ' + p.name).join(', '));
+  if (JS(sa.pal) !== JS(sb.pal)) out.push('PAL-Markierung: ' + ((sb.pal || {}).zeichen || 'P') + ' (' + (STILE[(sb.pal || {}).stil] || '') + ')');
   if (sa.year !== sb.year) out.push('Planungsjahr ' + sa.year + ' → ' + sb.year);
   return out.length > max ? out.slice(0, max).concat('… und ' + (out.length - max) + ' weitere Änderungen') : out;
 }

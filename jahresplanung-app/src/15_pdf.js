@@ -93,7 +93,7 @@ function buildPrintDoc(f) {
   const ms = C.ms.filter(x => f.ms.has(x.id) && inYear(x, y));
   const pages = [];
   if (f.secs.mass) {
-    const chipH = t => h('span', { class: 'chip demo ' + (t === 'P' ? 'P' : 'ph') }, t);
+    const chipH = t => demoChip(t);
     pages.push(page('Maßnahmen ' + y, h('table', { class: 'pd-table' },
       h('thead', null, h('tr', null, h('th'), h('th', null, 'Maßnahme'), h('th', null, 'Hauptverantwortlich'), h('th', null, 'Auflage'),
         PH().map(p => h('th', null, 'Start ' + p.name + ' ', chipH(p.key))), h('th', null, 'PAL ', chipH('P')), h('th', null, 'PAL-Status'), h('th', null, 'Bitte'), h('th', null, 'Hinweis'))),

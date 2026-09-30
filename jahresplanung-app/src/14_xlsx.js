@@ -1,4 +1,6 @@
 /* ===================================================================== Excel: Schreiber (ohne Bibliothek) und die Ansichts-Excel */
+// Zellfarbe einer Markierung wie in den Einstellungen (gestreift → pastell, nur Rahmen → ohne Füllung)
+const markFill = (t, c) => stilOf(t) === 'kraeftig' ? { fill: c, color: onColor(c) } : stilOf(t) === 'rahmen' ? { color: darker(c) } : { fill: pastel(c), color: darker(c) };
 
 const xesc = s => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const colName = i => { let s = ''; i++; while (i) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; };
@@ -128,7 +130,7 @@ function viewWorkbookLight(opts = {}) {
   // 1. Übersicht
   {
     const rows = [[{ v: 'Jahresplanung Außenkommunikation ' + y, st: XS.title }], [{ v: hint, st: XS.note }], [],
-      ['', 'Maßnahme', ...PH().map(p => 'Start ' + p.name), ...PH().map(p => 'WT bis PAL (' + p.key + ')'), 'PAL', 'PAL-Status', 'Hauptverantwortlich', 'Art der Bitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
+      ['', 'Maßnahme', ...PH().map(p => 'Start ' + p.name), ...PH().map(p => 'WT bis PAL (' + sym(p.key) + ')'), 'PAL', 'PAL-Status', 'Hauptverantwortlich', 'Art der Bitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
     for (const x of ms) {
       const bd = { border: 'thin', v: 'top' };
       rows.push([{ v: '', st: { fill: x.color, border: 'thin' } }, { v: x.m.name, st: { ...bd, b: true, color: darker(x.color) } },
@@ -149,7 +151,7 @@ function viewWorkbookLight(opts = {}) {
     const set = (r, c, v) => { (rows[r] = rows[r] || [])[c] = v; };
     set(0, 0, { v: 'Jahresplanung Außenkommunikation ' + y + ' – Kalender', st: XS.title }); merges.push('A1:AI1'); heights[0] = 22;
     set(1, 0, { v: hint, st: XS.note }); merges.push('A2:AI2');
-    set(2, 0, { v: 'P = PAL (kräftige Farbe der Maßnahme) · ' + PH().map(p => p.key + ' = Start ' + p.name).join(' · ') + ' (Pastellton) · hellgrau = Wochenende · dunkelgrau = Feiertag NRW', st: { sz: 9, color: '#404040' } }); merges.push('A3:AI3');
+    set(2, 0, { v: [['P', 'PAL'], ...PH().map(p => [p.key, 'Start ' + p.name])].map(([k, l]) => sym(k) + ' = ' + l + ' (' + ({ kraeftig: 'kräftige Farbe', rahmen: 'ohne Füllung', streifen: 'Pastellton', pastell: 'Pastellton' })[stilOf(k)] + ')').join(' · ') + ' · hellgrau = Wochenende · dunkelgrau = Feiertag NRW', st: { sz: 9, color: '#404040' } }); merges.push('A3:AI3');
     const evAll = eventsIn(a, b, true), byDay = new Map();
     evAll.forEach(e => { if (!byDay.has(e.n)) byDay.set(e.n, []); byDay.get(e.n).push(e); });
     let r = 4;
@@ -171,10 +173,10 @@ function viewWorkbookLight(opts = {}) {
             const evs = byDay.get(n) || [], hn = holName(n);
             const st = { h: 'center', v: 'top', wrap: true, sz: 9, border: 'thin' };
             const p = evs.find(e => e.t === 'P'), f = p || evs[0];
-            if (f) Object.assign(st, f.t === 'P' ? { fill: f.x.color, color: onColor(f.x.color), b: true } : { fill: pastel(f.x.color), color: darker(f.x.color), b: true });
+            if (f) Object.assign(st, markFill(f.t, f.x.color), { b: true });
             else if (hn) Object.assign(st, { fill: '#CFCFCF', b: true, color: '#262626' });
             else if (d >= 5) Object.assign(st, { fill: '#EDEDED', color: '#808080' });
-            set(r + 2 + w, c0 + 1 + d, { v: ymd(n)[2] + (evs.length ? '\n' + evs.map(e => e.t).join(' ') : ''), st });
+            set(r + 2 + w, c0 + 1 + d, { v: ymd(n)[2] + (evs.length ? '\n' + evs.map(e => sym(e.t)).join(' ') : ''), st });
           }
         }
         // Terminliste unter dem Monat
@@ -182,7 +184,7 @@ function viewWorkbookLight(opts = {}) {
         const hols = []; for (let n = first; n <= last; n++) { const hn = holName(n); if (hn) hols.push(fmtS(n) + ' ' + hn); }
         if (hols.length) lines.push({ v: hols.join(' · '), st: { sz: 8, color: '#8C8C8C' } });
         for (let n = first; n <= last; n++) for (const e of byDay.get(n) || []) { if (!per.has(e.x.id)) per.set(e.x.id, { x: e.x, ev: [] }); per.get(e.x.id).ev.push(e); }
-        for (const { x, ev } of per.values()) lines.push({ v: ev.map(e => e.t + ' ' + fmtS(e.n)).join(' · ') + '  ' + x.m.name, st: { sz: 8, b: true, color: darker(x.color) } });
+        for (const { x, ev } of per.values()) lines.push({ v: ev.map(e => sym(e.t) + ' ' + fmtS(e.n)).join(' · ') + '  ' + x.m.name, st: { sz: 8, b: true, color: darker(x.color) } });
         const vm = C.vac.filter(v => v.bis >= first && v.von <= last);
         if (vm.length) lines.push({ v: 'Urlaub: ' + vm.map(v => (v.u.wer || '?') + ' ' + fmtS(Math.max(v.von, first)) + (v.bis > v.von ? '–' + fmtS(Math.min(v.bis, last)) : '')).join(', '), st: { sz: 8, color: '#8A6D00' } });
         lists.push(lines);
@@ -234,11 +236,11 @@ function viewWorkbookLight(opts = {}) {
         let v = '';
         // Woche im Bereich: der späteste Bereich, der in dieser Woche läuft, bestimmt die Farbe (hell → kräftiger)
         const phs = PH().filter(p => x.st[p.key] != null), inW = phs.map((p, i) => [p, i]).filter(([p]) => x.st[p.key] <= e && (x.en[p.key] ?? x.st[p.key]) >= n);
-        if (has(x.pal)) { Object.assign(st, { fill: x.color, color: onColor(x.color) }); v = 'P'; }
+        if (has(x.pal)) { Object.assign(st, { fill: x.color, color: onColor(x.color) }); v = sym('P'); }
         else if (inW.length) {
           const [p, i] = inW[inW.length - 1], f = phs.length > 1 ? i / (phs.length - 1) : 0;
           Object.assign(st, { fill: mix(x.color, 0.75 - 0.30 * f), color: darker(x.color) });
-          v = phs.filter(q => has(x.st[q.key])).map(q => q.key).join('');
+          v = phs.filter(q => has(x.st[q.key])).map(q => sym(q.key)).join('');
         }
         row[j + W0] = { v, st };
       });
@@ -274,7 +276,7 @@ function viewWorkbookLight(opts = {}) {
         const notes = [];
         const hn = holName(e.n); if (hn) notes.push('Feiertag: ' + hn); else if (wd(e.n) >= 5) notes.push(WDL[wd(e.n)]);
         const away = vacOn(e.n); if (away.length) notes.push('Urlaub: ' + [...new Set(away.map(v => v.u.wer))].join(', '));
-        return [XD(e.n), isoWeek(e.n), { v: e.x.m.name, st: e.t === 'P' ? { fill: e.x.color, color: onColor(e.x.color), b: true } : { fill: pastel(e.x.color), color: darker(e.x.color) } },
+        return [XD(e.n), isoWeek(e.n), { v: e.x.m.name, st: Object.assign(markFill(e.t, e.x.color), e.t === 'P' ? { b: true } : {}) },
           TYPE_LABEL[e.t], e.x.m.verantwortlich || '', notes.join(' · ')];
       })];
     sheets.push({ name: 'Termine', cols: [16, 5, 30, 24, 16, 50], rows, freeze: 'A2', filter: rows.length > 1 ? 'A1:F' + rows.length : null, protect });

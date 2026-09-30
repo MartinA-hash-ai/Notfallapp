@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.8.1",
+    "version": "0.8.2",
     "date": "",
+    "items": [
+      "Maßnahmen-Tabelle: Schalter „Datum – Werktage“ dezenter und heller; Werktage-Felder ohne Pfeile – eintippen oder ins Feld klicken und mit dem Mausrad hoch/runter",
+      "Detailplan-Kopf neu geordnet: oben Name und PAL, die Legende oben rechts; darunter die Starts der Bereiche. Die Knöpfe −/+/Zurücksetzen sind weg (Zoomen weiter mit dem Mausrad, ganz herausdrehen zeigt den ganzen Plan)",
+      "Detailplan-Tabelle: „+ Aufgabe“ (statt „+ neuer Arbeitsschritt“) legt ohne Fenster direkt eine neue Zeile an – Name ist markiert, einfach lostippen; im ⋯-Menü „Neue Aufgabe darunter“",
+      "Detailplan-Tabelle ruhiger: Griffe und Auswahlpfeile heller, Kopfzeile etwas dunkler, Kommentare hellgrau kursiv, Bereich am Abschnitt dezenter (der Abschnittsname hat mehr Platz), rechts erst die Anzahl der Schritte, dann der Zeitraum",
+      "Einstellungen „Bereiche und Markierungen“: Zeichen und Begriff je Bereich und für das PAL änderbar, weitere Bereiche mit eigenem Buchstaben; Aussehen je Markierung: pastell, kräftig, gestreift oder nur Rahmen – gilt im Kalender, in der Zeitleiste, in Tabellen, PDF und Excel. Voreinstellung wie bisher"
+    ]
+  },
+  {
+    "version": "0.8.1",
+    "date": "2026-09-30T08:55",
     "items": [
       "Maßnahmen-Tabelle: Spaltenköpfe zweizeilig („Start der“ / „Selektion“, „Start des“ / „Inhalts“, „Start der“ / „Produktion“), Köpfe und Werte der Bereiche linksbündig",
       "Die Spalten der Bereiche sind grau hinterlegt und durch Striche getrennt; darüber sitzt ein Schalter „Datum – Werktage“ (ersetzt den alten Umschalter oben rechts)",

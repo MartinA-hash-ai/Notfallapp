@@ -1,7 +1,15 @@
 /* ===================================================================== Ansicht: Jahreskalender */
 
+// Aussehen der Markierung je Einstellung: pastell (Standard für Bereiche), kräftig (Standard für PAL), gestreift, nur Rahmen
 function chipStyle(t, color) {
-  return t === 'P' ? { background: color, color: onColor(color), borderColor: color } : { background: pastel(color), color: inkC(color), borderColor: darkNow() ? mix(color, 0.3, DARK_SURF) : mix(color, 0.35) };
+  const dk = darkNow(), st = stilOf(t), bd = dk ? mix(color, 0.3, DARK_SURF) : mix(color, 0.35);
+  if (st === 'kraeftig') return { background: color, color: onColor(color), borderColor: color };
+  if (st === 'rahmen') return { background: 'var(--card)', color: inkC(color), borderColor: color, boxShadow: 'inset 0 0 0 0.5px ' + color };
+  if (st === 'streifen') {
+    const a = pastel(color), b = dk ? mix(color, 0.45, DARK_SURF) : mix(color, 0.55);
+    return { background: 'repeating-linear-gradient(135deg, ' + a + ' 0 2px, ' + b + ' 2px 4px)', color: inkC(color), borderColor: bd };
+  }
+  return { background: pastel(color), color: inkC(color), borderColor: bd };
 }
 // Verbindungslinie im Kalender: vom ersten Termin an von hell nach kräftig – jedes Teilstück (Bereich) etwas kräftiger,
 // das letzte bis zum PAL in voller Farbe. Liefert die Farben der linken und rechten Tageshälfte (Linie von Tagesmitte zu Tagesmitte).
@@ -15,11 +23,11 @@ const isPinnedChip = e => UI.pin === e.x.id && UI.pinDay === e.n && UI.pinT === 
 function chip(e, opts = {}) {
   return h('span', { class: 'chip ' + (e.t === 'P' ? '' : 'ph ') + e.t + (opts.cls ? ' ' + opts.cls : '') + (!opts.noClick && isPinnedChip(e) ? ' pinned' : ''), dataset: { m: e.x.id }, style: chipStyle(e.t, e.x.color), tip: opts.noTip ? null : () => chipTip(e),
     onpointerdown: opts.noClick ? null : ev => chipDrag(ev, e),
-    onmouseenter: opts.noHl ? null : () => highlight(e.x.id), onmouseleave: opts.noHl ? null : () => highlight(null) }, e.t);
+    onmouseenter: opts.noHl ? null : () => highlight(e.x.id), onmouseleave: opts.noHl ? null : () => highlight(null) }, sym(e.t));
 }
 function chipTip(e) {
   const x = e.x, m = x.m;
-  const line = (t, n) => h('div', { class: 'tt-row' + (t === e.t ? ' cur' : '') }, h('span', { class: 'chip ' + (t === 'P' ? '' : 'ph ') + t, style: chipStyle(t, x.color) }, t), ' ', TYPE_LABEL[t], h('b', null, ' ' + fmtW(n)),
+  const line = (t, n) => h('div', { class: 'tt-row' + (t === e.t ? ' cur' : '') }, h('span', { class: 'chip ' + (t === 'P' ? '' : 'ph ') + t, style: chipStyle(t, x.color) }, sym(t)), ' ', TYPE_LABEL[t], h('b', null, ' ' + fmtW(n)),
     t !== 'P' && x.pal != null ? h('span', { class: 'muted' }, ' · ' + workdaysBefore(n, x.pal) + ' WT vor PAL' + (x.enx[t] != null ? ' · bis ' + fmtWS(x.en[t]) : '')) : null);
   return h('div', null,
     h('div', { class: 'tt-title', style: { borderColor: x.color } }, m.name || '(ohne Namen)'),
@@ -128,7 +136,7 @@ function chipDrag(ev, e) {
       if (locked) { toast('Im Detailplan von „' + x.m.name + '“ gehört noch kein Abschnitt zum Bereich „' + phName(t) + '“.', 'warn'); sess.cancel(); return; }
       moved = true; hideTip(); document.body.classList.add('dragging');
       el.classList.add('dragsrc');
-      ghost = h('span', { class: 'chip ghost ' + t, style: chipStyle(t, x.color) }, t);
+      ghost = h('span', { class: 'chip ghost ' + t, style: chipStyle(t, x.color) }, sym(t));
       lab = h('div', { class: 'drag-lab' });
       document.body.append(ghost, lab);
     }
@@ -140,7 +148,7 @@ function chipDrag(ev, e) {
     let p = x.pal, txt, w;
     if (t === 'P') {
       p += dd; for (const k of Object.keys(st)) st[k] += dd;
-      txt = 'PAL ' + fmtW(p) + PH().filter(q => st[q.key] != null).map(q => ' · ' + q.key + ' ' + fmtWS(st[q.key])).join('');
+      txt = 'PAL ' + fmtW(p) + PH().filter(q => st[q.key] != null).map(q => ' · ' + sym(q.key) + ' ' + fmtWS(st[q.key])).join('');
       w = [['PAL', p], ...PH().filter(q => st[q.key] != null).map(q => [q.key, st[q.key]])].flatMap(([k, v]) => dateWarn(v, resp).filter(q => k !== 'PAL' || !/Samstag|Urlaub/.test(q)).map(q => k + ': ' + q));
     } else {
       st[t] += dd;

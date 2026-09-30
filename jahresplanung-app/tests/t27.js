@@ -27,7 +27,7 @@ const path = require('path');
     const sw = await p.evaluate(() => { const g = document.querySelector('.mtable .grouprow th.gr-ph').getBoundingClientRect(), s = document.querySelector('.mtable th.h-ph_S').getBoundingClientRect(), d = document.querySelector('.mtable th.h-ph_D').getBoundingClientRect();
       return [Math.round(g.left - s.left), Math.round(g.right - d.right), getComputedStyle(document.querySelector('.mtable .grouprow th.gr-ph')).backgroundColor, getComputedStyle(document.querySelector('.mtable th.h-ph_S')).backgroundColor,
         !!document.querySelector('.sec[data-sec="mass"] .segs'), document.querySelector('.vswitch').textContent]; });
-    ok(sw[0] === 0 && sw[1] === 0 && sw[2] === sw[3] && !sw[4] && sw[5] === 'DatumWerktage', 'A: Schalter „Datum – Werktage“ genau über den drei Spalten, gleiches Grau, alter Umschalter weg ' + JSON.stringify(sw));
+    ok(sw[0] === 0 && sw[1] === 0 && sw[2] !== sw[3] && !sw[4] && sw[5] === 'DatumWerktage', 'A: Schalter „Datum – Werktage“ genau über den drei Spalten, heller als der Kopf, alter Umschalter weg ' + JSON.stringify(sw));
     await p.click('.vswitch .vs-track'); await p.waitForTimeout(150);
     const w1 = await p.evaluate(() => [UI.startView, document.querySelectorAll('.mtable td.ph input[type=number]').length > 0, document.querySelector('.vswitch').classList.contains('on'), document.querySelector('.vswitch .vs-track').getAttribute('aria-checked')]);
     await p.click('.vswitch .vs-track'); await p.waitForTimeout(150);

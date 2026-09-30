@@ -155,7 +155,7 @@ function massnahmenSection() {
       if (m.plan && !startMovable(x, key)) return h('td', { class: cellCls + ' derived-date', tip: 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' }, h('span', { class: 'muted' }, '–'));
       if (x.pal == null) return h('td', { class: cellCls }, h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–'), warnIcon);
       const inp = wtView()
-        ? h('span', { class: 'wtbox', tip: tipDate }, h('input', { type: 'number', min: 0, max: 400, value: n != null ? workdaysBefore(n, x.pal) : '', placeholder: '–', 'data-fk': fk(key + ':wt'),
+        ? h('span', { class: 'wtbox', tip: tipDate }, h('input', { type: 'number', class: 'nospin', min: 0, max: 400, value: n != null ? workdaysBefore(n, x.pal) : '', placeholder: '–', 'data-fk': fk(key + ':wt'), onwheel: wheelStep,
             onchange: e => setStartWT(id, key, e.target.value) }), h('span', { class: 'unit' }, 'WT'))
         : dateInput(n != null ? ds(n) : '', fk(key), v => setStartDate(id, key, v), { title: tipDate || '' });
       return h('td', { class: cellCls, tip: m.plan ? 'Start ändern – die Arbeitsschritte im Detailplan passen sich an' : null }, inp, warnIcon);
@@ -184,9 +184,9 @@ function massnahmenSection() {
   const ths = COLS.map(c => h('th', { class: 'h-' + c.k + (c.phase ? ' h-ph' + (c.phase === phs[0].key ? ' ph-first' : '') + (c.phase === phs[phs.length - 1].key ? ' ph-last' : '') : ''), tip: c.tip || null },
     c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(visibleM), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
       onchange: e => { rows.forEach(x => e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) :
-    c.phase ? [h('span', { class: 'th2' }, h('small', null, phHead(phase(c.phase))[0]), h('span', null, phHead(phase(c.phase))[1], h('span', { class: 'chip demo ph' }, c.chip))),
+    c.phase ? [h('span', { class: 'th2' }, h('small', null, phHead(phase(c.phase))[0]), h('span', null, phHead(phase(c.phase))[1], demoChip(c.chip))),
       h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c), ondblclick: () => { if (UI.colW) delete UI.colW[colKey(c)]; saveUI(); renderNow(); } })] :
-    [c.t || '', c.chip ? h('span', { class: 'chip demo ' + (c.chip === 'P' ? 'P' : 'ph') }, c.chip) : null,
+    [c.t || '', c.chip ? demoChip(c.chip) : null,
      c.fixed ? null : h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c),
        ondblclick: () => { if (UI.colW) delete UI.colW[colKey(c)]; saveUI(); renderNow(); } })]));
   return {
@@ -234,7 +234,7 @@ async function editMassnahme(id) {
   };
   upd();
   const phaseRows = m.plan ? null : h('div', { class: 'phgrid' }, h('span'), h('span', { class: 'muted small' }, 'Start'), h('span'), h('span', { class: 'muted small' }, 'Ende (optional)'),
-    PH().map(p => [h('span', null, h('span', { class: 'chip demo ph' }, p.key), ' ', p.name), inS[p.key], wtS[p.key], inE[p.key]]));
+    PH().map(p => [h('span', null, demoChip(p.key), ' ', p.name), inS[p.key], wtS[p.key], inE[p.key]]));
   const body = h('div', { class: 'form' }, personList(),
     row('Maßnahme', h('input', { value: m.name, oninput: e => { m.name = e.target.value; } })),
     h('div', { class: 'frow' }, h('span', null, 'Farbe'), sw),

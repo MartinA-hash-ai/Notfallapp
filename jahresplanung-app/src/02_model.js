@@ -39,7 +39,15 @@ const phName = k => k === 'P' ? 'PAL' : (phase(k) || { name: k }).name;
 const startLabel = k => k === 'P' ? 'PAL' : 'Start ' + phName(k);
 const evKeys = () => [...PH().map(p => p.key), 'P'];                 // alle Terminarten in zeitlicher Reihenfolge
 const evDate = (x, t) => t === 'P' ? x.pal : (x.st[t] ?? null);
-const PHASE_KEY_RE = /^[A-OQ-Z]$/;                                  // ein Großbuchstabe, nicht P
+const PHASE_KEY_RE = /^[A-OQ-Z]$/;                                  // interner Schlüssel: ein Großbuchstabe, nicht P
+// Markierungen: angezeigtes Zeichen und Aussehen je Bereich und für das PAL (Einstellungen). Intern bleiben die Schlüssel gleich.
+const STILE = { pastell: 'Pastell', kraeftig: 'Kräftig', streifen: 'Gestreift', rahmen: 'Nur Rahmen' };
+const DEF_PAL = { zeichen: 'P', stil: 'kraeftig' };
+const SYM_RE = /^[A-Z0-9ÄÖÜ]$/;
+const palMark = () => (D && D.settings && isObj(D.settings.pal)) ? D.settings.pal : DEF_PAL;
+const sym = k => k === 'P' ? palMark().zeichen || 'P' : ((phase(k) || {}).zeichen || k);
+const stilOf = k => k === 'P' ? palMark().stil || 'kraeftig' : ((phase(k) || {}).stil || 'pastell');
+const demoChip = (k, cls) => h('span', { class: 'chip demo ' + (k === 'P' ? 'P' : 'ph') + ' st-' + stilOf(k) + (cls ? ' ' + cls : '') }, sym(k));
 function emptyData() {
   return { version: DATA_VERSION, meta: { savedAt: null, savedBy: '' }, settings: { year: new Date().getFullYear() + 1, bereiche: JSON.parse(JSON.stringify(DEF_BEREICHE)) },
     personen: [], massnahmen: [], urlaube: [], sondertage: [], log: [] };
@@ -75,9 +83,20 @@ function normBereiche(list, st) {
     if (!isObj(p)) continue;
     const key = str(p.key).trim().toUpperCase();
     if (!PHASE_KEY_RE.test(key) || seen.has(key)) continue;
-    seen.add(key); out.push({ key, name: str(p.name).trim() || key, vorlauf: isNum(p.vorlauf) ? Math.round(+p.vorlauf) : null });
+    seen.add(key); out.push({ key, name: str(p.name).trim() || key, vorlauf: isNum(p.vorlauf) ? Math.round(+p.vorlauf) : null, zeichen: str(p.zeichen).trim().toUpperCase(), stil: STILE[p.stil] ? p.stil : 'pastell' });
   }
   return out;
+}
+// Zeichen eindeutig halten (PAL zuerst): ungültig oder doppelt → eigener Schlüssel, sonst der nächste freie Buchstabe
+function normMarks(st) {
+  const pal = isObj(st.pal) ? st.pal : {};
+  st.pal = { zeichen: SYM_RE.test(str(pal.zeichen).toUpperCase()) ? str(pal.zeichen).toUpperCase() : 'P', stil: STILE[pal.stil] ? pal.stil : 'kraeftig' };
+  const used = new Set([st.pal.zeichen]);
+  for (const b of st.bereiche) {
+    let z = b.zeichen;
+    if (!SYM_RE.test(z) || used.has(z)) z = !used.has(b.key) ? b.key : [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].find(c => !used.has(c)) || b.key;
+    b.zeichen = z; used.add(z);
+  }
 }
 // Daten aus Datei, Import oder Entwurf in eine sichere Form bringen: kaputte Einträge weglassen, Texte als Text
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -89,6 +108,7 @@ function normalize(d) {
   d.meta = Object.assign({ savedAt: null, savedBy: '' }, isObj(d.meta) ? d.meta : {});
   d.settings = Object.assign({ year: new Date().getFullYear() + 1 }, isObj(d.settings) ? d.settings : {});
   d.settings.bereiche = normBereiche(d.settings.bereiche, d.settings);
+  normMarks(d.settings);
   delete d.settings.vorlaufS; delete d.settings.vorlaufI;
   const keys = d.settings.bereiche.map(p => p.key);
   d.log = Array.isArray(d.log) ? d.log.filter(isObj).slice(-LOG_MAX) : [];

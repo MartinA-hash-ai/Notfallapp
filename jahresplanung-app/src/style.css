@@ -3,7 +3,7 @@
   --bg: #f7f7f5; --card: #ffffff; --input: #ffffff; --soft: #fafafa; --head: #f5f5f4; --hover: #f1f1f1; --solid: #404040;
   --we: #efefef; --hol1: #e4e4e4; --hol2: #cfcfcf; --warn: #b45309; --warnbg: #fff4e0; --warnline: #f0c27a; --vorl: #9a3412; --vorlbg: #fff4ee;
   --errbg: #fdecea; --errline: #f5b5ae; --errink: #8a1c12; --okbg: #e8f5e9; --okline: #a5d6a7; --okink: #1b5e20; --infobg: #f1f3f5;
-  --runbg: #e3f2fd; --runink: #0d47a1; --flash: #fff3a8; --chipbg: #e6e6e6; --phbg: #f3f3f1; --phline: #d6d6d3;
+  --runbg: #e3f2fd; --runink: #0d47a1; --flash: #fff3a8; --chipbg: #e6e6e6; --phbg: #f3f3f1; --phline: #d6d6d3; --head2: #ebebe9;
   --chk-line: #d9d9d9; --chk-on: #f2f2f2; --chk-mark: #ababab;
   --monthbg: #ffffff; --monthhead: #f0f0ed; --monthline: #d6d6d3; --monthout: #f7f7f5;
   --ok: #2e7d32; --focus: #1F77B4; --side: 250px; --radius: 8px;
@@ -16,14 +16,14 @@
     --bg: #141516; --card: #26282b; --input: #1e2022; --soft: #2b2d31; --head: #303236; --hover: #36383c; --solid: #44474c;
     --we: #2e3034; --hol1: #33363a; --hol2: #43464b; --warn: #f0a24a; --warnbg: #3a2b14; --warnline: #7a5a22; --vorl: #ffb088; --vorlbg: #33231a;
     --errbg: #3b1d1c; --errline: #7a3430; --errink: #ffb4ab; --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6; --infobg: #25282c;
-    --runbg: #1a2c40; --runink: #9ccaff; --flash: #5a5220; --chipbg: #3a3c40; --phbg: #2d2f33; --phline: #4b4e54;
+    --runbg: #1a2c40; --runink: #9ccaff; --flash: #5a5220; --chipbg: #3a3c40; --phbg: #2d2f33; --phline: #4b4e54; --head2: #393b40;
     --chk-line: #4a4d52; --chk-on: #2c2e31; --chk-mark: #8a8e94;
     --monthbg: #1d1f22; --monthhead: #373a3f; --monthline: #52555b; --monthout: #191a1d;
     --ok: #7fd08a; --focus: #5aa9e6;
     color-scheme: dark;
   }
   html[data-theme=dark] button.primary { color: #fff; }
-  html[data-theme=dark] .chip.demo.P { background: #bdbdbd; color: #1e1f21; }
+  html[data-theme=dark] .chip.demo.st-kraeftig { background: #bdbdbd; color: #1e1f21; border-color: #bdbdbd; }
   html[data-theme=dark] .backdrop { background: rgba(0,0,0,.55); }
   html[data-theme=dark] .g-row.grp { background: rgba(255,255,255,.03); }
   html[data-theme=dark] .g-bar:hover .grip { background: rgba(255,255,255,.18); }
@@ -803,7 +803,7 @@ html[data-theme=dark] .splash-logo { height: 47px; }
 
 /* 0.8.1 Maßnahmentabelle: Bereichsspalten grau hinterlegt, mit Trennstrichen, Schalter Datum/Werktage darüber */
 .mtable thead tr.grouprow th { background: transparent; border-bottom: 0; padding: 0; }
-.mtable thead tr.grouprow th.gr-ph { background: var(--head); border: 1px solid var(--phline); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 4px 6px 3px; text-align: center; }
+.mtable thead tr.grouprow th.gr-ph { background: var(--soft); border: 1px solid var(--line3); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 3px 6px 2px; text-align: center; }
 .mtable th.h-ph, .mtable td.ph { border-left: 1px solid var(--phline); }
 .mtable th.h-ph.ph-last, .mtable td.ph.ph-last { border-right: 1px solid var(--phline); }
 .mtable td.ph { background: var(--phbg); text-align: left; }
@@ -815,12 +815,14 @@ html[data-theme=dark] .splash-logo { height: 47px; }
 .mtable td.date.ph input[type=date] { text-align: left; }
 .mtable td.date.wt .wtbox { justify-content: flex-start; }
 .mtable td.date.wt input[type=number] { text-align: left; width: 48px !important; }
-.vswitch { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; user-select: none; }
-.vswitch .vs-lab { border: 0; background: none; padding: 1px 2px; color: var(--faint); font: inherit; cursor: pointer; }
-.vswitch .vs-lab.act { color: var(--ink); }
-.vswitch .vs-track { position: relative; width: 34px; height: 18px; border-radius: 9px; border: 1px solid var(--line2); background: var(--card); padding: 0; cursor: pointer; flex: none; }
-.vswitch .vs-knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: left .15s; }
-.vswitch.on .vs-knob { left: 18px; }
+.vswitch { display: inline-flex; align-items: center; gap: 6px; font-size: 10.5px; font-weight: 500; user-select: none; }
+.vswitch .vs-lab { border: 0; background: none; padding: 1px 2px; color: var(--faint); font: inherit; cursor: pointer; opacity: .75; }
+.vswitch .vs-lab.act { color: var(--muted); opacity: 1; }
+.vswitch .vs-lab:hover { color: var(--ink2); }
+.vswitch .vs-track { position: relative; width: 28px; height: 15px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); padding: 0; cursor: pointer; flex: none; }
+.vswitch .vs-knob { position: absolute; top: 2px; left: 2px; width: 9px; height: 9px; border-radius: 50%; background: var(--line2); transition: left .15s; }
+.vswitch .vs-track:hover .vs-knob { background: var(--faint); }
+.vswitch.on .vs-knob { left: 15px; }
 .vswitch .vs-track:focus-visible, .vswitch .vs-lab:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
 
 /* 0.8.1 Dialog „Detailplan anlegen“ */
@@ -847,3 +849,52 @@ html[data-theme=dark] .splash-logo { height: 47px; }
 .newplan .np-src { display: flex; align-items: center; gap: 8px; text-align: left; padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); cursor: pointer; }
 .newplan .np-src:hover { border-color: var(--line2); background: var(--hover); }
 .newplan .np-src .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+
+/* 0.8.2 Zahlenfelder für Werktage ohne Pfeile (Eingabe oder Mausrad bei angeklicktem Feld) */
+input.nospin { -moz-appearance: textfield; appearance: textfield; }
+input.nospin::-webkit-inner-spin-button, input.nospin::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+/* 0.8.2 Detailplan: Kopf mit Name + PAL oben (Legende rechts), Starts darunter */
+.phead { flex-direction: column; flex-wrap: nowrap; align-items: stretch; gap: 8px; }
+.phead .ph-top { display: flex; align-items: flex-start; gap: 8px 24px; }
+.phead .ph-top h2 { margin: 2px 0 0; }
+.phead .ph-pal { font-size: 13px; }
+.phead .ph-pal input[type=date] { width: 132px; }
+.phead .ph-top .plegend { margin-left: auto; justify-content: flex-end; max-width: 50%; padding-top: 4px; }
+.phead .ph-bot { display: flex; align-items: center; gap: 8px 20px; flex-wrap: wrap; }
+.phead .ph-bot .tools { margin-left: auto; }
+/* Tabelle: Kopf etwas dunkler, Griffe/Pfeile heller, Kommentar hellgrau kursiv */
+.pl-row.head { background: var(--head2); }
+.pl-row.head > div { color: var(--ink2); }
+.g-head { background: var(--head2); }
+.rgrip { color: var(--line2); }
+.rgrip:hover { color: var(--muted); }
+.pl-row select { -webkit-appearance: none; appearance: none; padding-right: 16px; }
+.pl-row select, .pl-row select:hover, .pl-row select:focus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23bdbdbd'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 5px center; }
+html[data-theme=dark] .pl-row select, html[data-theme=dark] .pl-row select:hover, html[data-theme=dark] .pl-row select:focus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236b6e73'/%3E%3C/svg%3E"); }
+.pl-row .c-typ select { color: var(--muted); }
+.pl-row .c-kom input { color: var(--faint); font-style: italic; }
+/* Abschnittszeile: Name bekommt die Typ-Spalte dazu, Bereich dezent, Anzahl und Zeitraum rechtsbündig */
+.pl-row.grp:not(.compact) .c-name.gname { grid-column: 2 / span 2; }
+.pl-row .gber { width: auto; max-width: 118px; font-size: 11px; color: var(--faint); font-weight: 400; margin-left: 6px; }
+.pl-row .gber.on { font-weight: 400; color: var(--muted); }
+.pl-row .c-grest { text-align: right; padding: 0 8px 0 6px; overflow: hidden; text-overflow: ellipsis; }
+/* „+ Aufgabe“ / „+ Abschnitt“: ohne Kasten, fett, linksbündig mit den Namen */
+.pl-row.addrow .c-add { grid-column: 1 / -1; padding-left: 26px; }
+.addlink { border: 0; background: none; padding: 2px 0; font-weight: 700; font-size: 12.5px; color: var(--ink2); cursor: pointer; }
+.addlink:hover { color: var(--red); background: none; }
+
+/* 0.8.2 Markierungen: graue Muster-Kästchen (Legenden, Spaltenköpfe) im eingestellten Stil */
+.chip.demo.st-pastell { background: var(--chipbg); color: var(--ink2); border-color: var(--line2); }
+.chip.demo.st-kraeftig { background: #595959; color: #fff; border-color: #595959; }
+.chip.demo.st-streifen { background: repeating-linear-gradient(135deg, var(--chipbg) 0 2px, var(--line2) 2px 4px); color: var(--ink); border-color: var(--line2); }
+.chip.demo.st-rahmen { background: transparent; color: var(--ink2); border-color: var(--muted); box-shadow: inset 0 0 0 .5px var(--muted); }
+/* Einstellungen: Tabelle der Markierungen */
+.btable td.zcol input { width: 38px; text-align: center; font-weight: 700; text-transform: uppercase; }
+.btable td.scol select { width: 118px; }
+.btable td.prev { white-space: nowrap; }
+.btable td.prev .chip { margin-right: 3px; cursor: default; }
+.btable tr.palrow td { border-top: 1px solid var(--line); }
+.btable td.acts { white-space: nowrap; width: 1%; }
+.btable td.muted.small { font-size: 11px; line-height: 1.25; }
+.btable th { font-size: 11px; }

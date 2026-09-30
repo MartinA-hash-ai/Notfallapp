@@ -118,7 +118,7 @@ async function createPlan(id) {
   };
   for (const p of PH()) {
     dIn[p.key] = dateInputPlain(f.st[p.key], 'np:' + p.key, v => { f.st[p.key] = v; f.src[p.key] = v == null ? null : 'date'; if (v == null) wIn[p.key].value = ''; sync(p.key); });
-    wIn[p.key] = h('input', { type: 'number', min: 0, max: 400, placeholder: '–', 'data-fk': 'np:' + p.key + ':wt',
+    wIn[p.key] = h('input', { type: 'number', class: 'nospin', min: 0, max: 400, placeholder: '–', 'data-fk': 'np:' + p.key + ':wt', onwheel: wheelStep,
       oninput: e => { if (e.target.value === '') { f.src[p.key] = null; f.st[p.key] = null; dIn[p.key].value = ''; return; } f.src[p.key] = 'wt'; sync(p.key); } });
     sync(p.key);
   }
@@ -136,9 +136,9 @@ async function createPlan(id) {
     : h('p', { class: 'muted small' }, 'Es gibt noch keinen anderen Detailplan.')) : null);
   const body = h('div', { class: 'form newplan' },
     h('div', { class: 'np-grid' },
-      h('span', { class: 'np-lab' }, h('b', null, 'PAL'), ' ', h('span', { class: 'chip demo P' }, 'P'), h('small', null, 'Pflicht')), palIn, h('span'), h('span'),
+      h('span', { class: 'np-lab' }, h('b', null, 'PAL'), ' ', demoChip('P'), h('small', null, 'Pflicht')), palIn, h('span'), h('span'),
       h('span'), h('span', { class: 'muted small' }, 'Datum'), h('span'), h('span', { class: 'muted small' }, 'Werktage bis PAL'),
-      PH().map(p => [h('span', { class: 'np-lab' }, startLabel(p.key), ' ', h('span', { class: 'chip demo ph' }, p.key)), dIn[p.key], h('span', { class: 'muted small' }, 'oder'),
+      PH().map(p => [h('span', { class: 'np-lab' }, startLabel(p.key), ' ', demoChip(p.key)), dIn[p.key], h('span', { class: 'muted small' }, 'oder'),
         h('span', { class: 'wtbox' }, wIn[p.key], h('span', { class: 'unit' }, 'WT'))])),
     h('p', { class: 'muted small' }, 'Leer gelassene Starts übernimmt die App aus der Vorlage. Die Arbeitsschritte werden rückwärts vom PAL aus geplant.'),
     msg,
@@ -236,39 +236,25 @@ async function groupPersonDialog(mid, gid) {
     [['Abbrechen', false], ['Zuordnen', true, 'primary']]);
   if (ok) setGroupPerson(mid, gid, wer);
 }
-async function newStepDialog(mid, gid) {
-  const x = C.byId.get(mid), p = x.m.plan, pc = x.pc;
-  const blocks = groupBlocks(p.steps), [gi, gj] = gid ? blocks.get(gid) : [-1, p.steps.length];
+// Neue Aufgabe direkt als Zeile (ohne Fenster): am Ende des Abschnitts oder unter einem Schritt, eine Woche lang,
+// endet mit dem letzten Schritt davor; Person des Abschnitts vorbelegt. Der Name ist markiert – einfach lostippen.
+function addStep(mid, gid, afterId) {
+  const x = C.byId.get(mid); if (!x || !x.m.plan) return;
+  const p = x.m.plan, pc = x.pc, nid = uid(), bl = gid ? groupBlocks(p.steps).get(gid) : null, [gi, gj] = bl || [-1, p.steps.length];
+  const ra = afterId ? pc.map.get(afterId) : null;
   const inGroup = p.steps.slice(gi + 1, gj).map(s => pc.map.get(s.id)).filter(r => r && r.end != null);
-  const e0 = inGroup.length ? Math.max(...inGroup.map(r => r.end)) : (x.pal ?? todayDn());
-  const grp = gid ? p.steps[gi] : null;
-  const f = { name: '', typ: 'aufgabe', wer: groupPerson(p, gid).wer || '', kom: '', start: ds(e0 - DEF_DAYS), end: ds(e0) };
-  const row = (label, inp) => h('label', { class: 'frow' }, h('span', null, label), inp);
-  const grpName = grp ? grp.name : 'Plan';
-  let touchedS = false, touchedE = false;
-  const inS = h('input', { type: 'date', value: f.start, oninput: e => { f.start = e.target.value; touchedS = true; const a = dn(f.start); if (a != null && (!touchedE || dn(f.end) == null || dn(f.end) < a)) { f.end = ds(a + DEF_DAYS); inE.value = f.end; } } });
-  const inE = h('input', { type: 'date', value: f.end, oninput: e => { f.end = e.target.value; touchedE = true; const b = dn(f.end); if (b != null && (!touchedS || dn(f.start) == null || dn(f.start) > b)) { f.start = ds(b - DEF_DAYS); inS.value = f.start; } } });
-  const ok = await modal('Neuer Arbeitsschritt in „' + grpName + '“', h('div', { class: 'form' }, personList(),
-    row('Arbeitsschritt', h('input', { placeholder: 'z. B. Texte abstimmen', oninput: e => { f.name = e.target.value; } })),
-    row('Typ', h('select', { onchange: e => { f.typ = e.target.value; } }, ['aufgabe', 'meilenstein', 'ziel'].map(k => h('option', { value: k }, STEP_TYPES[k])))),
-    row('Zugeordnet', h('input', { list: 'dl-personen', placeholder: 'Name', value: f.wer, oninput: e => { f.wer = e.target.value.trim(); } })),
-    row('Beginn', inS),
-    row('Ende (bei Meilenstein: Datum)', inE),
-    h('p', { class: 'muted small' }, 'Vorbelegt ist eine Woche. Änderst du nur ein Datum, zieht das andere mit.'),
-    row('Kommentar', h('input', { oninput: e => { f.kom = e.target.value; } }))),
-    [['Abbrechen', false], ['Anlegen', true, 'primary']]);
-  if (!ok) return;
-  const ne = dn(f.end) ?? dn(f.start) ?? e0, ns = f.typ === 'aufgabe' ? Math.min(dn(f.start) ?? ne, ne) : ne;
-  const nid = uid();
+  const e0 = ra && ra.end != null ? ra.end : inGroup.length ? Math.max(...inGroup.map(r => r.end)) : (x.pal ?? todayDn());
+  const wer = groupPerson(p, gid).wer || '';
   commit(d => {
-    const m = findM(d, mid), steps = m.plan.steps;
-    const pal = dn(m.pal);
-    const s = { id: nid, typ: f.typ, name: f.name.trim() || 'Neuer Schritt', wer: f.wer, kommentar: f.kom, dauer: f.typ === 'aufgabe' ? ne - ns : 0, fortschritt: 0,
-      anker: pal != null ? { art: 'pal', offset: ne - pal } : { art: 'fest', datum: ds(ne) } };
-    const bl = gid ? groupBlocks(steps).get(gid) : null;
-    steps.splice(bl ? bl[1] : steps.length, 0, s);
-  }, 'Arbeitsschritt angelegt');
+    const m = findM(d, mid), steps = m.plan.steps, pal = dn(m.pal);
+    let at = steps.length;
+    const i = afterId ? steps.findIndex(q => q.id === afterId) : -1, b2 = gid ? groupBlocks(steps).get(gid) : null;
+    if (i >= 0) at = i + 1; else if (b2) at = b2[1];
+    steps.splice(at, 0, { id: nid, typ: 'aufgabe', name: 'Neue Aufgabe', wer, kommentar: '', dauer: DEF_DAYS, fortschritt: 0,
+      anker: pal != null ? { art: 'pal', offset: e0 - pal } : { art: 'fest', datum: ds(e0) } });
+  }, 'Aufgabe angelegt');
   if (gid) delete UI.planColl[mid + ':' + gid];
+  UI.focusFk = 'st:' + nid + ':name'; UI.flash = 'step:' + nid; UI.freshStep = nid;
 }
 function addGroup(mid) {
   const nid = uid();
@@ -342,19 +328,17 @@ VIEW_FN.plaene = main => {
   const fitP = Math.max(2, (innerWidth - tableW - 14 - 70) / nd);
   const pxd = UI.printing ? Math.max(2, (compact ? 1030 - 250 : 620) / nd) : (UI.planPxd || fitP), W = nd * pxd, X = n => (n - a0) * pxd;
 
+  // Kopf: oben Name und PAL, rechts die Legende; darunter die Starts der Bereiche (und künftige weitere Termine)
   put(main, h('div', { class: 'phead', style: { borderColor: x.color } },
-    h('div', { class: 'pt' }, h('h2', { style: { color: inkC(x.color) } }, m.name)),
-    h('div', { class: 'pdates' },
-      h('label', { class: 'inl' }, h('span', { class: 'chip demo P' }, 'P'), 'PAL', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null))),
-      PH().map(ph => h('label', { class: 'inl', tip: pc.ph[ph.key] ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Noch kein Abschnitt mit Bereich „' + ph.name + '“ (Bereich am Abschnitt wählen)' },
-        h('span', { class: 'chip demo ph' }, ph.key), startLabel(ph.key), dateInput(x.st[ph.key] != null ? ds(x.st[ph.key]) : '', 'pl:' + ph.key, v => setMarkDate(m.id, ph.key, v), { disabled: !pc.ph[ph.key] })))),
-    h('div', { class: 'plegend' }, persons.map(w => h('span', { class: 'pleg' }, h('span', { class: 'pbox', style: { background: midtone(barColor(w)), borderColor: barColor(w) } }), w || 'nicht zugeordnet'))),
-    h('div', { class: 'tools' },
-      h('span', { class: 'segs' },
-        h('button', { class: 'seg-btn', tip: 'verkleinern (oder Mausrad)', onclick: () => { UI.planPxd = clamp((UI.planPxd || fitP) / 1.4, 2, 60); renderNow(); } }, '−'),
-        h('button', { class: 'seg-btn', tip: 'vergrößern (oder Mausrad)', onclick: () => { UI.planPxd = clamp((UI.planPxd || fitP) * 1.4, 2, 60); renderNow(); } }, '+'),
-        h('button', { class: 'seg-btn', tip: 'Ansicht zurücksetzen (ganzer Plan)', onclick: () => { UI.planPxd = 0; UI.planScrollReset = true; renderNow(); } }, 'Zurücksetzen')),
-      h('button', { class: 'ghostbtn danger', onclick: () => removePlan(m.id) }, 'Plan entfernen'))));
+    h('div', { class: 'ph-top' },
+      h('h2', { style: { color: inkC(x.color) } }, m.name),
+      h('label', { class: 'inl ph-pal' }, demoChip('P'), 'PAL', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null))),
+      h('div', { class: 'plegend' }, persons.map(w => h('span', { class: 'pleg' }, h('span', { class: 'pbox', style: { background: midtone(barColor(w)), borderColor: barColor(w) } }), w || 'nicht zugeordnet')))),
+    h('div', { class: 'ph-bot' },
+      h('div', { class: 'pdates' },
+        PH().map(ph => h('label', { class: 'inl', tip: pc.ph[ph.key] ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Noch kein Abschnitt mit Bereich „' + ph.name + '“ (Bereich am Abschnitt wählen)' },
+          demoChip(ph.key), startLabel(ph.key), dateInput(x.st[ph.key] != null ? ds(x.st[ph.key]) : '', 'pl:' + ph.key, v => setMarkDate(m.id, ph.key, v), { disabled: !pc.ph[ph.key] })))),
+      h('span', { class: 'tools' }, h('button', { class: 'ghostbtn danger', onclick: () => removePlan(m.id) }, 'Plan entfernen')))));
 
   // ---- Kopf und Hintergrund des Gantt
   const ghead = h('div', { class: 'g-head', style: { width: W + 'px' } });
@@ -389,8 +373,8 @@ VIEW_FN.plaene = main => {
   for (const row of rows) {
     if (row.add !== undefined) {
       if (row.add && UI.planColl[m.id + ':' + row.add]) continue;
-      trows.push(h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div'), h('div', { class: 'c-add' },
-        h('button', { class: 'addbtn', onclick: () => newStepDialog(m.id, row.add) }, '+ neuer Arbeitsschritt'))));
+      trows.push(h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div', { class: 'c-add' },
+        h('button', { class: 'addlink', onclick: () => addStep(m.id, row.add) }, '+ Aufgabe'))));
       grows.push(h('div', { class: 'g-row addrow' }));
       continue;
     }
@@ -406,14 +390,14 @@ VIEW_FN.plaene = main => {
           h('button', { class: 'gtog', 'aria-expanded': String(!coll), tip: coll ? 'ausklappen' : 'einklappen', onclick: () => { coll ? delete UI.planColl[m.id + ':' + s.id] : UI.planColl[m.id + ':' + s.id] = 1; saveUI(); renderNow(); } }, coll ? '▸' : '▾'),
           h('input', { value: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }),
           h('select', { class: 'gber' + (s.bereich ? ' on' : ''), 'data-fk': fk('ber'), tip: 'Bereich dieses Abschnitts – sein Beginn erscheint als Start im Kalender, in der Tabelle und in der Zeitleiste',
-            onchange: e => setGroupBereich(m.id, s.id, e.target.value) }, h('option', { value: '' }, '– ohne Bereich'), PH().map(q => h('option', { value: q.key, selected: s.bereich === q.key }, q.key + ' ' + q.name))),
+            onchange: e => setGroupBereich(m.id, s.id, e.target.value) }, h('option', { value: '' }, '– ohne Bereich'), PH().map(q => h('option', { value: q.key, selected: s.bereich === q.key }, sym(q.key) + ' ' + q.name))),
           compact ? h('span', { class: 'gcount' }, inner.length) : null),
-        compact ? null : [h('div', { class: 'c-typ' }),
+        compact ? null : [
           h('div', { class: 'c-wer', tip: 'Person für den ganzen Abschnitt – gilt für alle Schritte darin' },
             gp.wer ? h('span', { class: 'pbox', style: { background: midtone(barColor(gp.wer)), borderColor: barColor(gp.wer) } }) : null,
             h('input', { value: gp.wer, list: 'dl-personen', placeholder: gp.mixed ? 'gemischt' : '–', 'data-fk': fk('gwer'), onchange: e => setGroupPerson(m.id, s.id, e.target.value.trim()) })),
-          h('div', { class: 'c-grest muted small' }, (spans.length ? fmtS(Math.min(...spans.map(q => q.start))) + ' – ' + fmtS(Math.max(...spans.map(q => q.end))) + ' · ' : '') + inner.length + ' Schritte')],
-        h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, s.id)], ['Ganzen Abschnitt zuordnen …', () => groupPersonDialog(m.id, s.id)], ['Neuer Abschnitt', () => addGroup(m.id)], null,
+          h('div', { class: 'c-grest muted small' }, inner.length + (inner.length === 1 ? ' Schritt' : ' Schritte') + (spans.length ? ' · ' + fmtS(Math.min(...spans.map(q => q.start))) + ' – ' + fmtS(Math.max(...spans.map(q => q.end))) : ''))],
+        h('div', { class: 'c-acts' }, menuButton('⋯', [['Neue Aufgabe', () => addStep(m.id, s.id)], ['Ganzen Abschnitt zuordnen …', () => groupPersonDialog(m.id, s.id)], ['Neuer Abschnitt', () => addGroup(m.id)], null,
           ['Abschnitt löschen (Schritte bleiben)', () => deleteStep(m.id, s.id)]], 'right'))));
       const g = h('div', { class: 'g-row grp' });
       if (spans.length) {
@@ -426,13 +410,15 @@ VIEW_FN.plaene = main => {
     const away = s.wer && r.start != null ? C.vac.filter(v => v.u.wer === s.wer && v.von <= Math.max(r.end, r.start) && v.bis >= r.start) : [];
     const isTask = s.typ === 'aufgabe';
     // Beginn ändern: Ende bleibt (liegt der Beginn danach, wandert das Ende mit). Noch ohne Termin: eine Woche.
-    const len = +s.dauer > 0 ? +s.dauer : DEF_DAYS;
-    const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return;
-      commit(d => { const ne = r.end != null && r.start != null && ns <= r.end ? r.end : ns + len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
-    const endInp = dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return;
-      commit(d => { const ns = !isTask ? ne : r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
+    // Frisch angelegte Aufgabe: das erste geänderte Datum verschiebt die ganze Woche, danach wie oben.
+    const len = +s.dauer > 0 ? +s.dauer : DEF_DAYS, fresh = UI.freshStep === s.id;
+    const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return; UI.freshStep = null;
+      commit(d => { const ne = !fresh && r.end != null && r.start != null && ns <= r.end ? r.end : ns + len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
+    const endInp = dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; UI.freshStep = null;
+      commit(d => { const ns = !isTask ? ne : !fresh && r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
     const markK = Object.keys(pc.ph).find(k => pc.ph[k].mark === s.id), secK = curBereich(p.steps, row.idx);
-    const markTag = markK ? h('span', { class: 'chip demo ph mark', tip: startLabel(markK) + ' (Beginn des Bereichs)' }, markK) : null;
+    const markTag = markK ? demoChip(markK, 'mark') : null;
+    if (markTag) setTip(markTag, startLabel(markK) + ' (Beginn des Bereichs)');
     trows.push(h('div', { class: 'pl-row' + (away.length ? ' conflict' : '') + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
       h('div', { class: 'c-grip' }, grip),
       h('div', { class: 'c-name' }, h('input', { value: s.name, title: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) }), markTag),
@@ -445,7 +431,7 @@ VIEW_FN.plaene = main => {
         h('div', { class: 'c-dur' }, isTask ? h('input', { type: 'number', min: 0, max: MAX_DAUER, value: s.dauer ?? 0, 'data-fk': fk('dur'), tip: 'Dauer in Tagen', onchange: e => { const v = Math.round(+e.target.value || 0); if (v > MAX_DAUER) toast('Höchstens ' + MAX_DAUER + ' Tage – auf ' + MAX_DAUER + ' gesetzt.', 'warn'); setStep(m.id, s.id, st => { st.dauer = clamp(v, 0, MAX_DAUER); }); } }) : null),
         h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : startInp),
         h('div', { class: 'c-date' }, r.err ? '' : endInp)],
-      h('div', { class: 'c-acts' }, menuButton('⋯', [['Neuer Arbeitsschritt …', () => newStepDialog(m.id, curGroupOf(p.steps, row.idx))],
+      h('div', { class: 'c-acts' }, menuButton('⋯', [['Neue Aufgabe darunter', () => addStep(m.id, curGroupOf(p.steps, row.idx), s.id)],
         secK ? ['Als Beginn von „' + phName(secK) + '“ festlegen', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks, { [secK]: s.id }); }, s.name + ' = ' + startLabel(secK))] : false,
         secK && p.marks && p.marks[secK] ? ['Beginn von „' + phName(secK) + '“ automatisch (frühester Schritt)', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks); delete pl.marks[secK]; })] : false, null,
         ['Löschen', () => deleteStep(m.id, s.id)]], 'right'))));
@@ -486,7 +472,7 @@ VIEW_FN.plaene = main => {
   UI._pl = { a0, pxd };
   put(main, personList(), h('div', { class: 'pl-split' + (compact ? ' compact' : '') },
     h('div', { class: 'pl-table' }, thead, trows,
-      h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div'), h('div', { class: 'c-add' }, h('button', { class: 'addbtn', onclick: () => addGroup(m.id) }, '+ neuer Abschnitt')))),
+      h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div', { class: 'c-add' }, h('button', { class: 'addlink', onclick: () => addGroup(m.id) }, '+ Abschnitt')))),
     h('div', { class: 'pl-divider' }, h('button', { class: 'divbtn', tip: compact ? 'alle Spalten zeigen' : 'nur Arbeitsschritte zeigen – mehr Platz für das Gantt', 'aria-label': 'Tabelle ein-/ausklappen',
       onclick: () => { UI.planCompact = !compact; UI.planPxd = 0; saveUI(); renderNow(); } }, compact ? '›' : '‹')),
     gantt));
