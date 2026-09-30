@@ -195,19 +195,19 @@ function markPinned(id, chipEl) {
 function pinMassnahme(el, id, month) {
   UI.pin = id; UI.pinMonth = month; UI.pinDay = null; UI.pinT = null;
   markPinned(id, null);
-  highlight(id);
+  highlight(id); syncVisBoxes();
 }
 function pinChip(el, id, n, t) {
   UI.pin = id; UI.pinMonth = null; UI.pinDay = n; UI.pinT = t;
   markPinned(id, el);
-  highlight(id);
+  highlight(id); syncVisBoxes();
 }
 const pinEditBtn = (id, cls = '') => h('button', { class: 'mline-edit ' + cls, tip: 'Maßnahme bearbeiten', onclick: e => { e.stopPropagation(); editMassnahme(id); } }, 'Bearbeiten');
 function unpin() {
   if (!UI.pin) return;
   UI.pin = null; UI.pinMonth = null; UI.pinDay = null; UI.pinT = null;
   clearPinMarks();
-  highlight(null);
+  highlight(null); syncVisBoxes();                  // Tabelle zeigt wieder die vorherige Auswahl
 }
 document.addEventListener('click', e => { if (UI.pin && !e.target.closest('.mline, .chip, .mline-edit, .modal, .backdrop, .menu')) unpin(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.pin && !$('.modal')) unpin(); });

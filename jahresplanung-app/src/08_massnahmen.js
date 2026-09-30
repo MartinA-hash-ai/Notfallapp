@@ -160,8 +160,8 @@ function massnahmenSection() {
         : dateInput(n != null ? ds(n) : '', fk(key), v => setStartDate(id, key, v), { title: tipDate || '' });
       return h('td', { class: cellCls, tip: m.plan ? 'Start ändern – die Arbeitsschritte im Detailplan passen sich an' : null }, inp, warnIcon);
     };
-    tb.append(h('tr', { dataset: { m: id, flash: 'm:' + id }, class: visibleM(x) ? '' : 'hidden-m', onmouseenter: () => highlight(id), onmouseleave: () => highlight(null) },
-      h('td', { class: 'vis' }, h('input', { type: 'checkbox', checked: visibleM(x), tip: 'im Kalender und in der Zeitleiste anzeigen – sind alle angehakt, zeigt ein Klick nur diese (Strg+Klick: nur diese umschalten)', 'aria-label': 'anzeigen',
+    tb.append(h('tr', { dataset: { m: id, flash: 'm:' + id }, class: selM(x) ? '' : 'hidden-m', onmouseenter: () => highlight(id), onmouseleave: () => highlight(null) },
+      h('td', { class: 'vis' }, h('input', { type: 'checkbox', checked: selM(x), tip: 'im Kalender und in der Zeitleiste anzeigen – sind alle angehakt, zeigt ein Klick nur diese (Strg+Klick: nur diese umschalten)', 'aria-label': 'anzeigen',
         onclick: e => { toggleVisible(id, rows, e); renderNow(); } })),
       h('td', { class: 'col' }, h('button', { class: 'swatch', style: { background: x.color }, tip: 'Farbe ändern', 'aria-label': 'Farbe ändern', onclick: e => { e.stopPropagation(); colorPicker(e.currentTarget, x.color, c => setM(id, 'farbe', c)); } })),
       h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: inkC(x.color) }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
@@ -182,8 +182,8 @@ function massnahmenSection() {
   const COLS = mcols();
   const phs = PH(), nBefore = COLS.findIndex(c => c.phase), nAfter = COLS.length - nBefore - phs.length;
   const ths = COLS.map(c => h('th', { class: 'h-' + c.k + (c.phase ? ' h-ph' + (c.phase === phs[0].key ? ' ph-first' : '') + (c.phase === phs[phs.length - 1].key ? ' ph-last' : '') : ''), tip: c.tip || null },
-    c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(visibleM), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
-      onchange: e => { rows.forEach(x => e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) :
+    c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(selM), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
+      onclick: e => { const on = e.target.checked; unpin(); rows.forEach(x => on ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) :
     c.phase ? [h('span', { class: 'th2' }, h('small', null, phHead(phase(c.phase))[0]), h('span', null, phHead(phase(c.phase))[1], demoChip(c.chip))),
       h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c), ondblclick: () => { if (UI.colW) delete UI.colW[colKey(c)]; saveUI(); renderNow(); } })] :
     [c.t || '', c.chip ? demoChip(c.chip) : null,
@@ -204,6 +204,19 @@ function massnahmenSection() {
       !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
         C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null],
   };
+}
+
+// Häkchen der Tabelle nachziehen, ohne neu zu zeichnen (Kalender: Maßnahme angeklickt bzw. wieder gelöst)
+function syncVisBoxes() {
+  const t = $('.mtable'); if (!t) return;
+  let all = true;
+  $$('tbody tr[data-m]', t).forEach(tr => {
+    const x = C.byId.get(tr.dataset.m); if (!x) return;
+    const on = selM(x), cb = $('td.vis input', tr); all = all && on;
+    if (cb) cb.checked = on;
+    tr.classList.toggle('hidden-m', !on);
+  });
+  const hc = $('thead th.h-vis input', t); if (hc) hc.checked = all;
 }
 
 /* ---------- Bearbeiten-Dialog (aus Kalender und Zeitleiste) */

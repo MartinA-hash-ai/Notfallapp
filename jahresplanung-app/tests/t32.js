@@ -28,7 +28,9 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(v2 === all.split('').map((_, i) => i === 2 || i === 4 ? '1' : '0').join(''), 'B: gemischt – Klick auf die 5. schaltet nur diese dazu (' + v2 + ')');
   await p.click(box(3)); await p.click(box(5)); await p.waitForTimeout(150);
   const v3 = await vis();
-  ok(/^0+$/.test(v3), 'B: alle abgewählt (' + v3 + ')');
+  ok(/^1+$/.test(v3), 'B: letzte abgewählt → wieder alle angehakt (' + v3 + ')');
+  await p.click('.mtable thead th.h-vis input'); await p.waitForTimeout(150);
+  ok(/^0+$/.test(await vis()), 'B: Kopf-Häkchen → keine');
   await p.click(box(2)); await p.waitForTimeout(150);
   const v4 = await vis();
   ok(v4 === all.split('').map((_, i) => i === 1 ? '1' : '0').join(''), 'B: alle aus, Klick auf die 2. → nur die 2. angehakt (' + v4 + ')');
@@ -40,6 +42,21 @@ const { chromium, ok, open, finish } = require('./lib');
   const v5 = await vis();
   ok(v5 === all.split('').map((_, i) => i === 3 ? '0' : '1').join(''), 'B: Strg+Klick schaltet nur diese eine aus (' + v5 + ')');
   await p.click('.mtable thead th.h-vis input'); await p.click('.mtable thead th.h-vis input'); await p.waitForTimeout(150);
+
+  // ---- D: Klick im Kalender → in der Tabelle nur diese angehakt; wieder lösen → vorherige Auswahl
+  await p.evaluate(() => { UI.hiddenM.clear(); renderNow(); });
+  await p.click(box(2)); await p.click(box(4)); await p.waitForTimeout(150);          // Auswahl: 2. und 4.
+  const before = await vis();
+  const pid = await p.evaluate(() => document.querySelector('.mtable tbody tr:nth-child(4)').dataset.m);
+  const cc = await p.evaluate(pid => { const e = document.querySelector('.cal .chip[data-m="' + pid + '"]'); e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, pid);
+  await p.mouse.click(cc[0], cc[1]); await p.waitForTimeout(200);
+  const pinned = await vis();
+  ok(before === all.split('').map((_, i) => i === 1 || i === 3 ? '1' : '0').join('') && pinned === all.split('').map((_, i) => i === 3 ? '1' : '0').join(''), 'D: Auswahl ' + before + ' → Klick im Kalender auf die 4. → Tabelle ' + pinned);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  ok(await vis() === before, 'D: im Kalender wieder gelöst → Tabelle zeigt die vorherige Auswahl (' + await vis() + ')');
+  await p.mouse.click(cc[0], cc[1]); await p.waitForTimeout(200);
+  await p.click(box(6)); await p.waitForTimeout(150);
+  ok(await vis() === all.split('').map((_, i) => i === 3 || i === 5 ? '1' : '0').join('') && await p.evaluate(() => !UI.pin), 'D: angeklickt, dann Häkchen bei der 6. → 4. und 6. ausgewählt (' + await vis() + ')');
 
   // ---- C: gleiche Logik im Filter der Zeitleiste
   await p.evaluate(() => { UI.hiddenM.clear(); UI.view = 'zeit'; renderNow(); }); await p.waitForTimeout(200);

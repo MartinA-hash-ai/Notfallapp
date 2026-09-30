@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.8.8",
+    "version": "0.8.9",
     "date": "",
+    "items": [
+      "Häkchen „anzeigen“: wird die letzte angehakte Maßnahme abgewählt, sind wieder alle angehakt",
+      "Klick auf eine Maßnahme im Kalender wählt vorübergehend nur diese aus – die Tabelle zeigt dann nur bei ihr ein Häkchen; wird sie im Kalender wieder gelöst (Klick daneben oder Esc), gilt wieder die vorherige Auswahl. Ein Häkchen-Klick in der Zeit übernimmt „nur diese“ als Ausgangspunkt"
+    ]
+  },
+  {
+    "version": "0.8.8",
+    "date": "2026-09-30T12:16",
     "items": [
       "Kalender: der Hinweis an den Kästchen ist einfacher – je Termin eine Zeile, z. B. „S Start Selektion: Fr 02.04.2027 · 53 WT“ (gilt auch in der Zeitleiste)",
       "Häkchen „anzeigen“ bei den Maßnahmen: sind alle angehakt, bleibt nach einem Klick nur diese Maßnahme angehakt; sind alle aus, wird nur die angeklickte angehakt; sonst wird sie umgeschaltet. Strg+Klick schaltet immer nur diese eine um. Gleich in der Seitenleiste und im Filter der Zeitleiste"
