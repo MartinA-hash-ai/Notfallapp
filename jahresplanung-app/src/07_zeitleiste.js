@@ -106,9 +106,9 @@ function timelineSection(opts = {}) {
       if (r && r.start != null) {
         const tip = () => h('div', null, h('b', null, s.name), h('div', null, s.typ === 'aufgabe' ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' (' + s.dauer + ' Tage)' : fmtW(r.end)), s.wer ? h('div', { class: 'muted' }, 'Zugeordnet: ' + s.wer) : null);
         const ra = clamp(r.start, x0 - 2, x1 + 2), rb = clamp(r.end, x0 - 2, x1 + 2);
-        if (s.typ === 'aufgabe') t.append(h('div', { class: 'sbar', tip, style: { left: X(ra) + 'px', width: Math.max(2, X(rb) - X(ra)) + 'px', background: pastel(x.color), borderColor: x.color } },
+        if (s.typ === 'aufgabe') t.append(h('div', { class: 'sbar', tip, style: { left: X(ra) + pxd / 2 + 'px', width: Math.max(2, X(rb) - X(ra)) + 'px', background: pastel(x.color), borderColor: x.color } },
           h('span', { style: { width: clamp(+s.fortschritt || 0, 0, 100) + '%', background: x.color } })));
-        else t.append(h('div', { class: 'sdia' + (s.typ === 'ziel' ? ' ziel' : ''), tip, style: { left: X(rb) + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color } }));
+        else t.append(h('div', { class: 'sdia' + (s.typ === 'ziel' ? ' ziel' : ''), tip, style: { left: X(rb) + pxd / 2 + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color } }));
       }
       body.append(h('div', { class: 'tl-row sub' }, h('div', { class: 'tl-lab' }, h('span', { class: 'nm' }, s.name), s.wer ? h('span', { class: 'who', style: { background: pastel(personColor(s.wer)) } }, s.wer) : null), t));
     }
@@ -197,7 +197,7 @@ function tlCenter() {
 function tlPan(box, onMonth) {
   box.addEventListener('pointerdown', ev => {
     if (ev.button !== 0) return;
-    if (ev.target.closest('.seg,.handle,.dia,.sbar,.sdia,.vbar,.g-bar,.g-dia,button,input,select,a,.tl-lab')) return;
+    if (ev.target.closest('.seg,.handle,.dia,.sbar,.sdia,.vbar,.g-bar,.g-dia,.g-pal,.g-sum,button,input,select,a,.tl-lab')) return;
     const sx = ev.clientX, sl = box.scrollLeft, mz = ev.target.closest('[data-mz]');
     let moved = false;
     const move = e => {
@@ -253,7 +253,7 @@ function tlDrag(ev, x, mode, pxd, place) {
     lab.remove();
     if (!okay) { place(x.st, x.en, x.pal); return; }        // abgebrochen: Balken zurück an den alten Platz
     if (!dd) return;
-    if (mode === 'move') commit(d => { const m = findM(d, x.id); if (m && dn(m.pal) != null) m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd));
+    if (mode === 'move') commit(d => { const m = findM(d, x.id); if (m) shiftPal(m, dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd));
     else moveStartTo(x.id, mode, x.st[mode] + dd);
   };
   dragSession(ev, el, move, end);

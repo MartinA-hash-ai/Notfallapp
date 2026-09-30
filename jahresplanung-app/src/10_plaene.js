@@ -432,7 +432,7 @@ VIEW_FN.plaene = main => {
       const g = h('div', { class: 'g-row grp' });
       if (spans.length) {
         const a = Math.min(...spans.map(q => q.start)), b = Math.max(...spans.map(q => q.end));
-        const sum = h('div', { class: 'g-sum', style: { left: X(a) + 'px', width: Math.max(3, (b - a) * pxd) + 'px' }, tip: s.name + ': ' + fmtW(a) + ' – ' + fmtW(b) + ' · ziehen verschiebt den ganzen Abschnitt' });   // immer grau
+        const sum = h('div', { class: 'g-sum', style: { left: X(a) + pxd / 2 + 'px', width: Math.max(3, (b - a) * pxd) + 'px' }, tip: s.name + ': ' + fmtW(a) + ' – ' + fmtW(b) + ' · ziehen verschiebt den ganzen Abschnitt' });   // immer grau
         const gctx = { x, g: s, a, b, pxd, el: sum, els: grpEls };
         sum.addEventListener('pointerdown', e => groupDrag(e, gctx));
         g.append(sum);
@@ -455,8 +455,8 @@ VIEW_FN.plaene = main => {
       h('div', { class: 'c-grip' }, grip),
       h('div', { class: 'c-name' }, h('input', { class: s.pal ? 'palname' : null, value: s.name, title: s.name, 'data-fk': fk('name'), onchange: e => setStep(m.id, s.id, st => { st.name = e.target.value; }) })),
       compact ? null : [
-        h('div', { class: 'c-typ' }, s.pal ? h('span', { class: 'paltyp', tip: 'Briefkasten-Termin – hängt fest am PAL der Maßnahme' }, 'PAL')
-          : h('select', { 'data-fk': fk('typ'), onchange: e => setStep(m.id, s.id, st => { st.typ = e.target.value; }) }, ['aufgabe', 'meilenstein', 'ziel'].map(k => h('option', { value: k, selected: s.typ === k }, STEP_TYPES[k])))),
+        h('div', { class: 'c-typ' }, s.pal ? h('span', { class: 'paltyp', tip: 'Ziel: der Briefkasten-Termin – hängt fest am PAL der Maßnahme' }, 'Ziel')
+          : h('select', { 'data-fk': fk('typ'), onchange: e => setStep(m.id, s.id, st => { st.typ = e.target.value; }) }, ['aufgabe', 'meilenstein'].map(k => h('option', { value: k, selected: s.typ === k }, STEP_TYPES[k])))),
         h('div', { class: 'c-wer' }, h('span', { class: 'pbox', style: { background: s.wer ? midtone(barColor(s.wer)) : 'transparent', borderColor: s.wer ? barColor(s.wer) : 'transparent' } }),
           personInput({ value: s.wer || '', placeholder: '–', 'data-fk': fk('wer'), onchange: e => setStep(m.id, s.id, st => { st.wer = e.target.value.trim(); }) }),
           away.length ? h('span', { class: 'wi warn', tip: s.wer + ' hat Urlaub: ' + away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ') }, '⚠') : null),
@@ -481,14 +481,17 @@ VIEW_FN.plaene = main => {
       const ctx = { x, s, r, pxd, X };
       if (isTask) {
         const c = barColor(s.wer);
-        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : ''), tip, style: { left: X(r.start) + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: midtone(c), borderColor: c } },
+        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : ''), tip, style: { left: X(r.start) + pxd / 2 + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: midtone(c), borderColor: c } },
           (r.end - r.start) * pxd > 70 ? h('span', { class: 'lbl' }, s.name) : null,
           h('span', { class: 'grip gl', onpointerdown: e => barDrag(e, ctx, 'left') }), h('span', { class: 'grip gr', onpointerdown: e => barDrag(e, ctx, 'right') }));
         bar.addEventListener('pointerdown', e => { if (!e.target.classList.contains('grip')) barDrag(e, ctx, 'move'); });
         ctx.el = bar;
         g.append(bar); if (grpEls) grpEls.push(bar);
       } else {
-        const dia = h('div', { class: 'g-dia' + (s.typ === 'ziel' ? ' ziel' : '') + (s.pal ? ' fixed' : ''), tip, style: { left: X(r.end) + pxd / 2 + 'px', background: s.typ === 'ziel' ? '#E30714' : x.color }, onpointerdown: s.pal ? null : e => barDrag(e, ctx, 'move') });   // PAL: fest
+        // Briefkasten-Termin: rotes P wie im Kalender – ziehen verschiebt das PAL und damit den ganzen Plan
+        const dia = s.pal ? h('div', { class: 'g-pal', tip, onpointerdown: e => barDrag(e, ctx, 'move') }, sym('P'))
+          : h('div', { class: 'g-dia', tip, onpointerdown: e => barDrag(e, ctx, 'move') });
+        dia.style.left = X(r.end) + pxd / 2 + 'px'; if (!s.pal) dia.style.background = x.color;
         ctx.el = dia;
         g.append(dia); if (grpEls && !s.pal) grpEls.push(dia);
       }
@@ -609,26 +612,30 @@ function barDrag(ev, ctx, mode) {
   const lab = h('div', { class: 'drag-lab' }); document.body.append(lab);
   let ns = r.start, ne = r.end, moved = false;
   const isTask = s.typ === 'aufgabe';
+  // PAL ziehen: alle Balken wandern schon beim Ziehen mit
+  const along = s.pal ? $$('.g-bar, .g-dia, .g-sum, .palline', el.closest('.pl-gantt')) : [];
+  const slide = n => along.forEach(q => { q.style.translate = n ? n * pxd + 'px 0' : ''; });
   const move = e => {
     const dd = Math.round((e.clientX - sx) / pxd);
     if (dd) moved = true;
     if (mode === 'move') { ns = r.start + dd; ne = r.end + dd; }
     else if (mode === 'left') { ns = Math.min(r.start + dd, r.end); ne = r.end; }
     else { ns = r.start; ne = Math.max(r.end + dd, r.start); }
-    if (isTask) { el.style.left = X(ns) + 'px'; el.style.width = Math.max(3, (ne - ns) * pxd) + 'px'; }
+    if (isTask) { el.style.left = X(ns) + pxd / 2 + 'px'; el.style.width = Math.max(3, (ne - ns) * pxd) + 'px'; }
     else el.style.left = X(ne) + pxd / 2 + 'px';
+    slide(ne - r.end);
     const w = s.wer ? C.vac.filter(v => v.u.wer === s.wer && v.von <= ne && v.bis >= ns).map(v => s.wer + ' Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis)) : [];
-    setKids(lab, h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' · ' + stepWT(ns, ne) + ' WT' : (s.pal ? 'PAL: ' : '') + fmtW(ne)), w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    setKids(lab, h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' · ' + stepWT(ns, ne) + ' WT' : (s.pal ? 'PAL: ' : '') + fmtW(ne)), s.pal ? h('div', { class: 'muted' }, ne !== r.end ? 'um ' + (ne > r.end ? '+' : '') + (ne - r.end) + ' Tage – alle Schritte wandern mit' : 'alle Schritte wandern mit') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
   const end = okay => {
-    document.body.classList.remove('dragging'); lab.remove();
+    document.body.classList.remove('dragging'); lab.remove(); slide(0);
     if (!okay) {                                  // abgebrochen: Balken zurück
-      if (isTask) { el.style.left = X(r.start) + 'px'; el.style.width = Math.max(3, (r.end - r.start) * pxd) + 'px'; } else el.style.left = X(r.end) + pxd / 2 + 'px';
+      if (isTask) { el.style.left = X(r.start) + pxd / 2 + 'px'; el.style.width = Math.max(3, (r.end - r.start) * pxd) + 'px'; } else el.style.left = X(r.end) + pxd / 2 + 'px';
       return;
     }
     if (!moved || (ns === r.start && ne === r.end)) return;
-    if (s.pal) { commit(d => { const m = findM(d, x.id); if (m) m.pal = ds(ne); }, 'PAL: ' + fmtW(ne)); return; }   // Briefkasten-Termin ziehen = PAL verschieben
+    if (s.pal) { commit(d => { const m = findM(d, x.id); if (m) shiftPal(m, ne - r.end); }, 'PAL: ' + fmtW(ne) + ' (ganzer Plan mitverschoben)'); return; }   // Briefkasten-Termin ziehen = PAL und ganzen Plan verschieben
     commit(d => { const m = findM(d, x.id); if (m && m.plan) setStepSpan(m, s.id, ns, ne); }, s.name + ': ' + (isTask ? fmtS(ns) + '–' + fmtS(ne) : fmtS(ne)));
   };
   dragSession(ev, el, move, end);

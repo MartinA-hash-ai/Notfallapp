@@ -66,7 +66,14 @@ function emptyData() {
 }
 // Detailplan aus Version ≤ 0.7 (markierte Schritte S/I) auf Abschnitte mit Bereich umstellen; „Mailing“ wird in Inhalt und Produktion geteilt
 // Der Briefkasten-Termin (PAL) ist eine feste Zeile im Plan: Ziel, hängt am PAL (Abstand 0), rot markiert, nicht löschbar.
+// „Ziel“ gibt es ab 0.9.6 nur noch für diese Zeile – alle anderen Ziele werden zu Meilensteinen.
 // Version 0.9 hatte dafür einen eigenen Abschnitt – der wird wieder aufgelöst, die Zeile gehört dann zum Abschnitt davor.
+// PAL verschieben = die ganze Maßnahme verschieben: die Schritte hängen am PAL, feste Termine im Detailplan wandern mit
+function shiftPal(m, dd) {
+  const p = dn(m.pal); if (p == null || !dd) return;
+  m.pal = ds(p + dd);
+  if (m.plan) m.plan.steps.forEach(s => { if (s.anker && s.anker.art === 'fest' && dn(s.anker.datum) != null) s.anker.datum = ds(dn(s.anker.datum) + dd); });
+}
 const isPalStep = s => !!s && s.typ !== 'gruppe' && s.pal === true;
 function ensurePalStep(plan) {
   const st = plan.steps;
@@ -76,7 +83,7 @@ function ensurePalStep(plan) {
   if (pi < 0) { st.push({ id: 'pal-' + (st.length ? st[0].id : 'x'), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: { art: 'pal', offset: 0 } }); pi = st.length - 1; }
   const ps = st[pi];
   Object.assign(ps, { typ: 'ziel', pal: true, anker: { art: 'pal', offset: 0 } }); delete ps.bereich;
-  st.forEach((q, i) => { if (i !== pi) delete q.pal; });
+  st.forEach((q, i) => { if (i !== pi) { delete q.pal; if (q.typ === 'ziel') q.typ = 'meilenstein'; } });
   return plan;
 }
 function migratePlan(plan, keys) {

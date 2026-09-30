@@ -32,18 +32,19 @@ const { chromium, ok, open, finish } = require('./lib');
     return [i >= 0 && st[i].name, st.slice(0, i).reverse().find(q => q.typ === 'gruppe').name, st.filter(q => q.pal).length, st.some(q => q.typ === 'gruppe' && q.pal), cs.color, cs.fontWeight,
       row.querySelector('.paltyp').textContent, !!row.querySelector('.pallock'), !!row.querySelector('input[type=date]'), (row.querySelector('.paldate') || {}).textContent]; }, sm);
   ok(pal[0] === 'Briefkasten-Termin' && pal[1] === 'Produktion' && pal[2] === 1 && !pal[3], 'B: Briefkasten-Termin als Zeile im Abschnitt „' + pal[1] + '“, kein eigener Abschnitt');
-  ok(/^rgb\(227, 7, 20\)$/.test(pal[4]) && +pal[5] < 600 && pal[6] === 'PAL', 'B: rot, nicht fett, Typ „PAL“');
+  ok(/^rgb\(227, 7, 20\)$/.test(pal[4]) && +pal[5] < 600 && pal[6] === 'Ziel', 'B: rot, nicht fett, Typ „Ziel“');
   ok(pal[7] && !pal[8] && /^\d\d\.\d\d\.\d{4}P$/.test(pal[9]), 'B: Datum fest (' + pal[9] + ') mit Schloss und P, kein Eingabefeld');
   const allPlans = await p.evaluate(() => C.ms.filter(x => x.m.plan).map(x => x.m.plan.steps.filter(s => s.pal).length).join(','));
   ok(/^(1,)*1$/.test(allPlans), 'B: jeder Detailplan hat genau einen Briefkasten-Termin (' + allPlans + ')');
   const pid = await p.evaluate(id => C.byId.get(id).m.plan.steps.find(s => s.pal).id, sm);
   await p.evaluate(([id, pid]) => deleteStep(id, pid), [sm, pid]); await p.waitForTimeout(100);
   ok(await p.evaluate(([id, pid]) => findM(D, id).plan.steps.some(s => s.id === pid), [sm, pid]), 'B: Briefkasten-Termin lässt sich nicht löschen');
-  const dia = await p.evaluate(pid => { const rows = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')], i = rows.findIndex(r => r.dataset.rid === pid), e = document.querySelectorAll('.g-body > .g-row')[i].querySelector('.g-dia');
-    e.scrollIntoView({ block: 'center', inline: 'center' }); const q = e.getBoundingClientRect(); return [q.x + q.width / 2, q.y + q.height / 2, e.classList.contains('fixed')]; }, pid);
+  const dia = await p.evaluate(pid => { const rows = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')], i = rows.findIndex(r => r.dataset.rid === pid), e = document.querySelectorAll('.g-body > .g-row')[i].querySelector('.g-pal');
+    e.scrollIntoView({ block: 'center', inline: 'center' }); const q = e.getBoundingClientRect(); return [q.x + q.width / 2, q.y + q.height / 2, UI._pl.pxd]; }, pid);
   const pal0 = await p.evaluate(id => findM(D, id).pal, sm);
-  await p.mouse.move(dia[0], dia[1]); await p.mouse.down(); await p.mouse.move(dia[0] + 60, dia[1], { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(200);
-  ok(dia[2] && await p.evaluate(id => findM(D, id).pal, sm) === pal0, 'B: die PAL-Raute im Gantt lässt sich nicht verschieben');
+  await p.mouse.move(dia[0], dia[1]); await p.mouse.down(); await p.mouse.move(dia[0] + 2 * dia[2], dia[1], { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(200);
+  ok(await p.evaluate(([id, p0]) => dn(findM(D, id).pal) === dn(p0) + 2, [sm, pal0]), 'B: das P im Gantt verschiebt das PAL (0.9.6: ganzer Plan wandert mit)');
+  await p.evaluate(() => undo()); await p.waitForTimeout(150);
   const fresh = await p.evaluate(() => { const mk = steps => normalize({ settings: { year: 2027 }, massnahmen: [{ id: 'q', name: 'Q', pal: '2027-05-01', plan: { steps } }] }).massnahmen[0].plan.steps.map(s => s.id + (s.pal ? '*' : '')).join(',');
     const base = () => [{ id: 'g1', typ: 'gruppe', name: 'Produktion' }, { id: 'a', typ: 'aufgabe', name: 'A', dauer: 5, anker: { art: 'pal', offset: -5 } }];
     return [mk(base().concat({ id: 'z', typ: 'ziel', name: 'Briefkasten-Termin', anker: { art: 'pal', offset: 0 } }, { id: 'g2', typ: 'gruppe', name: 'Dankbrief' })),

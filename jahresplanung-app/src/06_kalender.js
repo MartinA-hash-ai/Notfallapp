@@ -199,7 +199,7 @@ function chipDrag(ev, e) {
     if (!okay) return;
     if (!moved) { pinChip(el, x.id, e.n, t); return; }
     if (!dd) return;
-    if (t === 'P') commit(d => { const m = findM(d, x.id); if (m && dn(m.pal) != null) m.pal = ds(dn(m.pal) + dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (alle Bereiche mitverschoben)');
+    if (t === 'P') commit(d => { const m = findM(d, x.id); if (m) shiftPal(m, dd); }, x.m.name + ': PAL → ' + fmtW(x.pal + dd) + ' (alle Bereiche mitverschoben)');
     else moveStartTo(x.id, t, x.st[t] + dd);
   };
   const sess = dragSession(ev, el, move, end);

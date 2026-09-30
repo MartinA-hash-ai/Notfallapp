@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.9.5",
+    "version": "0.9.6",
     "date": "",
+    "items": [
+      "Detailplan-Gantt: der Briefkasten-Termin ist ein rotes P statt der Raute (in der Tabelle ebenfalls rot); ziehen verschiebt das PAL und den ganzen Plan – die Balken wandern schon beim Ziehen mit",
+      "PAL verschieben (Detailplan, Kalender, Zeitleiste) nimmt jetzt auch Schritte mit festem Datum mit",
+      "Gantts: Aufgaben laufen von Tagesmitte zu Tagesmitte – Meilensteine, PAL-Linie und Balkenenden liegen genau übereinander (Detailplan, PDF, aufgeklappte Pläne in der Zeitleiste)",
+      "Ziel und Meilenstein zusammengelegt: alle Ziele werden Meilensteine; „Ziel“ (rot) steht nur noch beim Briefkasten-Termin"
+    ]
+  },
+  {
+    "version": "0.9.5",
+    "date": "2026-09-30T16:06",
     "items": [
       "Kalender: die Linie eines Abschnitts endet spätestens am PAL – auch wenn ein Schritt darin später endet",
       "Detailplan: in der Zeile „Briefkasten-Termin“ steht rechts neben dem Schloss das P des PAL"
