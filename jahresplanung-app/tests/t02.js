@@ -16,7 +16,7 @@ const URL = T.URL;
   // --- Urlaub über die Oberfläche anlegen
   await p.click('text=Urlaub & Feiertage');
   await p.click('button:has-text("+ Urlaub")'); await p.waitForTimeout(100);
-  await p.fill('.modal input[list="dl-personen"]', 'Eva');
+  await p.fill('.modal input.pinput', 'Eva');
   { const vd = await p.$$('.modal input[type=date]'); await vd[0].fill('2027-04-01'); await vd[0].dispatchEvent('input'); await vd[1].fill('2027-04-09'); await vd[1].dispatchEvent('input'); }
   await p.click('.modal button:has-text("Eintragen")'); await p.waitForTimeout(150);
   let rows = await p.$$('table.utable tbody tr');

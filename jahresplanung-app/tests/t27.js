@@ -46,8 +46,8 @@ const path = require('path');
     ok(Math.abs(d('name') - 40) <= 2 && Math.abs(d('resp') + 40) <= 2 && same(c0, c1, ['name', 'resp']), 'B: „Maßnahme“ +' + d('name') + ' → „Hauptverantwortlich“ ' + d('resp') + ', alle anderen Spalten bleiben stehen');
     c0 = c1; await drag(p, 'ph_S', 24); c1 = await cols(p);
     ok(Math.abs(d('ph_S') - 24) <= 2 && Math.abs(d('ph_I') + 24) <= 2 && same(c0, c1, ['ph_S', 'ph_I']), 'B: Start Selektion +' + d('ph_S') + ' → Start Inhalt ' + d('ph_I') + ', Rest unverändert');
-    c0 = c1; await drag(p, 'art', 30); c1 = await cols(p);
-    ok(Math.abs(d('art') - 30) <= 2 && Math.abs(d('hinweis') + 30) <= 2 && same(c0, c1, ['art', 'hinweis']), 'B: „Bitte“ +' + d('art') + ' → „Hinweis“ ' + d('hinweis') + ', Rest unverändert');
+    c0 = c1; await drag(p, 'bitte', 30); c1 = await cols(p);
+    ok(Math.abs(d('bitte') - 30) <= 2 && Math.abs(d('hinweis') + 30) <= 2 && same(c0, c1, ['bitte', 'hinweis']), 'B: „Spendenbitte“ +' + d('bitte') + ' → „Hinweis“ ' + d('hinweis') + ', Rest unverändert');
     c0 = c1; await drag(p, 'resp', -500); c1 = await cols(p);
     ok(c1.find(q => q.k === 'resp').w >= 39 && same(c0, c1, ['resp', 'auflage']), 'B: sehr schmal ziehen stoppt bei ' + c1.find(q => q.k === 'resp').w + ' px');
     await drag(p, "resp", 0);                                              // Klick ohne Ziehen ändert nichts
@@ -104,7 +104,7 @@ const path = require('path');
     const pv = await p.evaluate(() => [document.querySelector('[data-fk="np:S"]').value, document.querySelector('[data-fk="np:I"]').value]);
     ok(pv[0] === pre[0] && pv[1] === pre[1], 'D: Starts der Maßnahme vorbelegt (' + pv.join(', ') + ')');
     await p.click('.modal .tpl-complex'); await p.waitForTimeout(250);
-    const k = await p.evaluate(id => { const x = C.byId.get(id), st = x.m.plan.steps, tpl = migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key)).steps;
+    const k = await p.evaluate(id => { const x = C.byId.get(id), st = x.m.plan.steps, tpl = ensurePalGroup(migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key))).steps;
       return [st.length === tpl.length, st.map(s => s.name).join() === tpl.map(s => s.name).join(), st.every(s => !s.wer), tpl.some(s => s.wer), ds(x.st.S), ds(x.st.I)]; }, id2);
     ok(k[0] && k[1] && k[2] && k[3] && k[4] === pre[0] && k[5] === pre[1], 'D: Komplex → Aufbau wie Mailing-Vorlage, ohne Personen, Starts ' + k[4] + ' / ' + k[5]);
 

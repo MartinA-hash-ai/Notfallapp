@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.8.11",
+    "version": "0.9",
     "date": "",
+    "items": [
+      "Namensfelder (Detailplan, Hauptverantwortlich, Urlaub): ein Klick zeigt immer alle Personen – auch wenn schon ein Name eingetragen ist; Tippen filtert, „– niemand“ leert das Feld, ein neuer Name wird mit Enter als Person angelegt",
+      "Detailplan: ganzen Abschnitt verschieben – den grauen Abschnittsbalken im Gantt ziehen oder im ⋯-Menü „Abschnitt verschieben …“; alle Schritte darin wandern mit",
+      "Detailplan: der Briefkasten-Termin (PAL) ist immer ein eigener Abschnitt und rot hervorgehoben; er hängt fest am PAL (Datum dort ändern oder Raute ziehen = PAL verschieben) und lässt sich nicht löschen. Bestehende Pläne wurden automatisch umgestellt",
+      "Detailplan: Hinweise an den Balken ohne „Ziehen = …“ und mit Werktagen statt Tagen; beim Ziehen gibt es nur noch ein (helles) Fenster",
+      "Maßnahmen-Tabelle: Spalte heißt jetzt „Spendenbitte“, mit dezentem Auswahlpfeil (auch in PDF und Excel)",
+      "Vergleich mit einer Konfliktkopie: ältere Kopien werden vorher auf den aktuellen Aufbau gebracht, damit keine scheinbaren Unterschiede auftauchen"
+    ]
+  },
+  {
+    "version": "0.8.11",
+    "date": "2026-09-30T13:48",
     "items": [
       "Kopfzeile bei kleinerem Fenster: oben Logo, Titel, Jahr und die Knöpfe, die Reiter (Jahresplanung … Urlaub & Feiertage) in einer eigenen zweiten Zeile; bei breitem Fenster wie bisher alles in einer Zeile"
     ]

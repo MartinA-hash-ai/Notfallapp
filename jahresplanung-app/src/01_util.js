@@ -215,6 +215,7 @@ function initTips() {
   tipEl = h('div', { id: 'tip', role: 'tooltip' });
   document.body.append(tipEl);
   document.addEventListener('mouseover', ev => {
+    if (document.body.classList.contains('dragging')) { hideTip(); return; }   // beim Ziehen nur das Ziehfenster, kein zweites
     let t = ev.target;
     while (t && t !== document.body && !TIPS.has(t)) t = t.parentElement;
     if (!t || !TIPS.has(t) || t === document.body) { hideTip(); return; }
@@ -225,7 +226,7 @@ function initTips() {
     tipEl.classList.add('on');
     placeTip(ev);
   });
-  document.addEventListener('mousemove', ev => { if (tipFor) placeTip(ev); });
+  document.addEventListener('mousemove', ev => { if (tipFor) { if (document.body.classList.contains('dragging')) hideTip(); else placeTip(ev); } });
   document.addEventListener('scroll', hideTip, true);
   document.addEventListener('mousedown', hideTip, true);
 }

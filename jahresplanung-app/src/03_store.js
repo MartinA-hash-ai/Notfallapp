@@ -531,7 +531,8 @@ async function scanCopies() {
 const copyHidden = c => !!(UI.copiesSeen && UI.copiesSeen[c.key]);
 async function handleCopy(c) {
   if (!c.same) {
-    const next = await compareDialog(c.data, '„' + c.name + '“' + (c.meta.savedBy ? ' (gespeichert ' + fmtStamp(c.meta.savedAt) + ' von ' + c.meta.savedBy + ')' : ''));
+    const next = await compareDialog(normalize(JSON.parse(JSON.stringify(c.data))), '„' + c.name + '“'   // gleiche Form wie der eigene Stand (z. B. PAL-Abschnitt), sonst scheinbare Unterschiede
+       + (c.meta.savedBy ? ' (gespeichert ' + fmtStamp(c.meta.savedAt) + ' von ' + c.meta.savedBy + ')' : ''));
     if (!next) return;
     UNDO.push(JSON.stringify(D)); REDO.length = 0; D = next; changed();
   }

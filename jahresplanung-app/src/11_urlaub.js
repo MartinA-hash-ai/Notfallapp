@@ -10,7 +10,7 @@ async function addVac() {
   const row = (label, inp) => h('label', { class: 'frow' }, h('span', null, label), inp);
   const bis = h('input', { type: 'date', oninput: e => { f.bis = e.target.value; upd(); } });
   const ok = await modal('Neuen Urlaub eintragen', h('div', { class: 'form' }, personList(),
-    row('Person', h('input', { value: f.wer, list: 'dl-personen', placeholder: 'Name', oninput: e => { f.wer = e.target.value.trim(); } })),
+    row('Person', personInput({ value: f.wer, placeholder: 'Name', oninput: e => { f.wer = e.target.value.trim(); } })),
     row('Von', h('input', { type: 'date', oninput: e => { f.von = e.target.value; if (!f.bis || dn(f.bis) < dn(f.von)) { f.bis = f.von; bis.value = f.von; } upd(); } })),
     row('Bis', bis),
     row('Notiz', h('input', { placeholder: 'optional, z. B. Fortbildung', oninput: e => { f.notiz = e.target.value; } })), info),
@@ -83,7 +83,7 @@ VIEW_FN.urlaub = main => {
     const fv = dn(v.von), fb = dn(v.bis) ?? fv, fk = f => 'u:' + v.id + ':' + f, bad = fv != null && fb != null && fb < fv;
     const overl = fv != null && fb >= fv ? C.vac.filter(o => o.u.id !== v.id && o.von <= fb && o.bis >= fv) : [];
     list.append(h('tr', { class: (fv != null && ymd(fv)[0] !== y && ymd(fb)[0] !== y) ? 'other' : '' },
-      h('td', null, h('span', { class: 'vdot', style: { background: personColor(v.wer) } }), h('input', { value: v.wer || '', list: 'dl-personen', 'data-fk': fk('wer'), placeholder: 'Name', onchange: e => setVac(v.id, u => { u.wer = e.target.value.trim(); }) })),
+      h('td', null, h('span', { class: 'vdot', style: { background: personColor(v.wer) } }), personInput({ value: v.wer || '', 'data-fk': fk('wer'), placeholder: 'Name', onchange: e => setVac(v.id, u => { u.wer = e.target.value.trim(); }) })),
       h('td', null, dateInput(v.von, fk('von'), val => setVac(v.id, u => { u.von = val; if (!u.bis || dn(u.bis) < dn(u.von)) u.bis = u.von; }))),
       h('td', null, dateInput(v.bis, fk('bis'), val => setVac(v.id, u => { u.bis = val; }), { class: bad ? 'bad' : '' })),
       h('td', { class: 'num' }, fv != null && fb >= fv ? workdays(fv, fb) : '–'),

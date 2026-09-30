@@ -18,6 +18,46 @@ function colorPicker(anchor, current, onPick) {
 function personList() {
   return h('datalist', { id: 'dl-personen' }, D.personen.map(p => h('option', { value: p.name })));
 }
+// Namensfeld mit eigener Auswahlliste: ein Klick zeigt immer alle Personen (auch wenn schon ein Name drinsteht),
+// Tippen filtert, ein neuer Name kann einfach eingetippt werden, „– niemand“ leert das Feld. Pfeiltasten + Enter, Esc schließt.
+let PCOMBO = null;
+function closePersonMenu() { if (PCOMBO) { PCOMBO.m.remove(); PCOMBO = null; } }
+document.addEventListener('scroll', e => { if (PCOMBO && performance.now() - PCOMBO.at > 300 && !(e.target instanceof Node && PCOMBO.m.contains(e.target))) closePersonMenu(); }, true);   // kurz nach dem Öffnen nicht (Scrollen ins Bild)
+function personInput(props) {
+  const inp = h('input', Object.assign({ autocomplete: 'off', class: 'pinput' }, props));
+  let picking = false;
+  const mark = i => { if (!PCOMBO) return; PCOMBO.sel = i; $$('.pc-item', PCOMBO.m).forEach((b, k) => b.classList.toggle('sel', k === i)); const b = $$('.pc-item', PCOMBO.m)[i]; if (b) b.scrollIntoView({ block: 'nearest' }); };
+  const pick = name => {
+    closePersonMenu(); picking = true; inp.value = name;
+    inp.dispatchEvent(new Event('input', { bubbles: true })); inp.dispatchEvent(new Event('change', { bubbles: true }));
+    picking = false;
+  };
+  const open = all => {
+    closePersonMenu();
+    const cur = inp.value.trim(), q = all ? '' : cur.toLowerCase();
+    const names = D.personen.map(p => p.name).filter(n => !q || n.toLowerCase().includes(q));
+    const m = h('div', { class: 'menu pcombo', role: 'listbox' },
+      h('button', { class: 'pc-item none', onmousedown: e => { e.preventDefault(); pick(''); } }, '– niemand'),
+      names.map(n => h('button', { class: 'pc-item' + (n === cur ? ' on' : ''), onmousedown: e => { e.preventDefault(); pick(n); } },
+        h('span', { class: 'pbox', style: { background: midtone(personColor(n)), borderColor: personColor(n) } }), n)),
+      q && !D.personen.some(p => p.name.toLowerCase() === q) ? h('div', { class: 'pc-new' }, '„' + cur + '“ – mit Enter als neue Person übernehmen') : null);
+    document.body.append(m); m.style.minWidth = Math.max(160, inp.getBoundingClientRect().width) + 'px';
+    placeMenu(m, inp.getBoundingClientRect());
+    PCOMBO = { m, inp, sel: -1, at: performance.now() };
+  };
+  inp.addEventListener('mousedown', () => { if (!(PCOMBO && PCOMBO.inp === inp)) open(true); });
+  inp.addEventListener('input', () => { if (!picking) open(false); });
+  inp.addEventListener('keydown', e => {
+    const n = PCOMBO && PCOMBO.inp === inp ? $$('.pc-item', PCOMBO.m).length : 0;
+    if (e.key === 'ArrowDown') { e.preventDefault(); if (!n) open(true); else mark(Math.min(n - 1, PCOMBO.sel + 1)); }
+    else if (e.key === 'ArrowUp' && n) { e.preventDefault(); mark(Math.max(0, PCOMBO.sel - 1)); }
+    else if (e.key === 'Enter' && n && PCOMBO.sel >= 0) { e.preventDefault(); const b = $$('.pc-item', PCOMBO.m)[PCOMBO.sel]; pick(b.classList.contains('none') ? '' : b.textContent); }
+    else if (e.key === 'Escape' && n) { e.preventDefault(); e.stopPropagation(); closePersonMenu(); }
+    else if (e.key === 'Tab' || e.key === 'Enter') closePersonMenu();
+  });
+  inp.addEventListener('blur', () => setTimeout(() => { if (PCOMBO && PCOMBO.inp === inp) closePersonMenu(); }, 150));
+  return inp;
+}
 function setM(id, field, value, msg) { commit(d => { const m = findM(d, id); if (m) m[field] = value; }, msg); }
 const numOrNull = v => v === '' || v == null ? null : Math.round(+v);
 
@@ -72,7 +112,7 @@ const mcols = () => [
   { k: 'auflage', w: 68, t: 'Auflage' },
   ...PH().map(p => ({ k: 'ph_' + p.key, w: wtView() ? 112 : 136, t: p.name, tip: 'Start ' + p.name + (wtView() ? ' – Werktage bis zum PAL' : ''), chip: p.key, phase: p.key })),
   { k: 'pal', w: 136, t: 'PAL', chip: 'P' },
-  { k: 'status', w: 84, t: 'PAL-Status' }, { k: 'art', w: 66, t: 'Bitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
+  { k: 'status', w: 84, t: 'PAL-Status' }, { k: 'bitte', w: 96, t: 'Spendenbitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
   { k: 'warns', w: 34, fixed: true }, { k: 'acts', w: 34, fixed: true }];
 const colKey = c => c.phase ? c.k + (wtView() ? ':wt' : '') : c.k;
 const colW = c => c.flex ? 0 : (UI.colW && UI.colW[colKey(c)]) || c.w;   // Hinweis nimmt immer den Rest
@@ -165,7 +205,7 @@ function massnahmenSection() {
         onclick: e => { toggleVisible(id, rows, e); renderNow(); } })),
       h('td', { class: 'col' }, h('button', { class: 'swatch', style: { background: x.color }, tip: 'Farbe ändern', 'aria-label': 'Farbe ändern', onclick: e => { e.stopPropagation(); colorPicker(e.currentTarget, x.color, c => setM(id, 'farbe', c)); } })),
       h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: inkC(x.color) }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
-      h('td', { class: 'resp' }, h('input', { value: m.verantwortlich || '', list: 'dl-personen', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
+      h('td', { class: 'resp' }, personInput({ value: m.verantwortlich || '', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
       h('td', { class: 'num' }, h('input', { type: 'number', min: 0, value: m.auflage ?? '', 'data-fk': fk('auflage'), placeholder: '–', onchange: e => setM(id, 'auflage', numOrNull(e.target.value)) })),
       PH().map(p => startCell(p.key)),
       h('td', { class: 'date pal' + (m.palStatus !== 'fest' ? ' vorl' : '') }, dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null))),
@@ -255,9 +295,9 @@ async function editMassnahme(id) {
       h('select', { onchange: e => { m.palStatus = e.target.value; } }, ['vorläufig', 'fest'].map(v => h('option', { value: v, selected: m.palStatus === v }, 'PAL ' + v))))),
     phaseRows,
     calc,
-    row('Hauptverantwortlich', h('input', { value: m.verantwortlich || '', list: 'dl-personen', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
+    row('Hauptverantwortlich', personInput({ value: m.verantwortlich || '', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
     row('Auflage', h('input', { type: 'number', min: 0, value: m.auflage ?? '', oninput: e => { m.auflage = numOrNull(e.target.value); } })),
-    row('Art der Zuwendungs-/Zuweisungsbitte', h('select', { onchange: e => { m.art = e.target.value; } }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
+    row('Spendenbitte', h('select', { onchange: e => { m.art = e.target.value; } }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
     row('Hinweis', h('textarea', { rows: 2, oninput: e => { m.hinweis = e.target.value; } }, m.hinweis || '')));
   const res = await modal('Maßnahme bearbeiten', body, [['Löschen', 'del', 'danger left'], ['Abbrechen', false], ['Übernehmen', true, 'primary']]);
   if (res === 'del') return deleteMassnahme(id);

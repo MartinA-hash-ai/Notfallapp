@@ -211,7 +211,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.click('nav.tabs >> text=Urlaub'); await p.waitForTimeout(200);
   const nv0 = await p.evaluate(() => D.urlaube.length);
   await p.click('.addbtn:has-text("neuen Urlaub")'); await p.waitForTimeout(150);
-  await p.fill('.modal input[list="dl-personen"]', 'Martin');
+  await p.fill('.modal input.pinput', 'Martin');
   const vd = await p.$$('.modal input[type=date]');
   await vd[0].fill('2027-08-02'); await vd[0].dispatchEvent('input'); await vd[1].fill('2027-08-13'); await vd[1].dispatchEvent('input');
   await p.waitForTimeout(100);

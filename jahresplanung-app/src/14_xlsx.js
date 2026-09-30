@@ -130,7 +130,7 @@ function viewWorkbookLight(opts = {}) {
   // 1. Übersicht
   {
     const rows = [[{ v: 'Jahresplanung Außenkommunikation ' + y, st: XS.title }], [{ v: hint, st: XS.note }], [],
-      ['', 'Maßnahme', ...PH().map(p => 'Start ' + p.name), ...PH().map(p => 'WT bis PAL (' + sym(p.key) + ')'), 'PAL', 'PAL-Status', 'Hauptverantwortlich', 'Art der Bitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
+      ['', 'Maßnahme', ...PH().map(p => 'Start ' + p.name), ...PH().map(p => 'WT bis PAL (' + sym(p.key) + ')'), 'PAL', 'PAL-Status', 'Hauptverantwortlich', 'Spendenbitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
     for (const x of ms) {
       const bd = { border: 'thin', v: 'top' };
       rows.push([{ v: '', st: { fill: x.color, border: 'thin' } }, { v: x.m.name, st: { ...bd, b: true, color: darker(x.color) } },

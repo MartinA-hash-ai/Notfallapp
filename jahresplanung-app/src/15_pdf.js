@@ -117,7 +117,7 @@ function buildPrintDoc(f) {
     const chipH = t => demoChip(t);
     pages.push(page('Maßnahmen ' + y, h('table', { class: 'pd-table' },
       h('thead', null, h('tr', null, h('th'), h('th', null, 'Maßnahme'), h('th', null, 'Hauptverantwortlich'), h('th', null, 'Auflage'),
-        PH().map(p => h('th', null, 'Start ' + p.name + ' ', chipH(p.key))), h('th', null, 'PAL ', chipH('P')), h('th', null, 'PAL-Status'), h('th', null, 'Bitte'), h('th', null, 'Hinweis'))),
+        PH().map(p => h('th', null, 'Start ' + p.name + ' ', chipH(p.key))), h('th', null, 'PAL ', chipH('P')), h('th', null, 'PAL-Status'), h('th', null, 'Spendenbitte'), h('th', null, 'Hinweis'))),
       h('tbody', null, ms.map(x => h('tr', null,
         h('td', null, h('span', { class: 'dot', style: { background: x.color } })),
         h('td', { class: 'nm', style: { color: inkC(x.color) } }, x.m.name),

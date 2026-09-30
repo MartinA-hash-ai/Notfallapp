@@ -57,7 +57,7 @@ function applyPick(data, c) {
 
 /* ---------- Anzeige */
 const FIELD_LABEL = { name: 'Name', pal: 'PAL', palStatus: 'PAL-Status', vorlauf: 'Starts der Bereiche', ende: 'Enden der Bereiche', bereiche: 'Bereiche', verantwortlich: 'Hauptverantwortlich',
-  auflage: 'Auflage', art: 'Bitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
+  auflage: 'Auflage', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
 function recLabel(coll, rec, key) {
   rec = rec || {};
   if (coll === 'massnahmen') return 'Maßnahme „' + (rec.name || '(ohne Namen)') + '“';

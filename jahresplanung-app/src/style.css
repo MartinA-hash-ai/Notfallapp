@@ -348,9 +348,10 @@ main.hl .tl-row[data-m]:not(.hl-on) > .tl-lab > *, main.hl .tl-row[data-m]:not(.
 .overlap { position: absolute; top: 6px; height: 10px; background: #e65100; border-radius: 2px; opacity: .8; }
 .load { position: absolute; bottom: 3px; background: #9aa5b1; border-radius: 3px 3px 0 0; color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: flex-start; justify-content: center; line-height: 12px; }
 .load.over { background: var(--red); }
-.drag-lab { position: fixed; z-index: 99; pointer-events: none; background: var(--solid); color: #fff; padding: 6px 10px; border-radius: 6px; font-size: 13px; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
-.drag-lab .muted { color: #ccc; }
-.drag-lab .warn { color: #ffcc80; margin-top: 2px; }
+/* Ziehfenster im Stil des hellen Hinweisfensters (beim Ziehen gibt es nur dieses eine) */
+.drag-lab { position: fixed; z-index: 99; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line2); padding: 8px 11px; border-radius: 8px; font-size: 13px; box-shadow: 0 8px 28px rgba(0,0,0,.18); }
+.drag-lab .muted { color: var(--muted); }
+.drag-lab .warn { color: var(--warn); margin-top: 2px; }
 
 /* ---------- Was steht an? */
 .segs { display: inline-flex; border: 1px solid var(--line2); border-radius: 6px; overflow: hidden; }
@@ -957,3 +958,28 @@ header.top.two-rows { row-gap: 0; }
 header.top.two-rows .actions { order: 2; margin-left: auto; padding: 6px 0; }
 header.top.two-rows nav.tabs { order: 3; flex-basis: 100%; margin-left: -9px; }
 header.top.two-rows .brand strong { max-width: none; }
+
+/* 0.9 Namensauswahl: immer alle Personen */
+.menu.pcombo { padding: 3px; max-height: 280px; overflow: auto; }
+.menu.pcombo > .pc-item { display: flex; align-items: center; gap: 7px; padding: 5px 9px; font-size: 13px; }
+.menu.pcombo > .pc-item.on { font-weight: 600; }
+.menu.pcombo > .pc-item.sel, .menu.pcombo > .pc-item:hover { background: var(--hover); }
+.menu.pcombo > .pc-item.none { color: var(--faint); }
+.menu.pcombo .pbox { width: 10px; height: 10px; border: 1px solid; border-radius: 2px; flex: none; }
+.menu.pcombo .pc-new { padding: 5px 9px; font-size: 11.5px; color: var(--muted); border-top: 1px solid var(--line3); margin-top: 3px; }
+
+/* 0.9 Detailplan: Briefkasten-Termin (PAL) als eigener Abschnitt, rot hervorgehoben; Abschnittsbalken ziehbar */
+.pl-row input.palname { color: var(--red); font-weight: 700; }
+.pl-row.palgrp .c-name.gname { grid-column: 2 / span 2; }
+.pl-row.palgrp .chip.mark { margin-left: 6px; }
+.pl-row .paltyp { color: var(--red); font-weight: 700; font-size: 11.5px; padding-left: 4px; }
+.pl-row .c-grest.palinfo { color: var(--red); font-weight: 600; text-align: right; padding: 0 8px 0 6px; grid-column: 5 / span 4; }
+.g-sum { cursor: grab; }
+.g-sum:hover { background: var(--muted); }
+body.dragging .g-sum { cursor: grabbing; }
+
+/* 0.9 Maßnahmen-Tabelle: Spendenbitte mit dezentem Pfeil */
+.mtable td.art select { -webkit-appearance: none; appearance: none; padding-right: 16px; max-width: none; width: 100%; }
+.mtable td.art select, .mtable td.art select:hover, .mtable td.art select:focus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%23bdbdbd'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 5px center; }
+html[data-theme=dark] .mtable td.art select, html[data-theme=dark] .mtable td.art select:hover, html[data-theme=dark] .mtable td.art select:focus { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5'%3E%3Cpath d='M0 0l4 5 4-5z' fill='%236b6e73'/%3E%3C/svg%3E"); }
+@media print { .mtable td.art select { background-image: none !important; } }
