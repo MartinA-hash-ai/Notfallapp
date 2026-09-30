@@ -326,7 +326,7 @@ VIEW_FN.plaene = main => {
   const a0 = g0 - wd(g0), a1 = g1 + (6 - wd(g1)), nd = a1 - a0 + 1;
   const tableW = compact ? 272 : 852;
   const fitP = Math.max(2, (innerWidth - tableW - 14 - 70) / nd);
-  const pxd = UI.printing ? Math.max(2, (compact ? 1030 - 250 : 620) / nd) : (UI.planPxd || fitP), W = nd * pxd, X = n => (n - a0) * pxd;
+  const pxd = UI.printing ? Math.max(2, (compact ? 1030 - 250 : 1030 - 600) / nd) : (UI.planPxd || fitP), W = nd * pxd, X = n => (n - a0) * pxd;   // Druck: Gantt füllt den Rest der A4-Breite
 
   // Kopf: oben Name und PAL, rechts die Legende; darunter die Starts der Bereiche (und künftige weitere Termine)
   put(main, h('div', { class: 'phead', style: { borderColor: x.color } },

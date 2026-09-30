@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.8.5",
+    "version": "0.8.6",
     "date": "",
+    "items": [
+      "PDF-Export von Detailplänen: die Tabelle links wird nur noch eingeklappt, wenn sie in der Ansicht eingeklappt ist – sonst kommen alle Spalten mit ins PDF. „Wie aktuelle Ansicht“ übernimmt auch eingeklappte Abschnitte",
+      "Neues Häkchen im PDF-Fenster: „Detailpläne: nur Arbeitsschritte (Tabelle eingeklappt, Gantt breiter)“ – vorbelegt wie die aktuelle Ansicht",
+      "PDF mit voller Tabelle: schmalere Spalten, Gantt passt vollständig aufs Blatt, Auswahlfelder ohne Pfeile, PAL ohne Rahmen"
+    ]
+  },
+  {
+    "version": "0.8.5",
+    "date": "2026-09-30T11:20",
     "items": [
       "Maßnahmen-Tabelle in der Werktage-Ansicht: Spaltenköpfe „Zeit bis PAL für“ / „Selektion“ (bzw. Inhalt, Produktion)",
       "Leere Datumsfelder in der Maßnahmen-Tabelle zeigen einen hellgrauen Strich mit dezentem Kalendersymbol statt „tt.mm.jjjj“; Klick auf den Strich öffnet das Feld zum Eintippen, Klick aufs Symbol die Datumsauswahl",

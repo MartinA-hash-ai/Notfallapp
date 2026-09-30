@@ -918,3 +918,16 @@ html[data-theme=dark] .pl-row select, html[data-theme=dark] .pl-row select:hover
 .mtable td input[type=date].noval:not(:focus) { width: 42px !important; padding-left: 19px !important; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='2'%3E%3Crect width='9' height='1.5' fill='%23c4c4c4'/%3E%3C/svg%3E") !important; background-repeat: no-repeat !important; background-position: 5px 50% !important; }
 .mtable input[type=date].noval:not(:focus)::-webkit-datetime-edit { display: none; }
 html[data-theme=dark] .mtable td input[type=date].noval:not(:focus) { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='2'%3E%3Crect width='9' height='1.5' fill='%235a5d63'/%3E%3C/svg%3E") !important; }
+
+/* 0.8.6 PDF: Detailplan mit voller Tabelle (wenn sie so eingestellt ist) – schmalere Spalten, Auswahlfelder ohne Pfeile, einheitliche Schrift */
+@media print {
+  .pd-plan .pl-row:not(.compact) { grid-template-columns: 0 165px 62px 76px 100px 30px 68px 68px 0; }
+  .pd-plan .pl-row select { background-image: none !important; padding: 0 2px; font-size: 8.5px; }
+  .pd-plan .pl-row .gber { font-size: 8px; max-width: 90px; margin-left: 3px; }
+  .pd-plan .c-grest, .pd-plan .c-date, .pd-plan .pl-row.head > div { font-size: 8.5px; }
+  .pd-plan .pl-row .c-grest { padding-right: 4px; }
+  .pd-plan .phead .ph-pal { font-size: 10px; }
+  .pd-plan .phead .ph-pal input { border: 0; padding: 0; width: 80px; font-size: 10px; font-weight: 700; background: none; }
+  .pd-plan .phead .ph-top .plegend { padding-top: 0; }
+  .pd-plan .phead .ph-top h2 { margin-top: 0; }
+}

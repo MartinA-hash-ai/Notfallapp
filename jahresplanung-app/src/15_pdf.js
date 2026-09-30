@@ -25,6 +25,7 @@ async function pdfDialog() {
     secs: Object.assign({ mass: true, kal: true, tl: true, ag: false, plaene: false, urlaub: false }, last.secs),
     show: Object.assign(Object.fromEntries(evKeys().map(k => [k, true])), last.show), vac: last.vac !== false, verbund: !!UI.verbund,
     ms: new Set(list.map(x => x.id)),
+    planCompact: !!UI.planCompact, planColl: null,        // Detailplan wie eingestellt: Tabelle eingeklappt nur, wenn sie es gerade ist
   };
   const wrap = h('div', { class: 'form pdfform' });
   const draw = () => {
@@ -35,7 +36,8 @@ async function pdfDialog() {
       h('div', { class: 'pdf-cols' },
         h('div', null, h('h3', null, 'Bereiche'), h('div', { class: 'checks' }, PDF_SECS.map(([k, l]) => cb(f.secs, k, l))),
           h('h3', null, 'Termine'), h('div', { class: 'checks' }, evKeys().map(t => cb(f.show, t, TYPE_LABEL[t])), cb(f, 'vac', 'Urlaube anzeigen'),
-            cb(f, 'verbund', 'Verbund-Darstellung im Kalender'))),
+            cb(f, 'verbund', 'Verbund-Darstellung im Kalender'),
+            cb(f, 'planCompact', 'Detailpläne: nur Arbeitsschritte (Tabelle eingeklappt, Gantt breiter)'))),
         msPicker(f.ms, list)));
   };
   const fromView = () => {
@@ -44,6 +46,7 @@ async function pdfDialog() {
     f.show = Object.fromEntries(evKeys().map(k => [k, showType(k)])); f.vac = UI.showVac; f.verbund = !!UI.verbund;
     f.ms = new Set(list.filter(x => visibleM(x)).map(x => x.id));
     if (UI.view === 'plaene' && UI.planSel) { f.ms = new Set([UI.planSel]); f.secs.plaene = true; }
+    f.planCompact = !!UI.planCompact; f.planColl = JSON.parse(JSON.stringify(UI.planColl || {}));   // eingeklappte Tabelle und Abschnitte wie gerade zu sehen
   };
   draw();
   const ok = await modal('PDF exportieren', wrap, [['Abbrechen', false], ['PDF erstellen', true, 'primary']], { wide: true });
@@ -60,7 +63,7 @@ function printPDF(f) {
   const keep = {}; keys.forEach(k => { keep[k] = UI[k] instanceof Set ? new Set(UI[k]) : UI[k] && typeof UI[k] === 'object' ? JSON.parse(JSON.stringify(UI[k])) : UI[k]; });
   UI.show = { ...f.show }; UI.showVac = f.vac; UI.verbund = !!f.verbund; UI.hiddenP = new Set(); UI.monthLists = true; UI.tlPlans = false; UI.tlPxd = 0;
   UI.hiddenM = new Set(C.ms.filter(x => !f.ms.has(x.id)).map(x => x.id));
-  UI.planCompact = true; UI.planColl = {}; UI.planPxd = 0;
+  UI.planCompact = f.planCompact ?? !!keep.planCompact; UI.planColl = f.planColl || {}; UI.planPxd = 0;
   UI.printing = true;
   derive();
   let doc;
