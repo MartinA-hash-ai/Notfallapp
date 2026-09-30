@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.8",
+    "version": "0.8.1",
     "date": "",
+    "items": [
+      "Maßnahmen-Tabelle: Spaltenköpfe zweizeilig („Start der“ / „Selektion“, „Start des“ / „Inhalts“, „Start der“ / „Produktion“), Köpfe und Werte der Bereiche linksbündig",
+      "Die Spalten der Bereiche sind grau hinterlegt und durch Striche getrennt; darüber sitzt ein Schalter „Datum – Werktage“ (ersetzt den alten Umschalter oben rechts)",
+      "Spaltenbreite ziehen: es ändert sich nur die Nachbarspalte rechts, alle anderen bleiben stehen. Die Breiten bleiben nach Neustart und Programm-Update erhalten (je Rechner)",
+      "Detailplan anlegen: PAL ist Pflicht; die Starts der Bereiche wahlweise als Datum oder als Werktage bis zum PAL (das andere rechnet sich aus). Dann „Einfach“ (nur die Bereiche und PAL), „Komplex“ (Aufbau wie Sommer-/Weihnachtsmailing, ohne Personen) oder „Kopie aus vorherigem Plan“"
+    ]
+  },
+  {
+    "version": "0.8",
+    "date": "2026-09-29T17:06",
     "items": [
       "Bereiche: Selektion (S), Inhalt (I) und neu Produktion (D) bis zum PAL – überall im Programm (Tabelle, Kalender, Zeitleiste, Detailpläne, Was steht an?, Outlook, Excel, PDF). Weitere Bereiche mit eigenem Buchstaben lassen sich in den Einstellungen anlegen",
       "Ein Bereich läuft von seinem Start bis zum nächsten Start (der letzte bis zum PAL); bei Bedarf mit eigenem Ende (Bearbeiten-Fenster) – bei Detailplänen ergibt sich der Zeitraum aus den Schritten des Abschnitts",
@@ -19,7 +29,7 @@
   },
   {
     "version": "0.7",
-    "date": "",
+    "date": "2026-09-29T14:52",
     "items": [
       "Update-Schutz: Ein noch offenes Fenster mit älterer Version erkennt eine neuere Programmversion im Ordner, speichert nicht mehr und bittet um Neustart – das Update wird nicht mehr zurückgedreht",
       "Speichern: klappt es einmal nicht (Datei kurz gesperrt), versucht die App es automatisch erneut und zeigt ehrlich „Nicht gespeichert“ an; die Excel-Ansicht wird ebenfalls nachgeholt",
@@ -41,7 +51,7 @@
   },
   {
     "version": "0.6.4",
-    "date": "",
+    "date": "2026-09-29T10:15",
     "items": [
       "Kalender: auch Klick auf P hält die Maßnahme hervorgehoben, „Bearbeiten“ erscheint darunter"
     ]

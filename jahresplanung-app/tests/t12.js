@@ -199,7 +199,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const md = await p.$$('.modal input[type=date]');
   const tS = await p.evaluate(p => ds(dn(p) - 70), pal), tI = await p.evaluate(p => ds(dn(p) - 50), pal);
   await md[1].fill(tS); await md[2].fill(tI);
-  await p.click('.modal button:has-text("Anlegen")'); await p.waitForTimeout(250);
+  await p.click('.modal .tpl-complex'); await p.waitForTimeout(250);
   const np = await p.evaluate(id => { const x = C.byId.get(id); return [!!x.m.plan, ds(x.s), ds(x.i), x.m.pal]; }, npId);
   ok(np[0] && np[1] === tS && np[2] === tI && np[3] === pal, 'Neuer Detailplan: S ' + np[1] + ' (soll ' + tS + '), I ' + np[2] + ' (soll ' + tI + ')');
   await p.screenshot({ path: 'r6_plan_new.png' });

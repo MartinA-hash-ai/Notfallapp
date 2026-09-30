@@ -3,7 +3,7 @@
   --bg: #f7f7f5; --card: #ffffff; --input: #ffffff; --soft: #fafafa; --head: #f5f5f4; --hover: #f1f1f1; --solid: #404040;
   --we: #efefef; --hol1: #e4e4e4; --hol2: #cfcfcf; --warn: #b45309; --warnbg: #fff4e0; --warnline: #f0c27a; --vorl: #9a3412; --vorlbg: #fff4ee;
   --errbg: #fdecea; --errline: #f5b5ae; --errink: #8a1c12; --okbg: #e8f5e9; --okline: #a5d6a7; --okink: #1b5e20; --infobg: #f1f3f5;
-  --runbg: #e3f2fd; --runink: #0d47a1; --flash: #fff3a8; --chipbg: #e6e6e6;
+  --runbg: #e3f2fd; --runink: #0d47a1; --flash: #fff3a8; --chipbg: #e6e6e6; --phbg: #f3f3f1; --phline: #d6d6d3;
   --chk-line: #d9d9d9; --chk-on: #f2f2f2; --chk-mark: #ababab;
   --monthbg: #ffffff; --monthhead: #f0f0ed; --monthline: #d6d6d3; --monthout: #f7f7f5;
   --ok: #2e7d32; --focus: #1F77B4; --side: 250px; --radius: 8px;
@@ -16,7 +16,7 @@
     --bg: #141516; --card: #26282b; --input: #1e2022; --soft: #2b2d31; --head: #303236; --hover: #36383c; --solid: #44474c;
     --we: #2e3034; --hol1: #33363a; --hol2: #43464b; --warn: #f0a24a; --warnbg: #3a2b14; --warnline: #7a5a22; --vorl: #ffb088; --vorlbg: #33231a;
     --errbg: #3b1d1c; --errline: #7a3430; --errink: #ffb4ab; --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6; --infobg: #25282c;
-    --runbg: #1a2c40; --runink: #9ccaff; --flash: #5a5220; --chipbg: #3a3c40;
+    --runbg: #1a2c40; --runink: #9ccaff; --flash: #5a5220; --chipbg: #3a3c40; --phbg: #2d2f33; --phline: #4b4e54;
     --chk-line: #4a4d52; --chk-on: #2c2e31; --chk-mark: #8a8e94;
     --monthbg: #1d1f22; --monthhead: #373a3f; --monthline: #52555b; --monthout: #191a1d;
     --ok: #7fd08a; --focus: #5aa9e6;
@@ -800,3 +800,50 @@ html[data-theme=dark] .splash-logo { height: 47px; }
 .pd-table td.num { text-align: left; }
 .pd-table td.hinweis { color: #555; }
 .pd-table .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+
+/* 0.8.1 Maßnahmentabelle: Bereichsspalten grau hinterlegt, mit Trennstrichen, Schalter Datum/Werktage darüber */
+.mtable thead tr.grouprow th { background: transparent; border-bottom: 0; padding: 0; }
+.mtable thead tr.grouprow th.gr-ph { background: var(--head); border: 1px solid var(--phline); border-bottom: 0; border-radius: 8px 8px 0 0; padding: 4px 6px 3px; text-align: center; }
+.mtable th.h-ph, .mtable td.ph { border-left: 1px solid var(--phline); }
+.mtable th.h-ph.ph-last, .mtable td.ph.ph-last { border-right: 1px solid var(--phline); }
+.mtable td.ph { background: var(--phbg); text-align: left; }
+.mtable tr:hover td.ph { background: var(--hover); }
+.mtable th.h-ph { text-align: left; vertical-align: bottom; }
+.mtable th .th2 { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; }
+.mtable th .th2 small { font-size: 10.5px; font-weight: 500; color: var(--faint); line-height: 1.1; }
+.mtable th .th2 > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.mtable td.date.ph input[type=date] { text-align: left; }
+.mtable td.date.wt .wtbox { justify-content: flex-start; }
+.mtable td.date.wt input[type=number] { text-align: left; width: 48px !important; }
+.vswitch { display: inline-flex; align-items: center; gap: 7px; font-size: 11.5px; font-weight: 600; user-select: none; }
+.vswitch .vs-lab { border: 0; background: none; padding: 1px 2px; color: var(--faint); font: inherit; cursor: pointer; }
+.vswitch .vs-lab.act { color: var(--ink); }
+.vswitch .vs-track { position: relative; width: 34px; height: 18px; border-radius: 9px; border: 1px solid var(--line2); background: var(--card); padding: 0; cursor: pointer; flex: none; }
+.vswitch .vs-knob { position: absolute; top: 2px; left: 2px; width: 12px; height: 12px; border-radius: 50%; background: var(--muted); transition: left .15s; }
+.vswitch.on .vs-knob { left: 18px; }
+.vswitch .vs-track:focus-visible, .vswitch .vs-lab:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+
+/* 0.8.1 Dialog „Detailplan anlegen“ */
+.newplan .np-grid { display: grid; grid-template-columns: max-content 150px max-content 130px; justify-content: start; gap: 6px 12px; align-items: center; margin-bottom: 4px; }
+.newplan .np-grid .np-lab { min-width: 150px; }
+.newplan .np-lab { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+.newplan .np-lab small { margin-left: 6px; color: var(--red); font-size: 11px; }
+.newplan .np-grid input[type=date] { width: 150px; }
+.newplan .wtbox { display: inline-flex; align-items: center; gap: 4px; }
+.newplan .wtbox input { width: 64px; }
+.newplan .wtbox .unit { font-size: 11px; color: var(--faint); }
+.newplan input.bad { border-color: var(--red); box-shadow: 0 0 0 2px var(--errbg); }
+.newplan .np-msg { color: var(--errink); font-weight: 600; min-height: 1.2em; margin: 2px 0 4px; }
+.newplan .np-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 6px 0 10px; }
+.newplan .np-big { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 16px; min-height: 84px; text-align: left;
+  border: 1px solid var(--line2); border-radius: 10px; background: var(--card); cursor: pointer; }
+.newplan .np-big b { font-size: 17px; color: var(--ink); }
+.newplan .np-big span { font-size: 12px; color: var(--muted); line-height: 1.3; }
+.newplan .np-big:hover { border-color: var(--red); box-shadow: 0 0 0 2px rgba(227,7,20,.12); }
+.newplan .np-copybtn { width: 100%; padding: 9px 12px; border: 1px solid var(--line2); border-radius: 8px; background: var(--head); color: var(--ink2); font-weight: 600; cursor: pointer; }
+.newplan .np-copybtn:hover { background: var(--hover); }
+.newplan .np-copy { display: flex; flex-direction: column; gap: 4px; margin-top: 6px; max-height: 240px; overflow: auto; }
+.newplan .np-copy:empty { display: none; }
+.newplan .np-src { display: flex; align-items: center; gap: 8px; text-align: left; padding: 7px 10px; border: 1px solid var(--line); border-radius: 7px; background: var(--card); cursor: pointer; }
+.newplan .np-src:hover { border-color: var(--line2); background: var(--hover); }
+.newplan .np-src .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }

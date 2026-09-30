@@ -31,7 +31,7 @@ const URL = T.URL;
   log('Neue Maßnahme:', await p.evaluate(id => { const x = C.byId.get(id); return [x.m.name, x.m.farbe, fmtW(x.s), fmtW(x.i), fmtW(x.pal)]; }, nid));
   // Detailplan aus Vorlage für die neue Maßnahme
   await p.evaluate(id => { createPlan(id); }, nid); await p.waitForTimeout(100);
-  await p.click('.modal footer button.primary'); await p.waitForTimeout(200);
+  await p.click('.modal .tpl-complex'); await p.waitForTimeout(200);
   log('Plan angelegt, Ansicht:', await p.evaluate(() => UI.view + ' ' + UI.planSel), 'S/I:', await p.evaluate(id => { const x = C.byId.get(id); return fmtW(x.s) + ' / ' + fmtW(x.i) + ' / vS ' + x.vS; }, nid));
   // Anker ändern: Thema definieren endet am PAL -40
   { const pal = await p.evaluate(id => C.byId.get(id).pal, nid); const v = await p.evaluate(n => ds(n - 40), pal);

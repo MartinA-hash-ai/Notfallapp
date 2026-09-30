@@ -101,46 +101,84 @@ function phasePlan(pal, starts) {
   steps.push(goal);
   return { steps, marks: {} };
 }
+// Detailplan anlegen: PAL (Pflicht), Starts der Bereiche als Datum oder als Werktage bis zum PAL, dann Einfach / Komplex / Kopie
 async function createPlan(id) {
   const x = C.byId.get(id); if (!x) return;
   const others = C.ms.filter(o => o.m.plan && o.id !== id);
-  const pal0 = dn(x.m.pal);
-  const f = { src: 'mailing', pal: x.m.pal || '', st: {} };
-  for (const p of PH()) f.st[p.key] = x.st[p.key] != null ? ds(x.st[p.key]) : '';   // leer = wie in der Vorlage
-  const row = (label, inp) => h('label', { class: 'frow' }, h('span', null, label), inp);
-  const ok = await modal('Detailplan anlegen für „' + x.m.name + '“', h('div', { class: 'form' },
-    h('p', null, 'Die Arbeitsschritte werden rückwärts vom PAL aus geplant. Jeder Abschnitt kann einem Bereich (' + PH().map(p => p.key + ' ' + p.name).join(', ') + ') zugeordnet werden – dessen Start erscheint dann im Kalender.'),
-    h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', checked: true, onchange: () => { f.src = 'mailing'; } }), 'Vorlage Mailing (Schritte wie Sommer-/Weihnachtsmailing)'),
-    h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { f.src = 'bereiche'; } }), 'Vorlage Bereiche: je Bereich ein Abschnitt (' + PH().map(p => p.name).join(', ') + ', dann PAL) – zum Ausbauen'),
-    others.map(o => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'src', onchange: () => { f.src = o.id; } }), 'Kopie des Plans von „' + o.m.name + '“')),
-    row('PAL (Briefkasten)', h('input', { type: 'date', value: f.pal, oninput: e => { f.pal = e.target.value; } })),
-    PH().map(p => row(startLabel(p.key), h('input', { type: 'date', value: f.st[p.key], oninput: e => { f.st[p.key] = e.target.value; } })))),
-    [['Abbrechen', false], ['Anlegen', true, 'primary']]);
-  if (!ok) return;
+  // src[k]: womit der Start angegeben wurde – 'date', 'wt' oder 'pre' (von der Maßnahme übernommen, wandert mit dem PAL mit)
+  const f = { pal: dn(x.m.pal), st: {}, src: {}, off: {} };
+  for (const p of PH()) if (x.st[p.key] != null && x.pal != null) { f.st[p.key] = x.st[p.key]; f.src[p.key] = 'pre'; f.off[p.key] = x.pal - x.st[p.key]; }
+  const palIn = dateInputPlain(f.pal, 'np:pal', v => { f.pal = v; for (const p of PH()) sync(p.key); msg.textContent = ''; palIn.classList.remove('bad'); });
+  const dIn = {}, wIn = {};
+  const sync = k => {                                                // Datum ↔ Werktage abgleichen
+    if (f.pal == null) return;
+    if (f.src[k] === 'wt' && isNum(wIn[k].value)) { f.st[k] = dateForWT(f.pal, Math.round(+wIn[k].value)); dIn[k].value = ds(f.st[k]); }
+    else if (f.src[k] === 'pre') { f.st[k] = f.pal - f.off[k]; dIn[k].value = ds(f.st[k]); wIn[k].value = workdaysBefore(f.st[k], f.pal); }
+    else if (f.st[k] != null) wIn[k].value = workdaysBefore(f.st[k], f.pal);
+  };
+  for (const p of PH()) {
+    dIn[p.key] = dateInputPlain(f.st[p.key], 'np:' + p.key, v => { f.st[p.key] = v; f.src[p.key] = v == null ? null : 'date'; if (v == null) wIn[p.key].value = ''; sync(p.key); });
+    wIn[p.key] = h('input', { type: 'number', min: 0, max: 400, placeholder: '–', 'data-fk': 'np:' + p.key + ':wt',
+      oninput: e => { if (e.target.value === '') { f.src[p.key] = null; f.st[p.key] = null; dIn[p.key].value = ''; return; } f.src[p.key] = 'wt'; sync(p.key); } });
+    sync(p.key);
+  }
+  const msg = h('div', { class: 'np-msg' });
+  let close = null, showCopy = false;
+  const copyBox = h('div', { class: 'np-copy' });
+  const pick = (kind, src) => {
+    if (f.pal == null) { msg.textContent = 'Bitte zuerst den PAL eintragen – er ist Pflicht.'; palIn.classList.add('bad'); palIn.focus(); return; }
+    const late = PH().find(p => f.st[p.key] != null && f.st[p.key] > f.pal);
+    if (late) { msg.textContent = startLabel(late.key) + ' liegt nach dem PAL – bitte prüfen.'; return; }
+    close({ kind, src });
+  };
+  const drawCopy = () => setKids(copyBox, showCopy ? (others.length ? others.map(o => h('button', { class: 'np-src', onclick: () => pick('copy', o.id) },
+    h('span', { class: 'dot', style: { background: o.color } }), o.m.name, h('span', { class: 'muted small' }, ' · PAL ' + (o.pal != null ? fmtD(o.pal) : '–') + ' · ' + o.m.plan.steps.filter(s => s.typ !== 'gruppe').length + ' Schritte')))
+    : h('p', { class: 'muted small' }, 'Es gibt noch keinen anderen Detailplan.')) : null);
+  const body = h('div', { class: 'form newplan' },
+    h('div', { class: 'np-grid' },
+      h('span', { class: 'np-lab' }, h('b', null, 'PAL'), ' ', h('span', { class: 'chip demo P' }, 'P'), h('small', null, 'Pflicht')), palIn, h('span'), h('span'),
+      h('span'), h('span', { class: 'muted small' }, 'Datum'), h('span'), h('span', { class: 'muted small' }, 'Werktage bis PAL'),
+      PH().map(p => [h('span', { class: 'np-lab' }, startLabel(p.key), ' ', h('span', { class: 'chip demo ph' }, p.key)), dIn[p.key], h('span', { class: 'muted small' }, 'oder'),
+        h('span', { class: 'wtbox' }, wIn[p.key], h('span', { class: 'unit' }, 'WT'))])),
+    h('p', { class: 'muted small' }, 'Leer gelassene Starts übernimmt die App aus der Vorlage. Die Arbeitsschritte werden rückwärts vom PAL aus geplant.'),
+    msg,
+    h('div', { class: 'np-choice' },
+      h('button', { class: 'np-big tpl-simple', onclick: () => pick('bereiche') }, h('b', null, 'Einfach'), h('span', null, 'nur die Bereiche: ' + PH().map(p => p.name).join(', ') + ' – dann PAL')),
+      h('button', { class: 'np-big tpl-complex', onclick: () => pick('mailing') }, h('b', null, 'Komplex'), h('span', null, 'Aufbau wie Sommer-/Weihnachtsmailing: alle Arbeitsschritte, ohne Personen'))),
+    h('button', { class: 'np-copybtn tpl-copy', onclick: () => { showCopy = !showCopy; drawCopy(); } }, 'Kopie aus vorherigem Plan …'),
+    copyBox);
+  const res = await modal('Detailplan anlegen für „' + x.m.name + '“', body, [['Abbrechen', false]], { wide: true, expose: c => { close = c; } });
+  if (!res || !res.kind) return;
   let info = [];
   commit(d => {
-    const m = findM(d, id);
+    const m = findM(d, id), pal = f.pal;
+    const starts = Object.fromEntries(PH().map(p => [p.key, f.st[p.key]]).filter(([, v]) => v != null));
     let plan;
-    const pal = dn(f.pal || m.pal), starts = Object.fromEntries(PH().map(p => [p.key, dn(f.st[p.key])]).filter(([, v]) => v != null));
-    if (f.src === 'mailing') plan = migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key));
-    else if (f.src === 'bereiche') plan = phasePlan(pal, Object.assign(Object.fromEntries(PH().filter(p => pal != null && isNum(p.vorlauf)).map(p => [p.key, pal - p.vorlauf])), starts));
-    else { const src = findM(d, f.src).plan; plan = JSON.parse(JSON.stringify(src)); }
+    if (res.kind === 'mailing') {
+      plan = migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key));
+      plan.steps.forEach(s => { s.wer = ''; });                                              // ohne Zugehörigkeiten
+    } else if (res.kind === 'bereiche') plan = phasePlan(pal, Object.assign(Object.fromEntries(PH().filter(p => isNum(p.vorlauf)).map(p => [p.key, pal - p.vorlauf])), starts));
+    else {
+      const srcM = findM(d, res.src), sp = dn(srcM.pal);
+      plan = JSON.parse(JSON.stringify(srcM.plan));
+      if (sp != null) plan.steps.forEach(s => { if (s.anker && s.anker.art === 'fest' && dn(s.anker.datum) != null) s.anker.datum = ds(dn(s.anker.datum) + (pal - sp)); });   // feste Termine mitverschieben
+    }
     plan.marks = plan.marks || {};
     plan.steps.forEach(s => { s.fortschritt = 0; });
-    if (f.src !== 'mailing' && f.src !== 'bereiche') {      // Kopie: feste Termine um den PAL-Abstand verschieben
-      const sp = dn(findM(d, f.src).pal);
-      if (sp != null && pal != null) plan.steps.forEach(s => { if (s.anker && s.anker.art === 'fest' && dn(s.anker.datum) != null) s.anker.datum = ds(dn(s.anker.datum) + (pal - sp)); });
-    }
     m.plan = plan;
-    if (f.pal) m.pal = f.pal;
+    m.pal = ds(pal);
     // vom PAL aus rückwärts anpassen (spätester Bereich zuerst), sonst verschiebt ein späterer Bereich die früheren wieder
-    if (f.src !== 'bereiche' && dn(m.pal) != null) for (const k of Object.keys(starts).sort((a, b) => starts[b] - starts[a])) {
+    if (res.kind !== 'bereiche') for (const k of Object.keys(starts).sort((a, b) => starts[b] - starts[a])) {
       const r = adjustMark(m, k, starts[k]);
       if (r && r.changed.length) info = info.concat(r.changed);
     }
   }, 'Detailplan angelegt');
   if (info.length) toast('Angepasst: ' + info.map(([n, a, b]) => n + ' ' + a + ' → ' + b + ' Tage').join(', '));
   UI.view = 'plaene'; UI.planSel = id; renderNow();
+}
+// Datumsfeld für Dialoge: meldet die Tagesnummer (oder null) bei jeder gültigen Änderung
+function dateInputPlain(n, fk, onValue) {
+  return h('input', { type: 'date', value: n != null ? ds(n) : '', 'data-fk': fk, oninput: e => onValue(dn(e.target.value)) });
 }
 async function removePlan(id) {
   const x = C.byId.get(id);

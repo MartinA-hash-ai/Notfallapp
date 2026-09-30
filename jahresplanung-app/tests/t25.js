@@ -20,14 +20,14 @@ const { chromium, T, ORIG, ok, open, finish, fs } = require('./lib');
   ok(r2[0] === '01.04.' && r2[1] === '01.04.' && r2[2], 'B: Start Produktion 01.04. – Inhalt endet dort, D im Kalender');
 
   // ---- C: Werktage-Ansicht in der Tabelle
-  await p.click('.sec[data-sec="mass"] .seg-btn:has-text("Werktage")'); await p.waitForTimeout(150);
+  await p.click('.sec[data-sec="mass"] .vswitch .vs-track'); await p.waitForTimeout(150);
   const wt = await p.evaluate(id => { const x = C.byId.get(id), i = document.querySelector('[data-fk="m:' + id + ':S:wt"]'); return [i && +i.value, workdaysBefore(x.st.S, x.pal), document.querySelector('tr[data-m="' + id + '"] td.pal input[type=date]') ? 1 : 0]; }, id);
   ok(wt[0] === wt[1] && wt[2] === 1, 'C: Start Selektion als ' + wt[0] + ' Werktage bis PAL, PAL bleibt Datum');
   const inp = p.locator(`[data-fk="m:${id}:S:wt"]`);
   await inp.fill('40'); await inp.press('Enter'); await p.waitForTimeout(200);
   const w40 = await p.evaluate(id => { const x = C.byId.get(id); return [workdaysBefore(x.st.S, x.pal), isWorkday(x.st.S)]; }, id);
   ok(w40[0] === 40 && w40[1], 'C: 40 Werktage eingetippt → Start liegt auf einem Arbeitstag mit genau 40 Werktagen bis PAL');
-  await p.click('.sec[data-sec="mass"] .seg-btn:has-text("Datum")'); await p.waitForTimeout(150);
+  await p.click('.sec[data-sec="mass"] .vswitch .vs-lab:has-text("Datum")'); await p.waitForTimeout(150);
   ok(await p.evaluate(id => !!document.querySelector('[data-fk="m:' + id + ':S"][type=date]'), id), 'C: Umschalter „Datum“ zeigt wieder Datumsfelder');
 
   // ---- D: Urlaubshinweis, wenn jemand aus einem Bereich des Detailplans Urlaub hat
@@ -66,8 +66,7 @@ const { chromium, T, ORIG, ok, open, finish, fs } = require('./lib');
   // ---- G: Detailplan-Vorlage „Bereiche“ und Bereich am Abschnitt ändern
   const lp = await p.evaluate(() => C.ms.find(x => !x.m.plan && x.pal != null && x.m.name !== 'Projekt-Update 1').id);
   await p.evaluate(id => { createPlan(id); }, lp); await p.waitForTimeout(150);
-  await p.click('.modal label:has-text("Vorlage Bereiche") input');
-  await p.click('.modal button:has-text("Anlegen")'); await p.waitForTimeout(250);
+  await p.click('.modal .tpl-simple'); await p.waitForTimeout(250);
   const g = await p.evaluate(id => { const x = C.byId.get(id); return [x.m.plan.steps.filter(s => s.typ === 'gruppe').map(s => s.bereich).join(''), ['S', 'I', 'D'].every(k => x.st[k] != null), x.m.plan.steps.some(s => s.typ === 'ziel')]; }, lp);
   ok(g[0] === 'SID' && g[1] && g[2], 'G: Vorlage Bereiche: Abschnitte ' + g[0] + ' mit Starts, Briefkasten-Termin als Ziel');
   const gid = await p.evaluate(id => C.byId.get(id).m.plan.steps.find(s => s.bereich === 'D').id, lp);

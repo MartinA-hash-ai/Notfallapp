@@ -75,32 +75,48 @@ const mcols = () => [
   { k: 'status', w: 84, t: 'PAL-Status' }, { k: 'art', w: 66, t: 'Bitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
   { k: 'warns', w: 34, fixed: true }, { k: 'acts', w: 34, fixed: true }];
 const colKey = c => c.phase ? c.k + (wtView() ? ':wt' : '') : c.k;
-const colW = c => (UI.colW && UI.colW[colKey(c)]) || c.w;
+const colW = c => c.flex ? 0 : (UI.colW && UI.colW[colKey(c)]) || c.w;   // Hinweis nimmt immer den Rest
 function tableWidth() { return mcols().reduce((s, c) => s + (colW(c) || c.flex || 0), 0); }
-function startViewToggle() {
-  const b = (v, label, tip) => h('button', { class: 'seg-btn' + ((UI.startView || 'date') === v ? ' on' : ''), tip, onclick: () => { UI.startView = v; saveUI(); renderNow(); } }, label);
-  return h('span', { class: 'segs', tip: 'Starts der Bereiche als Datum oder als Werktage bis zum PAL anzeigen' },
-    b('date', '📅 Datum', 'Starts als Datum'), b('wt', '⏱ Werktage', 'Starts als Werktage bis zum PAL (das PAL bleibt ein Datum)'));
+// Kopfzeile der Bereiche: „Start der“ / „Selektion“ in zwei Zeilen (eigene Bereiche: „Start“ / Name)
+const PH_HEAD = { Selektion: ['Start der', 'Selektion'], Inhalt: ['Start des', 'Inhalts'], Produktion: ['Start der', 'Produktion'] };
+const phHead = p => PH_HEAD[p.name] || ['Start', p.name];
+// Schalter über den Spalten der Bereiche: links Datum, rechts Werktage bis zum PAL
+function viewSwitch() {
+  const on = wtView(), set = v => { UI.startView = v; saveUI(); renderNow(); };
+  return h('div', { class: 'vswitch' + (on ? ' on' : ''), tip: 'Starts der Bereiche als Datum oder als Werktage bis zum PAL anzeigen (das PAL bleibt ein Datum)' },
+    h('button', { class: 'vs-lab' + (on ? '' : ' act'), onclick: () => set('date') }, 'Datum'),
+    h('button', { class: 'vs-track', role: 'switch', 'aria-checked': String(on), 'aria-label': 'zwischen Datum und Werktagen umschalten', onclick: () => set(on ? 'date' : 'wt') }, h('span', { class: 'vs-knob' })),
+    h('button', { class: 'vs-lab' + (on ? ' act' : ''), onclick: () => set('wt') }, 'Werktage'));
 }
+// Spaltenbreite ziehen: nur diese Spalte und ihre rechte Nachbarin ändern sich, alle anderen bleiben stehen.
+// Die Breiten werden im Browser gespeichert und gelten auch nach Neustart und Programm-Update.
 function colResize(ev, c) {
   ev.preventDefault(); ev.stopPropagation();
-  const th = ev.currentTarget.parentElement, col = $('col[data-k="' + c.k + '"]'), table = th.closest('table'), ck = colKey(c);
-  const w0 = th.getBoundingClientRect().width, x0 = ev.clientX;
+  const COLS = mcols(), table = ev.currentTarget.closest('table'), cols = $$('col', table), i = COLS.findIndex(q => q.k === c.k);
+  const ths = $$('thead tr:last-child th', table), widths = ths.map(t => Math.round(t.getBoundingClientRect().width));
+  let j = i + 1; while (j < COLS.length && COLS[j].fixed) j++;
+  if (j >= COLS.length) j = -1;
+  const minOf = k => COLS[k].flex || 40;
+  const keep = JSON.parse(JSON.stringify(UI.colW || {})), x0 = ev.clientX, w0 = widths[i], wn0 = j >= 0 ? widths[j] : 0, total = widths.reduce((a, b) => a + b, 0);
+  widths.forEach((w, k) => { cols[k].style.width = w + 'px'; });   // Stand einfrieren – so verrutscht beim Ziehen nichts
+  table.style.width = total + 'px';
   document.body.classList.add('dragging', 'resizing');
+  let dx = 0;
   const move = e => {
-    const w = Math.max(40, Math.round(w0 + e.clientX - x0));
-    col.style.width = w + 'px';
-    UI.colW = Object.assign({}, UI.colW, { [ck]: w });
-    table.style.width = 'max(100%, ' + tableWidth() + 'px)';
+    dx = Math.round(e.clientX - x0);
+    dx = Math.max(minOf(i) - w0, j >= 0 ? Math.min(dx, Math.max(0, wn0 - minOf(j))) : dx);
+    cols[i].style.width = (w0 + dx) + 'px';
+    if (j >= 0) cols[j].style.width = (wn0 - dx) + 'px'; else table.style.width = (total + dx) + 'px';
   };
-  const w1 = UI.colW && UI.colW[ck];
   dragSession(ev, ev.currentTarget, move, okay => {
     document.body.classList.remove('dragging', 'resizing');
-    if (!okay) {                                  // abgebrochen: alte Breite zurück
-      UI.colW = Object.assign({}, UI.colW); if (w1) UI.colW[ck] = w1; else delete UI.colW[ck];
-      col.style.width = (colW(c) || c.flex || 0) + 'px'; table.style.width = 'max(100%, ' + tableWidth() + 'px)';
+    if (!okay || !dx) {                                                 // abgebrochen oder nur geklickt: alte Breiten zurück
+      UI.colW = keep; COLS.forEach((q, k) => { cols[k].style.width = colW(q) ? colW(q) + 'px' : ''; });
+      table.style.width = 'max(100%, ' + tableWidth() + 'px)'; return;
     }
-    saveUI();
+    const nw = Object.assign({}, UI.colW);
+    COLS.forEach((q, k) => { if (q.flex) delete nw[colKey(q)]; else if (!q.fixed) nw[colKey(q)] = Math.round(parseFloat(cols[k].style.width)); });
+    UI.colW = nw; saveUI(); renderNow();
   });
 }
 function setStartDate(id, key, v) {
@@ -135,7 +151,7 @@ function massnahmenSection() {
       const lines = w.concat(pv.map(({ s, v }) => s.wer + ': Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis) + ' („' + s.name + '“)'));
       const warnIcon = lines.length ? h('span', { class: 'wi' + (pv.length ? ' vac' : ''), tip: (pv.length ? 'Urlaub im Bereich ' + phName(key) + ':\n' : '') + lines.join('\n') }, pv.length ? '🏖' : '⚠') : null;
       const tipDate = n != null ? startLabel(key) + ': ' + fmtW(n) + (x.pal != null ? ' · ' + workdaysBefore(n, x.pal) + ' Werktage vor PAL' : '') + (x.enx[key] != null ? ' · bis ' + fmtW(x.en[key]) : '') : null;
-      const cellCls = 'date' + (wtView() ? ' wt' : '');
+      const pi = PH().findIndex(q => q.key === key), cellCls = 'date ph' + (wtView() ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === PH().length - 1 ? ' ph-last' : '');
       if (m.plan && !startMovable(x, key)) return h('td', { class: cellCls + ' derived-date', tip: 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' }, h('span', { class: 'muted' }, '–'));
       if (x.pal == null) return h('td', { class: cellCls }, h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–'), warnIcon);
       const inp = wtView()
@@ -164,23 +180,27 @@ function massnahmenSection() {
   }
   const nWarn = C.warnings.filter(w => w.mid && rows.some(x => x.id === w.mid) && w.lvl === 'warn').length;
   const COLS = mcols();
-  const ths = COLS.map(c => h('th', { class: 'h-' + c.k + (c.phase ? ' h-ph' : ''), tip: c.tip || null },
+  const phs = PH(), nBefore = COLS.findIndex(c => c.phase), nAfter = COLS.length - nBefore - phs.length;
+  const ths = COLS.map(c => h('th', { class: 'h-' + c.k + (c.phase ? ' h-ph' + (c.phase === phs[0].key ? ' ph-first' : '') + (c.phase === phs[phs.length - 1].key ? ' ph-last' : '') : ''), tip: c.tip || null },
     c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(visibleM), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
       onchange: e => { rows.forEach(x => e.target.checked ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) :
+    c.phase ? [h('span', { class: 'th2' }, h('small', null, phHead(phase(c.phase))[0]), h('span', null, phHead(phase(c.phase))[1], h('span', { class: 'chip demo ph' }, c.chip))),
+      h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c), ondblclick: () => { if (UI.colW) delete UI.colW[colKey(c)]; saveUI(); renderNow(); } })] :
     [c.t || '', c.chip ? h('span', { class: 'chip demo ' + (c.chip === 'P' ? 'P' : 'ph') }, c.chip) : null,
      c.fixed ? null : h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c),
        ondblclick: () => { if (UI.colW) delete UI.colW[colKey(c)]; saveUI(); renderNow(); } })]));
   return {
     summary: rows.length + ' Maßnahmen' + (nWarn ? ' · ⚠ ' + nWarn : ''),
     tools: [
-      startViewToggle(),
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.allYears, onchange: e => { UI.allYears = e.target.checked; renderNow(); } }), 'alle Jahre'),
       h('button', { class: 'ghostbtn', onclick: copyToNextYear }, 'Ins Folgejahr kopieren …'),
       h('button', { class: 'primary', onclick: () => addMassnahme(y) }, '+ Maßnahme')],
     body: [personList(),
       h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable', style: { width: 'max(100%, ' + tableWidth() + 'px)' } },
         h('colgroup', null, COLS.map(c => h('col', { dataset: { k: c.k }, style: colW(c) ? { width: colW(c) + 'px' } : null }))),
-        h('thead', null, h('tr', null, ths)), tb)),
+        h('thead', null,
+          phs.length ? h('tr', { class: 'grouprow' }, nBefore ? h('th', { colspan: nBefore }) : null, h('th', { class: 'gr-ph', colspan: phs.length }, viewSwitch()), nAfter ? h('th', { colspan: nAfter }) : null) : null,
+          h('tr', null, ths)), tb)),
       !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
         C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null],
   };

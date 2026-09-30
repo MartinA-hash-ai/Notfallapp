@@ -19,8 +19,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(th[0] === 'PAL-Status' && th[1] === '0px', 'Kopf „PAL-Status“ ohne runde Ecken ' + JSON.stringify(th));
   const al = await p.evaluate(() => getComputedStyle(document.querySelector('.mtable td.num input')).textAlign);
   ok(al === 'left' || al === 'start', 'Auflage linksbündig: ' + al);
-  const ord = await p.evaluate(() => { const t = document.querySelector('.mtable th.h-ph_S'); return [...t.childNodes].map(n => n.nodeType === 3 ? 'T:' + n.textContent : n.className).join(' | '); });
-  ok(/^T:Selektion \| chip demo ph/.test(ord), 'Symbol rechts von der Beschriftung: ' + ord);
+  const ord = await p.evaluate(() => { const t = document.querySelector('.mtable th.h-ph_S .th2'); return [t.children[0].textContent, [...t.children[1].childNodes].map(n => n.nodeType === 3 ? 'T:' + n.textContent : n.className).join(' | ')]; });
+  ok(ord[0] === 'Start der' && /^T:Selektion \| chip demo ph/.test(ord[1]), 'Kopf zweizeilig „' + ord[0] + '“ / ' + ord[1] + ' – Symbol rechts');
   const palBg = await p.evaluate(() => {
     const x = C.ms[0]; commit(d => { d.massnahmen.find(m => m.id === x.id).palStatus = 'fest'; }); renderNow();
     const td = document.querySelector('tr[data-m="' + x.id + '"] td.pal'), td2 = document.querySelector('tr[data-m="' + C.ms[1].id + '"] td.pal');
@@ -100,12 +100,11 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   // Vorlage „Bereiche“ mit S und I
   const lp = await p.evaluate(() => C.ms.find(x => !x.m.plan && x.pal != null).id);
   await p.evaluate(id => { createPlan(id); }, lp); await p.waitForTimeout(150);
-  await p.click('.modal label:has-text("Vorlage Bereiche") input');
   const md = await p.$$('.modal input[type=date]');
   const palv = await md[0].inputValue();
   const tS = await p.evaluate(v => ds(dn(v) - 60), palv), tI = await p.evaluate(v => ds(dn(v) - 40), palv);
   await md[1].fill(tS); await md[1].dispatchEvent('input'); await md[2].fill(tI); await md[2].dispatchEvent('input');
-  await p.click('.modal button:has-text("Anlegen")'); await p.waitForTimeout(250);
+  await p.click('.modal .tpl-simple'); await p.waitForTimeout(250);
   const lpr = await p.evaluate(id => { const x = C.byId.get(id); return [ds(x.s), ds(x.i), x.m.plan.steps.length, x.m.plan.steps.map(s => s.name).join(',')]; }, lp);
   ok(lpr[0] === tS && lpr[1] === tI, 'Vorlage Bereiche übernimmt S/I: ' + JSON.stringify(lpr));
   await p.screenshot({ path: 'r7_plan_leer.png', clip: { x: 0, y: 0, width: 1600, height: 460 } });

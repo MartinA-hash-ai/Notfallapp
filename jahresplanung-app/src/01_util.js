@@ -246,8 +246,9 @@ function modal(title, body, buttons, opts = {}) {
     const box = h('div', { class: 'modal' + (opts.wide ? ' wide' : ''), role: 'dialog', 'aria-modal': 'true' },
       h('header', null, h('h2', null, title), h('button', { class: 'icon', 'aria-label': 'Schließen', onclick: () => close(null) }, '✕')),
       h('div', { class: 'modal-body' }, body),
-      h('footer', null, (buttons || [['OK', true, 'primary']]).map(([label, val, cls]) => h('button', { class: cls || '', onclick: () => close(typeof val === 'function' ? val() : val) }, label))));
+      h('footer', null, (buttons || [['OK', true, 'primary']]).filter(Boolean).map(([label, val, cls]) => h('button', { class: cls || '', onclick: () => close(typeof val === 'function' ? val() : val) }, label))));
     const back = h('div', { class: 'backdrop', onmousedown: e => { if (e.target === back && e.detail < 2 && Date.now() - opened > 400) close(null); } }, box);
+    if (opts.expose) opts.expose(close);                 // Knöpfe im Inhalt können das Fenster mit einem Ergebnis schließen
     document.body.append(back);
     document.addEventListener('keydown', key);
     const f = box.querySelector('input,select,textarea,footer button.primary');
