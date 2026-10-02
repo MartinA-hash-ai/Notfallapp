@@ -335,7 +335,7 @@ VIEW_FN.plaene = main => {
     cand.length ? h('span', { class: 'pnew' }, h('select', { onchange: e => { newFor = e.target.value; } }, cand.map(x => h('option', { value: x.id }, x.m.name))),
       h('button', { onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
-    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten im selben Abschnitt. Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; Strg+Klick auf ein farbiges Datum löst eine Verknüpfung. Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
+    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten im selben Abschnitt. Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);
   if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan vorhanden. Oben eine Maßnahme wählen und „Detailplan anlegen“.')); return; }
   const m = x.m, p = m.plan, pc = x.pc, today = todayDn(), compact = !!UI.planCompact;
@@ -505,6 +505,7 @@ VIEW_FN.plaene = main => {
     compact ? null : [h('div', { class: 'c-typ' }, 'Typ'), h('div', { class: 'c-wer' }, 'Zugeordnet'), h('div', { class: 'c-kom' }, 'Kommentar'), h('div', { class: 'c-dur' }, 'Dauer'),
       h('div', { class: 'c-date' }, 'Beginn'), h('div', { class: 'c-date' }, 'Ende')], h('div', { class: 'c-acts' }));
   const gantt = h('div', { class: 'pl-gantt', 'data-keep-scroll': 'plg' }, h('div', { style: { width: W + 'px' } }, ghead, h('div', { class: 'g-body' }, gbg, grows)));
+  gantt.addEventListener('pointerdown', e => jointDown(e, m.id), true);   // Strg auf einem Punkt: lösen/verknüpfen
   tlPan(gantt);
   planWheel(gantt, a0, fitP);
   UI._pl = { a0, pxd };
@@ -711,9 +712,10 @@ function linkSteps(mid, a, b) {
     stepName(p, b) + ' beginnt nach ' + stepName(p, a));
 }
 function unlinkSteps(mid, pairs) {                // [[Vorgänger, Nachfolger], …] – Termine bleiben
+  const p = C.byId.get(mid).m.plan;
   commit(d => { const m = findM(d, mid), map = planCalc(m).map, pal = dn(m.pal);
     for (const [a, b] of pairs) { const q = m.plan.steps.find(s => s.id === b); if (q && predsOf(q).includes(a)) setPreds(q, predsOf(q).filter(id => id !== a), map.get(b), map, pal); } },
-    pairs.length > 1 ? pairs.length + ' Verknüpfungen gelöst' : 'Verknüpfung gelöst');
+    (pairs.length > 1 ? pairs.length + ' Verknüpfungen gelöst' : 'Verknüpfung ' + stepName(p, pairs[0][0]) + ' → ' + stepName(p, pairs[0][1]) + ' gelöst') + ' – Strg+Z macht es rückgängig');
 }
 // Datumsfeld eines Schritts: Beginn (Aufgabe) bzw. das eine Datum (Meilenstein)
 function dateField(p, id, as) { const s = p.steps.find(q => q.id === id); return s ? $('.pl-table [data-fk="' + CSS.escape('st:' + id + ':' + (as === 'start' && s.typ === 'aufgabe' ? 'start' : 'end')) + '"]') : null; }
@@ -751,8 +753,10 @@ function linkHl(mid, sid, f) {
   }
 }
 // Gelenke im Gantt: Punkt am Ende des Vorgängers und am Beginn des Nachfolgers, feine gepunktete Verbindung
+let LINK_PTS = null;                              // Punkte der Gelenke im Gantt (relativ zum Gantt-Inhalt)
 function drawLinks() {
   const body = $('.pl-gantt .g-body'), x = C.byId.get(UI.planSel);
+  LINK_PTS = null;
   if (!body || UI.printing || !x || !x.m.plan) return;
   $$('svg.g-links', body).forEach(e => e.remove());
   const bb = body.getBoundingClientRect(), pt = new Map();
@@ -761,8 +765,10 @@ function drawLinks() {
     pt.set(e.dataset.sid, { bar, s: bar ? r.left - bb.left : c, e: bar ? r.right - bb.left : c, y });
   }
   let out = '';
+  LINK_PTS = { body, list: [] };
   for (const q of x.m.plan.steps) for (const a of predsOf(q)) {
     const A = pt.get(a), B = pt.get(q.id); if (!A || !B) continue;
+    LINK_PTS.list.push({ a, b: q.id, pa: { x: A.e, y: A.y }, pb: { x: B.s, y: B.y } });
     out += '<g class="lnk" data-a="' + escAttr(a) + '" data-b="' + escAttr(q.id) + '"><path d="M' + A.e + ' ' + A.y + ' L' + B.s + ' ' + B.y + '"/>' +
       (A.bar ? '<circle cx="' + A.e + '" cy="' + A.y + '" r="3"/>' : '') + (B.bar ? '<circle cx="' + B.s + '" cy="' + B.y + '" r="3"/>' : '') + '</g>';
   }
@@ -825,22 +831,44 @@ function linkDrag(ev, mid, sid, role) {
     $$('.lktarget, .lkhot, .lksrc').forEach(e => e.classList.remove('lktarget', 'lkhot', 'lksrc'));
     if (!okay) return;
     if (hot) { linkSteps(mid, hot.pair[0], hot.pair[1]); return; }
-    if (!moved) { const at = src || g0; setTimeout(() => linkMenu(mid, sid, role, at), 0); }   // Strg+Klick: Verknüpfungen dieses Datums lösen
+    if (!moved) { const at = ev.target && ev.target.closest && ev.target.closest('.pl-gantt') ? { x: ev.clientX, y: ev.clientY } : src || g0; setTimeout(() => linkMenu(mid, sid, role, at), 0); }   // Strg+Klick: lösen
   };
   dragSession(ev, null, move, end);
   move(ev);
 }
+// Strg+Klick auf ein verknüpftes Datum oder einen Punkt im Gantt: eine Verknüpfung → gleich lösen, mehrere → Auswahl an der Stelle
 function linkMenu(mid, sid, role, at) {
   const p = C.byId.get(mid).m.plan, s = p.steps.find(q => q.id === sid); if (!s) return;
   const pairs = linkPairs(p, s, role);
   if (!pairs.length) { toast(role === 'start' ? 'Mit Strg vom Ende eines anderen Schritts hierher ziehen, um zu verknüpfen.' : 'Mit Strg von hier auf den Beginn eines anderen Schritts ziehen, um zu verknüpfen.'); return; }
+  pairMenu(mid, pairs, at);
+}
+function pairMenu(mid, pairs, at) {
+  const p = C.byId.get(mid).m.plan;
   closeMenu();
-  const items = pairs.map(pr => ['Verknüpfung mit ' + stepName(p, pr[0] === sid ? pr[1] : pr[0]) + ' lösen', () => unlinkSteps(mid, [pr])]);
-  if (pairs.length > 1) items.push(null, ['Alle ' + pairs.length + ' lösen', () => unlinkSteps(mid, pairs)]);
-  const mn = h('div', { class: 'menu', role: 'menu' }, items.map(it => it ? h('button', { role: 'menuitem', onclick: () => { closeMenu(); it[1](); } }, it[0]) : h('hr')));
+  if (pairs.length === 1) { unlinkSteps(mid, pairs); return; }
+  const items = pairs.map(pr => [stepName(p, pr[0]) + ' → ' + stepName(p, pr[1]) + ' lösen', () => unlinkSteps(mid, [pr])]);
+  items.push(null, ['Alle ' + pairs.length + ' lösen', () => unlinkSteps(mid, pairs)]);
+  const mn = h('div', { class: 'menu', role: 'menu' }, h('div', { class: 'menu-head' }, 'Welche Verknüpfung lösen?'), items.map(it => it ? h('button', { role: 'menuitem', onclick: () => { closeMenu(); it[1](); } }, it[0]) : h('hr')));
   document.body.append(mn);
-  placeMenu(mn, (at || document.body).getBoundingClientRect(), 'left');
+  placeMenu(mn, at && at.getBoundingClientRect ? at.getBoundingClientRect() : at ? { left: at.x, right: at.x, top: at.y, bottom: at.y } : document.body.getBoundingClientRect(), 'left');
   _openMenu = { m: mn, btn: null, at: performance.now() };
+}
+// Strg im Gantt auf einem Punkt (Gelenk): Klick löst, Ziehen verknüpft von dort aus neu
+function jointDown(ev, mid) {
+  if (!(ev.ctrlKey || ev.metaKey) || ev.button !== 0 || !LINK_PTS) return;
+  const bb = LINK_PTS.body.getBoundingClientRect(), x = ev.clientX - bb.left, y = ev.clientY - bb.top;
+  let best = null;
+  for (const l of LINK_PTS.list) for (const [k, pt] of [['a', l.pa], ['b', l.pb]]) {
+    const d = Math.hypot(pt.x - x, pt.y - y); if (d <= 7 && (!best || d < best.d)) best = { d, key: k === 'a' ? l.a + ':end' : l.b + ':start', sid: k === 'a' ? l.a : l.b, f: k === 'a' ? 'end' : 'start' };
+  }
+  if (!best) return;                                  // kein Punkt getroffen: normaler Balken (Strg+Ziehen verknüpft)
+  ev.preventDefault(); ev.stopPropagation(); hideTip();
+  const pairs = LINK_PTS.list.filter(l => l.a + ':end' === best.key || l.b + ':start' === best.key).map(l => [l.a, l.b]);
+  const p = C.byId.get(mid).m.plan, s = p.steps.find(q => q.id === best.sid);
+  let moved = false;
+  dragSession(ev, null, e => { if (!moved && Math.hypot(e.clientX - ev.clientX, e.clientY - ev.clientY) > 4) { moved = true; linkDrag(ev, mid, best.sid, roleOf(s, best.f)); } },
+    okay => { if (okay && !moved) setTimeout(() => pairMenu(mid, pairs, { x: ev.clientX, y: ev.clientY }), 0); });
 }
 
 /* ---------- Schritte eines Bereichs, die nach dem PAL enden: Warnung und „Alles vor den PAL rücken“
@@ -888,3 +916,8 @@ function pullBeforePal(mid) {
   }, 'Vor den PAL gerückt – der PAL bleibt');
   if (left) toast(left === 1 ? 'Ein Schritt liegt weiter nach dem PAL – er hängt an keinem verschiebbaren Bezug.' : left + ' Schritte liegen weiter nach dem PAL – sie hängen an keinem verschiebbaren Bezug.', 'warn');
 }
+
+// Strg gedrückt: die Punkte im Gantt treten hervor – sie lassen sich dann anklicken (lösen) oder ziehen (verknüpfen)
+document.addEventListener('keydown', e => { if (e.key === 'Control' || e.key === 'Meta') document.body.classList.add('ctrlheld'); });
+document.addEventListener('keyup', e => { if (e.key === 'Control' || e.key === 'Meta') document.body.classList.remove('ctrlheld'); });
+window.addEventListener('blur', () => document.body.classList.remove('ctrlheld'));

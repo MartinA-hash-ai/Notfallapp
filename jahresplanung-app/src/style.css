@@ -690,6 +690,9 @@ html[data-theme=dark] .splash-logo { height: 47px; }
 .g-links path { stroke: var(--faint); stroke-width: 1; stroke-dasharray: 2 2; fill: none; }
 .g-links circle { fill: var(--faint); stroke: var(--card); stroke-width: 1.5; }
 body.dragging .g-links { display: none; }
+body.ctrlheld .g-links circle { fill: var(--lkc); r: 4px; }
+body.ctrlheld .g-links path { stroke: var(--lkc); }
+.menu .menu-head { padding: 6px 12px 4px; font-size: 11.5px; color: var(--muted); }
 .pl-split.lkhl .g-links .lnk:not(.on) { opacity: .12; }
 .g-links .lnk.on path { stroke: var(--lkc); stroke-width: 1.5; }
 .g-links .lnk.on circle { fill: var(--lkc); r: 3.5px; }

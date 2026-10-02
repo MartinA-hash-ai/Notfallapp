@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.10",
+    "version": "0.10.1",
     "date": "",
+    "items": [
+      "Detailplan-Gantt: Strg+Klick auf einen Punkt (Gelenk) löst die Verknüpfung – hängt dort nur eine, sofort; bei mehreren erscheint direkt an der Stelle eine Auswahl. Strg + Ziehen legt wie bisher eine Verknüpfung an",
+      "Solange Strg gedrückt ist, treten die Punkte im Gantt in der Farbe der Maßnahme hervor",
+      "Strg+Klick auf ein verknüpftes Datum in der Tabelle: bei nur einer Verknüpfung wird sie gleich gelöst; die Meldung nennt beide Schritte (Strg+Z macht es rückgängig)"
+    ]
+  },
+  {
+    "version": "0.10",
+    "date": "2026-10-02T13:28",
     "items": [
       "Detailplan: Verknüpfungen laufen jetzt vorwärts – der Beginn eines Schritts hängt am Ende seiner Vorgänger; ein Ende kann beliebig viele Anfänge haben, ein Beginn mehrere Vorgänger (es zählt das späteste Ende). Wird ein Schritt länger oder rückt er, wandert alles danach mit",
       "Verknüpfen mit Strg: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; dabei bleiben nur die passenden Daten sichtbar (selber Abschnitt, kein Kreis). Strg+Klick auf ein verknüpftes Datum löst eine Verknüpfung",

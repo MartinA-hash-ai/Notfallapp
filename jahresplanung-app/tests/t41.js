@@ -85,11 +85,37 @@ const { chromium, ok, open, finish } = require('./lib');
   f = await field('Thema definieren', 'end', true);
   await p.keyboard.down('Control'); await p.mouse.click(f[0], f[1]); await p.keyboard.up('Control'); await p.waitForTimeout(200);
   const menu = await p.evaluate(() => [...document.querySelectorAll('.menu button')].map(b => b.textContent));
-  ok(menu.includes('Verknüpfung mit „Bilder einholen“ lösen') && menu.includes('Verknüpfung mit „Texte erstellen“ lösen') && menu.some(t => /^Alle 2 lösen$/.test(t)), 'I: Strg+Klick – ' + menu.join(' | '));
+  ok(menu.includes('„Thema definieren“ → „Bilder einholen“ lösen') && menu.includes('„Thema definieren“ → „Texte erstellen“ lösen') && menu.some(t => /^Alle 2 lösen$/.test(t)), 'I: Strg+Klick – ' + menu.join(' | '));
   const bi3 = await span('Bilder einholen');
-  await p.click('.menu button:has-text("Bilder einholen")'); await p.waitForTimeout(250);
+  await p.click('.menu button:has-text("„Bilder einholen“")'); await p.waitForTimeout(250);
   const ii = await p.evaluate(() => { const st = C.byId.get(UI.planSel).m.plan.steps; return st.find(s => s.name === 'Bilder einholen').anker.art; });
   ok(ii === 'pal' && JSON.stringify(await span('Bilder einholen')) === JSON.stringify(bi3), 'I: gelöst – „Bilder einholen“ hängt wieder am PAL, Termin unverändert');
+
+  // ---- K: im Gantt Strg+Klick auf einen Punkt: eine Verknüpfung → sofort gelöst, mehrere → Auswahl an der Stelle
+  const pt = (a, b, side) => p.evaluate(([a, b, side]) => { const st = C.byId.get(UI.planSel).m.plan.steps, ia = st.find(s => s.name === a).id, ib = st.find(s => s.name === b).id;
+    const l = LINK_PTS.list.find(l => l.a === ia && l.b === ib), q = side === 'a' ? l.pa : l.pb, bb = LINK_PTS.body.getBoundingClientRect(); return [bb.left + q.x, bb.top + q.y]; }, [a, b, side]);
+  await p.evaluate(() => document.querySelector('.g-body [data-sid]').scrollIntoView({ block: 'center' })); await p.waitForTimeout(100);
+  let q = await pt('Gestaltung', 'Korrekturphase', 'b');
+  await p.evaluate(([x, y]) => document.elementFromPoint(x, y).scrollIntoView({ block: 'center', inline: 'center' }), q); await p.waitForTimeout(150);
+  q = await pt('Gestaltung', 'Korrekturphase', 'b');
+  const ko0 = await span('Korrekturphase');
+  await p.keyboard.down('Control'); await p.mouse.click(q[0], q[1]); await p.keyboard.up('Control'); await p.waitForTimeout(300);
+  const k1 = await p.evaluate(() => [C.byId.get(UI.planSel).m.plan.steps.find(s => s.name === 'Korrekturphase').anker.art, !!document.querySelector('.menu'), [...document.querySelectorAll('.toast')].map(t => t.textContent).pop() || '']);
+  ok(k1[0] === 'pal' && !k1[1] && JSON.stringify(await span('Korrekturphase')) === JSON.stringify(ko0) && /Strg\+Z/.test(k1[2]), 'K: Punkt mit einer Verknüpfung – sofort gelöst, Termin bleibt („' + k1[2] + '“)');
+  await p.evaluate(() => undo()); await p.waitForTimeout(250);
+  q = await pt('Texte erstellen', 'Gestaltung', 'b');
+  await p.keyboard.down('Control'); await p.mouse.click(q[0], q[1]); await p.keyboard.up('Control'); await p.waitForTimeout(300);
+  const k2 = await p.evaluate(([x, y]) => { const m = document.querySelector('.menu'); if (!m) return null; const r = m.getBoundingClientRect(); return [[...m.querySelectorAll('button')].map(b => b.textContent), Math.round(Math.abs(r.left - x)), Math.round(r.top - y)]; }, q);
+  ok(k2 && k2[0].length === 4 && k2[0].includes('Alle 3 lösen') && k2[1] <= 10 && k2[2] >= 0 && k2[2] <= 12, 'K: Beginn „Gestaltung“ (drei Vorgänger) – Auswahl direkt am Punkt: ' + (k2 && k2[0].join(' | ')));
+  await p.click('.menu button:has-text("„Bilder einholen“ → „Gestaltung“")'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => { const st = C.byId.get(UI.planSel).m.plan.steps; return predsOf(st.find(s => s.name === 'Gestaltung')).map(i => st.find(q => q.id === i).name).join(); }) === 'Texte erstellen,Layoutphase', 'K: nur die gewählte gelöst (Texte und Layoutphase bleiben Vorgänger)');
+  await p.evaluate(() => undo()); await p.waitForTimeout(250);
+  // Strg + vom Punkt ziehen verknüpft weiterhin
+  q = await pt('Gestaltung', 'Korrekturphase', 'a');
+  const fz = await p.evaluate(() => { const el = document.querySelector('.g-body [data-sid="' + C.byId.get(UI.planSel).m.plan.steps.find(s => s.name === 'Freigaben einholen').id + '"]').getBoundingClientRect(); return [el.left + 2, el.top + el.height / 2]; });
+  await ctrlDrag(q, fz); await ctrlUp();
+  ok(await p.evaluate(() => { const st = C.byId.get(UI.planSel).m.plan.steps; return predsOf(st.find(s => s.name === 'Freigaben einholen')).map(i => st.find(q => q.id === i).name).sort().join(); }) === 'Gestaltung,Korrekturphase', 'K: Strg + vom Punkt ziehen legt eine neue Verknüpfung an');
+  await p.evaluate(() => undo()); await p.waitForTimeout(250);
 
   // ---- J: Schritt in der Mitte löschen → Kette bleibt (Nachfolger übernimmt dessen Vorgänger), Termine gleich
   const fz0 = await span('Freigaben einholen');
