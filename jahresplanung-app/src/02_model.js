@@ -74,6 +74,23 @@ function shiftPal(m, dd) {
   m.pal = ds(p + dd);
   if (m.plan) m.plan.steps.forEach(s => { if (s.anker && s.anker.art === 'fest' && dn(s.anker.datum) != null) s.anker.datum = ds(dn(s.anker.datum) + dd); });
 }
+// Abschnitte sind unabhängig (ab 0.9.7): ein Schritt hängt nur am PAL, an einem festen Datum oder an einem Schritt im eigenen Abschnitt.
+// Verknüpfungen über Abschnitte hinweg (aus Vorlagen, Kopien, Löschen oder Umsortieren) werden am PAL festgemacht – der Termin bleibt gleich.
+// Läuft beim Laden und nach jeder Änderung, damit Verschieben in einem Abschnitt nie Schritte eines anderen mitnimmt.
+function unlinkSections(m) {
+  const st = m.plan && m.plan.steps; if (!st) return 0;
+  const sec = new Map(); let cur = '';
+  for (const s of st) { if (s.typ === 'gruppe') cur = s.id; else sec.set(s.id, cur); }
+  const cross = st.filter(s => s.typ !== 'gruppe' && s.anker && (s.anker.art === 'start' || s.anker.art === 'ende') && sec.has(s.anker.ref) && sec.get(s.anker.ref) !== sec.get(s.id));
+  if (!cross.length) return 0;
+  const map = planCalc(m).map, pal = dn(m.pal);
+  let n = 0;
+  for (const s of cross) {
+    const r = map.get(s.id); if (!r || r.end == null || r.err) continue;
+    s.anker = pal != null ? { art: 'pal', offset: r.end - pal } : { art: 'fest', datum: ds(r.end) }; n++;
+  }
+  return n;
+}
 const isPalStep = s => !!s && s.typ !== 'gruppe' && s.pal === true;
 function ensurePalStep(plan) {
   const st = plan.steps;
@@ -174,6 +191,7 @@ function normalize(d) {
         if (s.typ === 'gruppe') { if (s.bereich && !keys.includes(s.bereich)) delete s.bereich; } else delete s.bereich;
       });
       ensurePalStep(m.plan);
+      unlinkSections(m);
       m.plan.marks = isObj(m.plan.marks) ? m.plan.marks : {};
       for (const k of Object.keys(m.plan.marks)) if (!keys.includes(k) || !m.plan.steps.some(q => q.id === m.plan.marks[k])) delete m.plan.marks[k];
     }
@@ -410,7 +428,7 @@ function computeWarnings() {
 /* ---------- Änderungen, Rückgängig */
 function commit(fn, msg) {
   const before = JSON.stringify(D);
-  try { fn(D); ensurePersons(D); }
+  try { fn(D); ensurePersons(D); D.massnahmen.forEach(unlinkSections); }
   catch (e) {                                 // Fehler mitten in der Änderung: alles zurück, nichts halb geändert speichern
     console.error(e); D = JSON.parse(before); derive(); requestRender();
     toast('Die Änderung ließ sich nicht ausführen – es wurde nichts verändert. (' + ((e && e.message) || e) + ')', 'err');

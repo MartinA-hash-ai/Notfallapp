@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.9.6",
+    "version": "0.9.7",
     "date": "",
+    "items": [
+      "Detailplan: Abschnitte sind unabhängig – wer einen Schritt oder Abschnitt verschiebt, nimmt keine Schritte anderer Abschnitte mehr mit; innerhalb eines Abschnitts wandern verknüpfte Schritte weiter mit, der PAL verschiebt weiterhin alles",
+      "Bestehende Verknüpfungen über Abschnitte hinweg (z. B. Inhalt hängt an der Selektion) werden beim Laden am PAL festgemacht – alle Termine bleiben, wie sie sind",
+      "Hinweis am Balken zeigt, woran der Schritt hängt und welche Schritte an ihm hängen"
+    ]
+  },
+  {
+    "version": "0.9.6",
+    "date": "2026-09-30T17:04",
     "items": [
       "Detailplan-Gantt: der Briefkasten-Termin ist ein rotes P statt der Raute (in der Tabelle ebenfalls rot); ziehen verschiebt das PAL und den ganzen Plan – die Balken wandern schon beim Ziehen mit",
       "PAL verschieben (Detailplan, Kalender, Zeitleiste) nimmt jetzt auch Schritte mit festem Datum mit",

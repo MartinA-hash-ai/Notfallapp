@@ -80,9 +80,8 @@ async function moveStartTo(id, t, n) {
 }
 // Warum geht der Start nicht weiter? Die Schritte behalten ihr Ende und werden nur kürzer (mindestens 1 Tag).
 function startMoveAsk(x, t, want, reach, changed) {
-  const ph = x.pc.ph[t], ms = ph && x.m.plan.steps.find(q => q.id === ph.mark), a = (ms && ms.anker) || {};
-  const ref = a.ref && x.m.plan.steps.find(q => q.id === a.ref);
-  const hang = !ms ? '' : '„' + ms.name + '“ ' + (a.art === 'start' && ref ? 'hängt am Beginn von „' + ref.name + '“' : a.art === 'ende' && ref ? 'hängt am Ende von „' + ref.name + '“' : a.art === 'pal' ? 'hängt am PAL' : a.art === 'fest' ? 'hat ein festes Datum' : 'hat kein festes Ende') + '.';
+  const ph = x.pc.ph[t], ms = ph && x.m.plan.steps.find(q => q.id === ph.mark);
+  const hang = !ms ? '' : '„' + ms.name + '“ ' + anchorText(x.m.plan, ms) + '.';
   const cut = (changed || []).map(([nm, o, nw]) => '„' + nm + '“ ' + o + ' → ' + nw + (nw === 1 ? ' Tag' : ' Tage')).join(', ');
   const why = hang + ' Beim Verschieben des Starts behalten die Schritte ihr Ende und werden kürzer – kürzer als 1 Tag geht nicht' + (cut ? ' (dafür: ' + cut + ')' : '') + '.';
   const gid = ms ? curGroupOf(x.m.plan.steps, x.m.plan.steps.indexOf(ms)) : null, g = gid && x.m.plan.steps.find(q => q.id === gid), dd = want - x.st[t];
@@ -96,6 +95,14 @@ const label2 = t => startLabel(t);
 // Start als Werktage vor dem PAL angeben: der späteste Arbeitstag, ab dem noch so viele Werktage bis zum PAL bleiben
 function dateForWT(pal, w) { let n = pal, c = 0; while (c < w && pal - n < 3000) { n--; if (isWorkday(n)) c++; } return n; }
 // Schritt auf neuen Beginn/Ende setzen (Verknüpfung bleibt, der Versatz wird angepasst)
+// Woran hängt ein Schritt? (für Hinweise) – und welche Schritte hängen an ihm
+function anchorText(p, s) {
+  const a = s.anker || {}, ref = a.ref && p.steps.find(q => q.id === a.ref);
+  if (s.pal || a.art === 'pal') return 'hängt am PAL';
+  if ((a.art === 'start' || a.art === 'ende') && ref) return 'hängt am ' + (a.art === 'start' ? 'Beginn' : 'Ende') + ' von „' + ref.name + '“';
+  return a.art === 'fest' ? 'hat ein festes Datum' : 'hat kein festes Ende';
+}
+const dependents = (p, s) => p.steps.filter(q => q.anker && q.anker.ref === s.id && (q.anker.art === 'start' || q.anker.art === 'ende'));
 function setStepSpan(m, sid, ns, ne) {
   const s = m.plan.steps.find(q => q.id === sid);
   if (!s || s.typ === 'gruppe') return;
@@ -477,6 +484,7 @@ VIEW_FN.plaene = main => {
       const tip = () => h('div', null, h('b', null, s.name), gname ? h('span', { class: 'muted' }, ' (' + gname + ')') : null,
         h('div', null, isTask ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' · ' + stepWT(r.start, r.end) + ' WT' : (s.pal ? 'PAL' : STEP_TYPES[s.typ]) + ': ' + fmtW(r.end)),
         s.wer ? h('div', null, 'Zugeordnet: ' + s.wer) : null, s.kommentar ? h('div', { class: 'muted' }, s.kommentar) : null,
+        h('div', { class: 'muted' }, anchorText(p, s) + (dependents(p, s).length ? ' · daran hängen: ' + dependents(p, s).map(q => '„' + q.name + '“').join(', ') : '')),
         away.length ? h('div', { class: 'warn' }, '⚠ ' + s.wer + ' hat in dieser Zeit Urlaub') : null);
       const ctx = { x, s, r, pxd, X };
       if (isTask) {
