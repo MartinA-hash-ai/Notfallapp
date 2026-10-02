@@ -1,4 +1,4 @@
-// 0.9.7 Abschnitte unabhängig: Verschieben nimmt keine Schritte anderer Abschnitte mit (innerhalb weiter verknüpft); Hinweis „hängt an …“
+// 0.9.7 Abschnitte unabhängig: Verschieben nimmt keine Schritte anderer Abschnitte mit (innerhalb weiter verknüpft); Hinweis „hängt an …“ (ab 0.10 vorwärts)
 const { chromium, ok, open, finish } = require('./lib');
 (async () => {
   const b = await chromium.launch(), pages = [];
@@ -9,22 +9,22 @@ const { chromium, ok, open, finish } = require('./lib');
 
   // ---- A: keine Verknüpfungen über Abschnitte mehr (Vorlage Komplex), Termine unverändert
   const a = await p.evaluate(() => D.massnahmen.filter(m => m.plan).map(m => { const sec = new Map(); let g = ''; for (const s of m.plan.steps) { if (s.typ === 'gruppe') g = s.id; else sec.set(s.id, g); }
-    return m.plan.steps.filter(s => s.anker && (s.anker.art === 'start' || s.anker.art === 'ende') && sec.get(s.anker.ref) !== sec.get(s.id)).length; }).reduce((x, y) => x + y, 0));
+    return m.plan.steps.filter(s => s.anker && ((s.anker.art === 'start' || s.anker.art === 'ende') && sec.get(s.anker.ref) !== sec.get(s.id) || predsOf(s).some(id => sec.get(id) !== sec.get(s.id)))).length; }).reduce((x, y) => x + y, 0));
   ok(a === 0, 'A: keine Schritte hängen an Schritten anderer Abschnitte (' + a + ')');
   const tpl = await p.evaluate(() => { const o = JSON.parse(JSON.stringify(D)), m = o.massnahmen.find(m => m.name === 'Sommermailing'); m.plan = JSON.parse(JSON.stringify(MAILING_TEMPLATE)); m.plan.steps.forEach(s => { s.wer = ''; });
     const before = (() => { const c = JSON.parse(JSON.stringify(m)); migratePlan(c.plan, PH().map(p => p.key)); ensurePalStep(c.plan); const r = planCalc(c).map; return c.plan.steps.filter(s => s.typ !== 'gruppe').map(s => r.get(s.id).end); })();
     const n = normalize(o).massnahmen.find(m => m.name === 'Sommermailing'), r = planCalc(n).map; return [before.join(), n.plan.steps.filter(s => s.typ !== 'gruppe').map(s => r.get(s.id).end).join()]; });
   ok(tpl[0] === tpl[1], 'A: beim Umstellen (Laden) bleiben alle Termine gleich');
 
-  // ---- B: Schritt im Inhalt ziehen → Inhalt-Kette wandert mit, Selektion und Produktion bleiben
+  // ---- B: ersten Schritt im Inhalt ziehen → was danach beginnt, wandert mit (nur im Inhalt), Selektion und Produktion bleiben
   await p.evaluate(id => { UI.view = 'plaene'; UI.planSel = id; UI.planPxd = 20; renderNow(); }, sm); await p.waitForTimeout(250);
   const d0 = await dates(sm), sec = await secOf(sm);
   const bar = name => p.evaluate(name => { const rows = [...document.querySelectorAll('.pl-table > .pl-row')], i = rows.findIndex(r => !r.classList.contains('grp') && r.querySelector('.c-name input') && r.querySelector('.c-name input').value === name);
     const e = document.querySelectorAll('.g-body > .g-row')[i - 1].querySelector('.g-bar'); e.scrollIntoView({ block: 'center', inline: 'center' }); const q = e.getBoundingClientRect(); return [q.x + q.width / 2, q.y + q.height / 2]; }, name);
-  let c = await bar('Freigaben einholen');
+  let c = await bar('Thema definieren');
   await p.mouse.move(c[0], c[1]); await p.mouse.down(); await p.mouse.move(c[0] + 40, c[1], { steps: 4 }); await p.mouse.up(); await p.waitForTimeout(250);
   const d1 = await dates(sm), moved = Object.keys(d0).filter(k => d1[k] !== d0[k]);
-  ok(moved.length > 1 && moved.every(k => sec[k] === 'Inhalt'), 'B: „Freigaben einholen“ +2 Tage – mitgewandert nur im Inhalt: ' + moved.map(k => k.split('#')[0]).join(', '));
+  ok(moved.length > 1 && moved.every(k => sec[k] === 'Inhalt'), 'B: „Thema definieren“ +2 Tage – mitgewandert nur im Inhalt: ' + moved.map(k => k.split('#')[0]).join(', '));
 
   // ---- C: Abschnitt Selektion ziehen → Inhalt bleibt
   await p.evaluate(() => undo()); await p.waitForTimeout(150);
@@ -54,6 +54,6 @@ const { chromium, ok, open, finish } = require('./lib');
   const t1 = await p.evaluate(() => document.querySelector('#tip').textContent);
   c = await bar('Gestaltung'); await p.mouse.move(c[0], c[1]); await p.waitForTimeout(350);
   const t2 = await p.evaluate(() => document.querySelector('#tip').textContent);
-  ok(/hängt am Beginn von „Freigaben einholen“/.test(t1) && /daran hängen: .*„Texte erstellen“/.test(t2), 'E: Hinweise – „' + t1.match(/hängt[^·]*/)[0].trim() + '“ · „' + (t2.match(/daran hängen.*$/) || [''])[0] + '“');
+  ok(/beginnt nach „Gestaltung“/.test(t1) && /danach beginnen: „Korrekturphase“/.test(t2), 'E: Hinweise – „' + (t1.match(/beginnt nach[^·]*/) || [''])[0].trim() + '“ · „' + (t2.match(/danach beginnen.*$/) || [''])[0] + '“');
   await finish(b, pages);
 })();

@@ -17,7 +17,7 @@ const { chromium, ok, open, finish } = require('./lib');
     const bars = [...document.querySelectorAll('.g-bar')].map(e => e.getBoundingClientRect().right), near = bars.filter(r => Math.abs(r - pl) < 3).length;
     return [near, Math.round(Math.abs(pal.left + pal.width / 2 - pl))]; });
   ok(bb[0] >= 2 && bb[1] <= 1, 'B: ' + bb[0] + ' Balken enden genau an der PAL-Linie (Tagesmitte), das P sitzt darauf');
-  const ms = await p.evaluate(() => { const x = C.byId.get(UI.planSel), s = x.m.plan.steps.find(s => s.typ === 'meilenstein' && s.anker.art === 'start'), ref = x.m.plan.steps.find(q => q.id === s.anker.ref);
+  const ms = await p.evaluate(() => { const x = C.byId.get(UI.planSel), st = x.m.plan.steps, s = st.find(s => s.typ === 'meilenstein' && st.some(q => predsOf(q).includes(s.id))), ref = st.find(q => predsOf(q).includes(s.id));   // 0.10: Meilenstein vor einem Schritt
     const rid = id => [...document.querySelectorAll('.pl-table > .pl-row')].findIndex(r => r.dataset.rid === id) - 1, rows = document.querySelectorAll('.g-body > .g-row');
     const d = rows[rid(s.id)].querySelector('.g-dia').getBoundingClientRect(), bar = rows[rid(ref.id)].querySelector('.g-bar').getBoundingClientRect();
     return [s.name, ref.name, Math.round(Math.abs(d.left + d.width / 2 - bar.left))]; });

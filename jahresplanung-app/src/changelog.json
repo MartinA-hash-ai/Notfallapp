@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.9.7",
+    "version": "0.10",
     "date": "",
+    "items": [
+      "Detailplan: Verknüpfungen laufen jetzt vorwärts – der Beginn eines Schritts hängt am Ende seiner Vorgänger; ein Ende kann beliebig viele Anfänge haben, ein Beginn mehrere Vorgänger (es zählt das späteste Ende). Wird ein Schritt länger oder rückt er, wandert alles danach mit",
+      "Verknüpfen mit Strg: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; dabei bleiben nur die passenden Daten sichtbar (selber Abschnitt, kein Kreis). Strg+Klick auf ein verknüpftes Datum löst eine Verknüpfung",
+      "Anzeige: im Gantt kleine Gelenke an jeder Verknüpfung, in der Tabelle Kalendersymbole in der Farbe der Maßnahme; beim Hinzeigen bleibt nur das verbundene Datum farbig",
+      "Warnung, wenn ein Schritt eines Bereichs nach dem PAL endet – mit „Alles vor den PAL rücken“: der PAL und die Dauern bleiben, die Kette davor rückt nach vorn",
+      "Dauer ändern hält jetzt den Beginn fest, das Ende wandert (vorher umgekehrt)",
+      "Bestehende Pläne werden beim Öffnen umgestellt, alle Termine bleiben gleich"
+    ]
+  },
+  {
+    "version": "0.9.7",
+    "date": "2026-10-02T10:23",
     "items": [
       "Detailplan: Abschnitte sind unabhängig – wer einen Schritt oder Abschnitt verschiebt, nimmt keine Schritte anderer Abschnitte mehr mit; innerhalb eines Abschnitts wandern verknüpfte Schritte weiter mit, der PAL verschiebt weiterhin alles",
       "Bestehende Verknüpfungen über Abschnitte hinweg (z. B. Inhalt hängt an der Selektion) werden beim Laden am PAL festgemacht – alle Termine bleiben, wie sie sind",

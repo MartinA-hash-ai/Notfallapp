@@ -77,19 +77,47 @@ function shiftPal(m, dd) {
 // Abschnitte sind unabhängig (ab 0.9.7): ein Schritt hängt nur am PAL, an einem festen Datum oder an einem Schritt im eigenen Abschnitt.
 // Verknüpfungen über Abschnitte hinweg (aus Vorlagen, Kopien, Löschen oder Umsortieren) werden am PAL festgemacht – der Termin bleibt gleich.
 // Läuft beim Laden und nach jeder Änderung, damit Verschieben in einem Abschnitt nie Schritte eines anderen mitnimmt.
+const predsOf = s => s && s.anker && s.anker.art === 'nach' && Array.isArray(s.anker.refs) ? s.anker.refs : [];
+// Schritt ohne Vorgänger: mit seinem Ende am PAL festmachen (Termin bleibt)
+function anchorAtPal(s, r, pal) { if (r && r.end != null) s.anker = pal != null ? { art: 'pal', offset: r.end - pal } : { art: 'fest', datum: ds(r.end) }; }
+// Vorgänger neu setzen, Beginn bleibt (Abstand = bisheriger Beginn – spätestes Ende der Vorgänger)
+function setPreds(s, refs, r, map, pal) {
+  const ends = refs.map(id => map.get(id)).filter(q => q && q.end != null).map(q => q.end);
+  if (!refs.length) anchorAtPal(s, r, pal);
+  else s.anker = { art: 'nach', refs, offset: r && r.start != null && ends.length ? r.start - Math.max(...ends) : +(s.anker && s.anker.offset) || 0 };
+}
 function unlinkSections(m) {
   const st = m.plan && m.plan.steps; if (!st) return 0;
   const sec = new Map(); let cur = '';
   for (const s of st) { if (s.typ === 'gruppe') cur = s.id; else sec.set(s.id, cur); }
-  const cross = st.filter(s => s.typ !== 'gruppe' && s.anker && (s.anker.art === 'start' || s.anker.art === 'ende') && sec.has(s.anker.ref) && sec.get(s.anker.ref) !== sec.get(s.id));
+  const other = (s, id) => sec.has(id) && sec.get(id) !== sec.get(s.id);
+  const cross = st.filter(s => s.typ !== 'gruppe' && s.anker && ((s.anker.art === 'start' || s.anker.art === 'ende') && other(s, s.anker.ref) || predsOf(s).some(id => other(s, id))));
   if (!cross.length) return 0;
   const map = planCalc(m).map, pal = dn(m.pal);
   let n = 0;
   for (const s of cross) {
     const r = map.get(s.id); if (!r || r.end == null || r.err) continue;
-    s.anker = pal != null ? { art: 'pal', offset: r.end - pal } : { art: 'fest', datum: ds(r.end) }; n++;
+    if (s.anker.art === 'nach') setPreds(s, predsOf(s).filter(id => !other(s, id)), r, map, pal); else anchorAtPal(s, r, pal);
+    n++;
   }
   return n;
+}
+// Ab 0.10 laufen Verknüpfungen vorwärts: der Beginn eines Schritts hängt am Ende seiner Vorgänger (beliebig viele).
+// Ältere Pläne („Ende hängt am Beginn/Ende eines anderen Schritts“) werden umgestellt – alle Termine bleiben gleich.
+// „Ende von A = Beginn von B“ wird zu „B beginnt nach A“; „Ende = Ende“ gibt es nicht mehr (der Schritt hängt dann am PAL).
+function forwardLinks(m) {
+  const st = m.plan && m.plan.steps; if (!st) return 0;
+  const old = st.filter(s => s.typ !== 'gruppe' && s.anker && (s.anker.art === 'start' || s.anker.art === 'ende'));
+  if (!old.length) return 0;
+  const map = planCalc(m).map, pal = dn(m.pal), byId = new Map(st.map(s => [s.id, s])), add = new Map();
+  for (const a of old) {
+    const b = byId.get(a.anker.ref), r = map.get(a.id);
+    if (!b || b.typ === 'gruppe' || b.id === a.id || !r || r.err || r.end == null) continue;
+    if (a.anker.art === 'start') { if (!add.has(b.id)) add.set(b.id, []); add.get(b.id).push(a.id); }
+    anchorAtPal(a, r, pal);
+  }
+  for (const [bid, refs] of add) { const b = byId.get(bid), r = map.get(bid); if (b.pal || !r || r.err || r.start == null) continue; setPreds(b, [...new Set(predsOf(b).concat(refs))], r, map, pal); }
+  return old.length;
 }
 const isPalStep = s => !!s && s.typ !== 'gruppe' && s.pal === true;
 function ensurePalStep(plan) {
@@ -188,9 +216,11 @@ function normalize(d) {
         s.name = str(s.name); s.wer = str(s.wer); s.kommentar = str(s.kommentar);
         if (!['gruppe', 'aufgabe', 'meilenstein', 'ziel'].includes(s.typ)) s.typ = 'aufgabe';
         if (!isObj(s.anker)) s.anker = { art: 'offen' };
+        if (s.anker.art === 'nach') { s.anker.refs = [...new Set((Array.isArray(s.anker.refs) ? s.anker.refs : []).map(str).filter(id => id && id !== s.id))]; s.anker.offset = Math.round(+s.anker.offset || 0); }
         if (s.typ === 'gruppe') { if (s.bereich && !keys.includes(s.bereich)) delete s.bereich; } else delete s.bereich;
       });
       ensurePalStep(m.plan);
+      forwardLinks(m);
       unlinkSections(m);
       m.plan.marks = isObj(m.plan.marks) ? m.plan.marks : {};
       for (const k of Object.keys(m.plan.marks)) if (!keys.includes(k) || !m.plan.steps.some(q => q.id === m.plan.marks[k])) delete m.plan.marks[k];
@@ -248,7 +278,9 @@ function ensurePersons(d) {
   }
 }
 
-/* ---------- Detailplan: Rückwärtsterminierung wie im Excel-Gantt */
+/* ---------- Detailplan: Termine je Schritt
+   Ein Schritt hängt mit seinem Ende am PAL oder an einem festen Datum – oder (ab 0.10) mit seinem Beginn am Ende eines oder mehrerer
+   Vorgänger im selben Abschnitt: Beginn = spätestes Ende der Vorgänger + Abstand ({ art: 'nach', refs: [...], offset }). */
 const MAX_DAUER = 730;                        // längste Dauer eines Arbeitsschritts in Tagen
 const FAR = 1100;                             // Termine mehr als ~3 Jahre vom PAL entfernt: Tippfehler vermuten
 function planCalc(m) {
@@ -259,10 +291,17 @@ function planCalc(m) {
     if (res.has(s.id)) return res.get(s.id);
     if (busy.has(s.id)) return { start: null, end: null, err: 'Zirkelbezug' };
     busy.add(s.id);
-    let e = null, err = null;
+    let e = null, err = null, b = null;
     const a = s.anker || { art: 'offen' }, off = +a.offset || 0;
     if (s.typ !== 'gruppe') {
-      if (a.art === 'pal') e = pal != null ? pal + off : null;
+      if (a.art === 'nach') {
+        const refs = Array.isArray(a.refs) ? a.refs : [];
+        let mx = null, ok = 0;
+        for (const id of refs) { const r = byId.get(id); if (!r || r.typ === 'gruppe') continue; ok++; const rc = calc(r); if (rc.err) { err = rc.err; break; } if (rc.end != null && (mx == null || rc.end > mx)) mx = rc.end; }
+        if (!err && !ok) err = 'Bezug fehlt';
+        if (!err && mx != null) b = mx + off;
+      }
+      else if (a.art === 'pal') e = pal != null ? pal + off : null;
       else if (a.art === 'fest') { e = dn(a.datum); if (e == null && a.datum) err = 'ungültiges Datum „' + a.datum + '“'; }
       else if (a.art === 'start' || a.art === 'ende') {
         const r = byId.get(a.ref);
@@ -271,7 +310,7 @@ function planCalc(m) {
       }
     }
     const dur = s.typ === 'aufgabe' ? clamp(Math.round(+s.dauer || 0), 0, MAX_DAUER) : 0;
-    const out = { start: e != null ? e - dur : null, end: e, err };
+    const out = b != null ? { start: b, end: b + dur, err } : { start: e != null ? e - dur : null, end: e, err };
     busy.delete(s.id);
     res.set(s.id, out);
     return out;
@@ -428,7 +467,7 @@ function computeWarnings() {
 /* ---------- Änderungen, Rückgängig */
 function commit(fn, msg) {
   const before = JSON.stringify(D);
-  try { fn(D); ensurePersons(D); D.massnahmen.forEach(unlinkSections); }
+  try { fn(D); ensurePersons(D); D.massnahmen.forEach(m => { forwardLinks(m); unlinkSections(m); }); }
   catch (e) {                                 // Fehler mitten in der Änderung: alles zurück, nichts halb geändert speichern
     console.error(e); D = JSON.parse(before); derive(); requestRender();
     toast('Die Änderung ließ sich nicht ausführen – es wurde nichts verändert. (' + ((e && e.message) || e) + ')', 'err');

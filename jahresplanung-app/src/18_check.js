@@ -24,6 +24,8 @@ function checkData(d = D) {
       const sid = s.id, S = dd => M(dd).plan.steps.find(q => q.id === sid), sn = nm + ' › „' + (s.name || '?') + '“';
       const a = s.anker || {}, r = pc.map.get(sid) || {};
       if (a.art === 'fest' && dn(a.datum) == null) add(sn + ': Datum „' + (a.datum || '') + '“ ungültig', 'Termin lösen (neu eintragen)', dd => { S(dd).anker = { art: 'offen' }; });
+      else if (a.art === 'nach' && predsOf(s).some(id => !m.plan.steps.some(q => q.id === id && q.typ !== 'gruppe')))
+        add(sn + ': beginnt nach einem gelöschten Schritt', 'Verknüpfung entfernen', dd => { const q = S(dd), ok = predsOf(q).filter(id => M(dd).plan.steps.some(z => z.id === id && z.typ !== 'gruppe')); if (ok.length) q.anker.refs = ok; else q.anker = { art: 'pal', offset: 0 }; });
       else if ((a.art === 'start' || a.art === 'ende') && !m.plan.steps.some(q => q.id === a.ref)) add(sn + ': hängt an einem gelöschten Schritt', 'an den PAL hängen', dd => { S(dd).anker = { art: 'pal', offset: 0 }; });
       else if (r.err === 'Zirkelbezug' && !cycleFixed) { cycleFixed = true; add(sn + ': Zirkelbezug (Schritte hängen im Kreis voneinander ab)', 'Kreis lösen: diesen Schritt an den PAL hängen', dd => { S(dd).anker = { art: 'pal', offset: 0 }; }); }
       if (s.typ === 'aufgabe' && !(isNum(s.dauer) && +s.dauer >= 0 && +s.dauer <= MAX_DAUER && Math.round(+s.dauer) === +s.dauer))

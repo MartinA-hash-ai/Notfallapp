@@ -1,54 +1,37 @@
-/* ===================================================================== Ansicht: Detailpläne (Gantt, Rückwärtsterminierung ab PAL) */
+/* ===================================================================== Ansicht: Detailpläne (Gantt, Termine ab PAL, Verknüpfungen Ende → Beginn) */
 
 const STEP_TYPES = { gruppe: 'Abschnitt', aufgabe: 'Aufgabe', meilenstein: 'Meilenstein', ziel: 'Ziel' };
 const PL_ROW = 32;
 const DEF_DAYS = 7;                            // Standarddauer neuer bzw. noch nicht geplanter Schritte
 
 /* ---------- Rechenhilfen am Datenobjekt */
-// Schritte, deren Dauer den Beginn des markierten Schritts bestimmt (entlang der Verknüpfungen bis zum PAL)
-function influencingChain(p, markId) {
-  const byId = new Map(p.steps.map(s => [s.id, s])), out = [], seen = new Set();
-  let cur = byId.get(markId);
-  if (!cur) return out;
-  if (cur.typ === 'aufgabe') out.push(cur);
-  while (cur && !seen.has(cur.id)) {
-    seen.add(cur.id);
-    const a = cur.anker || {};
-    if (a.art !== 'start' && a.art !== 'ende') break;
-    const ref = byId.get(a.ref);
-    if (!ref) break;
-    if (a.art === 'start' && ref.typ === 'aufgabe') out.push(ref);
-    cur = ref;
-  }
-  return out;
+// Start eines Bereichs auf ein Datum legen. Die späteren Termine des Abschnitts sollen bleiben:
+// der längste Schritt, der mit dem ersten mitwandert (oder der erste selbst), wird entsprechend länger bzw. kürzer.
+// Ist der erste Schritt der längste, verschiebt sich nur sein Beginn; sonst rückt er samt Nachfolgern, und der längste fängt es auf.
+function shiftStep(m, id, d) {                    // Schritt samt allem, was danach beginnt, um d Tage verschieben (Dauer bleibt)
+  const s = m.plan.steps.find(q => q.id === id), a = s && s.anker; if (!a || !d) return;
+  if (a.art === 'fest') { const n = dn(a.datum); if (n != null) a.datum = ds(n + d); }
+  else if (a.art === 'pal' || a.art === 'nach') a.offset = (+a.offset || 0) + d;
 }
-// Start eines Bereichs auf ein Datum legen: die Dauer des längsten Schritts davor (bis zum PAL) passt sich an,
-// Schritte, von denen die Starts der anderen Bereiche abhängen, bleiben möglichst unberührt
 function adjustMark(m, which, target) {
   const p = m.plan, pc = planCalc(m), ph = pc.ph[which], mark = ph && ph.mark;
-  const r = mark && pc.map.get(mark);
-  if (!r || r.start == null || target == null) return null;
-  let delta = r.start - target;
+  const r = mark && pc.map.get(mark), s = p.steps.find(q => q.id === mark);
+  if (!r || r.start == null || target == null || !s || s.pal) return null;
+  const delta = r.start - target;                // > 0: früher, < 0: später
   if (!delta) return { changed: [] };
-  const theirs = new Set(Object.keys(pc.ph).filter(k => k !== which).flatMap(k => influencingChain(p, pc.ph[k].mark).map(s => s.id)));
-  const mine = influencingChain(p, mark);
-  let pool = mine.filter(s => !theirs.has(s.id));
-  if (!pool.length) pool = mine;
-  if (!pool.length) return null;
-  pool = pool.slice().sort((a, b) => (+b.dauer || 0) - (+a.dauer || 0));
-  const changed = [];
-  if (delta > 0) { changed.push([pool[0].name, +pool[0].dauer || 0, (+pool[0].dauer || 0) + delta]); pool[0].dauer = (+pool[0].dauer || 0) + delta; }
-  else {
-    let rest = -delta;
-    for (const s of pool) {
-      const take = Math.min(Math.max(0, (+s.dauer || 0) - 1), rest);
-      if (!take) continue;
-      changed.push([s.name, +s.dauer, +s.dauer - take]); s.dauer = +s.dauer - take; rest -= take;
-      if (!rest) break;
-    }
-    if (rest) return { changed, partial: true };
-  }
-  return { changed };
+  // wer wandert mit, wenn der erste Schritt rückt? (probeweise um einen Tag)
+  const sim = JSON.parse(JSON.stringify(m)); shiftStep(sim, mark, 1); const m2 = planCalc(sim).map;
+  const pushed = p.steps.filter(q => q.typ === 'aufgabe' && q.id !== mark && !q.pal && pc.map.get(q.id) && pc.map.get(q.id).start != null && m2.get(q.id) && m2.get(q.id).start === pc.map.get(q.id).start + 1);
+  const cand = (s.typ === 'aufgabe' ? [s] : []).concat(pushed).sort((a, b) => (+b.dauer || 0) - (+a.dauer || 0));
+  if (!cand.length) { setStepSpan(m, mark, target, target); return { changed: [] }; }   // Meilenstein am Beginn: wandert selbst
+  // länger/kürzer am Beginn, das Ende bleibt (beginnt der Schritt nach einem Vorgänger, wandert dafür sein Abstand mit)
+  const grow = (q, k) => { q.dauer = (+q.dauer || 0) + k; if (q.anker && q.anker.art === 'nach') q.anker.offset = (+q.anker.offset || 0) - k; };
+  const apply = (c, k) => { if (c === s) grow(s, k); else { shiftStep(m, mark, -k); c.dauer = (+c.dauer || 0) + k; } };   // k > 0: Start früher
+  if (delta > 0) { const c = cand[0]; apply(c, delta); return { changed: [[c.name, +c.dauer - delta, +c.dauer]] }; }
+  const need = -delta, c = cand.find(q => (+q.dauer || 0) - 1 >= need) || cand[0], take = Math.min(need, Math.max(0, (+c.dauer || 0) - 1));
+  if (!take) return { changed: [], partial: true };
+  apply(c, -take);
+  return take < need ? { changed: [[c.name, +c.dauer + take, +c.dauer]], partial: true } : { changed: [[c.name, +c.dauer + take, +c.dauer]] };
 }
 // Start Selektion/Inhalt einer Maßnahme auf ein Datum legen (Zeitleiste, Kalender): ohne Plan über den Vorlauf,
 // mit Detailplan über die Dauer der Schritte davor. Liefert die Meldung für den Hinweis.
@@ -97,12 +80,13 @@ function dateForWT(pal, w) { let n = pal, c = 0; while (c < w && pal - n < 3000)
 // Schritt auf neuen Beginn/Ende setzen (Verknüpfung bleibt, der Versatz wird angepasst)
 // Woran hängt ein Schritt? (für Hinweise) – und welche Schritte hängen an ihm
 function anchorText(p, s) {
-  const a = s.anker || {}, ref = a.ref && p.steps.find(q => q.id === a.ref);
+  const a = s.anker || {}, ref = a.ref && p.steps.find(q => q.id === a.ref), off = +a.offset || 0;
   if (s.pal || a.art === 'pal') return 'hängt am PAL';
+  if (a.art === 'nach') return 'beginnt nach ' + predsOf(s).map(id => p.steps.find(q => q.id === id)).filter(Boolean).map(q => '„' + q.name + '“').join(', ') + (off ? ' (' + (off > 0 ? off + ' Tage später' : -off + ' Tage überlappend') + ')' : '');
   if ((a.art === 'start' || a.art === 'ende') && ref) return 'hängt am ' + (a.art === 'start' ? 'Beginn' : 'Ende') + ' von „' + ref.name + '“';
   return a.art === 'fest' ? 'hat ein festes Datum' : 'hat kein festes Ende';
 }
-const dependents = (p, s) => p.steps.filter(q => q.anker && q.anker.ref === s.id && (q.anker.art === 'start' || q.anker.art === 'ende'));
+const dependents = (p, s) => p.steps.filter(q => predsOf(q).includes(s.id));      // Schritte, die nach s beginnen
 function setStepSpan(m, sid, ns, ne) {
   const s = m.plan.steps.find(q => q.id === sid);
   if (!s || s.typ === 'gruppe') return;
@@ -111,6 +95,7 @@ function setStepSpan(m, sid, ns, ne) {
   const a = s.anker || { art: 'offen' };
   const pal = dn(m.pal);
   if (a.art === 'fest') s.anker = { art: 'fest', datum: ds(ne) };
+  else if (a.art === 'nach' && r.start != null) a.offset = (+a.offset || 0) + (ns - r.start);   // beginnt nach Vorgängern: Abstand ändert sich
   else if (r.end == null || a.art === 'offen') s.anker = pal != null ? { art: 'pal', offset: ne - pal } : { art: 'fest', datum: ds(ne) };
   else a.offset = (+a.offset || 0) + (ne - r.end);
   if (s.typ === 'aufgabe') s.dauer = Math.max(0, ne - ns);
@@ -126,7 +111,7 @@ function phasePlan(pal, starts) {
     const next = tasks[i + 1];
     const end = next ? next[1] : pal != null ? pal : a + DEF_DAYS;
     t.dauer = Math.max(0, end - a);
-    t.anker = next ? { art: 'start', ref: next[0].id, offset: 0 } : pal != null ? { art: 'pal', offset: 0 } : { art: 'fest', datum: ds(end) };
+    t.anker = pal != null ? { art: 'pal', offset: end - pal } : { art: 'fest', datum: ds(end) };
   });
   const goal = { id: uid(), typ: 'ziel', name: 'Briefkasten-Termin', dauer: 0, fortschritt: 0, wer: '', kommentar: '', anker: pal != null ? { art: 'pal', offset: 0 } : { art: 'offen' } };
   if (!steps.length) steps.push({ id: uid(), typ: 'gruppe', name: 'Arbeitsschritte' });
@@ -200,6 +185,7 @@ async function createPlan(id) {
     ensurePalStep(plan);                                   // Briefkasten-Termin (PAL) als feste Zeile
     m.plan = plan;
     m.pal = ds(pal);
+    forwardLinks(m); unlinkSections(m);                     // Vorlage: Verknüpfungen vorwärts (Beginn nach Ende), Abschnitte unabhängig
     // vom PAL aus rückwärts anpassen (spätester Bereich zuerst), sonst verschiebt ein späterer Bereich die früheren wieder
     if (res.kind !== 'bereiche') for (const k of Object.keys(starts).sort((a, b) => starts[b] - starts[a])) {
       const r = adjustMark(m, k, starts[k]);
@@ -303,7 +289,9 @@ function deleteStep(mid, sid) {
     if (!del) return;
     const da = del.anker || { art: 'offen' }, pal = dn(m.pal);
     p.steps = p.steps.filter(q => q.id !== sid);
-    // wer am gelöschten Schritt hing, hängt jetzt an dessen Bezugspunkt – die Termine bleiben gleich
+    // wer nach dem gelöschten Schritt begann, beginnt jetzt nach dessen Vorgängern (sonst hängt er am PAL) – die Termine bleiben gleich
+    p.steps.forEach(q => { if (predsOf(q).includes(sid)) setPreds(q, [...new Set(predsOf(q).filter(id => id !== sid).concat(predsOf(del)))], pc.map.get(q.id), pc.map, pal); });
+    // (ältere Pläne) wer am gelöschten Schritt hing, hängt jetzt an dessen Bezugspunkt
     p.steps.forEach(q => {
       if (!q.anker || q.anker.ref !== sid) return;
       const r = pc.map.get(q.id) || {}, qo = +q.anker.offset || 0;
@@ -347,7 +335,7 @@ VIEW_FN.plaene = main => {
     cand.length ? h('span', { class: 'pnew' }, h('select', { onchange: e => { newFor = e.target.value; } }, cand.map(x => h('option', { value: x.id }, x.m.name))),
       h('button', { onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
-    h('span', { class: 'info', tip: 'Jeder Schritt hängt an einem Bezugspunkt (PAL oder einem anderen Schritt). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
+    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten im selben Abschnitt. Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; Strg+Klick auf ein farbiges Datum löst eine Verknüpfung. Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);
   if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan vorhanden. Oben eine Maßnahme wählen und „Detailplan anlegen“.')); return; }
   const m = x.m, p = m.plan, pc = x.pc, today = todayDn(), compact = !!UI.planCompact;
@@ -403,6 +391,7 @@ VIEW_FN.plaene = main => {
   if (today >= a0 && today <= a1) gbg.append(h('div', { class: 'today', style: { left: X(today) + pxd / 2 + 'px' }, tip: 'Heute' }));
   if (x.pal != null) gbg.append(h('div', { class: 'palline', style: { left: X(x.pal) + pxd / 2 + 'px' } }, h('span', null, 'PAL')));
 
+  const over = palOverSteps(m, pc), late = new Set(over.map(o => o.id));   // Schritte eines Bereichs, die nach dem PAL enden
   const trows = [], grows = [];
   let grpName = '', grpEls = null;                // grpEls: Balken des aktuellen Abschnitts (ziehen am Abschnittsbalken verschiebt alle)
   for (const row of rows) {
@@ -457,6 +446,9 @@ VIEW_FN.plaene = main => {
     const endInp = s.pal ? h('span', { class: 'paldate', tip: 'Fester Termin: das PAL der Maßnahme – ändern oben im Kopf oder in der Maßnahmen-Tabelle' }, x.pal != null ? fmtD(x.pal) : '–', h('span', { class: 'pallock', 'aria-label': 'fest' }), demoChip('P', 'palchip'))
       : dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; UI.freshStep = null;
       commit(d => { const ns = !isTask ? ne : !fresh && r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
+    // verknüpfte Daten: Kalendersymbol in der Farbe der Maßnahme (Beginn nach Vorgängern / nach dem Ende beginnen andere)
+    if (startInp && predsOf(s).length) startInp.classList.add('lk');
+    if (!s.pal && (dependents(p, s).length || (!isTask && predsOf(s).length))) endInp.classList.add('lk');
     const secK = curBereich(p.steps, row.idx);
     trows.push(h('div', { class: 'pl-row' + (away.length ? ' conflict' : '') + (s.pal ? ' palrow' : '') + (compact ? ' compact' : ''), dataset: { rid: s.id, flash: 'step:' + s.id } },
       h('div', { class: 'c-grip' }, grip),
@@ -468,12 +460,15 @@ VIEW_FN.plaene = main => {
           personInput({ value: s.wer || '', placeholder: '–', 'data-fk': fk('wer'), onchange: e => setStep(m.id, s.id, st => { st.wer = e.target.value.trim(); }) }),
           away.length ? h('span', { class: 'wi warn', tip: s.wer + ' hat Urlaub: ' + away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ') }, '⚠') : null),
         h('div', { class: 'c-kom' }, h('input', { value: s.kommentar || '', title: s.kommentar || '', placeholder: '–', 'data-fk': fk('kom'), onchange: e => setStep(m.id, s.id, st => { st.kommentar = e.target.value; }) })),
-        h('div', { class: 'c-dur' }, isTask ? h('input', { type: 'number', min: 0, max: MAX_DAUER, value: s.dauer ?? 0, 'data-fk': fk('dur'), tip: 'Dauer in Tagen', onchange: e => { const v = Math.round(+e.target.value || 0); if (v > MAX_DAUER) toast('Höchstens ' + MAX_DAUER + ' Tage – auf ' + MAX_DAUER + ' gesetzt.', 'warn'); setStep(m.id, s.id, st => { st.dauer = clamp(v, 0, MAX_DAUER); }); } }) : null),
+        h('div', { class: 'c-dur' }, isTask ? h('input', { type: 'number', min: 0, max: MAX_DAUER, value: s.dauer ?? 0, 'data-fk': fk('dur'), tip: 'Dauer in Tagen', onchange: e => { const v = Math.round(+e.target.value || 0); if (v > MAX_DAUER) toast('Höchstens ' + MAX_DAUER + ' Tage – auf ' + MAX_DAUER + ' gesetzt.', 'warn');
+          const nv = clamp(v, 0, MAX_DAUER);                       // Beginn bleibt, das Ende wandert (und was danach beginnt)
+          if (r.start != null && !r.err) commit(d => { setStepSpan(findM(d, m.id), s.id, r.start, r.start + nv); }); else setStep(m.id, s.id, st => { st.dauer = nv; }); } }) : null),
         h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : startInp),
         h('div', { class: 'c-date' }, r.err ? '' : endInp)],
       h('div', { class: 'c-acts' }, menuButton('⋯', [['Neue Aufgabe darunter', () => addStep(m.id, curGroupOf(p.steps, row.idx), s.id)],
         secK && !s.pal ? ['Als Beginn von „' + phName(secK) + '“ festlegen', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks, { [secK]: s.id }); }, s.name + ' = ' + startLabel(secK))] : false,
-        secK && p.marks && p.marks[secK] ? ['Beginn von „' + phName(secK) + '“ automatisch (frühester Schritt)', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks); delete pl.marks[secK]; })] : false, null,
+        secK && p.marks && p.marks[secK] ? ['Beginn von „' + phName(secK) + '“ automatisch (frühester Schritt)', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks); delete pl.marks[secK]; })] : false,
+        predsOf(s).length || dependents(p, s).length ? ['Verknüpfungen dieses Schritts lösen', () => unlinkSteps(m.id, predsOf(s).map(a => [a, s.id]).concat(dependents(p, s).map(q => [s.id, q.id])))] : false, null,
         s.pal ? false : ['Löschen', () => deleteStep(m.id, s.id)]], 'right'))));
     // Gantt-Zeile
     const g = h('div', { class: 'g-row' });
@@ -484,12 +479,12 @@ VIEW_FN.plaene = main => {
       const tip = () => h('div', null, h('b', null, s.name), gname ? h('span', { class: 'muted' }, ' (' + gname + ')') : null,
         h('div', null, isTask ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' · ' + stepWT(r.start, r.end) + ' WT' : (s.pal ? 'PAL' : STEP_TYPES[s.typ]) + ': ' + fmtW(r.end)),
         s.wer ? h('div', null, 'Zugeordnet: ' + s.wer) : null, s.kommentar ? h('div', { class: 'muted' }, s.kommentar) : null,
-        h('div', { class: 'muted' }, anchorText(p, s) + (dependents(p, s).length ? ' · daran hängen: ' + dependents(p, s).map(q => '„' + q.name + '“').join(', ') : '')),
+        h('div', { class: 'muted' }, anchorText(p, s) + (dependents(p, s).length ? ' · danach beginnen: ' + dependents(p, s).map(q => '„' + q.name + '“').join(', ') : '')),
         away.length ? h('div', { class: 'warn' }, '⚠ ' + s.wer + ' hat in dieser Zeit Urlaub') : null);
       const ctx = { x, s, r, pxd, X };
       if (isTask) {
         const c = barColor(s.wer);
-        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : ''), tip, style: { left: X(r.start) + pxd / 2 + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: midtone(c), borderColor: c } },
+        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : '') + (late.has(s.id) ? ' late' : ''), dataset: { sid: s.id }, tip, style: { left: X(r.start) + pxd / 2 + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: midtone(c), borderColor: c } },
           (r.end - r.start) * pxd > 70 ? h('span', { class: 'lbl' }, s.name) : null,
           h('span', { class: 'grip gl', onpointerdown: e => barDrag(e, ctx, 'left') }), h('span', { class: 'grip gr', onpointerdown: e => barDrag(e, ctx, 'right') }));
         bar.addEventListener('pointerdown', e => { if (!e.target.classList.contains('grip')) barDrag(e, ctx, 'move'); });
@@ -498,7 +493,7 @@ VIEW_FN.plaene = main => {
       } else {
         // Briefkasten-Termin: rotes P wie im Kalender – ziehen verschiebt das PAL und damit den ganzen Plan
         const dia = s.pal ? h('div', { class: 'g-pal', tip, onpointerdown: e => barDrag(e, ctx, 'move') }, sym('P'))
-          : h('div', { class: 'g-dia', tip, onpointerdown: e => barDrag(e, ctx, 'move') });
+          : h('div', { class: 'g-dia' + (late.has(s.id) ? ' late' : ''), dataset: { sid: s.id }, tip, onpointerdown: e => barDrag(e, ctx, 'move') });
         dia.style.left = X(r.end) + pxd / 2 + 'px'; if (!s.pal) dia.style.background = x.color;
         ctx.el = dia;
         g.append(dia); if (grpEls && !s.pal) grpEls.push(dia);
@@ -513,9 +508,11 @@ VIEW_FN.plaene = main => {
   tlPan(gantt);
   planWheel(gantt, a0, fitP);
   UI._pl = { a0, pxd };
-  put(main, personList(), h('div', { class: 'pl-split' + (compact ? ' compact' : '') },
-    h('div', { class: 'pl-table' }, thead, trows,
-      h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div', { class: 'c-add' }, h('button', { class: 'addlink', onclick: () => addGroup(m.id) }, '+ Abschnitt')))),
+  const table = h('div', { class: 'pl-table' }, thead, trows,
+    h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div', { class: 'c-add' }, h('button', { class: 'addlink', onclick: () => addGroup(m.id) }, '+ Abschnitt'))));
+  linkHandlers(table, m.id);
+  put(main, palOverBanner(x, over), personList(), h('div', { class: 'pl-split' + (compact ? ' compact' : ''), style: { '--lkc': inkC(x.color) } },
+    table,
     h('div', { class: 'pl-divider' }, h('button', { class: 'divbtn', tip: compact ? 'alle Spalten zeigen' : 'nur Arbeitsschritte zeigen – mehr Platz für das Gantt', 'aria-label': 'Tabelle ein-/ausklappen',
       onclick: () => { UI.planCompact = !compact; UI.planPxd = 0; saveUI(); renderNow(); } }, compact ? '›' : '‹')),
     gantt));
@@ -531,6 +528,7 @@ function groupMark(g, pc, p) {
 function curGroupOf(steps, idx) { for (let i = idx; i >= 0; i--) if (steps[i].typ === 'gruppe') return steps[i].id; return null; }
 function curBereich(steps, idx) { for (let i = idx; i >= 0; i--) if (steps[i].typ === 'gruppe') return steps[i].bereich || null; return null; }
 VIEW_FN['plaene:after'] = () => {
+  drawLinks();
   if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
   const g = $('.pl-gantt');
   if (g && UI._pl) {
@@ -614,6 +612,10 @@ async function shiftGroupDialog(mid, gid) {
 /* ---------- Balken ziehen: verschieben oder Dauer ändern */
 function barDrag(ev, ctx, mode) {
   if (ev.button !== 0) return;
+  if ((ev.ctrlKey || ev.metaKey) && !ctx.s.pal) {                     // Strg: verknüpfen statt verschieben (linke/rechte Hälfte = Beginn/Ende)
+    const b = ctx.el.getBoundingClientRect();
+    return linkDrag(ev, ctx.x.id, ctx.s.id, ctx.s.typ !== 'aufgabe' ? 'both' : mode === 'left' ? 'start' : mode === 'right' ? 'end' : ev.clientX < b.left + b.width / 2 ? 'start' : 'end');
+  }
   ev.preventDefault(); ev.stopPropagation(); hideTip();
   const { x, s, r, pxd, X, el } = ctx, sx = ev.clientX;
   document.body.classList.add('dragging');
@@ -686,4 +688,203 @@ function rowDrag(ev, mid, sid) {
     moveRows(mid, sid, beforeId);
   };
   dragSession(ev, ev.currentTarget, move, end);
+}
+
+/* ---------- Verknüpfungen Ende → Beginn: anzeigen, mit Strg anlegen, lösen
+   Ein Schritt kann nach beliebig vielen Vorgängern beginnen (spätestes Ende zählt), ein Ende beliebig viele Nachfolger haben.
+   Nur innerhalb eines Abschnitts, ohne Kreis, nicht am Briefkasten-Termin. */
+function secMap(p) { const out = new Map(); let g = ''; for (const s of p.steps) { if (s.typ === 'gruppe') g = s.id; else out.set(s.id, g); } return out; }
+function isAncestor(p, anc, id) {                // beginnt „id“ (über Ecken) nach „anc“?
+  const byId = new Map(p.steps.map(s => [s.id, s])), seen = new Set(), st = [id];
+  while (st.length) { const q = st.pop(); if (q === anc) return true; if (seen.has(q)) continue; seen.add(q); predsOf(byId.get(q)).forEach(r => st.push(r)); }
+  return false;
+}
+function canLink(p, a, b, sec = secMap(p)) {      // darf „b“ nach dem Ende von „a“ beginnen?
+  const A = p.steps.find(s => s.id === a), B = p.steps.find(s => s.id === b);
+  return !!A && !!B && a !== b && A.typ !== 'gruppe' && B.typ !== 'gruppe' && !A.pal && !B.pal && sec.get(a) === sec.get(b) && !predsOf(B).includes(a) && !isAncestor(p, b, a);
+}
+const stepName = (p, id) => '„' + ((p.steps.find(s => s.id === id) || {}).name || '?') + '“';
+function linkSteps(mid, a, b) {
+  const p = C.byId.get(mid).m.plan;
+  commit(d => { const q = findM(d, mid).plan.steps.find(s => s.id === b); if (!q) return;
+    q.anker = { art: 'nach', refs: predsOf(q).concat(a), offset: q.anker && q.anker.art === 'nach' ? +q.anker.offset || 0 : 0 }; },   // neu verknüpft: beginnt direkt am Ende
+    stepName(p, b) + ' beginnt nach ' + stepName(p, a));
+}
+function unlinkSteps(mid, pairs) {                // [[Vorgänger, Nachfolger], …] – Termine bleiben
+  commit(d => { const m = findM(d, mid), map = planCalc(m).map, pal = dn(m.pal);
+    for (const [a, b] of pairs) { const q = m.plan.steps.find(s => s.id === b); if (q && predsOf(q).includes(a)) setPreds(q, predsOf(q).filter(id => id !== a), map.get(b), map, pal); } },
+    pairs.length > 1 ? pairs.length + ' Verknüpfungen gelöst' : 'Verknüpfung gelöst');
+}
+// Datumsfeld eines Schritts: Beginn (Aufgabe) bzw. das eine Datum (Meilenstein)
+function dateField(p, id, as) { const s = p.steps.find(q => q.id === id); return s ? $('.pl-table [data-fk="' + CSS.escape('st:' + id + ':' + (as === 'start' && s.typ === 'aufgabe' ? 'start' : 'end')) + '"]') : null; }
+const fieldOf = el => { const m = /^st:(.+):(start|end)$/.exec((el && el.dataset && el.dataset.fk) || ''); return m ? { sid: m[1], f: m[2] } : null; };
+const roleOf = (s, f) => s.typ !== 'aufgabe' ? 'both' : f;
+// Paare, an denen ein Datum beteiligt ist
+function linkPairs(p, s, role) {
+  return (role !== 'start' ? dependents(p, s).map(q => [s.id, q.id]) : []).concat(role !== 'end' ? predsOf(s).map(a => [a, s.id]) : []);
+}
+function linkHandlers(table, mid) {
+  const P = () => C.byId.get(mid).m.plan;
+  const pick = e => { const i = e.target.closest && e.target.closest('input[type=date]'); const f = fieldOf(i); return f ? Object.assign(f, { el: i }) : null; };
+  table.addEventListener('pointerdown', e => {
+    if (!(e.ctrlKey || e.metaKey) || e.button !== 0) return;
+    const f = pick(e); if (!f) return;
+    const s = P().steps.find(q => q.id === f.sid); if (!s || s.pal) return;
+    linkDrag(e, mid, f.sid, roleOf(s, f.f));
+  }, true);
+  for (const t of ['mousedown', 'click']) table.addEventListener(t, e => { if ((e.ctrlKey || e.metaKey) && pick(e)) { e.preventDefault(); e.stopPropagation(); } }, true);
+  table.addEventListener('mouseover', e => { if (document.body.classList.contains('linking')) return; const f = pick(e); if (f && f.el.classList.contains('lk')) linkHl(mid, f.sid, f.f); });
+  table.addEventListener('mouseout', e => { const f = pick(e); if (f && f.el.classList.contains('lk') && !(e.relatedTarget && f.el.contains(e.relatedTarget))) linkHl(mid, null); });
+}
+// Hinzeigen auf ein verknüpftes Datum: die Partner bleiben farbig, alle anderen Kalendersymbole werden hellgrau, im Gantt das Gelenk in Farbe
+function linkHl(mid, sid, f) {
+  const split = $('.pl-split'); if (!split) return;
+  split.classList.remove('lkhl'); $$('.lkon, .lkkeep', split).forEach(e => e.classList.remove('lkon', 'lkkeep')); $$('.g-links .lnk.on', split).forEach(e => e.classList.remove('on'));
+  if (!sid) return;
+  const p = C.byId.get(mid).m.plan, s = p.steps.find(q => q.id === sid); if (!s) return;
+  const pairs = linkPairs(p, s, roleOf(s, f)); if (!pairs.length) return;
+  split.classList.add('lkhl');
+  for (const [a, b] of pairs) {
+    [dateField(p, a, 'end'), dateField(p, b, 'start')].forEach(e => e && e.classList.add('lkon'));
+    $$('.g-body [data-sid="' + CSS.escape(a) + '"], .g-body [data-sid="' + CSS.escape(b) + '"]', split).forEach(e => e.classList.add('lkkeep'));
+    $$('.g-links .lnk', split).filter(e => e.dataset.a === a && e.dataset.b === b).forEach(e => e.classList.add('on'));
+  }
+}
+// Gelenke im Gantt: Punkt am Ende des Vorgängers und am Beginn des Nachfolgers, feine gepunktete Verbindung
+function drawLinks() {
+  const body = $('.pl-gantt .g-body'), x = C.byId.get(UI.planSel);
+  if (!body || UI.printing || !x || !x.m.plan) return;
+  $$('svg.g-links', body).forEach(e => e.remove());
+  const bb = body.getBoundingClientRect(), pt = new Map();
+  for (const e of $$('[data-sid]', body)) {
+    const r = e.getBoundingClientRect(), bar = e.classList.contains('g-bar'), y = (r.top + r.bottom) / 2 - bb.top, c = (r.left + r.right) / 2 - bb.left;
+    pt.set(e.dataset.sid, { bar, s: bar ? r.left - bb.left : c, e: bar ? r.right - bb.left : c, y });
+  }
+  let out = '';
+  for (const q of x.m.plan.steps) for (const a of predsOf(q)) {
+    const A = pt.get(a), B = pt.get(q.id); if (!A || !B) continue;
+    out += '<g class="lnk" data-a="' + escAttr(a) + '" data-b="' + escAttr(q.id) + '"><path d="M' + A.e + ' ' + A.y + ' L' + B.s + ' ' + B.y + '"/>' +
+      (A.bar ? '<circle cx="' + A.e + '" cy="' + A.y + '" r="3"/>' : '') + (B.bar ? '<circle cx="' + B.s + '" cy="' + B.y + '" r="3"/>' : '') + '</g>';
+  }
+  if (!out) return;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.setAttribute('class', 'g-links'); svg.setAttribute('width', body.scrollWidth); svg.setAttribute('height', body.scrollHeight);
+  svg.innerHTML = out; body.append(svg);
+}
+const escAttr = v => String(v).replace(/[&"<>]/g, c => ({ '&': '&amp;', '"': '&quot;', '<': '&lt;', '>': '&gt;' })[c]);
+// Strg + Ziehen: vom Ende eines Schritts auf den Beginn eines anderen (oder umgekehrt). Nur passende Ziele bleiben sichtbar.
+function linkDrag(ev, mid, sid, role) {
+  if (ev.button !== 0) return;
+  ev.preventDefault(); ev.stopPropagation(); hideTip(); closeMenu();
+  const x = C.byId.get(mid), p = x.m.plan, split = $('.pl-split'), body = $('.pl-gantt .g-body'), sec = secMap(p);
+  if (!split) return;
+  const gpt = (id, as) => { const e = body && body.querySelector('[data-sid="' + CSS.escape(id) + '"]'); if (!e) return null; const r = e.getBoundingClientRect(), bar = e.classList.contains('g-bar'); return { x: !bar ? (r.left + r.right) / 2 : as === 'start' ? r.left : r.right, y: (r.top + r.bottom) / 2 }; };
+  const T = [];
+  for (const q of p.steps) {
+    if (q.typ === 'gruppe' || q.pal || q.id === sid) continue;
+    if (role !== 'start' && canLink(p, sid, q.id, sec)) T.push({ id: q.id, as: 'start', pair: [sid, q.id] });
+    if (role !== 'end' && canLink(p, q.id, sid, sec)) T.push({ id: q.id, as: 'end', pair: [q.id, sid] });
+  }
+  T.forEach(t => { t.el = dateField(p, t.id, t.as); t.pt = gpt(t.id, t.as); if (t.el) t.el.classList.add('lktarget'); const g = body && body.querySelector('[data-sid="' + CSS.escape(t.id) + '"]'); if (g) g.classList.add('lktarget'); });
+  const src = dateField(p, sid, role === 'start' ? 'start' : 'end'), sp = gpt(sid, role === 'start' ? 'start' : 'end');
+  if (src) src.classList.add('lksrc');
+  const g0 = body && body.querySelector('[data-sid="' + CSS.escape(sid) + '"]'); if (g0) g0.classList.add('lksrc');
+  split.classList.add('lkmode'); document.body.classList.add('linking');
+  const ns = 'http://www.w3.org/2000/svg', ov = document.createElementNS(ns, 'svg');
+  ov.setAttribute('class', 'lk-overlay'); ov.style.setProperty('--lkc', inkC(x.color));
+  ov.innerHTML = T.filter(t => t.pt).map((t, i) => '<circle class="ring" data-i="' + T.indexOf(t) + '" cx="' + t.pt.x + '" cy="' + t.pt.y + '" r="6"/>').join('') + '<path class="band" d=""/>';
+  document.body.append(ov);
+  const band = ov.querySelector('.band'), lab = h('div', { class: 'drag-lab' }); document.body.append(lab);
+  const from = () => { if (sp && Math.hypot(sp.x - ev.clientX, sp.y - ev.clientY) < 40) return sp; if (src) { const r = src.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; } return { x: ev.clientX, y: ev.clientY }; };
+  const p0 = from();
+  let hot = null, moved = false;
+  const pickT = e => {
+    let best = null;
+    for (const t of T) {
+      if (t.el) { const r = t.el.getBoundingClientRect(); if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) return t; }
+      if (t.pt) { const dd = Math.hypot(t.pt.x - e.clientX, t.pt.y - e.clientY); if (dd < 16 && (!best || dd < best.d)) best = { t, d: dd }; }
+    }
+    return best && best.t;
+  };
+  const preview = t => { const sim = JSON.parse(JSON.stringify(x.m)), q = sim.plan.steps.find(s => s.id === t.pair[1]); q.anker = { art: 'nach', refs: predsOf(q).concat(t.pair[0]), offset: q.anker && q.anker.art === 'nach' ? +q.anker.offset || 0 : 0 }; const r = planCalc(sim).map.get(t.pair[1]); return r && r.start != null ? fmtW(r.start) : null; };
+  const move = e => {
+    if (Math.hypot(e.clientX - ev.clientX, e.clientY - ev.clientY) > 4) moved = true;
+    hot = moved ? pickT(e) : null;
+    T.forEach((t, i) => { if (t.el) t.el.classList.toggle('lkhot', t === hot); const c = ov.querySelector('.ring[data-i="' + i + '"]'); if (c) c.classList.toggle('hot', t === hot); });
+    const to = hot ? (hot.el && !(hot.pt && Math.hypot(hot.pt.x - e.clientX, hot.pt.y - e.clientY) < 16) ? (() => { const r = hot.el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })() : hot.pt) : { x: e.clientX, y: e.clientY };
+    band.setAttribute('d', moved ? 'M' + p0.x + ' ' + p0.y + ' L' + to.x + ' ' + to.y : '');
+    if (!moved) { lab.style.display = 'none'; return; }
+    lab.style.display = '';
+    if (hot) { const when = preview(hot); setKids(lab, h('b', null, 'Verknüpfen'), h('div', null, 'Ende ' + stepName(p, hot.pair[0]) + ' → Beginn ' + stepName(p, hot.pair[1])), when ? h('div', { class: 'muted' }, stepName(p, hot.pair[1]) + ' beginnt dann am ' + when) : null); }
+    else setKids(lab, h('b', null, T.length ? (role === 'start' ? 'Auf ein markiertes Ende ziehen' : role === 'end' ? 'Auf einen markierten Beginn ziehen' : 'Auf einen markierten Beginn oder ein Ende ziehen') : 'Nichts zum Verknüpfen'),
+      h('div', { class: 'muted' }, T.length ? 'nur im selben Abschnitt, ohne Kreis' : 'Verknüpfen geht nur mit Schritten im selben Abschnitt.'));
+    placeLab(lab, e.clientX, e.clientY);
+  };
+  const end = okay => {
+    ov.remove(); lab.remove(); split.classList.remove('lkmode'); document.body.classList.remove('linking');
+    $$('.lktarget, .lkhot, .lksrc').forEach(e => e.classList.remove('lktarget', 'lkhot', 'lksrc'));
+    if (!okay) return;
+    if (hot) { linkSteps(mid, hot.pair[0], hot.pair[1]); return; }
+    if (!moved) { const at = src || g0; setTimeout(() => linkMenu(mid, sid, role, at), 0); }   // Strg+Klick: Verknüpfungen dieses Datums lösen
+  };
+  dragSession(ev, null, move, end);
+  move(ev);
+}
+function linkMenu(mid, sid, role, at) {
+  const p = C.byId.get(mid).m.plan, s = p.steps.find(q => q.id === sid); if (!s) return;
+  const pairs = linkPairs(p, s, role);
+  if (!pairs.length) { toast(role === 'start' ? 'Mit Strg vom Ende eines anderen Schritts hierher ziehen, um zu verknüpfen.' : 'Mit Strg von hier auf den Beginn eines anderen Schritts ziehen, um zu verknüpfen.'); return; }
+  closeMenu();
+  const items = pairs.map(pr => ['Verknüpfung mit ' + stepName(p, pr[0] === sid ? pr[1] : pr[0]) + ' lösen', () => unlinkSteps(mid, [pr])]);
+  if (pairs.length > 1) items.push(null, ['Alle ' + pairs.length + ' lösen', () => unlinkSteps(mid, pairs)]);
+  const mn = h('div', { class: 'menu', role: 'menu' }, items.map(it => it ? h('button', { role: 'menuitem', onclick: () => { closeMenu(); it[1](); } }, it[0]) : h('hr')));
+  document.body.append(mn);
+  placeMenu(mn, (at || document.body).getBoundingClientRect(), 'left');
+  _openMenu = { m: mn, btn: null, at: performance.now() };
+}
+
+/* ---------- Schritte eines Bereichs, die nach dem PAL enden: Warnung und „Alles vor den PAL rücken“
+   Der PAL bleibt, die Dauern bleiben; die Kette davor (ihre ersten Schritte) rückt so weit nach vorn, dass alles wieder spätestens am PAL endet. */
+function palOverSteps(m, pc) {
+  const pal = dn(m.pal), out = []; if (pal == null || !m.plan) return out;
+  let ber = null;
+  for (const s of m.plan.steps) {
+    if (s.typ === 'gruppe') { ber = s.bereich || null; continue; }
+    if (!ber || s.pal) continue;
+    const r = pc.map.get(s.id); if (r && !r.err && r.end != null && r.end > pal) out.push({ id: s.id, name: s.name, end: r.end, over: r.end - pal });
+  }
+  return out;
+}
+function palOverBanner(x, over) {
+  if (!over.length) return null;
+  const sig = x.id + ':' + over.map(o => o.id + '@' + o.end).join(',');
+  if (UI.palOverSeen === sig) return null;
+  const worst = over.reduce((a, b) => b.over > a.over ? b : a);
+  return h('div', { class: 'banner warn plwarn' },
+    h('span', null, over.length === 1 ? '„' + worst.name + '“ endet ' + worst.over + (worst.over === 1 ? ' Tag' : ' Tage') + ' nach dem PAL.'
+      : over.length + ' Schritte enden nach dem PAL – am weitesten „' + worst.name + '“ (' + worst.over + (worst.over === 1 ? ' Tag' : ' Tage') + ').'),
+    h('button', { class: 'primary', tip: 'Der PAL bleibt, die Dauern bleiben – die Schritte davor rücken so weit nach vorn, dass alles spätestens am PAL endet.', onclick: () => pullBeforePal(x.id) }, 'Alles vor den PAL rücken'),
+    h('button', { onclick: () => { UI.palOverSeen = sig; renderNow(); } }, 'Ausblenden'));
+}
+function pullBeforePal(mid) {
+  let left = 0, moved = 0;
+  commit(d => {
+    const m = findM(d, mid), pal = dn(m.pal); if (pal == null || !m.plan) return;
+    const byId = new Map(m.plan.steps.map(s => [s.id, s]));
+    const roots = id => { const out = new Set(), seen = new Set(), st = [id]; while (st.length) { const q = st.pop(); if (seen.has(q)) continue; seen.add(q); const ps = predsOf(byId.get(q)).filter(r => byId.has(r)); if (ps.length) ps.forEach(r => st.push(r)); else out.add(q); } return [...out]; };
+    for (let pass = 0; pass < 40; pass++) {
+      const over = palOverSteps(m, planCalc(m)); if (!over.length) break;
+      const worst = over.reduce((a, b) => b.over > a.over ? b : a), dd = worst.over;
+      let any = false;
+      for (const rid of roots(worst.id)) {
+        const s = byId.get(rid), a = s.anker || {}; if (s.pal) continue;
+        if (a.art === 'pal') { a.offset = (+a.offset || 0) - dd; any = true; }
+        else if (a.art === 'fest' && dn(a.datum) != null) { a.datum = ds(dn(a.datum) - dd); any = true; }
+      }
+      if (!any) break;
+      moved++;
+    }
+    left = palOverSteps(m, planCalc(m)).length;
+  }, 'Vor den PAL gerückt – der PAL bleibt');
+  if (left) toast(left === 1 ? 'Ein Schritt liegt weiter nach dem PAL – er hängt an keinem verschiebbaren Bezug.' : left + ' Schritte liegen weiter nach dem PAL – sie hängen an keinem verschiebbaren Bezug.', 'warn');
 }
