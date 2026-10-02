@@ -21,7 +21,8 @@ function adjustMark(m, which, target) {
   if (!delta) return { changed: [] };
   // wer wandert mit, wenn der erste Schritt rückt? (probeweise um einen Tag)
   const sim = JSON.parse(JSON.stringify(m)); shiftStep(sim, mark, 1); const m2 = planCalc(sim).map;
-  const pushed = p.steps.filter(q => q.typ === 'aufgabe' && q.id !== mark && !q.pal && pc.map.get(q.id) && pc.map.get(q.id).start != null && m2.get(q.id) && m2.get(q.id).start === pc.map.get(q.id).start + 1);
+  const sec = secMap(p);
+  const pushed = p.steps.filter(q => q.typ === 'aufgabe' && q.id !== mark && !q.pal && sec.get(q.id) === sec.get(mark) && pc.map.get(q.id) && pc.map.get(q.id).start != null && m2.get(q.id) && m2.get(q.id).start === pc.map.get(q.id).start + 1);
   const cand = (s.typ === 'aufgabe' ? [s] : []).concat(pushed).sort((a, b) => (+b.dauer || 0) - (+a.dauer || 0));
   if (!cand.length) { setStepSpan(m, mark, target, target); return { changed: [] }; }   // Meilenstein am Beginn: wandert selbst
   // länger/kürzer am Beginn, das Ende bleibt (beginnt der Schritt nach einem Vorgänger, wandert dafür sein Abstand mit)
@@ -185,7 +186,7 @@ async function createPlan(id) {
     ensurePalStep(plan);                                   // Briefkasten-Termin (PAL) als feste Zeile
     m.plan = plan;
     m.pal = ds(pal);
-    forwardLinks(m); unlinkSections(m);                     // Vorlage: Verknüpfungen vorwärts (Beginn nach Ende), Abschnitte unabhängig
+    unlinkSections(m); forwardLinks(m);                     // Vorlage: Verknüpfungen vorwärts (Beginn nach Ende), alte über Abschnitte gelöst
     // vom PAL aus rückwärts anpassen (spätester Bereich zuerst), sonst verschiebt ein späterer Bereich die früheren wieder
     if (res.kind !== 'bereiche') for (const k of Object.keys(starts).sort((a, b) => starts[b] - starts[a])) {
       const r = adjustMark(m, k, starts[k]);
@@ -335,7 +336,7 @@ VIEW_FN.plaene = main => {
     cand.length ? h('span', { class: 'pnew' }, h('select', { onchange: e => { newFor = e.target.value; } }, cand.map(x => h('option', { value: x.id }, x.m.name))),
       h('button', { onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
-    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten im selben Abschnitt. Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
+    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);
   if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan vorhanden. Oben eine Maßnahme wählen und „Detailplan anlegen“.')); return; }
   const m = x.m, p = m.plan, pc = x.pc, today = todayDn(), compact = !!UI.planCompact;
@@ -693,16 +694,16 @@ function rowDrag(ev, mid, sid) {
 
 /* ---------- Verknüpfungen Ende → Beginn: anzeigen, mit Strg anlegen, lösen
    Ein Schritt kann nach beliebig vielen Vorgängern beginnen (spätestes Ende zählt), ein Ende beliebig viele Nachfolger haben.
-   Nur innerhalb eines Abschnitts, ohne Kreis, nicht am Briefkasten-Termin. */
+   Auch über Abschnitte hinweg (ab 0.10.2), ohne Kreis, nicht am Briefkasten-Termin. */
 function secMap(p) { const out = new Map(); let g = ''; for (const s of p.steps) { if (s.typ === 'gruppe') g = s.id; else out.set(s.id, g); } return out; }
 function isAncestor(p, anc, id) {                // beginnt „id“ (über Ecken) nach „anc“?
   const byId = new Map(p.steps.map(s => [s.id, s])), seen = new Set(), st = [id];
   while (st.length) { const q = st.pop(); if (q === anc) return true; if (seen.has(q)) continue; seen.add(q); predsOf(byId.get(q)).forEach(r => st.push(r)); }
   return false;
 }
-function canLink(p, a, b, sec = secMap(p)) {      // darf „b“ nach dem Ende von „a“ beginnen?
+function canLink(p, a, b) {                       // darf „b“ nach dem Ende von „a“ beginnen?
   const A = p.steps.find(s => s.id === a), B = p.steps.find(s => s.id === b);
-  return !!A && !!B && a !== b && A.typ !== 'gruppe' && B.typ !== 'gruppe' && !A.pal && !B.pal && sec.get(a) === sec.get(b) && !predsOf(B).includes(a) && !isAncestor(p, b, a);
+  return !!A && !!B && a !== b && A.typ !== 'gruppe' && B.typ !== 'gruppe' && !A.pal && !B.pal && !predsOf(B).includes(a) && !isAncestor(p, b, a);
 }
 const stepName = (p, id) => '„' + ((p.steps.find(s => s.id === id) || {}).name || '?') + '“';
 function linkSteps(mid, a, b) {
@@ -782,14 +783,14 @@ const escAttr = v => String(v).replace(/[&"<>]/g, c => ({ '&': '&amp;', '"': '&q
 function linkDrag(ev, mid, sid, role) {
   if (ev.button !== 0) return;
   ev.preventDefault(); ev.stopPropagation(); hideTip(); closeMenu();
-  const x = C.byId.get(mid), p = x.m.plan, split = $('.pl-split'), body = $('.pl-gantt .g-body'), sec = secMap(p);
+  const x = C.byId.get(mid), p = x.m.plan, split = $('.pl-split'), body = $('.pl-gantt .g-body');
   if (!split) return;
   const gpt = (id, as) => { const e = body && body.querySelector('[data-sid="' + CSS.escape(id) + '"]'); if (!e) return null; const r = e.getBoundingClientRect(), bar = e.classList.contains('g-bar'); return { x: !bar ? (r.left + r.right) / 2 : as === 'start' ? r.left : r.right, y: (r.top + r.bottom) / 2 }; };
   const T = [];
   for (const q of p.steps) {
     if (q.typ === 'gruppe' || q.pal || q.id === sid) continue;
-    if (role !== 'start' && canLink(p, sid, q.id, sec)) T.push({ id: q.id, as: 'start', pair: [sid, q.id] });
-    if (role !== 'end' && canLink(p, q.id, sid, sec)) T.push({ id: q.id, as: 'end', pair: [q.id, sid] });
+    if (role !== 'start' && canLink(p, sid, q.id)) T.push({ id: q.id, as: 'start', pair: [sid, q.id] });
+    if (role !== 'end' && canLink(p, q.id, sid)) T.push({ id: q.id, as: 'end', pair: [q.id, sid] });
   }
   T.forEach(t => { t.el = dateField(p, t.id, t.as); t.pt = gpt(t.id, t.as); if (t.el) t.el.classList.add('lktarget'); const g = body && body.querySelector('[data-sid="' + CSS.escape(t.id) + '"]'); if (g) g.classList.add('lktarget'); });
   const src = dateField(p, sid, role === 'start' ? 'start' : 'end'), sp = gpt(sid, role === 'start' ? 'start' : 'end');
@@ -823,7 +824,7 @@ function linkDrag(ev, mid, sid, role) {
     lab.style.display = '';
     if (hot) { const when = preview(hot); setKids(lab, h('b', null, 'Verknüpfen'), h('div', null, 'Ende ' + stepName(p, hot.pair[0]) + ' → Beginn ' + stepName(p, hot.pair[1])), when ? h('div', { class: 'muted' }, stepName(p, hot.pair[1]) + ' beginnt dann am ' + when) : null); }
     else setKids(lab, h('b', null, T.length ? (role === 'start' ? 'Auf ein markiertes Ende ziehen' : role === 'end' ? 'Auf einen markierten Beginn ziehen' : 'Auf einen markierten Beginn oder ein Ende ziehen') : 'Nichts zum Verknüpfen'),
-      h('div', { class: 'muted' }, T.length ? 'nur im selben Abschnitt, ohne Kreis' : 'Verknüpfen geht nur mit Schritten im selben Abschnitt.'));
+      h('div', { class: 'muted' }, T.length ? 'auch in anderen Abschnitten – nur kein Kreis' : 'Hier gibt es nichts, womit sich verknüpfen ließe.'));
     placeLab(lab, e.clientX, e.clientY);
   };
   const end = okay => {

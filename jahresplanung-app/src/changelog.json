@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.10.1",
+    "version": "0.10.2",
     "date": "",
+    "items": [
+      "Detailplan: mit Strg gesetzte Verknüpfungen dürfen jetzt auch über Abschnitte gehen (z. B. Ende „Selektion abgeschlossen“ → Beginn „Thema definieren“) – dann wandert der Inhalt mit der Selektion; Kreise und der Briefkasten-Termin bleiben ausgeschlossen",
+      "Bereichsstart verschieben: der Ausgleich (längster mitwandernder Schritt) bleibt im eigenen Abschnitt",
+      "Alte, unsichtbare Verknüpfungen über Abschnitte (aus Vorlagen und älteren Versionen) werden weiterhin gelöst, die Termine bleiben"
+    ]
+  },
+  {
+    "version": "0.10.1",
+    "date": "2026-10-02T15:00",
     "items": [
       "Detailplan-Gantt: Strg+Klick auf einen Punkt (Gelenk) löst die Verknüpfung – hängt dort nur eine, sofort; bei mehreren erscheint direkt an der Stelle eine Auswahl. Strg + Ziehen legt wie bisher eine Verknüpfung an",
       "Solange Strg gedrückt ist, treten die Punkte im Gantt in der Farbe der Maßnahme hervor",

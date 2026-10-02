@@ -74,9 +74,8 @@ function shiftPal(m, dd) {
   m.pal = ds(p + dd);
   if (m.plan) m.plan.steps.forEach(s => { if (s.anker && s.anker.art === 'fest' && dn(s.anker.datum) != null) s.anker.datum = ds(dn(s.anker.datum) + dd); });
 }
-// Abschnitte sind unabhängig (ab 0.9.7): ein Schritt hängt nur am PAL, an einem festen Datum oder an einem Schritt im eigenen Abschnitt.
-// Verknüpfungen über Abschnitte hinweg (aus Vorlagen, Kopien, Löschen oder Umsortieren) werden am PAL festgemacht – der Termin bleibt gleich.
-// Läuft beim Laden und nach jeder Änderung, damit Verschieben in einem Abschnitt nie Schritte eines anderen mitnimmt.
+// Alte, unsichtbare Verknüpfungen über Abschnitte hinweg (Rückwärts-Bezüge aus Vorlagen, Kopien, Löschen – bis 0.9.x) werden am PAL
+// festgemacht, der Termin bleibt gleich (so seit 0.9.7). Ab 0.10.2 dürfen bewusst mit Strg gesetzte Verknüpfungen über Abschnitte gehen.
 const predsOf = s => s && s.anker && s.anker.art === 'nach' && Array.isArray(s.anker.refs) ? s.anker.refs : [];
 // Schritt ohne Vorgänger: mit seinem Ende am PAL festmachen (Termin bleibt)
 function anchorAtPal(s, r, pal) { if (r && r.end != null) s.anker = pal != null ? { art: 'pal', offset: r.end - pal } : { art: 'fest', datum: ds(r.end) }; }
@@ -91,13 +90,13 @@ function unlinkSections(m) {
   const sec = new Map(); let cur = '';
   for (const s of st) { if (s.typ === 'gruppe') cur = s.id; else sec.set(s.id, cur); }
   const other = (s, id) => sec.has(id) && sec.get(id) !== sec.get(s.id);
-  const cross = st.filter(s => s.typ !== 'gruppe' && s.anker && ((s.anker.art === 'start' || s.anker.art === 'ende') && other(s, s.anker.ref) || predsOf(s).some(id => other(s, id))));
+  const cross = st.filter(s => s.typ !== 'gruppe' && s.anker && (s.anker.art === 'start' || s.anker.art === 'ende') && other(s, s.anker.ref));
   if (!cross.length) return 0;
   const map = planCalc(m).map, pal = dn(m.pal);
   let n = 0;
   for (const s of cross) {
     const r = map.get(s.id); if (!r || r.end == null || r.err) continue;
-    if (s.anker.art === 'nach') setPreds(s, predsOf(s).filter(id => !other(s, id)), r, map, pal); else anchorAtPal(s, r, pal);
+    anchorAtPal(s, r, pal);
     n++;
   }
   return n;
@@ -220,8 +219,8 @@ function normalize(d) {
         if (s.typ === 'gruppe') { if (s.bereich && !keys.includes(s.bereich)) delete s.bereich; } else delete s.bereich;
       });
       ensurePalStep(m.plan);
-      forwardLinks(m);
       unlinkSections(m);
+      forwardLinks(m);
       m.plan.marks = isObj(m.plan.marks) ? m.plan.marks : {};
       for (const k of Object.keys(m.plan.marks)) if (!keys.includes(k) || !m.plan.steps.some(q => q.id === m.plan.marks[k])) delete m.plan.marks[k];
     }
@@ -467,7 +466,7 @@ function computeWarnings() {
 /* ---------- Änderungen, Rückgängig */
 function commit(fn, msg) {
   const before = JSON.stringify(D);
-  try { fn(D); ensurePersons(D); D.massnahmen.forEach(m => { forwardLinks(m); unlinkSections(m); }); }
+  try { fn(D); ensurePersons(D); D.massnahmen.forEach(m => { unlinkSections(m); forwardLinks(m); }); }
   catch (e) {                                 // Fehler mitten in der Änderung: alles zurück, nichts halb geändert speichern
     console.error(e); D = JSON.parse(before); derive(); requestRender();
     toast('Die Änderung ließ sich nicht ausführen – es wurde nichts verändert. (' + ((e && e.message) || e) + ')', 'err');

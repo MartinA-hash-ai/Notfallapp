@@ -41,9 +41,9 @@ const { chromium, ok, open, finish } = require('./lib');
   await ctrlDrag(fa, fb);
   const d = await p.evaluate(() => { const x = C.byId.get(UI.planSel), st = x.m.plan.steps, sec = secMap(x.m.plan), th = st.find(s => s.name === 'Thema definieren');
     const tg = [...document.querySelectorAll('.pl-table input.lktarget')].map(i => st.find(s => s.id === i.dataset.fk.slice(3, i.dataset.fk.lastIndexOf(':'))));
-    return [tg.length, tg.every(s => sec.get(s.id) === sec.get(th.id)), tg.some(s => s.name === 'Texte erstellen'), tg.every(s => s.typ !== 'aufgabe' || document.querySelector('[data-fk="st:' + s.id + ':start"]').classList.contains('lktarget')),
+    return [tg.length, tg.some(s => sec.get(s.id) !== sec.get(th.id)) && tg.every(s => !s.pal && s.id !== th.id), tg.some(s => s.name === 'Texte erstellen'), tg.every(s => s.typ !== 'aufgabe' || document.querySelector('[data-fk="st:' + s.id + ':start"]').classList.contains('lktarget')),
       (document.querySelector('.drag-lab') || {}).textContent || '']; });
-  ok(d[0] > 0 && d[1] && !d[2] && d[3], 'D: beim Ziehen vom Ende nur Anfänge im selben Abschnitt markiert (' + d[0] + '), „Texte erstellen“ (schon verknüpft) nicht');
+  ok(d[0] > 0 && d[1] && !d[2] && d[3], 'D: beim Ziehen vom Ende nur passende Anfänge markiert (' + d[0] + ', auch aus anderen Abschnitten), „Texte erstellen“ (schon verknüpft) und der Briefkasten-Termin nicht');
   ok(/Ende „Thema definieren“ → Beginn „Bilder einholen“/.test(d[4]) && /beginnt dann am/.test(d[4]), 'D: Vorschau – „' + d[4] + '“');
   await ctrlUp();
   const bi1 = await span('Bilder einholen'), dd = await p.evaluate(() => { const st = C.byId.get(UI.planSel).m.plan.steps; return predsOf(st.find(s => s.name === 'Bilder einholen')).map(i => st.find(s => s.id === i).name).join(); });
@@ -79,7 +79,15 @@ const { chromium, ok, open, finish } = require('./lib');
   // ---- H: nicht erlaubt – anderer Abschnitt, Kreis, Briefkasten-Termin
   const hh = await p.evaluate(() => { const pl = C.byId.get(UI.planSel).m.plan, f = n => pl.steps.find(s => s.name === n).id;
     return [canLink(pl, f('Selektion einleiten'), f('Thema definieren')), canLink(pl, f('Freigaben einholen'), f('Thema definieren')), canLink(pl, f('Produktion & Versand'), f('Briefkasten-Termin')), canLink(pl, f('Thema definieren'), f('Korrekturphase'))]; });
-  ok(!hh[0] && !hh[1] && !hh[2] && hh[3], 'H: kein Verknüpfen über Abschnitte, im Kreis oder auf den Briefkasten-Termin; ein weiterer Vorgänger geht');
+  ok(hh[0] && !hh[1] && !hh[2] && hh[3], 'H: über Abschnitte geht (0.10.2), im Kreis und auf den Briefkasten-Termin nicht; ein weiterer Vorgänger geht');
+  // über Abschnitte: Ende „Selektion abgeschlossen“ → Beginn „Thema definieren“; dann wandert der Inhalt mit der Selektion
+  await p.evaluate(() => { const pl = C.byId.get(UI.planSel).m.plan, f = n => pl.steps.find(s => s.name === n).id; linkSteps(UI.planSel, f('Selektion abgeschlossen'), f('Thema definieren')); }); await p.waitForTimeout(250);
+  const sa = await span('Selektion abgeschlossen'), tz = await span('Thema definieren');
+  ok(tz[0] === sa[1], 'H: „Thema definieren“ beginnt jetzt am „Selektion abgeschlossen“ (anderer Abschnitt)');
+  await p.evaluate(() => { const x = C.byId.get(UI.planSel); commit(d => setStepSpan(findM(d, x.id), x.m.plan.steps.find(s => s.name === 'Selektion abgeschlossen').id, x.pc.map.get(x.m.plan.steps.find(s => s.name === 'Selektion abgeschlossen').id).end + 2, x.pc.map.get(x.m.plan.steps.find(s => s.name === 'Selektion abgeschlossen').id).end + 2)); }); await p.waitForTimeout(250);
+  ok((await span('Thema definieren'))[0] === tz[0] + 2, 'H: Selektion abgeschlossen +2 Tage → Thema definieren wandert mit');
+  ok(await p.evaluate(() => !!document.querySelector('.g-links .lnk') && checkData().length === 0), 'H: Gelenk über Abschnitte gezeichnet, Datenprüfung ohne Befund');
+  await p.evaluate(() => { undo(); undo(); }); await p.waitForTimeout(250);
 
   // ---- I: Strg+Klick auf ein verknüpftes Datum → Menü zum Lösen; Termine bleiben
   f = await field('Thema definieren', 'end', true);
