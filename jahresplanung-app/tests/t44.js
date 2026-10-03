@@ -1,5 +1,5 @@
 // 0.12 Spenden (Beta): Exporte (CSV/Excel) aus „Spendeneingänge …“ einlesen, doppelte Buchungen nur einmal, Regeln → „Prüfen“ → zuordnen,
-// Kennzahlen und Verlauf, Datenschutz (keine Namen/IBAN in der Planungsdatei), Zusammenführen, Löschen einer Maßnahme
+// Kennzahlen und Grafiken (0.12.1: Verwendungszweck immer sichtbar, Daueraufträge markiert, „Alle zurück“), Datenschutz (keine Namen/IBAN in der Planungsdatei), Zusammenführen, Löschen einer Maßnahme
 const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN } = require('./lib');
 const path = require('path');
 const DIR = 'Spendeneingänge 2027/';
@@ -47,12 +47,14 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.fill('.sp-wordin', 'Jahresbericht'); await p.press('.sp-wordin', 'Enter'); await p.waitForTimeout(250);
   const b2 = await p.evaluate(() => [...document.querySelectorAll('.sp-col.mid .sp-row')].length);
   ok(b2 === 5, 'B: „Jahresbericht“ findet auch „JAHRESBE RICHT“ (Zeilenumbruch der Bank) – jetzt 5 in „Prüfen“');
+  const bz = await p.evaluate(() => [[...document.querySelectorAll('.sp-col.mid .sp-z')].map(e => e.textContent).join(' | '), document.querySelectorAll('.sp-col.mid .sp-n').length]);
+  ok(/Spende JB/.test(bz[0]) && /JAHRESBE RICHT DANKE/.test(bz[0]) && bz[1] === 0, 'B: Verwendungszweck steht in jeder Zeile (' + bz[0].slice(0, 50) + ' …), Namen nur auf Wunsch');
 
   // ---- C: einen Vorschlag ablehnen, Rest zuordnen; Zuordnung lösen → zurück in „Prüfen“
   const rowOf = (col, name) => p.evaluate(([c, n]) => { const e = [...document.querySelectorAll('.sp-col' + c + ' .sp-row')].find(e => SP.byKey.get(e.dataset.k).name === n); return e && e.dataset.k; }, [col, name]);
   const kB = await rowOf('.mid', 'Bernd Probe');
   await p.click('.sp-col.mid .sp-row[data-k="' + kB + '"]');
-  await p.click('.sp-col.mid .sp-cf button:has-text("zurück")'); await p.waitForTimeout(250);
+  await p.click('.sp-col.mid .sp-cf button:has-text("Markierte zurück")'); await p.waitForTimeout(250);
   const c1 = await p.evaluate(k => [document.querySelectorAll('.sp-col.mid .sp-row').length, JSON.stringify(D.spenden.nein[k]), !!document.querySelector('.sp-col:first-child .sp-row[data-k="' + k + '"]')], kB);
   ok(c1[0] === 4 && c1[1] === '["m5"]' && c1[2], 'C: abgelehnt → links bei „Offen“, die Regel schlägt sie nicht wieder vor');
   await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(250);
@@ -77,32 +79,45 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.click('.sp-col:first-child .sp-cf button:first-child'); await p.waitForTimeout(250);
   const d2 = await p.evaluate(() => [...document.querySelectorAll('.sp-col.mid .sp-tag')].map(t => t.textContent).join(','));
   ok(d2 === 'von Hand,von Hand', 'D: beide in „Prüfen“, markiert als „von Hand“');
+  await p.click('.sp-col.mid .sp-cf button:has-text("Alle zurück")'); await p.waitForTimeout(250);
+  const d3 = await p.evaluate(() => [document.querySelectorAll('.sp-col.mid .sp-row').length, Object.keys(D.spenden.vor).length, document.querySelectorAll('.sp-col:first-child .sp-row').length]);
+  ok(d3[0] === 0 && d3[1] === 0 && d3[2] === 2, 'D: „← Alle zurück“ schickt alles aus „Prüfen“ ohne Markieren zurück zu „Offen“');
+  await p.evaluate(() => undo()); await p.waitForTimeout(200);
   await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => Object.keys(D.spenden.zu).length === 6 && !Object.keys(D.spenden.vor).length), 'D: zugeordnet – 6 Spenden bei „Jahresbericht“');
+  ok(await p.evaluate(() => Object.keys(D.spenden.zu).length === 6 && !Object.keys(D.spenden.vor).length), 'D: Strg+Z holt sie zurück; zugeordnet – 6 Spenden bei „Jahresbericht“');
 
   // ---- E: neue Datei kommt später dazu → passende Spende erscheint von selbst in „Prüfen“
-  await writeText(p, DIR + 'export4.csv', csv([ERIKA, line('25.09.2027', '40', 'DE00100000000000000031', 'Neu Nachzügler', 'Danke JB')]));
+  const DA = ['20.09.2027', '20.09.2027', '15', "'TESTDE11XXX", 'DE00100000000000000032', 'Dora Dauer', "'Zugang/Gutschrift", 'Spende Malteser Lage', "'Dauerauftragsgutschr", "'Paderborn - Lage"].join(';');
+  await writeText(p, DIR + 'export4.csv', csv([ERIKA, line('25.09.2027', '40', 'DE00100000000000000031', 'Neu Nachzügler', 'Danke JB'), DA]));
   await p.evaluate(() => spScan({ manual: true })); await p.waitForTimeout(400);
   const e = await p.evaluate(() => ({ n: SP.rows.length, mid: [...document.querySelectorAll('.sp-col.mid .sp-row')].map(e => SP.byKey.get(e.dataset.k).name).join(','), badge: document.querySelector('.tab-badge')?.textContent }));
-  ok(e.n === 12 && e.mid === 'Neu Nachzügler' && e.badge === '1', 'E: neue Datei eingelesen (12 Buchungen) – „Neu Nachzügler“ wartet in „Prüfen“, Reiter zeigt 1');
+  ok(e.n === 13 && e.mid === 'Neu Nachzügler' && e.badge === '1', 'E: neue Datei eingelesen (13 Buchungen) – „Neu Nachzügler“ wartet in „Prüfen“, Reiter zeigt 1');
+  await p.fill('.sp-q', ''); await p.waitForTimeout(450);
+  const da = await p.evaluate(() => { const r = [...document.querySelectorAll('.sp-col:first-child .sp-row.da')]; return [r.length, r[0] && r[0].querySelector('.sp-tag.da')?.textContent, document.querySelectorAll('.sp-col:first-child .sp-row').length]; });
+  ok(da[0] === 1 && da[1] === 'Dauerauftrag' && da[2] > 1, 'E: Dauerauftrag bleibt in der Liste, farbig markiert mit „Dauerauftrag“');
 
   // ---- F: Kennzahlen mit Auflage und Kosten
   await p.fill('.sp-auf', '1000'); await p.press('.sp-auf', 'Tab'); await p.waitForTimeout(150);
   await p.fill('.sp-kos', '500'); await p.press('.sp-kos', 'Tab'); await p.waitForTimeout(250);
   const f = await p.evaluate(() => [...document.querySelectorAll('.sp-tile')].map(t => t.textContent));
-  ok(/Responsequote0,6 %bei Auflage 1\.000▼ unter Richtwert/.test(f[2]) && /ROI19,8/.test(f[3]) && /über Richtwert/.test(f[3]) && /Nettoertrag9\.376 €/.test(f[4]),
-    'F: Responsequote 0,6 % (unter Richtwert), ROI 19,8, Nettoertrag 9.376 €');
+  ok(f.length === 4 && /^Spendensumme9\.876 €6 Spenden/.test(f[0]) && /^Ø-Spende/.test(f[1]) && /Responsequote0,6 %bei Auflage 1\.000▼ unter Richtwert/.test(f[2]) && /ROI19,8/.test(f[3]) && /über Richtwert/.test(f[3]),
+    'F: vier Kacheln – Spendensumme, Ø-Spende, Responsequote 0,6 % (unter Richtwert), ROI 19,8');
+  const fl = await p.evaluate(() => { const t = document.querySelectorAll('.sp-tile'), r = i => t[i].getBoundingClientRect(); return [Math.abs(r(0).top - r(1).top) < 3, r(2).top > r(0).bottom - 2, Math.abs(r(2).left - r(0).left) < 3, document.querySelector('.sp-charts').getBoundingClientRect().left > r(1).right]; });
+  ok(fl.every(Boolean), 'F: 2×2 angeordnet (Responsequote/ROI unter Summe/Ø), Grafiken rechts daneben');
   ok(await p.evaluate(() => { const m = D.massnahmen.find(m => m.id === 'm5'); return m.kosten === 500 && m.auflage === 1000; }), 'F: Auflage und Kosten an der Maßnahme gespeichert');
 
-  // ---- G: Verlauf – Wochenbalken, kumulierte Linie, Fadenkreuz
-  await p.evaluate(() => document.querySelector('[data-sec="sp-verlauf"]').scrollIntoView()); await p.waitForTimeout(150);
-  const g = await p.evaluate(() => ({ bars: document.querySelectorAll('[data-chart="week"] .sp-bar').length, pal: !!document.querySelector('[data-chart="week"] .sp-palbox'),
-    line: !!document.querySelector('[data-chart="cum"] .sp-line'), end: document.querySelector('[data-chart="cum"] .sp-endl')?.textContent, rows: document.querySelectorAll('.sp-wt tbody tr').length }));
-  ok(g.bars >= 3 && g.pal && g.line && g.end === '9.876 €' && g.rows >= 8, 'G: Wochenbalken (' + g.bars + '), rotes P am PAL, kumulierte Linie bis ' + g.end + ', Tabelle mit ' + g.rows + ' Wochen');
-  const ov = await p.$('[data-chart="cum"] .sp-ov'), bx = await ov.boundingBox();
-  await p.mouse.move(bx.x + bx.width * 0.3, bx.y + bx.height / 2); await p.mouse.move(bx.x + bx.width * 0.31, bx.y + bx.height / 2); await p.waitForTimeout(150);
-  const g2 = await p.evaluate(() => [document.querySelector('#tip').classList.contains('on'), document.querySelector('#tip').textContent, document.querySelector('[data-chart="cum"] .sp-xh').getAttribute('visibility')]);
+  // ---- G: Grafiken rechts – Zeitspanne (kumuliert) und Spenden pro Tag; kein Abschnitt „Verlauf“ mehr
+  const g = await p.evaluate(() => ({ bars: document.querySelectorAll('[data-chart="day"] .sp-bar').length, pal: !!document.querySelector('[data-chart="day"] .sp-palbox'),
+    line: !!document.querySelector('[data-chart="span"] .sp-line'), end: document.querySelector('[data-chart="span"] .sp-endl')?.textContent, title: document.querySelector('.sp-cht')?.textContent, verlauf: !!document.querySelector('[data-sec="sp-verlauf"]') }));
+  ok(g.bars === 6 && g.pal && g.line && g.end === '9.876 €' && /28\.08\.2027 – 23\.09\.2027 \(27 Tage\)/.test(g.title) && !g.verlauf,
+    'G: Spenden pro Tag (6 Säulen), Zeitspanne „' + g.title + '“ bis ' + g.end + ', rotes P am PAL; Abschnitt „Verlauf“ entfernt');
+  const ov = await p.$('[data-chart="span"] .sp-ov'), bx = await ov.boundingBox();
+  await p.mouse.move(bx.x + bx.width * 0.6, bx.y + bx.height / 2); await p.mouse.move(bx.x + bx.width * 0.61, bx.y + bx.height / 2); await p.waitForTimeout(150);
+  const g2 = await p.evaluate(() => [document.querySelector('#tip').classList.contains('on'), document.querySelector('#tip').textContent, document.querySelector('[data-chart="span"] .sp-xh').getAttribute('visibility')]);
   ok(g2[0] && /€/.test(g2[1]) && g2[2] === 'visible', 'G: Fadenkreuz mit Hinweis „' + g2[1].slice(0, 60) + '“');
+  const hit = await p.$$('[data-chart="day"] .sp-hit'), hb = await hit[0].boundingBox();
+  await p.mouse.move(5, 5); await p.mouse.move(hb.x + hb.width / 2, hb.y + hb.height - 3); await p.waitForTimeout(150);
+  ok(/PAL/.test(await p.evaluate(() => document.querySelector('#tip').textContent)), 'G: Maus auf einem Tag zeigt Betrag und Tag ab PAL');
   await p.mouse.move(5, 5);
 
   // ---- H: zweite Maßnahme → Vergleich; Übersichtstabelle

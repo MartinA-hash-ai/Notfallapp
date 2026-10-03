@@ -304,7 +304,7 @@ function spStats(m, list) {
   const n = list.length, sum = list.reduce((s, z) => s + z.b, 0), bs = list.map(z => z.b).sort((a, b) => a - b);
   const med = n ? (n % 2 ? bs[(n - 1) / 2] : (bs[n / 2 - 1] + bs[n / 2]) / 2) : null;
   const auf = isNum(m.auflage) && +m.auflage > 0 ? +m.auflage : null, kos = isNum(m.kosten) && +m.kosten > 0 ? +m.kosten : null;
-  return { n, sum, avg: n ? sum / n : null, med, auf, kos, resp: auf && n ? n / auf * 100 : null, roi: kos ? sum / 100 / kos : null, net: kos != null ? sum - kos * 100 : null };
+  return { n, sum, avg: n ? sum / n : null, med, auf, kos, resp: auf && n ? n / auf * 100 : null, roi: kos ? sum / 100 / kos : null };
 }
 
 /* ---------- Aktionen (alle mit Strg+Z rückgängig) */
@@ -422,7 +422,7 @@ function spOverview(ms, cmp, mid, by) {
       SP_RICHT.roi[0] + '–' + SP_RICHT.roi[1] + '). Summen nur über Maßnahmen mit Spenden. Zeile anklicken wählt die Maßnahme.'),
     ids.length >= 2 ? [h('h3', null, 'Rücklauf im Vergleich (kumuliert, Tage nach PAL)'), h('div', { class: 'sp-chart', dataset: { chart: 'cmp', ids: ids.join(',') } })] : null];
 }
-function spTiles(x, s, pend) {
+function spTiles(x, s) {
   const tile = (label, value, sub, rt, tipText) => h('div', { class: 'sp-tile', tip: tipText || null }, h('div', { class: 'sp-tl' }, label), h('div', { class: 'sp-tv' }, value), sub ? h('div', { class: 'sp-ts' }, sub) : null,
     rt ? h('div', { class: 'sp-rt ' + rt[0] }, rt[1]) : null);
   const judge = (v, [lo, hi], txt) => v == null ? null : v < lo ? ['below', '▼ unter Richtwert ' + txt] : v > hi ? ['above', '▲ über Richtwert ' + txt] : ['within', '✓ im Richtwert ' + txt];
@@ -430,9 +430,7 @@ function spTiles(x, s, pend) {
     tile('Spendensumme', s.n ? eur0(s.sum) : '–', spCount(s.n)),
     tile('Ø-Spende', s.avg != null ? eur(s.avg) : '–', s.med != null ? 'Median ' + eur(s.med) : null, null, 'Der Median ist die mittlere Spende – große Einzelspenden verzerren ihn kaum.'),
     tile('Responsequote', s.resp != null ? num1(s.resp) + ' %' : '–', s.auf ? 'bei Auflage ' + s.auf.toLocaleString('de-DE') : 'Auflage fehlt', judge(s.resp, SP_RICHT.resp, num1(SP_RICHT.resp[0]) + '–' + num1(SP_RICHT.resp[1]) + ' %')),
-    tile('ROI', s.roi != null ? num1(s.roi) : '–', s.kos ? 'Kosten ' + eur0(s.kos * 100) : 'Kosten fehlen', judge(s.roi, SP_RICHT.roi, SP_RICHT.roi[0] + '–' + SP_RICHT.roi[1]), 'Spendensumme ÷ Kosten: so viel Euro Spenden je 1 € Kosten'),
-    tile('Nettoertrag', s.net != null ? eur0(s.net) : '–', 'Spenden minus Kosten'),
-    tile('In Prüfung', pend.n ? spCount(pend.n) : '–', pend.n ? eur(pend.sum) + ' noch nicht zugeordnet' : null));
+    tile('ROI', s.roi != null ? num1(s.roi) : '–', s.kos ? 'Kosten ' + eur0(s.kos * 100) : 'Kosten fehlen', judge(s.roi, SP_RICHT.roi, SP_RICHT.roi[0] + '–' + SP_RICHT.roi[1]), 'Spendensumme ÷ Kosten: so viel Euro Spenden je 1 € Kosten'));
 }
 function spRuleBar(x) {
   const m = x.m, r = m.regel || { worte: [] }, pal = x.pal, rg = spRange(m), mid = x.id;
@@ -451,16 +449,19 @@ function spRuleBar(x) {
       dateInput(rg.a != null ? ds(rg.a) : '', 'sp-rab', v => setDay('ab', v)), '–', dateInput(rg.b != null ? ds(rg.b) : '', 'sp-rbis', v => setDay('bis', v)),
       h('span', { class: 'muted small' }, rg.a != null || rg.b != null ? (rg.a != null ? (rg.a - pal >= 0 ? '+' : '') + (rg.a - pal) : '…') + ' bis ' + (rg.b != null ? '+' + (rg.b - pal) : '…') + ' Tage ab PAL' : '')]);
 }
+const spIsDA = r => /dauerauftrag/i.test((r.text || '') + ' ' + (r.typ || ''));
 function spRow(r, col, cmp, mid, ctl) {
   const tags = [], sg = cmp.sugg.get(r.k) || [], nameOf = id => { const o = C.byId.get(id); return o ? o.m.name || '(ohne Namen)' : '?'; };
   if (col === 'm') { const mine = sg.find(s => s.id === mid); tags.push(mine ? h('span', { class: 'sp-tag rule', tip: 'passt zur Regel (Schlagwort „' + mine.w + '“)' }, mine.w) : h('span', { class: 'sp-tag' }, 'von Hand')); }
   const others = [...new Set(sg.filter(s => s.id !== mid).map(s => s.id).concat(D.spenden.vor[r.k] && D.spenden.vor[r.k] !== mid && C.byId.has(D.spenden.vor[r.k]) ? [D.spenden.vor[r.k]] : []))];
   if (col !== 'r' && others.length) tags.push(h('span', { class: 'sp-tag other', tip: 'Wird auch bei ' + others.map(id => '„' + nameOf(id) + '“').join(', ') + ' zur Prüfung angezeigt. Sobald sie einer Maßnahme zugeordnet ist, verschwindet sie bei den anderen.' }, 'auch: ' + others.map(nameOf).join(', ')));
   if (r.gone) tags.push(h('span', { class: 'sp-tag gone' }, 'nicht mehr im Ordner'));
-  return h('div', { class: 'sp-row' + (SPUI.sel[col].has(r.k) ? ' sel' : ''), dataset: { k: r.k }, tip: () => spTip(r),
+  const da = spIsDA(r);
+  if (da) tags.push(h('span', { class: 'sp-tag da', tip: 'Dauerauftrag (laut Buchungstext)' }, 'Dauerauftrag'));
+  return h('div', { class: 'sp-row' + (da ? ' da' : '') + (SPUI.sel[col].has(r.k) ? ' sel' : ''), dataset: { k: r.k }, tip: () => spTip(r),
     onclick: e => ctl.click(e, col, r.k), ondblclick: () => ctl.dbl(col, r.k) },
     h('span', { class: 'sp-d' }, fmtD(r.d)), h('span', { class: 'sp-b' }, eur(r.b)),
-    UI.spDet ? [h('span', { class: 'sp-n' }, r.name || ''), h('span', { class: 'sp-z' }, r.zweck || '')] : null,
+    UI.spDet ? h('span', { class: 'sp-n' }, r.name || '') : null, h('span', { class: 'sp-z' }, r.gone ? '' : r.zweck || '–'),
     h('span', { class: 'sp-tags' }, tags));
 }
 function spAssign(x, cmp) {
@@ -502,6 +503,7 @@ function spAssign(x, cmp) {
   btn.lSel = h('button', { onclick: () => spMove(SPUI.sel.l, 'stage', mid) });
   btn.lAll = h('button', { disabled: !L.length, onclick: () => spMove(L.map(r => r.k), 'stage', mid) }, 'Alle ' + L.length.toLocaleString('de-DE') + ' → Prüfen');
   btn.mBack = h('button', { onclick: () => spMove(SPUI.sel.m, 'unstage', mid) });
+  btn.mAllBack = h('button', { disabled: !P.M.length, tip: 'alle Spenden aus „Prüfen“ zurück zu „Offen“ – Strg+Z holt sie zurück', onclick: () => spMove(P.M.map(r => r.k), 'unstage', mid) }, '← Alle zurück');
   btn.mSel = h('button', { onclick: () => spMove(SPUI.sel.m, 'assign', mid) });
   btn.mAll = h('button', { class: 'primary', disabled: !P.M.length, onclick: () => spMove(P.M.map(r => r.k), 'assign', mid) }, 'Alle ' + P.M.length.toLocaleString('de-DE') + ' zuordnen →');
   btn.rBack = h('button', { onclick: () => spMove(SPUI.sel.r, 'unassign', mid) });
@@ -520,13 +522,13 @@ function spAssign(x, cmp) {
       h('div', { class: 'sp-col mid' }, head('m', 'Prüfen'),
         h('div', { class: 'sp-hint muted small' }, 'Vorschläge der Regel und von Hand gewählte Spenden. Erst „zuordnen“ zählt sie für die Maßnahme.'),
         list('m', 'Hier landen Spenden, die zur Regel passen oder die du links markierst und mit „→ Prüfen“ herüberholst.'),
-        h('div', { class: 'sp-cf' }, btn.mBack, btn.mSel, btn.mAll)),
+        h('div', { class: 'sp-cf' }, btn.mAllBack, btn.mBack, btn.mSel, btn.mAll)),
       h('div', { class: 'sp-col' }, head('r', 'Zugeordnet'),
         list('r', 'Noch nichts zugeordnet.'),
         h('div', { class: 'sp-cf' }, btn.rBack))),
     h('p', { class: 'muted small' }, 'Klick markiert, Umschalt+Klick markiert einen Bereich, Doppelklick schiebt eine Spende einen Schritt weiter (rechts: zurück in „Prüfen“). Alles lässt sich mit Strg+Z rückgängig machen.'));
   sync();
-  return { body: box, tools: h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Name und Verwendungszweck zeigen') };
+  return { body: box, tools: h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen') };
 }
 VIEW_FN.spenden = main => {
   const y = UI.year;
@@ -537,7 +539,7 @@ VIEW_FN.spenden = main => {
   main.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); main.classList.add('sp-drop'); } });
   main.addEventListener('dragleave', e => { if (e.target === main) main.classList.remove('sp-drop'); });
   main.addEventListener('drop', e => { if (!e.dataTransfer.files.length) return; e.preventDefault(); main.classList.remove('sp-drop'); spAddFiles(e.dataTransfer.files); });
-  const s = x ? spStats(x.m, by.get(x.id)) : null, P = x ? spPart(x.id, cmp) : null;
+  const s = x ? spStats(x.m, by.get(x.id)) : null, P = x ? spPart(x.id, cmp) : null;   // Kennzahlen und Spalten der gewählten Maßnahme
   put(main,
     h('div', { class: 'view-head' }, h('h1', null, 'Spenden ' + y + ' ', h('span', { class: 'beta' }, 'Beta')),
       h('div', { class: 'tools' }, spStatus(), h('button', { disabled: ST.conn !== 'ok', onclick: () => spScan({ manual: true }) }, '↻ Neu einlesen'), h('button', { onclick: spPickFiles }, '+ Datei hinzufügen …')),
@@ -556,16 +558,12 @@ VIEW_FN.spenden = main => {
             onchange: e => setM(mid, 'auflage', numOrNull(e.target.value), 'Auflage geändert') })),
           h('label', null, h('span', { class: 'muted small' }, 'Kosten (€)'), h('input', { type: 'number', min: 0, step: '0.01', class: 'sp-kos', value: x.m.kosten ?? '', placeholder: '–', 'data-fk': 'sp-kos',
             tip: 'Gesamtkosten der Maßnahme (Druck, Porto, Lettershop …)', onchange: e => commit(d => { const m = findM(d, mid); if (!m) return; const v = e.target.value; if (v === '' || !isNum(v)) delete m.kosten; else m.kosten = Math.round(+v * 100) / 100; }, 'Kosten geändert') }))),
-        spTiles(x, s, { n: P.M.length, sum: P.M.reduce((t, r) => t + r.b, 0) })),
-      section('sp-zu', 'Zuordnen', () => spAssign(x, cmp), { closedSummary: () => spCount(P.R.length) + ' zugeordnet · ' + spCount(P.M.length) + ' in Prüfung' }),
-      section('sp-verlauf', 'Verlauf', () => ({ body: s.n ? [
-        h('h3', null, 'Spendeneingänge je Woche'), h('div', { class: 'sp-chart', dataset: { chart: 'week', mid } }),
-        h('h3', null, 'Kumuliert'), h('div', { class: 'sp-chart', dataset: { chart: 'cum', mid } }),
-        spWeekTable(x, by.get(mid))] : h('p', { class: 'muted' }, 'Noch keine Spenden zugeordnet – sobald welche zugeordnet sind, erscheint hier der Verlauf ab dem PAL.') }))]);
+        h('div', { class: 'sp-kpi' }, spTiles(x, s), spCharts(x, by.get(mid)))),
+      section('sp-zu', 'Zuordnen', () => spAssign(x, cmp), { closedSummary: () => spCount(P.R.length) + ' zugeordnet · ' + spCount(P.M.length) + ' in Prüfung' })]);
 };
 VIEW_FN['spenden:after'] = main => { for (const el of $$('[data-chart]', main)) try { spDraw(el); } catch (e) { console.error(e); } };
 
-/* ---------- Grafiken (SVG): Eingänge je Woche, kumuliert, Vergleich der Maßnahmen */
+/* ---------- Grafiken (SVG): Zeitspanne (kumuliert), Spenden pro Tag, Vergleich der Maßnahmen */
 const SVG_NS = 'http://www.w3.org/2000/svg';
 function sv(tag, attrs, ...kids) {
   const e = document.createElementNS(SVG_NS, tag);
@@ -580,16 +578,28 @@ function niceTicks(max, n = 4) {
   return out;
 }
 const tickLab = v => v.toLocaleString('de-DE', { maximumFractionDigits: 0 }) + ' €';
-function spDomain(m, list) {
-  const lo = Math.min(...list.map(z => z.d)), hi = Math.max(...list.map(z => z.d)), pal = dn(m.pal) ?? lo;
-  const w0 = Math.min(0, Math.floor((lo - pal) / 7)), w1 = Math.min(w0 + 103, Math.max(7, Math.floor((hi - pal) / 7)));
-  return { pal, w0, w1, d0: pal + 7 * w0, d1: pal + 7 * (w1 + 1) - 1, hi };
+// Tage von PAL (bzw. der ersten Spende) bis zur letzten Spende, mindestens vier Wochen
+function spSeries(m, list) {
+  const lo = Math.min(...list.map(z => z.d)), hi = Math.max(...list.map(z => z.d)), pal = dn(m.pal);
+  const d0 = Math.min(lo, pal ?? lo), d1 = Math.min(d0 + 730, Math.max(hi, d0 + 27)), days = d1 - d0 + 1;
+  const day = new Array(days).fill(0), cnt = new Array(days).fill(0);
+  for (const z of list) { const i = z.d - d0; if (i >= 0 && i < days) { day[i] += z.b; cnt[i]++; } }
+  const cum = []; day.reduce((t, v, i) => (cum[i] = t + v), 0);
+  return { pal, lo, hi, d0, d1, days, day, cnt, cum, last: Math.min(hi, d1) - d0 };
 }
-function spWeeks(m, list) {
-  const dm = spDomain(m, list), bins = [];
-  for (let w = dm.w0; w <= dm.w1; w++) bins.push({ w, a: dm.pal + 7 * w, sum: 0, n: 0 });
-  for (const z of list) { const i = Math.floor((z.d - dm.pal) / 7) - dm.w0; if (bins[i]) { bins[i].sum += z.b; bins[i].n++; } }
-  return { dm, bins };
+function spCharts(x, list) {
+  if (!list || !list.length) return h('div', { class: 'sp-charts empty muted small' }, 'Sobald Spenden zugeordnet sind, stehen hier die Zeitspanne der Eingänge und die Spenden pro Tag.');
+  const sr = spSeries(x.m, list);
+  return h('div', { class: 'sp-charts' },
+    h('div', { class: 'sp-cht' }, h('b', null, 'Zeitspanne der Eingänge'), h('span', { class: 'muted' }, ' · ' + fmtD(sr.lo) + ' – ' + fmtD(sr.hi) + ' (' + (sr.hi - sr.lo + 1) + ' Tage), Summe kumuliert')),
+    h('div', { class: 'sp-chart', dataset: { chart: 'span', mid: x.id } }),
+    h('div', { class: 'sp-cht' }, h('b', null, 'Spenden pro Tag')),
+    h('div', { class: 'sp-chart', dataset: { chart: 'day', mid: x.id } }));
+}
+const spDayLab = (sr, n) => fmtW(n) + (sr.pal != null && n >= sr.pal ? ' · Tag ' + (n - sr.pal) + ' ab PAL' : sr.pal != null ? ' · vor dem PAL' : '');
+function spXTicks(svg, g, sr, X) {
+  const pxd = g.pw / sr.days, step = [7, 14, 28, 56, 91, 182].find(s => s * pxd >= 58) || 365, a = sr.pal ?? sr.d0, y0 = g.mt + g.ph;
+  for (let n = a - Math.floor((a - sr.d0) / step) * step; n <= sr.d1; n += step) svg.append(sv('text', { class: 'sp-ax', x: X(n - sr.d0), y: y0 + 16, 'text-anchor': 'middle' }, fmtS(n)));
 }
 function spFrame(el, H, ml = 70) {
   const W = Math.max(320, Math.floor(el.clientWidth)), g = { W, H, ml, mr: 70, mt: 18, mb: 26 };
@@ -612,45 +622,41 @@ function spDraw(el) {
   if (kind === 'cmp') return spDrawCmp(el, el.dataset.ids.split(',').filter(id => C.byId.has(id) && by.get(id)), by);
   const x = C.byId.get(el.dataset.mid), list = x && by.get(x.id);
   if (!list || !list.length) return;
-  if (kind === 'week') spDrawWeek(el, x, list); else spDrawCum(el, x, list);
-}
-function spDrawWeek(el, x, list) {
-  const { dm, bins } = spWeeks(x.m, list), { svg, g } = spFrame(el, 190);
-  const X = n => g.ml + (n - dm.d0) / (dm.d1 - dm.d0 + 1) * g.pw, Y = spYAxis(svg, g, Math.max(...bins.map(b => b.sum)) / 100), y0 = g.mt + g.ph;
-  const band = X(dm.pal + 7) - X(dm.pal), bw = Math.max(2, Math.min(24, band - 2)), every = Math.max(1, Math.ceil(46 / band));
-  for (const [i, b] of bins.entries()) {
-    const x0 = X(b.a), bx = x0 + (band - bw) / 2, top = Y(b.sum / 100), hgt = y0 - top, r = Math.min(4, hgt, bw / 2);
-    const grp = sv('g', { class: 'sp-bin' });
-    if (b.sum) grp.append(sv('path', { class: 'sp-bar', fill: x.color, d: `M${bx},${y0}V${top + r}Q${bx},${top} ${bx + r},${top}H${bx + bw - r}Q${bx + bw},${top} ${bx + bw},${top + r}V${y0}Z` }));
-    const hit = sv('rect', { class: 'sp-hit', x: x0, y: g.mt, width: band, height: g.ph });
-    setTip(hit, () => h('div', null, h('b', null, b.sum ? eur(b.sum) : 'keine Spenden'), h('div', null, spCount(b.n)),
-      h('div', { class: 'muted small' }, (b.w === 0 ? '1. Woche ab PAL' : b.w > 0 ? (b.w + 1) + '. Woche ab PAL' : (-b.w) + ' Woche' + (b.w < -1 ? 'n' : '') + ' vor dem PAL') + ' · ' + fmtS(b.a) + '–' + fmtS(b.a + 6))));
-    grp.append(hit); svg.append(grp);
-    if (i % every === 0) svg.append(sv('text', { class: 'sp-ax', x: x0 + band / 2, y: y0 + 16, 'text-anchor': 'middle' }, fmtS(b.a)));
-  }
+  const sr = spSeries(x.m, list), { svg, g } = spFrame(el, 150, 62);
+  const X = i => g.ml + (i + 0.5) / sr.days * g.pw, y0 = g.mt + g.ph;
+  if (kind === 'span') spDrawSpan(svg, g, x, sr, X); else spDrawDay(svg, g, x, sr, X);
   svg.append(sv('line', { class: 'sp-base', x1: g.ml, x2: g.ml + g.pw, y1: y0, y2: y0 }));
-  spPalMark(svg, g, X(dm.pal));
+  spXTicks(svg, g, sr, X);
+  if (sr.pal != null) spPalMark(svg, g, g.ml + (sr.pal - sr.d0) / sr.days * g.pw);
 }
-function spDrawCum(el, x, list) {
-  const dm = spDomain(x.m, list), days = dm.d1 - dm.d0 + 1, day = new Array(days).fill(0), cnt = new Array(days).fill(0);
-  for (const z of list) { const i = z.d - dm.d0; if (i >= 0 && i < days) { day[i] += z.b; cnt[i]++; } }
-  const cum = []; day.reduce((s, v, i) => (cum[i] = s + v), 0);
-  const last = dm.hi - dm.d0, { svg, g } = spFrame(el, 190);
-  const X = i => g.ml + (i + 0.5) / days * g.pw, Y = spYAxis(svg, g, cum[days - 1] / 100), y0 = g.mt + g.ph;
-  const pts = cum.slice(0, last + 1).map((v, i) => X(i).toFixed(1) + ',' + Y(v / 100).toFixed(1));
-  svg.append(sv('path', { class: 'sp-area', fill: x.color, d: 'M' + X(0) + ',' + y0 + 'L' + pts.join('L') + 'L' + X(last) + ',' + y0 + 'Z' }),
+// Zeitspanne: Summe der zugeordneten Spenden, aufaddiert vom PAL bis zur letzten Spende
+function spDrawSpan(svg, g, x, sr, X) {
+  const Y = spYAxis(svg, g, sr.cum[sr.days - 1] / 100), y0 = g.mt + g.ph, L = sr.last;
+  const pts = sr.cum.slice(0, L + 1).map((v, i) => X(i).toFixed(1) + ',' + Y(v / 100).toFixed(1));
+  svg.append(sv('path', { class: 'sp-area', fill: x.color, d: 'M' + X(0) + ',' + y0 + 'L' + pts.join('L') + 'L' + X(L) + ',' + y0 + 'Z' }),
     sv('polyline', { class: 'sp-line', stroke: x.color, points: pts.join(' ') }),
-    sv('circle', { class: 'sp-dot', cx: X(last), cy: Y(cum[last] / 100), r: 4.5, fill: x.color }),
-    sv('text', { class: 'sp-endl', x: X(last) + 9, y: Y(cum[last] / 100) + 4 }, eur0(cum[last])),
-    sv('line', { class: 'sp-base', x1: g.ml, x2: g.ml + g.pw, y1: y0, y2: y0 }));
-  const every = Math.max(1, Math.ceil(46 / (7 * g.pw / days)));
-  for (let w = dm.w0, i = 0; w <= dm.w1; w++, i++) if (i % every === 0) svg.append(sv('text', { class: 'sp-ax', x: X((w - dm.w0) * 7 + 3), y: y0 + 16, 'text-anchor': 'middle' }, fmtS(dm.pal + 7 * w)));
-  spPalMark(svg, g, g.ml + (dm.pal - dm.d0) / days * g.pw);
+    sv('circle', { class: 'sp-dot', cx: X(L), cy: Y(sr.cum[L] / 100), r: 4.5, fill: x.color }),
+    sv('text', { class: 'sp-endl', x: X(L) + 9, y: Y(sr.cum[L] / 100) + 4 }, eur0(sr.cum[L])));
   spCross(svg, g, {
-    at: px => clamp(Math.round((px - g.ml) / g.pw * days - 0.5), 0, last), x: X,
-    dots: i => [sv('circle', { class: 'sp-dot', cx: X(i), cy: Y(cum[i] / 100), r: 4.5, fill: x.color })],
-    tip: i => h('div', null, h('b', null, eur(cum[i])), h('div', { class: 'muted small' }, 'bis ' + fmtW(dm.d0 + i) + (dm.d0 + i >= dm.pal ? ' · Tag ' + (dm.d0 + i - dm.pal) + ' ab PAL' : '')),
-      cnt[i] ? h('div', null, 'an diesem Tag: ' + eur(day[i]) + ' (' + spCount(cnt[i]) + ')') : null) });
+    at: px => clamp(Math.round((px - g.ml) / g.pw * sr.days - 0.5), 0, L), x: X,
+    dots: i => [sv('circle', { class: 'sp-dot', cx: X(i), cy: Y(sr.cum[i] / 100), r: 4.5, fill: x.color })],
+    tip: i => h('div', null, h('b', null, eur(sr.cum[i])), h('div', { class: 'muted small' }, 'bis ' + spDayLab(sr, sr.d0 + i)),
+      sr.cnt[i] ? h('div', null, 'an diesem Tag: ' + eur(sr.day[i]) + ' (' + spCount(sr.cnt[i]) + ')') : null) });
+}
+// Spenden pro Tag: eine Säule je Tag – zeigt, wann viel hereinkommt und wann es abebbt
+function spDrawDay(svg, g, x, sr, X) {
+  const Y = spYAxis(svg, g, Math.max(...sr.day) / 100), y0 = g.mt + g.ph, pxd = g.pw / sr.days;
+  const bw = Math.min(24, Math.max(1, pxd - (pxd >= 5 ? 2 : 1)));
+  for (let i = 0; i < sr.days; i++) {
+    const grp = sv('g', { class: 'sp-bin' });
+    if (sr.day[i]) {
+      const bx = X(i) - bw / 2, top = Y(sr.day[i] / 100), r = Math.min(4, bw / 2, y0 - top);
+      grp.append(sv('path', { class: 'sp-bar', fill: x.color, d: `M${bx},${y0}V${top + r}Q${bx},${top} ${bx + r},${top}H${bx + bw - r}Q${bx + bw},${top} ${bx + bw},${top + r}V${y0}Z` }));
+    }
+    const hit = sv('rect', { class: 'sp-hit', x: g.ml + i * pxd, y: g.mt, width: pxd, height: g.ph });
+    setTip(hit, () => h('div', null, h('b', null, sr.day[i] ? eur(sr.day[i]) : 'keine Spenden'), sr.cnt[i] ? h('div', null, spCount(sr.cnt[i])) : null, h('div', { class: 'muted small' }, spDayLab(sr, sr.d0 + i))));
+    grp.append(hit); svg.append(grp);
+  }
 }
 function spDrawCmp(el, ids, by) {
   const ser = ids.map(id => {
@@ -695,11 +701,4 @@ function spCross(svg, g, cfg) {
     tipEl.replaceChildren(cfg.tip(i)); tipEl.classList.add('on'); placeTip(ev);
   });
   ov.addEventListener('mouseleave', () => { line.setAttribute('visibility', 'hidden'); dots.replaceChildren(); hideTip(); });
-}
-function spWeekTable(x, list) {
-  const { bins } = spWeeks(x.m, list || []); let cum = 0;
-  return h('details', { class: 'sp-wt' }, h('summary', null, 'Wochenwerte als Tabelle'),
-    h('table', { class: 'grid' }, h('thead', null, h('tr', null, ['Woche', 'Zeitraum', 'Spenden', 'Anzahl', 'kumuliert'].map((t, i) => h('th', { class: i > 1 ? 'num' : '' }, t)))),
-      h('tbody', null, bins.map(b => { cum += b.sum; return h('tr', null, h('td', null, b.w >= 0 ? (b.w + 1) + '. ab PAL' : (-b.w) + ' vor PAL'), h('td', null, fmtS(b.a) + '–' + fmtS(b.a + 6)),
-        h('td', { class: 'num' }, b.sum ? eur(b.sum) : '–'), h('td', { class: 'num' }, b.n || '–'), h('td', { class: 'num' }, eur(cum))); }))));
 }

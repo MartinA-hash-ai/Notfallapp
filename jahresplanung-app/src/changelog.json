@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.12",
+    "version": "0.12.1",
     "date": "",
+    "items": [
+      "Keine „überfällig“-Hinweise mehr: Termine werden nicht mit dem heutigen Datum verglichen (auch nicht in „Was steht an?“)",
+      "Spenden: der Verwendungszweck steht immer in jeder Zeile; Namen auf Wunsch („Namen zeigen“). Daueraufträge bleiben in der Liste und sind farbig markiert",
+      "Spenden: in „Prüfen“ schickt „← Alle zurück“ alles auf einmal zurück zu „Offen“ (ohne vorher zu markieren; Strg+Z holt es zurück)",
+      "Spenden: Kennzahlen als 2×2 (Spendensumme, Ø-Spende, darunter Responsequote und ROI); rechts daneben die Zeitspanne der Eingänge (Summe aufaddiert) und die Spenden pro Tag. Nettoertrag, „In Prüfung“ und der Abschnitt „Verlauf“ entfallen"
+    ]
+  },
+  {
+    "version": "0.12",
+    "date": "2026-10-03T16:04",
     "items": [
       "Neuer Reiter „Spenden (Beta)“: Spendeneingänge den Maßnahmen zuordnen und auswerten",
       "Exporte (CSV oder Excel) einfach in den Ordner „Spendeneingänge …“ im Mailing-Ordner legen, über „+ Datei hinzufügen“ ablegen oder in den Reiter ziehen; die App liest sie beim Öffnen, beim Zurückkehren ins Fenster, alle zwei Minuten und auf Knopfdruck. Buchungen aus überlappenden Exporten zählen nur einmal; Abbuchungen werden übergangen",

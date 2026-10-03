@@ -429,7 +429,7 @@ function phaseVacations(x, k) {
 
 /* ---------- Warnungen */
 function computeWarnings() {
-  const W = [], y = UI.year, today = todayDn();
+  const W = [], y = UI.year;              // bewusst kein Abgleich mit dem heutigen Datum (keine „überfällig“-Hinweise)
   const relevant = C.ms.filter(x => inYear(x, y) || x.pal == null);
   for (const x of relevant) {
     const nm = x.m.name || '(ohne Namen)';
@@ -469,8 +469,6 @@ function computeWarnings() {
         if (away.length) W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.start,
           text: `${nm} › ${s.name}: ${s.wer} hat Urlaub (${away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ')})` });
       }
-      if (r.end < today && (+s.fortschritt || 0) < 100 && s.typ === 'aufgabe')
-        W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.end, text: `${nm} › ${s.name}: überfällig seit ${fmtD(r.end)} (${+s.fortschritt || 0} % erledigt)` });
     }
   }
   for (const u of D.urlaube) if ((u.von && dn(u.von) == null) || (u.bis && dn(u.bis) == null))

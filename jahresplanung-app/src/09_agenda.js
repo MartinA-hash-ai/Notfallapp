@@ -6,7 +6,7 @@ function setStepDone(mid, sid, done) {
 function agendaSection() {
   const today = todayDn(), from = UI.agendaFrom != null ? UI.agendaFrom : today, to = from + UI.agendaWeeks * 7 - 1;
   const withSteps = UI.agendaSteps !== false, withVac = UI.agendaVac !== false;
-  const items = [], running = [], overdue = [];
+  const items = [], running = [];
   for (const e of eventsIn(from, to)) items.push({ n: e.n, kind: 'ev', e });
   if (withSteps) for (const x of C.ms) {
     if (!x.pc || !visibleM(x)) continue;
@@ -20,7 +20,6 @@ function agendaSection() {
         if (r.start >= from && r.start <= to) items.push(Object.assign({ n: r.start, kind: 'start' }, it));
         if (r.end >= from && r.end <= to && r.end !== r.start) items.push(Object.assign({ n: r.end, kind: 'end' }, it));
         if (r.start < from && r.end > from && !done) running.push(it);
-        if (r.end < today && !done) overdue.push(it);
       } else if (r.end >= from && r.end <= to) items.push(Object.assign({ n: r.end, kind: 'ms' }, it));
     }
   }
@@ -57,9 +56,6 @@ function agendaSection() {
     return h('div', { class: 'arow ' + it.kind }, dcol, what);
   };
   const list = h('div', { class: 'agenda' });
-  if (overdue.length && from <= today) list.append(h('section', { class: 'aweek overdue' }, h('h3', null, 'Überfällig (' + overdue.length + ')'),
-    overdue.map(it => h('div', { class: 'arow' }, h('div', { class: 'ad' }, h('b', null, 'bis ' + fmtWS(it.r.end)), h('span', { class: 'rel past' }, relDays(it.r.end, today))),
-      h('div', { class: 'aw' }, h('span', { class: 'kind end' }, (+it.s.fortschritt || 0) + ' %'), stepLine(it), doneBox(it))))));
   if (running.length) list.append(h('section', { class: 'aweek' }, h('h3', null, 'Läuft gerade'),
     running.map(it => h('div', { class: 'arow' }, h('div', { class: 'ad' }, h('b', null, 'bis ' + fmtWS(it.r.end)), h('span', { class: 'rel' }, relDays(it.r.end, today))),
       h('div', { class: 'aw' }, h('span', { class: 'kind run' }, 'läuft'), stepLine(it), h('span', { class: 'muted small' }, ' seit ' + fmtS(it.r.start)), doneBox(it))))));

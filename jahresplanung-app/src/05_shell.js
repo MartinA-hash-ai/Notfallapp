@@ -358,7 +358,7 @@ function warnPanel() {
         warn.map(item)] : h('p', { class: 'ok' }, '✓ Keine Konflikte gefunden.'),
       info.length ? [h('h3', null, 'Hinweise (' + info.length + ')'), info.map(item)] : null,
       h('p', { class: 'muted small' }, 'Geprüft werden: Starts am Wochenende oder Feiertag, PAL an Sonn-/Feiertagen, Termine im Urlaub der hauptverantwortlichen Person, ' +
-        'Arbeitsschritte im Urlaub der zugeordneten Person und überfällige Schritte.')));
+        'Arbeitsschritte im Urlaub der zugeordneten Person.')));
 }
 
 /* ---------- Einstellungen, Hilfe */
