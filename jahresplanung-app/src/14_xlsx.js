@@ -299,14 +299,14 @@ function viewWorkbookLight(opts = {}) {
 
   // 6. Urlaub und Feiertage
   {
-    const rows = [['Wer', 'Von', 'Bis', 'Arbeitstage', 'Notiz'].map(t => ({ v: t, st: XS.head })),
+    const rows = [['Wer', 'Von', 'Bis', 'Arbeitstage', 'Notiz', 'Art'].map(t => ({ v: t, st: XS.head })),
       ...C.vac.filter(v => v.bis >= a && v.von <= b).sort((p, q) => p.von - q.von)
-        .map(v => [{ v: v.u.wer || '?', st: { fill: pastel(personColor(v.u.wer)) } }, XD(v.von), XD(v.bis), workdays(v.von, v.bis), v.u.notiz || ''])];
+        .map(v => [{ v: v.u.wer || '?', st: { fill: pastel(personColor(v.u.wer)) } }, XD(v.von), XD(v.bis), workdays(v.von, v.bis), v.u.notiz || '', vacKind(v.u)])];
     rows.push([], [{ v: 'Feiertage NRW ' + y, st: XS.sub }]);
     const hols = [...holidays(y)].concat(D.sondertage.filter(s => dn(s.datum) != null && ymd(dn(s.datum))[0] === y).map(s => [dn(s.datum), (s.name || 'freier Tag') + ' (eigener freier Tag)']))
       .sort((p, q) => p[0] - q[0]);
     hols.forEach(([n, t]) => rows.push([XD(n), { v: t, st: {} }]));
-    sheets.push({ name: 'Urlaub & Feiertage', cols: [18, 16, 16, 12, 30], rows, freeze: 'A2', protect });
+    sheets.push({ name: 'Urlaub & Feiertage', cols: [18, 16, 16, 12, 30, 14], rows, freeze: 'A2', protect });
   }
 
   // 7. Änderungsprotokoll (neueste oben)

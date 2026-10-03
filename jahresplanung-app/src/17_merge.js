@@ -61,7 +61,7 @@ const FIELD_LABEL = { name: 'Name', pal: 'PAL', palStatus: 'PAL-Status', vorlauf
 function recLabel(coll, rec, key) {
   rec = rec || {};
   if (coll === 'massnahmen') return 'Maßnahme „' + (rec.name || '(ohne Namen)') + '“';
-  if (coll === 'urlaube') return 'Urlaub ' + (rec.wer || '?') + ' ' + fmtS(dn(rec.von)) + '–' + fmtS(dn(rec.bis) ?? dn(rec.von));
+  if (coll === 'urlaube') return vacKind(rec) + ' ' + (rec.wer || '?') + ' ' + fmtS(dn(rec.von)) + '–' + fmtS(dn(rec.bis) ?? dn(rec.von));
   if (coll === 'sondertage') return 'Freier Tag „' + (rec.name || 'ohne Namen') + '“ ' + fmtS(dn(rec.datum));
   if (coll === 'personen') return 'Person ' + (rec.name || key);
   if (coll === 'feiertage') return 'Feiertage';
@@ -176,11 +176,11 @@ function planChange(p, q) {
   const A = new Map(p.steps.map(s => [s.id, s])), B = new Map(q.steps.map(s => [s.id, s])), parts = [];
   const what = (o, s, k) => k === 'dauer' ? 'Dauer ' + (+o.dauer || 0) + ' → ' + (+s.dauer || 0) + ' Tage' : k === 'wer' ? 'Person ' + (o.wer || '–') + ' → ' + (s.wer || '–')
     : k === 'fortschritt' ? (+s.fortschritt >= 100 ? 'erledigt' : 'Fortschritt ' + (+s.fortschritt || 0) + ' %') : k === 'bereich' ? 'Bereich ' + (s.bereich ? s.bereich + ' ' + phName(s.bereich) : '–')
-    : k === 'anker' ? 'Termin verschoben' : k === 'name' ? 'umbenannt (vorher „' + o.name + '“)' : k === 'typ' ? 'jetzt ' + (STEP_TYPES[s.typ] || s.typ) : k === 'kommentar' ? 'Kommentar geändert' : k;
+    : k === 'anker' ? 'Termin verschoben' : k === 'name' ? 'umbenannt (vorher „' + o.name + '“)' : k === 'typ' ? 'jetzt ' + (STEP_TYPES[s.typ] || s.typ) : k === 'kommentar' ? 'Kommentar geändert' : k === 'fix' ? (s.fix ? 'Dauer festgelegt' : 'Dauer freigegeben') : k;
   for (const [id, s] of B) {
     const o = A.get(id);
     if (!o) parts.push('„' + s.name + '“ neu');
-    else if (JS(o) !== JS(s)) parts.push('„' + s.name + '“ ' + ['name', 'dauer', 'wer', 'anker', 'bereich', 'typ', 'fortschritt', 'kommentar'].filter(k => JS(o[k]) !== JS(s[k])).map(k => what(o, s, k)).join(', '));
+    else if (JS(o) !== JS(s)) parts.push('„' + s.name + '“ ' + ['name', 'dauer', 'wer', 'anker', 'bereich', 'typ', 'fortschritt', 'kommentar', 'fix'].filter(k => JS(o[k]) !== JS(s[k])).map(k => what(o, s, k)).join(', '));
   }
   for (const [id, s] of A) if (!B.has(id)) parts.push('„' + s.name + '“ gelöscht');
   if (!parts.length && JS(p.marks) !== JS(q.marks)) parts.push('Beginn eines Bereichs neu festgelegt');

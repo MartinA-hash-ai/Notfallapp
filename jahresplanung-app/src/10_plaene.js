@@ -5,34 +5,60 @@ const PL_ROW = 32;
 const DEF_DAYS = 7;                            // Standarddauer neuer bzw. noch nicht geplanter Schritte
 
 /* ---------- Rechenhilfen am Datenobjekt */
-// Start eines Bereichs auf ein Datum legen. Die späteren Termine des Abschnitts sollen bleiben:
-// der längste Schritt, der mit dem ersten mitwandert (oder der erste selbst), wird entsprechend länger bzw. kürzer.
-// Ist der erste Schritt der längste, verschiebt sich nur sein Beginn; sonst rückt er samt Nachfolgern, und der längste fängt es auf.
-function shiftStep(m, id, d) {                    // Schritt samt allem, was danach beginnt, um d Tage verschieben (Dauer bleibt)
-  const s = m.plan.steps.find(q => q.id === id), a = s && s.anker; if (!a || !d) return;
-  if (a.art === 'fest') { const n = dn(a.datum); if (n != null) a.datum = ds(n + d); }
-  else if (a.art === 'pal' || a.art === 'nach') a.offset = (+a.offset || 0) + d;
+// Schritte (ids) anteilig von [A, E] auf [A2, E2] bringen: Dauern und Abstände werden im gleichen Verhältnis kürzer bzw. länger.
+// Schritte mit fester Dauer (⋯ → „Dauer festlegen“) behalten ihre Länge – in ihrer Zeit läuft die Uhr 1:1, der Rest wird gestreckt/gestaucht.
+// Ganze Tage, Aufgaben mindestens 1 Tag. Liefert die geänderten Dauern; partial, wenn es nicht ganz passt.
+function scaleRange(m, ids, A, E, A2, E2) {
+  const pc = planCalc(m), pal = dn(m.pal), set = new Set(ids);
+  const steps = m.plan.steps.filter(s => set.has(s.id) && s.typ !== 'gruppe' && !s.pal && pc.map.get(s.id) && pc.map.get(s.id).start != null && !pc.map.get(s.id).err);
+  const r0 = id => pc.map.get(id);
+  const U = [];                                    // Zeiten fester Schritte (zusammengefasst)
+  steps.filter(s => s.fix && s.typ === 'aufgabe').map(s => [Math.max(A, r0(s.id).start), Math.min(E, r0(s.id).end)]).filter(([x, y]) => y > x)
+    .sort((p, q) => p[0] - q[0]).forEach(([x, y]) => { const l = U[U.length - 1]; if (l && x <= l[1]) l[1] = Math.max(l[1], y); else U.push([x, y]); });
+  const L = U.reduce((t, [x, y]) => t + y - x, 0), flex0 = (E - A) - L;
+  const keepEnd = E2 === E;                        // welches Ende bleibt stehen (Start verschieben: das Ende; Stauchen: der Beginn)
+  let f = flex0 > 0 ? ((E2 - A2) - L) / flex0 : 1, partial = flex0 <= 0 && (E2 - A2) !== (E - A);
+  if (f < 0) { f = 0; partial = true; if (keepEnd) A2 = E2 - L; else E2 = A2 + L; }   // passt nicht: so weit wie möglich
+  const M = t => {                                 // Datum im alten Bereich → Datum im neuen
+    if (t <= A) return A2 + (t - A) * f;
+    let pos = A, out = A2;
+    for (const [x, y] of U) {
+      if (t <= x) return out + (t - pos) * f;
+      out += (x - pos) * f; pos = x;
+      if (t <= y) return out + (t - pos);
+      out += y - pos; pos = y;
+    }
+    return out + (t - pos) * f;
+  };
+  const tgt = new Map();
+  for (const s of steps) {
+    const r = r0(s.id);
+    if (s.typ !== 'aufgabe') { const e = Math.round(M(r.end)); tgt.set(s.id, [e, e]); continue; }
+    if (s.fix) { const a = Math.round(M(r.start)); tgt.set(s.id, [a, a + (r.end - r.start)]); continue; }
+    let a = Math.round(M(r.start)), e = Math.round(M(r.end));
+    if (r.end - r.start >= 1 && e - a < 1) { if (keepEnd) a = e - 1; else e = a + 1; partial = true; }   // mindestens 1 Tag
+    tgt.set(s.id, [a, Math.max(a, e)]);
+  }
+  const endOf = id => tgt.has(id) ? tgt.get(id)[1] : (r0(id) || {}).end;
+  const changed = [];
+  for (const s of steps) {
+    const [a, e] = tgt.get(s.id), r = r0(s.id), an = s.anker || {};
+    if (s.typ === 'aufgabe' && !s.fix) { s.dauer = e - a; if (e - a !== r.end - r.start) changed.push([s.name, r.end - r.start, e - a]); }
+    if (an.art === 'nach') { const ends = predsOf(s).map(endOf).filter(v => v != null); if (ends.length) an.offset = a - Math.max(...ends); }
+    else if (an.art === 'pal' && pal != null) an.offset = e - pal;
+    else if (an.art === 'fest') an.datum = ds(e);
+  }
+  return { changed, partial };
 }
+// Start eines Bereichs auf ein Datum legen: das Ende des Abschnitts bleibt, alle Schritte darin passen sich anteilig an
 function adjustMark(m, which, target) {
-  const p = m.plan, pc = planCalc(m), ph = pc.ph[which], mark = ph && ph.mark;
-  const r = mark && pc.map.get(mark), s = p.steps.find(q => q.id === mark);
-  if (!r || r.start == null || target == null || !s || s.pal) return null;
-  const delta = r.start - target;                // > 0: früher, < 0: später
-  if (!delta) return { changed: [] };
-  // wer wandert mit, wenn der erste Schritt rückt? (probeweise um einen Tag)
-  const sim = JSON.parse(JSON.stringify(m)); shiftStep(sim, mark, 1); const m2 = planCalc(sim).map;
-  const sec = secMap(p);
-  const pushed = p.steps.filter(q => q.typ === 'aufgabe' && q.id !== mark && !q.pal && sec.get(q.id) === sec.get(mark) && pc.map.get(q.id) && pc.map.get(q.id).start != null && m2.get(q.id) && m2.get(q.id).start === pc.map.get(q.id).start + 1);
-  const cand = (s.typ === 'aufgabe' ? [s] : []).concat(pushed).sort((a, b) => (+b.dauer || 0) - (+a.dauer || 0));
-  if (!cand.length) { setStepSpan(m, mark, target, target); return { changed: [] }; }   // Meilenstein am Beginn: wandert selbst
-  // länger/kürzer am Beginn, das Ende bleibt (beginnt der Schritt nach einem Vorgänger, wandert dafür sein Abstand mit)
-  const grow = (q, k) => { q.dauer = (+q.dauer || 0) + k; if (q.anker && q.anker.art === 'nach') q.anker.offset = (+q.anker.offset || 0) - k; };
-  const apply = (c, k) => { if (c === s) grow(s, k); else { shiftStep(m, mark, -k); c.dauer = (+c.dauer || 0) + k; } };   // k > 0: Start früher
-  if (delta > 0) { const c = cand[0]; apply(c, delta); return { changed: [[c.name, +c.dauer - delta, +c.dauer]] }; }
-  const need = -delta, c = cand.find(q => (+q.dauer || 0) - 1 >= need) || cand[0], take = Math.min(need, Math.max(0, (+c.dauer || 0) - 1));
-  if (!take) return { changed: [], partial: true };
-  apply(c, -take);
-  return take < need ? { changed: [[c.name, +c.dauer + take, +c.dauer]], partial: true } : { changed: [[c.name, +c.dauer + take, +c.dauer]] };
+  const pc = planCalc(m), ph = pc.ph[which], mark = ph && ph.mark, r = mark && pc.map.get(mark);
+  if (!r || r.start == null || target == null) return null;
+  if (r.start === target) return { changed: [] };
+  if (ph.end <= ph.start) {                      // nur ein Zeitpunkt (z. B. ein Meilenstein): verschiebt sich selbst
+    const s = m.plan.steps.find(q => q.id === mark); if (!s || s.pal) return null; setStepSpan(m, mark, target, target); return { changed: [] };
+  }
+  return scaleRange(m, ph.steps, ph.start, ph.end, target, ph.end);
 }
 // Start Selektion/Inhalt einer Maßnahme auf ein Datum legen (Zeitleiste, Kalender): ohne Plan über den Vorlauf,
 // mit Detailplan über die Dauer der Schritte davor. Liefert die Meldung für den Hinweis.
@@ -59,15 +85,15 @@ async function moveStartTo(id, t, n) {
   if (!res) return;
   derive();
   const now = C.byId.get(id), got = now ? now.st[t] : n;
-  const det = res.changed.length ? ' – Detailplan: ' + res.changed.map(([nm, a, b]) => '„' + nm + '“ ' + a + ' → ' + b + ' Tage').join(', ') : '';
+  const det = res.changed.length ? ' – Detailplan: ' + changedText(res.changed) : '';
   toast(x.m.name + ': ' + label + ' → ' + fmtW(got) + det);
 }
 // Warum geht der Start nicht weiter? Die Schritte behalten ihr Ende und werden nur kürzer (mindestens 1 Tag).
 function startMoveAsk(x, t, want, reach, changed) {
   const ph = x.pc.ph[t], ms = ph && x.m.plan.steps.find(q => q.id === ph.mark);
   const hang = !ms ? '' : '„' + ms.name + '“ ' + anchorText(x.m.plan, ms) + '.';
-  const cut = (changed || []).map(([nm, o, nw]) => '„' + nm + '“ ' + o + ' → ' + nw + (nw === 1 ? ' Tag' : ' Tage')).join(', ');
-  const why = hang + ' Beim Verschieben des Starts behalten die Schritte ihr Ende und werden kürzer – kürzer als 1 Tag geht nicht' + (cut ? ' (dafür: ' + cut + ')' : '') + '.';
+  const cut = (changed || []).length ? changedText(changed) : '';
+  const why = hang + ' Beim Verschieben des Starts bleibt das Ende des Abschnitts, alle Schritte darin werden anteilig kürzer – feste Dauern bleiben, kürzer als 1 Tag geht nicht' + (cut ? ' (dafür: ' + cut + ')' : '') + '.';
   const gid = ms ? curGroupOf(x.m.plan.steps, x.m.plan.steps.indexOf(ms)) : null, g = gid && x.m.plan.steps.find(q => q.id === gid), dd = want - x.st[t];
   return modal(label2(t) + ' verschieben', h('div', { class: 'form' },
     h('p', null, 'Gewünscht: ', h('b', null, fmtW(want)), '. Durch Kürzen der Schritte geht es nur bis ', h('b', null, fmtW(reach)), '.'),
@@ -154,7 +180,7 @@ async function createPlan(id) {
     : h('p', { class: 'muted small' }, 'Es gibt noch keinen anderen Detailplan.')) : null);
   const body = h('div', { class: 'form newplan' },
     h('div', { class: 'np-grid' },
-      h('span', { class: 'np-lab' }, h('b', null, 'PAL'), ' ', demoChip('P'), h('small', null, 'Pflicht')), palIn, h('span'), h('span'),
+      h('span', { class: 'np-lab' }, h('b', null, 'PAL'), ' ', demoChip('P', 'palred'), h('small', null, 'Pflicht')), palIn, h('span'), h('span'),
       h('span'), h('span', { class: 'muted small' }, 'Datum'), h('span'), h('span', { class: 'muted small' }, 'Werktage bis PAL'),
       PH().map(p => [h('span', { class: 'np-lab' }, startLabel(p.key), ' ', demoChip(p.key)), dIn[p.key], h('span', { class: 'muted small' }, 'oder'),
         h('span', { class: 'wtbox' }, wIn[p.key], h('span', { class: 'unit' }, 'WT'))])),
@@ -211,12 +237,14 @@ async function removePlan(id) {
   }, 'Detailplan entfernt');
 }
 function setStep(mid, sid, fn, msg) { commit(d => { const m = findM(d, mid), s = m && m.plan && m.plan.steps.find(q => q.id === sid); if (s) fn(s); }, msg); }
+// Hinweis zu geänderten Dauern: wenige einzeln, viele zusammengefasst
+const changedText = ch => !ch.length ? 'nichts geändert' : ch.length <= 3 ? ch.map(([nm, a, b]) => '„' + nm + '“ ' + a + ' → ' + b + ' Tage').join(', ') : ch.length + ' Schritte anteilig angepasst';
 function setMarkDate(mid, which, v) {
   const n = dn(v); if (n == null) return;
   let res = null;
   commit(d => { res = adjustMark(findM(d, mid), which, n); });
   if (!res) toast('In diesem Plan gehört noch kein Abschnitt zum Bereich „' + phName(which) + '“ (Bereich am Abschnitt wählen).', 'warn');
-  else if (res.changed.length) toast('Angepasst: ' + res.changed.map(([nm, a, b]) => nm + ' ' + a + ' → ' + b + ' Tage').join(', ') + (res.partial ? ' – kürzer geht nicht' : ''), res.partial ? 'warn' : '');
+  else if (res.changed.length || res.partial) toast('Angepasst: ' + changedText(res.changed) + (res.partial ? ' – weiter geht es nicht (Schritte mindestens 1 Tag, feste Dauern bleiben)' : ''), res.partial ? 'warn' : '');
 }
 function groupBlocks(steps) {                 // Abschnitt-Index → [von, bis) im Array
   const out = new Map();
@@ -356,7 +384,7 @@ VIEW_FN.plaene = main => {
   put(main, h('div', { class: 'phead', style: { borderColor: x.color } },
     h('div', { class: 'ph-top' },
       h('h2', { style: { color: inkC(x.color) } }, m.name),
-      h('label', { class: 'inl ph-pal' }, demoChip('P'), 'PAL', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null))),
+      h('label', { class: 'inl ph-pal' }, demoChip('P', 'palred'), 'PAL', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null))),
       h('div', { class: 'plegend' }, persons.map(w => h('span', { class: 'pleg' }, h('span', { class: 'pbox', style: { background: midtone(barColor(w)), borderColor: barColor(w) } }), w || 'nicht zugeordnet')))),
     h('div', { class: 'ph-bot' },
       h('div', { class: 'pdates' },
@@ -444,7 +472,7 @@ VIEW_FN.plaene = main => {
     const len = +s.dauer > 0 ? +s.dauer : DEF_DAYS, fresh = UI.freshStep === s.id;
     const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return; UI.freshStep = null;
       commit(d => { const ne = !fresh && r.end != null && r.start != null && ns <= r.end ? r.end : ns + len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
-    const endInp = s.pal ? h('span', { class: 'paldate', tip: 'Fester Termin: das PAL der Maßnahme – ändern oben im Kopf oder in der Maßnahmen-Tabelle' }, x.pal != null ? fmtD(x.pal) : '–', h('span', { class: 'pallock', 'aria-label': 'fest' }), demoChip('P', 'palchip'))
+    const endInp = s.pal ? h('span', { class: 'paldate', tip: 'Fester Termin: das PAL der Maßnahme – ändern oben im Kopf oder in der Maßnahmen-Tabelle' }, x.pal != null ? fmtD(x.pal) : '–', h('span', { class: 'pallock', 'aria-label': 'fest' }), demoChip('P', 'palchip palred'))
       : dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; UI.freshStep = null;
       commit(d => { const ns = !isTask ? ne : !fresh && r.start != null && r.end != null && r.start <= ne ? r.start : ne - len; setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
     // verknüpfte Daten: Kalendersymbol in der Farbe der Maßnahme (Beginn nach Vorgängern / nach dem Ende beginnen andere)
@@ -461,14 +489,15 @@ VIEW_FN.plaene = main => {
           personInput({ value: s.wer || '', placeholder: '–', 'data-fk': fk('wer'), onchange: e => setStep(m.id, s.id, st => { st.wer = e.target.value.trim(); }) }),
           away.length ? h('span', { class: 'wi warn', tip: s.wer + ' hat Urlaub: ' + away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ') }, '⚠') : null),
         h('div', { class: 'c-kom' }, h('input', { value: s.kommentar || '', title: s.kommentar || '', placeholder: '–', 'data-fk': fk('kom'), onchange: e => setStep(m.id, s.id, st => { st.kommentar = e.target.value; }) })),
-        h('div', { class: 'c-dur' }, isTask ? h('input', { type: 'number', min: 0, max: MAX_DAUER, value: s.dauer ?? 0, 'data-fk': fk('dur'), tip: 'Dauer in Tagen', onchange: e => { const v = Math.round(+e.target.value || 0); if (v > MAX_DAUER) toast('Höchstens ' + MAX_DAUER + ' Tage – auf ' + MAX_DAUER + ' gesetzt.', 'warn');
+        h('div', { class: 'c-dur' + (s.fix ? ' fix' : '') }, isTask ? h('input', { type: 'number', min: 0, max: MAX_DAUER, value: s.dauer ?? 0, 'data-fk': fk('dur'), tip: 'Dauer in Tagen', onchange: e => { const v = Math.round(+e.target.value || 0); if (v > MAX_DAUER) toast('Höchstens ' + MAX_DAUER + ' Tage – auf ' + MAX_DAUER + ' gesetzt.', 'warn');
           const nv = clamp(v, 0, MAX_DAUER);                       // Beginn bleibt, das Ende wandert (und was danach beginnt)
-          if (r.start != null && !r.err) commit(d => { setStepSpan(findM(d, m.id), s.id, r.start, r.start + nv); }); else setStep(m.id, s.id, st => { st.dauer = nv; }); } }) : null),
+          if (r.start != null && !r.err) commit(d => { setStepSpan(findM(d, m.id), s.id, r.start, r.start + nv); }); else setStep(m.id, s.id, st => { st.dauer = nv; }); } }) : null, isTask && s.fix ? h('span', { class: 'fixlock', tip: 'Feste Dauer – bleibt beim anteiligen Anpassen unverändert (⋯ → „Dauer freigeben“)', 'aria-label': 'feste Dauer' }) : null),
         h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : startInp),
         h('div', { class: 'c-date' }, r.err ? '' : endInp)],
       h('div', { class: 'c-acts' }, menuButton('⋯', [['Neue Aufgabe darunter', () => addStep(m.id, curGroupOf(p.steps, row.idx), s.id)],
         secK && !s.pal ? ['Als Beginn von „' + phName(secK) + '“ festlegen', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks, { [secK]: s.id }); }, s.name + ' = ' + startLabel(secK))] : false,
         secK && p.marks && p.marks[secK] ? ['Beginn von „' + phName(secK) + '“ automatisch (frühester Schritt)', () => commit(d => { const pl = findM(d, m.id).plan; pl.marks = Object.assign({}, pl.marks); delete pl.marks[secK]; })] : false,
+        isTask ? [s.fix ? 'Dauer freigeben (nicht mehr fest)' : 'Dauer festlegen (fix)', () => setStep(m.id, s.id, st => { if (st.fix) delete st.fix; else st.fix = true; }, s.fix ? '„' + s.name + '“: Dauer wieder frei' : '„' + s.name + '“: feste Dauer – bleibt beim anteiligen Anpassen')] : false,
         predsOf(s).length || dependents(p, s).length ? ['Verknüpfungen dieses Schritts lösen', () => unlinkSteps(m.id, predsOf(s).map(a => [a, s.id]).concat(dependents(p, s).map(q => [s.id, q.id])))] : false, null,
         s.pal ? false : ['Löschen', () => deleteStep(m.id, s.id)]], 'right'))));
     // Gantt-Zeile
@@ -880,7 +909,7 @@ function palOverSteps(m, pc) {
   for (const s of m.plan.steps) {
     if (s.typ === 'gruppe') { ber = s.bereich || null; continue; }
     if (!ber || s.pal) continue;
-    const r = pc.map.get(s.id); if (r && !r.err && r.end != null && r.end > pal) out.push({ id: s.id, name: s.name, end: r.end, over: r.end - pal });
+    const r = pc.map.get(s.id); if (r && !r.err && r.end != null && r.end > pal) out.push({ id: s.id, name: s.name, end: r.end, over: r.end - pal, ber });
   }
   return out;
 }
@@ -893,6 +922,7 @@ function palOverBanner(x, over) {
     h('span', null, over.length === 1 ? '„' + worst.name + '“ endet ' + worst.over + (worst.over === 1 ? ' Tag' : ' Tage') + ' nach dem PAL.'
       : over.length + ' Schritte enden nach dem PAL – am weitesten „' + worst.name + '“ (' + worst.over + (worst.over === 1 ? ' Tag' : ' Tage') + ').'),
     h('button', { class: 'primary', tip: 'Der PAL bleibt, die Dauern bleiben – die Schritte davor rücken so weit nach vorn, dass alles spätestens am PAL endet.', onclick: () => pullBeforePal(x.id) }, 'Alles vor den PAL rücken'),
+    h('button', { tip: 'Der Beginn des Bereichs und der PAL bleiben – alle Schritte dazwischen werden anteilig kürzer (feste Dauern bleiben).', onclick: () => squeezeToPal(x.id) }, 'Auf den PAL stauchen'),
     h('button', { onclick: () => { UI.palOverSeen = sig; renderNow(); } }, 'Ausblenden'));
 }
 function pullBeforePal(mid) {
@@ -922,3 +952,17 @@ function pullBeforePal(mid) {
 document.addEventListener('keydown', e => { if (e.key === 'Control' || e.key === 'Meta') document.body.classList.add('ctrlheld'); });
 document.addEventListener('keyup', e => { if (e.key === 'Control' || e.key === 'Meta') document.body.classList.remove('ctrlheld'); });
 window.addEventListener('blur', () => document.body.classList.remove('ctrlheld'));
+
+// Auf den PAL stauchen: Beginn des Bereichs und PAL bleiben, die Schritte dazwischen werden anteilig kürzer (feste Dauern bleiben)
+function squeezeToPal(mid) {
+  let left = 0, part = false, ch = [];
+  commit(d => {
+    const m = findM(d, mid), pal = dn(m.pal); if (pal == null || !m.plan) return;
+    for (const k of [...new Set(palOverSteps(m, planCalc(m)).map(o => o.ber))]) {
+      const ph = planCalc(m).ph[k]; if (!ph || ph.end <= pal || ph.start >= pal) continue;
+      const res = scaleRange(m, ph.steps, ph.start, ph.end, ph.start, pal); ch = ch.concat(res.changed); part = part || res.partial;
+    }
+    left = palOverSteps(m, planCalc(m)).length;
+  }, 'Auf den PAL gestaucht – Beginn und PAL bleiben');
+  if (left || part) toast(left ? (left === 1 ? 'Ein Schritt' : left + ' Schritte') + ' liegen weiter nach dem PAL – feste Dauern oder Mindestdauer 1 Tag lassen nicht mehr zu.' : 'Gestaucht: ' + changedText(ch), left ? 'warn' : '');
+}

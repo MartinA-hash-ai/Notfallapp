@@ -215,6 +215,7 @@ function normalize(d) {
         s.name = str(s.name); s.wer = str(s.wer); s.kommentar = str(s.kommentar);
         if (!['gruppe', 'aufgabe', 'meilenstein', 'ziel'].includes(s.typ)) s.typ = 'aufgabe';
         if (!isObj(s.anker)) s.anker = { art: 'offen' };
+        if (s.fix !== true || s.typ !== 'aufgabe') delete s.fix;                  // feste Dauer (nur Aufgaben)
         if (s.anker.art === 'nach') { s.anker.refs = [...new Set((Array.isArray(s.anker.refs) ? s.anker.refs : []).map(str).filter(id => id && id !== s.id))]; s.anker.offset = Math.round(+s.anker.offset || 0); }
         if (s.typ === 'gruppe') { if (s.bereich && !keys.includes(s.bereich)) delete s.bereich; } else delete s.bereich;
       });
@@ -225,7 +226,7 @@ function normalize(d) {
       for (const k of Object.keys(m.plan.marks)) if (!keys.includes(k) || !m.plan.steps.some(q => q.id === m.plan.marks[k])) delete m.plan.marks[k];
     }
   });
-  d.urlaube.forEach(u => { u.id = freshId(u.id); u.wer = str(u.wer); u.von = dateStr(u.von); u.bis = dateStr(u.bis); });
+  d.urlaube.forEach(u => { u.id = freshId(u.id); u.wer = str(u.wer); u.von = dateStr(u.von); u.bis = dateStr(u.bis); if (u.art !== 'abwesenheit') delete u.art; });   // Art: Urlaub (Standard) oder Abwesenheit
   d.sondertage.forEach(s => { s.id = freshId(s.id); s.name = str(s.name); s.datum = dateStr(s.datum); });
   d.version = DATA_VERSION;
   return d;
@@ -267,6 +268,10 @@ function personColor(name) {
   let hsh = 0; for (const ch of String(name)) hsh = (hsh * 31 + ch.charCodeAt(0)) >>> 0;
   return PERSON_COLORS[hsh % PERSON_COLORS.length];
 }
+// Urlaub oder Abwesenheit (z. B. Fortbildung, Dienstreise): Abwesenheiten erscheinen gestreift
+const isAbw = u => !!u && u.art === 'abwesenheit';
+const vacKind = u => isAbw(u) ? 'Abwesenheit' : 'Urlaub';
+const vacFill = (c, u) => isAbw(u) ? 'repeating-linear-gradient(135deg, ' + c + ' 0 3px, ' + mix(c, 0.6) + ' 3px 6px)' : c;
 function ensurePersons(d) {
   const names = new Set();
   d.urlaube.forEach(u => names.add(str(u.wer).trim()));

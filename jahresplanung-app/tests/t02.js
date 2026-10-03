@@ -16,9 +16,15 @@ const URL = T.URL;
   // --- Urlaub über die Oberfläche anlegen
   await p.click('text=Urlaub & Feiertage');
   await p.click('button:has-text("+ Urlaub")'); await p.waitForTimeout(100);
-  await p.fill('.modal input.pinput', 'Eva');
-  { const vd = await p.$$('.modal input[type=date]'); await vd[0].fill('2027-04-01'); await vd[0].dispatchEvent('input'); await vd[1].fill('2027-04-09'); await vd[1].dispatchEvent('input'); }
-  await p.click('.modal button:has-text("Eintragen")'); await p.waitForTimeout(150);
+  // 0.11: Kalendarium – Person wählen, 01.–09.04.2027 ziehen, speichern
+  await p.evaluate(() => { if (!D.personen.some(x => x.name === 'Eva')) commit(d => d.personen.push({ name: 'Eva', farbe: '#1565C0' })); });
+  if (!(await p.$('.vd-wer option[value="Eva"]'))) { await p.click('.modal footer button:has-text("Abbrechen")'); await p.click('button:has-text("+ Urlaub")'); await p.waitForTimeout(100); }
+  await p.selectOption('.vd-wer', 'Eva');
+  await p.evaluate(() => { while (!document.querySelector('.vd-day[data-dn="' + mkdn(2027, 4, 1) + '"]')) document.querySelector('.vd-nav button:last-child').click(); });
+  { const pos = n => p.evaluate(n => { const r = document.querySelector('.vd-day[data-dn="' + n + '"]').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, n);
+    const a = await pos(await p.evaluate(() => mkdn(2027, 4, 1))), z = await pos(await p.evaluate(() => mkdn(2027, 4, 9)));
+    await p.mouse.move(a[0], a[1]); await p.mouse.down(); await p.mouse.move(z[0], z[1], { steps: 5 }); await p.mouse.up(); }
+  await p.click('.modal footer button:has-text("Speichern")'); await p.waitForTimeout(150);
   let rows = await p.$$('table.utable tbody tr');
   log('Urlaubszeilen nach +:', rows.length);
   await p.evaluate(() => { commit(d => { d.urlaube.push({ id: 'u2', wer: 'Martin', von: '2027-04-05', bis: '2027-04-16', notiz: 'Osterferien' }, { id: 'u3', wer: 'P/Ö', von: '2027-04-07', bis: '2027-04-08', notiz: '' }, { id: 'u4', wer: 'Anke', von: '2027-08-02', bis: '2027-08-13', notiz: '' }); }); });

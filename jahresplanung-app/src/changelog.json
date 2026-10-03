@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.10.2",
+    "version": "0.11",
     "date": "",
+    "items": [
+      "Detailplan: das P neben „PAL“ im Kopf ist rot (wie in Tabelle und Gantt)",
+      "Feste Dauer: im ⋯-Menü einer Aufgabe „Dauer festlegen (fix)“ – kleines Schloss neben der Dauer; solche Aufgaben bleiben beim anteiligen Anpassen unverändert",
+      "Bereichsstart verschieben (Zeitleiste, Kalender, Kopf des Detailplans): das Ende des Abschnitts bleibt, alle Schritte darin werden anteilig kürzer bzw. länger – Dauern und Abstände, feste Dauern ausgenommen",
+      "Warnung nach dem PAL: zusätzlich „Auf den PAL stauchen“ – Beginn und PAL bleiben, die Schritte dazwischen werden anteilig kürzer",
+      "Urlaub / Abwesenheit: neuer Dialog mit Kalendarium – Person aus den Einstellungen, Urlaub oder Abwesenheit, Tage anklicken oder Zeiträume ziehen (mehrere auf einmal), schon belegte Tage sind gesperrt; Knopf „+ neuen Urlaub eintragen“ oben rechts in der Karte",
+      "Abwesenheiten erscheinen gestreift (Übersicht, Kalender, Zeitleiste); in der Liste lässt sich die Art umstellen; Excel und Outlook-Export nennen die Art"
+    ]
+  },
+  {
+    "version": "0.10.2",
+    "date": "2026-10-02T15:28",
     "items": [
       "Detailplan: mit Strg gesetzte Verknüpfungen dürfen jetzt auch über Abschnitte gehen (z. B. Ende „Selektion abgeschlossen“ → Beginn „Thema definieren“) – dann wandert der Inhalt mit der Selektion; Kreise und der Briefkasten-Termin bleiben ausgeschlossen",
       "Bereichsstart verschieben: der Ausgleich (längster mitwandernder Schritt) bleibt im eigenen Abschnitt",

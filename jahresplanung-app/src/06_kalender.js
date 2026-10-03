@@ -87,7 +87,7 @@ function dayCell(n, evs, vacs, today, vb) {
   return h('div', { class: cls, dataset: { dn: n }, tip: () => dayTip(n, evs, away, hn) },
     h('span', { class: 'dnum' }, ymd(n)[2]),
     evs.length ? h('div', { class: 'chips' }, evs.map(e => chip(e))) : null,
-    away.length ? h('div', { class: 'vbars' + (away.length > 1 ? ' multi' : '') }, away.slice(0, 4).map(v => h('span', { style: { background: personColor(v.u.wer) } })),
+    away.length ? h('div', { class: 'vbars' + (away.length > 1 ? ' multi' : '') }, away.slice(0, 4).map(v => h('span', { style: { background: vacFill(personColor(v.u.wer), v.u) } })),
       away.length > 1 ? h('b', { class: 'vcount' }, away.length) : null) : null,
     vb ? vb.filter(v => v.a <= n && n <= v.b).map(v => { const [l, r] = lineHalves(n, v.pts, v.x.color);
       return h('span', { class: 'vbl' + (v.a === v.b ? ' one' : ''), dataset: { m: v.x.id }, style: { '--hcl': l, '--hcr': r, '--hc': v.x.color, '--ln': String(v.lane % 4) } }); }) : null,
@@ -129,8 +129,8 @@ function monthCard(y, mo, byDay, vacs, today, vb) {
         pinned ? pinEditBtn(x.id) : null));
     }
     const vm = vacs.filter(v => v.bis >= first && v.von <= last);
-    if (vm.length) list.append(h('div', { class: 'mvac' }, 'Urlaub: ', vm.map(v => h('span', { class: 'vtag', style: { background: pastel(personColor(v.u.wer)), borderColor: personColor(v.u.wer) } },
-      (v.u.wer || '?') + ' ' + fmtS(Math.max(v.von, first)) + (v.bis > v.von ? '–' + fmtS(Math.min(v.bis, last)) : '')))));
+    if (vm.length) list.append(h('div', { class: 'mvac' }, vm.some(v => isAbw(v.u)) ? 'Urlaub/Abwesenheit: ' : 'Urlaub: ', vm.map(v => h('span', { class: 'vtag' + (isAbw(v.u) ? ' abw' : ''), style: { background: pastel(personColor(v.u.wer)), borderColor: personColor(v.u.wer) } },
+      (v.u.wer || '?') + ' ' + fmtS(Math.max(v.von, first)) + (v.bis > v.von ? '–' + fmtS(Math.min(v.bis, last)) : '') + (isAbw(v.u) ? ' (abwesend)' : '')))));
     card.append(list);
   }
   return card;

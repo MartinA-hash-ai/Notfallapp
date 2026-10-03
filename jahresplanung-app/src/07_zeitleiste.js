@@ -119,13 +119,13 @@ function timelineSection(opts = {}) {
   const vacs = C.vac.filter(v => vacVisible(v) && v.bis >= x0 && v.von <= x1);
   const people = [...new Set(vacs.map(v => v.u.wer || '?'))].sort((a, b) => a.localeCompare(b, 'de'));
   if (people.length && !opts.noVac) {
-    body.append(h('div', { class: 'tl-row sep' }, h('div', { class: 'tl-lab' }, h('b', null, 'Urlaub')), h('div', { class: 'tl-track', style: { width: W + 'px' } })));
+    body.append(h('div', { class: 'tl-row sep' }, h('div', { class: 'tl-lab' }, h('b', null, 'Urlaub / Abwesenheit')), h('div', { class: 'tl-track', style: { width: W + 'px' } })));
     for (const p of people) {
       const t = h('div', { class: 'tl-track', style: { width: W + 'px' } });
       for (const v of vacs.filter(v => (v.u.wer || '?') === p)) {
         const a = Math.max(v.von, x0), b = Math.min(v.bis, x1), c = personColor(p);
-        t.append(h('div', { class: 'vbar', style: { left: X(a) + 'px', width: Math.max(3, (b - a + 1) * pxd) + 'px', background: pastel(c), borderColor: c },
-          tip: () => h('div', null, h('b', null, p + ': Urlaub'), h('div', null, fmtW(v.von) + ' – ' + fmtW(v.bis)), h('div', { class: 'muted' }, workdays(v.von, v.bis) + ' Arbeitstage' + (v.u.notiz ? ' · ' + v.u.notiz : ''))) }));
+        t.append(h('div', { class: 'vbar', style: { left: X(a) + 'px', width: Math.max(3, (b - a + 1) * pxd) + 'px', background: vacFill(pastel(c), v.u), borderColor: c },
+          tip: () => h('div', null, h('b', null, p + ': ' + vacKind(v.u)), h('div', null, fmtW(v.von) + ' – ' + fmtW(v.bis)), h('div', { class: 'muted' }, workdays(v.von, v.bis) + ' Arbeitstage' + (v.u.notiz ? ' · ' + v.u.notiz : ''))) }));
       }
       body.append(h('div', { class: 'tl-row vac' }, h('div', { class: 'tl-lab' }, h('span', { class: 'vdot', style: { background: personColor(p) } }), h('span', { class: 'nm' }, p)), t));
     }

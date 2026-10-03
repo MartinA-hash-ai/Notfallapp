@@ -72,7 +72,7 @@ function icsItems(o) {
         summary: (isPoint ? '◆ ' : '') + s.name + ' · ' + x.m.name, desc: [x.m.name, s.wer ? 'Zugeordnet: ' + s.wer : '', s.kommentar, isPoint ? '' : fmtW(r.start) + ' – ' + fmtW(r.end)].filter(Boolean).join('\n') });
     }
   }
-  if (o.kinds.vac) for (const v of C.vac) if (v.bis >= a && v.von <= b && match(v.u.wer)) out.push({ kind: 'vac', mid: null, uid: 'u-' + v.u.id, a: v.von, b: v.bis, lab: 'Urlaub ' + (v.u.wer || '?'), summary: 'Urlaub: ' + (v.u.wer || '?'), desc: v.u.notiz });
+  if (o.kinds.vac) for (const v of C.vac) if (v.bis >= a && v.von <= b && match(v.u.wer)) out.push({ kind: 'vac', mid: null, uid: 'u-' + v.u.id, a: v.von, b: v.bis, lab: vacKind(v.u) + ' ' + (v.u.wer || '?'), summary: vacKind(v.u) + ': ' + (v.u.wer || '?'), desc: v.u.notiz });
   return out.sort((p, q) => p.a - q.a);
 }
 function icsFile(name, items) {
