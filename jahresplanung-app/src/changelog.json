@@ -1,7 +1,20 @@
 [
   {
-    "version": "0.11.3",
+    "version": "0.12",
     "date": "",
+    "items": [
+      "Neuer Reiter „Spenden (Beta)“: Spendeneingänge den Maßnahmen zuordnen und auswerten",
+      "Exporte (CSV oder Excel) einfach in den Ordner „Spendeneingänge …“ im Mailing-Ordner legen, über „+ Datei hinzufügen“ ablegen oder in den Reiter ziehen; die App liest sie beim Öffnen, beim Zurückkehren ins Fenster, alle zwei Minuten und auf Knopfdruck. Buchungen aus überlappenden Exporten zählen nur einmal; Abbuchungen werden übergangen",
+      "Drei Spalten: links offene Spenden (mit Suche, Zeitraum, Mindestbetrag), in der Mitte „Prüfen“, rechts die zugeordneten. Erst „zuordnen“ zählt eine Spende für die Maßnahme",
+      "Regel je Maßnahme: Schlagworte im Verwendungszweck (z. B. „JB“) und ein Zeitraum ab PAL – passende Spenden landen automatisch in „Prüfen“, auch aus später hinzugefügten Exporten; abgelehnte Vorschläge kommen nicht wieder. Der Reiter zeigt, wie viele Spenden auf Prüfung warten",
+      "Kennzahlen je Maßnahme: Spendensumme, Anzahl, Ø-Spende und Median, Responsequote, ROI (mit Richtwerten), Nettoertrag – Kosten neu an der Maßnahme (auch im Bearbeiten-Dialog). Übersichtstabelle aller Maßnahmen des Jahres wie in der Mailing-Übersicht",
+      "Verlauf: Spendeneingänge je Woche und kumuliert ab dem PAL, Vergleich der Rückläufe aller Maßnahmen (Tage nach PAL), Wochenwerte als Tabelle",
+      "Datenschutz: In der Planungsdatei stehen nur Zuordnung, Datum und Betrag – Namen, IBAN und Verwendungszweck bleiben in den Exporten im Ordner"
+    ]
+  },
+  {
+    "version": "0.11.3",
+    "date": "2026-10-03T14:47",
     "items": [
       "Urlaub / Abwesenheit: im Kalendarium sind gespeicherte Tage der gewählten Person jetzt markiert statt gesperrt – anklicken (oder darüberziehen) nimmt sie heraus, gestrichelt bis zum Speichern; unten stehen die Änderungen je Person (neu / entfernt). Notizen bestehender Einträge bleiben erhalten"
     ]

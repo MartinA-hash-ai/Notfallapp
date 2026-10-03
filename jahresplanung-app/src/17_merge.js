@@ -44,12 +44,15 @@ function merge3(base, mine, theirs) {
   for (const [coll, key] of MERGE_COLL) out[coll] = mergeList(base[coll], mine[coll], theirs[coll], key, coll, conflicts, cnt);
   out.settings = mergeObj(base.settings, mine.settings, theirs.settings, { coll: 'settings', key: null }, conflicts, cnt);
   out.feiertage = mergeObj(base.feiertage, mine.feiertage, theirs.feiertage, { coll: 'feiertage', key: null }, conflicts, cnt);
+  out.spenden = {};                                          // Spenden je Buchung: wie ein Feld behandeln
+  for (const sub of ['zu', 'vor', 'nein']) out.spenden[sub] = mergeObj((base.spenden || {})[sub], (mine.spenden || {})[sub], (theirs.spenden || {})[sub], { coll: 'spenden', key: sub, rec: { sub } }, conflicts, cnt);
   out.meta = clone(theirs.meta);
   return { data: clone(out), conflicts, cnt };
 }
 function applyPick(data, c) {
   if (c.pick !== 'theirs') return;
   if (c.coll === 'settings' || c.coll === 'feiertage') { if (c.theirs === undefined) delete data[c.coll][c.field]; else data[c.coll][c.field] = clone(c.theirs); return; }
+  if (c.coll === 'spenden') { const o = data.spenden[c.key]; if (c.theirs === undefined) delete o[c.field]; else o[c.field] = clone(c.theirs); return; }
   const key = c.coll === 'personen' ? 'name' : 'id', arr = data[c.coll], i = arr.findIndex(r => r[key] === c.key);
   if (c.field == null) { if (c.theirs) { if (i >= 0) arr[i] = clone(c.theirs); else arr.push(clone(c.theirs)); } else if (i >= 0) arr.splice(i, 1); }
   else if (i >= 0) { if (c.theirs === undefined) delete arr[i][c.field]; else arr[i][c.field] = clone(c.theirs); }
@@ -57,7 +60,7 @@ function applyPick(data, c) {
 
 /* ---------- Anzeige */
 const FIELD_LABEL = { name: 'Name', pal: 'PAL', palStatus: 'PAL-Status', vorlauf: 'Starts der Bereiche', ende: 'Enden der Bereiche', bereiche: 'Bereiche', verantwortlich: 'Hauptverantwortlich',
-  auflage: 'Auflage', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
+  auflage: 'Auflage', kosten: 'Kosten', regel: 'Spendenregel', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
 function recLabel(coll, rec, key) {
   rec = rec || {};
   if (coll === 'massnahmen') return 'Maßnahme „' + (rec.name || '(ohne Namen)') + '“';
@@ -65,10 +68,16 @@ function recLabel(coll, rec, key) {
   if (coll === 'sondertage') return 'Freier Tag „' + (rec.name || 'ohne Namen') + '“ ' + fmtS(dn(rec.datum));
   if (coll === 'personen') return 'Person ' + (rec.name || key);
   if (coll === 'feiertage') return 'Feiertage';
+  if (coll === 'spenden') return rec && rec.n ? rec.n + ' Spendenzuordnung' + (rec.n === 1 ? '' : 'en') + ', die hier fehlen' : key === 'vor' ? 'Spende zur Prüfung' : key === 'nein' ? 'abgelehnter Vorschlag' : 'Spendenzuordnung';
   return 'Einstellungen';
 }
 function valText(coll, field, v, rec) {
   if (field == null) return v ? 'behalten' : 'gelöscht';
+  if (coll === 'spenden') {
+    const mn = id => { const m = D && findM(D, id); return '„' + ((m && m.name) || '?') + '“'; }, sub = rec && rec.sub;
+    if (v == null) return sub === 'zu' ? 'nicht zugeordnet' : '–';
+    return sub === 'zu' ? 'zugeordnet zu ' + mn(v.m) : sub === 'vor' ? 'zur Prüfung bei ' + mn(v) : 'abgelehnt bei ' + [].concat(v).map(mn).join(', ');
+  }
   if (coll === 'feiertage') return !v ? 'wie gesetzlich' : v.off ? 'abgeschaltet' : [v.name, v.datum ? 'am ' + fmtD(dn(v.datum)) : ''].filter(Boolean).join(' ') || 'geändert';
   if (v == null || v === '') return '–';
   if (['pal', 'von', 'bis', 'datum'].includes(field)) return fmtW(dn(v));
@@ -76,10 +85,12 @@ function valText(coll, field, v, rec) {
   if (field === 'bereiche' && Array.isArray(v)) return v.map(p => (p.zeichen || p.key) + ' ' + p.name + (p.stil && p.stil !== 'pastell' ? ' (' + (STILE[p.stil] || p.stil) + ')' : '') + (p.linie && p.linie !== 'auto' ? ' Linie ' + (LINIEN[p.linie] || p.linie) : '')).join(', ');
   if (coll === 'settings' && field === 'pal' && v && typeof v === 'object') return 'PAL-Markierung ' + (v.zeichen || 'P') + ' (' + (STILE[v.stil] || v.stil || '') + ')';
   if (field === 'plan') return v && v.steps ? v.steps.length + ' Schritte' : 'kein Detailplan';
+  if (field === 'kosten') return eur(Math.round(+v * 100));
+  if (field === 'regel') { const r = v || {}, p = dn(rec && rec.pal); return ((r.worte || []).map(w => '„' + w + '“').join(', ') || 'ohne Schlagwort') + (p != null && (isNum(r.ab) || isNum(r.bis)) ? ' (' + (isNum(r.ab) ? fmtS(p + r.ab) : '…') + '–' + (isNum(r.bis) ? fmtS(p + r.bis) : '…') + ')' : ''); }
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
   return String(v).slice(0, 80);
 }
-const fieldName = (coll, f) => coll === 'feiertage' ? fmtD(dn(f)) : FIELD_LABEL[f] || f;
+const fieldName = (coll, f) => coll === 'feiertage' ? fmtD(dn(f)) : coll === 'spenden' ? spKeyLabel(f) : FIELD_LABEL[f] || f;
 
 // Drei-Wege-Zusammenführung mit Rückfrage bei echten Überschneidungen; liefert die neuen Daten oder null (abgebrochen)
 async function mergeWithUI(base, mine, theirs, who) {
@@ -116,6 +127,8 @@ async function compareDialog(other, label) {
     for (const [k, m] of M) if (!O.has(k)) items.push({ coll, key: k, kind: 'only', rec: m });
   }
   if (JS(D.feiertage) !== JS(other.feiertage)) items.push({ coll: 'feiertage', kind: 'diff', rec: other.feiertage, take: false, fields: [] });
+  const oz = (other.spenden || {}).zu || {}, onlyThere = Object.keys(oz).filter(k => !D.spenden.zu[k]);
+  if (onlyThere.length) items.push({ coll: 'spenden', kind: 'new', rec: { n: onlyThere.length }, keys: onlyThere, take: true });
   const act = items.filter(i => i.kind !== 'only');
   if (!act.length) { await modal('Keine Unterschiede', h('p', null, 'In ' + label + ' steht nichts, was hier fehlt oder anders ist.')); return normalize(clone(D)); }
   const line = it => {
@@ -137,6 +150,7 @@ async function compareDialog(other, label) {
   for (const it of act) {
     if (!it.take) continue;
     if (it.coll === 'feiertage') { out.feiertage = clone(it.rec); continue; }
+    if (it.coll === 'spenden') { for (const k of it.keys) { out.spenden.zu[k] = clone(oz[k]); delete out.spenden.vor[k]; } continue; }
     const key = it.coll === 'personen' ? 'name' : 'id', arr = out[it.coll], i = arr.findIndex(r => r[key] === it.key);
     if (i >= 0) arr[i] = clone(it.rec); else arr.push(clone(it.rec));
   }
@@ -164,6 +178,12 @@ function describeChanges(a, b, max = 12) {
     for (const [k, o] of A) if (!B.has(k)) out.push(recLabel(coll, o, k) + ' gelöscht');
   }
   if (JS(a.feiertage) !== JS(b.feiertage)) out.push('Feiertage geändert');
+  const za = (a.spenden || {}).zu || {}, zb = (b.spenden || {}).zu || {}, plus = new Map(), minus = new Map(), cnt1 = (mp, k) => mp.set(k, (mp.get(k) || 0) + 1);
+  for (const [k, z] of Object.entries(zb)) if (!za[k] || za[k].m !== z.m) cnt1(plus, z.m);
+  for (const [k, z] of Object.entries(za)) if (!zb[k] || zb[k].m !== z.m) cnt1(minus, z.m);
+  const mName = id => { const m = (b.massnahmen || []).find(q => q.id === id) || (a.massnahmen || []).find(q => q.id === id); return '„' + ((m && m.name) || '?') + '“'; };
+  for (const [id, n] of plus) out.push('Spenden: ' + n + ' der Maßnahme ' + mName(id) + ' zugeordnet');
+  for (const [id, n] of minus) out.push('Spenden: ' + n + ' Zuordnung' + (n === 1 ? '' : 'en') + ' bei ' + mName(id) + ' gelöst');
   const sa = a.settings || {}, sb = b.settings || {};
   if (JS(sa.bereiche) !== JS(sb.bereiche)) out.push('Bereiche: ' + (sb.bereiche || []).map(p => (p.zeichen || p.key) + ' ' + p.name).join(', '));
   if (JS(sa.pal) !== JS(sb.pal)) out.push('PAL-Markierung: ' + ((sb.pal || {}).zeichen || 'P') + ' (' + (STILE[(sb.pal || {}).stil] || '') + ')');

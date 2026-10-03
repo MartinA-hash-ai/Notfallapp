@@ -1,6 +1,6 @@
 /* ===================================================================== Rahmen: Kopfzeile, Reiter, Seitenleiste, Warnungen, Menüs */
 
-const VIEWS = [['jahr', 'Jahresplanung'], ['zeit', 'Zeitleiste'], ['plaene', 'Detailpläne'], ['urlaub', 'Urlaub & Feiertage']];
+const VIEWS = [['jahr', 'Jahresplanung'], ['zeit', 'Zeitleiste'], ['plaene', 'Detailpläne'], ['urlaub', 'Urlaub & Feiertage'], ['spenden', 'Spenden']];
 const OLD_VIEWS = { kalender: 'jahr', massnahmen: 'jahr', zeitleiste: 'zeit', agenda: 'zeit' };
 const VIEW_FN = {};                  // wird von den Ansichten befüllt
 const SIDEBAR_VIEWS = new Set();
@@ -68,7 +68,9 @@ function renderInner() {
 
 function topBar() {
   const dirty = isDirty(), nW = C.warnings.filter(w => w.lvl === 'warn').length, nI = C.warnings.length - nW;
-  const tab = ([k, label]) => h('button', { class: 'tab' + (UI.view === k ? ' on' : ''), onclick: () => { UI.view = k; renderNow(); $('#main').scrollTop = 0; } }, label);
+  const pend = SP.rows.length ? spCompute().pend : 0;           // Spenden, die auf Prüfung warten
+  const tab = ([k, label]) => h('button', { class: 'tab' + (UI.view === k ? ' on' : ''), onclick: () => { UI.view = k; renderNow(); $('#main').scrollTop = 0; } }, label,
+    k === 'spenden' && pend ? h('span', { class: 'tab-badge', tip: pend + (pend === 1 ? ' Spende wartet' : ' Spenden warten') + ' in „Prüfen“ auf die Zuordnung' }, pend) : null);
   return h('header', { class: 'top' },
     h('div', { class: 'brand' }, h('img', { class: 'logo', src: logoSrc(), alt: 'Malteser' }), h('div', null, h('strong', null, 'Jahresplanung Außenkommunikation'), h('span', null, 'Fundraising · Diözese Paderborn'))),
     h('div', { class: 'year' },
@@ -522,8 +524,11 @@ function helpDialog() {
     h('h3', null, 'Bereiche'),
     p('Jede Maßnahme läuft in Bereichen auf das PAL zu – ' + PH().map(q => sym(q.key) + ' = ' + q.name).join(', ') + ', ' + sym('P') + ' = PAL. Ein Bereich beginnt an seinem Start und läuft bis zum nächsten Start (der letzte bis zum PAL); im Bearbeiten-Fenster kann er ein eigenes Ende bekommen. In den Einstellungen lassen sich Bereiche umbenennen, umsortieren und neue mit eigenem Buchstaben anlegen. In der Tabelle zeigt der Schalter „Datum – Werktage“ über den Spalten der Bereiche die Starts als Datum oder als Werktage bis zum PAL.'),
     p('Im Detailplan gehört jeder Abschnitt zu einem Bereich (Auswahl am Abschnitt). Der früheste Schritt des Abschnitts ist dessen Start – oder der Schritt, der im ⋯-Menü als „Beginn“ festgelegt ist.'),
+    h('h3', null, 'Spenden (Beta)'),
+    p('Exporte der Spendeneingänge (CSV oder Excel) in den Ordner „Spendeneingänge …“ im Mailing-Ordner legen – überlappende Zeiträume sind kein Problem, doppelte Buchungen zählen nur einmal. Im Reiter „Spenden“ eine Maßnahme wählen: links stehen die offenen Spenden, in der Mitte „Prüfen“, rechts die zugeordneten. Spenden links markieren und mit „→ Prüfen“ in die Mitte holen; erst „zuordnen“ zählt sie für die Maßnahme.'),
+    p('Eine Regel (Schlagworte im Verwendungszweck, z. B. der Code vom Überweisungsträger, und ein Zeitraum ab PAL) schiebt passende Spenden automatisch in „Prüfen“ – auch aus später hinzugefügten Exporten. Für die Kennzahlen Auflage und Kosten der Maßnahme eintragen.'),
     h('h3', null, 'Datenschutz'),
-    p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen.'),
+    p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen. Von den Spendeneingängen speichert die Planungsdatei nur Zuordnung, Datum und Betrag; Namen, IBAN und Verwendungszweck stehen nur in den Exporten im Mailing-Ordner.'),
     h('h3', null, 'Bedienung'),
     p('Jahresplanung: oben die Maßnahmen, darunter der Kalender – beide Bereiche lassen sich mit ▾ ein- und ausklappen. Maus über einen Tag oder eine Markierung zeigt die Details. Markierung ziehen: P verschiebt das ganze Projekt (alle Bereiche wandern mit), ein Start verschiebt nur diesen Bereich. Klick hält die Maßnahme hervorgehoben, „Bearbeiten“ steht dann hinter ihren Zeilen in der Terminliste.'),
     p('Zeitleiste: Mausrad zoomt, Klick auf einen Monat zoomt hinein, Klick auf den Namen einer Maßnahme zeigt sie ganz. Mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL, die Griffe mit Buchstaben verschieben nur diesen Start. Darunter „Was steht an?“. Strg+Z macht jede Änderung rückgängig.'),

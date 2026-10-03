@@ -42,6 +42,14 @@ function checkData(d = D) {
     if (str(u.wer) !== str(u.wer).trim()) add(un + ': Name mit Leerzeichen am Rand', 'Leerzeichen entfernen', dd => { U(dd).wer = str(U(dd).wer).trim(); });
   }
   for (const s of d.sondertage) if (dn(s.datum) == null) { const sid = s.id; add('Freier Tag „' + (s.name || '?') + '“: Datum „' + (s.datum || '') + '“ ungültig', 'löschen', dd => { dd.sondertage = dd.sondertage.filter(q => q.id !== sid); }); }
+  const mids = new Set(d.massnahmen.map(m => m.id)), S = d.spenden || { zu: {}, vor: {}, nein: {} };
+  const orphan = Object.values(S.zu).filter(z => !mids.has(z.m)).length + Object.values(S.vor).filter(v => !mids.has(v)).length + Object.values(S.nein).filter(a => a.some(v => !mids.has(v))).length;
+  if (orphan) add(orphan + ' Spenden-Zuordnung' + (orphan === 1 ? '' : 'en') + ' zu einer gelöschten Maßnahme', 'entfernen (die Spenden gelten wieder als offen)', dd => {
+    const ok = new Set(dd.massnahmen.map(m => m.id)), T = dd.spenden;
+    for (const k of Object.keys(T.zu)) if (!ok.has(T.zu[k].m)) delete T.zu[k];
+    for (const k of Object.keys(T.vor)) if (!ok.has(T.vor[k])) delete T.vor[k];
+    for (const k of Object.keys(T.nein)) { const a = T.nein[k].filter(v => ok.has(v)); if (a.length) T.nein[k] = a; else delete T.nein[k]; }
+  });
   const names = new Map();
   for (const p of d.personen) names.set(p.name, (names.get(p.name) || 0) + 1);
   for (const [n, c] of names) if (c > 1) add('Person „' + n + '“ steht ' + c + '× in der Liste', 'doppelte Einträge entfernen', dd => { let seen = false; dd.personen = dd.personen.filter(p => p.name !== n || (!seen && (seen = true))); });

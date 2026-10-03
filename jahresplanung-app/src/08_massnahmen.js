@@ -70,7 +70,7 @@ function addMassnahme(y) {
 async function deleteMassnahme(id) {
   const x = C.byId.get(id);
   if (!await confirmBox('Maßnahme löschen', `„${x.m.name}“ ${x.m.plan ? 'samt Detailplan ' : ''}löschen? (Strg+Z macht es rückgängig.)`, 'Löschen')) return;
-  commit(d => { d.massnahmen = d.massnahmen.filter(m => m.id !== id); }, 'Gelöscht');
+  commit(d => { d.massnahmen = d.massnahmen.filter(m => m.id !== id); spForget(d, id); }, 'Gelöscht');
 }
 function duplicateMassnahme(id) {
   const nid = uid();
@@ -95,7 +95,7 @@ async function copyToNextYear() {
       const [yy, mm, dd] = ymd(x.pal);
       let np = mode === 'weekday' ? x.pal + 364 : mkdn(yy + 1, mm, Math.min(dd, daysIn(yy + 1, mm)));
       if (mode === 'weekday' && ymd(np)[0] === y && ymd(np + 7)[0] === y + 1) np += 7;
-      c.id = uid(); c.pal = ds(np); c.palStatus = 'vorläufig';
+      c.id = uid(); c.pal = ds(np); c.palStatus = 'vorläufig'; delete c.kosten;
       c.hinweis = ('aus ' + y + ' übernommen (PAL ' + fmtD(x.pal) + ')' + (c.hinweis ? ' · ' + c.hinweis : '')).slice(0, 300);
       if (c.plan) c.plan.steps.forEach(s => { s.fortschritt = 0; if (s.anker && s.anker.art === 'fest' && s.anker.datum) s.anker.datum = ds(dn(s.anker.datum) + (np - x.pal)); });
       d.massnahmen.push(c);
@@ -297,6 +297,7 @@ async function editMassnahme(id) {
     calc,
     row('Hauptverantwortlich', personInput({ value: m.verantwortlich || '', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
     row('Auflage', h('input', { type: 'number', min: 0, value: m.auflage ?? '', oninput: e => { m.auflage = numOrNull(e.target.value); } })),
+    row('Kosten (€)', h('input', { type: 'number', min: 0, step: '0.01', value: m.kosten ?? '', oninput: e => { const v = e.target.value; if (v === '' || !isNum(v)) delete m.kosten; else m.kosten = Math.round(+v * 100) / 100; } }), 'für die Auswertung im Reiter „Spenden“ (ROI)'),
     row('Spendenbitte', h('select', { onchange: e => { m.art = e.target.value; } }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
     row('Hinweis', h('textarea', { rows: 2, oninput: e => { m.hinweis = e.target.value; } }, m.hinweis || '')));
   const res = await modal('Maßnahme bearbeiten', body, [['Löschen', 'del', 'danger left'], ['Abbrechen', false], ['Übernehmen', true, 'primary']]);

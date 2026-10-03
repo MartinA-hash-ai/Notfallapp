@@ -101,6 +101,7 @@ async function attachFolder(create) {
   startWatch();
   scanCopies();
   presenceTick();
+  SP.at = null; spScan();                       // Spendeneingänge im Hintergrund einlesen (Hinweis am Reiter „Spenden“)
   safeRender();                                 // u. a. Hinweis, falls Datei und Speicherort nicht zusammenpassen
   return true;
 }
