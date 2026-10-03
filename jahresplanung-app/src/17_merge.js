@@ -86,7 +86,7 @@ function valText(coll, field, v, rec) {
   if (coll === 'settings' && field === 'pal' && v && typeof v === 'object') return 'PAL-Markierung ' + (v.zeichen || 'P') + ' (' + (STILE[v.stil] || v.stil || '') + ')';
   if (field === 'plan') return v && v.steps ? v.steps.length + ' Schritte' : 'kein Detailplan';
   if (field === 'kosten') return eur(Math.round(+v * 100));
-  if (field === 'regel') { const r = v || {}, p = dn(rec && rec.pal); return ((r.worte || []).map(w => '„' + w + '“').join(', ') || 'ohne Schlagwort') + (p != null && (isNum(r.ab) || isNum(r.bis)) ? ' (' + (isNum(r.ab) ? fmtS(p + r.ab) : '…') + '–' + (isNum(r.bis) ? fmtS(p + r.bis) : '…') + ')' : ''); }
+  if (field === 'regel') { const r = v || {}, p = dn(rec && rec.pal); return ((r.worte || []).map(w => '„' + w + '“').join(', ') || 'ohne Schlagwort') + (p != null && (isNum(r.ab) || isNum(r.bis)) ? ' (' + (isNum(r.ab) ? fmtS(p + r.ab) : '…') + '–' + (isNum(r.bis) ? fmtS(p + r.bis) : '…') + ')' : '') + (r.ohneDA ? ', ohne Daueraufträge' : ''); }
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
   return String(v).slice(0, 80);
 }

@@ -265,18 +265,22 @@ function spCompute() {                                           // wird bei jed
   if (_spCmp.key !== key || _spCmp.rows !== SP.rows) _spCmp = { key, rows: SP.rows, val: spComputeNow() };
   return _spCmp.val;
 }
+// Regel einer Maßnahme als Prüffunktion: Zeitraum, ggf. ohne Daueraufträge, Schlagworte → passendes Schlagwort oder null
+function spRuleOf(m) {
+  const r = m && m.regel; if (!r || !r.worte || !r.worte.length) return null;
+  const f = spMatcher(r.worte), rg = spRange(m), noDA = r.ohneDA === true;
+  return { id: m.id, test: rec => (rg.a != null && rec.d < rg.a) || (rg.b != null && rec.d > rg.b) || (noDA && spIsDA(rec)) ? null : f(rec) };
+}
 function spComputeNow() {
-  const S = D.spenden, mids = new Set(D.massnahmen.map(m => m.id)), rules = [];
-  for (const m of D.massnahmen) { const r = m.regel; if (r && r.worte && r.worte.length) rules.push(Object.assign({ id: m.id, f: spMatcher(r.worte) }, spRange(m))); }
+  const S = D.spenden, mids = new Set(D.massnahmen.map(m => m.id)), rules = D.massnahmen.map(spRuleOf).filter(Boolean);
   const assigned = k => { const z = S.zu[k]; return z && mids.has(z.m) ? z.m : null; };
   const sugg = new Map(); let pend = 0;
   for (const rec of SP.rows) {
     if (assigned(rec.k)) continue;
     let list = null;
     for (const ru of rules) {
-      if ((ru.a != null && rec.d < ru.a) || (ru.b != null && rec.d > ru.b)) continue;
       const no = S.nein[rec.k]; if (no && no.includes(ru.id)) continue;
-      const w = ru.f(rec); if (w) (list || (list = [])).push({ id: ru.id, w });
+      const w = ru.test(rec); if (w) (list || (list = [])).push({ id: ru.id, w });
     }
     if (list) sugg.set(rec.k, list);
     if (list || (S.vor[rec.k] && mids.has(S.vor[rec.k]))) pend++;
@@ -306,7 +310,7 @@ function spStats(m, list) {
   const n = list.length, sum = list.reduce((s, z) => s + z.b, 0), bs = list.map(z => z.b).sort((a, b) => a - b);
   const med = n ? (n % 2 ? bs[(n - 1) / 2] : (bs[n / 2 - 1] + bs[n / 2]) / 2) : null;
   const auf = isNum(m.auflage) && +m.auflage > 0 ? +m.auflage : null, kos = isNum(m.kosten) && +m.kosten > 0 ? +m.kosten : null;
-  return { n, sum, avg: n ? sum / n : null, med, auf, kos, resp: auf && n ? n / auf * 100 : null, roi: kos ? sum / 100 / kos : null };
+  return { n, sum, avg: n ? sum / n : null, med, auf, kos, resp: auf && n ? n / auf * 100 : null, roi: kos ? sum / 100 / kos : null, net: kos != null ? sum - Math.round(kos * 100) : null };
 }
 
 /* ---------- Aktionen (alle mit Strg+Z rückgängig) */
@@ -348,6 +352,15 @@ function spAddWord(mid, w) {
     const n = spPart(mid, spCompute()).M.length - before;
     toast('Regel um „' + w + '“ ergänzt – ' + (n > 0 ? spCount(n) + ' neu in „Prüfen“' : 'im Moment keine weitere passende Spende') + '.', 'ok');
   }
+}
+// Regel neu anwenden: Vorschläge, die mit „zurück“ abgelehnt wurden, kommen wieder in „Prüfen“
+function spRejected(mid, cmp) {
+  const ru = spRuleOf(findM(D, mid)); if (!ru) return [];
+  return SP.rows.filter(rec => !cmp.assigned(rec.k) && (D.spenden.nein[rec.k] || []).includes(mid) && ru.test(rec)).map(rec => rec.k);
+}
+function spReapply(mid) {
+  const keys = spRejected(mid, spCompute()); if (!keys.length) return;
+  commit(d => { for (const k of keys) spUnNein(d, k, mid); }, 'Regel neu angewendet – ' + spCount(keys.length) + ' wieder in „Prüfen“');
 }
 // Zuordnungen und Vormerkungen einer gelöschten Maßnahme entfernen
 function spForget(d, mid) {
@@ -410,8 +423,11 @@ function spOverview(ms, cmp, mid, by) {
   const rt = (v, [lo, hi]) => v == null || !R.an ? '' : v < lo ? ' below' : v > hi ? ' above' : ' within';
   const ids = rows.filter(r => r.s.n && r.x.pal != null).map(r => r.x.id);
   return [
-    h('div', { class: 'tablewrap' }, h('table', { class: 'grid sp-ueb' },
-      h('thead', null, h('tr', null, ['Maßnahme', 'PAL', 'Auflage', 'Kosten', 'Spendensumme', 'Anzahl', 'Ø-Spende', 'Responsequote', 'ROI'].map((t, i) => h('th', { class: i > 1 ? 'num' : '' }, t)))),
+    h('div', { class: 'tablewrap' }, h('table', { class: 'grid sp-ueb', style: { width: 'max(100%, ' + SP_UCOLS.reduce((t, c) => t + spColW(c), 0) + 'px)' } },
+      h('colgroup', null, SP_UCOLS.map((c, i) => h('col', { style: i < SP_UCOLS.length - 1 ? { width: spColW(c) + 'px' } : null }))),
+      h('thead', null, h('tr', null, SP_UCOLS.map((c, i) => h('th', { class: i > 1 ? 'num' : '' }, c.t,
+        i < SP_UCOLS.length - 1 ? h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => spColResize(e, i),
+          ondblclick: () => { if (UI.spColW) delete UI.spColW[c.k]; saveUI(); renderNow(); } }) : null)))),
       h('tbody', null, rows.map(({ x, s }) => h('tr', { class: 'sp-urow' + (x.id === mid ? ' on' : ''), dataset: { mid: x.id }, onclick: () => { UI.spMid = x.id; renderNow(); } },
         h('td', null, h('span', { class: 'dot', style: { background: x.color } }), ' ', x.m.name || '(ohne Namen)'),
         h('td', null, x.pal != null ? fmtD(x.pal) : '–'),
@@ -427,6 +443,21 @@ function spOverview(ms, cmp, mid, by) {
       (R.an ? ' (Richtwert ' + num1(R.roi[0]) + '–' + num1(R.roi[1]) + ')' : '') + '. Summen nur über Maßnahmen mit Spenden. Auflage und Kosten hier direkt eintragen. Zeile anklicken wählt die Maßnahme.'),
     ids.length >= 2 ? [h('h3', null, 'Rücklauf im Vergleich (kumuliert, Tage nach PAL)'), h('div', { class: 'sp-chart', dataset: { chart: 'cmp', ids: ids.join(',') } })] : null];
 }
+const SP_UCOLS = [{ k: 'name', w: 240, t: 'Maßnahme' }, { k: 'pal', w: 104, t: 'PAL' }, { k: 'auf', w: 104, t: 'Auflage' }, { k: 'kos', w: 112, t: 'Kosten' }, { k: 'sum', w: 130, t: 'Spendensumme' },
+  { k: 'n', w: 84, t: 'Anzahl' }, { k: 'avg', w: 112, t: 'Ø-Spende' }, { k: 'resp', w: 124, t: 'Responsequote' }, { k: 'roi', w: 80, t: 'ROI' }];
+const spColW = c => (UI.spColW && UI.spColW[c.k]) || c.w;
+// Spaltenbreite ziehen: nur diese Spalte ändert sich, die letzte nimmt den Rest
+function spColResize(ev, i) {
+  ev.preventDefault(); ev.stopPropagation();
+  const table = ev.currentTarget.closest('table'), col = $$('col', table)[i], w0 = Math.round(ev.currentTarget.parentElement.getBoundingClientRect().width), x0 = ev.clientX;
+  document.body.classList.add('dragging', 'resizing');
+  let w = w0;
+  dragSession(ev, ev.currentTarget, e => { w = Math.max(50, Math.round(w0 + e.clientX - x0)); col.style.width = w + 'px'; }, okay => {
+    document.body.classList.remove('dragging', 'resizing');
+    if (!okay || w === w0) { col.style.width = spColW(SP_UCOLS[i]) + 'px'; return; }
+    UI.spColW = Object.assign({}, UI.spColW, { [SP_UCOLS[i].k]: w }); saveUI(); renderNow();
+  });
+}
 function spSetKosten(mid, v) {
   commit(d => { const m = findM(d, mid); if (!m) return; if (v === '' || !isNum(v)) delete m.kosten; else m.kosten = Math.round(+v * 100) / 100; }, 'Kosten geändert');
 }
@@ -438,10 +469,13 @@ function spTiles(x, s) {
     tile('Spendensumme', s.n ? eur0(s.sum) : '–', spCount(s.n)),
     tile('Ø-Spende', s.avg != null ? eur(s.avg) : '–', s.med != null ? 'Median ' + eur(s.med) : null, null, 'Der Median ist die mittlere Spende – große Einzelspenden verzerren ihn kaum.'),
     tile('Responsequote', s.resp != null ? num1(s.resp) + ' %' : '–', s.auf ? 'bei Auflage ' + s.auf.toLocaleString('de-DE') : 'Auflage fehlt', judge(s.resp, R.resp, num1(R.resp[0]) + '–' + num1(R.resp[1]) + ' %')),
-    tile('ROI', s.roi != null ? num1(s.roi) : '–', s.kos ? 'Kosten ' + eur0(s.kos * 100) : 'Kosten fehlen', judge(s.roi, R.roi, num1(R.roi[0]) + '–' + num1(R.roi[1])), 'Spendensumme ÷ Kosten: so viel Euro Spenden je 1 € Kosten'));
+    tile('ROI', s.roi != null ? num1(s.roi) : '–', s.kos ? 'Kosten ' + eur0(s.kos * 100) : 'Kosten fehlen', judge(s.roi, R.roi, num1(R.roi[0]) + '–' + num1(R.roi[1])), 'Spendensumme ÷ Kosten: so viel Euro Spenden je 1 € Kosten'),
+    h('div', { class: 'sp-erl' + (s.net == null ? '' : s.net >= 0 ? ' pos' : ' neg'), tip: 'Erlös = Spendensumme minus Kosten der Maßnahme' },
+      h('span', { class: 'sp-el' }, 'Erlös'), h('b', null, s.net != null ? (s.net < 0 ? '− ' : '') + eur0(Math.abs(s.net)) : '–'),
+      h('span', { class: 'sp-es' }, s.net != null ? 'Spenden ' + eur0(s.sum) + ' − Kosten ' + eur0(s.kos * 100) : 'Kosten fehlen – in der Übersicht eintragen')));
 }
-function spRuleBar(x) {
-  const m = x.m, r = m.regel || { worte: [] }, pal = x.pal, rg = spRange(m), mid = x.id;
+function spRuleBar(x, cmp) {
+  const m = x.m, r = m.regel || { worte: [] }, pal = x.pal, rg = spRange(m), mid = x.id, rej = spRejected(mid, cmp).length;
   let typed = '';
   const add = () => { if (typed.trim()) { spAddWord(mid, typed); typed = ''; } };
   const setDay = (which, v) => { const n = dn(v); spSetRule(mid, rr => { if (n == null) delete rr[which]; else rr[which] = n - pal; }, 'Zeitraum der Regel geändert'); };
@@ -455,7 +489,13 @@ function spRuleBar(x) {
     h('span', { class: 'sp-rl' }, 'Zeitraum'),
     pal == null ? h('span', { class: 'muted small' }, 'ohne PAL nicht begrenzt') : [
       dateInput(rg.a != null ? ds(rg.a) : '', 'sp-rab', v => setDay('ab', v)), '–', dateInput(rg.b != null ? ds(rg.b) : '', 'sp-rbis', v => setDay('bis', v)),
-      h('span', { class: 'muted small' }, rg.a != null || rg.b != null ? (rg.a != null ? (rg.a - pal >= 0 ? '+' : '') + (rg.a - pal) : '…') + ' bis ' + (rg.b != null ? '+' + (rg.b - pal) : '…') + ' Tage ab PAL' : '')]);
+      h('span', { class: 'muted small' }, rg.a != null || rg.b != null ? (rg.a != null ? (rg.a - pal >= 0 ? '+' : '') + (rg.a - pal) : '…') + ' bis ' + (rg.b != null ? '+' + (rg.b - pal) : '…') + ' Tage ab PAL' : '')],
+    h('label', { class: 'check small sp-noda', tip: 'Daueraufträge (laut Buchungstext) schlägt die Regel nicht vor' },
+      h('input', { type: 'checkbox', checked: r.ohneDA === true, onchange: e => spSetRule(mid, rr => { if (e.target.checked) rr.ohneDA = true; else delete rr.ohneDA; }, e.target.checked ? 'Regel: Daueraufträge ausgeschlossen' : 'Regel: Daueraufträge wieder eingeschlossen') }),
+      'Daueraufträge ausschließen'),
+    (r.worte || []).length ? h('button', { class: 'sp-reapply', disabled: !rej, onclick: () => spReapply(mid),
+      tip: rej ? spCount(rej) + ' passen zur Regel, wurden aber mit „zurück“ nach „Offen“ geschickt – „neu anwenden“ holt sie wieder in „Prüfen“' : 'Alle Spenden, die zur Regel passen, stehen schon in „Prüfen“ oder sind zugeordnet' },
+      '↻ Regel neu anwenden' + (rej ? ' (' + rej + ')' : '')) : null);
 }
 const x0pal = mid => { const x = C.byId.get(mid); return x ? x.pal : null; };
 const spIsDA = r => /dauerauftrag/i.test((r.text || '') + ' ' + (r.typ || ''));
@@ -519,10 +559,13 @@ function spAssign(x, cmp) {
   btn.rBack = h('button', { onclick: () => spMove(SPUI.sel.r, 'unassign', mid) });
   const f = SPUI.f;
   const box = h('div', null,
-    spRuleBar(x),
+    spRuleBar(x, cmp),
     h('div', { class: 'sp-cols' + (UI.spDet ? ' det' : '') },
       h('div', { class: 'sp-col' }, head('l', 'Offen', L.length !== P.L.length ? ' (gefiltert, ' + P.L.length.toLocaleString('de-DE') + ' offen insgesamt)' : ''),
-        h('div', { class: 'sp-filter' },
+        !UI.spFilt ? h('div', { class: 'sp-filter closed' }, h('button', { class: 'link sp-ftog', onclick: () => { UI.spFilt = true; renderNow(); } }, 'Filter ▸'),
+          h('span', { class: 'muted small' }, [f.von || f.bis ? (f.von ? 'ab ' + fmtD(dn(f.von)) : '') + (f.bis ? ' bis ' + fmtD(dn(f.bis)) : '') : 'alle Daten',
+            f.q.trim() ? ' · Suche „' + f.q.trim() + '“' : '', UI.spHideDA ? ' · ohne Daueraufträge' : ''].join(''))) :
+        h('div', { class: 'sp-filter' }, h('button', { class: 'link sp-ftog', onclick: () => { UI.spFilt = false; renderNow(); } }, 'Filter ▾'),
           h('input', { type: 'search', class: 'sp-q', placeholder: 'suchen (Verwendungszweck, Name …)', value: f.q, 'data-fk': 'sp-q', oninput: e => fset('q', e.target.value) }),
           dateInput(f.von, 'sp-fvon', v => fset('von', v, true)), '–', dateInput(f.bis, 'sp-fbis', v => fset('bis', v, true)),
           h('label', { class: 'check small sp-da', tip: 'Daueraufträge (laut Buchungstext) in „Offen“ nicht anzeigen' + (nDA ? ' – gerade ' + nDA + ' ausgeblendet' : '') },

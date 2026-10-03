@@ -1,5 +1,5 @@
 // 0.12 Spenden (Beta): Exporte (CSV/Excel) aus „Spendeneingänge …“ einlesen, doppelte Buchungen nur einmal, Regeln → „Prüfen“ → zuordnen,
-// Kennzahlen und Grafiken (0.12.3: Kasten einklappbar, Wochenenden, Richtwerte aus den Einstellungen, Listen bündig, Häkchen für Daueraufträge; 0.12.2: Name groß in Maßnahmenfarbe, Auflage/Kosten in der Übersicht, Filter ab PAL, Daueraufträge ausblendbar, Grafik ab PAL; 0.12.1: Verwendungszweck immer sichtbar, Daueraufträge markiert, „Alle zurück“), Datenschutz (keine Namen/IBAN in der Planungsdatei), Zusammenführen, Löschen einer Maßnahme
+// Kennzahlen und Grafiken (0.12.4: Filter eingeklappt, Regel ohne Daueraufträge, „Regel neu anwenden“, Erlös, Spaltenbreiten; 0.12.3: Kasten einklappbar, Wochenenden, Richtwerte aus den Einstellungen, Listen bündig, Häkchen für Daueraufträge; 0.12.2: Name groß in Maßnahmenfarbe, Auflage/Kosten in der Übersicht, Filter ab PAL, Daueraufträge ausblendbar, Grafik ab PAL; 0.12.1: Verwendungszweck immer sichtbar, Daueraufträge markiert, „Alle zurück“), Datenschutz (keine Namen/IBAN in der Planungsdatei), Zusammenführen, Löschen einer Maßnahme
 const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN } = require('./lib');
 const path = require('path');
 const DIR = 'Spendeneingänge 2027/';
@@ -40,8 +40,10 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
 
   // ---- A2: Kasten der Maßnahme – Name groß in ihrer Farbe, keine doppelten Angaben; Filter „von“ = PAL
   const a2 = await p.evaluate(() => { const n = document.querySelector('[data-sec="sp-m"] .sec-h .sp-mname'), c = document.createElement('i'); c.style.color = inkC(C.byId.get('m5').color); document.body.append(c);
-    const want = getComputedStyle(c).color; c.remove(); return [n && n.textContent, n && getComputedStyle(n).color === want, !document.querySelector('[data-sec="sp-m"] select, [data-sec="sp-m"] input'), document.querySelector('[data-fk="sp-fvon"]').value, !!document.querySelector('[data-fk="sp-kos:m5"]')]; });
-  ok(a2[0] === 'Jahresbericht' && a2[1] && a2[2] && a2[3] === '2027-08-27' && a2[4], 'A2: „Jahresbericht“ groß in Maßnahmenfarbe, ohne Auswahl/PAL/Auflage/Kosten im Kasten; Auflage und Kosten in der Übersicht; Filter ab PAL (' + a2[3] + ')');
+    const want = getComputedStyle(c).color; c.remove(); return [n && n.textContent, n && getComputedStyle(n).color === want, !document.querySelector('[data-sec="sp-m"] select, [data-sec="sp-m"] input'), document.querySelector('.sp-filter.closed')?.textContent, !!document.querySelector('[data-fk="sp-kos:m5"]'), !document.querySelector('.sp-q')]; });
+  ok(a2[0] === 'Jahresbericht' && a2[1] && a2[2] && /^Filter ▸ab 27\.08\.2027 bis 25\.02\.2028$/.test(a2[3]) && a2[4] && a2[5], 'A2: „Jahresbericht“ groß in Maßnahmenfarbe; Auflage und Kosten in der Übersicht; Filter in „Offen“ eingeklappt („' + a2[3] + '“)');
+  await p.click('.sp-ftog'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => document.querySelector('[data-fk="sp-fvon"]').value === '2027-08-27' && !!document.querySelector('.sp-q') && UI.spFilt === true), 'A2: „Filter ▸“ klappt Suche, Zeitraum (ab PAL) und Daueraufträge auf');
 
   // ---- A3: Listen der drei Spalten beginnen auf derselben Höhe, Knöpfe unten bündig; kein Betragsfilter; Kasten einklappbar
   const a3 = await p.evaluate(() => { const t = [...document.querySelectorAll('.sp-col .sp-list')].map(l => Math.round(l.getBoundingClientRect().top)), f = [...document.querySelectorAll('.sp-col .sp-cf')].map(l => Math.round(l.getBoundingClientRect().top));
@@ -114,6 +116,19 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(da2[0] === 0 && da2[1] === 'Daueraufträge ausblenden' && da2[2] && da2[3], 'E: Häkchen bei „Daueraufträge ausblenden“ blendet sie aus');
   await p.click('.sp-filter .sp-da input'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => document.querySelectorAll('.sp-col:first-child .sp-row.da').length === 1), 'E: nochmal klicken zeigt sie wieder');
+  await p.click('.sp-col.mid .sp-cf button:has-text("Alle zurück")'); await p.waitForTimeout(250);
+  const re1 = await p.evaluate(() => [document.querySelectorAll('.sp-col.mid .sp-row').length, document.querySelector('.sp-reapply').textContent, document.querySelector('.sp-reapply').disabled]);
+  ok(re1[0] === 0 && re1[1] === '↻ Regel neu anwenden (2)' && !re1[2], 'E: aus Versehen „Alle zurück“ – Knopf „' + re1[1] + '“ (auch der in C abgelehnte Vorschlag)');
+  await p.click('.sp-reapply'); await p.waitForTimeout(250);
+  const re2 = await p.evaluate(() => [[...document.querySelectorAll('.sp-col.mid .sp-row')].map(e => SP.byKey.get(e.dataset.k).name).join(','), document.querySelector('.sp-reapply').disabled]);
+  ok(re2[0] === 'Bernd Probe,Neu Nachzügler' && re2[1], 'E: „Regel neu anwenden“ holt alle passenden Vorschläge zurück nach „Prüfen“ (' + re2[0] + ')');
+  await p.click('.sp-col.mid .sp-row:first-child'); await p.click('.sp-col.mid .sp-cf button:has-text("Markierte zurück")'); await p.waitForTimeout(250);
+  await p.fill('.sp-wordin', 'Lage'); await p.press('.sp-wordin', 'Enter'); await p.waitForTimeout(250);
+  const nd1 = await p.evaluate(() => [...document.querySelectorAll('.sp-col.mid .sp-row.da')].length);
+  await p.click('.sp-noda input'); await p.waitForTimeout(250);
+  const nd2 = await p.evaluate(() => [document.querySelectorAll('.sp-col.mid .sp-row.da').length, D.massnahmen.find(m => m.id === 'm5').regel.ohneDA]);
+  ok(nd1 === 1 && nd2[0] === 0 && nd2[1] === true, 'E: Regel mit „Lage“ schlägt den Dauerauftrag vor – Häkchen „Daueraufträge ausschließen“ nimmt ihn heraus');
+  await p.click('.sp-word:has-text("Lage") .sp-x'); await p.click('.sp-noda input'); await p.waitForTimeout(250);
 
   // ---- F: Kennzahlen mit Auflage und Kosten
   await p.fill('[data-fk="sp-auf:m5"]', '1000'); await p.press('[data-fk="sp-auf:m5"]', 'Tab'); await p.waitForTimeout(150);
@@ -134,6 +149,9 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   const fl = await p.evaluate(() => { const t = document.querySelectorAll('.sp-tile'), r = i => t[i].getBoundingClientRect(); return [Math.abs(r(0).top - r(1).top) < 3, r(2).top > r(0).bottom - 2, Math.abs(r(2).left - r(0).left) < 3, document.querySelector('.sp-charts').getBoundingClientRect().left > r(1).right]; });
   ok(fl.every(Boolean), 'F: 2×2 angeordnet (Responsequote/ROI unter Summe/Ø), Grafiken rechts daneben');
   ok(await p.evaluate(() => { const m = D.massnahmen.find(m => m.id === 'm5'); return m.kosten === 500 && m.auflage === 1000; }), 'F: Auflage und Kosten an der Maßnahme gespeichert');
+  const er = await p.evaluate(() => { const e = document.querySelector('.sp-tiles .sp-erl'), t = document.querySelectorAll('.sp-tile'); return [e && e.className, e && e.textContent, e && e.getBoundingClientRect().top > t[2].getBoundingClientRect().bottom - 2, e && Math.abs(e.getBoundingClientRect().width - (t[1].getBoundingClientRect().right - t[0].getBoundingClientRect().left)) < 3,
+    getComputedStyle(document.querySelector('.sp-tl')).fontWeight]; });
+  ok(/pos/.test(er[0]) && /^Erlös9\.376 €Spenden 9\.876 € − Kosten 500 €$/.test(er[1]) && er[2] && er[3] && +er[4] >= 600, 'F: grüne Zeile „Erlös 9.376 €“ unter den Kacheln über die ganze Breite; Namen der Kennzahlen fett');
 
   // ---- G: Grafiken rechts – Zeitspanne (kumuliert) und Spenden pro Tag; kein Abschnitt „Verlauf“ mehr
   const g = await p.evaluate(() => ({ bars: document.querySelectorAll('[data-chart="day"] .sp-bar').length, pal: !!document.querySelector('[data-chart="day"] .sp-palbox'),
@@ -177,6 +195,13 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
     cols: [...document.querySelectorAll('.sp-ueb thead th')].map(t => t.textContent).join(','), foot: document.querySelector('.sp-ueb tfoot')?.textContent }));
   ok(h1.cmp === 2 && /Sommermailing/.test(h1.leg) && /Jahresbericht/.test(h1.leg), 'H: Vergleich der Rückläufe mit 2 Linien und Legende');
   ok(h1.rows === 'Sommermailing=35 € | Jahresbericht=9.876 €' && !/Prüfung/.test(h1.cols) && /Summe.*9\.911 €/.test(h1.foot), 'H: Übersicht – ' + h1.rows + ', ohne Spalte „in Prüfung“, Summenzeile');
+
+  const rs = await p.$('.sp-ueb thead th:first-child .col-rs'); await rs.scrollIntoViewIfNeeded(); const rb = await rs.boundingBox(), w0 = await p.evaluate(() => Math.round(document.querySelector('.sp-ueb thead th').getBoundingClientRect().width));
+  await p.mouse.move(rb.x + 3, rb.y + rb.height / 2); await p.mouse.down(); await p.mouse.move(rb.x + 63, rb.y + rb.height / 2, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(250);
+  const cw = await p.evaluate(() => [UI.spColW && UI.spColW.name, Math.round(document.querySelector('.sp-ueb thead th').getBoundingClientRect().width)]);
+  ok(Math.abs(cw[0] - (w0 + 60)) <= 2 && Math.abs(cw[1] - cw[0]) <= 2, 'H: Spalte „Maßnahme“ in der Übersicht breiter gezogen (' + w0 + ' → ' + cw[1] + ' px), gemerkt');
+  await p.dblclick('.sp-ueb thead th:first-child .col-rs'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !UI.spColW.name), 'H: Doppelklick setzt die Breite zurück');
 
   // ---- I: Datenschutz – in der Planungsdatei keine Namen, IBAN, Verwendungszwecke
   await p.evaluate(() => saveAll({ manual: true })); await p.waitForTimeout(600);

@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.12.3",
+    "version": "0.12.4",
     "date": "",
+    "items": [
+      "Regel: Häkchen „Daueraufträge ausschließen“ – die Regel schlägt dann keine Daueraufträge vor",
+      "Regel: Knopf „↻ Regel neu anwenden“ – holt Vorschläge zurück nach „Prüfen“, die (z. B. versehentlich mit „Alle zurück“) nach „Offen“ geschickt wurden",
+      "„Offen“: Suche, Zeitraum und „Daueraufträge ausblenden“ sind eingeklappt („Filter ▸“); eine Zeile zeigt, was gerade gilt",
+      "Übersicht: Spaltenbreiten lassen sich ziehen (wie in der Jahresplanung), Doppelklick setzt zurück",
+      "Kennzahlen: Namen größer und fett; darunter eine Zeile „Erlös“ (Spenden minus Kosten) – grün, bei Verlust rot"
+    ]
+  },
+  {
+    "version": "0.12.3",
+    "date": "2026-10-03T17:55",
     "items": [
       "Spenden: der Bereich der Maßnahme (Name, Kennzahlen, Grafiken) lässt sich ein- und ausklappen",
       "Grafiken: Wochenenden grau hinterlegt; das P am PAL ist grau statt rot",

@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA'];
+const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -213,6 +213,7 @@ function normalize(d) {
     if (isObj(m.regel)) {                                           // Spendenregel: Schlagworte + Zeitraum in Tagen ab PAL
       const r = { worte: [...new Set((Array.isArray(m.regel.worte) ? m.regel.worte : []).map(w => str(w).trim()).filter(Boolean))] };
       for (const k of ['ab', 'bis']) if (isNum(m.regel[k])) r[k] = Math.round(+m.regel[k]);
+      if (m.regel.ohneDA === true) r.ohneDA = true;                // Daueraufträge nicht vorschlagen
       if (r.worte.length || 'ab' in r || 'bis' in r) m.regel = r; else delete m.regel;
     } else delete m.regel;
     if (m.plan != null && !isObj(m.plan)) m.plan = null;
