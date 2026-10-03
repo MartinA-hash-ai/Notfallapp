@@ -362,14 +362,15 @@ function spPickM(list) {
   const t = todayDn(), past = list.filter(x => x.pal != null && x.pal <= t);
   return ((past.length ? past[past.length - 1] : list[0]) || {}).id || null;
 }
+// Zuordnen beginnt am PAL: „von“ = PAL, „bis“ = Ende des Regel-Zeitraums (sonst PAL + 182 Tage)
 function spResetFilter(m) {
-  const rg = spRange(m), pal = dn(m.pal), a = rg.a ?? pal, b = rg.b ?? (pal != null ? pal + SP_TAGE : null);
-  SPUI.f = { q: '', von: a != null ? ds(a) : '', bis: b != null ? ds(b) : '', min: '' };
+  const rg = spRange(m), pal = dn(m.pal), b = rg.b ?? (pal != null ? pal + SP_TAGE : null);
+  SPUI.f = { q: '', von: pal != null ? ds(pal) : '', bis: b != null ? ds(b) : '', min: '' };
 }
 function spFilter(list) {
   const f = SPUI.f, fa = dn(f.von), fb = dn(f.bis), min = isNum(f.min) && f.min !== '' ? Math.round(+f.min * 100) : null, q = f.q.trim();
   const zm = q ? spMatcher([q]) : null, ql = q.toLowerCase();
-  return list.filter(r => (fa == null || r.d >= fa) && (fb == null || r.d <= fb) && (min == null || r.b >= min) &&
+  return list.filter(r => (fa == null || r.d >= fa) && (fb == null || r.d <= fb) && (min == null || r.b >= min) && !(UI.spHideDA && spIsDA(r)) &&
     (!q || zm(r) || [r.name, r.konto, r.text].some(t => t && t.toLowerCase().includes(ql))));
 }
 function spTip(r) {
@@ -412,15 +413,21 @@ function spOverview(ms, cmp, mid, by) {
       h('tbody', null, rows.map(({ x, s, p }) => h('tr', { class: 'sp-urow' + (x.id === mid ? ' on' : ''), dataset: { mid: x.id }, onclick: () => { UI.spMid = x.id; renderNow(); } },
         h('td', null, h('span', { class: 'dot', style: { background: x.color } }), ' ', x.m.name || '(ohne Namen)'),
         h('td', null, x.pal != null ? fmtD(x.pal) : '–'),
-        cell(s.auf != null ? s.auf.toLocaleString('de-DE') : '–'), cell(s.kos != null ? eur0(s.kos * 100) : '–'),
+        h('td', { class: 'num inp' }, h('input', { type: 'number', min: 0, class: 'sp-auf', value: x.m.auflage ?? '', placeholder: '–', 'data-fk': 'sp-auf:' + x.id, onclick: e => e.stopPropagation(),
+          onchange: e => setM(x.id, 'auflage', numOrNull(e.target.value), 'Auflage geändert') })),
+        h('td', { class: 'num inp' }, h('input', { type: 'number', min: 0, step: '0.01', class: 'sp-kos', value: x.m.kosten ?? '', placeholder: '–', 'data-fk': 'sp-kos:' + x.id, onclick: e => e.stopPropagation(),
+          tip: 'Gesamtkosten der Maßnahme in € (Druck, Porto, Lettershop …)', onchange: e => spSetKosten(x.id, e.target.value) })),
         cell(s.n ? eur0(s.sum) : '–'), cell(s.n || '–'), cell(s.avg != null ? eur(s.avg) : '–'),
         cell(s.resp != null ? num1(s.resp) + ' %' : '–', rt(s.resp, SP_RICHT.resp)), cell(s.roi != null ? num1(s.roi) : '–', rt(s.roi, SP_RICHT.roi)),
         cell(p ? h('span', { class: 'sp-pend' }, p) : '')))),
       tot.n ? h('tfoot', null, h('tr', null, h('td', null, 'Summe'), h('td'), cell(tot.auf ? tot.auf.toLocaleString('de-DE') : '–'), cell(tot.kos ? eur0(tot.kos * 100) : '–'), cell(eur0(tot.sum)), cell(tot.n),
         cell(eur(tot.sum / tot.n)), cell(tot.auf ? num1(tot.n / tot.auf * 100) + ' %' : '–'), cell(tot.kos ? num1(tot.sum / 100 / tot.kos) : '–'), h('td'))) : null)),
     h('p', { class: 'muted small' }, 'Responsequote = Anzahl Spenden ÷ Auflage (Richtwert postalisch ' + num1(SP_RICHT.resp[0]) + '–' + num1(SP_RICHT.resp[1]) + ' %). ROI = Spendensumme ÷ Kosten, also Spenden je 1 € Kosten (Richtwert ' +
-      SP_RICHT.roi[0] + '–' + SP_RICHT.roi[1] + '). Summen nur über Maßnahmen mit Spenden. Zeile anklicken wählt die Maßnahme.'),
+      SP_RICHT.roi[0] + '–' + SP_RICHT.roi[1] + '). Summen nur über Maßnahmen mit Spenden. Auflage und Kosten hier direkt eintragen. Zeile anklicken wählt die Maßnahme.'),
     ids.length >= 2 ? [h('h3', null, 'Rücklauf im Vergleich (kumuliert, Tage nach PAL)'), h('div', { class: 'sp-chart', dataset: { chart: 'cmp', ids: ids.join(',') } })] : null];
+}
+function spSetKosten(mid, v) {
+  commit(d => { const m = findM(d, mid); if (!m) return; if (v === '' || !isNum(v)) delete m.kosten; else m.kosten = Math.round(+v * 100) / 100; }, 'Kosten geändert');
 }
 function spTiles(x, s) {
   const tile = (label, value, sub, rt, tipText) => h('div', { class: 'sp-tile', tip: tipText || null }, h('div', { class: 'sp-tl' }, label), h('div', { class: 'sp-tv' }, value), sub ? h('div', { class: 'sp-ts' }, sub) : null,
@@ -449,6 +456,7 @@ function spRuleBar(x) {
       dateInput(rg.a != null ? ds(rg.a) : '', 'sp-rab', v => setDay('ab', v)), '–', dateInput(rg.b != null ? ds(rg.b) : '', 'sp-rbis', v => setDay('bis', v)),
       h('span', { class: 'muted small' }, rg.a != null || rg.b != null ? (rg.a != null ? (rg.a - pal >= 0 ? '+' : '') + (rg.a - pal) : '…') + ' bis ' + (rg.b != null ? '+' + (rg.b - pal) : '…') + ' Tage ab PAL' : '')]);
 }
+const x0pal = mid => { const x = C.byId.get(mid); return x ? x.pal : null; };
 const spIsDA = r => /dauerauftrag/i.test((r.text || '') + ' ' + (r.typ || ''));
 function spRow(r, col, cmp, mid, ctl) {
   const tags = [], sg = cmp.sugg.get(r.k) || [], nameOf = id => { const o = C.byId.get(id); return o ? o.m.name || '(ohne Namen)' : '?'; };
@@ -456,6 +464,7 @@ function spRow(r, col, cmp, mid, ctl) {
   const others = [...new Set(sg.filter(s => s.id !== mid).map(s => s.id).concat(D.spenden.vor[r.k] && D.spenden.vor[r.k] !== mid && C.byId.has(D.spenden.vor[r.k]) ? [D.spenden.vor[r.k]] : []))];
   if (col !== 'r' && others.length) tags.push(h('span', { class: 'sp-tag other', tip: 'Wird auch bei ' + others.map(id => '„' + nameOf(id) + '“').join(', ') + ' zur Prüfung angezeigt. Sobald sie einer Maßnahme zugeordnet ist, verschwindet sie bei den anderen.' }, 'auch: ' + others.map(nameOf).join(', ')));
   if (r.gone) tags.push(h('span', { class: 'sp-tag gone' }, 'nicht mehr im Ordner'));
+  if (col !== 'l' && x0pal(mid) != null && r.d < x0pal(mid)) tags.push(h('span', { class: 'sp-tag other', tip: 'Eingang vor dem PAL der Maßnahme – gehört sie wirklich dazu?' }, 'vor dem PAL'));
   const da = spIsDA(r);
   if (da) tags.push(h('span', { class: 'sp-tag da', tip: 'Dauerauftrag (laut Buchungstext)' }, 'Dauerauftrag'));
   return h('div', { class: 'sp-row' + (da ? ' da' : '') + (SPUI.sel[col].has(r.k) ? ' sel' : ''), dataset: { k: r.k }, tip: () => spTip(r),
@@ -466,8 +475,8 @@ function spRow(r, col, cmp, mid, ctl) {
 }
 function spAssign(x, cmp) {
   const mid = x.id, P = spPart(mid, cmp);
-  if (SPUI.fmid !== mid) { spResetFilter(x.m); SPUI.fmid = mid; Object.values(SPUI.sel).forEach(s => s.clear()); }
-  const L = spFilter(P.L), cols = { l: L, m: P.M, r: P.R };
+  if (SPUI.fmid !== mid || SPUI.fpal !== x.pal) { spResetFilter(x.m); SPUI.fmid = mid; SPUI.fpal = x.pal; Object.values(SPUI.sel).forEach(s => s.clear()); }
+  const L = spFilter(P.L), cols = { l: L, m: P.M, r: P.R }, nDA = UI.spHideDA ? P.L.filter(spIsDA).length : 0;
   for (const c of Object.keys(cols)) { const keys = new Set(cols[c].map(r => r.k)); for (const k of [...SPUI.sel[c]]) if (!keys.has(k)) SPUI.sel[c].delete(k); SPUI.order[c] = cols[c].map(r => r.k); }
   const btn = {}, lists = {};
   const sumOf = (c, keys) => cols[c].filter(r => !keys || keys.has(r.k)).reduce((s, r) => s + r.b, 0);
@@ -516,6 +525,8 @@ function spAssign(x, cmp) {
           h('input', { type: 'search', class: 'sp-q', placeholder: 'suchen (Verwendungszweck, Name …)', value: f.q, 'data-fk': 'sp-q', oninput: e => fset('q', e.target.value) }),
           dateInput(f.von, 'sp-fvon', v => fset('von', v, true)), '–', dateInput(f.bis, 'sp-fbis', v => fset('bis', v, true)),
           h('input', { type: 'number', class: 'sp-min', min: 0, placeholder: 'ab €', value: f.min, 'data-fk': 'sp-min', oninput: e => fset('min', e.target.value) }),
+          h('button', { class: 'tpill sp-da' + (UI.spHideDA ? ' on' : ''), 'aria-pressed': String(!!UI.spHideDA), tip: UI.spHideDA ? 'Daueraufträge wieder anzeigen' : 'Daueraufträge in „Offen“ ausblenden',
+            onclick: () => { UI.spHideDA = !UI.spHideDA; renderNow(); } }, UI.spHideDA ? 'Daueraufträge ausgeblendet' + (nDA ? ' (' + nDA + ')' : '') : 'Daueraufträge ausblenden'),
           h('button', { class: 'link', disabled: !f.q.trim(), tip: 'Suchbegriff als Schlagwort in die Regel übernehmen – passende Spenden (auch künftige) landen dann automatisch in „Prüfen“', onclick: () => { const w = f.q; SPUI.f.q = ''; spAddWord(mid, w); } }, 'als Regel übernehmen')),
         list('l', ST.conn !== 'ok' ? 'Mailing-Ordner nicht verbunden.' : !SP.rows.length ? 'Noch keine Buchungen eingelesen.' : 'Keine offene Spende im Filter.'),
         h('div', { class: 'sp-cf' }, btn.lSel, btn.lAll)),
@@ -546,18 +557,10 @@ VIEW_FN.spenden = main => {
       h('p', { class: 'muted small' }, 'Exporte (CSV oder Excel) in den Ordner „Spendeneingänge …“ im Mailing-Ordner legen – oder hierher ziehen. Doppelte Buchungen aus überlappenden Exporten zählen nur einmal. ' +
         'In der Planungsdatei stehen nur Zuordnung, Datum und Betrag; Namen und Verwendungszweck bleiben in den Exporten.')),
     spNotice(),
-    section('sp-ueb', 'Übersicht ' + y, () => ({ body: spOverview(ms, cmp, mid, by) })),
+    section('sp-ueb', 'Übersicht ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { closedSummary: () => 'aufklappen, um die Maßnahme zu wechseln' }),
     !x ? h('div', { class: 'empty' }, 'Keine Maßnahmen in ' + y + '.') : [
       h('div', { class: 'card sp-mbar' },
-        h('div', { class: 'sp-mhead' },
-          h('label', null, h('span', { class: 'muted small' }, 'Maßnahme'), h('select', { class: 'sp-msel', 'data-fk': 'sp-msel', onchange: e => { UI.spMid = e.target.value; renderNow(); } },
-            ms.map(o => h('option', { value: o.id, selected: o.id === mid }, (o.m.name || '(ohne Namen)') + (o.pal != null ? ' · PAL ' + fmtS(o.pal) : ''))))),
-          h('span', { class: 'dot big', style: { background: x.color } }),
-          h('label', null, h('span', { class: 'muted small' }, 'PAL'), h('b', null, x.pal != null ? fmtW(x.pal) : '–')),
-          h('label', null, h('span', { class: 'muted small' }, 'Auflage'), h('input', { type: 'number', min: 0, class: 'sp-auf', value: x.m.auflage ?? '', placeholder: '–', 'data-fk': 'sp-auf',
-            onchange: e => setM(mid, 'auflage', numOrNull(e.target.value), 'Auflage geändert') })),
-          h('label', null, h('span', { class: 'muted small' }, 'Kosten (€)'), h('input', { type: 'number', min: 0, step: '0.01', class: 'sp-kos', value: x.m.kosten ?? '', placeholder: '–', 'data-fk': 'sp-kos',
-            tip: 'Gesamtkosten der Maßnahme (Druck, Porto, Lettershop …)', onchange: e => commit(d => { const m = findM(d, mid); if (!m) return; const v = e.target.value; if (v === '' || !isNum(v)) delete m.kosten; else m.kosten = Math.round(+v * 100) / 100; }, 'Kosten geändert') }))),
+        h('h2', { class: 'sp-mname', style: { color: inkC(x.color) } }, x.m.name || '(ohne Namen)'),
         h('div', { class: 'sp-kpi' }, spTiles(x, s), spCharts(x, by.get(mid)))),
       section('sp-zu', 'Zuordnen', () => spAssign(x, cmp), { closedSummary: () => spCount(P.R.length) + ' zugeordnet · ' + spCount(P.M.length) + ' in Prüfung' })]);
 };
@@ -579,19 +582,24 @@ function niceTicks(max, n = 4) {
 }
 const tickLab = v => v.toLocaleString('de-DE', { maximumFractionDigits: 0 }) + ' €';
 // Tage von PAL (bzw. der ersten Spende) bis zur letzten Spende, mindestens vier Wochen
+// Grafiken beginnen am PAL (ohne PAL: an der ersten Spende) und laufen bis zur letzten Spende, mindestens vier Wochen.
+// Eingänge vor dem PAL verlängern die Zeitachse nicht – sie stecken in der Summe ab dem PAL und werden genannt.
 function spSeries(m, list) {
-  const lo = Math.min(...list.map(z => z.d)), hi = Math.max(...list.map(z => z.d)), pal = dn(m.pal);
-  const d0 = Math.min(lo, pal ?? lo), d1 = Math.min(d0 + 730, Math.max(hi, d0 + 27)), days = d1 - d0 + 1;
+  const pal = dn(m.pal), lo0 = Math.min(...list.map(z => z.d)), d0 = pal ?? lo0;
+  const pre = list.filter(z => z.d < d0), main = list.filter(z => z.d >= d0), hi = main.length ? Math.max(...main.map(z => z.d)) : d0;
+  const d1 = Math.min(d0 + 730, Math.max(hi, d0 + 27)), days = d1 - d0 + 1, preSum = pre.reduce((t, z) => t + z.b, 0);
   const day = new Array(days).fill(0), cnt = new Array(days).fill(0);
-  for (const z of list) { const i = z.d - d0; if (i >= 0 && i < days) { day[i] += z.b; cnt[i]++; } }
-  const cum = []; day.reduce((t, v, i) => (cum[i] = t + v), 0);
-  return { pal, lo, hi, d0, d1, days, day, cnt, cum, last: Math.min(hi, d1) - d0 };
+  for (const z of main) { const i = z.d - d0; if (i < days) { day[i] += z.b; cnt[i]++; } }
+  const cum = []; day.reduce((t, v, i) => (cum[i] = t + v), preSum);
+  const lo = main.length ? Math.min(...main.map(z => z.d)) : null;
+  return { pal, lo, hi, d0, d1, days, day, cnt, cum, last: Math.min(hi, d1) - d0, pre: pre.length, preSum };
 }
 function spCharts(x, list) {
   if (!list || !list.length) return h('div', { class: 'sp-charts empty muted small' }, 'Sobald Spenden zugeordnet sind, stehen hier die Zeitspanne der Eingänge und die Spenden pro Tag.');
   const sr = spSeries(x.m, list);
   return h('div', { class: 'sp-charts' },
-    h('div', { class: 'sp-cht' }, h('b', null, 'Zeitspanne der Eingänge'), h('span', { class: 'muted' }, ' · ' + fmtD(sr.lo) + ' – ' + fmtD(sr.hi) + ' (' + (sr.hi - sr.lo + 1) + ' Tage), Summe kumuliert')),
+    h('div', { class: 'sp-cht' }, h('b', null, 'Zeitspanne der Eingänge'), h('span', { class: 'muted' }, sr.lo != null ? ' · ' + fmtD(sr.lo) + ' – ' + fmtD(sr.hi) + ' (' + (sr.hi - sr.lo + 1) + ' Tage), Summe kumuliert' : ''),
+      sr.pre ? h('span', { class: 'warn small' }, ' · inkl. ' + spCount(sr.pre) + ' vor dem PAL (' + eur(sr.preSum) + ')') : null),
     h('div', { class: 'sp-chart', dataset: { chart: 'span', mid: x.id } }),
     h('div', { class: 'sp-cht' }, h('b', null, 'Spenden pro Tag')),
     h('div', { class: 'sp-chart', dataset: { chart: 'day', mid: x.id } }));

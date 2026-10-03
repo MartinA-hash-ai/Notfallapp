@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.12.1",
+    "version": "0.12.2",
     "date": "",
+    "items": [
+      "Spenden: der Kasten unter der Übersicht zeigt groß den Namen der gewählten Maßnahme in ihrer Farbe – Auswahl, PAL, Auflage und Kosten stehen nur noch in der Übersicht (Maßnahme per Klick auf die Zeile wählen, Auflage und Kosten direkt dort eintragen)",
+      "Zuordnen beginnt am PAL: der Filter „von“ steht immer auf dem PAL der Maßnahme (auch nach einer PAL-Änderung)",
+      "Die Grafiken beginnen am PAL; eine Spende vor dem PAL verlängert sie nicht mehr, sondern steht als „inkl. … vor dem PAL“ dabei und ist in den Listen markiert",
+      "„Offen“: Knopf „Daueraufträge ausblenden“"
+    ]
+  },
+  {
+    "version": "0.12.1",
+    "date": "2026-10-03T16:49",
     "items": [
       "Keine „überfällig“-Hinweise mehr: Termine werden nicht mit dem heutigen Datum verglichen (auch nicht in „Was steht an?“)",
       "Spenden: der Verwendungszweck steht immer in jeder Zeile; Namen auf Wunsch („Namen zeigen“). Daueraufträge bleiben in der Liste und sind farbig markiert",
