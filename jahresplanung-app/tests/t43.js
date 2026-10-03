@@ -1,5 +1,6 @@
 // 0.11 Urlaub / Abwesenheit: Knopf oben rechts in der Karte, Kalendarium (Person, Art, Tage klicken/ziehen, mehrere Zeiträume), Anzeige
 // 0.11.1 ganzes Jahr im Fenster; jede Markierung behält Person und Art, die beim Markieren eingestellt waren
+// 0.11.3 gespeicherte Tage sind markiert und lassen sich herausnehmen (Bearbeiten)
 const { chromium, ok, open, finish } = require('./lib');
 (async () => {
   const b = await chromium.launch(), pages = [];
@@ -26,17 +27,23 @@ const { chromium, ok, open, finish } = require('./lib');
   q = await pos(await day(7, 9)); await p.mouse.click(q[0], q[1]);
   q = await pos(await day(6, 16)); await p.mouse.click(q[0], q[1]);
   const s1 = await p.evaluate(() => [document.querySelector('.vd-sum').textContent, document.querySelectorAll('.vd-day.sel').length, document.querySelector('.modal.vacdlg footer button.primary').disabled]);
-  ok(s1[1] === 6 && /4 Zeiträume · 6 Arbeitstage/.test(s1[0]) && !s1[2], 'B: Tag + Woche gezogen + Tag, einer wieder abgewählt – „' + s1[0] + '“');
+  ok(s1[1] === 6 && /neu: Abwesenheit 01\.06\., 14\.06\.–15\.06\., 17\.06\.–18\.06\., 09\.07\. \(6 AT\)/.test(s1[0]) && !s1[2], 'B: Tag + Woche gezogen + Tag, einer wieder abgewählt – „' + s1[0] + '“');
   await p.fill('.vd-notiz', 'Fortbildung');
   await p.click('.modal footer button:has-text("Speichern")'); await p.waitForTimeout(250);
   const e = await p.evaluate(() => D.urlaube.filter(u => u.wer === 'Eva' && u.notiz === 'Fortbildung').map(u => u.von + '/' + u.bis + '/' + (u.art || 'urlaub')).sort().join(' '));
   ok(e === '2027-06-01/2027-06-01/abwesenheit 2027-06-14/2027-06-15/abwesenheit 2027-06-17/2027-06-18/abwesenheit 2027-07-09/2027-07-09/abwesenheit', 'B: vier Einträge als Abwesenheit gespeichert (' + e + ')');
 
-  // ---- C: schon eingetragene Tage sind belegt und lassen sich nicht wählen
+  // ---- C: gespeicherte Tage erscheinen markiert; ein Klick nimmt einen heraus, Speichern entfernt ihn (Notiz bleibt)
   await p.click('.vac-add'); await p.waitForTimeout(200); await p.selectOption('.vd-wer', 'Eva');
+  const c0 = await p.evaluate(n => [document.querySelector('.vd-day[data-dn="' + n + '"]').classList.contains('sel'), document.querySelectorAll('.vd-day.sel').length, document.querySelector('.modal.vacdlg footer button.primary').disabled], await day(6, 14));
+  ok(c0[0] && c0[1] === 6 && c0[2], 'C: Evas gespeicherte Tage sind markiert (6), ohne Änderung kein Speichern');
   q = await pos(await day(6, 14)); await p.mouse.click(q[0], q[1]);
-  const c = await p.evaluate(n => [document.querySelector('.vd-day[data-dn="' + n + '"]').classList.contains('busy'), document.querySelectorAll('.vd-day.sel').length], await day(6, 14));
-  ok(c[0] && c[1] === 0, 'C: belegter Tag gestreift, Klick wählt nichts');
+  const c = await p.evaluate(n => [document.querySelector('.vd-day[data-dn="' + n + '"]').classList.contains('rm'), document.querySelector('.vd-sum').textContent], await day(6, 14));
+  ok(c[0] && /entfernt: 14\.06\./.test(c[1]), 'C: Klick nimmt 14.06. heraus (gestrichelt) – „' + c[1] + '“');
+  await p.click('.modal footer button:has-text("Speichern")'); await p.waitForTimeout(250);
+  const cc = await p.evaluate(() => D.urlaube.filter(u => u.wer === 'Eva').map(u => u.von + '/' + u.bis + '/' + u.notiz).sort().join(' '));
+  ok(cc === '2027-06-01/2027-06-01/Fortbildung 2027-06-15/2027-06-15/Fortbildung 2027-06-17/2027-06-18/Fortbildung 2027-07-09/2027-07-09/Fortbildung', 'C: gespeichert – 14.06. entfernt, Notizen erhalten (' + cc + ')');
+  await p.click('.vac-add'); await p.waitForTimeout(200);
 
   // ---- C2: Person und Art wechseln – bisher Markiertes bleibt, wie es markiert wurde
   const drag = async (a, z) => { await p.mouse.move(a[0], a[1]); await p.mouse.down(); await p.mouse.move(z[0], z[1], { steps: 5 }); await p.mouse.up(); };
@@ -52,7 +59,7 @@ const { chromium, ok, open, finish } = require('./lib');
   const c2c = await p.evaluate(([n, c]) => { const el = document.querySelector('.vd-day[data-dn="' + n + '"]'); return [[...el.querySelectorAll('.vd-oth span')].some(s => s.style.background === c), /Außerdem: .*Martin \(Urlaub, noch nicht gespeichert\)/.test(el.title)]; },
     [await day(3, 2), await p.evaluate(() => { const d = document.createElement('div'); d.style.background = personColor('Martin'); return d.style.background; })]);
   ok(c2c[0] && c2c[1], 'C2: bei Eva bleiben Martins markierte Tage als blasser Strich in seiner Farbe sichtbar (mit Hinweis)');
-  ok(!c2a[0] && c2a[1] === 8 && c2b[0] === 3 && c2b[1] === 3, 'C2: Martins Urlaub bleibt Urlaub nach Wechsel auf Abwesenheit; bei Eva nur Evas Markierungen sichtbar; Zusammenfassung mit 3 Zeilen');
+  ok(!c2a[0] && c2a[1] === 8 && c2b[0] === 3 + 5 && c2b[1] === 2, 'C2: Martins Urlaub bleibt Urlaub nach Wechsel auf Abwesenheit; bei Eva nur Evas Tage (3 neu + 5 gespeichert); Änderungen je Person (2 Zeilen)');
   await p.click('.modal footer button:has-text("Speichern")'); await p.waitForTimeout(250);
   const c2 = await p.evaluate(() => D.urlaube.filter(u => !u.notiz).map(u => u.wer + ' ' + u.von + '–' + u.bis + ' ' + (u.art || 'urlaub')).sort().join(' | '));
   ok(c2 === 'Eva 2027-08-02–2027-08-04 abwesenheit | Martin 2027-03-01–2027-03-05 urlaub | Martin 2027-05-10–2027-05-12 abwesenheit', 'C2: gespeichert – ' + c2);

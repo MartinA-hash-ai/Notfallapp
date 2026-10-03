@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.11.2",
+    "version": "0.11.3",
     "date": "",
+    "items": [
+      "Urlaub / Abwesenheit: im Kalendarium sind gespeicherte Tage der gewählten Person jetzt markiert statt gesperrt – anklicken (oder darüberziehen) nimmt sie heraus, gestrichelt bis zum Speichern; unten stehen die Änderungen je Person (neu / entfernt). Notizen bestehender Einträge bleiben erhalten"
+    ]
+  },
+  {
+    "version": "0.11.2",
+    "date": "2026-10-03T14:00",
     "items": [
       "Urlaub / Abwesenheit eintragen: die anderen Personen verschwinden beim Wechseln nicht, sondern stehen als blasse Striche in ihrer Farbe im Hintergrund – schon gespeicherte Einträge und gerade markierte Tage; Maus darauf zeigt, wer"
     ]
