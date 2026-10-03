@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.11",
+    "version": "0.11.1",
     "date": "",
+    "items": [
+      "Urlaub / Abwesenheit eintragen: alle zwölf Monate auf einen Blick (Jahr umschaltbar)",
+      "Jede Markierung behält die Person und Art, die beim Markieren eingestellt war – man kann nacheinander Urlaub und Abwesenheiten für mehrere Personen markieren und alles auf einmal speichern; unten steht je Person und Art eine Zusammenfassung"
+    ]
+  },
+  {
+    "version": "0.11",
+    "date": "2026-10-03T12:37",
     "items": [
       "Detailplan: das P neben „PAL“ im Kopf ist rot (wie in Tabelle und Gantt)",
       "Feste Dauer: im ⋯-Menü einer Aufgabe „Dauer festlegen (fix)“ – kleines Schloss neben der Dauer; solche Aufgaben bleiben beim anteiligen Anpassen unverändert",

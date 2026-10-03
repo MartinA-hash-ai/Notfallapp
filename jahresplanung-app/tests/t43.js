@@ -1,4 +1,5 @@
 // 0.11 Urlaub / Abwesenheit: Knopf oben rechts in der Karte, Kalendarium (Person, Art, Tage klicken/ziehen, mehrere Zeiträume), Anzeige
+// 0.11.1 ganzes Jahr im Fenster; jede Markierung behält Person und Art, die beim Markieren eingestellt waren
 const { chromium, ok, open, finish } = require('./lib');
 (async () => {
   const b = await chromium.launch(), pages = [];
@@ -13,9 +14,9 @@ const { chromium, ok, open, finish } = require('./lib');
   // ---- B: Dialog: Personen aus den Einstellungen, Speichern erst mit Auswahl
   await p.click('.vac-add'); await p.waitForTimeout(200);
   const bb = await p.evaluate(() => [[...document.querySelectorAll('.vd-wer option')].map(o => o.value).join(), D.personen.map(x => x.name).join(), document.querySelectorAll('.vd-month').length, document.querySelector('.modal.vacdlg footer button.primary').disabled]);
-  ok(bb[0] === bb[1] && bb[2] === 3 && bb[3], 'B: Person aus der Liste (' + bb[0] + '), drei Monate, „Speichern“ noch aus');
+  ok(bb[0] === bb[1] && bb[2] === 12 && bb[3], 'B: Person aus der Liste (' + bb[0] + '), alle zwölf Monate, „Speichern“ noch aus');
   await p.selectOption('.vd-wer', 'Eva');
-  await p.evaluate(() => { while (!document.querySelector('.vd-day[data-dn="' + mkdn(2027, 7, 9) + '"]')) document.querySelector('.vd-nav button:last-child').click(); });
+  await p.click('.vd-art .seg-btn[data-art="abwesenheit"]');
   const pos = n => p.evaluate(n => { const r = document.querySelector('.vd-day[data-dn="' + n + '"]').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; }, n);
   const day = (m, d) => p.evaluate(([m, d]) => mkdn(2027, m, d), [m, d]);
   // einzelner Tag, eine Woche gezogen, noch ein Tag; dann ein Tag wieder abgewählt
@@ -26,7 +27,6 @@ const { chromium, ok, open, finish } = require('./lib');
   q = await pos(await day(6, 16)); await p.mouse.click(q[0], q[1]);
   const s1 = await p.evaluate(() => [document.querySelector('.vd-sum').textContent, document.querySelectorAll('.vd-day.sel').length, document.querySelector('.modal.vacdlg footer button.primary').disabled]);
   ok(s1[1] === 6 && /4 Zeiträume · 6 Arbeitstage/.test(s1[0]) && !s1[2], 'B: Tag + Woche gezogen + Tag, einer wieder abgewählt – „' + s1[0] + '“');
-  await p.click('.vd-art .seg-btn[data-art="abwesenheit"]');
   await p.fill('.vd-notiz', 'Fortbildung');
   await p.click('.modal footer button:has-text("Speichern")'); await p.waitForTimeout(250);
   const e = await p.evaluate(() => D.urlaube.filter(u => u.wer === 'Eva' && u.notiz === 'Fortbildung').map(u => u.von + '/' + u.bis + '/' + (u.art || 'urlaub')).sort().join(' '));
@@ -34,11 +34,24 @@ const { chromium, ok, open, finish } = require('./lib');
 
   // ---- C: schon eingetragene Tage sind belegt und lassen sich nicht wählen
   await p.click('.vac-add'); await p.waitForTimeout(200); await p.selectOption('.vd-wer', 'Eva');
-  await p.evaluate(() => { while (!document.querySelector('.vd-day[data-dn="' + mkdn(2027, 6, 1) + '"]')) document.querySelector('.vd-nav button:last-child').click(); });
   q = await pos(await day(6, 14)); await p.mouse.click(q[0], q[1]);
   const c = await p.evaluate(n => [document.querySelector('.vd-day[data-dn="' + n + '"]').classList.contains('busy'), document.querySelectorAll('.vd-day.sel').length], await day(6, 14));
   ok(c[0] && c[1] === 0, 'C: belegter Tag gestreift, Klick wählt nichts');
-  await p.click('.modal footer button:has-text("Abbrechen")'); await p.waitForTimeout(150);
+
+  // ---- C2: Person und Art wechseln – bisher Markiertes bleibt, wie es markiert wurde
+  const drag = async (a, z) => { await p.mouse.move(a[0], a[1]); await p.mouse.down(); await p.mouse.move(z[0], z[1], { steps: 5 }); await p.mouse.up(); };
+  await p.selectOption('.vd-wer', 'Martin'); await p.click('.vd-art .seg-btn[data-art="urlaub"]');
+  await drag(await pos(await day(3, 1)), await pos(await day(3, 5)));
+  await p.click('.vd-art .seg-btn[data-art="abwesenheit"]');
+  await drag(await pos(await day(5, 10)), await pos(await day(5, 12)));
+  const c2a = await p.evaluate(n => [document.querySelector('.vd-day[data-dn="' + n + '"]').classList.contains('abw'), document.querySelectorAll('.vd-day.sel').length], await day(3, 2));
+  await p.selectOption('.vd-wer', 'Eva');
+  await drag(await pos(await day(8, 2)), await pos(await day(8, 4)));
+  const c2b = await p.evaluate(() => [document.querySelectorAll('.vd-day.sel').length, document.querySelectorAll('.vd-sum .vd-line').length]);
+  ok(!c2a[0] && c2a[1] === 8 && c2b[0] === 3 && c2b[1] === 3, 'C2: Martins Urlaub bleibt Urlaub nach Wechsel auf Abwesenheit; bei Eva nur Evas Markierungen sichtbar; Zusammenfassung mit 3 Zeilen');
+  await p.click('.modal footer button:has-text("Speichern")'); await p.waitForTimeout(250);
+  const c2 = await p.evaluate(() => D.urlaube.filter(u => !u.notiz).map(u => u.wer + ' ' + u.von + '–' + u.bis + ' ' + (u.art || 'urlaub')).sort().join(' | '));
+  ok(c2 === 'Eva 2027-08-02–2027-08-04 abwesenheit | Martin 2027-03-01–2027-03-05 urlaub | Martin 2027-05-10–2027-05-12 abwesenheit', 'C2: gespeichert – ' + c2);
 
   // ---- D: Anzeige – Art in der Liste umstellbar, Abwesenheit gestreift in der Übersicht und im Kalender
   await p.evaluate(() => { commit(d => d.urlaube.push({ id: 'u-voll', wer: 'Martin', von: '2027-06-07', bis: '2027-06-11', notiz: '' })); }); await p.waitForTimeout(200);

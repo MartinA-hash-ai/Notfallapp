@@ -1,67 +1,84 @@
 /* ===================================================================== Ansicht: Urlaub & Feiertage */
 
-// Urlaub / Abwesenheit eintragen: Person (aus den Einstellungen) und Art wählen, im Kalendarium Tage anklicken oder mit gedrückter Maus
-// ganze Zeiträume ziehen – beliebig viele, auch verteilt. „Speichern“ legt je zusammenhängendem Zeitraum einen Eintrag an.
+// Urlaub / Abwesenheit eintragen: das ganze Jahr auf einen Blick. Person (aus den Einstellungen) und Art wählen, Tage anklicken oder mit
+// gedrückter Maus Zeiträume ziehen. Jede Markierung behält die Person und Art, die beim Markieren eingestellt war – man kann also nacheinander
+// Urlaub und Abwesenheiten für mehrere Personen markieren. „Speichern“ legt je zusammenhängendem Zeitraum (gleiche Person, gleiche Art) einen Eintrag an.
 async function addVac() {
   const names = D.personen.map(p => p.name).filter(Boolean);
-  const y = UI.year, t0 = todayDn(), ty = ymd(t0);
-  const st = { wer: names.includes(UI.userName) ? UI.userName : names[0] || '', art: 'urlaub', notiz: '', sel: new Set(), m0: ty[0] === y ? y * 12 + ty[1] - 1 : y * 12 };
+  const t0 = todayDn();
+  const st = { wer: names.includes(UI.userName) ? UI.userName : names[0] || '', art: 'urlaub', notiz: '', year: UI.year, picks: new Map() };   // picks: Person → (Tag → Art)
   let drag = null, saveBtn = null;
+  const mine = () => { if (!st.picks.has(st.wer)) st.picks.set(st.wer, new Map()); return st.picks.get(st.wer); };
   const busyDays = () => { const out = new Map(); for (const v of C.vac) if (v.u.wer === st.wer) for (let n = v.von; n <= v.bis; n++) out.set(n, vacKind(v.u)); return out; };
-  const ranges = () => { const ds_ = [...st.sel].sort((p, q) => p - q), out = []; for (const n of ds_) { const l = out[out.length - 1]; if (l && n === l[1] + 1) l[1] = n; else out.push([n, n]); } return out; };
-  const fill = () => { const c = personColor(st.wer); return st.art === 'abwesenheit' ? 'repeating-linear-gradient(135deg, ' + c + ' 0 4px, ' + mix(c, 0.55) + ' 4px 8px)' : c; };
+  const rangesOf = mp => { const out = []; for (const n of [...mp.keys()].sort((p, q) => p - q)) { const l = out[out.length - 1], art = mp.get(n); if (l && n === l[1] + 1 && l[2] === art) l[1] = n; else out.push([n, n, art]); } return out; };
   const cal = h('div', { class: 'vd-months' }), sum = h('div', { class: 'vd-sum' }), body = h('div', { class: 'vdlg' });
-  const paint = () => {                            // Auswahl (und Vorschau beim Ziehen) einfärben, Zusammenfassung, „Speichern“ an/aus
-    const busy = busyDays(), pv = drag ? new Set(drag.range) : null;
-    cal.style.setProperty('--vsel', fill()); cal.style.setProperty('--vc', personColor(st.wer));
-    for (const c of $$('.vd-day[data-dn]', cal)) {
-      const n = +c.dataset.dn, on = pv ? (drag.mode === 'add' ? st.sel.has(n) || pv.has(n) : st.sel.has(n) && !pv.has(n)) : st.sel.has(n);
-      c.classList.toggle('sel', on); c.classList.toggle('busy', busy.has(n)); c.title = busy.has(n) ? st.wer + ': ' + busy.get(n) + ' schon eingetragen' : holName(n) || '';
+  const fmtR = ([a, b]) => a === b ? fmtS(a) : fmtS(a) + '–' + fmtS(b);
+  const paint = () => {                            // Markierungen der gewählten Person (mit Vorschau beim Ziehen), Zusammenfassung aller Personen
+    const busy = busyDays(), mp = mine(), pv = drag ? new Set(drag.range) : null, c = personColor(st.wer);
+    cal.style.setProperty('--vc', c); cal.style.setProperty('--vc2', mix(c, 0.55));
+    for (const el of $$('.vd-day[data-dn]', cal)) {
+      const n = +el.dataset.dn;
+      let art = mp.get(n);
+      if (pv && pv.has(n)) art = drag.mode === 'add' ? st.art : undefined;
+      el.classList.toggle('sel', !!art); el.classList.toggle('abw', art === 'abwesenheit'); el.classList.toggle('busy', busy.has(n));
+      el.title = busy.has(n) ? st.wer + ': ' + busy.get(n) + ' schon eingetragen' : art ? (art === 'abwesenheit' ? 'Abwesenheit' : 'Urlaub') + ' (markiert)' : holName(n) || '';
     }
-    const rg = ranges(), wdays = rg.reduce((t, [a, b]) => t + workdays(a, b), 0);
-    setKids(sum, !st.wer ? h('span', { class: 'warn' }, 'Bitte zuerst eine Person wählen.') : !rg.length ? h('span', { class: 'muted' }, 'Tage anklicken oder mit gedrückter Maus über mehrere Tage ziehen – beliebig viele Zeiträume.')
-      : [h('b', null, rg.length + (rg.length === 1 ? ' Zeitraum' : ' Zeiträume') + ' · ' + wdays + (wdays === 1 ? ' Arbeitstag' : ' Arbeitstage')), ' ',
-        h('span', { class: 'muted' }, rg.map(([a, b]) => a === b ? fmtS(a) : fmtS(a) + '–' + fmtS(b)).join(', '))]);
-    if (saveBtn) saveBtn.disabled = !st.wer || !rg.length;
+    const lines = [];
+    for (const [wer, mp2] of st.picks) {
+      if (!mp2.size) continue;
+      const rg = rangesOf(mp2);
+      for (const art of ['urlaub', 'abwesenheit']) {
+        const r = rg.filter(x => x[2] === art); if (!r.length) continue;
+        const at = r.reduce((t, [a, b]) => t + workdays(a, b), 0);
+        lines.push(h('div', { class: 'vd-line' }, h('span', { class: 'vdot', style: { background: personColor(wer) } }), h('b', null, wer + ' · ' + (art === 'abwesenheit' ? 'Abwesenheit' : 'Urlaub')),
+          ' ' + r.length + (r.length === 1 ? ' Zeitraum' : ' Zeiträume') + ' · ' + at + (at === 1 ? ' Arbeitstag' : ' Arbeitstage') + ' ', h('span', { class: 'muted' }, r.map(fmtR).join(', '))));
+      }
+    }
+    setKids(sum, !st.wer ? h('span', { class: 'warn' }, 'Bitte zuerst eine Person wählen.') : lines.length ? lines
+      : h('span', { class: 'muted' }, 'Tage anklicken oder mit gedrückter Maus über mehrere Tage ziehen. Person oder Art wechseln geht jederzeit – bisher Markiertes bleibt so, wie es markiert wurde.'));
+    if (saveBtn) saveBtn.disabled = !lines.length;
   };
   const month = (yy, mo) => {
     const first = mkdn(yy, mo, 1), last = first + daysIn(yy, mo) - 1, g = h('div', { class: 'vd-grid' }, WD.map((d, i) => h('div', { class: 'vd-wh' + (i >= 5 ? ' we' : '') }, d)));
     for (let i = 0; i < wd(first); i++) g.append(h('div', { class: 'vd-day out' }));
     for (let n = first; n <= last; n++) g.append(h('div', { class: 'vd-day' + (wd(n) >= 5 ? ' we' : '') + (holName(n) ? ' hol' : '') + (n === t0 ? ' today' : ''), dataset: { dn: n } }, ymd(n)[2]));
-    return h('div', { class: 'vd-month' }, h('div', { class: 'vd-mh' }, MON[mo - 1] + ' ' + yy), g);
+    return h('div', { class: 'vd-month' }, h('div', { class: 'vd-mh' }, MON[mo - 1]), g);
   };
-  const drawCal = () => { setKids(cal, [0, 1, 2].map(i => { const k = st.m0 + i; return month(Math.floor(k / 12), k % 12 + 1); })); paint(); };
-  // Klicken / Ziehen: Start auf einem freien Tag – ausgewählt → abwählen, sonst auswählen; gezogen wird ein ganzer Zeitraum
+  const yLab = h('b', { class: 'vd-year' });
+  const drawCal = () => { yLab.textContent = st.year; setKids(cal, Array.from({ length: 12 }, (_, i) => month(st.year, i + 1))); paint(); };
+  // Klicken / Ziehen: beginnt man auf einem Tag, der schon so markiert ist (gleiche Art), wird abgewählt – sonst mit der eingestellten Art markiert
   const dayAt = e => { const el = document.elementFromPoint(e.clientX, e.clientY); const c = el && el.closest && el.closest('.vd-day[data-dn]'); return c ? +c.dataset.dn : null; };
   cal.addEventListener('pointerdown', e => {
     const n = dayAt(e); if (n == null || e.button !== 0 || !st.wer) return;
     const busy = busyDays(); if (busy.has(n)) return;
     e.preventDefault(); try { cal.setPointerCapture(e.pointerId); } catch (x) { /* */ }
-    drag = { a: n, mode: st.sel.has(n) ? 'del' : 'add', range: [n], busy }; paint();
+    drag = { a: n, mode: mine().get(n) === st.art ? 'del' : 'add', range: [n], busy }; paint();
   });
   cal.addEventListener('pointermove', e => { if (!drag) return; const n = dayAt(e); if (n == null) return;
     const lo = Math.min(drag.a, n), hi = Math.max(drag.a, n); drag.range = []; for (let k = lo; k <= hi; k++) if (!drag.busy.has(k)) drag.range.push(k); paint(); });
-  const up = () => { if (!drag) return; drag.range.forEach(n => drag.mode === 'add' ? st.sel.add(n) : st.sel.delete(n)); drag = null; paint(); };
-  cal.addEventListener('pointerup', up); cal.addEventListener('pointercancel', () => { drag = null; paint(); });
-  const seg = (k, label) => h('button', { class: 'seg-btn' + (st.art === k ? ' on' : ''), dataset: { art: k }, onclick: e => { st.art = k; $$('.vd-art .seg-btn', body).forEach(b => b.classList.toggle('on', b.dataset.art === k)); paint(); } }, label);
+  cal.addEventListener('pointerup', () => { if (!drag) return; const mp = mine(); drag.range.forEach(n => drag.mode === 'add' ? mp.set(n, st.art) : mp.delete(n)); drag = null; paint(); });
+  cal.addEventListener('pointercancel', () => { drag = null; paint(); });
+  const seg = (k, label) => h('button', { class: 'seg-btn' + (st.art === k ? ' on' : ''), dataset: { art: k }, onclick: () => { st.art = k; $$('.vd-art .seg-btn', body).forEach(b => b.classList.toggle('on', b.dataset.art === k)); paint(); } }, label);
   setKids(body,
     h('div', { class: 'vd-top' },
       h('label', { class: 'vd-f' }, h('span', null, 'Person'), names.length ? h('select', { class: 'vd-wer', onchange: e => { st.wer = e.target.value; paint(); } }, names.map(n => h('option', { value: n, selected: n === st.wer }, n)))
         : h('span', { class: 'warn' }, 'Noch keine Personen – unter ⋯ → Einstellungen anlegen.')),
       h('div', { class: 'vd-f' }, h('span', null, 'Art'), h('span', { class: 'segs vd-art' }, seg('urlaub', 'Urlaub'), seg('abwesenheit', 'Abwesenheit'))),
-      h('label', { class: 'vd-f grow' }, h('span', null, 'Notiz'), h('input', { class: 'vd-notiz', placeholder: 'optional, z. B. Fortbildung', oninput: e => { st.notiz = e.target.value; } }))),
-    h('div', { class: 'vd-nav' },
-      h('button', { class: 'icon', 'aria-label': 'früher', tip: 'einen Monat früher', onclick: () => { st.m0--; drawCal(); } }, '‹'),
-      h('span', { class: 'muted small' }, 'Wochenenden und Feiertage sind grau; schon eingetragene Tage dieser Person sind belegt'),
-      h('button', { class: 'icon', 'aria-label': 'später', tip: 'einen Monat später', onclick: () => { st.m0++; drawCal(); } }, '›')),
+      h('label', { class: 'vd-f grow' }, h('span', null, 'Notiz'), h('input', { class: 'vd-notiz', placeholder: 'optional, z. B. Fortbildung – gilt für alle Einträge', oninput: e => { st.notiz = e.target.value; } })),
+      h('div', { class: 'vd-f vd-yr' }, h('span', null, 'Jahr'), h('span', { class: 'vd-ynav' },
+        h('button', { class: 'icon', 'aria-label': 'Vorjahr', tip: 'Vorjahr', onclick: () => { st.year--; drawCal(); } }, '‹'), yLab,
+        h('button', { class: 'icon', 'aria-label': 'Folgejahr', tip: 'Folgejahr', onclick: () => { st.year++; drawCal(); } }, '›')))),
+    h('div', { class: 'muted small vd-hint' }, 'Wochenenden und Feiertage sind grau, schon eingetragene Tage der gewählten Person gestreift und gesperrt.'),
     cal, sum);
   drawCal();
   const pr = modal('Urlaub / Abwesenheit eintragen', body, [['Abbrechen', false], ['Speichern', true, 'primary']], { wide: true, cls: 'vacdlg' });
   saveBtn = $('.modal.vacdlg footer button.primary'); paint();
   if (!await pr) return;
-  const rg = ranges(); if (!st.wer || !rg.length) return;
-  commit(d => rg.forEach(([a, b]) => d.urlaube.push(Object.assign({ id: uid(), wer: st.wer, von: ds(a), bis: ds(b), notiz: st.notiz.trim() }, st.art === 'abwesenheit' ? { art: 'abwesenheit' } : {}))),
-    (st.art === 'abwesenheit' ? 'Abwesenheit' : 'Urlaub') + ' eingetragen: ' + st.wer + ' – ' + rg.map(([a, b]) => a === b ? fmtS(a) : fmtS(a) + '–' + fmtS(b)).join(', '));
+  const add = [];
+  for (const [wer, mp] of st.picks) for (const [a, b, art] of rangesOf(mp)) add.push(Object.assign({ id: uid(), wer, von: ds(a), bis: ds(b), notiz: st.notiz.trim() }, art === 'abwesenheit' ? { art } : {}));
+  if (!add.length) return;
+  const who = [...new Set(add.map(u => u.wer))];
+  commit(d => { d.urlaube.push(...add); }, add.length + (add.length === 1 ? ' Eintrag' : ' Einträge') + ' gespeichert: ' + who.join(', '));
 }
 function setVac(id, fn) { commit(d => { const u = d.urlaube.find(q => q.id === id); if (u) fn(u); }); }
 function renamePersonTo(old, nv) {
