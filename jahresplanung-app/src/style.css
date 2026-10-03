@@ -737,6 +737,7 @@ main.sp-drop { outline: 3px dashed var(--focus); outline-offset: -8px; }
 table.grid td.num, table.grid th.num { text-align: right; font-variant-numeric: tabular-nums; }
 .sp-mname { font-size: 24px; font-weight: 700; line-height: 1.2; }
 .rw-in { width: 80px; }
+input.numf { text-align: right; }
 .sp-ueb td.inp { padding: 1px 3px; }
 .sp-ueb td.inp input { text-align: right; min-width: 78px; }
 .sp-kpi { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 2.2fr); gap: 14px; align-items: stretch; }

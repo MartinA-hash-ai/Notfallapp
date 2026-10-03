@@ -174,6 +174,28 @@ function wheelStep(e) {
   inp.dispatchEvent(new Event('input', { bubbles: true }));
   clearTimeout(inp._wheelT); inp._wheelT = setTimeout(() => inp.dispatchEvent(new Event('change', { bubbles: true })), 450);
 }
+// Zahlen deutsch eingeben: „1.500“ = 1500, „1.234,50“ = 1234,5, „1234,5“ = 1234,5; ein Punkt mit 1–2 Nachkommastellen gilt als Dezimalpunkt.
+// Ergebnis: Zahl, '' (leer) oder null (keine Zahl)
+function deNum(t) {
+  let s = String(t ?? '').replace(/\s|€|EUR/gi, '');
+  if (!s) return '';
+  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  return /^\d+(\.\d+)?$/.test(s) ? +s : null;
+}
+const fmtNum = (v, dec) => v == null || v === '' || !isNum(v) ? '' : (+v).toLocaleString('de-DE', { minimumFractionDigits: dec && !Number.isInteger(+v) ? dec : 0, maximumFractionDigits: dec });
+// Textfeld für Zahlen (Auflage, Kosten …): zeigt „1.500“ bzw. „1.234,50“, übernimmt beim Verlassen; Unlesbares wird nicht übernommen
+function numField(value, dec, onCommit, props = {}) {
+  return h('input', Object.assign({ type: 'text', inputmode: dec ? 'decimal' : 'numeric', class: 'numf', value: fmtNum(value, dec), placeholder: '–',
+    onfocus: e => { e.target.dataset.prev = e.target.value; },
+    onchange: e => {
+      const v = deNum(e.target.value);
+      if (v === null) { toast('„' + e.target.value + '“ ist keine Zahl – nicht übernommen (z. B. 1500 oder 1.234,50).', 'warn'); e.target.value = e.target.dataset.prev || fmtNum(value, dec); return; }
+      const n = v === '' ? null : dec ? Math.round(v * 10 ** dec) / 10 ** dec : Math.round(v);
+      e.target.value = fmtNum(n, dec);                              // gleich einheitlich anzeigen („1234,5“ → „1.234,50“)
+      onCommit(n);
+    } }, props));
+}
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const uid = () => 'x' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);

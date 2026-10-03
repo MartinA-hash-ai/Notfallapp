@@ -47,6 +47,7 @@ function renderInner() {
   }
   document.body.classList.toggle('printing', !!UI.printing);
   const main = h('main', { id: 'main', class: 'view-' + UI.view });
+  if (UI.view !== 'spenden') _spLastView = UI.view;
   try { (VIEW_FN[UI.view] || VIEW_FN.kalender)(main); }
   catch (e) { console.error(e); main.append(h('div', { class: 'error' }, 'Fehler in der Ansicht: ' + e.message)); }
   const showSide = SIDEBAR_VIEWS.has(UI.view) && UI.sidebar && !UI.printing;

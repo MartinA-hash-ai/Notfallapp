@@ -74,7 +74,7 @@ async function deleteMassnahme(id) {
 }
 function duplicateMassnahme(id) {
   const nid = uid();
-  commit(d => { const m = findM(d, id), c = JSON.parse(JSON.stringify(m)); c.id = nid; c.name = m.name + ' (Kopie)'; c.farbe = nextColor(UI.year); d.massnahmen.push(c); }, 'Kopie angelegt');
+  commit(d => { const m = findM(d, id), c = JSON.parse(JSON.stringify(m)); c.id = nid; c.name = m.name + ' (Kopie)'; c.farbe = nextColor(UI.year); delete c.kosten; d.massnahmen.push(c); }, 'Kopie angelegt');
   UI.flash = 'm:' + nid;
 }
 async function copyToNextYear() {
@@ -206,7 +206,7 @@ function massnahmenSection() {
       h('td', { class: 'col' }, h('button', { class: 'swatch', style: { background: x.color }, tip: 'Farbe ändern', 'aria-label': 'Farbe ändern', onclick: e => { e.stopPropagation(); colorPicker(e.currentTarget, x.color, c => setM(id, 'farbe', c)); } })),
       h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: inkC(x.color) }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
       h('td', { class: 'resp' }, personInput({ value: m.verantwortlich || '', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
-      h('td', { class: 'num' }, h('input', { type: 'number', min: 0, value: m.auflage ?? '', 'data-fk': fk('auflage'), placeholder: '–', onchange: e => setM(id, 'auflage', numOrNull(e.target.value)) })),
+      h('td', { class: 'num' }, numField(m.auflage, 0, v => setM(id, 'auflage', v), { 'data-fk': fk('auflage') })),
       PH().map(p => startCell(p.key)),
       h('td', { class: 'date pal' + (m.palStatus !== 'fest' ? ' vorl' : '') }, dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null))),
       h('td', null, h('button', { class: 'status ' + (m.palStatus === 'fest' ? 'fest' : 'vorl'), 'data-fk': fk('status'), tip: 'Klicken zum Umschalten',
@@ -296,8 +296,8 @@ async function editMassnahme(id) {
     phaseRows,
     calc,
     row('Hauptverantwortlich', personInput({ value: m.verantwortlich || '', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
-    row('Auflage', h('input', { type: 'number', min: 0, value: m.auflage ?? '', oninput: e => { m.auflage = numOrNull(e.target.value); } })),
-    row('Kosten (€)', h('input', { type: 'number', min: 0, step: '0.01', value: m.kosten ?? '', oninput: e => { const v = e.target.value; if (v === '' || !isNum(v)) delete m.kosten; else m.kosten = Math.round(+v * 100) / 100; } }), 'für die Auswertung im Reiter „Spenden“ (ROI)'),
+    row('Auflage', numField(m.auflage, 0, v => { m.auflage = v; })),
+    row('Kosten (€)', numField(m.kosten, 2, v => { if (v == null) delete m.kosten; else m.kosten = v; }), 'für die Auswertung im Reiter „Spenden“ (ROI)'),
     row('Spendenbitte', h('select', { onchange: e => { m.art = e.target.value; } }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
     row('Hinweis', h('textarea', { rows: 2, oninput: e => { m.hinweis = e.target.value; } }, m.hinweis || '')));
   const res = await modal('Maßnahme bearbeiten', body, [['Löschen', 'del', 'danger left'], ['Abbrechen', false], ['Übernehmen', true, 'primary']]);

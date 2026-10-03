@@ -45,7 +45,11 @@ function merge3(base, mine, theirs) {
   out.settings = mergeObj(base.settings, mine.settings, theirs.settings, { coll: 'settings', key: null }, conflicts, cnt);
   out.feiertage = mergeObj(base.feiertage, mine.feiertage, theirs.feiertage, { coll: 'feiertage', key: null }, conflicts, cnt);
   out.spenden = {};                                          // Spenden je Buchung: wie ein Feld behandeln
-  for (const sub of ['zu', 'vor', 'nein']) out.spenden[sub] = mergeObj((base.spenden || {})[sub], (mine.spenden || {})[sub], (theirs.spenden || {})[sub], { coll: 'spenden', key: sub, rec: { sub } }, conflicts, cnt);
+  for (const sub of ['zu', 'vor', 'nein']) {
+    const cf = sub === 'zu' ? conflicts : [];                  // nur echte Zuordnungen nachfragen; Vormerkungen: eigene Fassung, Ablehnungen: beide
+    out.spenden[sub] = mergeObj((base.spenden || {})[sub], (mine.spenden || {})[sub], (theirs.spenden || {})[sub], { coll: 'spenden', key: sub, rec: { sub } }, cf, cnt);
+    if (sub === 'nein') for (const c of cf) out.spenden.nein[c.field] = [...new Set([].concat(c.mine || [], c.theirs || []))];
+  }
   out.meta = clone(theirs.meta);
   return { data: clone(out), conflicts, cnt };
 }

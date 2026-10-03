@@ -476,6 +476,9 @@ function computeWarnings() {
       }
     }
   }
+  const preByM = new Map();                                        // Spenden-Zuordnungen vor dem PAL (z. B. nach einer PAL-Änderung)
+  for (const z of Object.values((D.spenden || {}).zu || {})) { const x = C.byId.get(z.m), n = dn(z.d); if (x && x.pal != null && n != null && n < x.pal) preByM.set(z.m, (preByM.get(z.m) || 0) + 1); }
+  for (const [mid, n] of preByM) { const x = C.byId.get(mid); if (relevant.includes(x)) W.push({ lvl: 'info', mid, text: `${x.m.name || '(ohne Namen)'}: ${n} zugeordnete Spende${n === 1 ? '' : 'n'} vor dem PAL – im Reiter „Spenden“ prüfen` }); }
   for (const u of D.urlaube) if ((u.von && dn(u.von) == null) || (u.bis && dn(u.bis) == null))
     W.push({ lvl: 'warn', text: `Urlaub ${u.wer || '?'}: „${u.von || ''}“ – „${u.bis || ''}“ ist kein gültiges Datum – bitte prüfen` });
   for (const v of C.vac) if (v.tooLong && (ymd(v.von)[0] === y || ymd(v.bis)[0] === y))
@@ -494,7 +497,7 @@ function commit(fn, msg) {
   }
   const after = JSON.stringify(D);
   if (before === after) return false;
-  UNDO.push(before); if (UNDO.length > 100) UNDO.shift();
+  UNDO.push(before); while (UNDO.length > 100 || (UNDO.length > 20 && UNDO.length * before.length > 40e6)) UNDO.shift();   // höchstens ~40 MB (viele Spenden-Zuordnungen)
   REDO.length = 0;
   changed();
   if (msg) toast(msg);

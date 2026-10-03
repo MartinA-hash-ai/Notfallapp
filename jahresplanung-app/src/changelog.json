@@ -1,7 +1,20 @@
 [
   {
-    "version": "0.12.4",
+    "version": "0.12.5",
     "date": "",
+    "items": [
+      "Spenden: liegen zugeordnete Spenden vor dem PAL (z. B. weil der PAL nachträglich geändert wurde), erscheint ein Hinweis mit „Diese … lösen“; außerdem ein Eintrag in der Hinweisliste oben",
+      "Zahlen deutsch eingeben: Auflage und Kosten (Übersicht, Maßnahmen-Tabelle, Bearbeiten-Dialog) verstehen „1.500“ und „1.234,50“ – vorher wurde „1.500“ zu 2 und „1234,50“ zu 123.450",
+      "Spenden: der Reiter liest beim Öffnen und beim Zurückkehren ins Fenster neu ein (neue Exporte sofort sichtbar)",
+      "Regeln: ohne PAL macht eine Regel keine Vorschläge (sonst über alle Jahre); das Ende des Zeitraums kann nicht mehr vor dem Beginn liegen",
+      "Mehr als 200 Spenden auf einmal nach „Prüfen“ erst nach Rückfrage; Zeilen ohne lesbares Datum/Betrag werden im Datei-Hinweis gemeldet",
+      "Zusammenführen: keine Rückfragen mehr zu abgelehnten Vorschlägen und Vormerkungen – nur echte Zuordnungskonflikte",
+      "Kopie einer Maßnahme ohne Kosten; Rückgängig-Verlauf begrenzt den Speicher bei sehr vielen Zuordnungen"
+    ]
+  },
+  {
+    "version": "0.12.4",
+    "date": "2026-10-03T18:41",
     "items": [
       "Regel: Häkchen „Daueraufträge ausschließen“ – die Regel schlägt dann keine Daueraufträge vor",
       "Regel: Knopf „↻ Regel neu anwenden“ – holt Vorschläge zurück nach „Prüfen“, die (z. B. versehentlich mit „Alle zurück“) nach „Offen“ geschickt wurden",
