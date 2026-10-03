@@ -444,9 +444,8 @@ function spOverview(ms, cmp, mid, by) {
         cell(s.resp != null ? num1(s.resp) + ' %' : '–', rt(s.resp, R.resp)), cell(s.roi != null ? num1(s.roi) : '–', rt(s.roi, R.roi))))),
       tot.n ? h('tfoot', null, h('tr', null, h('td', null, 'Summe'), h('td'), cell(tot.auf ? tot.auf.toLocaleString('de-DE') : '–'), cell(tot.kos ? eur0(tot.kos * 100) : '–'), cell(eur0(tot.sum)), cell(tot.n),
         cell(eur(tot.sum / tot.n)), cell(tot.auf ? num1(tot.n / tot.auf * 100) + ' %' : '–'), cell(tot.kos ? num1(tot.sum / 100 / tot.kos) : '–'))) : null)),
-    h('p', { class: 'muted small' }, 'Responsequote = Anzahl Spenden ÷ Auflage' + (R.an ? ' (Richtwert ' + num1(R.resp[0]) + '–' + num1(R.resp[1]) + ' %)' : '') + '. ROI = Spendensumme ÷ Kosten, also Spenden je 1 € Kosten' +
-      (R.an ? ' (Richtwert ' + num1(R.roi[0]) + '–' + num1(R.roi[1]) + ')' : '') + '. Summen nur über Maßnahmen mit Spenden. Auflage und Kosten hier direkt eintragen. Zeile anklicken wählt die Maßnahme.'),
-    ids.length >= 2 ? [h('h3', null, 'Rücklauf im Vergleich (kumuliert, Tage nach PAL)'), h('div', { class: 'sp-chart', dataset: { chart: 'cmp', ids: ids.join(',') } })] : null];
+    ids.length >= 2 ? h('div', { class: 'sp-cmpbox' }, h('button', { class: 'link sp-cmptog', 'aria-expanded': String(!!UI.spCmp), onclick: () => { UI.spCmp = !UI.spCmp; renderNow(); } },
+      (UI.spCmp ? '▾ ' : '▸ ') + 'Rücklauf im Vergleich (kumuliert, Tage nach PAL)'), UI.spCmp ? h('div', { class: 'sp-chart', dataset: { chart: 'cmp', ids: ids.join(',') } }) : null) : null];
 }
 const SP_UCOLS = [{ k: 'name', w: 240, t: 'Maßnahme' }, { k: 'pal', w: 104, t: 'PAL' }, { k: 'auf', w: 104, t: 'Auflage' }, { k: 'kos', w: 112, t: 'Kosten' }, { k: 'sum', w: 130, t: 'Spendensumme' },
   { k: 'n', w: 84, t: 'Anzahl' }, { k: 'avg', w: 112, t: 'Ø-Spende' }, { k: 'resp', w: 124, t: 'Responsequote' }, { k: 'roi', w: 80, t: 'ROI' }];
@@ -548,6 +547,7 @@ function spAssign(x, cmp) {
   const act = { l: 'stage', m: 'assign', r: 'unassign' };
   const ctl = {
     click: (e, c, k) => {
+      if (c === 'l' && !e.shiftKey && !e.ctrlKey && !e.metaKey) { if (e.detail < 2) spMove([k], 'stage', mid); return; }   // zweiter Klick eines Doppelklicks trifft sonst die nächste Zeile
       const sel = SPUI.sel[c], ord = SPUI.order[c];
       if (e.shiftKey && SPUI.last[c] && ord.includes(SPUI.last[c])) { const [a, b] = [ord.indexOf(SPUI.last[c]), ord.indexOf(k)].sort((p, q) => p - q); for (let i = a; i <= b; i++) sel.add(ord[i]); }
       else if (sel.has(k)) sel.delete(k); else sel.add(k);
@@ -555,16 +555,16 @@ function spAssign(x, cmp) {
       for (const el of $$('.sp-row', lists[c])) el.classList.toggle('sel', sel.has(el.dataset.k));
       sync();
     },
-    dbl: (c, k) => spMove([k], act[c], mid),
+    dbl: (c, k) => { if (c !== 'l') spMove([k], act[c], mid); },
   };
   const list = (c, empty) => {
     const box = lists[c] = h('div', { class: 'sp-list', 'data-keep-scroll': 'sp-' + c });
     put(box, cols[c].slice(0, SP_MAX).map(r => spRow(r, c, cmp, mid, ctl)));
     if (cols[c].length > SP_MAX) box.append(h('div', { class: 'sp-more muted small' }, '… und ' + (cols[c].length - SP_MAX).toLocaleString('de-DE') + ' weitere' + (c === 'l' ? ' – Filter eingrenzen' : '')));
-    if (!cols[c].length) box.append(h('div', { class: 'sp-empty muted small' }, empty));
+    if (!cols[c].length && empty) box.append(h('div', { class: 'sp-empty muted small' }, empty));
     return box;
   };
-  const head = (c, title, extra) => h('div', { class: 'sp-ch' }, h('b', null, title), h('span', { class: 'muted small' }, spCount(cols[c].length) + ' · ' + eur(sumOf(c)) + (extra || '')));
+  const head = (c, title, extra, right) => h('div', { class: 'sp-ch' }, h('b', null, title), h('span', { class: 'muted small' }, spCount(cols[c].length) + ' · ' + eur(sumOf(c)) + (extra || '')), right || null);
   let tq = null;
   const fset = (k, v, now) => { SPUI.f[k] = v; clearTimeout(tq); if (now) renderNow(); else tq = setTimeout(renderNow, 250); };
   btn.lSel = h('button', { onclick: () => spMove(SPUI.sel.l, 'stage', mid) });
@@ -579,11 +579,12 @@ function spAssign(x, cmp) {
     spRuleBar(x, cmp),
     spPreNotice(x, P.R),
     h('div', { class: 'sp-cols' + (UI.spDet ? ' det' : '') },
-      h('div', { class: 'sp-col' }, head('l', 'Offen', L.length !== P.L.length ? ' (gefiltert, ' + P.L.length.toLocaleString('de-DE') + ' offen insgesamt)' : ''),
-        !UI.spFilt ? h('div', { class: 'sp-filter closed' }, h('button', { class: 'link sp-ftog', onclick: () => { UI.spFilt = true; renderNow(); } }, 'Filter ▸'),
+      h('div', { class: 'sp-col' }, head('l', 'Offen', L.length !== P.L.length ? ' (gefiltert, ' + P.L.length.toLocaleString('de-DE') + ' offen insgesamt)' : '',
+          h('button', { class: 'link sp-ftog', 'aria-expanded': String(!!UI.spFilt), onclick: () => { UI.spFilt = !UI.spFilt; renderNow(); } }, UI.spFilt ? 'Filter ▾' : 'Filter ▸')),
+        !UI.spFilt ? h('div', { class: 'sp-filter closed' },
           h('span', { class: 'muted small' }, [f.von || f.bis ? (f.von ? 'ab ' + fmtD(dn(f.von)) : '') + (f.bis ? ' bis ' + fmtD(dn(f.bis)) : '') : 'alle Daten',
             f.q.trim() ? ' · Suche „' + f.q.trim() + '“' : '', UI.spHideDA ? ' · ohne Daueraufträge' : ''].join(''))) :
-        h('div', { class: 'sp-filter' }, h('button', { class: 'link sp-ftog', onclick: () => { UI.spFilt = false; renderNow(); } }, 'Filter ▾'),
+        h('div', { class: 'sp-filter' },
           h('input', { type: 'search', class: 'sp-q', placeholder: 'suchen (Verwendungszweck, Name …)', value: f.q, 'data-fk': 'sp-q', oninput: e => fset('q', e.target.value) }),
           dateInput(f.von, 'sp-fvon', v => fset('von', v, true)), '–', dateInput(f.bis, 'sp-fbis', v => fset('bis', v, true)),
           h('label', { class: 'check small sp-da', tip: 'Daueraufträge (laut Buchungstext) in „Offen“ nicht anzeigen' + (nDA ? ' – gerade ' + nDA + ' ausgeblendet' : '') },
@@ -591,15 +592,14 @@ function spAssign(x, cmp) {
           h('button', { class: 'link', disabled: !f.q.trim(), tip: 'Suchbegriff als Schlagwort in die Regel übernehmen – passende Spenden (auch künftige) landen dann automatisch in „Prüfen“', onclick: () => { const w = f.q; SPUI.f.q = ''; spAddWord(mid, w); } }, 'als Regel übernehmen')),
         list('l', ST.conn !== 'ok' ? 'Mailing-Ordner nicht verbunden.' : !SP.rows.length ? 'Noch keine Buchungen eingelesen.' : 'Keine offene Spende im Filter.'),
         h('div', { class: 'sp-cf' }, btn.lSel, btn.lAll)),
-      h('div', { class: 'sp-col mid' }, head('m', 'Prüfen'),
-        h('div', { class: 'sp-hint muted small' }, 'Vorschläge der Regel und von Hand gewählte Spenden. Erst „zuordnen“ zählt sie für die Maßnahme.'),
-        list('m', 'Hier landen Spenden, die zur Regel passen oder die du links markierst und mit „→ Prüfen“ herüberholst.'),
+      h('div', { class: 'sp-col mid', 'aria-label': 'Prüfen' }, h('div', { class: 'sp-ch' }), h('div'),
+        list('m', ''),
         h('div', { class: 'sp-cf' }, btn.mAllBack, btn.mBack, btn.mSel, btn.mAll)),
       h('div', { class: 'sp-col' }, head('r', 'Zugeordnet'),
         h('div', { class: 'sp-hint muted small' }, 'Diese Spenden zählen für die Maßnahme.'),
         list('r', 'Noch nichts zugeordnet.'),
         h('div', { class: 'sp-cf' }, btn.rBack))),
-    h('p', { class: 'muted small' }, 'Klick markiert, Umschalt+Klick markiert einen Bereich, Doppelklick schiebt eine Spende einen Schritt weiter (rechts: zurück in „Prüfen“). Alles lässt sich mit Strg+Z rückgängig machen.'));
+    h('p', { class: 'muted small' }, 'Klick auf eine offene Spende schiebt sie in die Mitte zum Prüfen; Strg+Klick oder Umschalt+Klick markiert mehrere. In der Mitte und rechts: Klick markiert, Doppelklick schiebt einen Schritt weiter (rechts: zurück in die Mitte). Alles lässt sich mit Strg+Z rückgängig machen.'));
   sync();
   return { body: box, tools: h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen') };
 }

@@ -118,7 +118,7 @@ function dateBounds(v) {
   return [lo, hi];
 }
 function dateProblem(el) {                    // null = in Ordnung; sonst der Grund
-  if (el.validity && el.validity.badInput) return 'Datum unvollständig';
+  if (el.validity && el.validity.badInput) return 'Dieses Datum gibt es nicht (z. B. 31.06. – der Juni hat 30 Tage) oder es ist unvollständig';
   const v = el.value; if (!v) return null;
   const y = parseInt(v, 10), lo = parseInt(el.min, 10) || 2000, hi = parseInt(el.max, 10) || 2099;
   if (dn(v) == null || y < lo || y > hi) return 'Das Jahr ' + y + ' liegt außerhalb von ' + lo + '–' + hi;

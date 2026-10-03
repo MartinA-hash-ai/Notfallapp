@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.12.5",
+    "version": "0.12.6",
     "date": "",
+    "items": [
+      "Zuordnen: ein Klick auf eine offene Spende schiebt sie sofort in die Mitte zum Prüfen (Strg+Klick oder Umschalt+Klick markiert mehrere)",
+      "„Filter ▸“ steht oben rechts im Kasten „Offen“",
+      "Die mittlere Spalte (Prüfen) kommt ohne Überschrift und Erklärtexte aus",
+      "Übersicht: „Rücklauf im Vergleich“ zum Ausklappen; die Erklärzeile zu Responsequote und ROI entfällt",
+      "Datumsfelder: statt „Datum unvollständig“ heißt es jetzt „Dieses Datum gibt es nicht (z. B. 31.06.) oder es ist unvollständig“"
+    ]
+  },
+  {
+    "version": "0.12.5",
+    "date": "2026-10-03T19:12",
     "items": [
       "Spenden: liegen zugeordnete Spenden vor dem PAL (z. B. weil der PAL nachträglich geändert wurde), erscheint ein Hinweis mit „Diese … lösen“; außerdem ein Eintrag in der Hinweisliste oben",
       "Zahlen deutsch eingeben: Auflage und Kosten (Übersicht, Maßnahmen-Tabelle, Bearbeiten-Dialog) verstehen „1.500“ und „1.234,50“ – vorher wurde „1.500“ zu 2 und „1234,50“ zu 123.450",
