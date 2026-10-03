@@ -1,0 +1,464 @@
+[
+  {
+    "version": "0.12.6",
+    "date": "",
+    "items": [
+      "Zuordnen: ein Klick auf eine offene Spende schiebt sie sofort in die Mitte zum Prüfen (Strg+Klick oder Umschalt+Klick markiert mehrere)",
+      "„Filter ▸“ steht oben rechts im Kasten „Offen“",
+      "Die mittlere Spalte (Prüfen) kommt ohne Überschrift und Erklärtexte aus",
+      "Übersicht: „Rücklauf im Vergleich“ zum Ausklappen; die Erklärzeile zu Responsequote und ROI entfällt",
+      "Datumsfelder: statt „Datum unvollständig“ heißt es jetzt „Dieses Datum gibt es nicht (z. B. 31.06.) oder es ist unvollständig“"
+    ]
+  },
+  {
+    "version": "0.12.5",
+    "date": "2026-10-03T19:12",
+    "items": [
+      "Spenden: liegen zugeordnete Spenden vor dem PAL (z. B. weil der PAL nachträglich geändert wurde), erscheint ein Hinweis mit „Diese … lösen“; außerdem ein Eintrag in der Hinweisliste oben",
+      "Zahlen deutsch eingeben: Auflage und Kosten (Übersicht, Maßnahmen-Tabelle, Bearbeiten-Dialog) verstehen „1.500“ und „1.234,50“ – vorher wurde „1.500“ zu 2 und „1234,50“ zu 123.450",
+      "Spenden: der Reiter liest beim Öffnen und beim Zurückkehren ins Fenster neu ein (neue Exporte sofort sichtbar)",
+      "Regeln: ohne PAL macht eine Regel keine Vorschläge (sonst über alle Jahre); das Ende des Zeitraums kann nicht mehr vor dem Beginn liegen",
+      "Mehr als 200 Spenden auf einmal nach „Prüfen“ erst nach Rückfrage; Zeilen ohne lesbares Datum/Betrag werden im Datei-Hinweis gemeldet",
+      "Zusammenführen: keine Rückfragen mehr zu abgelehnten Vorschlägen und Vormerkungen – nur echte Zuordnungskonflikte",
+      "Kopie einer Maßnahme ohne Kosten; Rückgängig-Verlauf begrenzt den Speicher bei sehr vielen Zuordnungen"
+    ]
+  },
+  {
+    "version": "0.12.4",
+    "date": "2026-10-03T18:41",
+    "items": [
+      "Regel: Häkchen „Daueraufträge ausschließen“ – die Regel schlägt dann keine Daueraufträge vor",
+      "Regel: Knopf „↻ Regel neu anwenden“ – holt Vorschläge zurück nach „Prüfen“, die (z. B. versehentlich mit „Alle zurück“) nach „Offen“ geschickt wurden",
+      "„Offen“: Suche, Zeitraum und „Daueraufträge ausblenden“ sind eingeklappt („Filter ▸“); eine Zeile zeigt, was gerade gilt",
+      "Übersicht: Spaltenbreiten lassen sich ziehen (wie in der Jahresplanung), Doppelklick setzt zurück",
+      "Kennzahlen: Namen größer und fett; darunter eine Zeile „Erlös“ (Spenden minus Kosten) – grün, bei Verlust rot"
+    ]
+  },
+  {
+    "version": "0.12.3",
+    "date": "2026-10-03T17:55",
+    "items": [
+      "Spenden: der Bereich der Maßnahme (Name, Kennzahlen, Grafiken) lässt sich ein- und ausklappen",
+      "Grafiken: Wochenenden grau hinterlegt; das P am PAL ist grau statt rot",
+      "Richtwerte sind ausgeblendet; unter ⋯ → Einstellungen → „Spenden: Richtwerte“ lassen sie sich einschalten und anpassen",
+      "Übersicht ohne Spalte „in Prüfung“",
+      "Zuordnen: die drei Listen beginnen auf derselben Höhe, die Knöpfe stehen unten bündig; „Daueraufträge ausblenden“ als Häkchen; Betragsfilter entfernt"
+    ]
+  },
+  {
+    "version": "0.12.2",
+    "date": "2026-10-03T17:10",
+    "items": [
+      "Spenden: der Kasten unter der Übersicht zeigt groß den Namen der gewählten Maßnahme in ihrer Farbe – Auswahl, PAL, Auflage und Kosten stehen nur noch in der Übersicht (Maßnahme per Klick auf die Zeile wählen, Auflage und Kosten direkt dort eintragen)",
+      "Zuordnen beginnt am PAL: der Filter „von“ steht immer auf dem PAL der Maßnahme (auch nach einer PAL-Änderung)",
+      "Die Grafiken beginnen am PAL; eine Spende vor dem PAL verlängert sie nicht mehr, sondern steht als „inkl. … vor dem PAL“ dabei und ist in den Listen markiert",
+      "„Offen“: Knopf „Daueraufträge ausblenden“"
+    ]
+  },
+  {
+    "version": "0.12.1",
+    "date": "2026-10-03T16:49",
+    "items": [
+      "Keine „überfällig“-Hinweise mehr: Termine werden nicht mit dem heutigen Datum verglichen (auch nicht in „Was steht an?“)",
+      "Spenden: der Verwendungszweck steht immer in jeder Zeile; Namen auf Wunsch („Namen zeigen“). Daueraufträge bleiben in der Liste und sind farbig markiert",
+      "Spenden: in „Prüfen“ schickt „← Alle zurück“ alles auf einmal zurück zu „Offen“ (ohne vorher zu markieren; Strg+Z holt es zurück)",
+      "Spenden: Kennzahlen als 2×2 (Spendensumme, Ø-Spende, darunter Responsequote und ROI); rechts daneben die Zeitspanne der Eingänge (Summe aufaddiert) und die Spenden pro Tag. Nettoertrag, „In Prüfung“ und der Abschnitt „Verlauf“ entfallen"
+    ]
+  },
+  {
+    "version": "0.12",
+    "date": "2026-10-03T16:04",
+    "items": [
+      "Neuer Reiter „Spenden (Beta)“: Spendeneingänge den Maßnahmen zuordnen und auswerten",
+      "Exporte (CSV oder Excel) einfach in den Ordner „Spendeneingänge …“ im Mailing-Ordner legen, über „+ Datei hinzufügen“ ablegen oder in den Reiter ziehen; die App liest sie beim Öffnen, beim Zurückkehren ins Fenster, alle zwei Minuten und auf Knopfdruck. Buchungen aus überlappenden Exporten zählen nur einmal; Abbuchungen werden übergangen",
+      "Drei Spalten: links offene Spenden (mit Suche, Zeitraum, Mindestbetrag), in der Mitte „Prüfen“, rechts die zugeordneten. Erst „zuordnen“ zählt eine Spende für die Maßnahme",
+      "Regel je Maßnahme: Schlagworte im Verwendungszweck (z. B. „JB“) und ein Zeitraum ab PAL – passende Spenden landen automatisch in „Prüfen“, auch aus später hinzugefügten Exporten; abgelehnte Vorschläge kommen nicht wieder. Der Reiter zeigt, wie viele Spenden auf Prüfung warten",
+      "Kennzahlen je Maßnahme: Spendensumme, Anzahl, Ø-Spende und Median, Responsequote, ROI (mit Richtwerten), Nettoertrag – Kosten neu an der Maßnahme (auch im Bearbeiten-Dialog). Übersichtstabelle aller Maßnahmen des Jahres wie in der Mailing-Übersicht",
+      "Verlauf: Spendeneingänge je Woche und kumuliert ab dem PAL, Vergleich der Rückläufe aller Maßnahmen (Tage nach PAL), Wochenwerte als Tabelle",
+      "Datenschutz: In der Planungsdatei stehen nur Zuordnung, Datum und Betrag – Namen, IBAN und Verwendungszweck bleiben in den Exporten im Ordner"
+    ]
+  },
+  {
+    "version": "0.11.3",
+    "date": "2026-10-03T14:47",
+    "items": [
+      "Urlaub / Abwesenheit: im Kalendarium sind gespeicherte Tage der gewählten Person jetzt markiert statt gesperrt – anklicken (oder darüberziehen) nimmt sie heraus, gestrichelt bis zum Speichern; unten stehen die Änderungen je Person (neu / entfernt). Notizen bestehender Einträge bleiben erhalten"
+    ]
+  },
+  {
+    "version": "0.11.2",
+    "date": "2026-10-03T14:00",
+    "items": [
+      "Urlaub / Abwesenheit eintragen: die anderen Personen verschwinden beim Wechseln nicht, sondern stehen als blasse Striche in ihrer Farbe im Hintergrund – schon gespeicherte Einträge und gerade markierte Tage; Maus darauf zeigt, wer"
+    ]
+  },
+  {
+    "version": "0.11.1",
+    "date": "2026-10-03T13:14",
+    "items": [
+      "Urlaub / Abwesenheit eintragen: alle zwölf Monate auf einen Blick (Jahr umschaltbar)",
+      "Jede Markierung behält die Person und Art, die beim Markieren eingestellt war – man kann nacheinander Urlaub und Abwesenheiten für mehrere Personen markieren und alles auf einmal speichern; unten steht je Person und Art eine Zusammenfassung"
+    ]
+  },
+  {
+    "version": "0.11",
+    "date": "2026-10-03T12:37",
+    "items": [
+      "Detailplan: das P neben „PAL“ im Kopf ist rot (wie in Tabelle und Gantt)",
+      "Feste Dauer: im ⋯-Menü einer Aufgabe „Dauer festlegen (fix)“ – kleines Schloss neben der Dauer; solche Aufgaben bleiben beim anteiligen Anpassen unverändert",
+      "Bereichsstart verschieben (Zeitleiste, Kalender, Kopf des Detailplans): das Ende des Abschnitts bleibt, alle Schritte darin werden anteilig kürzer bzw. länger – Dauern und Abstände, feste Dauern ausgenommen",
+      "Warnung nach dem PAL: zusätzlich „Auf den PAL stauchen“ – Beginn und PAL bleiben, die Schritte dazwischen werden anteilig kürzer",
+      "Urlaub / Abwesenheit: neuer Dialog mit Kalendarium – Person aus den Einstellungen, Urlaub oder Abwesenheit, Tage anklicken oder Zeiträume ziehen (mehrere auf einmal), schon belegte Tage sind gesperrt; Knopf „+ neuen Urlaub eintragen“ oben rechts in der Karte",
+      "Abwesenheiten erscheinen gestreift (Übersicht, Kalender, Zeitleiste); in der Liste lässt sich die Art umstellen; Excel und Outlook-Export nennen die Art"
+    ]
+  },
+  {
+    "version": "0.10.2",
+    "date": "2026-10-02T15:28",
+    "items": [
+      "Detailplan: mit Strg gesetzte Verknüpfungen dürfen jetzt auch über Abschnitte gehen (z. B. Ende „Selektion abgeschlossen“ → Beginn „Thema definieren“) – dann wandert der Inhalt mit der Selektion; Kreise und der Briefkasten-Termin bleiben ausgeschlossen",
+      "Bereichsstart verschieben: der Ausgleich (längster mitwandernder Schritt) bleibt im eigenen Abschnitt",
+      "Alte, unsichtbare Verknüpfungen über Abschnitte (aus Vorlagen und älteren Versionen) werden weiterhin gelöst, die Termine bleiben"
+    ]
+  },
+  {
+    "version": "0.10.1",
+    "date": "2026-10-02T15:00",
+    "items": [
+      "Detailplan-Gantt: Strg+Klick auf einen Punkt (Gelenk) löst die Verknüpfung – hängt dort nur eine, sofort; bei mehreren erscheint direkt an der Stelle eine Auswahl. Strg + Ziehen legt wie bisher eine Verknüpfung an",
+      "Solange Strg gedrückt ist, treten die Punkte im Gantt in der Farbe der Maßnahme hervor",
+      "Strg+Klick auf ein verknüpftes Datum in der Tabelle: bei nur einer Verknüpfung wird sie gleich gelöst; die Meldung nennt beide Schritte (Strg+Z macht es rückgängig)"
+    ]
+  },
+  {
+    "version": "0.10",
+    "date": "2026-10-02T13:28",
+    "items": [
+      "Detailplan: Verknüpfungen laufen jetzt vorwärts – der Beginn eines Schritts hängt am Ende seiner Vorgänger; ein Ende kann beliebig viele Anfänge haben, ein Beginn mehrere Vorgänger (es zählt das späteste Ende). Wird ein Schritt länger oder rückt er, wandert alles danach mit",
+      "Verknüpfen mit Strg: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; dabei bleiben nur die passenden Daten sichtbar (selber Abschnitt, kein Kreis). Strg+Klick auf ein verknüpftes Datum löst eine Verknüpfung",
+      "Anzeige: im Gantt kleine Gelenke an jeder Verknüpfung, in der Tabelle Kalendersymbole in der Farbe der Maßnahme; beim Hinzeigen bleibt nur das verbundene Datum farbig",
+      "Warnung, wenn ein Schritt eines Bereichs nach dem PAL endet – mit „Alles vor den PAL rücken“: der PAL und die Dauern bleiben, die Kette davor rückt nach vorn",
+      "Dauer ändern hält jetzt den Beginn fest, das Ende wandert (vorher umgekehrt)",
+      "Bestehende Pläne werden beim Öffnen umgestellt, alle Termine bleiben gleich"
+    ]
+  },
+  {
+    "version": "0.9.7",
+    "date": "2026-10-02T10:23",
+    "items": [
+      "Detailplan: Abschnitte sind unabhängig – wer einen Schritt oder Abschnitt verschiebt, nimmt keine Schritte anderer Abschnitte mehr mit; innerhalb eines Abschnitts wandern verknüpfte Schritte weiter mit, der PAL verschiebt weiterhin alles",
+      "Bestehende Verknüpfungen über Abschnitte hinweg (z. B. Inhalt hängt an der Selektion) werden beim Laden am PAL festgemacht – alle Termine bleiben, wie sie sind",
+      "Hinweis am Balken zeigt, woran der Schritt hängt und welche Schritte an ihm hängen"
+    ]
+  },
+  {
+    "version": "0.9.6",
+    "date": "2026-09-30T17:04",
+    "items": [
+      "Detailplan-Gantt: der Briefkasten-Termin ist ein rotes P statt der Raute (in der Tabelle ebenfalls rot); ziehen verschiebt das PAL und den ganzen Plan – die Balken wandern schon beim Ziehen mit",
+      "PAL verschieben (Detailplan, Kalender, Zeitleiste) nimmt jetzt auch Schritte mit festem Datum mit",
+      "Gantts: Aufgaben laufen von Tagesmitte zu Tagesmitte – Meilensteine, PAL-Linie und Balkenenden liegen genau übereinander (Detailplan, PDF, aufgeklappte Pläne in der Zeitleiste)",
+      "Ziel und Meilenstein zusammengelegt: alle Ziele werden Meilensteine; „Ziel“ (rot) steht nur noch beim Briefkasten-Termin"
+    ]
+  },
+  {
+    "version": "0.9.5",
+    "date": "2026-09-30T16:06",
+    "items": [
+      "Kalender: die Linie eines Abschnitts endet spätestens am PAL – auch wenn ein Schritt darin später endet",
+      "Detailplan: in der Zeile „Briefkasten-Termin“ steht rechts neben dem Schloss das P des PAL"
+    ]
+  },
+  {
+    "version": "0.9.4",
+    "date": "2026-09-30T15:59",
+    "items": [
+      "Kalender: ohne Detailplan läuft die Linie eines Abschnitts bis zum PAL (bzw. bis zum eingetragenen Ende) statt nur bis zum Start des nächsten Bereichs"
+    ]
+  },
+  {
+    "version": "0.9.3",
+    "date": "2026-09-30T15:44",
+    "items": [
+      "Kalender: ist der letzte angezeigte Termin einer Maßnahme nicht der PAL (z. B. nur „D“ eingeblendet), läuft die Linie bis zum Ende dieses Abschnitts weiter – mit kleinem Endstrich; so sieht man, wie lange der Bereich dauert (Ende laut Detailplan, sonst bis zum nächsten Start bzw. PAL)"
+    ]
+  },
+  {
+    "version": "0.9.2",
+    "date": "2026-09-30T15:10",
+    "items": [
+      "Kalender: ist eine Maßnahme angeklickt (festgehalten), blendet ein Klick auf einen Buchstaben in ihrer Terminzeile unter dem Monat diesen Bereich aus – wie die Knöpfe oben; ausgeblendete Buchstaben bleiben dort blass stehen und blenden per Klick wieder ein",
+      "Die Verbindungslinie beim Hervorheben berücksichtigt ausgeblendete Bereiche"
+    ]
+  },
+  {
+    "version": "0.9.1",
+    "date": "2026-09-30T14:51",
+    "items": [
+      "Kalender: „Bearbeiten“ öffnet den Detailplan der Maßnahme; gibt es noch keinen, das Fenster zum Anlegen (Einfach / Komplex / Kopie). Das Bearbeiten-Fenster gibt es weiter über ⋯ in der Maßnahmen-Tabelle",
+      "Start im Kalender oder in der Zeitleiste verschieben (Detailplan): reicht das Kürzen der Schritte nicht, fragt die App mit Begründung nach – „Nur bis …“ oder „Ganzen Abschnitt verschieben“ – statt nur zu warnen",
+      "Detailplan: der Briefkasten-Termin ist wieder eine normale Zeile im Abschnitt (kein eigener Abschnitt), rot, nicht fett; das Datum ist fest (Schloss) und die Raute im Gantt lässt sich nicht ziehen – das PAL ändert man im Kopf oder in der Tabelle"
+    ]
+  },
+  {
+    "version": "0.9",
+    "date": "2026-09-30T14:34",
+    "items": [
+      "Namensfelder (Detailplan, Hauptverantwortlich, Urlaub): ein Klick zeigt immer alle Personen – auch wenn schon ein Name eingetragen ist; Tippen filtert, „– niemand“ leert das Feld, ein neuer Name wird mit Enter als Person angelegt",
+      "Detailplan: ganzen Abschnitt verschieben – den grauen Abschnittsbalken im Gantt ziehen oder im ⋯-Menü „Abschnitt verschieben …“; alle Schritte darin wandern mit",
+      "Detailplan: der Briefkasten-Termin (PAL) ist immer ein eigener Abschnitt und rot hervorgehoben; er hängt fest am PAL (Datum dort ändern oder Raute ziehen = PAL verschieben) und lässt sich nicht löschen. Bestehende Pläne wurden automatisch umgestellt",
+      "Detailplan: Hinweise an den Balken ohne „Ziehen = …“ und mit Werktagen statt Tagen; beim Ziehen gibt es nur noch ein (helles) Fenster",
+      "Maßnahmen-Tabelle: Spalte heißt jetzt „Spendenbitte“, mit dezentem Auswahlpfeil (auch in PDF und Excel)",
+      "Vergleich mit einer Konfliktkopie: ältere Kopien werden vorher auf den aktuellen Aufbau gebracht, damit keine scheinbaren Unterschiede auftauchen"
+    ]
+  },
+  {
+    "version": "0.8.11",
+    "date": "2026-09-30T13:48",
+    "items": [
+      "Kopfzeile bei kleinerem Fenster: oben Logo, Titel, Jahr und die Knöpfe, die Reiter (Jahresplanung … Urlaub & Feiertage) in einer eigenen zweiten Zeile; bei breitem Fenster wie bisher alles in einer Zeile"
+    ]
+  },
+  {
+    "version": "0.8.10",
+    "date": "2026-09-30T13:37",
+    "items": [
+      "PDF Maßnahmen-Übersicht: bei den Starts oben das Datum, darunter klein die Werktage bis zum PAL",
+      "PDF Kalender: passt auf eine Seite – schmaler Kopf ohne Logo, kompaktere Terminlisten; bei sehr vielen Terminen wird der Kalender automatisch etwas verkleinert"
+    ]
+  },
+  {
+    "version": "0.8.9",
+    "date": "2026-09-30T12:26",
+    "items": [
+      "Häkchen „anzeigen“: wird die letzte angehakte Maßnahme abgewählt, sind wieder alle angehakt",
+      "Klick auf eine Maßnahme im Kalender wählt vorübergehend nur diese aus – die Tabelle zeigt dann nur bei ihr ein Häkchen; wird sie im Kalender wieder gelöst (Klick daneben oder Esc), gilt wieder die vorherige Auswahl. Ein Häkchen-Klick in der Zeit übernimmt „nur diese“ als Ausgangspunkt"
+    ]
+  },
+  {
+    "version": "0.8.8",
+    "date": "2026-09-30T12:16",
+    "items": [
+      "Kalender: der Hinweis an den Kästchen ist einfacher – je Termin eine Zeile, z. B. „S Start Selektion: Fr 02.04.2027 · 53 WT“ (gilt auch in der Zeitleiste)",
+      "Häkchen „anzeigen“ bei den Maßnahmen: sind alle angehakt, bleibt nach einem Klick nur diese Maßnahme angehakt; sind alle aus, wird nur die angeklickte angehakt; sonst wird sie umgeschaltet. Strg+Klick schaltet immer nur diese eine um. Gleich in der Seitenleiste und im Filter der Zeitleiste"
+    ]
+  },
+  {
+    "version": "0.8.7",
+    "date": "2026-09-30T12:09",
+    "items": [
+      "Detailplan: in der Abschnittszeile läuft der Text der Bereichsauswahl (z. B. „– ohne Bereich“) nicht mehr unter den Pfeil"
+    ]
+  },
+  {
+    "version": "0.8.6",
+    "date": "2026-09-30T11:28",
+    "items": [
+      "PDF-Export von Detailplänen: die Tabelle links wird nur noch eingeklappt, wenn sie in der Ansicht eingeklappt ist – sonst kommen alle Spalten mit ins PDF. „Wie aktuelle Ansicht“ übernimmt auch eingeklappte Abschnitte",
+      "Neues Häkchen im PDF-Fenster: „Detailpläne: nur Arbeitsschritte (Tabelle eingeklappt, Gantt breiter)“ – vorbelegt wie die aktuelle Ansicht",
+      "PDF mit voller Tabelle: schmalere Spalten, Gantt passt vollständig aufs Blatt, Auswahlfelder ohne Pfeile, PAL ohne Rahmen"
+    ]
+  },
+  {
+    "version": "0.8.5",
+    "date": "2026-09-30T11:20",
+    "items": [
+      "Maßnahmen-Tabelle in der Werktage-Ansicht: Spaltenköpfe „Zeit bis PAL für“ / „Selektion“ (bzw. Inhalt, Produktion)",
+      "Leere Datumsfelder in der Maßnahmen-Tabelle zeigen einen hellgrauen Strich mit dezentem Kalendersymbol statt „tt.mm.jjjj“; Klick auf den Strich öffnet das Feld zum Eintippen, Klick aufs Symbol die Datumsauswahl",
+      "Kalendersymbole in der Maßnahmen-Tabelle dezenter (beim Darüberfahren deutlicher)"
+    ]
+  },
+  {
+    "version": "0.8.4",
+    "date": "2026-09-30T11:05",
+    "items": [
+      "Detailplan: das Zeichen des Bereichs (z. B. S, I, D, X) steht jetzt in der Abschnittszeile statt am ersten Arbeitsschritt; die Auswahl daneben zeigt nur noch den Namen",
+      "Detailplan-Gantt: alle Abschnittsbalken wieder einheitlich grau – auch bei neuen Bereichen oder einer eigenen Linie (die Linien-Einstellung gilt für Kalender und Zeitleiste)",
+      "„+ Aufgabe“ und „+ Abschnitt“ ganz hellgrau, damit sie in den Hintergrund treten (beim Darüberfahren dunkler)"
+    ]
+  },
+  {
+    "version": "0.8.3",
+    "date": "2026-09-30T10:20",
+    "items": [
+      "Einstellungen „Bereiche und Markierungen“: je Bereich zusätzlich die Linie wählbar – abgestuft (wie bisher, von hell nach kräftig), pastell, kräftig, gestreift oder nur Rahmen, mit Vorschau",
+      "Die Linie gilt für die Verbindungslinie im Kalender (auch in der Verbund-Darstellung), die Balken der Bereiche in der Zeitleiste, die Abschnittsbalken im Detailplan-Gantt (Abschnitte ohne Bereich bleiben grau) sowie PDF und Excel-Zeitleiste"
+    ]
+  },
+  {
+    "version": "0.8.2",
+    "date": "2026-09-30T09:54",
+    "items": [
+      "Maßnahmen-Tabelle: Schalter „Datum – Werktage“ dezenter und heller; Werktage-Felder ohne Pfeile – eintippen oder ins Feld klicken und mit dem Mausrad hoch/runter",
+      "Detailplan-Kopf neu geordnet: oben Name und PAL, die Legende oben rechts; darunter die Starts der Bereiche. Die Knöpfe −/+/Zurücksetzen sind weg (Zoomen weiter mit dem Mausrad, ganz herausdrehen zeigt den ganzen Plan)",
+      "Detailplan-Tabelle: „+ Aufgabe“ (statt „+ neuer Arbeitsschritt“) legt ohne Fenster direkt eine neue Zeile an – Name ist markiert, einfach lostippen; im ⋯-Menü „Neue Aufgabe darunter“",
+      "Detailplan-Tabelle ruhiger: Griffe und Auswahlpfeile heller, Kopfzeile etwas dunkler, Kommentare hellgrau kursiv, Bereich am Abschnitt dezenter (der Abschnittsname hat mehr Platz), rechts erst die Anzahl der Schritte, dann der Zeitraum",
+      "Einstellungen „Bereiche und Markierungen“: Zeichen und Begriff je Bereich und für das PAL änderbar, weitere Bereiche mit eigenem Buchstaben; Aussehen je Markierung: pastell, kräftig, gestreift oder nur Rahmen – gilt im Kalender, in der Zeitleiste, in Tabellen, PDF und Excel. Voreinstellung wie bisher"
+    ]
+  },
+  {
+    "version": "0.8.1",
+    "date": "2026-09-30T08:55",
+    "items": [
+      "Maßnahmen-Tabelle: Spaltenköpfe zweizeilig („Start der“ / „Selektion“, „Start des“ / „Inhalts“, „Start der“ / „Produktion“), Köpfe und Werte der Bereiche linksbündig",
+      "Die Spalten der Bereiche sind grau hinterlegt und durch Striche getrennt; darüber sitzt ein Schalter „Datum – Werktage“ (ersetzt den alten Umschalter oben rechts)",
+      "Spaltenbreite ziehen: es ändert sich nur die Nachbarspalte rechts, alle anderen bleiben stehen. Die Breiten bleiben nach Neustart und Programm-Update erhalten (je Rechner)",
+      "Detailplan anlegen: PAL ist Pflicht; die Starts der Bereiche wahlweise als Datum oder als Werktage bis zum PAL (das andere rechnet sich aus). Dann „Einfach“ (nur die Bereiche und PAL), „Komplex“ (Aufbau wie Sommer-/Weihnachtsmailing, ohne Personen) oder „Kopie aus vorherigem Plan“"
+    ]
+  },
+  {
+    "version": "0.8",
+    "date": "2026-09-29T17:06",
+    "items": [
+      "Bereiche: Selektion (S), Inhalt (I) und neu Produktion (D) bis zum PAL – überall im Programm (Tabelle, Kalender, Zeitleiste, Detailpläne, Was steht an?, Outlook, Excel, PDF). Weitere Bereiche mit eigenem Buchstaben lassen sich in den Einstellungen anlegen",
+      "Ein Bereich läuft von seinem Start bis zum nächsten Start (der letzte bis zum PAL); bei Bedarf mit eigenem Ende (Bearbeiten-Fenster) – bei Detailplänen ergibt sich der Zeitraum aus den Schritten des Abschnitts",
+      "Detailpläne: jeder Abschnitt wird einem Bereich zugeordnet; neue Vorlage „Bereiche“ (je Bereich ein Abschnitt, dann PAL). Sommer- und Weihnachtsmailing wurden automatisch umgestellt („Mailing“ geteilt in Inhalt und Produktion)",
+      "Maßnahmen-Tabelle: Umschalter „📅 Datum | ⏱ Werktage“ – die Starts als Datum oder als Werktage bis zum PAL (auch eintippen); 🏖-Hinweis, wenn jemand, der im Detailplan in diesem Bereich eingetragen ist, Urlaub hat",
+      "Kalender: Terminliste mit den Symbolen links und ohne Datum; „Bearbeiten“ steht nach einem Klick hinter den Zeilen der Maßnahme (nicht mehr unter der Markierung); die Verbindungslinie wird je Bereich kräftiger",
+      "Zeitleiste: je Bereich ein Balken mit Griff; überlappende Bereiche liegen übereinander",
+      "Wer arbeitet gerade? Anzeige „👥 Name“ in der Kopfzeile und ein Hinweis, wenn jemand anderes gerade ändert (über OneDrive, kann etwa eine Minute nachhinken)",
+      "Änderungsprotokoll: bei jedem Speichern wird festgehalten, wer was geändert hat (⋯ → Änderungsprotokoll, auch als Blatt „Änderungen“ in der Excel-Ansicht)",
+      "Datenprüfung: Auffälligkeiten (ungültige Daten, Leerzeichen in Namen, lose Verknüpfungen …) werden gemeldet und auf Knopfdruck repariert (⋯ → Daten prüfen)",
+      "Doppelklicks lösen nichts mehr doppelt aus (✕ löscht nur einen Eintrag, „+ Maßnahme“ legt eine an, Fenster bleiben offen)",
+      "Farbwahl im Bearbeiten-Fenster funktioniert; Menüs öffnen am unteren Rand nach oben; die Warnliste verdeckt bei 150 % Skalierung keine Knöpfe mehr",
+      "PDF: die Zeitleiste wird auf mehrere Seiten verteilt, jede Seite mit Monatsleiste"
+    ]
+  },
+  {
+    "version": "0.7",
+    "date": "2026-09-29T14:52",
+    "items": [
+      "Update-Schutz: Ein noch offenes Fenster mit älterer Version erkennt eine neuere Programmversion im Ordner, speichert nicht mehr und bittet um Neustart – das Update wird nicht mehr zurückgedreht",
+      "Speichern: klappt es einmal nicht (Datei kurz gesperrt), versucht die App es automatisch erneut und zeigt ehrlich „Nicht gespeichert“ an; die Excel-Ansicht wird ebenfalls nachgeholt",
+      "Gleichzeitiges Arbeiten: Konflikte lassen sich zusammenführen – Änderungen beider Seiten bleiben erhalten, nur bei echten Überschneidungen fragt die App",
+      "OneDrive-Konfliktkopien im Mailing-Ordner werden erkannt; Vergleichen, Übernehmen und Wegräumen per Knopf. Hinweis, wenn eine Kopie statt der Hauptdatei geöffnet ist",
+      "Startknopf öffnet immer die Hauptdatei (nicht mehr versehentlich eine Kopie)",
+      "Ungespeicherte Änderungen aus dem Browser gehen nicht mehr verloren, wenn inzwischen jemand anderes gespeichert hat – sie werden zusammengeführt",
+      "„Maßnahme bearbeiten“ überschreibt keine Änderungen anderer mehr (nur die im Fenster geänderten Felder werden übernommen)",
+      "Datumsfelder: nur vollständige Daten im Bereich Planungsjahr ± 5 Jahre; Tippfehler wie „20277“ oder „27“ werden abgewiesen, halb gelöschte Daten nicht mehr als „leer“ gespeichert",
+      "Warnungen bei unplausiblen Terminen (Start nach dem PAL, Termine Jahre vom PAL entfernt, extrem lange Urlaube); solche Werte bremsen die Ansichten nicht mehr aus",
+      "„Alle vorziehen“: erst PAL, dann Start Selektion/Inhalt – nichts landet mehr neu auf einem Wochenende; auch beim einzelnen PAL-Vorziehen",
+      "Ziehen im Kalender, in der Zeitleiste und im Detailplan: Rechtsklick, Esc oder Fensterwechsel brechen sauber ab (nichts bleibt „hängen“, nichts wird versehentlich verschoben)",
+      "Beschädigte Datei: die App startet nicht mehr leer, sondern sperrt das Speichern und bietet Wege zur Wiederherstellung an",
+      "Excel-Ansicht in Teams zeigt immer das Planungsjahr aus den Einstellungen – nicht das Jahr, das jemand gerade ansieht",
+      "Programm-Update warnt, wenn die gewählte Datei älter ist als die installierte Version",
+      "Strg+S in einem offenen Fenster öffnet keinen zweiten Dialog mehr; ein Fehler mitten in einer Änderung nimmt die Änderung vollständig zurück",
+      "Interne Tests liegen jetzt im Projekt (Ordner tests)"
+    ]
+  },
+  {
+    "version": "0.6.4",
+    "date": "2026-09-29T10:15",
+    "items": [
+      "Kalender: auch Klick auf P hält die Maßnahme hervorgehoben, „Bearbeiten“ erscheint darunter"
+    ]
+  },
+  {
+    "version": "0.6.3",
+    "date": "2026-09-28T17:10",
+    "items": [
+      "Kalender: Klick auf S oder I hält die Maßnahme hervorgehoben, „Bearbeiten“ erscheint direkt darunter (P öffnet weiterhin direkt)",
+      "Kalender: Verbindungslinie zweifarbig – vom ersten zum zweiten Termin heller, vom zweiten zum dritten kräftig (auch in der Verbund-Darstellung)",
+      "Startbildschirm: Malteser-Logo 50 % größer"
+    ]
+  },
+  {
+    "version": "0.6.2",
+    "date": "2026-09-28T17:00",
+    "items": [
+      "Kalender: Klick auf eine Zeile der Terminliste hält die Maßnahme hervorgehoben – daneben erscheint „Bearbeiten“; andere Maßnahmen lassen sich währenddessen per Maus hervorheben; Klick woanders (oder Esc) hebt die Auswahl auf"
+    ]
+  },
+  {
+    "version": "0.6.1",
+    "date": "2026-09-28T16:43",
+    "items": [
+      "Kalender: Terminliste unter den Monaten hebt nur noch hervor, wenn die Maus über der Schrift steht"
+    ]
+  },
+  {
+    "version": "0.6",
+    "date": "2026-09-28T16:21",
+    "items": [
+      "Dunkles Design: weißes Malteser-Logo (Kopfzeile und Startbildschirm)",
+      "Start Selektion und Start Inhalt lassen sich auch bei Maßnahmen mit Detailplan ziehen (Zeitleiste, Kalender) oder in der Tabelle eintippen – die Dauer der Arbeitsschritte davor passt sich an",
+      "Verbund-Darstellung: beim Überfahren nur noch eine, hervorgehobene Linie",
+      "Kalender: Monate deutlicher abgesetzt (Kopfleiste, Rahmen, eigene Fläche)",
+      "Feiertage zweispaltig – halb so hoch"
+    ]
+  },
+  {
+    "version": "0.5.2",
+    "date": "2026-09-28T15:51",
+    "items": [
+      "Warnung, wenn die geöffnete Datei und der Speicherort nicht zusammenpassen (zwei Kopien arbeiten aneinander vorbei), mit Knopf „Speicherort neu wählen“",
+      "Einstellungen zeigen, welche Datei geöffnet ist und in welchen Ordner gespeichert wird",
+      "Programm-Update erkennt diesen Fall auch, wenn die Kopie in einem Ordner „Jahresplanung…“ liegt"
+    ]
+  },
+  {
+    "version": "0.5.1",
+    "date": "2026-09-28T15:37",
+    "items": [
+      "Programm-Update: verbindet zuerst den Mailing-Ordner, prüft danach, ob die neue Version wirklich in der Datei steht, und meldet jeden Fehler mit Grund",
+      "Programm-Update: Ausweg „Aktualisierte Datei herunterladen“, falls das Speichern im Ordner nicht klappt",
+      "Programm-Update: Hinweis, wenn die App aus einem anderen Ordner geöffnet wurde als dem Mailing-Ordner"
+    ]
+  },
+  {
+    "version": "0.5",
+    "date": "2026-09-28T15:25",
+    "items": [
+      "Startbildschirm mit Animation in Malteser-Farben, Logo und Versionsnummer (abschaltbar in den Einstellungen, Klick überspringt)",
+      "Dunkles Design: Kästen heller abgesetzt, damit sie sich klar vom Hintergrund abheben",
+      "Warnungen: Knopf zeigt ✓, wenn nichts zu prüfen ist; Anzeige aktualisiert sich zuverlässig nach dem Freigeben des Ordners",
+      "Outlook-Export: Liste aller Termine, die in der Datei landen – passt sich der Auswahl an",
+      "Kalender: Verbund-Darstellung dauerhaft ein-/ausblendbar (auch im PDF)",
+      "Feiertage: kompaktere Tabelle ohne Erklärtexte"
+    ]
+  },
+  {
+    "version": "0.4",
+    "date": "2026-09-28T14:28",
+    "items": [
+      "Einstellungen: Personen verwalten (Name, Farbe), dunkles Design, Versionsnummer und Änderungsliste",
+      "Einstellungen: Standard-Vorlauf und „Max. Starts pro Woche“ entfernt",
+      "Programm-Update einspielen, ohne dass Daten verloren gehen (⋯-Menü)",
+      "PDF-Export mit Auswahl von Bereichen und Maßnahmen, „Wie aktuelle Ansicht“, ohne Dateipfad und Browser-Kopfzeile",
+      "Outlook-Export: Terminarten, Maßnahmen, Person, Zeitraum wählbar; Aufteilung in mehrere Dateien; alle Termine ganztägig",
+      "Jahresplanung: Kopfzeile repariert, Auflage linksbündig, S/I/P rechts der Beschriftung, „PAL-Status“, PAL nur bei „vorläufig“ farbig, hellere Häkchen",
+      "Warnungen: Vorziehen auch bei Feiertagen, bei Detailplänen und beim PAL",
+      "Zeitleiste: S/I/P-Knöpfe bei „Was steht an?“, Hervorheben ohne durchscheinende Wochenenden, Werktage vor PAL, Maßnahmen-Auswahl bleibt offen",
+      "Detailpläne: ganze Abschnitte einer Person zuordnen, neue Schritte standardmäßig eine Woche lang",
+      "Urlaub & Feiertage: Feiertage lassen sich umbenennen, verschieben und abschalten"
+    ]
+  },
+  {
+    "version": "0.3",
+    "date": "2026-09-28T09:23",
+    "items": [
+      "Malteser-Logo, Datensicherung exportieren/importieren, PDF-Jahresübersicht (3 Seiten)",
+      "Maßnahmen-Tabelle: Start Selektion/Inhalt als Datum statt Vorlauf, Spaltenbreiten ziehbar, „Hauptverantwortlich“",
+      "Kalender: Verbindungslinie beim Überfahren, Urlaub-Knopf zum Ein-/Ausblenden",
+      "Zeitleiste: Mausrad-Zoom, Klick auf den Namen zeigt die ganze Maßnahme, Markierungen in der Tagesmitte",
+      "Detailpläne: Abschnitte einklappen, Zeilen ziehen, Farbe je Person, Balken verschieben und in der Länge ändern, Zoom",
+      "Urlaub: Dialog „neuen Urlaub eintragen“"
+    ]
+  },
+  {
+    "version": "0.2",
+    "date": "2026-09-25T19:50",
+    "items": [
+      "Weniger Reiter, einklappbare Bereiche, Termine im Kalender ziehen, Monats-Zoom in der Zeitleiste",
+      "Startknopf für den Mailing-Ordner (eigenes Programmfenster)",
+      "Automatisches Speichern im Mailing-Ordner, Excel-Ansicht für Kolleg:innen in Teams"
+    ]
+  },
+  {
+    "version": "0.1",
+    "date": "2026-09-25T13:28",
+    "items": [
+      "Erste Programmversion aus der Excel-Jahresplanung: Kalender, Zeitleiste, Detailpläne mit Gantt, Urlaub, Warnungen, Export nach Excel, Outlook und PDF"
+    ]
+  }
+]
