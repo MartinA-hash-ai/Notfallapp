@@ -463,6 +463,12 @@ async function settingsDialog() {
         h('input', { placeholder: 'Buchstabe', maxlength: 1, style: 'width:86px', value: newKey, oninput: e => { newKey = e.target.value.toUpperCase(); e.target.value = newKey; } }),
         h('input', { placeholder: 'Name, z. B. Versand', value: newBName, oninput: e => { newBName = e.target.value; }, onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addB(); } } }),
         h('button', { class: 'addbtn', onclick: e => { e.preventDefault(); addB(); } }, '+ Bereich hinzufügen')),
+      h('h3', null, 'Spenden: Richtwerte'),
+      (() => { const R = spRicht(), set = fn => { commit(d => { const r = Object.assign({}, SP_RICHT0, d.settings.richtwerte); r.resp = r.resp.slice(); r.roi = r.roi.slice(); fn(r); d.settings.richtwerte = r; }); draw(); };
+        const num = (v, k, i) => h('input', { type: 'number', step: '0.1', min: 0, class: 'rw-in', value: v, 'aria-label': 'Richtwert', onchange: e => { const n = parseFloat(e.target.value); if (n >= 0) set(r => { r[k][i] = n; if (r[k][0] > r[k][1]) r[k].reverse(); }); } });
+        return [h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: R.an, onchange: e => set(r => { r.an = e.target.checked; }) }), 'Richtwerte bei den Kennzahlen anzeigen (unter / im / über Richtwert)'),
+          row('Responsequote (%)', h('div', { class: 'inl' }, num(R.resp[0], 'resp', 0), '–', num(R.resp[1], 'resp', 1))),
+          row('ROI (Spenden je 1 € Kosten)', h('div', { class: 'inl' }, num(R.roi[0], 'roi', 0), '–', num(R.roi[1], 'roi', 1)))]; })(),
       h('h3', null, 'Personen'),
       h('p', { class: 'muted small' }, 'Die Farbe gilt für Urlaube und Arbeitsschritte. Umbenennen ändert den Namen überall (Urlaube, Hauptverantwortliche, Arbeitsschritte).'),
       h('table', { class: 'grid ptable' }, h('tbody', null, D.personen.map(p => {

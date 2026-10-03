@@ -186,6 +186,10 @@ function normalize(d) {
   d.settings = Object.assign({ year: new Date().getFullYear() + 1 }, isObj(d.settings) ? d.settings : {});
   d.settings.bereiche = normBereiche(d.settings.bereiche, d.settings);
   normMarks(d.settings);
+  if (isObj(d.settings.richtwerte)) {                               // Richtwerte für die Spenden-Kennzahlen
+    const r = d.settings.richtwerte, pair = (v, def) => Array.isArray(v) && v.length === 2 && v.every(n => isNum(n) && +n >= 0) ? v.map(Number).sort((a, b) => a - b) : def;
+    d.settings.richtwerte = { an: r.an === true, resp: pair(r.resp, [2.7, 4.4]), roi: pair(r.roi, [4, 5]) };
+  } else delete d.settings.richtwerte;
   delete d.settings.vorlaufS; delete d.settings.vorlaufI;
   const keys = d.settings.bereiche.map(p => p.key);
   d.log = Array.isArray(d.log) ? d.log.filter(isObj).slice(-LOG_MAX) : [];

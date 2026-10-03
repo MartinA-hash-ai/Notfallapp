@@ -188,6 +188,7 @@ function describeChanges(a, b, max = 12) {
   if (JS(sa.bereiche) !== JS(sb.bereiche)) out.push('Bereiche: ' + (sb.bereiche || []).map(p => (p.zeichen || p.key) + ' ' + p.name).join(', '));
   if (JS(sa.pal) !== JS(sb.pal)) out.push('PAL-Markierung: ' + ((sb.pal || {}).zeichen || 'P') + ' (' + (STILE[(sb.pal || {}).stil] || '') + ')');
   if (sa.year !== sb.year) out.push('Planungsjahr ' + sa.year + ' → ' + sb.year);
+  if (JS(sa.richtwerte) !== JS(sb.richtwerte)) out.push('Richtwerte der Spenden-Kennzahlen geändert');
   return out.length > max ? out.slice(0, max).concat('… und ' + (out.length - max) + ' weitere Änderungen') : out;
 }
 function planChange(p, q) {

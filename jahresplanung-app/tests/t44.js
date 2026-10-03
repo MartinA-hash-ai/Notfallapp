@@ -1,5 +1,5 @@
 // 0.12 Spenden (Beta): Exporte (CSV/Excel) aus „Spendeneingänge …“ einlesen, doppelte Buchungen nur einmal, Regeln → „Prüfen“ → zuordnen,
-// Kennzahlen und Grafiken (0.12.2: Name groß in Maßnahmenfarbe, Auflage/Kosten in der Übersicht, Filter ab PAL, Daueraufträge ausblendbar, Grafik ab PAL; 0.12.1: Verwendungszweck immer sichtbar, Daueraufträge markiert, „Alle zurück“), Datenschutz (keine Namen/IBAN in der Planungsdatei), Zusammenführen, Löschen einer Maßnahme
+// Kennzahlen und Grafiken (0.12.3: Kasten einklappbar, Wochenenden, Richtwerte aus den Einstellungen, Listen bündig, Häkchen für Daueraufträge; 0.12.2: Name groß in Maßnahmenfarbe, Auflage/Kosten in der Übersicht, Filter ab PAL, Daueraufträge ausblendbar, Grafik ab PAL; 0.12.1: Verwendungszweck immer sichtbar, Daueraufträge markiert, „Alle zurück“), Datenschutz (keine Namen/IBAN in der Planungsdatei), Zusammenführen, Löschen einer Maßnahme
 const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN } = require('./lib');
 const path = require('path');
 const DIR = 'Spendeneingänge 2027/';
@@ -39,9 +39,18 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(!/~\$/.test(a.files) && /3 Dateien · 11 Buchungen/.test(a.status), 'A: Excel-Sperrdatei übergangen, Status „' + a.status + '“');
 
   // ---- A2: Kasten der Maßnahme – Name groß in ihrer Farbe, keine doppelten Angaben; Filter „von“ = PAL
-  const a2 = await p.evaluate(() => { const n = document.querySelector('.sp-mbar .sp-mname'), c = document.createElement('i'); c.style.color = inkC(C.byId.get('m5').color); document.body.append(c);
-    const want = getComputedStyle(c).color; c.remove(); return [n && n.textContent, n && getComputedStyle(n).color === want, !document.querySelector('.sp-mbar select, .sp-mbar input'), document.querySelector('[data-fk="sp-fvon"]').value, !!document.querySelector('[data-fk="sp-kos:m5"]')]; });
+  const a2 = await p.evaluate(() => { const n = document.querySelector('[data-sec="sp-m"] .sec-h .sp-mname'), c = document.createElement('i'); c.style.color = inkC(C.byId.get('m5').color); document.body.append(c);
+    const want = getComputedStyle(c).color; c.remove(); return [n && n.textContent, n && getComputedStyle(n).color === want, !document.querySelector('[data-sec="sp-m"] select, [data-sec="sp-m"] input'), document.querySelector('[data-fk="sp-fvon"]').value, !!document.querySelector('[data-fk="sp-kos:m5"]')]; });
   ok(a2[0] === 'Jahresbericht' && a2[1] && a2[2] && a2[3] === '2027-08-27' && a2[4], 'A2: „Jahresbericht“ groß in Maßnahmenfarbe, ohne Auswahl/PAL/Auflage/Kosten im Kasten; Auflage und Kosten in der Übersicht; Filter ab PAL (' + a2[3] + ')');
+
+  // ---- A3: Listen der drei Spalten beginnen auf derselben Höhe, Knöpfe unten bündig; kein Betragsfilter; Kasten einklappbar
+  const a3 = await p.evaluate(() => { const t = [...document.querySelectorAll('.sp-col .sp-list')].map(l => Math.round(l.getBoundingClientRect().top)), f = [...document.querySelectorAll('.sp-col .sp-cf')].map(l => Math.round(l.getBoundingClientRect().top));
+    return [t.join(','), f.join(','), !document.querySelector('.sp-min'), !!document.querySelector('.sp-filter label.sp-da input[type=checkbox]')]; });
+  ok(new Set(a3[0].split(',')).size === 1 && new Set(a3[1].split(',')).size === 1 && a3[2] && a3[3], 'A3: Listen beginnen bündig (' + a3[0] + '), Knöpfe bündig, kein Betragsfilter, Häkchen „Daueraufträge ausblenden“');
+  await p.click('[data-sec="sp-m"] .sec-tog'); await p.waitForTimeout(200);
+  const a4 = await p.evaluate(() => [!document.querySelector('[data-sec="sp-m"] .sp-tile'), document.querySelector('[data-sec="sp-m"] .sec-sum')?.textContent]);
+  await p.click('[data-sec="sp-m"] .sec-tog'); await p.waitForTimeout(200);
+  ok(a4[0] && /noch keine Spenden/.test(a4[1]) && await p.evaluate(() => !!document.querySelector('[data-sec="sp-m"] .sp-tile')), 'A3: Kasten der Maßnahme ein- und ausklappbar (zu: „' + a4[1] + '“)');
 
   // ---- B: Regel „JB“ → Vorschläge in „Prüfen“ (ganzes Wort, im Zeitraum ab PAL)
   await p.fill('.sp-wordin', 'JB'); await p.press('.sp-wordin', 'Enter'); await p.waitForTimeout(250);
@@ -100,18 +109,28 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.fill('.sp-q', ''); await p.waitForTimeout(450);
   const da = await p.evaluate(() => { const r = [...document.querySelectorAll('.sp-col:first-child .sp-row.da')]; return [r.length, r[0] && r[0].querySelector('.sp-tag.da')?.textContent, document.querySelectorAll('.sp-col:first-child .sp-row').length]; });
   ok(da[0] === 1 && da[1] === 'Dauerauftrag' && da[2] > 1, 'E: Dauerauftrag bleibt in der Liste, farbig markiert mit „Dauerauftrag“');
-  await p.click('.sp-filter .sp-da'); await p.waitForTimeout(200);
-  const da2 = await p.evaluate(() => [document.querySelectorAll('.sp-col:first-child .sp-row.da').length, document.querySelector('.sp-filter .sp-da').textContent, UI.spHideDA]);
-  ok(da2[0] === 0 && da2[1] === 'Daueraufträge ausgeblendet (1)' && da2[2], 'E: Knopf blendet Daueraufträge aus – „' + da2[1] + '“');
-  await p.click('.sp-filter .sp-da'); await p.waitForTimeout(200);
+  await p.click('.sp-filter .sp-da input'); await p.waitForTimeout(200);
+  const da2 = await p.evaluate(() => [document.querySelectorAll('.sp-col:first-child .sp-row.da').length, document.querySelector('.sp-filter .sp-da').textContent, UI.spHideDA, document.querySelector('.sp-filter .sp-da input').checked]);
+  ok(da2[0] === 0 && da2[1] === 'Daueraufträge ausblenden' && da2[2] && da2[3], 'E: Häkchen bei „Daueraufträge ausblenden“ blendet sie aus');
+  await p.click('.sp-filter .sp-da input'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => document.querySelectorAll('.sp-col:first-child .sp-row.da').length === 1), 'E: nochmal klicken zeigt sie wieder');
 
   // ---- F: Kennzahlen mit Auflage und Kosten
   await p.fill('[data-fk="sp-auf:m5"]', '1000'); await p.press('[data-fk="sp-auf:m5"]', 'Tab'); await p.waitForTimeout(150);
   await p.fill('[data-fk="sp-kos:m5"]', '500'); await p.press('[data-fk="sp-kos:m5"]', 'Tab'); await p.waitForTimeout(250);
   const f = await p.evaluate(() => [...document.querySelectorAll('.sp-tile')].map(t => t.textContent));
-  ok(f.length === 4 && /^Spendensumme9\.876 €6 Spenden/.test(f[0]) && /^Ø-Spende/.test(f[1]) && /Responsequote0,6 %bei Auflage 1\.000▼ unter Richtwert/.test(f[2]) && /ROI19,8/.test(f[3]) && /über Richtwert/.test(f[3]),
-    'F: vier Kacheln – Spendensumme, Ø-Spende, Responsequote 0,6 % (unter Richtwert), ROI 19,8');
+  ok(f.length === 4 && /^Spendensumme9\.876 €6 Spenden/.test(f[0]) && /^Ø-Spende/.test(f[1]) && /^Responsequote0,6 %bei Auflage 1\.000$/.test(f[2]) && /^ROI19,8Kosten 500 €$/.test(f[3]),
+    'F: vier Kacheln – Spendensumme, Ø-Spende, Responsequote 0,6 %, ROI 19,8 – ohne Richtwerte');
+  ok(await p.evaluate(() => !/Richtwert/.test(document.querySelector('#main').textContent)), 'F: Richtwerte ausgeblendet (Kacheln, Übersicht, Erklärung)');
+  // Richtwerte in den Einstellungen einschalten und ändern
+  await p.evaluate(() => { settingsDialog(); }); await p.waitForTimeout(250);
+  await p.click('.modal label.check:has-text("Richtwerte bei den Kennzahlen anzeigen") input'); await p.waitForTimeout(150);
+  const rws = await p.$$('.modal .rw-in'); await rws[1].fill('5'); await rws[1].press('Tab'); await p.waitForTimeout(150);
+  await p.click('.modal footer button.primary'); await p.waitForTimeout(250);
+  const rw = await p.evaluate(() => [JSON.stringify(D.settings.richtwerte), [...document.querySelectorAll('.sp-tile')].map(t => t.textContent).slice(2).join(' | '), document.querySelector('.sp-ueb tr[data-mid="m5"] td.below') ? 1 : 0]);
+  ok(rw[0] === '{"an":true,"resp":[2.7,5],"roi":[4,5]}' && /▼ unter Richtwert 2,7–5,0 %/.test(rw[1]) && /▲ über Richtwert 4,0–5,0/.test(rw[1]) && rw[2] === 1, 'F: Einstellungen – Richtwerte eingeschaltet und angepasst (' + rw[1] + ')');
+  await p.evaluate(() => undo()); await p.evaluate(() => undo()); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !D.settings.richtwerte && !/Richtwert/.test(document.querySelector('#main').textContent)), 'F: Strg+Z – wieder ausgeblendet');
   const fl = await p.evaluate(() => { const t = document.querySelectorAll('.sp-tile'), r = i => t[i].getBoundingClientRect(); return [Math.abs(r(0).top - r(1).top) < 3, r(2).top > r(0).bottom - 2, Math.abs(r(2).left - r(0).left) < 3, document.querySelector('.sp-charts').getBoundingClientRect().left > r(1).right]; });
   ok(fl.every(Boolean), 'F: 2×2 angeordnet (Responsequote/ROI unter Summe/Ø), Grafiken rechts daneben');
   ok(await p.evaluate(() => { const m = D.massnahmen.find(m => m.id === 'm5'); return m.kosten === 500 && m.auflage === 1000; }), 'F: Auflage und Kosten an der Maßnahme gespeichert');
@@ -119,6 +138,8 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   // ---- G: Grafiken rechts – Zeitspanne (kumuliert) und Spenden pro Tag; kein Abschnitt „Verlauf“ mehr
   const g = await p.evaluate(() => ({ bars: document.querySelectorAll('[data-chart="day"] .sp-bar').length, pal: !!document.querySelector('[data-chart="day"] .sp-palbox'),
     line: !!document.querySelector('[data-chart="span"] .sp-line'), end: document.querySelector('[data-chart="span"] .sp-endl')?.textContent, title: document.querySelector('.sp-cht')?.textContent, verlauf: !!document.querySelector('[data-sec="sp-verlauf"]') }));
+  const we = await p.evaluate(() => { const r = [...document.querySelectorAll('[data-chart="day"] .sp-we')], pc = getComputedStyle(document.querySelector('[data-chart="day"] .sp-palbox')).fill; return [r.length, pc]; });
+  ok(we[0] >= 4 && !/227, 7, 20|255, 59, 59/.test(we[1]), 'G: Wochenenden grau hinterlegt (' + we[0] + ' Streifen), P am PAL grau statt rot (' + we[1] + ')');
   ok(g.bars === 6 && g.pal && g.line && g.end === '9.876 €' && /28\.08\.2027 – 23\.09\.2027 \(27 Tage\)/.test(g.title) && !g.verlauf,
     'G: Spenden pro Tag (6 Säulen), Zeitspanne „' + g.title + '“ bis ' + g.end + ', rotes P am PAL; Abschnitt „Verlauf“ entfernt');
   const ov = await p.$('[data-chart="span"] .sp-ov'), bx = await ov.boundingBox();
@@ -153,9 +174,9 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.dblclick('.sp-col.mid .sp-row'); await p.waitForTimeout(250);
   const h1 = await p.evaluate(() => ({ cmp: document.querySelectorAll('[data-chart="cmp"] .sp-line').length, leg: document.querySelector('[data-chart="cmp"] .sp-legend')?.textContent,
     rows: [...document.querySelectorAll('.sp-ueb tbody tr')].filter(r => r.children[5].textContent !== '–').map(r => r.children[0].textContent.trim() + '=' + r.children[4].textContent).join(' | '),
-    pend: document.querySelector('.sp-ueb tr[data-mid="m5"] .sp-pend')?.textContent, foot: document.querySelector('.sp-ueb tfoot')?.textContent }));
+    cols: [...document.querySelectorAll('.sp-ueb thead th')].map(t => t.textContent).join(','), foot: document.querySelector('.sp-ueb tfoot')?.textContent }));
   ok(h1.cmp === 2 && /Sommermailing/.test(h1.leg) && /Jahresbericht/.test(h1.leg), 'H: Vergleich der Rückläufe mit 2 Linien und Legende');
-  ok(h1.rows === 'Sommermailing=35 € | Jahresbericht=9.876 €' && h1.pend === '1' && /Summe.*9\.911 €/.test(h1.foot), 'H: Übersicht – ' + h1.rows + ', 1 in Prüfung bei Jahresbericht, Summenzeile');
+  ok(h1.rows === 'Sommermailing=35 € | Jahresbericht=9.876 €' && !/Prüfung/.test(h1.cols) && /Summe.*9\.911 €/.test(h1.foot), 'H: Übersicht – ' + h1.rows + ', ohne Spalte „in Prüfung“, Summenzeile');
 
   // ---- I: Datenschutz – in der Planungsdatei keine Namen, IBAN, Verwendungszwecke
   await p.evaluate(() => saveAll({ manual: true })); await p.waitForTimeout(600);

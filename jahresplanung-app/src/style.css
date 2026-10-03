@@ -735,12 +735,11 @@ main.sp-drop { outline: 3px dashed var(--focus); outline-offset: -8px; }
 .sp-ueb td.above { color: var(--ok); font-weight: 600; }
 .sp-ueb tfoot td { border-top: 2px solid var(--line2); font-weight: 600; padding: 5px; }
 table.grid td.num, table.grid th.num { text-align: right; font-variant-numeric: tabular-nums; }
-.sp-pend { display: inline-block; min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--red); color: #fff; font-size: 11px; font-weight: 700; line-height: 17px; text-align: center; }
-.sp-mbar { padding: 10px 14px; }
-.sp-mname { font-size: 28px; font-weight: 700; line-height: 1.2; margin: 2px 0 0; }
+.sp-mname { font-size: 24px; font-weight: 700; line-height: 1.2; }
+.rw-in { width: 80px; }
 .sp-ueb td.inp { padding: 1px 3px; }
 .sp-ueb td.inp input { text-align: right; min-width: 78px; }
-.sp-kpi { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 2.2fr); gap: 14px; margin-top: 12px; align-items: stretch; }
+.sp-kpi { display: grid; grid-template-columns: minmax(300px, 1fr) minmax(0, 2.2fr); gap: 14px; align-items: stretch; }
 .sp-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr; gap: 10px; }
 .sp-charts { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px 2px; }
 .sp-charts.empty { display: flex; align-items: center; justify-content: center; text-align: center; padding: 20px; }
@@ -760,15 +759,14 @@ table.grid td.num, table.grid th.num { text-align: right; font-variant-numeric: 
 .sp-x:hover { background: rgba(0,0,0,.08); }
 .sp-wordin { width: 230px; }
 .sp-rule input[type=date], .sp-filter input[type=date] { width: 128px; }
-.sp-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
-.sp-col { display: flex; flex-direction: column; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
+.sp-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: auto auto auto auto; column-gap: 12px; }
+.sp-col { display: grid; grid-row: span 4; grid-template-rows: subgrid; row-gap: 0; min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); }
 .sp-col.mid { background: var(--soft); border-color: var(--line2); }
 .sp-ch { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; padding: 8px 10px 4px; }
-.sp-hint { padding: 0 10px 6px; }
-.sp-filter { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; padding: 2px 10px 8px; }
+.sp-hint { padding: 0 10px 8px; align-self: start; }
+.sp-filter { display: flex; align-items: center; gap: 5px 8px; flex-wrap: wrap; padding: 2px 10px 8px; align-self: start; }
 .sp-q { flex: 1 1 160px; min-width: 120px; }
-.tpill.sp-da { font-size: 12px; padding: 3px 9px; }
-.sp-min { width: 70px; }
+.sp-da { white-space: nowrap; }
 .sp-list { height: 380px; overflow: auto; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); user-select: none; }
 .sp-row { display: grid; grid-template-columns: 82px 92px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 3px 10px; font-size: 13px; cursor: pointer; border-bottom: 1px solid var(--line3); }
 .sp-cols.det .sp-row { grid-template-columns: 82px 92px minmax(0, .8fr) minmax(0, 1.4fr) auto; }
@@ -797,8 +795,9 @@ html[data-theme=dark] .sp-tag.da { color: #d9b8f2; }
 .sp-base { stroke: var(--line2); }
 .sp-ax { fill: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
 .sp-endl { fill: var(--ink2); font-size: 12px; font-weight: 600; }
-.sp-pal { stroke: var(--red); stroke-width: 1; }
-.sp-palbox { fill: var(--red); }
+.sp-pal { stroke: var(--faint); stroke-width: 1; }
+.sp-palbox { fill: var(--faint); }
+.sp-we { fill: var(--we); }
 .sp-paltx { fill: #fff; font-size: 10px; font-weight: 700; }
 .sp-hit, .sp-ov { fill: transparent; pointer-events: all; }
 .sp-bin:hover .sp-bar { opacity: .75; }

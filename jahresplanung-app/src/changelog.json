@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.12.2",
+    "version": "0.12.3",
     "date": "",
+    "items": [
+      "Spenden: der Bereich der Maßnahme (Name, Kennzahlen, Grafiken) lässt sich ein- und ausklappen",
+      "Grafiken: Wochenenden grau hinterlegt; das P am PAL ist grau statt rot",
+      "Richtwerte sind ausgeblendet; unter ⋯ → Einstellungen → „Spenden: Richtwerte“ lassen sie sich einschalten und anpassen",
+      "Übersicht ohne Spalte „in Prüfung“",
+      "Zuordnen: die drei Listen beginnen auf derselben Höhe, die Knöpfe stehen unten bündig; „Daueraufträge ausblenden“ als Häkchen; Betragsfilter entfernt"
+    ]
+  },
+  {
+    "version": "0.12.2",
+    "date": "2026-10-03T17:10",
     "items": [
       "Spenden: der Kasten unter der Übersicht zeigt groß den Namen der gewählten Maßnahme in ihrer Farbe – Auswahl, PAL, Auflage und Kosten stehen nur noch in der Übersicht (Maßnahme per Klick auf die Zeile wählen, Auflage und Kosten direkt dort eintragen)",
       "Zuordnen beginnt am PAL: der Filter „von“ steht immer auf dem PAL der Maßnahme (auch nach einer PAL-Änderung)",
