@@ -16,12 +16,19 @@ async function addVac() {
   const paint = () => {                            // Markierungen der gewählten Person (mit Vorschau beim Ziehen), Zusammenfassung aller Personen
     const busy = busyDays(), mp = mine(), pv = drag ? new Set(drag.range) : null, c = personColor(st.wer);
     cal.style.setProperty('--vc', c); cal.style.setProperty('--vc2', mix(c, 0.55));
+    // die anderen Personen: schon eingetragene und hier gerade markierte Tage – blass im Hintergrund
+    const oth = new Map(), put2 = (n, o) => { if (!oth.has(n)) oth.set(n, []); if (!oth.get(n).some(q => q.wer === o.wer)) oth.get(n).push(o); };
+    const y0 = mkdn(st.year, 1, 1), y1 = mkdn(st.year, 12, 31);
+    for (const v of C.vac) if (v.u.wer !== st.wer && v.bis >= y0 && v.von <= y1) for (let n = Math.max(v.von, y0); n <= Math.min(v.bis, y1); n++) put2(n, { wer: v.u.wer || '?', art: vacKind(v.u) });
+    for (const [wer, mp2] of st.picks) if (wer !== st.wer) for (const [n, art] of mp2) put2(n, { wer, art: (art === 'abwesenheit' ? 'Abwesenheit' : 'Urlaub') + ', noch nicht gespeichert' });
     for (const el of $$('.vd-day[data-dn]', cal)) {
-      const n = +el.dataset.dn;
+      const n = +el.dataset.dn, os = oth.get(n) || [];
       let art = mp.get(n);
       if (pv && pv.has(n)) art = drag.mode === 'add' ? st.art : undefined;
       el.classList.toggle('sel', !!art); el.classList.toggle('abw', art === 'abwesenheit'); el.classList.toggle('busy', busy.has(n));
-      el.title = busy.has(n) ? st.wer + ': ' + busy.get(n) + ' schon eingetragen' : art ? (art === 'abwesenheit' ? 'Abwesenheit' : 'Urlaub') + ' (markiert)' : holName(n) || '';
+      setKids(el.querySelector('.vd-oth'), os.slice(0, 3).map(o => h('span', { style: { background: personColor(o.wer) } })));
+      el.title = [busy.has(n) ? st.wer + ': ' + busy.get(n) + ' schon eingetragen' : art ? (art === 'abwesenheit' ? 'Abwesenheit' : 'Urlaub') + ' (markiert)' : holName(n) || '',
+        os.length ? 'Außerdem: ' + os.map(o => o.wer + ' (' + o.art + ')').join(', ') : ''].filter(Boolean).join('\n');
     }
     const lines = [];
     for (const [wer, mp2] of st.picks) {
@@ -41,7 +48,7 @@ async function addVac() {
   const month = (yy, mo) => {
     const first = mkdn(yy, mo, 1), last = first + daysIn(yy, mo) - 1, g = h('div', { class: 'vd-grid' }, WD.map((d, i) => h('div', { class: 'vd-wh' + (i >= 5 ? ' we' : '') }, d)));
     for (let i = 0; i < wd(first); i++) g.append(h('div', { class: 'vd-day out' }));
-    for (let n = first; n <= last; n++) g.append(h('div', { class: 'vd-day' + (wd(n) >= 5 ? ' we' : '') + (holName(n) ? ' hol' : '') + (n === t0 ? ' today' : ''), dataset: { dn: n } }, ymd(n)[2]));
+    for (let n = first; n <= last; n++) g.append(h('div', { class: 'vd-day' + (wd(n) >= 5 ? ' we' : '') + (holName(n) ? ' hol' : '') + (n === t0 ? ' today' : ''), dataset: { dn: n } }, h('span', null, ymd(n)[2]), h('span', { class: 'vd-oth' })));
     return h('div', { class: 'vd-month' }, h('div', { class: 'vd-mh' }, MON[mo - 1]), g);
   };
   const yLab = h('b', { class: 'vd-year' });
@@ -68,7 +75,7 @@ async function addVac() {
       h('div', { class: 'vd-f vd-yr' }, h('span', null, 'Jahr'), h('span', { class: 'vd-ynav' },
         h('button', { class: 'icon', 'aria-label': 'Vorjahr', tip: 'Vorjahr', onclick: () => { st.year--; drawCal(); } }, '‹'), yLab,
         h('button', { class: 'icon', 'aria-label': 'Folgejahr', tip: 'Folgejahr', onclick: () => { st.year++; drawCal(); } }, '›')))),
-    h('div', { class: 'muted small vd-hint' }, 'Wochenenden und Feiertage sind grau, schon eingetragene Tage der gewählten Person gestreift und gesperrt.'),
+    h('div', { class: 'muted small vd-hint' }, 'Wochenenden und Feiertage sind grau, schon eingetragene Tage der gewählten Person gestreift und gesperrt. Die anderen Personen stehen als blasse Striche im Hintergrund.'),
     cal, sum);
   drawCal();
   const pr = modal('Urlaub / Abwesenheit eintragen', body, [['Abbrechen', false], ['Speichern', true, 'primary']], { wide: true, cls: 'vacdlg' });

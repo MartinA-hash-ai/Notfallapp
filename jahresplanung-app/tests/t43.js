@@ -48,6 +48,10 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.selectOption('.vd-wer', 'Eva');
   await drag(await pos(await day(8, 2)), await pos(await day(8, 4)));
   const c2b = await p.evaluate(() => [document.querySelectorAll('.vd-day.sel').length, document.querySelectorAll('.vd-sum .vd-line').length]);
+  // 0.11.2: Martins Markierungen (und gespeicherte Einträge anderer) bleiben blass im Hintergrund sichtbar
+  const c2c = await p.evaluate(([n, c]) => { const el = document.querySelector('.vd-day[data-dn="' + n + '"]'); return [[...el.querySelectorAll('.vd-oth span')].some(s => s.style.background === c), /Außerdem: .*Martin \(Urlaub, noch nicht gespeichert\)/.test(el.title)]; },
+    [await day(3, 2), await p.evaluate(() => { const d = document.createElement('div'); d.style.background = personColor('Martin'); return d.style.background; })]);
+  ok(c2c[0] && c2c[1], 'C2: bei Eva bleiben Martins markierte Tage als blasser Strich in seiner Farbe sichtbar (mit Hinweis)');
   ok(!c2a[0] && c2a[1] === 8 && c2b[0] === 3 && c2b[1] === 3, 'C2: Martins Urlaub bleibt Urlaub nach Wechsel auf Abwesenheit; bei Eva nur Evas Markierungen sichtbar; Zusammenfassung mit 3 Zeilen');
   await p.click('.modal footer button:has-text("Speichern")'); await p.waitForTimeout(250);
   const c2 = await p.evaluate(() => D.urlaube.filter(u => !u.notiz).map(u => u.wer + ' ' + u.von + '–' + u.bis + ' ' + (u.art || 'urlaub')).sort().join(' | '));

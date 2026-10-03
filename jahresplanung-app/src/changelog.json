@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.11.1",
+    "version": "0.11.2",
     "date": "",
+    "items": [
+      "Urlaub / Abwesenheit eintragen: die anderen Personen verschwinden beim Wechseln nicht, sondern stehen als blasse Striche in ihrer Farbe im Hintergrund – schon gespeicherte Einträge und gerade markierte Tage; Maus darauf zeigt, wer"
+    ]
+  },
+  {
+    "version": "0.11.1",
+    "date": "2026-10-03T13:14",
     "items": [
       "Urlaub / Abwesenheit eintragen: alle zwölf Monate auf einen Blick (Jahr umschaltbar)",
       "Jede Markierung behält die Person und Art, die beim Markieren eingestellt war – man kann nacheinander Urlaub und Abwesenheiten für mehrere Personen markieren und alles auf einmal speichern; unten steht je Person und Art eine Zusammenfassung"

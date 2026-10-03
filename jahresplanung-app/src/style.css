@@ -1052,7 +1052,10 @@ html[data-theme=dark] .mtable td.art select, html[data-theme=dark] .mtable td.ar
 .vd-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
 .vd-wh { font-size: 9.5px; color: var(--muted); text-align: center; }
 .vd-wh.we { color: var(--faint); }
-.vd-day { height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; border-radius: 3px; cursor: pointer; background: var(--card); border: 1px solid var(--line3); }
+.vd-day { position: relative; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 11px; border-radius: 3px; cursor: pointer; background: var(--card); border: 1px solid var(--line3); }
+.vd-oth { position: absolute; left: 2px; right: 2px; bottom: 1px; display: flex; flex-direction: column; gap: 1px; pointer-events: none; }
+.vd-oth span { height: 3px; border-radius: 1px; opacity: .5; }
+.vd-day.sel .vd-oth span { opacity: .8; box-shadow: 0 0 0 .5px #fff; }
 .vd-day:hover { border-color: var(--vc, var(--line2)); }
 .vd-day.out { visibility: hidden; }
 .vd-day.we, .vd-day.hol { background: var(--line3); color: var(--muted); }
