@@ -212,7 +212,9 @@ document.addEventListener('visibilitychange', () => { if (!document.hidden && D 
 window.addEventListener('focus', () => { if (D && UI.view === 'spenden' && ST.conn === 'ok') spScan(); });   // Fenster wieder vorn (z. B. aus dem Explorer)
 let _spLastView = null;
 
-// Dateien in den Ordner legen (Knopf oder Hineinziehen) – danach neu einlesen
+// Zeitraum einer eingelesenen Datei (erste und letzte Buchung)
+const spSpan = recs => recs && recs.length ? recs.reduce((a, r) => [Math.min(a[0], r.d), Math.max(a[1], r.d)], [Infinity, -Infinity]) : null;
+// Dateien in den Ordner legen (Knopf oder Hineinziehen) – danach neu einlesen und kurz zusammenfassen, was neu ist
 async function spAddFiles(files) {
   files = [...files];
   if (!files.length) return;
@@ -220,22 +222,60 @@ async function spAddFiles(files) {
   const bad = files.filter(f => !SP_FILE_RE.test(f.name));
   if (bad.length) toast('Nur CSV- und Excel-Dateien (.csv, .xlsx): ' + bad.map(f => f.name).join(', ') + ' übersprungen.', 'warn');
   const ok = files.filter(f => SP_FILE_RE.test(f.name)); if (!ok.length) return;
+  if (!SP.at) await spScan();                                    // Vergleich braucht den bisherigen Stand
+  const known = new Set(SP.byKey.keys()), oldFiles = (SP.files || []).filter(e => !e.err && e.recs && e.recs.length).map(e => ({ name: e.name, span: spSpan(e.recs) })), report = [];
   try {
     const dirs = await spDirs(), want = 'Spendeneingänge ' + UI.year;
     const dir = (dirs.find(d => d.name === want) || dirs.sort((a, b) => b.name.localeCompare(a.name))[0] || {}).h || await ST.htmlDir.getDirectoryHandle(want, { create: true });
     for (const f of ok) {
       const buf = new Uint8Array(await f.arrayBuffer());
-      let name = f.name, i = 1;
+      let name = f.name, i = 1, dupOf = null;
       for (;;) {                                                  // gleicher Name mit anderem Inhalt: nicht überschreiben, sondern „(2)“ anhängen
         let ex = null; try { ex = await (await dir.getFileHandle(name)).getFile(); } catch (e) { break; }
-        if (ex.size === buf.length && crc32(new Uint8Array(await ex.arrayBuffer())) === crc32(buf)) { name = null; break; }
+        if (ex.size === buf.length && crc32(new Uint8Array(await ex.arrayBuffer())) === crc32(buf)) { dupOf = name; name = null; break; }
         name = f.name.replace(/(\.[^.]+)$/, ' (' + (++i) + ')$1');
       }
+      let parsed = null; try { parsed = await spReadFile(f.name, buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)); } catch (e) { parsed = { err: (e && e.message) || String(e) }; }
+      report.push({ name: f.name, saved: name, dupOf, parsed });
       if (!name) continue;
       const w = await (await dir.getFileHandle(name, { create: true })).createWritable(); await w.write(buf); await w.close();
     }
   } catch (e) { console.warn(e); toast('Datei ließ sich nicht ablegen: ' + ((e && e.message) || e), 'err'); return; }
-  await spScan({ manual: true });
+  await spScan();
+  spAddReport(report, known, oldFiles);
+}
+// Zusammenfassung nach dem Hinzufügen: neu, doppelt, Zeiträume; die neuen Spenden in einer kurzen Liste (rollbar)
+function spAddReport(report, known, oldFiles) {
+  const seen = new Set(), fresh = [];
+  let total = 0, dup = 0, neg = 0, bad = 0;
+  const per = report.map(r => {
+    const P = r.parsed || {};
+    if (P.err) return h('li', null, h('b', null, r.name), ': ', h('span', { class: 'warn' }, 'ließ sich nicht lesen (' + P.err + ')'));
+    const recs = P.recs || [], span = spSpan(recs);
+    let n = 0, d = 0;
+    for (const rec of recs) { if (known.has(rec.k) || seen.has(rec.k)) d++; else { n++; seen.add(rec.k); fresh.push(SP.byKey.get(rec.k) || rec); } }
+    total += recs.length; dup += d; neg += P.neg || 0; bad += P.bad || 0;
+    const over = span ? oldFiles.filter(o => o.name !== r.dupOf && o.span && o.span[0] <= span[1] && span[0] <= o.span[1]) : [];
+    return h('li', null, h('b', null, r.name), r.saved && r.saved !== r.name ? h('span', { class: 'muted' }, ' (abgelegt als „' + r.saved + '“)') : null,
+      !r.saved ? ' – genau diese Datei lag schon im Ordner' + (r.dupOf && r.dupOf !== r.name ? ' (als „' + r.dupOf + '“)' : '') : '', h('br'),
+      span ? 'Zeitraum ' + fmtD(span[0]) + ' – ' + fmtD(span[1]) + ' · ' : '', spCount(recs.length) + ': ' + n + ' neu, ' + d + ' doppelt', h('br'),
+      over.length ? h('span', { class: 'sp-ov' }, 'Überschneidet sich mit ' + over.map(o => '„' + o.name + '“ (' + fmtS(o.span[0]) + '–' + fmtS(o.span[1]) + ')').join(', ') + ' – doppelte Buchungen zählen nur einmal')
+        : h('span', { class: 'muted' }, oldFiles.length ? 'keine Überschneidung mit den bisherigen Dateien' : 'erste Datei'));
+  });
+  fresh.sort((a, b) => a.d - b.d || b.b - a.b);
+  const cmp = spCompute(), inCheck = fresh.filter(r => cmp.sugg.has(r.k)).length, sum = fresh.reduce((t, r) => t + r.b, 0);
+  modal('Buchungen hinzugefügt', h('div', { class: 'sp-addrep' },
+    h('div', { class: 'sp-addsum' },
+      h('div', null, h('b', null, fresh.length.toLocaleString('de-DE')), h('span', null, fresh.length === 1 ? 'neue Spende' : 'neue Spenden'), fresh.length ? h('small', null, eur(sum)) : null),
+      h('div', null, h('b', null, dup.toLocaleString('de-DE')), h('span', null, 'doppelt erkannt'), h('small', null, 'nicht noch einmal gezählt')),
+      h('div', null, h('b', null, report.some(r => !(r.parsed || {}).err && oldFiles.some(o => { const s = spSpan((r.parsed || {}).recs); return o.name !== r.dupOf && s && o.span && o.span[0] <= s[1] && s[0] <= o.span[1]; })) ? 'ja' : 'nein'), h('span', null, 'Zeiträume überschneiden sich'))),
+    h('ul', { class: 'sp-addfiles' }, per),
+    fresh.length ? [h('h3', null, 'Neue Spenden' + (inCheck ? ' · ' + inCheck + ' davon passen zu einer Regel und liegen in „Prüfen“' : '')),
+      h('div', { class: 'sp-addlist' }, h('table', { class: 'grid' }, h('tbody', null, fresh.map(r => h('tr', null,
+        h('td', null, fmtD(r.d)), h('td', { class: 'num' }, eur(r.b)), UI.spDet ? h('td', null, r.name || '') : null, h('td', { class: 'sp-z' }, r.zweck || '–'))))))] :
+      h('p', { class: 'muted' }, 'Keine neuen Spenden – alle Buchungen waren schon eingelesen.'),
+    neg || bad ? h('p', { class: 'muted small' }, [neg ? neg + ' Abbuchungen/Rücklastschriften übersprungen' : '', bad ? bad + ' Zeilen ohne gültiges Datum oder Betrag' : ''].filter(Boolean).join(' · ')) : null),
+    [['Schließen', true, 'primary']], { wide: true, cls: 'sp-addw' });
 }
 function spPickFiles() {
   const inp = h('input', { type: 'file', multiple: true, accept: '.csv,.txt,.xlsx', style: 'display:none', onchange: () => { spAddFiles(inp.files); inp.remove(); } });
@@ -487,7 +527,7 @@ function spNotice() {
   if (ST.conn !== 'ok') return h('div', { class: 'banner sp-notice' }, h('span', null, 'Die Spendeneingänge liegen im Mailing-Ordner. Dafür muss die App mit dem Ordner verbunden sein. Die Auswertung bisheriger Zuordnungen geht auch so.'),
     h('button', { class: 'primary', onclick: async () => { if (await connectFolder()) { SP.at = null; renderNow(); } } }, 'Mailing-Ordner verbinden …'));
   if (SP.state === 'nodir') return h('div', { class: 'banner sp-notice' }, h('span', null, 'Im Mailing-Ordner gibt es noch keinen Ordner „Spendeneingänge …“. Dort hinein kommen die Exporte (CSV oder Excel) – überlappende Zeiträume sind kein Problem.'),
-    h('button', { class: 'primary', onclick: spMakeDir }, 'Ordner „Spendeneingänge ' + UI.year + '“ anlegen'), h('button', { onclick: spPickFiles }, 'Datei hinzufügen …'));
+    h('button', { class: 'primary', onclick: spMakeDir }, 'Ordner „Spendeneingänge ' + UI.year + '“ anlegen'), h('button', { onclick: spPickFiles }, '+ Buchung hinzufügen'));
   if (SP.state === 'err') return h('div', { class: 'banner sp-notice err' }, h('span', null, 'Einlesen fehlgeschlagen: ' + SP.err), h('button', { onclick: () => spScan({ manual: true }) }, 'Nochmal'));
   return null;
 }
@@ -761,7 +801,7 @@ VIEW_FN.spenden = main => {
     e.preventDefault(); e.spHandled = true; spAddFiles(fl);
   });
   const s = spStats(x.m, by.get(x.id)), P = spPart(x.id, cmp);   // Kennzahlen und Spalten der gewählten Maßnahme
-  const tools = () => [spStatus(), h('button', { disabled: ST.conn !== 'ok', onclick: () => spScan({ manual: true }) }, '↻ Neu einlesen'), h('button', { onclick: spPickFiles }, '+ Datei hinzufügen …')];
+  const tools = () => [spStatus(), h('button', { disabled: ST.conn !== 'ok', onclick: () => spScan({ manual: true }) }, '↻ Neu einlesen'), h('button', { class: 'primary', onclick: spPickFiles, tip: 'Export der Spendeneingänge (CSV oder Excel) wählen – die App legt ihn im Ordner „Spendeneingänge …“ ab, liest ihn ein und zeigt, was neu ist' }, '+ Buchung hinzufügen')];
   put(main,
     spNotice(),
     section('sp-ueb', 'Maßnahmen ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { closedSummary: () => 'aufklappen, um die Maßnahme zu wechseln', tools }),

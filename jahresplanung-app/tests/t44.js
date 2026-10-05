@@ -252,13 +252,33 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(await p.evaluate(() => checkData().some(c => /1 Spenden-Zuordnung zu einer gelöschten Maßnahme/.test(c.text))), 'J: Datenprüfung findet Zuordnung zu gelöschter Maßnahme');
   await p.evaluate(() => { delete D.spenden.zu.zzz; undo(); renderNow(); }); await p.waitForTimeout(200);
 
-  // ---- K: Datei über „+ Datei hinzufügen“ ablegen (gleicher Name, anderer Inhalt → „(2)“)
+  // ---- K: Datei über „+ Buchung hinzufügen“ ablegen (gleicher Name, anderer Inhalt → „(2)“), danach Zusammenfassung
   const tmp = path.join(__dirname, 'out', 'export1.csv');
   fs.writeFileSync(tmp, csv([line('26.09.2027', '60', 'DE00100000000000000041', 'Upload Test', 'JB Upload')]));
-  const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-sec="sp-ueb"] .tools button:has-text("Datei hinzufügen")')]);
+  const kb = await p.evaluate(() => { const b = [...document.querySelectorAll('[data-sec="sp-ueb"] .tools button')].find(x => /Buchung hinzufügen/.test(x.textContent)); return b ? [b.textContent, b.classList.contains('primary')] : null; });
+  ok(kb && kb[0] === '+ Buchung hinzufügen' && kb[1], 'K: Knopf „+ Buchung hinzufügen“ (rot)');
+  const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-sec="sp-ueb"] .tools button:has-text("Buchung hinzufügen")')]);
   await fc.setFiles(tmp); await p.waitForTimeout(700);
+  const rep = await p.evaluate(() => { const m = document.querySelector('.modal'); return m ? [m.querySelector('h2').textContent, [...m.querySelectorAll('.sp-addsum > div')].map(d => d.textContent).join(' | '), m.querySelector('.sp-addfiles').textContent, [...m.querySelectorAll('.sp-addlist tr')].map(r => r.textContent).join(' / ')] : null; });
+  ok(rep && rep[0] === 'Buchungen hinzugefügt' && /^1neue Spende60,00 € \| 0doppelt erkannt/.test(rep[1]) && /Zeiträume überschneiden sich$/.test(rep[1]) && /abgelegt als „export1 \(2\)\.csv“/.test(rep[2]) && /26\.09\.2027.*60,00 €.*JB Upload/.test(rep[3]),
+    'K: Zusammenfassung – ' + (rep ? rep[1] + ' · ' + rep[3] : 'fehlt'));
+  await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => !document.querySelector('.modal')), 'K: Zusammenfassung lässt sich wegklicken');
   const k = await p.evaluate(() => [Object.keys(__fs.files).filter(n => n.includes('Spendeneingänge 2027/')).map(n => n.split('/').pop()).sort().join(','), SP.rows.some(r => r.name === 'Upload Test')]);
   ok(/export1 \(2\)\.csv/.test(k[0]) && k[1], 'K: Datei abgelegt als „export1 (2).csv“ (nichts überschrieben) und eingelesen');
+  // dieselbe Datei nochmal + eine größere, die sich überschneidet: doppelt erkannt, Liste rollbar (etwa 10 sichtbar)
+  const big = path.join(__dirname, 'out', 'export_sept.csv');
+  fs.writeFileSync(big, csv([line('26.09.2027', '60', 'DE00100000000000000041', 'Upload Test', 'JB Upload'),
+    ...Array.from({ length: 24 }, (_, i) => line(String(10 + (i % 18)).padStart(2, '0') + '.09.2027', String(5 + i), 'DE001000000000000009' + String(i).padStart(2, '0'), 'Neu ' + i, 'Spende Neu ' + i))]));
+  const [fc2] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-sec="sp-ueb"] .tools button:has-text("Buchung hinzufügen")')]);
+  await fc2.setFiles([tmp, big]); await p.waitForTimeout(900);
+  const rep2 = await p.evaluate(() => { const m = document.querySelector('.modal'), l = m && m.querySelector('.sp-addlist'), r = l && l.querySelector('tr').getBoundingClientRect().height;
+    return m ? [[...m.querySelectorAll('.sp-addsum > div')].map(d => d.textContent).join(' | '), m.querySelector('.sp-addfiles').textContent, l.querySelectorAll('tr').length, l.scrollHeight > l.clientHeight, Math.round(l.clientHeight / r)] : null; });
+  ok(rep2 && /^24neue Spenden/.test(rep2[0]) && /2doppelt erkannt/.test(rep2[0]) && /jaZeiträume überschneiden sich/.test(rep2[0]) && /genau diese Datei lag schon im Ordner \(als „export1 \(2\)\.csv“\)Zeitraum 26\.09\.2027 – 26\.09\.2027 · 1 Spende: 0 neu, 1 doppelt(keine|erste)/.test(rep2[1].replace(/\s+/g, ' ').replace(/ ?Zeitraum/g, 'Zeitraum').replace(/doppelt ?/g, 'doppelt')) && /Überschneidet sich mit/.test(rep2[1]),
+    'K: zweimal dieselbe Buchung + 24 neue: ' + (rep2 ? rep2[0] : 'fehlt'));
+  ok(rep2 && rep2[2] === 24 && rep2[3] && rep2[4] >= 9 && rep2[4] <= 11, 'K: Liste der neuen Spenden zeigt etwa ' + (rep2 && rep2[4]) + ' Zeilen, der Rest ist rollbar');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => !document.querySelector('.modal')), 'K: auch mit Esc wegklickbar');
 
   // ---- L: ohne Ordner – Hinweis statt Fehler; Auswertung aus der Planungsdatei bleibt
   const p2 = await open(b); pages.push(p2);

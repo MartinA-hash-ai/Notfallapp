@@ -886,6 +886,21 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .sp-grip.r { right: -13px; }
 .sp-grip:hover, body.resizing .sp-grip { background-color: var(--hover); opacity: 1; }
 
+/* 0.13.4: Zusammenfassung nach „+ Buchung hinzufügen“ */
+.sp-addsum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
+.sp-addsum > div { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; text-align: center; display: flex; flex-direction: column; }
+.sp-addsum b { font-size: 22px; }
+.sp-addsum span { font-weight: 600; color: var(--ink2); }
+.sp-addsum small { color: var(--muted); }
+.sp-addfiles { margin: 0 0 10px; padding-left: 18px; font-size: 13px; }
+.sp-addfiles li { margin-bottom: 6px; }
+.sp-ov { color: var(--warn); }
+.sp-addrep h3 { font-size: 14px; margin: 10px 0 6px; }
+.sp-addlist { max-height: 272px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius); }
+.sp-addlist table { width: 100%; margin: 0; }
+.sp-addlist td { padding: 4px 8px; height: 18px; white-space: nowrap; }
+.sp-addlist td.sp-z { white-space: normal; width: 100%; }
+
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body:not(.printdoc-mode) #app { padding: 9mm 10mm; }
