@@ -845,6 +845,22 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .sp-cpill.off { color: var(--faint); background: var(--soft); border-style: dashed; }
 .sp-cdot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid; flex: none; }
 
+/* 0.12.8 */
+.sp-col.mid > .sp-list { grid-row: 1 / span 3; height: auto; min-height: 0; contain: size; border-top: 0; border-radius: var(--radius) var(--radius) 0 0; }
+.sp-col.mid > .sp-cf { grid-row: 4; }
+.sp-da { display: inline-flex; align-items: center; gap: 4px; color: var(--ink2); white-space: nowrap; }
+.sp-da select { font-size: 12.5px; padding: 2px 4px; }
+.sp-unit { display: flex; align-items: center; gap: 4px; }
+.sp-unit input, .sp-ueb td.inp .sp-unit input { flex: 1; min-width: 0; width: 100%; }
+.sp-unit i { font-style: normal; color: var(--muted); font-size: 12px; flex: none; }
+.sp-ueb th.sp-rest, .sp-ueb td.sp-rest { padding: 0; }
+.sp-help { font-size: 12.5px; }
+.sp-help table { border-collapse: collapse; margin: 4px 0; }
+.sp-help td { padding: 2px 8px 2px 0; vertical-align: top; }
+.sp-help code { font-family: Consolas, monospace; background: var(--head); border: 1px solid var(--line); border-radius: 4px; padding: 0 4px; white-space: nowrap; }
+.sp-help-lead { margin-bottom: 6px; }
+#tip:has(.sp-help) { max-width: 460px; }
+
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body:not(.printdoc-mode) #app { padding: 9mm 10mm; }

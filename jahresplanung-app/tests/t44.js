@@ -44,15 +44,17 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(a2[0] === 'Jahresbericht' && a2[1] && a2[2] && /^ab 27\.08\.2027 bis 25\.02\.2028$/.test(a2[3]) && a2[4] && a2[5], 'A2: „Jahresbericht“ groß in Maßnahmenfarbe; Auflage und Kosten in der Übersicht; Filter in „Offen“ eingeklappt („' + a2[3] + '“)');
   const tg = await p.evaluate(() => { const b = document.querySelector('.sp-col:first-child .sp-ch .sp-ftog'), c = document.querySelector('.sp-col:first-child').getBoundingClientRect(); return [b && b.textContent, b && c.right - b.getBoundingClientRect().right < 20, b && b.getBoundingClientRect().top - c.top < 30]; });
   ok(tg[0] === 'Filter ▸' && tg[1] && tg[2], 'A2: „Filter ▸“ oben rechts im Kasten „Offen“');
-  const mh = await p.evaluate(() => [document.querySelector('.sp-col.mid .sp-ch').textContent, document.querySelector('.sp-col.mid').textContent.includes('Vorschläge'), document.querySelector('.sp-col.mid .sp-empty')]);
-  ok(mh[0] === '' && !mh[1] && !mh[2], 'A2: mittlere Spalte ohne Überschrift, Erklärung und Leer-Text');
+  const mh = await p.evaluate(() => [!document.querySelector('.sp-col.mid .sp-ch'), document.querySelector('.sp-col.mid').textContent.includes('Vorschläge'), document.querySelector('.sp-col.mid .sp-empty')]);
+  ok(mh[0] && !mh[1] && !mh[2], 'A2: mittlere Spalte ohne Überschrift, Erklärung und Leer-Text');
   await p.click('.sp-ftog'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => document.querySelector('[data-fk="sp-fvon"]').value === '2027-08-27' && !!document.querySelector('.sp-q') && UI.spFilt === true), 'A2: „Filter ▸“ klappt Suche, Zeitraum (ab PAL) und Daueraufträge auf');
 
   // ---- A3: Listen der drei Spalten beginnen auf derselben Höhe, Knöpfe unten bündig; kein Betragsfilter; Kasten einklappbar
-  const a3 = await p.evaluate(() => { const t = [...document.querySelectorAll('.sp-col .sp-list')].map(l => Math.round(l.getBoundingClientRect().top)), f = [...document.querySelectorAll('.sp-col .sp-cf')].map(l => Math.round(l.getBoundingClientRect().top));
-    return [t.join(','), f.join(','), !document.querySelector('.sp-min'), !!document.querySelector('.sp-filter label.sp-da input[type=checkbox]')]; });
-  ok(new Set(a3[0].split(',')).size === 1 && new Set(a3[1].split(',')).size === 1 && a3[2] && a3[3], 'A3: Listen beginnen bündig (' + a3[0] + '), Knöpfe bündig, kein Betragsfilter, Häkchen „Daueraufträge ausblenden“');
+  const a3 = await p.evaluate(() => { const t = [...document.querySelectorAll('.sp-col .sp-list')].map(l => Math.round(l.getBoundingClientRect().top)), f = [...document.querySelectorAll('.sp-col .sp-cf')].map(l => Math.round(l.getBoundingClientRect().top)),
+      mc = document.querySelector('.sp-col.mid').getBoundingClientRect();
+    return [t.join(','), f.join(','), !document.querySelector('.sp-min'), [...document.querySelectorAll('.sp-filter .sp-da select option')].map(o => o.textContent).join('|'), t[1] - mc.top]; });
+  ok(a3[0].split(',')[0] === a3[0].split(',')[2] && a3[4] <= 2 && new Set(a3[1].split(',')).size === 1 && a3[2] && a3[3] === 'einblenden|ausblenden|nur Daueraufträge',
+    'A3: Listen links/rechts bündig, die mittlere beginnt ganz oben (' + a3[0] + '), Knöpfe bündig, kein Betragsfilter, Daueraufträge mit drei Optionen');
   await p.click('[data-sec="sp-m"] .sec-tog'); await p.waitForTimeout(200);
   const a4 = await p.evaluate(() => [!document.querySelector('[data-sec="sp-m"] .sp-tile'), document.querySelector('[data-sec="sp-m"] .sec-sum')?.textContent]);
   await p.click('[data-sec="sp-m"] .sec-tog'); await p.waitForTimeout(200);
@@ -126,11 +128,14 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.fill('.sp-q', ''); await p.waitForTimeout(450);
   const da = await p.evaluate(() => { const r = [...document.querySelectorAll('.sp-col:first-child .sp-row.da')]; return [r.length, r[0] && r[0].querySelector('.sp-tag.da')?.textContent, document.querySelectorAll('.sp-col:first-child .sp-row').length]; });
   ok(da[0] === 1 && da[1] === 'Dauerauftrag' && da[2] > 1, 'E: Dauerauftrag bleibt in der Liste, farbig markiert mit „Dauerauftrag“');
-  await p.click('.sp-filter .sp-da input'); await p.waitForTimeout(200);
-  const da2 = await p.evaluate(() => [document.querySelectorAll('.sp-col:first-child .sp-row.da').length, document.querySelector('.sp-filter .sp-da').textContent, UI.spHideDA, document.querySelector('.sp-filter .sp-da input').checked]);
-  ok(da2[0] === 0 && da2[1] === 'Daueraufträge ausblenden' && da2[2] && da2[3], 'E: Häkchen bei „Daueraufträge ausblenden“ blendet sie aus');
-  await p.click('.sp-filter .sp-da input'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => document.querySelectorAll('.sp-col:first-child .sp-row.da').length === 1), 'E: nochmal klicken zeigt sie wieder');
+  await p.selectOption('.sp-filter .sp-da select', 'ohne'); await p.waitForTimeout(200);
+  const da2 = await p.evaluate(() => [document.querySelectorAll('.sp-col:first-child .sp-row.da').length, document.querySelectorAll('.sp-col:first-child .sp-row').length, UI.spDA, document.querySelector('.sp-filter .sp-da select').value]);
+  ok(da2[0] === 0 && da2[1] > 0 && da2[2] === 'ohne' && da2[3] === 'ohne', 'E: „Daueraufträge: ausblenden“ blendet sie aus');
+  await p.selectOption('.sp-filter .sp-da select', 'nur'); await p.waitForTimeout(200);
+  const da3 = await p.evaluate(() => [document.querySelectorAll('.sp-col:first-child .sp-row.da').length, document.querySelectorAll('.sp-col:first-child .sp-row').length]);
+  ok(da3[0] === 1 && da3[1] === 1, 'E: „nur Daueraufträge“ zeigt nur den einen Dauerauftrag');
+  await p.selectOption('.sp-filter .sp-da select', 'alle'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => document.querySelectorAll('.sp-col:first-child .sp-row.da').length === 1 && document.querySelectorAll('.sp-col:first-child .sp-row').length > 1), 'E: „einblenden“ zeigt wieder alle');
   await p.click('.sp-col.mid .sp-cf button:has-text("Alle zurück")'); await p.waitForTimeout(250);
   const re1 = await p.evaluate(() => [document.querySelectorAll('.sp-col.mid .sp-row').length, document.querySelector('.sp-reapply').textContent, document.querySelector('.sp-reapply').disabled]);
   ok(re1[0] === 0 && re1[1] === '↻ Regel neu anwenden (2)' && !re1[2], 'E: aus Versehen „Alle zurück“ – Knopf „' + re1[1] + '“ (auch der in C abgelehnte Vorschlag)');

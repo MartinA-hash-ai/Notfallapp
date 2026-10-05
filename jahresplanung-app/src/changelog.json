@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.12.7",
+    "version": "0.12.8",
     "date": "",
+    "items": [
+      "Regeln und Suche verstehen jetzt Suchausdrücke: * als Platzhalter (z. B. *bericht findet auch „Jaresbericht“, Jahres* alles, was so beginnt), ? für genau ein Zeichen, ~Wort für kleine Tippfehler, „A + B“ für beides, -Wort zum Ausschließen",
+      "Kleine Hilfe zu den Suchausdrücken: am ⓘ neben „Regel“ sofort, über dem Schlagwort- und dem Suchfeld nach etwa 2 Sekunden Verweilen",
+      "„Offen“: Daueraufträge einblenden, ausblenden oder nur Daueraufträge zeigen",
+      "Die Liste in der Mitte (Prüfen) beginnt ganz oben in der Spalte",
+      "Übersicht: hinter der Auflage steht „Stk.“, hinter den Kosten „€“; jede Spalte – auch ROI und Hinweis – lässt sich in der Breite ziehen"
+    ]
+  },
+  {
+    "version": "0.12.7",
+    "date": "2026-10-05T08:04",
     "items": [
       "Der Reiter heißt jetzt „Auswertung“ (mit „Beta“); die Überschrift „Spenden 2027“ und der Erklärsatz entfallen, „Neu einlesen“ und „Datei hinzufügen“ stehen im Kopf der Übersicht",
       "Übersicht: Spalte „Hinweis“ (dasselbe Feld wie in der Jahresplanung, hier direkt eintragbar); Spaltenbreiten ziehen wie in der Jahresplanung",

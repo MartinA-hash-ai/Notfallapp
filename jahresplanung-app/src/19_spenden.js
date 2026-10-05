@@ -251,17 +251,58 @@ async function spMakeDir() {
 /* ---------- Regeln: Schlagworte im Verwendungszweck, innerhalb eines Zeitraums (Tage ab PAL – wandert mit, wenn sich der PAL verschiebt) */
 // Groß/klein egal. Ein Schlagwort passt als ganzes Wort („JB“ nicht in „JBL“); längere Begriffe (ab 6 Zeichen) auch,
 // wenn die Bank sie durch Leerzeichen oder Zeilenumbruch trennt („JAHRESBE RICHT“).
+// Suchausdrücke für Regeln und Suche (Groß/klein egal):
+//   JB           ganzes Wort („JB“ nicht in „JBL“); ab 6 Zeichen auch, wenn die Bank trennt („JAHRESBE RICHT“)
+//   *bericht     * = beliebig viele Buchstaben/Ziffern im Wort (Jahresbericht, Jaresbericht …); Jahres* · J*bericht
+//   Jahresber?cht  ? = genau ein Buchstabe/Ziffer
+//   ~Jahresbericht ungefähr: kleine Tippfehler erlaubt (1 Zeichen, ab 8 Zeichen 2)
+//   JB + 2026    beide müssen vorkommen
+//   -Trauer      ausschließen: Spenden mit diesem Wort schlägt die Regel nicht vor
+const SP_HILFE = [['JB', 'ganzes Wort (nicht „JBL“); längere Wörter auch, wenn die Bank sie trennt'], ['*bericht', '* = beliebige Buchstaben/Ziffern im Wort – auch „Jaresbericht“; ebenso Jahres* oder J*bericht'],
+  ['Jahresber?cht', '? = genau ein beliebiges Zeichen'], ['~Jahresbericht', 'ungefähr: kleine Tippfehler erlaubt'], ['JB + 2026', 'beide müssen im Verwendungszweck stehen'],
+  ['Starke Hilfe', 'Wortfolge (Leerzeichen dazwischen egal)'], ['-Trauer', 'ausschließen: Spenden mit diesem Wort nicht vorschlagen']];
+const spHelp = () => h('div', { class: 'sp-help' }, h('b', null, 'So lässt sich filtern'), h('table', null, SP_HILFE.map(([k, t]) => h('tr', null, h('td', null, h('code', null, k)), h('td', null, t)))),
+  h('div', { class: 'muted small' }, 'Mehrere Schlagworte: eines davon genügt. Groß/klein ist egal.'));
+const spWords = s => (String(s).toLowerCase().match(/[\p{L}\p{N}]+/gu) || []);
+function spLev(a, b, max) {                                        // Levenshtein-Abstand mit Abbruch über „max“
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({ length: b.length + 1 }, (_, i) => i);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]; let best = i;
+    for (let j = 1; j <= b.length; j++) { cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); if (cur[j] < best) best = cur[j]; }
+    if (best > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+function spTerm(t) {
+  t = str(t).trim(); if (!t) return null;
+  if (/\S\s*\+\s*\S/.test(t)) {                                  // „A + B“: alle Teile; „A + -B“: A, aber nicht B
+    const parts = t.split('+').map(spTerm).filter(Boolean);
+    return parts.some(p => !p.neg) ? { word: t, test: rec => parts.every(p => p.neg ? !p.test(rec) : p.test(rec)) } : parts.length ? { word: t, neg: true, test: rec => parts.some(p => p.test(rec)) } : null;
+  }
+  if (/^[-!]./.test(t)) { const inner = spTerm(t.slice(1)); return inner && { word: t, neg: true, test: inner.test }; }
+  if (t.startsWith('~') && t.length > 1) {                          // ungefähr: Wort (oder zwei getrennte Wortteile) mit kleinem Abstand
+    const w = t.slice(1).toLowerCase().replace(/\s+/g, ''), max = w.length >= 8 ? 2 : w.length >= 4 ? 1 : 0;
+    return { word: t, test: rec => { const ws = spWords(rec.zweck); for (let i = 0; i < ws.length; i++) { if (spLev(ws[i], w, max) <= max) return true; if (i + 1 < ws.length && spLev(ws[i] + ws[i + 1], w, max) <= max) return true; } return false; } };
+  }
+  const esc = x => x.replace(/[.+^${}()|[\]\\]/g, '\\$&');
+  if (/[*?]/.test(t)) {                                              // Platzhalter innerhalb eines Wortes
+    const rx = new RegExp('(?<![\\p{L}\\p{N}])' + esc(t).replace(/\*/g, '[\\p{L}\\p{N}]*').replace(/\?/g, '[\\p{L}\\p{N}]').replace(/\s+/g, '\\s*') + '(?![\\p{L}\\p{N}])', 'iu');
+    const lit = spSqueeze(t.replace(/[*?]/g, '')), sx = lit.length >= 6 ? new RegExp(t.toLowerCase().split(/([*?])/).map(x => x === '*' ? '[\\p{L}\\p{N}]{0,15}' : x === '?' ? '[\\p{L}\\p{N}]' : esc(spSqueeze(x))).join(''), 'u') : null;
+    return { word: t, test: rec => rx.test(rec.zweck) || (sx && sx.test(rec.sq)) };   // ab 6 festen Zeichen auch, wenn die Bank trennt
+  }
+  const sq = spSqueeze(t), rx = new RegExp('(?<![\\p{L}\\p{N}])' + esc(t).replace(/[*?]/g, '\\$&').replace(/\s+/g, '\\s*') + '(?![\\p{L}\\p{N}])', 'iu');
+  return { word: t, test: rec => rx.test(rec.zweck) || (sq.length >= 6 && rec.sq.includes(sq)) };
+}
+// Mehrere Schlagworte: eines genügt; ausschließende verhindern den Treffer. Ergebnis: das passende Schlagwort oder null.
+// all = true (Suche): nur ausschließende Begriffe → alles andere passt
 const _spMatch = new Map();
-function spMatcher(words) {
-  const key = JSON.stringify(words);
+function spMatcher(words, all) {
+  const key = JSON.stringify(words) + (all ? '|a' : '');
   if (_spMatch.has(key)) return _spMatch.get(key);
-  const tests = words.map(w => {
-    const t = str(w).trim(); if (!t) return null;
-    const sq = spSqueeze(t);
-    return { word: t, sq: sq.length >= 6 ? sq : null,
-      rx: new RegExp('(?<![\\p{L}\\p{N}])' + t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '\\s*') + '(?![\\p{L}\\p{N}])', 'iu') };
-  }).filter(Boolean);
-  const f = rec => { for (const t of tests) if (t.rx.test(rec.zweck) || (t.sq && rec.sq.includes(t.sq))) return t.word; return null; };
+  const tests = words.map(spTerm).filter(Boolean), pos = tests.filter(t => !t.neg), neg = tests.filter(t => t.neg);
+  const f = rec => { for (const t of neg) if (t.test(rec)) return null; if (!pos.length) return all && neg.length ? neg[0].word : null; for (const t of pos) if (t.test(rec)) return t.word; return null; };
   if (_spMatch.size > 300) _spMatch.clear();
   _spMatch.set(key, f);
   return f;
@@ -411,11 +452,13 @@ function spResetFilter(m) {
   const rg = spRange(m), pal = m.allg ? rg.a : dn(m.pal), b = rg.b ?? (pal != null ? pal + SP_TAGE : null);
   SPUI.f = { q: '', von: pal != null ? ds(pal) : '', bis: b != null ? ds(b) : '' };
 }
+// Daueraufträge in „Offen“: alle / ohne / nur
+const spDAMode = () => UI.spDA === 'ohne' || UI.spDA === 'nur' ? UI.spDA : UI.spHideDA ? 'ohne' : 'alle';
 function spFilter(list) {
   const f = SPUI.f, fa = dn(f.von), fb = dn(f.bis), q = f.q.trim();
-  const zm = q ? spMatcher([q]) : null, ql = q.toLowerCase(), tw = SPUI.typed.trim(), tm = tw ? spMatcher([tw]) : null;
-  return list.filter(r => (fa == null || r.d >= fa) && (fb == null || r.d <= fb) && !(UI.spHideDA && spIsDA(r)) && (!tm || tm(r)) &&
-    (!q || zm(r) || [r.name, r.konto, r.text].some(t => t && t.toLowerCase().includes(ql))));
+  const zm = q ? spMatcher([q], true) : null, ql = q.toLowerCase(), plain = !/[*?~+]|^[-!]/.test(q), tw = SPUI.typed.trim(), tm = tw ? spMatcher([tw], true) : null, da = spDAMode();
+  return list.filter(r => (fa == null || r.d >= fa) && (fb == null || r.d <= fb) && (da === 'alle' || (da === 'ohne') !== spIsDA(r)) && (!tm || tm(r)) &&
+    (!q || zm(r) || (plain && [r.name, r.konto, r.text].some(t => t && t.toLowerCase().includes(ql)))));
 }
 function spTip(r) {
   const line = (k, v) => v ? h('div', null, h('span', { class: 'muted' }, k + ': '), v) : null;
@@ -457,20 +500,20 @@ function spOverview(ms, cmp, mid, by) {
       h('td', { class: 'inp' }, h('input', { class: 'sp-hin', value: x.m.hinweis || '', placeholder: 'Thema / Hinweis', 'data-fk': 'sp-hin:' + x.id, onclick: stop, title: x.m.hinweis || '',
         onchange: e => setM(x.id, 'hinweis', e.target.value, 'Hinweis geändert') })),
     h('td', null, x.pal != null ? fmtD(x.pal) : '–'),
-    x.allg ? cell('–') : h('td', { class: 'num inp' }, numField(x.m.auflage, 0, v => setM(x.id, 'auflage', v, 'Auflage geändert'), { class: 'numf sp-auf', 'data-fk': 'sp-auf:' + x.id, onclick: stop })),
-    x.allg ? cell('–') : h('td', { class: 'num inp' }, numField(x.m.kosten, 2, v => spSetKosten(x.id, v), { class: 'numf sp-kos', 'data-fk': 'sp-kos:' + x.id, onclick: stop,
-      tip: 'Gesamtkosten der Maßnahme in € (Druck, Porto, Lettershop …), z. B. 1.234,50' })),
+    x.allg ? cell('–') : h('td', { class: 'num inp' }, h('span', { class: 'sp-unit' }, numField(x.m.auflage, 0, v => setM(x.id, 'auflage', v, 'Auflage geändert'), { class: 'numf sp-auf', 'data-fk': 'sp-auf:' + x.id, onclick: stop }), h('i', null, 'Stk.'))),
+    x.allg ? cell('–') : h('td', { class: 'num inp' }, h('span', { class: 'sp-unit' }, numField(x.m.kosten, 2, v => spSetKosten(x.id, v), { class: 'numf sp-kos', 'data-fk': 'sp-kos:' + x.id, onclick: stop,
+      tip: 'Gesamtkosten der Maßnahme in € (Druck, Porto, Lettershop …), z. B. 1.234,50' }), h('i', null, '€'))),
     cell(s.n ? eur0(s.sum) : '–'), cell(s.n || '–'), cell(s.avg != null ? eur(s.avg) : '–'),
-    cell(s.resp != null ? num1(s.resp) + ' %' : '–', rt(s.resp, R.resp)), cell(s.roi != null ? num1(s.roi) : '–', rt(s.roi, R.roi)));
+    cell(s.resp != null ? num1(s.resp) + ' %' : '–', rt(s.resp, R.resp)), cell(s.roi != null ? num1(s.roi) : '–', rt(s.roi, R.roi)), h('td', { class: 'sp-rest' }));
   return [
     h('div', { class: 'tablewrap' }, h('table', { class: 'grid sp-ueb', style: { width: 'max(100%, ' + spTableW() + 'px)' } },
       h('colgroup', null, SP_UCOLS.map(c => h('col', { style: spColW(c) ? { width: spColW(c) + 'px' } : null }))),
-      h('thead', null, h('tr', null, SP_UCOLS.map((c, i) => h('th', { class: i > 2 ? 'num' : '' }, c.t,
-        h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => spColResize(e, i),
+      h('thead', null, h('tr', null, SP_UCOLS.map((c, i) => h('th', { class: (i > 2 ? 'num' : '') + (c.rest ? ' sp-rest' : '') }, c.t || null,
+        c.rest ? null : h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => spColResize(e, i),
           ondblclick: () => { if (UI.spColW) delete UI.spColW[c.k]; saveUI(); renderNow(); } }))))),
       h('tbody', null, rows.map(row)),
-      tot.n ? h('tfoot', null, h('tr', null, h('td', null, 'Summe der Maßnahmen'), h('td'), h('td'), cell(tot.auf ? tot.auf.toLocaleString('de-DE') : '–'), cell(tot.kos ? eur0(tot.kos * 100) : '–'), cell(eur0(tot.sum)), cell(tot.n),
-        cell(eur(tot.sum / tot.n)), cell(tot.auf ? num1(tot.n / tot.auf * 100) + ' %' : '–'), cell(tot.kos ? num1(tot.sum / 100 / tot.kos) : '–'))) : null)),
+      tot.n ? h('tfoot', null, h('tr', null, h('td', null, 'Summe der Maßnahmen'), h('td'), h('td'), cell(tot.auf ? tot.auf.toLocaleString('de-DE') + ' Stk.' : '–'), cell(tot.kos ? eur0(tot.kos * 100) : '–'), cell(eur0(tot.sum)), cell(tot.n),
+        cell(eur(tot.sum / tot.n)), cell(tot.auf ? num1(tot.n / tot.auf * 100) + ' %' : '–'), cell(tot.kos ? num1(tot.sum / 100 / tot.kos) : '–'), h('td', { class: 'sp-rest' }))) : null)),
     ids.length >= 2 ? h('div', { class: 'sp-cmpbox' }, h('button', { class: 'link sp-cmptog', 'aria-expanded': String(!!UI.spCmp), onclick: () => { UI.spCmp = !UI.spCmp; renderNow(); } },
       (UI.spCmp ? '▾ ' : '▸ ') + 'Rücklauf im Vergleich (kumuliert, Tage nach PAL)'),
       UI.spCmp ? [h('div', { class: 'sp-cpills' }, ids.map(id => { const x = C.byId.get(id), off = (UI.spCmpOff || []).includes(id);
@@ -479,15 +522,17 @@ function spOverview(ms, cmp, mid, by) {
           h('span', { class: 'sp-cdot', style: { background: off ? 'transparent' : x.color, borderColor: x.color } }), x.m.name || '(ohne Namen)'); })),
         h('div', { class: 'sp-chart', dataset: { chart: 'cmp', ids: ids.filter(id => !(UI.spCmpOff || []).includes(id)).join(',') } })] : null) : null];
 }
-// Spalten der Übersicht; „Hinweis“ nimmt den Rest. Breite ziehen wie in der Jahresplanung: nur diese Spalte und ihre rechte Nachbarin ändern sich
-const SP_UCOLS = [{ k: 'name', w: 220, t: 'Maßnahme' }, { k: 'hin', w: 0, flex: 140, t: 'Hinweis' }, { k: 'pal', w: 100, t: 'PAL' }, { k: 'auf', w: 100, t: 'Auflage' }, { k: 'kos', w: 110, t: 'Kosten' },
-  { k: 'sum', w: 126, t: 'Spendensumme' }, { k: 'n', w: 80, t: 'Anzahl' }, { k: 'avg', w: 108, t: 'Ø-Spende' }, { k: 'resp', w: 120, t: 'Responsequote' }, { k: 'roi', w: 76, t: 'ROI' }];
-const spColW = c => c.flex ? 0 : (UI.spColW && UI.spColW[c.k]) || c.w;
-const spTableW = () => SP_UCOLS.reduce((t, c) => t + (spColW(c) || c.flex || 0), 0);
+// Spalten der Übersicht; ganz rechts ein leerer Rest, damit sich jede Spalte (auch ROI) verstellen lässt.
+// Breite ziehen wie in der Jahresplanung: nur diese Spalte und ihre rechte Nachbarin ändern sich
+const SP_UCOLS = [{ k: 'name', w: 220, t: 'Maßnahme' }, { k: 'hin', w: 220, t: 'Hinweis' }, { k: 'pal', w: 100, t: 'PAL' }, { k: 'auf', w: 118, t: 'Auflage' }, { k: 'kos', w: 124, t: 'Kosten' },
+  { k: 'sum', w: 126, t: 'Spendensumme' }, { k: 'n', w: 80, t: 'Anzahl' }, { k: 'avg', w: 108, t: 'Ø-Spende' }, { k: 'resp', w: 120, t: 'Responsequote' }, { k: 'roi', w: 76, t: 'ROI' },
+  { k: 'rest', w: 0, flex: 0, rest: true, t: '' }];
+const spColW = c => c.rest ? 0 : (UI.spColW && UI.spColW[c.k]) || c.w;
+const spTableW = () => SP_UCOLS.reduce((t, c) => t + spColW(c), 0);
 function spColResize(ev, i) {
   ev.preventDefault(); ev.stopPropagation();
   const COLS = SP_UCOLS, table = ev.currentTarget.closest('table'), cols = $$('col', table);
-  const widths = $$('thead th', table).map(t => Math.round(t.getBoundingClientRect().width)), j = i + 1 < COLS.length ? i + 1 : -1, minOf = k => COLS[k].flex || 50;
+  const widths = $$('thead th', table).map(t => Math.round(t.getBoundingClientRect().width)), j = i + 1 < COLS.length ? i + 1 : -1, minOf = k => COLS[k].rest ? 0 : 50;
   const keep = JSON.parse(JSON.stringify(UI.spColW || {})), x0 = ev.clientX, w0 = widths[i], wn0 = j >= 0 ? widths[j] : 0, total = widths.reduce((a, b) => a + b, 0);
   widths.forEach((w, k) => { cols[k].style.width = w + 'px'; });   // Stand einfrieren – so verrutscht beim Ziehen nichts
   table.style.width = total + 'px';
@@ -504,7 +549,7 @@ function spColResize(ev, i) {
       UI.spColW = keep; COLS.forEach((c, k) => { cols[k].style.width = spColW(c) ? spColW(c) + 'px' : ''; }); table.style.width = 'max(100%, ' + spTableW() + 'px)'; return;
     }
     const nw = Object.assign({}, UI.spColW);
-    COLS.forEach((c, k) => { if (c.flex) delete nw[c.k]; else nw[c.k] = Math.round(parseFloat(cols[k].style.width)); });
+    COLS.forEach((c, k) => { if (!c.rest) nw[c.k] = Math.round(parseFloat(cols[k].style.width)); });
     UI.spColW = nw; saveUI(); renderNow();
   });
 }
@@ -526,6 +571,15 @@ function spTiles(x, s) {
       h('span', { class: 'sp-el' }, 'Erlös'), h('b', null, s.net != null ? (s.net < 0 ? '− ' : '') + eur0(Math.abs(s.net)) : '–'),
       h('span', { class: 'sp-es' }, s.net != null ? 'Spenden ' + eur0(s.sum) + ' − Kosten ' + eur0(s.kos * 100) : 'Kosten fehlen – in der Übersicht eintragen')));
 }
+// Hinweis erst nach kurzem Verweilen mit der Maus (z. B. die Suchhilfe über dem Schlagwort-Feld)
+function spDelayTip(el, content, ms = 2000) {
+  let t = null, last = null;
+  el.addEventListener('mousemove', ev => { last = ev; });
+  el.addEventListener('mouseenter', ev => { last = ev; clearTimeout(t); t = setTimeout(() => { if (!el.isConnected || !el.matches(':hover')) return; tipEl.replaceChildren(content()); tipEl.classList.add('on'); placeTip(last); }, ms); });
+  el.addEventListener('mouseleave', () => { clearTimeout(t); hideTip(); });
+  el.addEventListener('keydown', () => { clearTimeout(t); hideTip(); });
+  return el;
+}
 function spRuleBar(x, cmp) {
   const m = x.m, r = m.regel || { worte: [] }, pal = x.pal, rg = spRange(m), mid = x.id, rej = spRejected(mid, cmp).length;
   let tq = null;
@@ -536,15 +590,14 @@ function spRuleBar(x, cmp) {
     if (isNum(rr.ab) && isNum(rr.bis) && rr.ab > rr.bis) { if (which === 'ab') rr.bis = rr.ab; else rr.ab = rr.bis; }   // Ende nie vor dem Beginn
   }, 'Zeitraum der Regel geändert'); };
   return h('div', { class: 'sp-rule' },
-    h('span', { class: 'sp-rl' }, 'Regel', h('span', { class: 'info', tip: 'Spenden, deren Verwendungszweck eines der Schlagworte enthält und die im Zeitraum eingehen, landen automatisch in der Mitte zum Prüfen – auch aus später hinzugefügten Dateien. ' +
-      'Beim Tippen zeigt „Offen“ sofort, welche Spenden passen; Enter übernimmt das Schlagwort. Groß/klein ist egal. Ein Schlagwort zählt nur als ganzes Wort („JB“ nicht in „JBL“); längere Begriffe (ab 6 Zeichen) auch, wenn die Bank sie trennt („JAHRESBE RICHT“).' +
-      (m.allg ? '' : ' Der Zeitraum hängt am PAL und wandert mit.') }, ' ⓘ')),
+    h('span', { class: 'sp-rl' }, 'Regel', h('span', { class: 'info', tip: () => h('div', null, h('div', { class: 'sp-help-lead' }, 'Spenden, deren Verwendungszweck zu einem Schlagwort passt und die im Zeitraum eingehen, landen automatisch in der Mitte zum Prüfen – auch aus später hinzugefügten Dateien. ' +
+      'Beim Tippen zeigt „Offen“ sofort, welche passen; Enter übernimmt das Schlagwort.' + (m.allg ? '' : ' Der Zeitraum hängt am PAL und wandert mit.')), spHelp()) }, ' ⓘ')),
     (r.worte || []).map(w => h('span', { class: 'sp-word' }, w, h('button', { class: 'sp-x', 'aria-label': w + ' entfernen', tip: '„' + w + '“ aus der Regel nehmen',
       onclick: () => spSetRule(mid, rr => { rr.worte = rr.worte.filter(z => z !== w); }, 'Schlagwort „' + w + '“ entfernt') }, '×'))),
-    h('input', { class: 'sp-wordin', value: SPUI.typed, placeholder: (r.worte || []).length ? '+ Schlagwort' : 'Schlagwort oder Code, z. B. JB – Enter', 'data-fk': 'sp-word',
+    spDelayTip(h('input', { class: 'sp-wordin', value: SPUI.typed, placeholder: (r.worte || []).length ? '+ Schlagwort' : 'Schlagwort oder Code, z. B. JB – Enter', 'data-fk': 'sp-word',
       oninput: e => { SPUI.typed = e.target.value; clearTimeout(tq); tq = setTimeout(renderNow, 180); },
       onkeydown: e => { if (e.key === 'Enter' || e.key === ',' || e.key === ';') { e.preventDefault(); clearTimeout(tq); add(); } else if (e.key === 'Escape') { SPUI.typed = ''; renderNow(); } },
-      onblur: () => { if (!_rendering && SPUI.typed.trim()) { clearTimeout(tq); add(); } } }),   // beim Neuzeichnen (Vorschau) nicht übernehmen
+      onblur: () => { if (!_rendering && SPUI.typed.trim()) { clearTimeout(tq); add(); } } }), spHelp),   // beim Neuzeichnen (Vorschau) nicht übernehmen
     h('span', { class: 'sp-rl' }, 'Zeitraum'),
     m.allg ? h('span', { class: 'muted small' }, 'Kalenderjahr ' + m.allg) :
     pal == null ? h('span', { class: 'warn small' }, 'ohne PAL ist die Regel aus – bitte PAL eintragen') : [
@@ -588,7 +641,7 @@ function spPreNotice(x, R) {
 function spAssign(x, cmp) {
   const mid = x.id, P = spPart(mid, cmp);
   if (SPUI.fmid !== mid || SPUI.fpal !== x.pal) { spResetFilter(x.m); SPUI.fmid = mid; SPUI.fpal = x.pal; Object.values(SPUI.sel).forEach(s => s.clear()); }
-  const L = spFilter(P.L), cols = { l: L, m: P.M, r: P.R }, nDA = UI.spHideDA ? P.L.filter(spIsDA).length : 0;
+  const L = spFilter(P.L), cols = { l: L, m: P.M, r: P.R }, daM = spDAMode();
   for (const c of Object.keys(cols)) { const keys = new Set(cols[c].map(r => r.k)); for (const k of [...SPUI.sel[c]]) if (!keys.has(k)) SPUI.sel[c].delete(k); SPUI.order[c] = cols[c].map(r => r.k); }
   const btn = {}, lists = {};
   const sumOf = (c, keys) => cols[c].filter(r => !keys || keys.has(r.k)).reduce((s, r) => s + r.b, 0);
@@ -637,16 +690,17 @@ function spAssign(x, cmp) {
           h('button', { class: 'link sp-ftog', 'aria-expanded': String(!!UI.spFilt), onclick: () => { UI.spFilt = !UI.spFilt; renderNow(); } }, UI.spFilt ? 'Filter ▾' : 'Filter ▸')),
         !UI.spFilt ? h('div', { class: 'sp-filter closed' },
           h('span', { class: 'muted small' }, [f.von || f.bis ? (f.von ? 'ab ' + fmtD(dn(f.von)) : '') + (f.bis ? ' bis ' + fmtD(dn(f.bis)) : '') : 'alle Daten',
-            f.q.trim() ? ' · Suche „' + f.q.trim() + '“' : '', UI.spHideDA ? ' · ohne Daueraufträge' : ''].join(''))) :
+            f.q.trim() ? ' · Suche „' + f.q.trim() + '“' : '', daM === 'ohne' ? ' · ohne Daueraufträge' : daM === 'nur' ? ' · nur Daueraufträge' : ''].join(''))) :
         h('div', { class: 'sp-filter' },
-          h('input', { type: 'search', class: 'sp-q', placeholder: 'suchen (Verwendungszweck, Name …)', value: f.q, 'data-fk': 'sp-q', oninput: e => fset('q', e.target.value) }),
+          spDelayTip(h('input', { type: 'search', class: 'sp-q', placeholder: 'suchen (Verwendungszweck, Name …)', value: f.q, 'data-fk': 'sp-q', oninput: e => fset('q', e.target.value) }), spHelp),
           dateInput(f.von, 'sp-fvon', v => fset('von', v, true)), '–', dateInput(f.bis, 'sp-fbis', v => fset('bis', v, true)),
-          h('label', { class: 'check small sp-da', tip: 'Daueraufträge (laut Buchungstext) in „Offen“ nicht anzeigen' + (nDA ? ' – gerade ' + nDA + ' ausgeblendet' : '') },
-            h('input', { type: 'checkbox', checked: !!UI.spHideDA, onchange: e => { UI.spHideDA = e.target.checked; renderNow(); } }), 'Daueraufträge ausblenden'),
+          h('label', { class: 'small sp-da', tip: 'Daueraufträge (laut Buchungstext) in „Offen“ anzeigen, ausblenden oder nur sie zeigen' }, 'Daueraufträge ',
+            h('select', { 'data-fk': 'sp-da', onchange: e => { UI.spDA = e.target.value; UI.spHideDA = false; renderNow(); } },
+              [['alle', 'einblenden'], ['ohne', 'ausblenden'], ['nur', 'nur Daueraufträge']].map(([v, t]) => h('option', { value: v, selected: daM === v }, t)))),
           h('button', { class: 'link', disabled: !f.q.trim(), tip: 'Suchbegriff als Schlagwort in die Regel übernehmen – passende Spenden (auch künftige) landen dann automatisch in „Prüfen“', onclick: () => { const w = f.q; SPUI.f.q = ''; spAddWord(mid, w); } }, 'als Regel übernehmen')),
         list('l', ST.conn !== 'ok' ? 'Mailing-Ordner nicht verbunden.' : !SP.rows.length ? 'Noch keine Buchungen eingelesen.' : 'Keine offene Spende im Filter.'),
         h('div', { class: 'sp-cf' }, btn.lSel, btn.lAll)),
-      h('div', { class: 'sp-col mid', 'aria-label': 'Prüfen' }, h('div', { class: 'sp-ch' }), h('div'),
+      h('div', { class: 'sp-col mid', 'aria-label': 'Prüfen' },
         list('m', ''),
         h('div', { class: 'sp-cf' }, btn.mAllBack, btn.mBack, btn.mAll)),
       h('div', { class: 'sp-col' }, head('r', 'Zugeordnet'),
