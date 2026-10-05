@@ -110,6 +110,30 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
     const tv = [...document.querySelectorAll('.sp-tile .sp-tv')].map(e => { rg.selectNodeContents(e); return Math.abs(c(rg) - c(e.closest('.sp-tile'))) < 3; });
     const er = document.querySelector('.sp-erl'), b = er.querySelector('b'); return [tv.length, tv.every(Boolean), Math.abs(c(b) - c(er)) < 3, document.querySelectorAll('.sp-tile')[2].querySelector('.sp-ts').textContent]; });
   ok(t0[0] === 4 && t0[1] && t0[2] && /^\d+ Spenden?$/.test(t0[3]), 'E: Zahlen der Kacheln und Erlös mittig; unter der Responsequote die absolute Zahl („' + t0[3] + '“)');
+  const lab = await p.evaluate(() => [getComputedStyle(document.querySelector('.sp-tile .sp-tl')).textAlign, getComputedStyle(document.querySelector('.sp-erl .sp-el')).justifySelf,
+    Math.round(document.querySelector('.sp-erl .sp-el').getBoundingClientRect().left - document.querySelector('.sp-erl').getBoundingClientRect().left)]);
+  ok(lab[0] === 'center' && lab[2] < 20, 'E: Bezeichnungen der Kacheln mittig, „Erlös“ bleibt links (' + lab.join(', ') + ')');
+  // Breite der mittleren Spalte an den Griffen ziehen – symmetrisch
+  const cw = () => p.evaluate(() => [...document.querySelectorAll('.sp-cols > .sp-col')].map(c => Math.round(c.getBoundingClientRect().width)));
+  const gr = await p.evaluate(() => { const g = [...document.querySelectorAll('.sp-col.mid .sp-grip')], c = [...document.querySelectorAll('.sp-cols > .sp-col')].map(e => e.getBoundingClientRect()), r = g.map(e => e.getBoundingClientRect());
+    return [g.length, r[0] && r[0].left >= c[0].right - 2 && r[0].right <= c[1].left + 2, r[1] && r[1].left >= c[1].right - 2 && r[1].right <= c[2].left + 2]; });
+  ok(gr[0] === 2 && gr[1] && gr[2], 'E: zwei Griffe zwischen den Spalten (links und rechts der Mitte)');
+  await p.evaluate(() => document.querySelector('.sp-col.mid .sp-grip.l').scrollIntoView({ block: 'center' })); await p.waitForTimeout(100);
+  const k0 = await cw(), gl = await (await p.$('.sp-col.mid .sp-grip.l')).boundingBox();
+  await p.mouse.move(gl.x + 5, gl.y + 15); await p.mouse.down(); await p.mouse.move(gl.x + 65, gl.y + 15, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(200);
+  const k1 = await cw(), mf1 = await p.evaluate(() => UI.spMidF);
+  ok(Math.abs(k0[1] - k1[1] - 120) <= 4 && Math.abs(k1[0] - k0[0] - 60) <= 3 && Math.abs(k1[0] - k1[2]) <= 1 && mf1 > 0 && mf1 < 1 / 3,
+    'E: linken Griff 60 px zur Mitte gezogen – Mitte ' + k0[1] + ' → ' + k1[1] + ' px, „Offen“ und „Zugeordnet“ je ' + k1[0] + '/' + k1[2] + ' px (gemerkt: ' + mf1 + ')');
+  await p.evaluate(() => renderNow()); await p.waitForTimeout(150);
+  const k1b = await cw();
+  ok(k1b.every((w, i) => Math.abs(w - k1[i]) <= 1), 'E: Breite bleibt nach dem Neuzeichnen (' + k1b.join('/') + ')');
+  const gR = await (await p.$('.sp-col.mid .sp-grip.r')).boundingBox();
+  await p.mouse.move(gR.x + 5, gR.y + 15); await p.mouse.down(); await p.mouse.move(gR.x + 45, gR.y + 15, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(200);
+  const k2 = await cw();
+  ok(Math.abs(k2[1] - k1[1] - 80) <= 4 && Math.abs(k2[0] - k2[2]) <= 1, 'E: rechten Griff nach außen gezogen – Mitte breiter (' + k1[1] + ' → ' + k2[1] + ' px), außen wieder gleich breit');
+  await p.dblclick('.sp-col.mid .sp-grip.l'); await p.waitForTimeout(200);
+  const k3 = await cw();
+  ok(Math.abs(k3[0] - k3[1]) <= 2 && Math.abs(k3[1] - k3[2]) <= 2 && await p.evaluate(() => UI.spMidF === undefined), 'E: Doppelklick auf einen Griff – wieder drei gleich breite Spalten (' + k3.join('/') + ')');
   const nm = () => p.evaluate(() => [...document.querySelectorAll('.sp-col.mid .sp-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
   await p.click('.sp-col:first-child .sp-row:has-text("Spende")'); await p.waitForTimeout(250);
   const e1 = await nm();

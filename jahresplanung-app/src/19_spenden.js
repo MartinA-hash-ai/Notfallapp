@@ -643,6 +643,26 @@ function spPreNotice(x, R) {
   return h('div', { class: 'banner sp-notice sp-pre' }, h('span', null, spCount(pre.length) + ' (' + eur(sum) + ') ' + (pre.length === 1 ? 'ist' : 'sind') + ' zugeordnet, aber vor dem PAL (' + fmtD(x.pal) + ') eingegangen – vielleicht wurde der PAL geändert.'),
     h('button', { class: 'primary', onclick: () => spMove(pre.map(r => r.k), 'release', x.id) }, 'Diese ' + pre.length + ' lösen (zurück zu „Offen“)'));
 }
+// Breite der mittleren Spalte: an den Griffen ziehen – sie wird auf beiden Seiten gleich schmaler/breiter, „Offen“ und „Zugeordnet“ bleiben gleich breit
+const spMidCols = f => { f = clamp(+f || 1 / 3, 0.06, 0.7); const a = (1 - f) / 2; return 'minmax(0, ' + (a * 100).toFixed(2) + 'fr) minmax(0, ' + (f * 100).toFixed(2) + 'fr) minmax(0, ' + (a * 100).toFixed(2) + 'fr)'; };
+function spMidResize(ev, side) {
+  if (ev.button !== 0) return;
+  ev.preventDefault(); ev.stopPropagation(); hideTip();
+  const cols = ev.currentTarget.closest('.sp-cols'), mid = $('.sp-col.mid', cols);
+  const gap = parseFloat(getComputedStyle(cols).columnGap) || 0, avail = cols.clientWidth - 2 * gap, w0 = mid.getBoundingClientRect().width, x0 = ev.clientX;
+  const MIN_MID = 140, MIN_OUT = 220;
+  let f = w0 / avail;
+  document.body.classList.add('dragging', 'resizing');
+  dragSession(ev, ev.currentTarget, e => {
+    const w = clamp(w0 + (side === 'l' ? -2 : 2) * (e.clientX - x0), MIN_MID, Math.max(MIN_MID, avail - 2 * MIN_OUT));
+    f = w / avail; cols.style.gridTemplateColumns = spMidCols(f);
+  }, okay => {
+    document.body.classList.remove('dragging', 'resizing');
+    if (!okay) { cols.style.gridTemplateColumns = spMidCols(UI.spMidF); return; }
+    if (Math.abs(f - w0 / avail) < 0.002) return;
+    UI.spMidF = Math.round(f * 10000) / 10000; saveUI();
+  });
+}
 function spAssign(x, cmp) {
   const mid = x.id, P = spPart(mid, cmp);
   if (SPUI.fmid !== mid || SPUI.fpal !== x.pal) { spResetFilter(x.m); SPUI.fmid = mid; SPUI.fpal = x.pal; Object.values(SPUI.sel).forEach(s => s.clear()); }
@@ -695,7 +715,7 @@ function spAssign(x, cmp) {
   const box = h('div', null,
     spRuleBar(x, cmp),
     spPreNotice(x, P.R),
-    h('div', { class: 'sp-cols' + (UI.spDet ? ' det' : '') },
+    h('div', { class: 'sp-cols' + (UI.spDet ? ' det' : ''), style: { gridTemplateColumns: spMidCols(UI.spMidF) } },
       h('div', { class: 'sp-col' }, head('l', 'Offen', SPUI.typed.trim() ? ' – Vorschau für „' + SPUI.typed.trim() + '“, Enter übernimmt' : L.length !== P.L.length ? ' (gefiltert, ' + P.L.length.toLocaleString('de-DE') + ' offen insgesamt)' : '',
           h('button', { class: 'link sp-ftog', 'aria-expanded': String(!!UI.spFilt), onclick: () => { UI.spFilt = !UI.spFilt; renderNow(); } }, UI.spFilt ? 'Filter ▾' : 'Filter ▸')),
         !UI.spFilt ? h('div', { class: 'sp-filter closed' },
@@ -711,6 +731,9 @@ function spAssign(x, cmp) {
         list('l', ST.conn !== 'ok' ? 'Mailing-Ordner nicht verbunden.' : !SP.rows.length ? 'Noch keine Buchungen eingelesen.' : 'Keine offene Spende im Filter.'),
         h('div', { class: 'sp-cf' }, btn.lMark, btn.lSel, btn.lAll)),
       h('div', { class: 'sp-col mid', 'aria-label': 'Prüfen' },
+        ['l', 'r'].map(side => h('div', { class: 'sp-grip ' + side, role: 'separator', 'aria-label': 'Breite der mittleren Spalte',
+          tip: 'ziehen: Spalte in der Mitte schmaler oder breiter (beide Seiten gleich) – so ist in „Offen“ und „Zugeordnet“ mehr Platz · Doppelklick: zurücksetzen',
+          onpointerdown: e => spMidResize(e, side), ondblclick: () => { delete UI.spMidF; saveUI(); renderNow(); } })),
         list('m', ''),
         h('div', { class: 'sp-cf' }, btn.mAllBack, btn.mBack, btn.mAll)),
       h('div', { class: 'sp-col' }, head('r', 'Zugeordnet'),

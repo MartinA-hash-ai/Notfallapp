@@ -877,6 +877,15 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .sp-erl b { grid-column: 2; text-align: center; }
 .sp-erl .sp-es { grid-column: 3; justify-self: end; margin-left: 0; }
 
+/* 0.13.3: Kachel-Bezeichnungen mittig; Griffe für die Breite der mittleren Spalte */
+.sp-tile .sp-tl { text-align: center; }
+.sp-col.mid { position: relative; }
+.sp-grip { position: absolute; top: 50%; width: 11px; height: 38px; margin-top: -19px; z-index: 3; cursor: col-resize; border-radius: 4px; touch-action: none;
+  background: repeating-linear-gradient(90deg, var(--muted) 0 1px, transparent 1px 3px) center / 7px 22px no-repeat; opacity: .75; }
+.sp-grip.l { left: -13px; }
+.sp-grip.r { right: -13px; }
+.sp-grip:hover, body.resizing .sp-grip { background-color: var(--hover); opacity: 1; }
+
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body:not(.printdoc-mode) #app { padding: 9mm 10mm; }

@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.13.2",
+    "version": "0.13.3",
     "date": "",
+    "items": [
+      "Spenden zuordnen: zwischen den Spalten je ein Griff (drei kleine Striche) – ziehen macht die mittlere Spalte auf beiden Seiten gleich schmaler oder breiter, „Offen“ und „Zugeordnet“ werden entsprechend breiter; Doppelklick stellt drei gleiche Spalten wieder her; die Breite bleibt gespeichert",
+      "Kennzahlen: auch die Bezeichnungen der Kacheln stehen mittig (Erlös bleibt links)"
+    ]
+  },
+  {
+    "version": "0.13.2",
+    "date": "2026-10-05T14:20",
     "items": [
       "Spenden zuordnen: die Schlagworte der Regel sammeln sich in einer eigenen Zeile darunter – das Eingabefeld rutscht nicht mehr nach rechts",
       "Kennzahlen: unter der Responsequote steht die absolute Zahl (z. B. „36 Spenden“) statt der Auflage",
