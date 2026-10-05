@@ -42,10 +42,10 @@ function checkData(d = D) {
     if (str(u.wer) !== str(u.wer).trim()) add(un + ': Name mit Leerzeichen am Rand', 'Leerzeichen entfernen', dd => { U(dd).wer = str(U(dd).wer).trim(); });
   }
   for (const s of d.sondertage) if (dn(s.datum) == null) { const sid = s.id; add('Freier Tag „' + (s.name || '?') + '“: Datum „' + (s.datum || '') + '“ ungültig', 'löschen', dd => { dd.sondertage = dd.sondertage.filter(q => q.id !== sid); }); }
-  const mids = new Set(d.massnahmen.map(m => m.id)), S = d.spenden || { zu: {}, vor: {}, nein: {} };
+  const ids0 = new Set(d.massnahmen.map(m => m.id)), mids = { has: id => ids0.has(id) || isAllg(id) }, S = d.spenden || { zu: {}, vor: {}, nein: {} };
   const orphan = Object.values(S.zu).filter(z => !mids.has(z.m)).length + Object.values(S.vor).filter(v => !mids.has(v)).length + Object.values(S.nein).filter(a => a.some(v => !mids.has(v))).length;
   if (orphan) add(orphan + ' Spenden-Zuordnung' + (orphan === 1 ? '' : 'en') + ' zu einer gelöschten Maßnahme', 'entfernen (die Spenden gelten wieder als offen)', dd => {
-    const ok = new Set(dd.massnahmen.map(m => m.id)), T = dd.spenden;
+    const ok0 = new Set(dd.massnahmen.map(m => m.id)), ok = { has: id => ok0.has(id) || isAllg(id) }, T = dd.spenden;
     for (const k of Object.keys(T.zu)) if (!ok.has(T.zu[k].m)) delete T.zu[k];
     for (const k of Object.keys(T.vor)) if (!ok.has(T.vor[k])) delete T.vor[k];
     for (const k of Object.keys(T.nein)) { const a = T.nein[k].filter(v => ok.has(v)); if (a.length) T.nein[k] = a; else delete T.nein[k]; }

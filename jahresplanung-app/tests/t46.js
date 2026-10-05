@@ -40,8 +40,8 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   const a0 = await st();
   ok(a0.zu === 5 && !a0.pre && !a0.warn, 'A: mit falschem PAL (27.07.) 5 zugeordnet, noch kein Hinweis');
   await p.evaluate(() => { UI.view = 'jahr'; renderNow(); commit(d => { d.massnahmen.find(m => m.id === 'm5').pal = '2027-09-17'; }); }); await p.waitForTimeout(200);
-  ok(/Jahresbericht: 3 zugeordnete Spenden vor dem PAL – im Reiter „Spenden“ prüfen/.test((await st()).warn), 'A: Hinweisliste meldet „3 zugeordnete Spenden vor dem PAL“');
-  await p.click('nav.tabs >> text=Spenden'); await p.waitForTimeout(400);
+  ok(/Jahresbericht: 3 zugeordnete Spenden vor dem PAL – im Reiter „Auswertung“ prüfen/.test((await st()).warn), 'A: Hinweisliste meldet „3 zugeordnete Spenden vor dem PAL“');
+  await p.click('nav.tabs >> text=Auswertung'); await p.waitForTimeout(400);
   const a1 = await st();
   ok(/^3 Spenden \(95,00 €\) sind zugeordnet, aber vor dem PAL \(17\.09\.2027\) eingegangen/.test(a1.pre) && a1.tile === '201 €', 'A: im Reiter Spenden der Hinweis „' + a1.pre.slice(0, 70) + '…“');
   await p.click('.sp-pre button'); await p.waitForTimeout(300);
@@ -54,7 +54,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   // ---- B: neue Datei, während ein anderer Reiter offen ist → beim Wechsel auf „Spenden“ eingelesen
   await p.evaluate(() => { UI.view = 'zeit'; renderNow(); }); await p.waitForTimeout(200);
   await writeText(p, DIR + 'neu.csv', csv([line('01.10.2027', '77', 'DE00100000000000000099', 'Neu Eingang', 'JB neu')]));
-  await p.click('nav.tabs >> text=Spenden'); await p.waitForTimeout(500);
+  await p.click('nav.tabs >> text=Auswertung'); await p.waitForTimeout(500);
   ok(await p.evaluate(() => SP.rows.some(r => r.name === 'Neu Eingang')), 'B: Wechsel auf den Reiter liest die neue Datei sofort ein');
 
   // ---- C: Regel ohne PAL ist aus; D: Zeitraum-Ende nie vor dem Beginn

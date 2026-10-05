@@ -831,6 +831,20 @@ html[data-theme=dark] .sp-tag.da { color: #d9b8f2; }
 .sp-tiprow { display: flex; align-items: center; gap: 6px; }
 @media (max-width: 1100px) { .sp-kpi { grid-template-columns: minmax(0, 1fr); } }
 
+/* 0.12.7 Auswertung */
+html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldate .chip.demo.palchip { background: var(--red); border-color: var(--red); color: #fff; }
+.sp-col.mid .sp-list { border-top-color: transparent; }
+.sp-cf button { padding: 4px 9px; font-size: 13px; }
+.sp-tiles.allg { grid-template-rows: 1fr; }
+.sp-ueb td.sp-uname { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-ueb tr.allg td { background: var(--soft); }
+.sp-ueb tr.allg.on td { background: var(--runbg); }
+.sp-ueb td.inp input.sp-hin { text-align: left; }
+.sp-cpills { display: flex; gap: 6px; flex-wrap: wrap; margin: 8px 0 2px; }
+.sp-cpill { display: inline-flex; align-items: center; gap: 6px; border-radius: 14px; padding: 3px 10px 3px 7px; font-size: 12.5px; background: var(--card); border: 1px solid var(--line2); color: var(--ink2); }
+.sp-cpill.off { color: var(--faint); background: var(--soft); border-style: dashed; }
+.sp-cdot { width: 10px; height: 10px; border-radius: 50%; border: 2px solid; flex: none; }
+
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body:not(.printdoc-mode) #app { padding: 9mm 10mm; }

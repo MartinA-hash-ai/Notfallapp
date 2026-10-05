@@ -1,6 +1,6 @@
 /* ===================================================================== Rahmen: Kopfzeile, Reiter, Seitenleiste, Warnungen, Menüs */
 
-const VIEWS = [['jahr', 'Jahresplanung'], ['zeit', 'Zeitleiste'], ['plaene', 'Detailpläne'], ['urlaub', 'Urlaub & Feiertage'], ['spenden', 'Spenden']];
+const VIEWS = [['jahr', 'Jahresplanung'], ['zeit', 'Zeitleiste'], ['plaene', 'Detailpläne'], ['urlaub', 'Urlaub & Feiertage'], ['spenden', 'Auswertung']];
 const OLD_VIEWS = { kalender: 'jahr', massnahmen: 'jahr', zeitleiste: 'zeit', agenda: 'zeit' };
 const VIEW_FN = {};                  // wird von den Ansichten befüllt
 const SIDEBAR_VIEWS = new Set();
@@ -71,7 +71,8 @@ function topBar() {
   const dirty = isDirty(), nW = C.warnings.filter(w => w.lvl === 'warn').length, nI = C.warnings.length - nW;
   const pend = SP.rows.length ? spCompute().pend : 0;           // Spenden, die auf Prüfung warten
   const tab = ([k, label]) => h('button', { class: 'tab' + (UI.view === k ? ' on' : ''), onclick: () => { UI.view = k; renderNow(); $('#main').scrollTop = 0; } }, label,
-    k === 'spenden' && pend ? h('span', { class: 'tab-badge', tip: pend + (pend === 1 ? ' Spende wartet' : ' Spenden warten') + ' in „Prüfen“ auf die Zuordnung' }, pend) : null);
+    k === 'spenden' ? h('span', { class: 'beta' }, 'Beta') : null,
+    k === 'spenden' && pend ? h('span', { class: 'tab-badge', tip: pend + (pend === 1 ? ' Spende wartet' : ' Spenden warten') + ' zum Prüfen auf die Zuordnung' }, pend) : null);
   return h('header', { class: 'top' },
     h('div', { class: 'brand' }, h('img', { class: 'logo', src: logoSrc(), alt: 'Malteser' }), h('div', null, h('strong', null, 'Jahresplanung Außenkommunikation'), h('span', null, 'Fundraising · Diözese Paderborn'))),
     h('div', { class: 'year' },
@@ -231,8 +232,8 @@ document.addEventListener('scroll', e => { if (_openMenu && performance.now() - 
 function layoutHeader() {
   const t = $('header.top'); if (!t) return;
   t.classList.remove('two-rows');
-  const kids = [...t.children].filter(e => e.offsetParent !== null), top0 = kids.length ? kids[0].offsetTop : 0;
-  if (kids.some(e => e.offsetTop > top0 + 4)) t.classList.add('two-rows');
+  const kids = [...t.children].filter(e => e.offsetParent !== null), bottom0 = kids.length ? Math.min(...kids.map(e => e.offsetTop + e.offsetHeight)) : 0;
+  if (kids.some(e => e.offsetTop >= bottom0)) t.classList.add('two-rows');   // umgebrochen: ein Teil beginnt unterhalb der ersten Zeile
 }
 function syncTopHeight() { layoutHeader(); const t = $('header.top'); if (t) document.documentElement.style.setProperty('--toph', Math.round(t.getBoundingClientRect().height) + 'px'); }
 window.addEventListener('resize', syncTopHeight);
@@ -531,8 +532,9 @@ function helpDialog() {
     h('h3', null, 'Bereiche'),
     p('Jede Maßnahme läuft in Bereichen auf das PAL zu – ' + PH().map(q => sym(q.key) + ' = ' + q.name).join(', ') + ', ' + sym('P') + ' = PAL. Ein Bereich beginnt an seinem Start und läuft bis zum nächsten Start (der letzte bis zum PAL); im Bearbeiten-Fenster kann er ein eigenes Ende bekommen. In den Einstellungen lassen sich Bereiche umbenennen, umsortieren und neue mit eigenem Buchstaben anlegen. In der Tabelle zeigt der Schalter „Datum – Werktage“ über den Spalten der Bereiche die Starts als Datum oder als Werktage bis zum PAL.'),
     p('Im Detailplan gehört jeder Abschnitt zu einem Bereich (Auswahl am Abschnitt). Der früheste Schritt des Abschnitts ist dessen Start – oder der Schritt, der im ⋯-Menü als „Beginn“ festgelegt ist.'),
-    h('h3', null, 'Spenden (Beta)'),
+    h('h3', null, 'Auswertung (Beta)'),
     p('Exporte der Spendeneingänge (CSV oder Excel) in den Ordner „Spendeneingänge …“ im Mailing-Ordner legen – überlappende Zeiträume sind kein Problem, doppelte Buchungen zählen nur einmal. Im Reiter „Spenden“ eine Maßnahme wählen: links stehen die offenen Spenden, in der Mitte „Prüfen“, rechts die zugeordneten. Spenden links markieren und mit „→ Prüfen“ in die Mitte holen; erst „zuordnen“ zählt sie für die Maßnahme.'),
+    p('Spenden ohne Maßnahme (z. B. Daueraufträge) gehören in die erste Zeile „Allgemeine Spenden“ des Jahres.'),
     p('Eine Regel (Schlagworte im Verwendungszweck, z. B. der Code vom Überweisungsträger, und ein Zeitraum ab PAL) schiebt passende Spenden automatisch in „Prüfen“ – auch aus später hinzugefügten Exporten. Für die Kennzahlen Auflage und Kosten der Maßnahme eintragen.'),
     h('h3', null, 'Datenschutz'),
     p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen. Von den Spendeneingängen speichert die Planungsdatei nur Zuordnung, Datum und Betrag; Namen, IBAN und Verwendungszweck stehen nur in den Exporten im Mailing-Ordner.'),

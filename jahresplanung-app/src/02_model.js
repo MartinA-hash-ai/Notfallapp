@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp'];
+const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -245,6 +245,10 @@ function normalize(d) {
   if (isObj(sp.zu)) for (const [k, z] of Object.entries(sp.zu)) if (isObj(z) && str(z.m) && dn(z.d) != null && isNum(z.b)) d.spenden.zu[k] = { m: str(z.m), d: z.d, b: Math.round(+z.b) };
   if (isObj(sp.vor)) for (const [k, v] of Object.entries(sp.vor)) if (str(v) && !d.spenden.zu[k]) d.spenden.vor[k] = str(v);
   if (isObj(sp.nein)) for (const [k, v] of Object.entries(sp.nein)) { const a = [...new Set((Array.isArray(v) ? v : []).map(str).filter(Boolean))]; if (a.length) d.spenden.nein[k] = a; }
+  if (isObj(sp.allg)) for (const [y, v] of Object.entries(sp.allg)) {      // allgemeine Spenden je Jahr: Regel (Schlagworte, Daueraufträge vorschlagen)
+    const r = isObj(v) && isObj(v.regel) ? v.regel : {}, worte = [...new Set((Array.isArray(r.worte) ? r.worte : []).map(w => str(w).trim()).filter(Boolean))];
+    if (/^\d{4}$/.test(y) && (worte.length || r.da === true)) (d.spenden.allg = d.spenden.allg || {})[y] = { regel: Object.assign({ worte }, r.da === true ? { da: true } : {}) };
+  }
   d.version = DATA_VERSION;
   return d;
 }
@@ -478,7 +482,7 @@ function computeWarnings() {
   }
   const preByM = new Map();                                        // Spenden-Zuordnungen vor dem PAL (z. B. nach einer PAL-Änderung)
   for (const z of Object.values((D.spenden || {}).zu || {})) { const x = C.byId.get(z.m), n = dn(z.d); if (x && x.pal != null && n != null && n < x.pal) preByM.set(z.m, (preByM.get(z.m) || 0) + 1); }
-  for (const [mid, n] of preByM) { const x = C.byId.get(mid); if (relevant.includes(x)) W.push({ lvl: 'info', mid, text: `${x.m.name || '(ohne Namen)'}: ${n} zugeordnete Spende${n === 1 ? '' : 'n'} vor dem PAL – im Reiter „Spenden“ prüfen` }); }
+  for (const [mid, n] of preByM) { const x = C.byId.get(mid); if (relevant.includes(x)) W.push({ lvl: 'info', mid, text: `${x.m.name || '(ohne Namen)'}: ${n} zugeordnete Spende${n === 1 ? '' : 'n'} vor dem PAL – im Reiter „Auswertung“ prüfen` }); }
   for (const u of D.urlaube) if ((u.von && dn(u.von) == null) || (u.bis && dn(u.bis) == null))
     W.push({ lvl: 'warn', text: `Urlaub ${u.wer || '?'}: „${u.von || ''}“ – „${u.bis || ''}“ ist kein gültiges Datum – bitte prüfen` });
   for (const v of C.vac) if (v.tooLong && (ymd(v.von)[0] === y || ymd(v.bis)[0] === y))

@@ -13,7 +13,7 @@ function section(key, title, fn, opts = {}) {
       sum ? h('span', { class: 'sec-sum' }, sum) : null,
       opts.info ? h('span', { class: 'info', tip: opts.info }, 'ⓘ') : null,
       open && content && content.lead ? h('div', { class: 'tools lead' }, content.lead) : null,
-      open && content && content.tools ? h('div', { class: 'tools' }, content.tools) : null),
+      open && content && content.tools ? h('div', { class: 'tools' }, content.tools) : opts.tools ? h('div', { class: 'tools' }, opts.tools()) : null),
     open && content ? h('div', { class: 'sec-b' }, content.body) : null);
 }
 

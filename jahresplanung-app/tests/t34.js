@@ -4,7 +4,7 @@ const { chromium, ok, open, finish } = require('./lib');
   const b = await chromium.launch(), pages = [];
   const pos = p => p.evaluate(() => { const t = document.querySelector('header.top'), y = s => Math.round(document.querySelector('header.top ' + s).getBoundingClientRect().top);
     return { two: t.classList.contains('two-rows'), brand: y('.brand'), year: y('.year'), tabs: y('nav.tabs'), acts: y('.actions'), h: Math.round(t.getBoundingClientRect().height), toph: getComputedStyle(document.documentElement).getPropertyValue('--toph') }; });
-  const wide = await open(b, { width: 1600 }); pages.push(wide);
+  const wide = await open(b, { width: 1700 }); pages.push(wide);   // ab 0.12.7 mit Reiter „Auswertung Beta“ etwas breiter
   const w = await pos(wide);
   ok(!w.two && Math.abs(w.tabs - w.brand) < 12, 'A: breites Fenster – alles in einer Zeile (' + w.h + ' px)');
   for (const width of [1300, 1000]) {
@@ -16,7 +16,7 @@ const { chromium, ok, open, finish } = require('./lib');
   }
   // Fenster wird breiter → wieder einzeilig
   const p = pages[pages.length - 1];
-  await p.setViewportSize({ width: 1600, height: 1000 }); await p.waitForTimeout(200);
+  await p.setViewportSize({ width: 1700, height: 1000 }); await p.waitForTimeout(200);
   ok(!(await pos(p)).two, 'C: Fenster breiter gezogen → wieder eine Zeile');
   await finish(b, pages);
 })();

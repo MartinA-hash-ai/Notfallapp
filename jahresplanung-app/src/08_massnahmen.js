@@ -297,7 +297,7 @@ async function editMassnahme(id) {
     calc,
     row('Hauptverantwortlich', personInput({ value: m.verantwortlich || '', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
     row('Auflage', numField(m.auflage, 0, v => { m.auflage = v; })),
-    row('Kosten (€)', numField(m.kosten, 2, v => { if (v == null) delete m.kosten; else m.kosten = v; }), 'für die Auswertung im Reiter „Spenden“ (ROI)'),
+    row('Kosten (€)', numField(m.kosten, 2, v => { if (v == null) delete m.kosten; else m.kosten = v; }), 'für den Reiter „Auswertung“ (ROI)'),
     row('Spendenbitte', h('select', { onchange: e => { m.art = e.target.value; } }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
     row('Hinweis', h('textarea', { rows: 2, oninput: e => { m.hinweis = e.target.value; } }, m.hinweis || '')));
   const res = await modal('Maßnahme bearbeiten', body, [['Löschen', 'del', 'danger left'], ['Abbrechen', false], ['Übernehmen', true, 'primary']]);

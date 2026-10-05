@@ -50,6 +50,7 @@ function merge3(base, mine, theirs) {
     out.spenden[sub] = mergeObj((base.spenden || {})[sub], (mine.spenden || {})[sub], (theirs.spenden || {})[sub], { coll: 'spenden', key: sub, rec: { sub } }, cf, cnt);
     if (sub === 'nein') for (const c of cf) out.spenden.nein[c.field] = [...new Set([].concat(c.mine || [], c.theirs || []))];
   }
+  out.spenden.allg = mergeObj((base.spenden || {}).allg, (mine.spenden || {}).allg, (theirs.spenden || {}).allg, { coll: 'spenden', key: 'allg' }, [], cnt);   // Regeln der allgemeinen Spenden: eigene Fassung
   out.meta = clone(theirs.meta);
   return { data: clone(out), conflicts, cnt };
 }
@@ -78,7 +79,7 @@ function recLabel(coll, rec, key) {
 function valText(coll, field, v, rec) {
   if (field == null) return v ? 'behalten' : 'gelöscht';
   if (coll === 'spenden') {
-    const mn = id => { const m = D && findM(D, id); return '„' + ((m && m.name) || '?') + '“'; }, sub = rec && rec.sub;
+    const mn = id => '„' + spMName(id) + '“', sub = rec && rec.sub;
     if (v == null) return sub === 'zu' ? 'nicht zugeordnet' : '–';
     return sub === 'zu' ? 'zugeordnet zu ' + mn(v.m) : sub === 'vor' ? 'zur Prüfung bei ' + mn(v) : 'abgelehnt bei ' + [].concat(v).map(mn).join(', ');
   }
@@ -185,7 +186,7 @@ function describeChanges(a, b, max = 12) {
   const za = (a.spenden || {}).zu || {}, zb = (b.spenden || {}).zu || {}, plus = new Map(), minus = new Map(), cnt1 = (mp, k) => mp.set(k, (mp.get(k) || 0) + 1);
   for (const [k, z] of Object.entries(zb)) if (!za[k] || za[k].m !== z.m) cnt1(plus, z.m);
   for (const [k, z] of Object.entries(za)) if (!zb[k] || zb[k].m !== z.m) cnt1(minus, z.m);
-  const mName = id => { const m = (b.massnahmen || []).find(q => q.id === id) || (a.massnahmen || []).find(q => q.id === id); return '„' + ((m && m.name) || '?') + '“'; };
+  const mName = id => { if (isAllg(id)) return '„Allgemeine Spenden ' + id.slice(5) + '“'; const m = (b.massnahmen || []).find(q => q.id === id) || (a.massnahmen || []).find(q => q.id === id); return '„' + ((m && m.name) || '?') + '“'; };
   for (const [id, n] of plus) out.push('Spenden: ' + n + ' der Maßnahme ' + mName(id) + ' zugeordnet');
   for (const [id, n] of minus) out.push('Spenden: ' + n + ' Zuordnung' + (n === 1 ? '' : 'en') + ' bei ' + mName(id) + ' gelöst');
   const sa = a.settings || {}, sb = b.settings || {};
