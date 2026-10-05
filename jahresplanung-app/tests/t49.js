@@ -99,7 +99,17 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   await p.waitForFunction(() => SP.at && SP.rows.length > 0); await p.waitForTimeout(300);
   const e0 = await p.evaluate(() => [document.querySelector('[data-sec="sp-ueb"] .sec-t').textContent, document.querySelector('.sp-hin').placeholder]);
   ok(e0[0] === 'Maßnahmen 2027' && e0[1] === '–', 'E: Überschrift „' + e0[0] + '“, leerer Hinweis zeigt „' + e0[1] + '“ wie in der Jahresplanung');
+  const inL = () => p.evaluate(() => Math.round(document.querySelector('.sp-wordin').getBoundingClientRect().left));
+  const l0 = await inL();
   await p.click('.sp-wordin'); await p.keyboard.type('JB'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  await p.click('.sp-wordin'); await p.keyboard.type('Jahresbericht'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  const w0 = await p.evaluate(() => { const i = document.querySelector('.sp-wordin').getBoundingClientRect(), w = document.querySelector('.sp-words'); return [!document.querySelector('.sp-rule .sp-word'), w ? [...w.querySelectorAll('.sp-word')].map(e => e.firstChild.textContent).join(',') : '', w && w.getBoundingClientRect().top >= i.bottom]; });
+  ok(w0[0] && w0[1] === 'JB,Jahresbericht' && w0[2] && await inL() === l0, 'E: Schlagworte sammeln sich in eigener Zeile darunter (' + w0[1] + '), das Eingabefeld bleibt an seinem Platz');
+  await p.evaluate(() => commit(d => { findM(d, 'm5').auflage = 1000; })); await p.waitForTimeout(200);
+  const t0 = await p.evaluate(() => { const c = e => { const r = e.getBoundingClientRect(); return r.left + r.width / 2; }, rg = document.createRange();
+    const tv = [...document.querySelectorAll('.sp-tile .sp-tv')].map(e => { rg.selectNodeContents(e); return Math.abs(c(rg) - c(e.closest('.sp-tile'))) < 3; });
+    const er = document.querySelector('.sp-erl'), b = er.querySelector('b'); return [tv.length, tv.every(Boolean), Math.abs(c(b) - c(er)) < 3, document.querySelectorAll('.sp-tile')[2].querySelector('.sp-ts').textContent]; });
+  ok(t0[0] === 4 && t0[1] && t0[2] && /^\d+ Spenden?$/.test(t0[3]), 'E: Zahlen der Kacheln und Erlös mittig; unter der Responsequote die absolute Zahl („' + t0[3] + '“)');
   const nm = () => p.evaluate(() => [...document.querySelectorAll('.sp-col.mid .sp-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
   await p.click('.sp-col:first-child .sp-row:has-text("Spende")'); await p.waitForTimeout(250);
   const e1 = await nm();

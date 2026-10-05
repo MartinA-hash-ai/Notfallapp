@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.13.1",
+    "version": "0.13.2",
     "date": "",
+    "items": [
+      "Spenden zuordnen: die Schlagworte der Regel sammeln sich in einer eigenen Zeile darunter – das Eingabefeld rutscht nicht mehr nach rechts",
+      "Kennzahlen: unter der Responsequote steht die absolute Zahl (z. B. „36 Spenden“) statt der Auflage",
+      "Erlös: Betrag in der Mitte; „Spenden … − Kosten …“ steht nur noch im Hinweis beim Überfahren",
+      "Zahlen in den Kacheln (Spendensumme, Ø-Spende, Responsequote, ROI) stehen mittig"
+    ]
+  },
+  {
+    "version": "0.13.1",
+    "date": "2026-10-05T14:02",
     "items": [
       "Zeitleiste: ohne eigene Auswahl „Maßnahmen“ – sie zeigt, was in der Tabelle oben angehakt ist; „Urlaub“ steht rechts, der Schalter „Detailpläne“ entfällt (einzelne Pläne weiter mit ▸ an der Maßnahme aufklappen); eingeklappt ohne Zusatztext",
       "Maßnahmen: die Anzahl im Kopf entfällt",

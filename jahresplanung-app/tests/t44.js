@@ -159,8 +159,8 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.fill('[data-fk="sp-auf:m5"]', '1000'); await p.press('[data-fk="sp-auf:m5"]', 'Tab'); await p.waitForTimeout(150);
   await p.fill('[data-fk="sp-kos:m5"]', '500'); await p.press('[data-fk="sp-kos:m5"]', 'Tab'); await p.waitForTimeout(250);
   const f = await p.evaluate(() => [...document.querySelectorAll('.sp-tile')].map(t => t.textContent));
-  ok(f.length === 4 && /^Spendensumme9\.876 €6 Spenden/.test(f[0]) && /^Ø-Spende/.test(f[1]) && /^Responsequote0,6 %bei Auflage 1\.000$/.test(f[2]) && /^ROI19,8Kosten 500 €$/.test(f[3]),
-    'F: vier Kacheln – Spendensumme, Ø-Spende, Responsequote 0,6 %, ROI 19,8 – ohne Richtwerte');
+  ok(f.length === 4 && /^Spendensumme9\.876 €6 Spenden/.test(f[0]) && /^Ø-Spende/.test(f[1]) && /^Responsequote0,6 %6 Spenden$/.test(f[2]) && /^ROI19,8Kosten 500 €$/.test(f[3]),
+    'F: vier Kacheln – Spendensumme, Ø-Spende, Responsequote 0,6 % (darunter die absolute Zahl: 6 Spenden), ROI 19,8 – ohne Richtwerte');
   ok(await p.evaluate(() => !/Richtwert/.test(document.querySelector('#main').textContent)), 'F: Richtwerte ausgeblendet (Kacheln, Übersicht, Erklärung)');
   // Richtwerte in den Einstellungen einschalten und ändern
   await p.evaluate(() => { settingsDialog(); }); await p.waitForTimeout(250);
@@ -176,7 +176,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(await p.evaluate(() => { const m = D.massnahmen.find(m => m.id === 'm5'); return m.kosten === 500 && m.auflage === 1000; }), 'F: Auflage und Kosten an der Maßnahme gespeichert');
   const er = await p.evaluate(() => { const e = document.querySelector('.sp-tiles .sp-erl'), t = document.querySelectorAll('.sp-tile'); return [e && e.className, e && e.textContent, e && e.getBoundingClientRect().top > t[2].getBoundingClientRect().bottom - 2, e && Math.abs(e.getBoundingClientRect().width - (t[1].getBoundingClientRect().right - t[0].getBoundingClientRect().left)) < 3,
     getComputedStyle(document.querySelector('.sp-tl')).fontWeight]; });
-  ok(/pos/.test(er[0]) && /^Erlös9\.376 €Spenden 9\.876 € − Kosten 500 €$/.test(er[1]) && er[2] && er[3] && +er[4] >= 600, 'F: grüne Zeile „Erlös 9.376 €“ unter den Kacheln über die ganze Breite; Namen der Kennzahlen fett');
+  ok(/pos/.test(er[0]) && /^Erlös9\.376 €$/.test(er[1]) && er[2] && er[3] && +er[4] >= 600, 'F: grüne Zeile „Erlös 9.376 €“ unter den Kacheln über die ganze Breite; Namen der Kennzahlen fett');
 
   // ---- G: Grafiken rechts – Zeitspanne (kumuliert) und Spenden pro Tag; kein Abschnitt „Verlauf“ mehr
   const g = await p.evaluate(() => ({ bars: document.querySelectorAll('[data-chart="day"] .sp-bar').length, pal: !!document.querySelector('[data-chart="day"] .sp-palbox'),

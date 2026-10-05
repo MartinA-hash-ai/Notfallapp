@@ -866,6 +866,17 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .view-head .backbtn { margin-right: -6px; }
 .sp-cf .sp-mark { color: var(--ink2); }
 
+/* 0.13.2: Schlagworte in eigener Zeile, Kennzahlen mittig */
+.sp-rulebox { padding: 4px 0 10px; }
+.sp-rulebox .sp-rule { padding: 0; }
+.sp-words { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+.sp-words .sp-rl { font-weight: 600; margin-right: 2px; }
+.sp-tile .sp-tv, .sp-tile .sp-ts, .sp-tile .sp-rt { text-align: center; }
+.sp-erl { display: grid; grid-template-columns: 1fr auto 1fr; align-items: baseline; }
+.sp-erl .sp-el { grid-column: 1; }
+.sp-erl b { grid-column: 2; text-align: center; }
+.sp-erl .sp-es { grid-column: 3; justify-self: end; margin-left: 0; }
+
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body:not(.printdoc-mode) #app { padding: 9mm 10mm; }

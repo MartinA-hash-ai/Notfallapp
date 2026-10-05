@@ -568,11 +568,11 @@ function spTiles(x, s) {
   return h('div', { class: 'sp-tiles' },
     tile('Spendensumme', s.n ? eur0(s.sum) : '–', spCount(s.n)),
     tile('Ø-Spende', s.avg != null ? eur(s.avg) : '–', s.med != null ? 'Median ' + eur(s.med) : null, null, 'Der Median ist die mittlere Spende – große Einzelspenden verzerren ihn kaum.'),
-    tile('Responsequote', s.resp != null ? num1(s.resp) + ' %' : '–', s.auf ? 'bei Auflage ' + s.auf.toLocaleString('de-DE') : 'Auflage fehlt', judge(s.resp, R.resp, num1(R.resp[0]) + '–' + num1(R.resp[1]) + ' %')),
+    tile('Responsequote', s.resp != null ? num1(s.resp) + ' %' : '–', s.auf ? spCount(s.n) : 'Auflage fehlt', judge(s.resp, R.resp, num1(R.resp[0]) + '–' + num1(R.resp[1]) + ' %')),
     tile('ROI', s.roi != null ? num1(s.roi) : '–', s.kos ? 'Kosten ' + eur0(s.kos * 100) : 'Kosten fehlen', judge(s.roi, R.roi, num1(R.roi[0]) + '–' + num1(R.roi[1])), 'Spendensumme ÷ Kosten: so viel Euro Spenden je 1 € Kosten'),
-    h('div', { class: 'sp-erl' + (s.net == null ? '' : s.net >= 0 ? ' pos' : ' neg'), tip: 'Erlös = Spendensumme minus Kosten der Maßnahme' },
+    h('div', { class: 'sp-erl' + (s.net == null ? '' : s.net >= 0 ? ' pos' : ' neg'), tip: 'Erlös = Spendensumme minus Kosten der Maßnahme' + (s.net != null ? ': ' + eur0(s.sum) + ' − ' + eur0(s.kos * 100) : '') },
       h('span', { class: 'sp-el' }, 'Erlös'), h('b', null, s.net != null ? (s.net < 0 ? '− ' : '') + eur0(Math.abs(s.net)) : '–'),
-      h('span', { class: 'sp-es' }, s.net != null ? 'Spenden ' + eur0(s.sum) + ' − Kosten ' + eur0(s.kos * 100) : 'Kosten fehlen – in der Übersicht eintragen')));
+      s.net == null ? h('span', { class: 'sp-es' }, 'Kosten fehlen – in der Tabelle eintragen') : null));
 }
 // Hinweis erst nach kurzem Verweilen mit der Maus (z. B. die Suchhilfe über dem Schlagwort-Feld)
 function spDelayTip(el, content, ms = 2000) {
@@ -592,11 +592,11 @@ function spRuleBar(x, cmp) {
     rr[which] = n - pal;
     if (isNum(rr.ab) && isNum(rr.bis) && rr.ab > rr.bis) { if (which === 'ab') rr.bis = rr.ab; else rr.ab = rr.bis; }   // Ende nie vor dem Beginn
   }, 'Zeitraum der Regel geändert'); };
-  return h('div', { class: 'sp-rule' },
+  const words = (r.worte || []).map(w => h('span', { class: 'sp-word' }, w, h('button', { class: 'sp-x', 'aria-label': w + ' entfernen', tip: '„' + w + '“ aus der Regel nehmen',
+    onclick: () => spSetRule(mid, rr => { rr.worte = rr.worte.filter(z => z !== w); }, 'Schlagwort „' + w + '“ entfernt') }, '×')));
+  return h('div', { class: 'sp-rulebox' }, h('div', { class: 'sp-rule' },
     h('span', { class: 'sp-rl' }, 'Regel', h('span', { class: 'info', tip: () => h('div', null, h('div', { class: 'sp-help-lead' }, 'Spenden, deren Verwendungszweck zu einem Schlagwort passt und die im Zeitraum eingehen, landen automatisch in der Mitte zum Prüfen – auch aus später hinzugefügten Dateien. ' +
       'Beim Tippen zeigt „Offen“ sofort, welche passen; Enter übernimmt das Schlagwort.' + (m.allg ? '' : ' Der Zeitraum hängt am PAL und wandert mit.')), spHelp()) }, ' ⓘ')),
-    (r.worte || []).map(w => h('span', { class: 'sp-word' }, w, h('button', { class: 'sp-x', 'aria-label': w + ' entfernen', tip: '„' + w + '“ aus der Regel nehmen',
-      onclick: () => spSetRule(mid, rr => { rr.worte = rr.worte.filter(z => z !== w); }, 'Schlagwort „' + w + '“ entfernt') }, '×'))),
     spDelayTip(h('input', { class: 'sp-wordin', value: SPUI.typed, placeholder: (r.worte || []).length ? '+ Schlagwort' : 'Schlagwort oder Code, z. B. JB – Enter', 'data-fk': 'sp-word',
       oninput: e => { SPUI.typed = e.target.value; clearTimeout(tq); tq = setTimeout(renderNow, 180); },
       onkeydown: e => { if (e.key === 'Enter' || e.key === ',' || e.key === ';') { e.preventDefault(); clearTimeout(tq); add(); } else if (e.key === 'Escape') { SPUI.typed = ''; renderNow(); } },
@@ -614,7 +614,8 @@ function spRuleBar(x, cmp) {
       'Daueraufträge ausschließen'),
     (r.worte || []).length || r.da ? h('button', { class: 'sp-reapply', disabled: !rej, onclick: () => spReapply(mid),
       tip: rej ? spCount(rej) + ' passen zur Regel, wurden aber mit „zurück“ nach „Offen“ geschickt – „neu anwenden“ holt sie wieder zum Prüfen' : 'Alle Spenden, die zur Regel passen, stehen schon zum Prüfen bereit oder sind zugeordnet' },
-      '↻ Regel neu anwenden' + (rej ? ' (' + rej + ')' : '')) : null);
+      '↻ Regel neu anwenden' + (rej ? ' (' + rej + ')' : '')) : null),
+    words.length ? h('div', { class: 'sp-words' }, h('span', { class: 'sp-rl muted' }, 'Schlagworte'), words) : null);
 }
 const x0pal = mid => { const x = spX(mid); return x ? x.pal : null; };
 const spIsDA = r => /dauerauftrag/i.test((r.text || '') + ' ' + (r.typ || ''));
