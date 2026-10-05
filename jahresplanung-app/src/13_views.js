@@ -17,7 +17,6 @@ function section(key, title, fn, opts = {}) {
     open && content ? h('div', { class: 'sec-b' }, content.body) : null);
 }
 
-/* ---------- Filterleiste (ersetzt die Seitenleiste) */
 function popover(anchor, content) {
   closeMenu();
   const m = h('div', { class: 'menu pop', onclick: e => e.stopPropagation() }, content);
@@ -30,19 +29,6 @@ function typePills() {
   const typeBtn = (t, label) => h('button', { class: 'tpill' + (showType(t) ? ' on' : ''), 'aria-pressed': String(showType(t)), tip: (showType(t) ? 'ausblenden: ' : 'einblenden: ') + label,
     onclick: () => { UI.show[t] = !showType(t); renderNow(); } }, demoChip(t), label);
   return evKeys().map(t => typeBtn(t, phName(t)));
-}
-const syncPop = (e, on) => $$('input[type=checkbox]', e.target.closest('.menu')).forEach(c => { c.checked = on; });
-function massnahmenDropdown() {
-  const y = UI.year, ms = C.ms.filter(x => inYear(x, y)), shown = ms.filter(visibleM).length;
-  const mBtn = h('button', { class: 'fbtn', onclick: e => { e.stopPropagation(); popover(mBtn, h('div', null,
-    h('div', { class: 'pop-h' }, 'Maßnahmen anzeigen', h('span', null,
-      h('button', { class: 'link', onclick: e => { UI.hiddenM.clear(); syncPop(e, true); renderNow(); } }, 'alle'), ' · ',
-      h('button', { class: 'link', onclick: e => { ms.forEach(x => UI.hiddenM.add(x.id)); syncPop(e, false); renderNow(); } }, 'keine'))),
-    ms.map(x => h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: visibleM(x), dataset: { vm: x.id },
-      onclick: ev => { toggleVisible(x.id, ms, ev); $$('input[data-vm]', ev.target.closest('.menu')).forEach(c => { c.checked = !UI.hiddenM.has(c.dataset.vm); }); renderNow(); } }),
-      h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'), h('span', { class: 'pal' }, x.pal != null ? fmtS(x.pal) : ''))))); } },
-    'Maßnahmen: ', h('b', null, shown === ms.length ? 'alle' : shown + ' von ' + ms.length), ' ▾');
-  return mBtn;
 }
 function vacDropdown() {
   const persons = [...new Set([...D.personen.map(p => p.name), ...C.vac.map(v => v.u.wer).filter(Boolean)])];
@@ -60,17 +46,14 @@ function vacPill() {
     onclick: () => { if (on) UI.showVac = false; else { UI.showVac = true; UI.hiddenP.clear(); } renderNow(); } }, h('span', { class: 'lg vac' }), 'Urlaub');
 }
 const legendInline = () => h('span', { class: 'legend-inline' }, h('span', { class: 'lg we' }), 'Wochenende', h('span', { class: 'lg hol' }), 'Feiertag', h('span', { class: 'lg vac' }), 'Urlaub', h('span', { class: 'lg today' }), 'heute');
-function filterBar(extra) {
-  return h('div', { class: 'filterbar' }, massnahmenDropdown(), vacDropdown(), extra, legendInline());
-}
 /* ---------- Reiter „Jahresplanung“: Maßnahmen, Zeitleiste, Kalender, Was steht an? */
 VIEW_FN.jahr = main => {
   put(main,
     section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
       info: 'Sortiert automatisch nach PAL. Je Bereich (' + PH().map(p => sym(p.key) + ' ' + p.name).join(', ') + ') steht der Start – als Datum oder als Werktage bis zum PAL (Schalter „Datum – Werktage“ über den Spalten der Bereiche). Die Starts wandern mit, wenn sich der PAL verschiebt; bei Maßnahmen mit Detailplan ergeben sie sich aus den Abschnitten. 🏖 = jemand, der im Detailplan in diesem Bereich eingetragen ist, hat Urlaub. Häkchen links = im Kalender und in der Zeitleiste anzeigen; sind alle angehakt, zeigt ein Klick nur noch diese Maßnahme; wird die letzte abgewählt, sind wieder alle da (Strg+Klick: nur diese eine umschalten); das Häkchen im Kopf schaltet alle. Ein Klick auf eine Maßnahme im Kalender wählt vorübergehend nur diese aus – wieder gelöst gilt die vorherige Auswahl. Spaltenbreite am rechten Rand der Überschrift ziehen – dabei ändert sich nur die Nachbarspalte rechts; die Breiten bleiben auch nach Neustart und Update erhalten (Doppelklick = Standard).',
-      closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
-    section('tl', 'Zeitleiste ' + UI.year, () => Object.assign(timelineSection(), { lead: [massnahmenDropdown(), vacDropdown()] }), {
-      open: false, closedSummary: () => 'Gantt-Diagramm aller Maßnahmen – aufklappen',
+    }),
+    section('tl', 'Zeitleiste ' + UI.year, timelineSection, {
+      open: false,
       info: 'Mausrad zoomt (beim Blättern der Seite erst, wenn sie kurz stillsteht; Strg+Mausrad zoomt immer), Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Je Bereich ein Balken (hell → kräftig bis zum PAL); überlappen Bereiche, liegen sie übereinander. Balken ziehen verschiebt den PAL (alle Bereiche wandern mit), die Griffe mit Buchstaben verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
     section('kal', 'Kalender ' + UI.year, () => ({
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),

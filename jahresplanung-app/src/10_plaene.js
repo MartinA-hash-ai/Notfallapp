@@ -220,7 +220,14 @@ async function createPlan(id) {
     }
   }, 'Detailplan angelegt');
   if (info.length) toast('Angepasst: ' + info.map(([n, a, b]) => n + ' ' + a + ' → ' + b + ' Tage').join(', '));
-  UI.view = 'plaene'; UI.planSel = id; renderNow();
+  openPlan(id);
+}
+// Detailplan öffnen – liegt sein PAL in einem anderen Jahr, wechselt die App in dieses Jahr
+function openPlan(id) {
+  const x = C.byId.get(id);
+  UI.view = 'plaene'; UI.planSel = id;
+  if (x && x.pal != null) UI.year = ymd(x.pal)[0];
+  renderNow();
 }
 // Datumsfeld für Dialoge: meldet die Tagesnummer (oder null) bei jeder gültigen Änderung
 function dateInputPlain(n, fk, onValue) {
@@ -354,9 +361,10 @@ function moveRows(mid, fromId, beforeId) {      // Schritt oder ganzen Abschnitt
 /* ---------- Ansicht */
 VIEW_FN.plaene = main => {
   if (!UI.planColl || typeof UI.planColl !== 'object') UI.planColl = {};
-  const withPlan = C.ms.filter(x => x.m.plan);
-  const cand = C.ms.filter(x => !x.m.plan && (x.pal == null || inYear(x, UI.year)));
-  if (!withPlan.some(x => x.id === UI.planSel)) UI.planSel = (withPlan.find(x => inYear(x, UI.year)) || withPlan[0] || {}).id || null;
+  const palIn = x => x.pal == null || ymd(x.pal)[0] === UI.year;          // nur Pläne, deren PAL im gewählten Jahr liegt
+  const withPlan = C.ms.filter(x => x.m.plan && palIn(x));
+  const cand = C.ms.filter(x => !x.m.plan && palIn(x));
+  if (!UI.printing && !withPlan.some(x => x.id === UI.planSel)) UI.planSel = (withPlan[0] || {}).id || null;
   let newFor = cand[0] ? cand[0].id : null;
   const tabs = h('div', { class: 'ptabs' },
     withPlan.map(x => h('button', { class: 'ptab' + (x.id === UI.planSel ? ' on' : ''), style: { '--c': x.color }, onclick: () => { UI.planSel = x.id; renderNow(); } },
@@ -366,7 +374,7 @@ VIEW_FN.plaene = main => {
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
     h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);
-  if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan vorhanden. Oben eine Maßnahme wählen und „Detailplan anlegen“.')); return; }
+  if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan mit PAL in ' + UI.year + '. Oben eine Maßnahme wählen und „Detailplan anlegen“' + (C.ms.some(q => q.m.plan) ? ' – oder mit ‹ › oben das Jahr wechseln.' : '.'))); return; }
   const m = x.m, p = m.plan, pc = x.pc, today = todayDn(), compact = !!UI.planCompact;
   const persons = [...new Set(p.steps.filter(s => s.typ === 'aufgabe').map(s => s.wer || ''))];
   const barColor = w => w ? personColor(w) : '#9E9E9E';

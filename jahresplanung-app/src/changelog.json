@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.13",
+    "version": "0.13.1",
     "date": "",
+    "items": [
+      "Zeitleiste: ohne eigene Auswahl „Maßnahmen“ – sie zeigt, was in der Tabelle oben angehakt ist; „Urlaub“ steht rechts, der Schalter „Detailpläne“ entfällt (einzelne Pläne weiter mit ▸ an der Maßnahme aufklappen); eingeklappt ohne Zusatztext",
+      "Maßnahmen: die Anzahl im Kopf entfällt",
+      "Detailpläne: es erscheinen nur Pläne, deren PAL im gewählten Jahr liegt; „Plan ›“ bei einer Maßnahme aus einem anderen Jahr wechselt in dieses Jahr"
+    ]
+  },
+  {
+    "version": "0.13",
+    "date": "2026-10-05T11:35",
     "items": [
       "Neuer Aufbau nach den drei Aufgaben: Reiter „Jahresplanung“ (planen), „Detailpläne“ (durchführen) und „Auswertung“ (auswerten)",
       "Jahresplanung: unter den Maßnahmen die Zeitleiste (Gantt, zum Ausklappen), darunter der Kalender und „Was steht an?“ – der Reiter „Zeitleiste“ entfällt",

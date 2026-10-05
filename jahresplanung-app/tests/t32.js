@@ -58,11 +58,10 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click(box(6)); await p.waitForTimeout(150);
   ok(await vis() === all.split('').map((_, i) => i === 3 || i === 5 ? '1' : '0').join('') && await p.evaluate(() => !UI.pin), 'D: angeklickt, dann Häkchen bei der 6. → 4. und 6. ausgewählt (' + await vis() + ')');
 
-  // ---- C: gleiche Logik im Filter der Zeitleiste
-  await p.evaluate(() => { UI.hiddenM.clear(); UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); }); await p.waitForTimeout(200);
-  await p.click('button.fbtn:has-text("Maßnahmen")'); await p.waitForTimeout(150);
-  await p.click('.menu input[data-vm] >> nth=1'); await p.waitForTimeout(150);
-  const pop = await p.evaluate(() => [[...document.querySelectorAll('.menu input[data-vm]')].map(c => c.checked ? 1 : 0).join(''), document.querySelectorAll('.tl-row[data-m]').length]);
-  ok(/^01(0*)$/.test(pop[0]) && pop[1] === 1, 'C: Zeitleisten-Filter – alle an, Klick → nur diese (' + pop[0] + ', ' + pop[1] + ' Zeile)');
+  // ---- C: Zeitleiste folgt der Auswahl in der Tabelle (kein eigener Maßnahmen-Filter mehr)
+  await p.evaluate(() => { UI.hiddenM.clear(); UI.pin = null; UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); }); await p.waitForTimeout(200);
+  await p.click(box(2)); await p.waitForTimeout(150);
+  const pop = await p.evaluate(() => [document.querySelectorAll('.tl-row[data-m]').length, [...document.querySelectorAll('[data-sec="tl"] .fbtn')].map(b => b.textContent).join('|')]);
+  ok(pop[0] === 1 && /^Urlaub: /.test(pop[1]) && !pop[1].includes('Maßnahmen'), 'C: Häkchen in der Tabelle → Zeitleiste zeigt nur diese (' + pop[0] + ' Zeile), dort nur noch „' + pop[1] + '“');
   await finish(b, pages);
 })();

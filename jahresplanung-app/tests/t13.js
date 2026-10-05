@@ -61,14 +61,16 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const tt = await p.evaluate(() => document.querySelector('#tip.on') ? document.querySelector('#tip').innerText : '');
   ok(tt.includes(hs[2] + ' Werktage vor PAL'), 'Tooltip S: ' + tt.replace(/\n/g, ' / '));
   await p.mouse.move(5, 900);
-  await p.click('.sec[data-sec="tl"] .fbtn >> nth=0'); await p.waitForTimeout(100);
-  await p.click('.menu.pop button:has-text("keine")'); await p.waitForTimeout(150);
-  const pop1 = await p.evaluate(() => [!!document.querySelector('.menu.pop'), $$('.menu.pop input:checked').length, UI.hiddenM.size]);
-  await p.click('.menu.pop button:has-text("alle")'); await p.waitForTimeout(150);
-  const pop2 = await p.evaluate(() => [!!document.querySelector('.menu.pop'), $$('.menu.pop input:checked').length, UI.hiddenM.size]);
+  const tlTools = await p.evaluate(() => [...document.querySelectorAll('[data-sec="tl"] .sec-h > .tools')].map(t => t.textContent).join(' | '));
+  ok(/^Urlaub: an/.test(tlTools) && !/Maßnahmen:|Detailpläne/.test(tlTools), 'Zeitleiste: rechts „Urlaub“, ohne „Maßnahmen“ und „Detailpläne“ (' + tlTools + ')');
+  await p.click('.sec[data-sec="tl"] .fbtn'); await p.waitForTimeout(100);
+  await p.click('.menu.pop input[type=checkbox] >> nth=0'); await p.waitForTimeout(150);
+  const pop1 = await p.evaluate(() => [!!document.querySelector('.menu.pop'), UI.showVac]);
+  await p.click('.menu.pop input[type=checkbox] >> nth=0'); await p.waitForTimeout(150);
+  const pop2 = await p.evaluate(() => [!!document.querySelector('.menu.pop'), UI.showVac]);
   await p.mouse.click(800, 900); await p.waitForTimeout(100);
   const pop3 = await p.evaluate(() => !!document.querySelector('.menu.pop'));
-  ok(pop1[0] && pop1[1] === 0 && pop2[0] && pop2[1] > 0 && pop2[2] === 0 && !pop3, 'Maßnahmen-Auswahl bleibt offen bis Klick daneben ' + JSON.stringify([pop1, pop2, pop3]));
+  ok(pop1[0] && !pop1[1] && pop2[0] && pop2[1] && !pop3, 'Urlaub-Auswahl bleibt offen bis Klick daneben ' + JSON.stringify([pop1, pop2, pop3]));
 
   // ---------- Detailpläne
   await p.click('nav.tabs >> text=Detailpläne'); await p.waitForTimeout(200);

@@ -1,5 +1,5 @@
 // 0.13: drei Reiter (Jahresplanung mit Zeitleiste und „Was steht an?“, Detailpläne, Auswertung); Urlaub & Feiertage über ⋯ und Einstellungen;
-// Mausrad blättert weiter, wenn das Blättern außerhalb der Zeitleiste begann; „Prüfen“ als Korb; Alle markieren; Update direkt aus dem ZIP-Paket
+// Mausrad blättert weiter, Zeitleiste ohne eigene Filter, Detailpläne nur mit PAL im gewählten Jahr, wenn das Blättern außerhalb der Zeitleiste begann; „Prüfen“ als Korb; Alle markieren; Update direkt aus dem ZIP-Paket
 const { chromium, ok, open, connect, finish, fs, T, ORIG } = require('./lib');
 const { execSync } = require('child_process');
 const DIR = 'Spendeneingänge 2027/';
@@ -35,6 +35,13 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   ok(a2[0] > 5 && a2[1] && a2[2] === true, 'A: aufgeklappt – Gantt mit ' + a2[0] + ' Maßnahmen und Filter (Maßnahmen, Urlaub) direkt unter der Tabelle');
   ok(await p.evaluate(() => OLD_VIEWS.zeit === 'jahr' && !VIEWS.some(v => v[0] === 'zeit' || v[0] === 'urlaub')), 'A: gespeicherte alte Ansicht „Zeitleiste“ öffnet die Jahresplanung');
 
+  // ---- A3: ohne Anzahl „N Maßnahmen“, Zeitleiste ohne „Maßnahmen: alle“ und „Detailpläne“, „Urlaub“ rechts, eingeklappt ohne Text
+  const a3 = await p.evaluate(() => [document.querySelector('[data-sec="mass"] .sec-h').textContent, [...document.querySelectorAll('[data-sec="tl"] .sec-h .tools')].map(t => (t.classList.contains('lead') ? 'L:' : 'R:') + t.textContent).join(' | ')]);
+  ok(!/\d+ Maßnahmen/.test(a3[0]) && /^R:Urlaub: an/.test(a3[1]) && !/Maßnahmen:|Detailpläne/.test(a3[1]), 'A: Kopf „' + a3[0].slice(0, 40) + '“ ohne Anzahl; Zeitleiste: ' + a3[1].slice(0, 50));
+  await p.click('[data-sec="tl"] .sec-tog'); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => !document.querySelector('[data-sec="tl"] .sec-sum')), 'A: eingeklappte Zeitleiste ohne Zusatztext');
+  await p.click('[data-sec="tl"] .sec-tog'); await p.waitForTimeout(200);
+
   // ---- B: Mausrad – Blättern, das außerhalb begann, läuft über die Zeitleiste weiter; nach kurzer Pause zoomt es
   await p.evaluate(() => document.querySelector('.tl').scrollIntoView({ block: 'center' })); await p.waitForTimeout(150);
   const px0 = await p.evaluate(() => UI._tl.pxd), y0 = await p.evaluate(() => scrollY);
@@ -69,6 +76,22 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   // ---- D: Warnung mit Datum springt zur aufgeklappten Zeitleiste in der Jahresplanung
   await p.evaluate(() => { UI.secOpen.tl = false; UI.view = 'plaene'; renderNow(); goTo({ n: mkdn(2027, 6, 1) }); }); await p.waitForTimeout(250);
   ok(await p.evaluate(() => UI.view === 'jahr' && UI.secOpen.tl === true && !!document.querySelector('.tl')), 'D: Hinweis mit Datum öffnet die Zeitleiste in der Jahresplanung');
+
+  // ---- D2: Detailpläne – nur Pläne mit PAL im gewählten Jahr
+  const tabs = () => p.evaluate(() => [...document.querySelectorAll('.ptabs .ptab')].map(t => t.childNodes[1].textContent).join(','));
+  const wm = await p.evaluate(() => { const x = C.ms.find(q => q.m.name === 'Weihnachtsmailing'); commit(d => { findM(d, x.id).pal = '2026-11-26'; }); return x.id; });
+  await p.evaluate(() => { UI.view = 'plaene'; UI.year = 2027; renderNow(); }); await p.waitForTimeout(200);
+  const d0 = await tabs();
+  await p.evaluate(() => { UI.year = 2026; renderNow(); }); await p.waitForTimeout(200);
+  const d1 = [await tabs(), await p.evaluate(() => C.byId.get(UI.planSel).m.name)];
+  await p.evaluate(() => { UI.year = 2025; renderNow(); }); await p.waitForTimeout(200);
+  const d2 = await p.evaluate(() => document.querySelector('#main .empty')?.textContent || '');
+  ok(d0 === 'Sommermailing' && d1[0] === 'Weihnachtsmailing' && d1[1] === 'Weihnachtsmailing' && /Noch kein Detailplan mit PAL in 2025/.test(d2),
+    'D: 2027 nur „' + d0 + '“, 2026 nur „' + d1[0] + '“ (PAL 26.11.2026), 2025: „' + d2.slice(0, 40) + '…“');
+  await p.evaluate(() => { UI.year = 2027; UI.view = 'jahr'; UI.allYears = true; UI.secOpen.mass = true; renderNow(); }); await p.waitForTimeout(200);
+  await p.click('.mtable tr[data-m="' + wm + '"] td.plan button'); await p.waitForTimeout(200);
+  ok(await p.evaluate(id => UI.view === 'plaene' && UI.year === 2026 && UI.planSel === id, wm), 'D: „Plan ›“ bei einer Maßnahme aus 2026 öffnet ihren Plan und wechselt ins Jahr 2026');
+  await p.evaluate(() => { UI.allYears = false; UI.year = 2027; renderNow(); });
 
   // ---- E: Auswertung – „Maßnahmen 2027“, Hinweis leer = „–“, Prüfen als Korb, Alle markieren
   await writeBytes(p, DIR + 'export.csv', Buffer.from(EXPORT, 'utf8'));

@@ -56,7 +56,7 @@ function timelineSection(opts = {}) {
   C.warnings.forEach(w => { if (w.mid) warnBy.set(w.mid, (warnBy.get(w.mid) || []).concat(w)); });
   for (const x of rows) {
     const ws = (warnBy.get(x.id) || []).filter(w => w.lvl === 'warn');
-    const open = x.pc && (UI.tlPlans || tlOpen.has(x.id));
+    const open = x.pc && tlOpen.has(x.id);
     const lab = h('div', { class: 'tl-lab clickable', dataset: { m: x.id }, tip: 'Klicken: auf diese Maßnahme zoomen', onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null),
       onclick: e => { if (!e.target.closest('button')) tlZoomTo(x); } },
       x.pc ? h('button', { class: 'tog', 'aria-label': 'Detailplan auf-/zuklappen', onclick: () => { tlOpen.has(x.id) ? tlOpen.delete(x.id) : tlOpen.add(x.id); renderNow(); } }, open ? '▾' : '▸') : h('span', { class: 'tog' }),
@@ -150,7 +150,7 @@ function timelineSection(opts = {}) {
   const zoomed = UI.tlPxd && UI.tlPxd * nd > avail + 10;
   return {
     tools: [
-      h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.tlPlans, onchange: e => { UI.tlPlans = e.target.checked; renderNow(); } }), 'Detailpläne'),
+      vacDropdown(),
       h('span', { class: 'segs' },
         h('button', { class: 'seg-btn' + (!zoomed ? ' on' : ''), onclick: () => { UI.tlPxd = 0; renderNow(); } }, 'Jahr'),
         h('button', { class: 'seg-btn', 'aria-label': 'Verkleinern', tip: 'verkleinern', onclick: () => zoom(1 / 1.5) }, '−'),

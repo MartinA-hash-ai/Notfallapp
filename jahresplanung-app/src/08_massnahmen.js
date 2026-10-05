@@ -213,7 +213,7 @@ function massnahmenSection() {
         onclick: () => setM(id, 'palStatus', m.palStatus === 'fest' ? 'vorläufig' : 'fest') }, m.palStatus === 'fest' ? 'fest' : 'vorläufig')),
       h('td', { class: 'art' }, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
       h('td', { class: 'hinweis' }, h('input', { value: m.hinweis || '', title: m.hinweis || '', 'data-fk': fk('hinweis'), placeholder: '–', onchange: e => setM(id, 'hinweis', e.target.value) })),
-      h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', tip: 'Detailplan öffnen', onclick: () => { UI.view = 'plaene'; UI.planSel = id; renderNow(); } }, 'Plan ›') :
+      h('td', { class: 'plan' }, m.plan ? h('button', { class: 'pill', tip: 'Detailplan öffnen', onclick: () => openPlan(id) }, 'Plan ›') :
         h('button', { class: 'pill ghost', tip: 'Arbeitsschritte mit Gantt anlegen', onclick: () => createPlan(id) }, '+ Plan')),
       h('td', { class: 'warns' }, ws.length ? h('span', { class: 'wi ' + (ws.some(w => w.lvl === 'warn') ? 'warn' : 'info'), tip: () => h('div', null, ws.map(w => h('div', null, (w.lvl === 'warn' ? '⚠ ' : 'ℹ ') + w.text))) }, ws.length) : null),
       h('td', { class: 'acts' }, menuButton('⋯', [['Bearbeiten …', () => editMassnahme(id)], ['Duplizieren', () => duplicateMassnahme(id)], ['Löschen', () => deleteMassnahme(id)]], 'right'))));
@@ -230,7 +230,7 @@ function massnahmenSection() {
      c.fixed ? null : h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c),
        ondblclick: () => { if (UI.colW) delete UI.colW[colKey(c)]; saveUI(); renderNow(); } })]));
   return {
-    summary: rows.length + ' Maßnahmen' + (nWarn ? ' · ⚠ ' + nWarn : ''),
+    summary: nWarn ? '⚠ ' + nWarn : null,
     tools: [
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.allYears, onchange: e => { UI.allYears = e.target.checked; renderNow(); } }), 'alle Jahre'),
       h('button', { class: 'ghostbtn', onclick: copyToNextYear }, 'Ins Folgejahr kopieren …'),

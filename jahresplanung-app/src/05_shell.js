@@ -220,7 +220,7 @@ function pinChip(el, id, n, t) {
 // „Bearbeiten“ im Kalender: zum Detailplan – gibt es noch keinen, das Fenster zum Anlegen (Einfach / Komplex / Kopie)
 function openPlanFor(id) {
   const x = C.byId.get(id); if (!x) return;
-  if (x.m.plan) { unpin(); UI.view = 'plaene'; UI.planSel = id; renderNow(); window.scrollTo(0, 0); }
+  if (x.m.plan) { unpin(); openPlan(id); window.scrollTo(0, 0); }
   else createPlan(id);
 }
 const pinEditBtn = (id, cls = '') => { const x = C.byId.get(id);
@@ -302,7 +302,7 @@ const vacVisible = v => UI.showVac && !UI.hiddenP.has(v.u.wer);
 /* ---------- Warnungen */
 function goTo(w) {
   UI.warnOpen = false;
-  if (w.step) { UI.view = 'plaene'; UI.planSel = w.mid; UI.flash = 'step:' + w.step; }
+  if (w.step) { const x = C.byId.get(w.mid); UI.view = 'plaene'; UI.planSel = w.mid; UI.flash = 'step:' + w.step; if (x && x.pal != null) UI.year = ymd(x.pal)[0]; }
   else if (w.mid) { UI.view = 'jahr'; UI.secOpen.mass = true; UI.flash = 'm:' + w.mid; }
   else if (w.n != null) { UI.view = 'jahr'; UI.secOpen.tl = true; UI.flash = 'n:' + w.n; }
   renderNow();
