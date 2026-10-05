@@ -17,7 +17,7 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(!s[0] && !s[1] && !s[2] && await p.evaluate(id => findM(D, id).pal, id) === pal0, 'A: Kalender – Rechtsklick bricht ab, nichts hängt, PAL unverändert ' + JSON.stringify(s));
 
   // ---- B: Zeitleiste – PAL-Balken ziehen, Rechtsklick, danach normaler Klick woanders
-  await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(200);
   [x, y] = await center(`.tl-row[data-m="${id}"] .dia`);
   await p.mouse.move(x, y); await p.mouse.down(); await p.mouse.move(x + 80, y, { steps: 5 });
   await p.evaluate(() => window.dispatchEvent(new MouseEvent('contextmenu', { bubbles: true, cancelable: true })));

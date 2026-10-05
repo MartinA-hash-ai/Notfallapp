@@ -27,7 +27,7 @@ const path = require('path');
   { const f = path.resolve('kaputte_eintraege.html');
     fs.writeFileSync(f, withData(ORIG, d => { d.massnahmen.push(null, 'text', { name: 42, verantwortlich: 7, plan: 'kaputt' }); d.urlaube.push(null, { wer: 5, von: '2027-03-01', bis: '2027-03-05' }); d.personen.push(null); d.massnahmen[0].plan = { steps: { a: 1 } }; }));
     const p = await open(b, { file: f }); pages.push(p);
-    const r = await p.evaluate(() => ['jahr', 'zeit', 'plaene', 'urlaub'].map(v => { UI.view = v; renderNow(); return !!document.querySelector('#main') && !document.querySelector('#main .error'); }));
+    const r = await p.evaluate(() => ['jahr', 'plaene', 'urlaub', 'spenden'].map(v => { UI.view = v; renderNow(); return !!document.querySelector('#main') && !document.querySelector('#main .error'); }));
     ok(r.every(Boolean) && !p.errs.length, 'B: kaputte Einträge aussortiert, alle vier Ansichten fehlerfrei');
     await p.context().close(); }
 
@@ -69,7 +69,7 @@ const path = require('path');
       UI.planSel = x.id; UI.view = 'plaene';
       let t0 = performance.now(); renderNow(); const tPlan = performance.now() - t0;
       commit(d => { d.massnahmen.find(m => !m.plan && m.pal).vorlauf.S = 36500; });
-      UI.view = 'zeit'; t0 = performance.now(); renderNow(); const tTl = performance.now() - t0;
+      UI.view = 'jahr'; UI.secOpen.tl = true; t0 = performance.now(); renderNow(); const tTl = performance.now() - t0;
       return [Math.round(tPlan), Math.round(tTl), C.warnings.filter(w => /Datum prüfen/.test(w.text)).length];
     });
     ok(r[0] < 1500 && r[1] < 1500, 'E: Detailplan ' + r[0] + ' ms, Zeitleiste ' + r[1] + ' ms trotz Terminen in den Jahren 2190, 20277 und 1927 (vorher 5–60 s)');

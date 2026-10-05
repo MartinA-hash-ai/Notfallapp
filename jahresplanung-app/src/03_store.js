@@ -100,6 +100,7 @@ async function attachFolder(create) {
   noteNewer(text, other);
   startWatch();
   scanCopies();
+  scanUpdatePkg();
   presenceTick();
   SP.at = null; spScan();                       // Spendeneingänge im Hintergrund einlesen (Hinweis am Reiter „Spenden“)
   safeRender();                                 // u. a. Hinweis, falls Datei und Speicherort nicht zusammenpassen
@@ -327,6 +328,7 @@ function startWatch() {
     if (ST.conn !== 'ok' || ST.saving || document.hidden) return;
     ST.tick++;
     if (ST.tick % 4 === 0) scanCopies();                          // etwa jede Minute: Konfliktkopien von OneDrive?
+    if (ST.tick % 4 === 2) scanUpdatePkg();                       // etwa jede Minute: Update-Paket im Mailing-Ordner?
     if (ST.tick % 2 === 0) presenceTick();                        // alle 30 Sekunden: wer arbeitet noch in der Jahresplanung?
     if (ST.conflict) return;
     try {
@@ -419,18 +421,90 @@ async function brokenDialog() {
     changed(); toast('Stand aus dem Browser wiederhergestellt – wird gespeichert.', 'ok');
   } else if (r === 'file') await openFile(true);
 }
-// Neue Programmversion übernehmen: Code aus der gewählten Datei, Daten von hier
-async function updateProgram() {
-  if (BROKEN) { toast('Erst die beschädigten Daten wiederherstellen (Hinweis oben) – sonst würde das Update einen leeren Stand speichern.', 'err'); return; }
-  if (!await confirmBox('Programm-Update einspielen', 'Wähle die neue Programmdatei (Jahresplanung_Aussenkommunikation.html aus dem entpackten Update-Paket). Deine Daten bleiben erhalten – nur das Programm wird ersetzt. Zur Sicherheit wird vorher eine Datensicherung (.json) heruntergeladen.', 'Datei wählen')) return;
-  const got = await pickFileText('.html,.htm'); if (!got) return;
-  const st = got.text.match(/<style id="jp-style">([\s\S]*?)<\/style>/), app = got.text.match(/<script id="jp-app">([\s\S]*)<\/script>\s*<\/body>/);
-  if (!st || !app) { modal('Keine Programmdatei', h('p', null, '„' + got.name + '“ ist keine Jahresplanung-Programmdatei. Bitte die Datei Jahresplanung_Aussenkommunikation.html aus dem entpackten Update-Paket wählen.')); return; }
+/* ---------- Programm-Update: aus dem ZIP-Paket (ohne Entpacken) oder aus der Programmdatei.
+   Das Paket lässt sich wählen, ins Fenster ziehen oder im Mailing-Ordner ablegen (die App findet es dort selbst). */
+const UPD_ZIP_RE = /^Jahresplanung.*\.zip$/i;
+function pickFileRaw(accept) {
+  return new Promise(resolve => {
+    const inp = h('input', { type: 'file', accept, style: 'display:none' });
+    inp.addEventListener('change', () => { const f = inp.files[0]; inp.remove(); resolve(f || null); });
+    document.body.append(inp); inp.click();
+  });
+}
+// Programmdatei aus einer gewählten Datei holen: ZIP-Paket (die HTML darin) oder die HTML selbst
+async function programFromFile(file) {
+  if (/\.zip$/i.test(file.name)) {
+    let z; try { z = zipIndex(await file.arrayBuffer()); } catch (e) { return { err: '„' + file.name + '“ ist kein lesbares ZIP-Paket.' }; }
+    const names = [...z.out.keys()].filter(n => /(^|\/)Jahresplanung[^/]*\.html?$/i.test(n) && !/(^|\/)__MACOSX\//.test(n));
+    const inner = names.find(n => n.split('/').pop() === DEFAULT_FILE) || names[0];
+    if (!inner) return { err: 'Im Paket „' + file.name + '“ steckt keine Programmdatei (' + DEFAULT_FILE + ').' };
+    try { return { text: await zipText(z, inner), name: file.name }; } catch (e) { return { err: '„' + file.name + '“ lässt sich nicht entpacken (' + e.message + ').' }; }
+  }
+  return { text: await file.text(), name: file.name };
+}
+function parseProgram(text) {
+  const st = text.match(/<style id="jp-style">([\s\S]*?)<\/style>/), app = text.match(/<script id="jp-app">([\s\S]*)<\/script>\s*<\/body>/);
+  if (!st || !app) return null;
   const ver = (app[1].match(/const APP_INFO = (\{[^}]*\});/) || [])[1];
   let info = null; try { info = ver ? JSON.parse(ver) : null; } catch (e) { /* ältere Version ohne Nummer */ }
+  return { css: st[1], js: app[1], info };
+}
+// Update-Paket im Mailing-Ordner (oder im Unterordner der Programmdatei) suchen; nur neuere Versionen melden
+const _zipSeen = new Map(); let _zipBusy = false;
+async function scanUpdatePkg() {
+  if (_zipBusy || !FSA || ST.conn !== 'ok' || !ST.dir) return;
+  _zipBusy = true;
+  try {
+    let best = null;
+    for (const dir of [...new Set([ST.dir, ST.htmlDir].filter(Boolean))]) {
+      for await (const [n, e] of dir.entries()) {
+        if (e.kind !== 'file' || !UPD_ZIP_RE.test(n)) continue;
+        const f = await e.getFile(), key = dir.name + '/' + n + '@' + f.lastModified + '@' + f.size;
+        if (!_zipSeen.has(key)) { let info = null; try { const g = await programFromFile(f), pr = g.text ? parseProgram(g.text) : null; info = pr && pr.info; } catch (x) { /* halb synchronisiert: nächstes Mal */ } _zipSeen.set(key, info); }
+        const info = _zipSeen.get(key);
+        if (info && info.version && verCmp(info.version, APP_INFO.version) > 0 && (!best || verCmp(info.version, best.info.version) > 0)) best = { name: n, handle: e, dir, info };
+      }
+    }
+    const k = o => o ? o.dir.name + '/' + o.name + '@' + o.info.version : '';
+    if (k(best) !== k(ST.zipUpd)) { ST.zipUpd = best; safeRender(); }
+  } catch (e) { console.warn(e); }
+  finally { _zipBusy = false; }
+}
+function zipBanner() {
+  const z = ST.zipUpd; if (!z || ST.newer || UI._zipHide === z.name + '@' + z.info.version) return null;
+  return h('div', { class: 'banner upd' },
+    h('span', null, 'Im Mailing-Ordner liegt das Update-Paket „' + z.name + '“ mit Version ' + z.info.version + (z.info.date ? ' (' + fmtIsoLocal(z.info.date) + ')' : '') + ' – installiert ist Version ' + APP_INFO.version + '.'),
+    h('button', { class: 'primary', onclick: async () => { const f = await z.handle.getFile().catch(() => null); if (!f) { toast('Das Paket ist nicht mehr da.', 'warn'); ST.zipUpd = null; renderNow(); return; } updateProgram(Object.assign(await programFromFile(f), { pkg: z })); } }, 'Jetzt einspielen …'),
+    h('button', { onclick: () => { UI._zipHide = z.name + '@' + z.info.version; renderNow(); } }, 'Später'));
+}
+// Update-Paket ins Fenster ziehen; andere Dateien öffnet der Browser nie (das würde die App verlassen)
+document.addEventListener('dragover', e => { if ([...((e.dataTransfer && e.dataTransfer.types) || [])].includes('Files')) e.preventDefault(); });
+document.addEventListener('drop', async e => {
+  const fl = [...((e.dataTransfer && e.dataTransfer.files) || [])]; if (!fl.length) return;
+  e.preventDefault();
+  const pk = fl.find(f => /\.zip$/i.test(f.name));
+  if (pk) { if ($('.modal')) return; updateProgram(await programFromFile(pk)); }
+  else if (!e.spHandled) toast('Hier lässt sich ein Update-Paket (.zip) ablegen. Spendeneingänge (CSV/Excel) im Reiter „Auswertung“ ins Fenster ziehen.', 'warn');
+});
+// Neue Programmversion übernehmen: Code aus dem Paket bzw. der Datei, Daten von hier
+async function updateProgram(got) {
+  if (BROKEN) { toast('Erst die beschädigten Daten wiederherstellen (Hinweis oben) – sonst würde das Update einen leeren Stand speichern.', 'err'); return; }
+  if (!got || got instanceof Event) {
+    if (!await confirmBox('Programm-Update einspielen', 'Wähle das Update-Paket „Jahresplanung_fuer_Mailing-Ordner.zip“ – entpacken ist nicht nötig (die Programmdatei ' + DEFAULT_FILE + ' geht auch). Noch einfacher: das Paket ins Fenster ziehen oder im Mailing-Ordner speichern – die App meldet es dann von selbst. Deine Daten bleiben erhalten, nur das Programm wird ersetzt. Zur Sicherheit wird vorher eine Datensicherung (.json) heruntergeladen.', 'Datei wählen')) return;
+    const f = await pickFileRaw('.zip,.html,.htm'); if (!f) return;
+    got = await programFromFile(f);
+  }
+  if (got.err) { modal('Kein Update-Paket', h('p', null, got.err)); return; }
+  const prog = parseProgram(got.text || '');
+  if (!prog) { modal('Keine Programmdatei', h('p', null, '„' + got.name + '“ ist keine Jahresplanung-Programmdatei. Bitte das Update-Paket (.zip) oder die Datei ' + DEFAULT_FILE + ' wählen.')); return; }
+  const st = [null, prog.css], app = [null, prog.js], info = prog.info;
   if ((!info || verCmp(info.version, APP_INFO.version) < 0) && !await confirmBox('Ältere Version?', 'Die gewählte Datei hat ' + (info ? 'Version ' + info.version : 'keine Versionsnummer') +
     ' und ist älter als die installierte Version ' + APP_INFO.version + '. Damit würde das Programm zurückgestuft. Wirklich einspielen?', 'Trotzdem einspielen')) return;
-  if (!await confirmBox('Update übernehmen?', 'Installiert: Version ' + APP_INFO.version + ' · Neu: ' + (info ? 'Version ' + info.version + ' (' + fmtIsoLocal(info.date) + ')' : 'ohne Versionsnummer') + '. Danach startet das Programm neu.', 'Übernehmen')) return;
+  let delPkg = !!got.pkg;
+  if (!await modal('Update übernehmen?', h('div', null,
+    h('p', null, 'Installiert: Version ' + APP_INFO.version + ' · Neu: ' + (info ? 'Version ' + info.version + ' (' + fmtIsoLocal(info.date) + ')' : 'ohne Versionsnummer') + (/\.zip$/i.test(got.name) ? ' aus „' + got.name + '“' : '') + '. Danach startet das Programm neu.'),
+    got.pkg ? h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { delPkg = e.target.checked; } }), 'Update-Paket danach aus dem Mailing-Ordner löschen') : null),
+    [['Abbrechen', false], ['Übernehmen', true, 'primary']])) return;
   const newFile = () => { const data = JSON.parse(JSON.stringify(D)); data.meta.savedAt = new Date().toISOString(); data.meta.savedBy = UI.userName || ''; return buildFile(data, st[1], app[1]); };
   // gelingt das Speichern im Ordner nicht: aktualisierte Datei zum Herunterladen anbieten
   const fail = async reason => {
@@ -452,6 +526,7 @@ async function updateProgram() {
     $('#jp-style').textContent = oldCss; $('#jp-app').textContent = oldJs;
     return fail('Die neue Version konnte nicht in „' + (ST.html ? ST.html.name : currentFileName()) + '“ im Ordner „' + (ST.dir ? ST.dir.name : '?') + '“ geschrieben werden.');
   }
+  if (got.pkg && delPkg) { try { await got.pkg.dir.removeEntry(got.pkg.name); ST.zipUpd = null; } catch (e) { console.warn(e); } }   // Paket ist eingespielt
   // wurde die App aus einem anderen Ordner geöffnet, zeigt ein Neustart hier weiter die alte Version
   const mm = folderMismatch();
   if (mm) {

@@ -9,7 +9,7 @@ const T = require('./common');
   const tw = await p.evaluate(() => { const w = document.querySelector('.tablewrap'); return [w.scrollWidth, w.clientWidth]; });
   console.log('Tabelle scrollWidth/clientWidth', tw);
   await p.click('nav.tabs >> text=Detailpläne'); await p.waitForTimeout(200); await p.screenshot({ path: 'r3_1366_plan.png' });
-  await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(200); await p.screenshot({ path: 'r3_1366_zeit.png' });
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(200); await p.screenshot({ path: 'r3_1366_zeit.png' });
   await p.click('nav.tabs >> text=Jahresplanung'); await p.waitForTimeout(100);
   await p.evaluate(() => { UI.printing = true; renderNow(); }); await p.emulateMedia({ media: 'print' });
   await p.pdf({ path: 'r3_jahr.pdf', format: 'A4', landscape: true, printBackground: true });

@@ -11,7 +11,7 @@ const T = require('./common');
     await p.screenshot({ path: 'r5_' + w + '.png' });
     const hdr = await p.evaluate(() => { const hd = document.querySelector('.sec[data-sec="kal"] .sec-h'); return hd.getBoundingClientRect().height; });
     console.log(w, 'Kalender-Kopf Höhe', hdr);
-    await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(150); await p.screenshot({ path: 'r5_zeit_' + w + '.png' });
+    await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(150); await p.screenshot({ path: 'r5_zeit_' + w + '.png' });
   }
   console.log('ERR', errs.join(' | ') || 'keine'); await b.close();
 })();

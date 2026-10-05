@@ -96,9 +96,14 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(d0.length === 2 && d0.includes('Henriette Probe') && d0.includes('Firma Beispiel GmbH'), 'D: Suche „Hospiz“ findet ' + d0.join(', ') + ' (auch „HOSPIZDIENSTE“)');
   const rows = await p.$$('.sp-col:first-child .sp-row');
   await rows[0].click({ modifiers: ['Control'] }); await rows[1].click({ modifiers: ['Shift'] });
-  const d1 = await p.evaluate(() => [SPUI.sel.l.size, document.querySelector('.sp-col:first-child .sp-cf button').textContent]);
-  ok(d1[0] === 2 && /\(2\)/.test(d1[1]), 'D: Umschalt+Klick markiert beide – „' + d1[1] + '“');
-  await p.click('.sp-col:first-child .sp-cf button:first-child'); await p.waitForTimeout(250);
+  const d1 = await p.evaluate(() => [SPUI.sel.l.size, document.querySelector('.sp-col:first-child .sp-cf button:not(.sp-mark)').textContent, document.querySelector('.sp-col:first-child .sp-mark').textContent]);
+  ok(d1[0] === 2 && /\(2\)/.test(d1[1]) && d1[2] === 'Markierung aufheben', 'D: Umschalt+Klick markiert beide – „' + d1[1] + '“, Knopf daneben „' + d1[2] + '“');
+  await p.click('.sp-col:first-child .sp-mark'); await p.waitForTimeout(100);
+  const d1b = await p.evaluate(() => [SPUI.sel.l.size, document.querySelector('.sp-col:first-child .sp-mark').textContent, document.querySelectorAll('.sp-col:first-child .sp-row.sel').length]);
+  await p.click('.sp-col:first-child .sp-mark'); await p.waitForTimeout(100);
+  const d1c = await p.evaluate(() => [SPUI.sel.l.size, document.querySelector('.sp-col:first-child .sp-mark').textContent, document.querySelectorAll('.sp-col:first-child .sp-row.sel').length]);
+  ok(d1b.join() === '0,Alle markieren,0' && d1c.join() === '2,Markierung aufheben,2', 'D: „Markierung aufheben“ / „Alle markieren“ schalten alle in „Offen“ (' + d1b + ' | ' + d1c + ')');
+  await p.click('.sp-col:first-child .sp-cf button:not(.sp-mark) >> nth=0'); await p.waitForTimeout(250);
   const d2 = await p.evaluate(() => [...document.querySelectorAll('.sp-col.mid .sp-tag')].map(t => t.textContent).join(','));
   ok(d2 === 'von Hand,von Hand', 'D: beide in „Prüfen“, markiert als „von Hand“');
   await p.click('.sp-col.mid .sp-cf button:has-text("Alle zurück")'); await p.waitForTimeout(250);
@@ -219,7 +224,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(h1.cmp === 2 && /Sommermailing/.test(h1.leg) && /Jahresbericht/.test(h1.leg), 'H: Vergleich der Rückläufe mit 2 Linien und Legende');
   ok(h1.rows === 'Sommermailing=35 € | Jahresbericht=9.876 €' && !/Prüfung/.test(h1.cols) && /Summe.*9\.911 €/.test(h1.foot), 'H: Übersicht – ' + h1.rows + ', ohne Spalte „in Prüfung“, Summenzeile');
 
-  const rs = await p.$('.sp-ueb thead th:first-child .col-rs'); await rs.scrollIntoViewIfNeeded(); const rb = await rs.boundingBox(), w0 = await p.evaluate(() => Math.round(document.querySelector('.sp-ueb thead th').getBoundingClientRect().width));
+  const rs = await p.$('.sp-ueb thead th:first-child .col-rs'); await rs.evaluate(e => e.scrollIntoView({ block: 'center' })); const rb = await rs.boundingBox(), w0 = await p.evaluate(() => Math.round(document.querySelector('.sp-ueb thead th').getBoundingClientRect().width));
   await p.mouse.move(rb.x + 3, rb.y + rb.height / 2); await p.mouse.down(); await p.mouse.move(rb.x + 63, rb.y + rb.height / 2, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(250);
   const cw = await p.evaluate(() => [UI.spColW && UI.spColW.name, Math.round(document.querySelector('.sp-ueb thead th').getBoundingClientRect().width)]);
   ok(Math.abs(cw[0] - (w0 + 60)) <= 2 && Math.abs(cw[1] - cw[0]) <= 2, 'H: Spalte „Maßnahme“ in der Übersicht breiter gezogen (' + w0 + ' → ' + cw[1] + ' px), gemerkt');

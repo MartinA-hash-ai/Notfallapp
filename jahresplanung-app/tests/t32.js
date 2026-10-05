@@ -59,7 +59,7 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(await vis() === all.split('').map((_, i) => i === 3 || i === 5 ? '1' : '0').join('') && await p.evaluate(() => !UI.pin), 'D: angeklickt, dann Häkchen bei der 6. → 4. und 6. ausgewählt (' + await vis() + ')');
 
   // ---- C: gleiche Logik im Filter der Zeitleiste
-  await p.evaluate(() => { UI.hiddenM.clear(); UI.view = 'zeit'; renderNow(); }); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.hiddenM.clear(); UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); }); await p.waitForTimeout(200);
   await p.click('button.fbtn:has-text("Maßnahmen")'); await p.waitForTimeout(150);
   await p.click('.menu input[data-vm] >> nth=1'); await p.waitForTimeout(150);
   const pop = await p.evaluate(() => [[...document.querySelectorAll('.menu input[data-vm]')].map(c => c.checked ? 1 : 0).join(''), document.querySelectorAll('.tl-row[data-m]').length]);

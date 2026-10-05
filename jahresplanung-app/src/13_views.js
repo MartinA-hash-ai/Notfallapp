@@ -63,12 +63,15 @@ const legendInline = () => h('span', { class: 'legend-inline' }, h('span', { cla
 function filterBar(extra) {
   return h('div', { class: 'filterbar' }, massnahmenDropdown(), vacDropdown(), extra, legendInline());
 }
-/* ---------- Reiter „Jahresplanung“: Maßnahmen + Kalender */
+/* ---------- Reiter „Jahresplanung“: Maßnahmen, Zeitleiste, Kalender, Was steht an? */
 VIEW_FN.jahr = main => {
   put(main,
     section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
       info: 'Sortiert automatisch nach PAL. Je Bereich (' + PH().map(p => sym(p.key) + ' ' + p.name).join(', ') + ') steht der Start – als Datum oder als Werktage bis zum PAL (Schalter „Datum – Werktage“ über den Spalten der Bereiche). Die Starts wandern mit, wenn sich der PAL verschiebt; bei Maßnahmen mit Detailplan ergeben sie sich aus den Abschnitten. 🏖 = jemand, der im Detailplan in diesem Bereich eingetragen ist, hat Urlaub. Häkchen links = im Kalender und in der Zeitleiste anzeigen; sind alle angehakt, zeigt ein Klick nur noch diese Maßnahme; wird die letzte abgewählt, sind wieder alle da (Strg+Klick: nur diese eine umschalten); das Häkchen im Kopf schaltet alle. Ein Klick auf eine Maßnahme im Kalender wählt vorübergehend nur diese aus – wieder gelöst gilt die vorherige Auswahl. Spaltenbreite am rechten Rand der Überschrift ziehen – dabei ändert sich nur die Nachbarspalte rechts; die Breiten bleiben auch nach Neustart und Update erhalten (Doppelklick = Standard).',
       closedSummary: () => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year).length + ' Maßnahmen' }),
+    section('tl', 'Zeitleiste ' + UI.year, () => Object.assign(timelineSection(), { lead: [massnahmenDropdown(), vacDropdown()] }), {
+      open: false, closedSummary: () => 'Gantt-Diagramm aller Maßnahmen – aufklappen',
+      info: 'Mausrad zoomt (beim Blättern der Seite erst, wenn sie kurz stillsteht; Strg+Mausrad zoomt immer), Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Je Bereich ein Balken (hell → kräftig bis zum PAL); überlappen Bereiche, liegen sie übereinander. Balken ziehen verschiebt den PAL (alle Bereiche wandern mit), die Griffe mit Buchstaben verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
     section('kal', 'Kalender ' + UI.year, () => ({
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),
         h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten'),
@@ -76,18 +79,13 @@ VIEW_FN.jahr = main => {
           h('input', { type: 'checkbox', checked: !!UI.verbund, onchange: e => { UI.verbund = e.target.checked; renderNow(); } }), 'Verbund-Darstellung')],
       tools: [legendInline()],
       body: [calendarBody()] }), {
-      info: 'Maus über Tag oder Markierung zeigt Details. Klick auf eine Markierung (' + evKeys().join(', ') + ') oder eine Zeile der Terminliste hält die Maßnahme hervorgehoben – „Bearbeiten“ steht dann hinter ihren Zeilen in der Terminliste. Klick woanders oder Esc hebt das auf. Markierung ziehen: P verschiebt das ganze Projekt (alle Bereiche wandern mit), ein Start verschiebt nur diesen Bereich. Die Linie wird vom ersten Bereich bis zum PAL kräftiger. Strg+Z macht es rückgängig.' }));
+      info: 'Maus über Tag oder Markierung zeigt Details. Klick auf eine Markierung (' + evKeys().join(', ') + ') oder eine Zeile der Terminliste hält die Maßnahme hervorgehoben – „Bearbeiten“ steht dann hinter ihren Zeilen in der Terminliste. Klick woanders oder Esc hebt das auf. Markierung ziehen: P verschiebt das ganze Projekt (alle Bereiche wandern mit), ein Start verschiebt nur diesen Bereich. Die Linie wird vom ersten Bereich bis zum PAL kräftiger. Strg+Z macht es rückgängig.' }),
+    section('ag', 'Was steht an?', () => Object.assign(agendaSection(), { lead: typePills() }), { info: 'Termine, Arbeitsschritte, Urlaube und Feiertage der nächsten Wochen. Mit den Knöpfen der Bereiche und PAL wählst du, welche Termine in der Liste stehen. Häkchen = Arbeitsschritt erledigt.' }));
 };
 VIEW_FN['jahr:after'] = () => {
+  if (UI.flash && UI.flash.startsWith('n:')) { const s = $('[data-sec="tl"]'); if (s) s.scrollIntoView({ block: 'start' }); }   // Warnung mit Datum: zur Zeitleiste
+  timelineAfter();
   if (UI.pin) highlight(UI.pin);                 // festgehaltene Maßnahme nach dem Neuzeichnen wieder hervorheben
   if (UI.focusFk) { const e = $('[data-fk="' + CSS.escape(UI.focusFk) + '"]'); if (e) { e.focus(); e.select && e.select(); } UI.focusFk = null; }
 };
 
-/* ---------- Reiter „Zeitleiste“: Zeitleiste + Was steht an? */
-VIEW_FN.zeit = main => {
-  put(main, filterBar(),
-    section('tl', 'Zeitleiste ' + UI.year, timelineSection, {
-      info: 'Mausrad zoomt, Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Je Bereich ein Balken (hell → kräftig bis zum PAL); überlappen Bereiche, liegen sie übereinander. Balken ziehen verschiebt den PAL (alle Bereiche wandern mit), die Griffe mit Buchstaben verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
-    section('ag', 'Was steht an?', () => Object.assign(agendaSection(), { lead: typePills() }), { info: 'Termine, Arbeitsschritte, Urlaube und Feiertage der nächsten Wochen. Mit den Knöpfen der Bereiche und PAL wählst du, welche Termine in der Liste stehen. Häkchen = Arbeitsschritt erledigt.' }));
-};
-VIEW_FN['zeit:after'] = () => timelineAfter();

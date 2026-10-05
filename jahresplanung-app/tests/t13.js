@@ -48,7 +48,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.evaluate(() => { undo(); undo(); });
 
   // ---------- Zeitleiste
-  await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(200);
   const pills = await p.evaluate(() => [document.querySelectorAll('.filterbar .tpill').length, document.querySelectorAll('.sec[data-sec="ag"] .sec-h .tpill').length]);
   ok(pills[0] === 0 && pills[1] === 4, 'S/I/D/P-Knöpfe bei „Was steht an?“ ' + JSON.stringify(pills));
   const op = await p.evaluate(() => { const x = C.ms[2]; highlight(x.id); const other = document.querySelector('.tl-row[data-m]:not(.hl-on) .tl-lab'); const r = [getComputedStyle(other).opacity, getComputedStyle(other.closest('.tl-row')).opacity, getComputedStyle(other.querySelector('.nm')).opacity, getComputedStyle(other).backgroundColor]; return r; });
@@ -61,7 +61,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const tt = await p.evaluate(() => document.querySelector('#tip.on') ? document.querySelector('#tip').innerText : '');
   ok(tt.includes(hs[2] + ' Werktage vor PAL'), 'Tooltip S: ' + tt.replace(/\n/g, ' / '));
   await p.mouse.move(5, 900);
-  await p.click('.filterbar .fbtn >> nth=0'); await p.waitForTimeout(100);
+  await p.click('.sec[data-sec="tl"] .fbtn >> nth=0'); await p.waitForTimeout(100);
   await p.click('.menu.pop button:has-text("keine")'); await p.waitForTimeout(150);
   const pop1 = await p.evaluate(() => [!!document.querySelector('.menu.pop'), $$('.menu.pop input:checked').length, UI.hiddenM.size]);
   await p.click('.menu.pop button:has-text("alle")'); await p.waitForTimeout(150);
@@ -110,7 +110,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.screenshot({ path: 'r7_plan_leer.png', clip: { x: 0, y: 0, width: 1600, height: 460 } });
 
   // ---------- Urlaub & Feiertage
-  await p.click('nav.tabs >> text=Urlaub'); await p.waitForTimeout(200);
+  await p.evaluate(() => openUrlaub()); await p.waitForTimeout(200);
   ok(!(await p.evaluate(() => !!document.querySelector('.persons'))), 'Personen nicht mehr im Urlaubsbereich');
   const fr = await p.evaluate(() => { const n = [...holidaysNRW(2027)].find(([, t]) => t === 'Fronleichnam')[0]; return ds(n); });
   const nin = p.locator(`[data-fk="hol:${fr}:n"]`);
@@ -146,7 +146,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(dm[0] === 'dark' && dm[1] !== 'rgb(247, 247, 245)', 'Darkmode aktiv ' + JSON.stringify(dm));
   await p.screenshot({ path: 'r7_dark_settings.png' });
   await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
-  for (const [tab, name] of [['Jahresplanung', 'jahr'], ['Zeitleiste', 'zeit'], ['Detailpläne', 'plan'], ['Urlaub', 'urlaub']]) {
+  for (const [tab, name] of [['Jahresplanung', 'jahr'], ['Detailpläne', 'plan'], ['Auswertung', 'spenden']]) {
     await p.click('nav.tabs >> text=' + tab); await p.waitForTimeout(200);
     await p.screenshot({ path: 'r7_dark_' + name + '.png' });
   }

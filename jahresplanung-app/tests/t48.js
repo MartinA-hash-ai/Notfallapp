@@ -110,7 +110,7 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   const ths = () => p.evaluate(() => [...document.querySelectorAll('.sp-ueb thead th')].map(t => Math.round(t.getBoundingClientRect().width)));
   const g0 = await p.evaluate(() => { const th = [...document.querySelectorAll('.sp-ueb thead th')]; return [th.length, th.filter(t => t.querySelector('.col-rs')).length, th[th.length - 1].classList.contains('sp-rest'), th[th.length - 2].textContent]; });
   ok(g0[0] === 11 && g0[1] === 10 && g0[2] && g0[3] === 'ROI', 'G: 10 Spalten mit Griff, rechts ein leerer Rest ohne Griff');
-  const w0 = await ths(), rs = await p.$('.sp-ueb thead th:nth-child(10) .col-rs'); await rs.scrollIntoViewIfNeeded(); const rb = await rs.boundingBox();
+  const w0 = await ths(), rs = await p.$('.sp-ueb thead th:nth-child(10) .col-rs'); await rs.evaluate(e => e.scrollIntoView({ block: 'center' })); const rb = await rs.boundingBox();
   await p.mouse.move(rb.x + 3, rb.y + rb.height / 2); await p.mouse.down(); await p.mouse.move(rb.x + 63, rb.y + rb.height / 2, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(250);
   const w1 = await ths(), wu = await p.evaluate(() => UI.spColW && UI.spColW.roi);
   ok(Math.abs(w1[9] - w0[9] - 60) <= 2 && w1.slice(0, 9).join() === w0.slice(0, 9).join() && wu === w1[9], 'G: ROI 60 px breiter gezogen (' + w0[9] + ' → ' + w1[9] + '), übrige Spalten bleiben, gemerkt');

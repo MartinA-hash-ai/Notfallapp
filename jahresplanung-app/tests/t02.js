@@ -14,7 +14,7 @@ const URL = T.URL;
   const log = (...a) => console.log(...a);
 
   // --- Urlaub über die Oberfläche anlegen
-  await p.click('text=Urlaub & Feiertage');
+  await p.evaluate(() => openUrlaub());
   await p.click('button:has-text("+ Urlaub")'); await p.waitForTimeout(100);
   // 0.11: Kalendarium – Person wählen, 01.–09.04.2027 ziehen, speichern
   await p.evaluate(() => { if (!D.personen.some(x => x.name === 'Eva')) commit(d => d.personen.push({ name: 'Eva', farbe: '#1565C0' })); });
@@ -47,7 +47,7 @@ const URL = T.URL;
   await p.screenshot({ path: 'kal_hover.png' });
 
   // --- Zeitleiste: PAL von Projekt-Update 1 ziehen (+7 Tage), dann S-Griff
-  await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(200);
   const pxd = await p.evaluate(() => UI._tl.pxd);
   const row = await p.$('.tl-row[data-m="m3"]');
   const dia = await row.$('.dia'); const bb = await dia.boundingBox();
@@ -99,7 +99,7 @@ const URL = T.URL;
   await p.evaluate(() => { UI.printing = true; renderNow(); });
   await p.emulateMedia({ media: 'print' });
   await p.pdf({ path: 'kalender.pdf', format: 'A4', landscape: true, printBackground: true });
-  await p.evaluate(() => { UI.view = 'zeit'; renderNow(); });
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); });
   await p.pdf({ path: 'zeitleiste.pdf', format: 'A4', landscape: true, printBackground: true });
   await p.evaluate(() => { UI.view = 'jahr'; renderNow(); });
   await p.pdf({ path: 'massnahmen.pdf', format: 'A4', landscape: true, printBackground: true });

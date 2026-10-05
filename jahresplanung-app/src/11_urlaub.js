@@ -192,7 +192,7 @@ VIEW_FN.urlaub = main => {
   const holRows = Array.from({ length: half }, (_, r) => h('tr', null, holCells(hol[r]), hol[r + half] ? holCells(hol[r + half]) : h('td', { colspan: 4 })));
   const sonder = D.sondertage.slice().sort((p, q) => (dn(p.datum) ?? 0) - (dn(q.datum) ?? 0));
   put(main,
-    h('div', { class: 'view-head' }, h('h1', null, 'Urlaub & Feiertage ' + y),
+    h('div', { class: 'view-head' }, h('button', { class: 'ghostbtn backbtn screen-only', onclick: closeUrlaub, tip: 'zurück zur vorherigen Ansicht' }, '← zurück'), h('h1', null, 'Urlaub & Feiertage ' + y),
       h('div', { class: 'tools' }, h('button', { class: 'primary', onclick: addVac }, '+ Urlaub / Abwesenheit'))),
     personList(),
     h('section', { class: 'card' }, h('h2', null, 'Übersicht ' + y), h('p', { class: 'muted small' }, 'Jede Zeile eine Person. Oben „Abwesend gesamt“: gelb = 1, orange = 2, rot = 3 und mehr Personen gleichzeitig. Maus darüber zeigt die Namen.'),

@@ -32,4 +32,5 @@ Direkt aus der Teams-/SharePoint-Weboberfläche läuft die App nicht (SharePoint
 
 Achtung: Die gebaute Datei enthält die Startdaten. Eine Datei, in der schon gearbeitet wurde, nicht durch
 einen neuen Build ersetzen – stattdessen in der laufenden App „⋯ → Programm-Update einspielen …“ nutzen
-(tauscht nur das Programm, die Daten bleiben).
+(tauscht nur das Programm, die Daten bleiben). Ab 0.13 geht das direkt mit dem ZIP-Paket: im Dialog wählen,
+ins Fenster ziehen oder im Mailing-Ordner speichern – die App meldet ein neueres Paket dort von selbst.

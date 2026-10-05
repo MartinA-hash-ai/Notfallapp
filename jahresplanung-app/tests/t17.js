@@ -34,7 +34,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.mouse.move(5, 950);
   await p.evaluate(() => { UI.verbund = false; setTheme('light'); });
   // ---------- S bei Detailplan in der Zeitleiste ziehen
-  await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(200);
   await p.evaluate(() => { UI.tlPxd = 8; renderNow(); });
   const before = await p.evaluate(() => { const x = C.ms.find(x => x.m.name === 'Sommermailing'); const e = document.querySelector('.tl-row[data-m="' + x.id + '"] .handle.h-S'); e.scrollIntoView({ block: 'center', inline: 'center' }); const r = e.getBoundingClientRect(); return { s: x.s, i: x.i, pal: x.pal, locked: e.classList.contains('locked'), x: r.x + r.width / 2, y: r.y + r.height / 2, pxd: UI._tl.pxd, dur: JSON.stringify(x.m.plan.steps.map(s => s.dauer)) }; });
   await p.mouse.move(before.x, before.y); await p.mouse.down(); await p.mouse.move(before.x - before.pxd * 3 - 1, before.y, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(300);
@@ -61,7 +61,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(ca[0] === cs[4] - 1 && ca[1] === cs[5], 'Kalender: S-Markierung des Sommermailings einen Tag vorgezogen');
   await p.evaluate(() => undo());
   // ---------- Feiertage zweispaltig
-  await p.click('nav.tabs >> text=Urlaub'); await p.waitForTimeout(200);
+  await p.evaluate(() => openUrlaub()); await p.waitForTimeout(200);
   const ht = await p.evaluate(() => { const t = document.querySelector('.hol2'); return [t.querySelectorAll('tbody tr').length, t.querySelectorAll('tbody tr:first-child td').length, Math.round(document.querySelector('.hcard').getBoundingClientRect().height)]; });
   ok(ht[0] === 6 && ht[1] === 8, 'Feiertage zweispaltig: ' + ht[0] + ' Zeilen × ' + ht[1] + ' Zellen, Kasten ' + ht[2] + ' px hoch');
   await p.screenshot({ path: 'r10_urlaub.png' });

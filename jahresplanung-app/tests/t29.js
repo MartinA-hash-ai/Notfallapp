@@ -40,7 +40,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => { UI.verbund = false; renderNow(); });
 
   // ---- D: Zeitleiste – Balken je Bereich
-  await p.evaluate(() => { UI.view = 'zeit'; renderNow(); }); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); }); await p.waitForTimeout(200);
   const tl = await p.evaluate(id => { const r = document.querySelector('.tl-row[data-m="' + id + '"]'), g = k => r.querySelector('.seg[data-k="' + k + '"]');
     return [getComputedStyle(g('S')).backgroundImage, getComputedStyle(g('I')).backgroundImage, g('D').classList.contains('outline'), getComputedStyle(g('D')).backgroundColor, getComputedStyle(g('D')).borderTopColor]; }, id);
   const rgb = h => 'rgb(' + [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16)).join(', ') + ')';

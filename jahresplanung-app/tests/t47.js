@@ -98,7 +98,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
 
   // ---- G: Spaltenbreite wie in der Jahresplanung – nur die Spalte und ihre rechte Nachbarin ändern sich
   const ths = () => p.evaluate(() => [...document.querySelectorAll('.sp-ueb thead th')].map(t => Math.round(t.getBoundingClientRect().width)));
-  const w0 = await ths(), rs = await p.$('.sp-ueb thead th:nth-child(3) .col-rs'); await rs.scrollIntoViewIfNeeded(); const rb = await rs.boundingBox();
+  const w0 = await ths(), rs = await p.$('.sp-ueb thead th:nth-child(3) .col-rs'); await rs.evaluate(e => e.scrollIntoView({ block: 'center' })); const rb = await rs.boundingBox();
   await p.mouse.move(rb.x + 3, rb.y + rb.height / 2); await p.mouse.down(); await p.mouse.move(rb.x + 43, rb.y + rb.height / 2, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(250);
   const w1 = await ths();
   ok(Math.abs(w1[2] - w0[2] - 40) <= 2 && Math.abs(w0[3] - w1[3] - 40) <= 2 && w1[0] === w0[0] && w1[5] === w0[5], 'G: „PAL“ 40 px breiter gezogen – „Auflage“ daneben 40 px schmaler, übrige Spalten bleiben');

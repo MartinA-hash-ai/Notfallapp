@@ -53,7 +53,7 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(e === '2027-05-10', 'E: PAL verschieben nimmt feste Termine mit (' + e + ')');
 
   // ---- F: Zeitleiste, aufgeklappter Detailplan – Schritte ebenfalls auf der Tagesmitte
-  await p.evaluate(id => { UI.view = 'zeit'; tlOpen.add(id); renderNow(); }, sm); await p.waitForTimeout(250);
+  await p.evaluate(id => { UI.view = 'jahr'; UI.secOpen.tl = true; tlOpen.add(id); renderNow(); }, sm); await p.waitForTimeout(250);
   const f = await p.evaluate(id => { const dia = document.querySelector('.tl-row[data-m="' + id + '"] .dia').getBoundingClientRect(), bars = [...document.querySelectorAll('.tl-row.sub .sbar')].map(e => e.getBoundingClientRect().right);
     return bars.filter(r => Math.abs(r - (dia.left + dia.width / 2)) < 2).length; }, sm);
   ok(f >= 2, 'F: Zeitleiste – ' + f + ' Schritt-Balken enden genau am PAL-Punkt');

@@ -10,7 +10,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   p.on('pageerror', e => errs.push(e.message));
   p.on('request', r => { if (!/^(file|blob|data):/.test(r.url())) reqs.push(r.url()); });
   await p.goto(T.URL); await p.waitForTimeout(400);
-  for (const v of ['jahr', 'zeit', 'plaene', 'urlaub']) {
+  for (const v of ['jahr', 'plaene', 'urlaub', 'spenden']) {
     const r = await p.evaluate(v => { UI.view = v; renderNow(); return [!!document.querySelector('#main'), !document.querySelector('#main .error')]; }, v);
     await p.screenshot({ path: 'ansicht_' + v + '.png' });
     ok(r[0] && r[1], 'Ansicht ' + v + ' ohne Fehler');

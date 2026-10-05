@@ -58,10 +58,10 @@ const URL = T.URL;
   await p.evaluate(() => { UI.year = 2027; renderNow(); });
   // Urlaube + Agenda
   await p.evaluate(() => commit(d => { d.urlaube.push({ id: 'u1', wer: 'Eva', von: '2027-04-01', bis: '2027-04-09' }, { id: 'u2', wer: 'Martin', von: '2027-04-05', bis: '2027-04-16', notiz: 'Osterferien' }, { id: 'u3', wer: 'P/Ö', von: '2027-04-07', bis: '2027-04-08' }); d.massnahmen.find(m => m.name === 'Sommermailing').plan.steps.find(s => s.id === 'freigabe_kati').wer = 'Martin'; }));
-  await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(100);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(100);
   await p.fill('.sec[data-sec="ag"] input[type=date]', '2027-03-29'); await p.$eval('.sec[data-sec="ag"] input[type=date]', e => e.blur()); await p.waitForTimeout(200);
   await p.screenshot({ path: 'agenda2.png' });
-  await p.click('nav.tabs >> text=Urlaub & Feiertage'); await p.waitForTimeout(150);
+  await p.evaluate(() => openUrlaub()); await p.waitForTimeout(150);
   await p.screenshot({ path: 'urlaub3.png' });
   await p.click('nav.tabs >> text=Detailpläne'); await p.waitForTimeout(150);
   await p.click('.ptab >> text=Sommermailing'); await p.waitForTimeout(150);

@@ -168,14 +168,18 @@ function tlZoomTo(x) {
   UI.tlPxd = clamp(vis / (span + 2 * pad), 1.5, 60); UI.tlFocus = a - pad;
   renderNow();
 }
-// Mausrad über der Zeitleiste: hinein-/herauszoomen (der Tag unter der Maus bleibt stehen)
-let _wheelPending = null;
+// Mausrad über der Zeitleiste: hinein-/herauszoomen (der Tag unter der Maus bleibt stehen).
+// Beginnt das Drehen außerhalb (Seite blättern) und läuft über die Zeitleiste weiter, blättert die Seite weiter;
+// gezoomt wird erst nach einer kurzen Pause (Strg+Mausrad zoomt immer).
+let _wheelPending = null, _wheelMode = { at: 0, zoom: false };
+document.addEventListener('wheel', ev => { if (!(ev.target.closest && ev.target.closest('.tl'))) _wheelMode = { at: performance.now(), zoom: false }; }, { capture: true, passive: true });
 function tlWheel(box, x0, nd, avail, label) {
   box.addEventListener('wheel', ev => {
-    if (Math.abs(ev.deltaX) > Math.abs(ev.deltaY) || ev.shiftKey) return;           // seitlich scrollen wie gewohnt
+    const now = performance.now(), latched = !_wheelMode.zoom && now - _wheelMode.at < 400;
+    if (Math.abs(ev.deltaX) > Math.abs(ev.deltaY) || ev.shiftKey) { _wheelMode = { at: now, zoom: false }; return; }   // seitlich scrollen wie gewohnt
     const r = box.getBoundingClientRect(), off = ev.clientX - r.left - label;
-    if (off < 0) return;                                                             // über den Namen: normal scrollen
-    ev.preventDefault();
+    if (off < 0 || (latched && !ev.ctrlKey)) { _wheelMode = { at: now, zoom: false }; return; }   // über den Namen bzw. beim Blättern: Seite scrollen
+    ev.preventDefault(); _wheelMode = { at: now, zoom: true };
     const cur = UI._tl ? UI._tl.pxd : avail / nd, fit = avail / nd;
     const base = _wheelPending ? _wheelPending.pxd : cur;
     let np = clamp(base * (ev.deltaY < 0 ? 1.2 : 1 / 1.2), fit, 60);

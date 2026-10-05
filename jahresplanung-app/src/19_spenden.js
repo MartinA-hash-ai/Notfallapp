@@ -350,7 +350,10 @@ function spComputeNow() {
   }
   return { sugg, pend, assigned };
 }
-const spInCheck = (cmp, k, mid) => D.spenden.vor[k] === mid || (cmp.sugg.get(k) || []).some(s => s.id === mid);
+// „Prüfen“ ist ein Korb: von Hand Vorgemerktes bleibt beim Wechsel der Maßnahme liegen (zugeordnet wird der gewählten);
+// Regel-Vorschläge erscheinen nur bei ihrer eigenen Maßnahme
+const spStaged = k => { const v = D.spenden.vor[k]; return !!v && (isAllg(v) || (C.byId && C.byId.has(v)) || D.massnahmen.some(m => m.id === v)); };
+const spInCheck = (cmp, k, mid) => spStaged(k) || (cmp.sugg.get(k) || []).some(s => s.id === mid);
 function spPart(mid, cmp) {
   const L = [], M = [], R = [];
   for (const rec of SP.rows) {
@@ -385,7 +388,7 @@ function spMove(keys, act, mid) {
   if (act === 'stage') commit(d => { for (const k of keys) { d.spenden.vor[k] = mid; spUnNein(d, k, mid); } }, what + ' zur Prüfung vorgemerkt');
   else if (act === 'unstage') commit(d => {
     for (const k of keys) {
-      if (d.spenden.vor[k] === mid) delete d.spenden.vor[k];
+      delete d.spenden.vor[k];
       if ((cmp.sugg.get(k) || []).some(s => s.id === mid)) d.spenden.nein[k] = [...new Set([...(d.spenden.nein[k] || []), mid])];   // Regel schlägt sie nicht wieder vor
     }
   }, what + ' zurück zu „Offen“');
@@ -394,7 +397,7 @@ function spMove(keys, act, mid) {
   }, what + ' ' + nm + ' zugeordnet');
   else if (act === 'release') commit(d => {                       // Zuordnung lösen, ganz zurück zu „Offen“; die Regel schlägt sie nicht wieder vor
     const ru = spRuleOf(spMObj(d, mid));
-    for (const k of keys) { delete d.spenden.zu[k]; if (d.spenden.vor[k] === mid) delete d.spenden.vor[k]; const r = SP.byKey.get(k); if (ru && r && ru.test(r)) d.spenden.nein[k] = [...new Set([...(d.spenden.nein[k] || []), mid])]; }
+    for (const k of keys) { delete d.spenden.zu[k]; delete d.spenden.vor[k]; const r = SP.byKey.get(k); if (ru && r && ru.test(r)) d.spenden.nein[k] = [...new Set([...(d.spenden.nein[k] || []), mid])]; }
   }, what + ' gelöst – zurück zu „Offen“');
   else if (act === 'unassign') commit(d => {
     for (const k of keys) { if (!d.spenden.zu[k]) continue; delete d.spenden.zu[k]; if (SP.byKey.has(k)) { d.spenden.vor[k] = mid; spUnNein(d, k, mid); } }
@@ -497,7 +500,7 @@ function spOverview(ms, cmp, mid, by) {
   const row = ({ x, s }) => h('tr', { class: 'sp-urow' + (x.id === mid ? ' on' : '') + (x.allg ? ' allg' : ''), dataset: { mid: x.id }, onclick: () => { UI.spMid = x.id; renderNow(); } },
     h('td', { class: 'sp-uname' }, h('span', { class: 'dot', style: { background: x.color } }), ' ', x.m.name || '(ohne Namen)'),
     x.allg ? h('td', { class: 'muted small' }, 'Spenden ohne Maßnahme, z. B. Daueraufträge') :
-      h('td', { class: 'inp' }, h('input', { class: 'sp-hin', value: x.m.hinweis || '', placeholder: 'Thema / Hinweis', 'data-fk': 'sp-hin:' + x.id, onclick: stop, title: x.m.hinweis || '',
+      h('td', { class: 'inp' }, h('input', { class: 'sp-hin', value: x.m.hinweis || '', placeholder: '–', 'data-fk': 'sp-hin:' + x.id, onclick: stop, title: x.m.hinweis || '',
         onchange: e => setM(x.id, 'hinweis', e.target.value, 'Hinweis geändert') })),
     h('td', null, x.pal != null ? fmtD(x.pal) : '–'),
     x.allg ? cell('–') : h('td', { class: 'num inp' }, h('span', { class: 'sp-unit' }, numField(x.m.auflage, 0, v => setM(x.id, 'auflage', v, 'Auflage geändert'), { class: 'numf sp-auf', 'data-fk': 'sp-auf:' + x.id, onclick: stop }), h('i', null, 'Stk.'))),
@@ -617,8 +620,9 @@ const x0pal = mid => { const x = spX(mid); return x ? x.pal : null; };
 const spIsDA = r => /dauerauftrag/i.test((r.text || '') + ' ' + (r.typ || ''));
 function spRow(r, col, cmp, mid, ctl) {
   const tags = [], sg = cmp.sugg.get(r.k) || [], nameOf = spMName;
-  if (col === 'm') { const mine = sg.find(s => s.id === mid); tags.push(mine ? h('span', { class: 'sp-tag rule', tip: 'passt zur Regel (Schlagwort „' + mine.w + '“)' }, mine.w) : h('span', { class: 'sp-tag' }, 'von Hand')); }
-  const others = [...new Set(sg.filter(s => s.id !== mid).map(s => s.id).concat(D.spenden.vor[r.k] && D.spenden.vor[r.k] !== mid && (C.byId.has(D.spenden.vor[r.k]) || isAllg(D.spenden.vor[r.k])) ? [D.spenden.vor[r.k]] : []))];
+  if (col === 'm') { const mine = sg.find(s => s.id === mid); tags.push(mine ? h('span', { class: 'sp-tag rule', tip: 'passt zur Regel (Schlagwort „' + mine.w + '“)' }, mine.w) :
+    h('span', { class: 'sp-tag', tip: 'von Hand nach „Prüfen“ geschoben – bleibt hier, auch wenn du die Maßnahme wechselst, und wird der gewählten Maßnahme zugeordnet' }, 'von Hand')); }
+  const others = [...new Set(sg.filter(s => s.id !== mid).map(s => s.id))];
   if (col !== 'r' && others.length) tags.push(h('span', { class: 'sp-tag other', tip: 'Wird auch bei ' + others.map(id => '„' + nameOf(id) + '“').join(', ') + ' zur Prüfung angezeigt. Sobald sie einer Maßnahme zugeordnet ist, verschwindet sie bei den anderen.' }, 'auch: ' + others.map(nameOf).join(', ')));
   if (r.gone) tags.push(h('span', { class: 'sp-tag gone' }, 'nicht mehr im Ordner'));
   if (col !== 'l' && x0pal(mid) != null && r.d < x0pal(mid)) tags.push(h('span', { class: 'sp-tag other', tip: 'Eingang vor dem PAL der Maßnahme – gehört sie wirklich dazu?' }, 'vor dem PAL'));
@@ -651,7 +655,10 @@ function spAssign(x, cmp) {
     btn.mBack.disabled = !n('m'); btn.mBack.textContent = '← Markierte zurück' + (n('m') ? ' (' + n('m') + ')' : '');
     btn.mAll.textContent = n('m') ? n('m') + ' markierte zuordnen →' : 'Alle ' + P.M.length.toLocaleString('de-DE') + ' zuordnen →';
     btn.rBack.disabled = !n('r'); btn.rBack.textContent = '← Markierte zurück in „Prüfen“' + (n('r') ? ' (' + n('r') + ')' : '');
+    for (const c of ['l', 'r']) { const all = allSel(c); btn[c + 'Mark'].disabled = !cols[c].length; btn[c + 'Mark'].textContent = all ? 'Markierung aufheben' : 'Alle markieren'; btn[c + 'Mark'].setAttribute('aria-pressed', String(all)); }
   };
+  const allSel = c => cols[c].length > 0 && cols[c].every(r => SPUI.sel[c].has(r.k));
+  const markAll = c => { const sel = SPUI.sel[c]; if (allSel(c)) sel.clear(); else cols[c].forEach(r => sel.add(r.k)); for (const el of $$('.sp-row', lists[c])) el.classList.toggle('sel', sel.has(el.dataset.k)); sync(); };
   const act = { l: 'stage', m: 'assign', r: 'unassign' };
   const ctl = {
     click: (e, c, k) => {
@@ -676,6 +683,8 @@ function spAssign(x, cmp) {
   let tq = null;
   const fset = (k, v, now) => { SPUI.f[k] = v; clearTimeout(tq); if (now) renderNow(); else tq = setTimeout(renderNow, 250); };
   btn.lSel = h('button', { onclick: () => spMove(SPUI.sel.l, 'stage', mid) });
+  btn.lMark = h('button', { class: 'sp-mark', tip: 'alle Spenden in „Offen“ (im Filter) markieren – nochmal klicken hebt die Markierung auf', onclick: () => markAll('l') });
+  btn.rMark = h('button', { class: 'sp-mark', tip: 'alle zugeordneten Spenden markieren – nochmal klicken hebt die Markierung auf', onclick: () => markAll('r') });
   btn.lAll = h('button', { disabled: !L.length, onclick: async () => { if (L.length > 200 && !await confirmBox('Viele Spenden', L.length.toLocaleString('de-DE') + ' Spenden auf einmal nach „Prüfen“ schieben? (Strg+Z macht es rückgängig.)', 'Ja, alle')) return; spMove(L.map(r => r.k), 'stage', mid); } }, 'Alle ' + L.length.toLocaleString('de-DE') + ' → Prüfen');
   btn.mBack = h('button', { onclick: () => spMove(SPUI.sel.m, 'unstage', mid) });
   btn.mAllBack = h('button', { disabled: !P.M.length, tip: 'alle Spenden aus „Prüfen“ zurück zu „Offen“ – Strg+Z holt sie zurück', onclick: () => spMove(P.M.map(r => r.k), 'unstage', mid) }, '← Alle zurück');
@@ -699,15 +708,16 @@ function spAssign(x, cmp) {
               [['alle', 'einblenden'], ['ohne', 'ausblenden'], ['nur', 'nur Daueraufträge']].map(([v, t]) => h('option', { value: v, selected: daM === v }, t)))),
           h('button', { class: 'link', disabled: !f.q.trim(), tip: 'Suchbegriff als Schlagwort in die Regel übernehmen – passende Spenden (auch künftige) landen dann automatisch in „Prüfen“', onclick: () => { const w = f.q; SPUI.f.q = ''; spAddWord(mid, w); } }, 'als Regel übernehmen')),
         list('l', ST.conn !== 'ok' ? 'Mailing-Ordner nicht verbunden.' : !SP.rows.length ? 'Noch keine Buchungen eingelesen.' : 'Keine offene Spende im Filter.'),
-        h('div', { class: 'sp-cf' }, btn.lSel, btn.lAll)),
+        h('div', { class: 'sp-cf' }, btn.lMark, btn.lSel, btn.lAll)),
       h('div', { class: 'sp-col mid', 'aria-label': 'Prüfen' },
         list('m', ''),
         h('div', { class: 'sp-cf' }, btn.mAllBack, btn.mBack, btn.mAll)),
       h('div', { class: 'sp-col' }, head('r', 'Zugeordnet'),
         h('div', { class: 'sp-hint muted small' }, 'Diese Spenden zählen für die Maßnahme.'),
         list('r', 'Noch nichts zugeordnet.'),
-        h('div', { class: 'sp-cf' }, btn.rBack))),
-    h('p', { class: 'muted small' }, 'Klick auf eine offene Spende schiebt sie in die Mitte zum Prüfen; Strg+Klick oder Umschalt+Klick markiert mehrere. In der Mitte und rechts: Klick markiert, Doppelklick schiebt einen Schritt weiter (rechts: zurück in die Mitte). Alles lässt sich mit Strg+Z rückgängig machen.'));
+        h('div', { class: 'sp-cf' }, btn.rMark, btn.rBack))),
+    h('p', { class: 'muted small' }, 'Klick auf eine offene Spende schiebt sie in die Mitte zum Prüfen; Strg+Klick oder Umschalt+Klick markiert mehrere. In der Mitte und rechts: Klick markiert, Doppelklick schiebt einen Schritt weiter (rechts: zurück in die Mitte). ' +
+      'Was von Hand in der Mitte liegt, bleibt dort auch beim Wechsel der Maßnahme und wird der gerade gewählten zugeordnet. Alles lässt sich mit Strg+Z rückgängig machen.'));
   sync();
   return { body: box, tools: h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen') };
 }
@@ -721,12 +731,16 @@ VIEW_FN.spenden = main => {
   const cmp = spCompute(), by = spByM();
   main.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); main.classList.add('sp-drop'); } });
   main.addEventListener('dragleave', e => { if (e.target === main) main.classList.remove('sp-drop'); });
-  main.addEventListener('drop', e => { if (!e.dataTransfer.files.length) return; e.preventDefault(); main.classList.remove('sp-drop'); spAddFiles(e.dataTransfer.files); });
+  main.addEventListener('drop', e => {
+    main.classList.remove('sp-drop');
+    const fl = [...e.dataTransfer.files].filter(f => !/\.zip$/i.test(f.name)); if (!fl.length) return;   // ZIP = Update-Paket (siehe 03_store)
+    e.preventDefault(); e.spHandled = true; spAddFiles(fl);
+  });
   const s = spStats(x.m, by.get(x.id)), P = spPart(x.id, cmp);   // Kennzahlen und Spalten der gewählten Maßnahme
   const tools = () => [spStatus(), h('button', { disabled: ST.conn !== 'ok', onclick: () => spScan({ manual: true }) }, '↻ Neu einlesen'), h('button', { onclick: spPickFiles }, '+ Datei hinzufügen …')];
   put(main,
     spNotice(),
-    section('sp-ueb', 'Übersicht ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { closedSummary: () => 'aufklappen, um die Maßnahme zu wechseln', tools }),
+    section('sp-ueb', 'Maßnahmen ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { closedSummary: () => 'aufklappen, um die Maßnahme zu wechseln', tools }),
     section('sp-m', h('span', { class: 'sp-mname', style: { color: inkC(x.color) } }, x.m.name || '(ohne Namen)'),
       () => ({ body: h('div', { class: 'sp-kpi' + (x.allg ? ' allg' : '') }, spTiles(x, s), spCharts(x, by.get(mid))) }),
       { closedSummary: () => s.n ? eur0(s.sum) + ' aus ' + spCount(s.n) : 'noch keine Spenden zugeordnet' }),

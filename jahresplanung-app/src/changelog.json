@@ -1,7 +1,21 @@
 [
   {
-    "version": "0.12.8",
+    "version": "0.13",
     "date": "",
+    "items": [
+      "Neuer Aufbau nach den drei Aufgaben: Reiter „Jahresplanung“ (planen), „Detailpläne“ (durchführen) und „Auswertung“ (auswerten)",
+      "Jahresplanung: unter den Maßnahmen die Zeitleiste (Gantt, zum Ausklappen), darunter der Kalender und „Was steht an?“ – der Reiter „Zeitleiste“ entfällt",
+      "Zeitleiste: wer die Seite mit dem Mausrad blättert, blättert über die Zeitleiste hinweg weiter; gezoomt wird nach einer kurzen Pause (Strg+Mausrad zoomt immer)",
+      "Urlaub & Feiertage: über ⋯ → „Urlaub & Feiertage …“ und in den Einstellungen; ⋯ → „Urlaub / Abwesenheit eintragen …“ öffnet direkt das Eintragen",
+      "Programm-Update direkt aus dem ZIP-Paket – kein Entpacken mehr: im Dialog wählen, ins Fenster ziehen oder im Mailing-Ordner speichern (die App meldet das Paket dann selbst und entfernt es nach dem Einspielen)",
+      "Spenden zuordnen: was von Hand in „Prüfen“ liegt, bleibt dort auch beim Wechsel der Maßnahme und wird der gerade gewählten zugeordnet",
+      "„Offen“ und „Zugeordnet“: Knopf „Alle markieren“ / „Markierung aufheben“",
+      "Auswertung: die Tabelle heißt „Maßnahmen 2027“; ein leerer Hinweis zeigt „–“ wie in der Jahresplanung"
+    ]
+  },
+  {
+    "version": "0.12.8",
+    "date": "2026-10-05T09:10",
     "items": [
       "Regeln und Suche verstehen jetzt Suchausdrücke: * als Platzhalter (z. B. *bericht findet auch „Jaresbericht“, Jahres* alles, was so beginnt), ? für genau ein Zeichen, ~Wort für kleine Tippfehler, „A + B“ für beides, -Wort zum Ausschließen",
       "Kleine Hilfe zu den Suchausdrücken: am ⓘ neben „Regel“ sofort, über dem Schlagwort- und dem Suchfeld nach etwa 2 Sekunden Verweilen",

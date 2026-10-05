@@ -60,7 +60,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.mouse.move(5, 500);
 
   // ---------- Zeitleiste
-  await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(200);
   ok(!(await p.evaluate(() => /Starts je Woche/.test(document.body.innerText))), '„Starts je Woche“ entfernt');
   const cur = await p.evaluate(() => getComputedStyle(document.querySelector('.tl-lab.clickable')).cursor);
   ok(cur === 'pointer', 'Zeiger über Maßnahmen-Namen: ' + cur);
@@ -208,7 +208,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.evaluate(() => undo());
 
   // ---------- Urlaub
-  await p.click('nav.tabs >> text=Urlaub'); await p.waitForTimeout(200);
+  await p.evaluate(() => openUrlaub()); await p.waitForTimeout(200);
   const nv0 = await p.evaluate(() => D.urlaube.length);
   await p.click('.addbtn:has-text("neuen Urlaub")'); await p.waitForTimeout(150);
   await p.selectOption('.vd-wer', 'Martin');

@@ -44,7 +44,7 @@ const URL = T.URL;
   await p.mouse.move(cb.x + 5, cb.y + 5); await p.mouse.down(); await p.mouse.move(cb.x + 60, cb.y + 5, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(100);
   log('Toast:', await p.$$eval('.toast', e => e.map(x => x.textContent).slice(-1)[0]));
   // Zeitleiste: Monat anklicken, dann schieben
-  await p.click('nav.tabs >> text=Zeitleiste'); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); document.querySelector('[data-sec="tl"]').scrollIntoView(); }); await p.waitForTimeout(200);
   await p.screenshot({ path: 'r2_zeit.png' });
   const mz = await p.$('.tl-months .mz[data-mz="' + (await p.evaluate(() => dn('2027-06-01'))) + '"]');
   await mz.click(); await p.waitForTimeout(250);

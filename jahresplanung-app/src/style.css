@@ -861,6 +861,11 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .sp-help-lead { margin-bottom: 6px; }
 #tip:has(.sp-help) { max-width: 460px; }
 
+/* 0.13 */
+.banners .banner.upd { background: var(--runbg); border-bottom-color: var(--line2); }
+.view-head .backbtn { margin-right: -6px; }
+.sp-cf .sp-mark { color: var(--ink2); }
+
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body:not(.printdoc-mode) #app { padding: 9mm 10mm; }

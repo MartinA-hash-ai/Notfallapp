@@ -52,7 +52,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(Object.keys(re.spenden.zu).length === 2 && re.massnahmen.find(m => m.id === 'm5').pal === '2027-09-17', 'A: gespeichert – nach dem Neuladen bleibt es so (2 Zuordnungen, PAL 17.09.)');
 
   // ---- B: neue Datei, während ein anderer Reiter offen ist → beim Wechsel auf „Spenden“ eingelesen
-  await p.evaluate(() => { UI.view = 'zeit'; renderNow(); }); await p.waitForTimeout(200);
+  await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); }); await p.waitForTimeout(200);
   await writeText(p, DIR + 'neu.csv', csv([line('01.10.2027', '77', 'DE00100000000000000099', 'Neu Eingang', 'JB neu')]));
   await p.click('nav.tabs >> text=Auswertung'); await p.waitForTimeout(500);
   ok(await p.evaluate(() => SP.rows.some(r => r.name === 'Neu Eingang')), 'B: Wechsel auf den Reiter liest die neue Datei sofort ein');
