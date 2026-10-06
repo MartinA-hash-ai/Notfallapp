@@ -64,7 +64,7 @@ const numOrNull = v => v === '' || v == null ? null : Math.round(+v);
 function addMassnahme(y) {
   const id = uid();
   commit(d => d.massnahmen.push({ id, name: 'Neue Maßnahme', farbe: nextColor(y), verantwortlich: '', auflage: null, pal: null, palStatus: 'vorläufig',
-    vorlauf: Object.fromEntries(d.settings.bereiche.filter(p => isNum(p.vorlauf)).map(p => [p.key, p.vorlauf])), ende: {}, art: '', hinweis: '', plan: null }), 'Maßnahme angelegt – bitte PAL eintragen');
+    vorlauf: {}, ende: {}, art: '', hinweis: '', plan: null }), 'Maßnahme angelegt – bitte PAL eintragen');   // Starts der Bereiche trägt man selbst ein (oder sie kommen aus dem Detailplan)
   UI.flash = 'm:' + id; UI.focusFk = 'm:' + id + ':name';
 }
 async function deleteMassnahme(id) {

@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.13.5",
+    "version": "0.13.6",
     "date": "",
+    "items": [
+      "Neue Maßnahme: wer nur den PAL einträgt, bekommt keine Starts mehr für Selektion, Inhalt und Produktion – die trägt man selbst ein (oder sie kommen aus dem Detailplan)",
+      "Detailpläne: „+ Detailplan anlegen“ ist ein roter Knopf"
+    ]
+  },
+  {
+    "version": "0.13.5",
+    "date": "2026-10-06T08:48",
     "items": [
       "Neu: ⋯ → „Daten zurücksetzen …“ – wahlweise alle Spenden-Zuordnungen (auch „Prüfen“ und allgemeine Spenden), die Schlagwort-Regeln, die Exportdateien der Spendeneingänge und die Maßnahmen eines Jahres entfernen; Einstellungen, Personen, Urlaube und Feiertage bleiben; vorher wird automatisch eine Datensicherung heruntergeladen, Strg+Z holt die Planungsdaten zurück",
       "„+ Buchung hinzufügen“: der Export landet im Ordner „Spendeneingänge JJJJ“ des Jahres, aus dem die Buchungen stammen (bisher im zuerst gefundenen Ordner)",

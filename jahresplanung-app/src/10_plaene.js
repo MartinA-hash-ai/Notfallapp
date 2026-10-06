@@ -370,7 +370,7 @@ VIEW_FN.plaene = main => {
     withPlan.map(x => h('button', { class: 'ptab' + (x.id === UI.planSel ? ' on' : ''), style: { '--c': x.color }, onclick: () => { UI.planSel = x.id; renderNow(); } },
       h('span', { class: 'dot', style: { background: x.color } }), x.m.name, h('span', { class: 'muted' }, ' ' + (x.pal != null ? fmtS(x.pal) + ymd(x.pal)[0] : '')))),
     cand.length ? h('span', { class: 'pnew' }, h('select', { onchange: e => { newFor = e.target.value; } }, cand.map(x => h('option', { value: x.id }, x.m.name))),
-      h('button', { onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
+      h('button', { class: 'primary', onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
     h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);

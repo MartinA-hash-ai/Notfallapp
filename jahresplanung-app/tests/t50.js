@@ -1,5 +1,6 @@
 // 0.13.5: „Daten zurücksetzen …“ (Spenden-Zuordnungen, Exportdateien, Maßnahmen eines Jahres – mit Datensicherung);
-// neue Exporte landen im Ordner „Spendeneingänge JJJJ“ des Jahres, aus dem die Buchungen stammen
+// neue Exporte landen im Ordner „Spendeneingänge JJJJ“ des Jahres, aus dem die Buchungen stammen;
+// 0.13.6: neue Maßnahme mit nur einem PAL bekommt keine Starts; „+ Detailplan anlegen“ rot
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 let n = 0;
@@ -55,5 +56,17 @@ const files = p => p.evaluate(() => Object.keys(__fs.files).filter(k => /Spenden
   // ---- D: Strg+Z holt die Planungsdaten zurück (Dateien nicht)
   await p.evaluate(() => undo()); await p.waitForTimeout(200);
   ok(await p.evaluate(() => Object.keys(D.spenden.zu).length === 2 && D.massnahmen.some(m => m.name === 'Test 2026 A')), 'D: Strg+Z macht das Zurücksetzen der Daten rückgängig');
+  // ---- E: neue Maßnahme – nur PAL, keine automatischen Starts (Selektion, Inhalt, Produktion)
+  await p.evaluate(() => { UI.year = 2027; UI.view = 'jahr'; UI.secOpen.mass = true; renderNow(); }); await p.waitForTimeout(150);
+  await p.click('button:has-text("+ Maßnahme")'); await p.waitForTimeout(200);
+  const nid = await p.evaluate(() => D.massnahmen[D.massnahmen.length - 1].id);
+  await p.fill('[data-fk="m:' + nid + ':pal"]', '2027-05-14'); await p.$eval('[data-fk="m:' + nid + ':pal"]', e => e.blur()); await p.waitForTimeout(200);
+  const e0 = await p.evaluate(id => { const x = C.byId.get(id); return [ds(x.pal), JSON.stringify(x.m.vorlauf), Object.keys(x.st).length, [...document.querySelectorAll('.mtable tr[data-m="' + id + '"] td.ph input[type=date]')].map(i => i.value).join('|')]; }, nid);
+  ok(e0[0] === '2027-05-14' && e0[1] === '{}' && e0[2] === 0 && !/\d/.test(e0[3]), 'E: neue Maßnahme mit PAL 14.05.2027 – keine Starts eingetragen (' + e0[1] + ')');
+  await p.fill('.mtable tr[data-m="' + nid + '"] td.ph input[type=date] >> nth=0', '2027-03-01'); await p.press('.mtable tr[data-m="' + nid + '"] td.ph input[type=date] >> nth=0', 'Enter'); await p.waitForTimeout(200);
+  ok(await p.evaluate(id => ds(C.byId.get(id).st.S) === '2027-03-01' && C.byId.get(id).st.I == null, nid), 'E: Selektion von Hand eingetragen – Inhalt bleibt leer');
+  // ---- F: „+ Detailplan anlegen“ ist rot
+  await p.evaluate(() => { UI.view = 'plaene'; renderNow(); }); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => { const b = [...document.querySelectorAll('.ptabs button')].find(x => /Detailplan anlegen/.test(x.textContent)); return b && b.classList.contains('primary'); }), 'F: „+ Detailplan anlegen“ als roter Knopf');
   await finish(b, pages);
 })();
