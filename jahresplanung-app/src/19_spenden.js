@@ -225,17 +225,22 @@ async function spAddFiles(files) {
   if (!SP.at) await spScan();                                    // Vergleich braucht den bisherigen Stand
   const known = new Set(SP.byKey.keys()), oldFiles = (SP.files || []).filter(e => !e.err && e.recs && e.recs.length).map(e => ({ name: e.name, span: spSpan(e.recs) })), report = [];
   try {
-    const dirs = await spDirs(), want = 'Spendeneingänge ' + UI.year;
-    const dir = (dirs.find(d => d.name === want) || dirs.sort((a, b) => b.name.localeCompare(a.name))[0] || {}).h || await ST.htmlDir.getDirectoryHandle(want, { create: true });
+    const dirs = await spDirs();
+    const dirFor = async y => {                                   // Ordner „Spendeneingänge JJJJ“ des Jahres, aus dem die Buchungen stammen
+      const want = 'Spendeneingänge ' + y, ex = dirs.find(d => d.name === want); if (ex) return ex.h;
+      const hd = await ST.htmlDir.getDirectoryHandle(want, { create: true }); dirs.push({ h: hd, name: want, path: want }); return hd;
+    };
     for (const f of ok) {
       const buf = new Uint8Array(await f.arrayBuffer());
+      let parsed = null; try { parsed = await spReadFile(f.name, buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)); } catch (e) { parsed = { err: (e && e.message) || String(e) }; }
+      const ys = new Map(); for (const r of (parsed && parsed.recs) || []) { const y = ymd(r.d)[0]; ys.set(y, (ys.get(y) || 0) + 1); }
+      const dir = await dirFor(ys.size ? [...ys].sort((a, b) => b[1] - a[1])[0][0] : UI.year);
       let name = f.name, i = 1, dupOf = null;
       for (;;) {                                                  // gleicher Name mit anderem Inhalt: nicht überschreiben, sondern „(2)“ anhängen
         let ex = null; try { ex = await (await dir.getFileHandle(name)).getFile(); } catch (e) { break; }
         if (ex.size === buf.length && crc32(new Uint8Array(await ex.arrayBuffer())) === crc32(buf)) { dupOf = name; name = null; break; }
         name = f.name.replace(/(\.[^.]+)$/, ' (' + (++i) + ')$1');
       }
-      let parsed = null; try { parsed = await spReadFile(f.name, buf.buffer.slice(buf.byteOffset, buf.byteOffset + buf.byteLength)); } catch (e) { parsed = { err: (e && e.message) || String(e) }; }
       report.push({ name: f.name, saved: name, dupOf, parsed });
       if (!name) continue;
       const w = await (await dir.getFileHandle(name, { create: true })).createWritable(); await w.write(buf); await w.close();

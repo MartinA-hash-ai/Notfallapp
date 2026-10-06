@@ -97,11 +97,53 @@ function topBar() {
         [(UI.autoSave === false ? '☐' : '☑') + ' Automatisch speichern', () => { UI.autoSave = UI.autoSave === false; saveUI(); if (UI.autoSave && isDirty()) scheduleAutosave(); renderNow(); toast('Automatisch speichern ' + (UI.autoSave ? 'an' : 'aus')); }],
         ['Speicherort (Mailing-Ordner) neu wählen …', async () => { ST.conn = 'none'; ST.dir = null; await connectFolder(); renderNow(); }], null,
         ['Daten aus anderer Datei übernehmen …', openFile], ['Kopie speichern unter …', saveCopy], ['Daten als JSON sichern', exportJSON], null,
-        ['Änderungsprotokoll …', logDialog], ['Daten prüfen …', checkDialog], null,
+        ['Änderungsprotokoll …', logDialog], ['Daten prüfen …', checkDialog], ['Daten zurücksetzen …', resetDialog], null,
         [(DARK ? '☀ Helles Design' : '☾ Dunkles Design'), () => setTheme(DARK ? 'light' : 'dark')],
         ['Programm-Update einspielen …', updateProgram], null,
         ['Urlaub & Feiertage …', openUrlaub], ['Urlaub / Abwesenheit eintragen …', addVac], null,
         ['Einstellungen …', settingsDialog], ['Hilfe', helpDialog]], 'right')));
+}
+// Daten zurücksetzen: Spenden-Zuordnungen, Exportdateien, Maßnahmen eines Jahres. Einstellungen bleiben; vorher Datensicherung.
+async function resetDialog() {
+  if (BROKEN) { toast('Erst die beschädigten Daten wiederherstellen (Hinweis oben).', 'err'); return; }
+  const S = D.spenden, nZu = Object.keys(S.zu).length, nVor = Object.keys(S.vor).length, nAllg = Object.keys(S.allg || {}).length;
+  const files = [];
+  if (FSA && ST.conn === 'ok') {
+    const walk = async (dh, depth) => { for await (const [n, e] of dh.entries()) { if (e.kind === 'file' && SP_FILE_RE.test(n) && !/^(~\$|\.)/.test(n)) files.push({ dir: dh, name: n, label: dh.name + '/' + n }); else if (e.kind === 'directory' && depth < 1) await walk(e, depth + 1); } };
+    try { for (const d of await spDirs()) await walk(d.h, 0); } catch (e) { console.warn(e); }
+    files.sort((a, b) => a.label.localeCompare(b.label, 'de'));
+  }
+  const years = [...new Set(C.ms.filter(x => x.pal != null).map(x => ymd(x.pal)[0]))].sort();
+  const ofYear = y => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === y);
+  const opt = { sp: nZu + nVor + nAllg > 0, rules: false, files: false, ms: false, year: years.includes(UI.year) ? UI.year : years[years.length - 1] };
+  const msInfo = h('div', { class: 'muted small rs-ms' });
+  const showMs = () => { const l = ofYear(opt.year); setKids(msInfo, l.length ? l.length + ' Maßnahme' + (l.length === 1 ? '' : 'n') + ': ' + l.map(x => x.m.name || '(ohne Namen)').join(', ') + (l.some(x => x.m.plan) ? ' – samt Detailplänen' : '') : 'keine Maßnahme in diesem Jahr'); };
+  const cb = (k, label, sub, dis) => h('label', { class: 'check rs-opt' + (dis ? ' muted' : '') }, h('input', { type: 'checkbox', checked: opt[k], disabled: !!dis, onchange: e => { opt[k] = e.target.checked; } }), h('span', null, h('b', null, label), sub ? h('div', { class: 'muted small' }, sub) : null));
+  showMs();
+  const body = h('div', { class: 'form rs' },
+    h('p', null, 'Vorher lädt die App automatisch eine Datensicherung (.json) herunter. Bereiche, Personen, Urlaube, Feiertage und Einstellungen bleiben. Das betrifft die gemeinsame Datei – also alle.'),
+    cb('sp', 'Alle Spenden-Zuordnungen entfernen', nZu + ' zugeordnet, ' + nVor + ' von Hand in „Prüfen“' + (nAllg ? ', Regeln der allgemeinen Spenden (' + nAllg + ' Jahr' + (nAllg === 1 ? '' : 'e') + ')' : '') + ' – in allen Jahren; Auflage und Kosten der Maßnahmen bleiben', !(nZu + nVor + nAllg)),
+    cb('rules', 'Auch die Schlagwort-Regeln der Maßnahmen entfernen', null, !D.massnahmen.some(m => m.regel)),
+    cb('files', 'Exportdateien der Spendeneingänge löschen', files.length ? files.length + ' Datei' + (files.length === 1 ? '' : 'en') + ': ' + files.map(f => f.label).join(', ') + ' – sie landen im Papierkorb von OneDrive/SharePoint. Ohne das tauchen die Spenden wieder unter „Offen“ auf.' : 'keine Dateien gefunden' + (ST.conn !== 'ok' ? ' (Mailing-Ordner nicht verbunden)' : ''), !files.length),
+    h('div', { class: 'rs-yr' }, cb('ms', 'Maßnahmen löschen mit PAL im Jahr', null, !years.length),
+      years.length ? h('select', { onchange: e => { opt.year = +e.target.value; showMs(); } }, years.map(y => h('option', { value: y, selected: y === opt.year }, y))) : null),
+    msInfo);
+  if (!await modal('Daten zurücksetzen', body, [['Abbrechen', false], ['Zurücksetzen …', true, 'danger']])) return;
+  const del = opt.ms ? ofYear(opt.year).map(x => x.id) : [];
+  const what = [opt.sp ? 'alle Spenden-Zuordnungen' : '', opt.rules ? 'die Schlagwort-Regeln' : '', opt.files ? files.length + ' Exportdatei(en)' : '', del.length ? del.length + ' Maßnahme(n) aus ' + opt.year : ''].filter(Boolean);
+  if (!what.length) { toast('Nichts ausgewählt.'); return; }
+  if (!await confirmBox('Wirklich zurücksetzen?', 'Entfernt werden: ' + what.join(', ') + '. Eine Datensicherung wird vorher heruntergeladen' + (opt.files ? '; gelöschte Dateien liegen im Papierkorb von OneDrive/SharePoint' : '') + '.', 'Ja, zurücksetzen')) return;
+  exportJSON();
+  commit(d => {
+    if (opt.sp) { d.spenden.zu = {}; d.spenden.vor = {}; d.spenden.nein = {}; d.spenden.allg = {}; }
+    if (opt.rules) d.massnahmen.forEach(m => { delete m.regel; });
+    if (del.length) { d.massnahmen = d.massnahmen.filter(m => !del.includes(m.id)); del.forEach(id => spForget(d, id)); }
+  }, 'Zurückgesetzt: ' + what.join(', '));
+  let gone = 0;
+  if (opt.files) for (const f of files) { try { await f.dir.removeEntry(f.name); gone++; } catch (e) { console.warn(e); } }
+  if (opt.files) { SP.cache.clear(); SP.at = null; await spScan(); }
+  renderNow();
+  toast('Zurückgesetzt: ' + what.join(', ') + (opt.files && gone < files.length ? ' – ' + (files.length - gone) + ' Datei(en) ließen sich nicht löschen' : '') + '.', gone < files.length && opt.files ? 'warn' : 'ok');
 }
 // Urlaub & Feiertage: eigene Seite ohne Reiter, „← zurück“ führt zur vorherigen Ansicht
 function openUrlaub() {

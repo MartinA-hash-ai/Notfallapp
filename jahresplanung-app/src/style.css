@@ -901,6 +901,13 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .sp-addlist td { padding: 4px 8px; height: 18px; white-space: nowrap; }
 .sp-addlist td.sp-z { white-space: normal; width: 100%; }
 
+/* 0.13.5: Daten zurücksetzen */
+.rs .rs-opt { display: flex; align-items: flex-start; gap: 8px; margin: 8px 0; }
+.rs .rs-opt input { margin-top: 3px; }
+.rs .rs-yr { display: flex; align-items: center; gap: 8px; }
+.rs .rs-yr .rs-opt { margin-right: 0; }
+.rs .rs-ms { margin: -4px 0 0 26px; }
+
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body:not(.printdoc-mode) #app { padding: 9mm 10mm; }
