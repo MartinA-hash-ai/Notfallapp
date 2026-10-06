@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.13.6",
+    "version": "0.13.7",
     "date": "",
+    "items": [
+      "Detailplan: die Dauer der Arbeitsschritte zählt in Werktagen (Mo–Fr ohne Feiertage und eigene freie Tage) – links mit „WT“ angezeigt und so eingegeben; Wochenenden und Feiertage verlängern einen Schritt automatisch",
+      "Ein Schritt beginnt immer an einem Werktag; Verschieben behält die Dauer in Werktagen",
+      "„Detailplan anlegen“: die Starts aus „Werktage bis PAL“ werden in Werktagen eingeplant; neue Aufgaben dauern 5 Werktage",
+      "Bestehende Pläne werden beim ersten Öffnen umgerechnet – die Termine bleiben gleich, nur Schritte, die bisher an einem Samstag oder Sonntag begannen, rücken auf den Werktag"
+    ]
+  },
+  {
+    "version": "0.13.6",
+    "date": "2026-10-06T10:38",
     "items": [
       "Neue Maßnahme: wer nur den PAL einträgt, bekommt keine Starts mehr für Selektion, Inhalt und Produktion – die trägt man selbst ein (oder sie kommen aus dem Detailplan)",
       "Detailpläne: „+ Detailplan anlegen“ ist ein roter Knopf"

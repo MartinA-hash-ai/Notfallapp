@@ -200,7 +200,7 @@ function planChange(p, q) {
   if (!p) return 'Detailplan angelegt';
   if (!q) return 'Detailplan entfernt';
   const A = new Map(p.steps.map(s => [s.id, s])), B = new Map(q.steps.map(s => [s.id, s])), parts = [];
-  const what = (o, s, k) => k === 'dauer' ? 'Dauer ' + (+o.dauer || 0) + ' → ' + (+s.dauer || 0) + ' Tage' : k === 'wer' ? 'Person ' + (o.wer || '–') + ' → ' + (s.wer || '–')
+  const what = (o, s, k) => k === 'dauer' ? 'Dauer ' + (+o.dauer || 0) + ' → ' + (+s.dauer || 0) + ' WT' : k === 'wer' ? 'Person ' + (o.wer || '–') + ' → ' + (s.wer || '–')
     : k === 'fortschritt' ? (+s.fortschritt >= 100 ? 'erledigt' : 'Fortschritt ' + (+s.fortschritt || 0) + ' %') : k === 'bereich' ? 'Bereich ' + (s.bereich ? s.bereich + ' ' + phName(s.bereich) : '–')
     : k === 'anker' ? 'Termin verschoben' : k === 'name' ? 'umbenannt (vorher „' + o.name + '“)' : k === 'typ' ? 'jetzt ' + (STEP_TYPES[s.typ] || s.typ) : k === 'kommentar' ? 'Kommentar geändert' : k === 'fix' ? (s.fix ? 'Dauer festgelegt' : 'Dauer freigegeben') : k;
   for (const [id, s] of B) {

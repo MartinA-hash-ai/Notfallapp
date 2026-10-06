@@ -285,7 +285,7 @@ function viewWorkbookLight(opts = {}) {
 
   // 5. Detailpläne
   {
-    const rows = [['Maßnahme', 'Abschnitt', 'Arbeitsschritt', 'Typ', 'Zugeordnet', 'Kommentar', 'Start', 'Dauer (Tage)', 'Ende'].map(t => ({ v: t, st: XS.head }))];
+    const rows = [['Maßnahme', 'Abschnitt', 'Arbeitsschritt', 'Typ', 'Zugeordnet', 'Kommentar', 'Start', 'Dauer (WT)', 'Ende'].map(t => ({ v: t, st: XS.head }))];
     for (const x of ms) if (x.pc) {
       let grp = '';
       for (const s of x.m.plan.steps) {

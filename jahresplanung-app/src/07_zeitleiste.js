@@ -104,7 +104,7 @@ function timelineSection(opts = {}) {
       if (s.typ === 'gruppe') { body.append(h('div', { class: 'tl-row sub grp' }, h('div', { class: 'tl-lab' }, h('span', { class: 'nm' }, s.name)), h('div', { class: 'tl-track', style: { width: W + 'px' } }))); continue; }
       const t = h('div', { class: 'tl-track', style: { width: W + 'px' } });
       if (r && r.start != null) {
-        const tip = () => h('div', null, h('b', null, s.name), h('div', null, s.typ === 'aufgabe' ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' (' + s.dauer + ' Tage)' : fmtW(r.end)), s.wer ? h('div', { class: 'muted' }, 'Zugeordnet: ' + s.wer) : null);
+        const tip = () => h('div', null, h('b', null, s.name), h('div', null, s.typ === 'aufgabe' ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' (' + s.dauer + ' WT)' : fmtW(r.end)), s.wer ? h('div', { class: 'muted' }, 'Zugeordnet: ' + s.wer) : null);
         const ra = clamp(r.start, x0 - 2, x1 + 2), rb = clamp(r.end, x0 - 2, x1 + 2);
         if (s.typ === 'aufgabe') t.append(h('div', { class: 'sbar', tip, style: { left: X(ra) + pxd / 2 + 'px', width: Math.max(2, X(rb) - X(ra)) + 'px', background: pastel(x.color), borderColor: x.color } },
           h('span', { style: { width: clamp(+s.fortschritt || 0, 0, 100) + '%', background: x.color } })));

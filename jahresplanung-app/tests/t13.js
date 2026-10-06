@@ -40,7 +40,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
     const plan = C.warnings.find(w => /Sommermailing: Start Selektion/.test(w.text));
     return [a && a.fix && ds(a.fix.to), plan && plan.fix && ds(plan.fix.to), C.warnings.filter(w => w.fix).length];
   });
-  ok(w1[0] === '2027-05-05' && w1[1] === '2027-04-02', 'Vorziehen bei Feiertag (' + w1[0] + ') und bei Detailplan (' + w1[1] + '), ' + w1[2] + ' Warnungen mit Knopf');
+  ok(w1[0] === '2027-05-05' && w1[1] == null, 'Vorziehen bei Feiertag (' + w1[0] + '); im Detailplan beginnt seit 0.13.7 (Werktage) kein Bereich mehr am Wochenende (' + w1[1] + '), ' + w1[2] + ' Warnungen mit Knopf');
   const w2 = await p.evaluate(() => { const list = C.warnings.filter(w => w.fix && w.lvl === 'warn'); commit(d => { list.forEach(w => applyFix(d, w)); }); derive(); const left = C.warnings.filter(w => w.fix); const x = C.ms.find(x => x.m.name === 'Sommermailing'); return [left.length, left.map(w => w.text).join(' | '), ds(x.s), wd(x.s)]; });
   ok(w2[0] === 0 && w2[3] < 5, 'Alle vorgezogen: übrig ' + w2[0] + ' ' + w2[1] + ' · Sommermailing S jetzt ' + w2[2]);
   const w3 = await p.evaluate(() => { const x = C.ms.find(x => !x.m.plan && x.pal != null); commit(d => { d.massnahmen.find(q => q.id === x.id).pal = '2027-10-03'; }); derive(); const w = C.warnings.find(w => w.mid === x.id && /PAL/.test(w.text)); const r = [w && w.text, w && w.fix && ds(w.fix.to)]; undo(); return r; });
@@ -89,7 +89,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const post = (await rowV()).slice(0, 2);
   await p.fill(`[data-fk="st:${nfk}:name"]`, 'Wochenschritt'); await p.press(`[data-fk="st:${nfk}:name"]`, 'Enter'); await p.waitForTimeout(150);
   const nsr = await p.evaluate(() => { const x = C.byId.get(UI.planSel), s = x.m.plan.steps.find(s => s.name === 'Wochenschritt'), r = x.pc.map.get(s.id); return [ds(r.start), ds(r.end), s.wer]; });
-  ok(pre[1] && (Math.round((Date.parse(pre[1]) - Date.parse(pre[0])) / 864e5) === 7) && post[1] === '2027-05-17' && nsr[0] === '2027-05-10' && nsr[1] === '2027-05-17' && nsr[2] === 'Eva',
+  const wt5 = await p.evaluate(([a, b]) => wtSpan(dn(a), dn(b)), pre);
+  ok(pre[1] && wt5 === 5 && post[1] === '2027-05-15' && nsr[0] === '2027-05-10' && nsr[1] === '2027-05-15' && nsr[2] === 'Eva',
     'Neuer Schritt: Vorbelegung ' + pre.join('/') + ', Beginn geändert → ' + post.join('–') + ', angelegt ' + nsr.join(' '));
   // Schritt ohne Termin: nur Ende setzen → eine Woche
   const und = await p.evaluate(() => { const x = C.ms.find(x => x.m.plan && x.m.plan.steps.some(s => s.typ === 'aufgabe' && x.pc.map.get(s.id).start == null)); UI.planSel = x.id; renderNow(); return x.m.plan.steps.find(s => s.typ === 'aufgabe' && x.pc.map.get(s.id).start == null).id; });
@@ -108,7 +109,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await md[1].fill(tS); await md[1].dispatchEvent('input'); await md[2].fill(tI); await md[2].dispatchEvent('input');
   await p.click('.modal .tpl-simple'); await p.waitForTimeout(250);
   const lpr = await p.evaluate(id => { const x = C.byId.get(id); return [ds(x.s), ds(x.i), x.m.plan.steps.length, x.m.plan.steps.map(s => s.name).join(',')]; }, lp);
-  ok(lpr[0] === tS && lpr[1] === tI, 'Vorlage Bereiche übernimmt S/I: ' + JSON.stringify(lpr));
+  const wS = await p.evaluate(v => ds(nextWorkday(dn(v))), tS), wI = await p.evaluate(v => ds(nextWorkday(dn(v))), tI);
+  ok(lpr[0] === wS && lpr[1] === wI, 'Vorlage Bereiche übernimmt S/I (am Wochenende: der Montag danach): ' + JSON.stringify(lpr));
   await p.screenshot({ path: 'r7_plan_leer.png', clip: { x: 0, y: 0, width: 1600, height: 460 } });
 
   // ---------- Urlaub & Feiertage

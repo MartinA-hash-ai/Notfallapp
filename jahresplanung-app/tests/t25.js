@@ -10,7 +10,7 @@ const { chromium, T, ORIG, ok, open, finish, fs } = require('./lib');
     const g = sm.m.plan.steps.filter(s => s.typ === 'gruppe').map(s => s.name + (s.bereich ? ':' + s.bereich : ''));
     return [fmtS(sm.st.S), fmtS(sm.st.I), sm.st.D != null, g.slice(0, 3).join(','), fmtS(pu.st.S), fmtS(pu.st.I), JSON.stringify(pu.m.vorlauf), 'vorlaufS' in pu.m, PH().map(q => q.key).join('')];
   });
-  ok(r[0] === '04.04.' && r[1] === '22.04.' && r[4] === '06.02.' && r[5] === '24.02.', 'A: S/I nach der Umstellung unverändert (Sommermailing ' + r[0] + '/' + r[1] + ', Projekt-Update 1 ' + r[4] + '/' + r[5] + ')');
+  ok(r[0] === '05.04.' && r[1] === '22.04.' && r[4] === '06.02.' && r[5] === '24.02.', 'A: S/I nach der Umstellung unverändert – ab 0.13.7 in Werktagen: S rückt vom Sonntag 04.04. auf Montag (Sommermailing ' + r[0] + '/' + r[1] + ', Projekt-Update 1 ' + r[4] + '/' + r[5] + ')');
   ok(r[2] && r[3] === 'Selektion:S,Inhalt:I,Produktion:D' && !r[7] && r[8] === 'SID', 'A: Abschnitte ' + r[3] + ', Bereiche ' + r[8] + ', Vorlauf ' + r[6]);
 
   // ---- B: Produktion D bei einer Maßnahme ohne Plan eintragen → Kalender, Zeitleiste, Tabelle

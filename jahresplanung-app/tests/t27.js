@@ -106,7 +106,8 @@ const path = require('path');
     await p.click('.modal .tpl-complex'); await p.waitForTimeout(250);
     const k = await p.evaluate(id => { const x = C.byId.get(id), st = x.m.plan.steps, tpl = ensurePalStep(migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key))).steps;
       return [st.length === tpl.length, st.map(s => s.name).join() === tpl.map(s => s.name).join(), st.every(s => !s.wer), tpl.some(s => s.wer), ds(x.st.S), ds(x.st.I)]; }, id2);
-    ok(k[0] && k[1] && k[2] && k[3] && k[4] === pre[0] && k[5] === pre[1], 'D: Komplex → Aufbau wie Mailing-Vorlage, ohne Personen, Starts ' + k[4] + ' / ' + k[5]);
+    const wpre = await p.evaluate(a => a.map(v => ds(nextWorkday(dn(v)))), pre);   // ab 0.13.7: Start am Wochenende → der Werktag danach
+    ok(k[0] && k[1] && k[2] && k[3] && k[4] === wpre[0] && k[5] === wpre[1], 'D: Komplex → Aufbau wie Mailing-Vorlage, ohne Personen, Starts ' + k[4] + ' / ' + k[5]);
 
     // Kopie aus vorherigem Plan
     const id3 = await p.evaluate(() => C.ms.find(x => !x.m.plan && x.pal != null).id);

@@ -33,7 +33,8 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.mouse.up(); await p.waitForTimeout(250);
   const after = await p.evaluate(id => { const x = C.byId.get(id); return { pal: x.pal, ends: x.m.plan.steps.filter(s => s.typ !== 'gruppe').map(s => x.pc.map.get(s.id).end) }; }, sm);
   const dated = before.ends.map((e, i) => [e, after.ends[i]]).filter(([e]) => e != null);
-  ok(after.pal === before.pal + 3 && dated.every(([e, f]) => f === e + 3), 'C: PAL +3 Tage, alle ' + dated.length + ' Schritte mit Termin (auch der mit festem Datum) +3 Tage (' + (after.pal - before.pal) + ')');
+  // ab 0.13.7: Dauern in Werktagen – die Schritte wandern mit, landen aber auf Werktagen (daher +1 … +5 Tage)
+  ok(after.pal === before.pal + 3 && dated.every(([e, f]) => f - e >= 1 && f - e <= 5), 'C: PAL +3 Tage, alle ' + dated.length + ' Schritte mit Termin (auch der mit festem Datum) wandern mit (' + [...new Set(dated.map(([e, f]) => f - e))].join('/') + ')');
   await p.evaluate(() => undo()); await p.waitForTimeout(150);
   ok(await p.evaluate(([id, pal]) => C.byId.get(id).pal === pal, [sm, before.pal]), 'C: Strg+Z nimmt es zurück');
 

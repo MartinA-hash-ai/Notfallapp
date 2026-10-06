@@ -179,7 +179,14 @@ function normMarks(st) {
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
 const str = v => typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '';
 const dateStr = v => typeof v === 'string' && v ? v : null;
+// Feiertage/freie Tage beim Normalisieren aus den Daten, die gerade geladen werden (D ist dann evtl. noch leer)
+let HOLSRC = null;
 function normalize(d) {
+  const keepSrc = HOLSRC, keepCache = _holYear;
+  _holYear = new Map();
+  try { return normalizeData(d); } finally { HOLSRC = keepSrc; _holYear = keepCache; }
+}
+function normalizeData(d) {
   const e = emptyData();
   d = Object.assign(e, isObj(d) ? d : {});
   d.meta = Object.assign({ savedAt: null, savedBy: '' }, isObj(d.meta) ? d.meta : {});
@@ -195,6 +202,7 @@ function normalize(d) {
   d.log = Array.isArray(d.log) ? d.log.filter(isObj).slice(-LOG_MAX) : [];
   ['personen', 'massnahmen', 'urlaube', 'sondertage'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(isObj) : []; });
   if (!isObj(d.feiertage)) d.feiertage = {};
+  HOLSRC = d;
   d.personen = d.personen.filter(p => str(p.name).trim());
   d.personen.forEach(p => { p.name = str(p.name).trim(); if (typeof p.farbe !== 'string') p.farbe = '#888888'; });
   const ids = new Set(), freshId = v => { let id = str(v); if (!id || ids.has(id)) id = uid(); ids.add(id); return id; };
@@ -231,6 +239,7 @@ function normalize(d) {
         if (s.typ === 'gruppe') { if (s.bereich && !keys.includes(s.bereich)) delete s.bereich; } else delete s.bereich;
       });
       ensurePalStep(m.plan);
+      if (m.plan.wt !== true) planToWT(m); else m.plan.wt = true;   // Dauern in Werktagen (ab 0.13.7)
       unlinkSections(m);
       forwardLinks(m);
       m.plan.marks = isObj(m.plan.marks) ? m.plan.marks : {};
@@ -258,7 +267,7 @@ function normalize(d) {
 let _holYear = new Map();
 function holidays(y) {
   if (_holYear.has(y)) return _holYear.get(y);
-  const out = new Map(), ov = (D && D.feiertage) || {};
+  const src = HOLSRC || D, out = new Map(), ov = (src && src.feiertage) || {};
   for (const [n, t] of holidaysNRW(y)) {
     const o = ov[ds(n)] || {};
     if (o.off) continue;
@@ -271,7 +280,7 @@ function holName(n) {
   const y = ymd(n)[0];
   const f = holidays(y).get(n);
   if (f) return f;
-  const s = D.sondertage.find(x => dn(x.datum) === n);
+  const s = (((HOLSRC || D) || {}).sondertage || []).find(x => dn(x.datum) === n);
   return s ? (s.name || 'freier Tag') : null;
 }
 const isWorkday = n => wd(n) < 5 && !holName(n);
@@ -281,6 +290,24 @@ function prevPalDay(n) { let k = n; while ((wd(k) === 6 || holName(k)) && n - k 
 // Werktage (Mo–Fr ohne Feiertage) von n bis zum Tag vor dem PAL
 const workdaysBefore = (n, pal) => n == null || pal == null ? null : n < pal ? workdays(n, pal - 1) : -workdays(pal, n - 1);
 function workdays(a, b) { let c = 0; for (let n = a; n <= b; n++) if (isWorkday(n)) c++; return c; }
+// Dauer der Arbeitsschritte in Werktagen: Spanne [a, b) wie der Balken im Gantt (Beginn bis Tag vor dem Ende)
+const wtSpan = (a, b) => a != null && b != null && b > a ? workdays(a, b - 1) : 0;
+// Ende nach w Werktagen ab a (der Tag nach dem letzten Werktag) bzw. Beginn w Werktage vor e (immer ein Werktag)
+function addWT(a, w) { if (!(w > 0)) return a; let n = a, c = 0; while (c < w && n - a < 4000) { if (isWorkday(n)) c++; n++; } return n; }
+function subWT(e, w) { if (!(w > 0)) return e; let n = e, c = 0; while (c < w && e - n < 4000) { n--; if (isWorkday(n)) c++; } return n; }
+const nextWorkday = n => { let k = n; while (!isWorkday(k) && k - n < 60) k++; return k; };
+// Plan aus Versionen vor 0.13.7 (Dauer in Kalendertagen) auf Werktage umstellen – die Termine bleiben so weit wie möglich gleich
+function planToWT(m) {
+  if (!m.plan) return;
+  const pc = planCalc(m, true);
+  for (const s of m.plan.steps) {
+    if (s.typ !== 'aufgabe') continue;
+    const r = pc.map.get(s.id), d0 = Math.round(+s.dauer || 0);
+    const w = r && r.start != null && r.end != null && !r.err ? wtSpan(r.start, r.end) : Math.round(d0 * 5 / 7);
+    s.dauer = clamp(d0 >= 1 ? Math.max(1, w) : w, 0, MAX_DAUER);
+  }
+  m.plan.wt = true;
+}
 
 /* ---------- Personen */
 function personColor(name) {
@@ -306,9 +333,10 @@ function ensurePersons(d) {
 /* ---------- Detailplan: Termine je Schritt
    Ein Schritt hängt mit seinem Ende am PAL oder an einem festen Datum – oder (ab 0.10) mit seinem Beginn am Ende eines oder mehrerer
    Vorgänger im selben Abschnitt: Beginn = spätestes Ende der Vorgänger + Abstand ({ art: 'nach', refs: [...], offset }). */
-const MAX_DAUER = 730;                        // längste Dauer eines Arbeitsschritts in Tagen
+const MAX_DAUER = 730;                        // längste Dauer eines Arbeitsschritts (Werktage)
 const FAR = 1100;                             // Termine mehr als ~3 Jahre vom PAL entfernt: Tippfehler vermuten
-function planCalc(m) {
+// days = true: Dauer in Kalendertagen (Pläne vor 0.13.7); sonst Werktage – vorwärts beginnt ein Schritt am nächsten Werktag
+function planCalc(m, days = !(m.plan && m.plan.wt)) {
   const pal = dn(m.pal), steps = m.plan ? m.plan.steps : [];
   const byId = new Map(steps.map(s => [s.id, s]));
   const res = new Map(), busy = new Set();
@@ -335,7 +363,8 @@ function planCalc(m) {
       }
     }
     const dur = s.typ === 'aufgabe' ? clamp(Math.round(+s.dauer || 0), 0, MAX_DAUER) : 0;
-    const out = b != null ? { start: b, end: b + dur, err } : { start: e != null ? e - dur : null, end: e, err };
+    if (b != null && !days) b = nextWorkday(b);
+    const out = b != null ? { start: b, end: days ? b + dur : addWT(b, dur), err } : { start: e != null ? (days ? e - dur : subWT(e, dur)) : null, end: e, err };
     busy.delete(s.id);
     res.set(s.id, out);
     return out;

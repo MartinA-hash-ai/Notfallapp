@@ -125,10 +125,11 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(g1[0] === g0[1] && g1[1] === g0[0] && blockOk, 'Abschnitt als Block verschoben: ' + g0.slice(0, 2).join(',') + ' → ' + g1.slice(0, 2).join(','));
   await p.evaluate(() => { undo(); UI.planColl = {}; renderNow(); }); await p.waitForTimeout(100);
   // Balken verschieben
-  const bar = await p.evaluate(() => { const x = C.byId.get(UI.planSel); const s = x.m.plan.steps.find(s => s.typ === 'aufgabe' && x.pc.map.get(s.id).start != null && (+s.dauer) >= 3 && !Object.values(x.pc.ph).some(q => q.mark === s.id)); const r = x.pc.map.get(s.id); const el = document.querySelector('.pl-row[data-rid="' + s.id + '"]'); const idx = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')].indexOf(el); const b = document.querySelectorAll('.g-body > .g-row')[idx].querySelector('.g-bar'); b.scrollIntoView({ block: 'center', inline: 'center' }); const bb = b.getBoundingClientRect(); return { id: s.id, name: s.name, start: r.start, end: r.end, x: bb.x, y: bb.y + bb.height / 2, w: bb.width, pxd: UI._pl.pxd }; });
+  const bar = await p.evaluate(() => { const x = C.byId.get(UI.planSel); const s = x.m.plan.steps.find(s => s.typ === 'aufgabe' && x.pc.map.get(s.id).start != null && (+s.dauer) >= 3 && !Object.values(x.pc.ph).some(q => q.mark === s.id)); const r = x.pc.map.get(s.id); const el = document.querySelector('.pl-row[data-rid="' + s.id + '"]'); const idx = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')].indexOf(el); const b = document.querySelectorAll('.g-body > .g-row')[idx].querySelector('.g-bar'); b.scrollIntoView({ block: 'center', inline: 'center' }); const bb = b.getBoundingClientRect(); return { id: s.id, name: s.name, start: r.start, end: r.end, dur: +s.dauer, x: bb.x, y: bb.y + bb.height / 2, w: bb.width, pxd: UI._pl.pxd }; });
   await p.mouse.move(bar.x + bar.w / 2, bar.y); await p.mouse.down(); await p.mouse.move(bar.x + bar.w / 2 + bar.pxd * 3 + 1, bar.y, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(200);
-  let r = await p.evaluate(id => { const x = C.byId.get(UI.planSel); const r = x.pc.map.get(id); return [r.start, r.end]; }, bar.id);
-  ok(r[0] - bar.start === 3 && r[1] - bar.end === 3, '„' + bar.name + '“ um 3 Tage verschoben (' + (r[0] - bar.start) + '/' + (r[1] - bar.end) + ')');
+  let r = await p.evaluate(id => { const x = C.byId.get(UI.planSel); const r = x.pc.map.get(id); return [r.start, r.end, +x.m.plan.steps.find(s => s.id === id).dauer]; }, bar.id);
+  const mv = await p.evaluate(b => { const a = nextWorkday(b.start + 3); return [a, addWT(a, b.dur)]; }, bar);   // ab 0.13.7: Beginn auf dem Werktag, Dauer (WT) bleibt
+  ok(r[0] === mv[0] && r[1] === mv[1] && r[2] === bar.dur, '„' + bar.name + '“ um 3 Tage verschoben – Beginn auf dem nächsten Werktag, Dauer bleibt ' + r[2] + ' WT (' + (r[0] - bar.start) + '/' + (r[1] - bar.end) + ')');
   await p.evaluate(() => undo()); await p.waitForTimeout(100);
   // rechtes Ende ziehen
   const bar2 = await p.evaluate(id => { const x = C.byId.get(UI.planSel); const el = document.querySelector('.pl-row[data-rid="' + id + '"]'); const idx = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')].indexOf(el); const b = document.querySelectorAll('.g-body > .g-row')[idx].querySelector('.g-bar .gr').getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, bar.id);
@@ -140,7 +141,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const bar3 = await p.evaluate(id => { const el = document.querySelector('.pl-row[data-rid="' + id + '"]'); const idx = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')].indexOf(el); const b = document.querySelectorAll('.g-body > .g-row')[idx].querySelector('.g-bar .gl').getBoundingClientRect(); return [b.x + b.width / 2, b.y + b.height / 2]; }, bar.id);
   await p.mouse.move(bar3[0], bar3[1]); await p.mouse.down(); await p.mouse.move(bar3[0] - bar.pxd * 2 - 1, bar3[1], { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(200);
   r = await p.evaluate(id => { const x = C.byId.get(UI.planSel); const r = x.pc.map.get(id); return [r.start, r.end]; }, bar.id);
-  ok(bar.start - r[0] === 2 && r[1] === bar.end, 'linkes Ende −2 Tage (Start ' + (r[0] - bar.start) + ', Ende ' + (r[1] - bar.end) + ')');
+  const lw = await p.evaluate(b => nextWorkday(b.start - 2), bar);
+  ok(r[0] === lw && r[1] === bar.end, 'linkes Ende −2 Tage – Beginn auf dem Werktag (Start ' + (r[0] - bar.start) + ', Ende ' + (r[1] - bar.end) + ')');
   await p.evaluate(() => undo()); await p.waitForTimeout(100);
   // Mausrad + Zurücksetzen
   const pp0 = await p.evaluate(() => UI._pl.pxd);
@@ -167,7 +169,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const iIn = p.locator('[data-fk="pl:I"]');
   await iIn.fill(await p.evaluate(n => ds(n + 3), si0[1])); await iIn.press('Enter'); await p.waitForTimeout(250);
   const si2 = await p.evaluate(() => { const x = C.byId.get(UI.planSel); return [x.s, x.i, x.pal]; });
-  ok(si2[1] === si0[1] + 3 && si2[0] === si1[0] && si2[2] === si0[2], 'Start Inhalt +3 Tage, Selektion und PAL bleiben (' + (si2[0] - si1[0]) + '/' + (si2[1] - si0[1]) + ')');
+  const iw = await p.evaluate(n => nextWorkday(n + 3), si0[1]);
+  ok(si2[1] === iw && si2[0] === si1[0] && si2[2] === si0[2], 'Start Inhalt +3 Tage (auf den nächsten Werktag), Selektion und PAL bleiben (' + (si2[0] - si1[0]) + '/' + (si2[1] - si0[1]) + ')');
   await p.evaluate(() => { undo(); undo(); });
   // Neuer Arbeitsschritt
   const nStep0 = await p.evaluate(() => C.byId.get(UI.planSel).m.plan.steps.length);

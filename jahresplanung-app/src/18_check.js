@@ -29,7 +29,7 @@ function checkData(d = D) {
       else if ((a.art === 'start' || a.art === 'ende') && !m.plan.steps.some(q => q.id === a.ref)) add(sn + ': hängt an einem gelöschten Schritt', 'an den PAL hängen', dd => { S(dd).anker = { art: 'pal', offset: 0 }; });
       else if (r.err === 'Zirkelbezug' && !cycleFixed) { cycleFixed = true; add(sn + ': Zirkelbezug (Schritte hängen im Kreis voneinander ab)', 'Kreis lösen: diesen Schritt an den PAL hängen', dd => { S(dd).anker = { art: 'pal', offset: 0 }; }); }
       if (s.typ === 'aufgabe' && !(isNum(s.dauer) && +s.dauer >= 0 && +s.dauer <= MAX_DAUER && Math.round(+s.dauer) === +s.dauer))
-        add(sn + ': Dauer „' + s.dauer + '“ ungültig', 'auf ' + clamp(Math.round(+s.dauer || 0), 0, MAX_DAUER) + ' Tage setzen', dd => { S(dd).dauer = clamp(Math.round(+S(dd).dauer || 0), 0, MAX_DAUER); });
+        add(sn + ': Dauer „' + s.dauer + '“ ungültig', 'auf ' + clamp(Math.round(+s.dauer || 0), 0, MAX_DAUER) + ' WT setzen', dd => { S(dd).dauer = clamp(Math.round(+S(dd).dauer || 0), 0, MAX_DAUER); });
       if (str(s.wer) !== str(s.wer).trim()) add(sn + ': Person „' + s.wer + '“ mit Leerzeichen am Rand', 'Leerzeichen entfernen', dd => { S(dd).wer = str(S(dd).wer).trim(); });
     }
   }

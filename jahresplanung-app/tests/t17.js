@@ -44,7 +44,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const bi = await p.evaluate(() => { const x = C.ms.find(x => x.m.name === 'Sommermailing'); const e = document.querySelector('.tl-row[data-m="' + x.id + '"] .handle.h-I'); const r = e.getBoundingClientRect(); return { s: x.s, i: x.i, x: r.x + r.width / 2, y: r.y + r.height / 2, pxd: UI._tl.pxd }; });
   await p.mouse.move(bi.x, bi.y); await p.mouse.down(); await p.mouse.move(bi.x + bi.pxd * 2 + 1, bi.y, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(300);
   const ai = await p.evaluate(() => { const x = C.ms.find(x => x.m.name === 'Sommermailing'); return { s: x.s, i: x.i }; });
-  ok(ai.i === bi.i + 2 && ai.s === bi.s, 'Zeitleiste: I +2 Tage, S bleibt (' + (ai.i - bi.i) + '/' + (ai.s - bi.s) + ')');
+  const wi2 = await p.evaluate(n => nextWorkday(n + 2), bi.i);   // ab 0.13.7: Bereiche im Detailplan beginnen an einem Werktag
+  ok(ai.i === wi2 && ai.s === bi.s, 'Zeitleiste: I +2 Tage (auf den nächsten Werktag), S bleibt (' + (ai.i - bi.i) + '/' + (ai.s - bi.s) + ')');
   await p.evaluate(() => { undo(); undo(); UI.tlPxd = 0; });
   // ---------- Tabelle: S eines Plans eintippen
   await p.click('nav.tabs >> text=Jahresplanung'); await p.waitForTimeout(200);
@@ -52,13 +53,15 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const inp = p.locator(`[data-fk="m:${sid[0]}:S"]`);
   await inp.fill(sid[1]); await inp.press('Enter'); await p.waitForTimeout(250);
   const ts = await p.evaluate(id => { const x = C.byId.get(id); return [ds(x.s), x.i]; }, sid[0]);
-  ok(ts[0] === sid[1] && ts[1] === sid[2], 'Tabelle: Start Selektion des Sommermailings eingetippt → ' + ts[0] + ', Inhalt unverändert');
+  const ws7 = await p.evaluate(v => ds(nextWorkday(dn(v))), sid[1]);
+  ok(ts[0] === ws7 && ts[1] === sid[2], 'Tabelle: Start Selektion des Sommermailings eingetippt (' + sid[1] + ', Feiertag → nächster Werktag) → ' + ts[0] + ', Inhalt unverändert');
   await p.evaluate(() => undo());
   // ---------- Kalender: S-Markierung eines Plans ziehen
   const cs = await p.evaluate(() => { const x = C.ms.find(x => x.m.name === 'Sommermailing'); const c = document.querySelector('.cal .chip.S[data-m="' + x.id + '"]'); c.scrollIntoView({ block: 'center' }); const r = c.getBoundingClientRect(); const t = document.querySelector('.day[data-dn="' + (x.s - 1) + '"]').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2, t.x + t.width / 2, t.y + t.height / 2, x.s, x.i]; });
   await p.mouse.move(cs[0], cs[1]); await p.mouse.down(); await p.mouse.move(cs[2], cs[3], { steps: 8 }); await p.mouse.up(); await p.waitForTimeout(300);
   const ca = await p.evaluate(() => { const x = C.ms.find(x => x.m.name === 'Sommermailing'); return [x.s, x.i]; });
-  ok(ca[0] === cs[4] - 1 && ca[1] === cs[5], 'Kalender: S-Markierung des Sommermailings einen Tag vorgezogen');
+  const wc = await p.evaluate(n => nextWorkday(n - 1), cs[4]);
+  ok(ca[0] === wc && ca[1] === cs[5], 'Kalender: S-Markierung des Sommermailings einen Tag vorgezogen (auf einen Werktag: ' + (ca[0] - cs[4]) + ')');
   await p.evaluate(() => undo());
   // ---------- Feiertage zweispaltig
   await p.evaluate(() => openUrlaub()); await p.waitForTimeout(200);

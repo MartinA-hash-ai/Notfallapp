@@ -14,7 +14,8 @@ const { chromium, ok, open, finish } = require('./lib');
   const tpl = await p.evaluate(() => { const o = JSON.parse(JSON.stringify(D)), m = o.massnahmen.find(m => m.name === 'Sommermailing'); m.plan = JSON.parse(JSON.stringify(MAILING_TEMPLATE)); m.plan.steps.forEach(s => { s.wer = ''; });
     const before = (() => { const c = JSON.parse(JSON.stringify(m)); migratePlan(c.plan, PH().map(p => p.key)); ensurePalStep(c.plan); const r = planCalc(c).map; return c.plan.steps.filter(s => s.typ !== 'gruppe').map(s => r.get(s.id).end); })();
     const n = normalize(o).massnahmen.find(m => m.name === 'Sommermailing'), r = planCalc(n).map; return [before.join(), n.plan.steps.filter(s => s.typ !== 'gruppe').map(s => r.get(s.id).end).join()]; });
-  ok(tpl[0] === tpl[1], 'A: beim Umstellen (Laden) bleiben alle Termine gleich');
+  const tdiff = tpl[0].split(',').map((v, i) => Math.abs(+v - +tpl[1].split(',')[i]));
+  ok(tdiff.length > 10 && Math.max(...tdiff) <= 1 && tdiff.filter(Boolean).length <= 3, 'A: beim Umstellen (Laden) bleiben die Termine gleich – ab 0.13.7 (Werktage) rückt höchstens ein Ende vom Sonntag auf den Samstag (' + tdiff.filter(Boolean).length + ' von ' + tdiff.length + ')');
 
   // ---- B: ersten Schritt im Inhalt ziehen → was danach beginnt, wandert mit (nur im Inhalt), Selektion und Produktion bleiben
   await p.evaluate(id => { UI.view = 'plaene'; UI.planSel = id; UI.planPxd = 20; renderNow(); }, sm); await p.waitForTimeout(250);

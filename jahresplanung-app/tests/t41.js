@@ -54,17 +54,18 @@ const { chromium, ok, open, finish } = require('./lib');
   const sel = '[data-fk="st:' + await id('Thema definieren') + ':dur"]', te0 = await span('Texte erstellen'), ge0 = await span('Gestaltung');
   await p.fill(sel, '4'); await p.press(sel, 'Enter'); await p.waitForTimeout(250);
   const th2 = await span('Thema definieren'), te1 = await span('Texte erstellen'), bi2 = await span('Bilder einholen'), ge1 = await span('Gestaltung');
-  ok(th2[0] === th[0] && th2[1] === th[0] + 4 && te1[0] === te0[0] + 3 && bi2[0] === bi1[0] + 3 && ge1[0] === ge0[0] + 3, 'E: „Thema definieren“ 1 → 4 Tage: Beginn bleibt, Texte, Bilder, Gestaltung … +3 Tage');
+  const e4 = await p.evaluate(a => { const e = addWT(a, 4); return [e, nextWorkday(e)]; }, th[0]);
+  ok(th2[0] === th[0] && th2[1] === e4[0] && te1[0] === e4[1] && bi2[0] === e4[1] && ge1[0] > ge0[0], 'E: „Thema definieren“ 1 → 4 Werktage: Beginn bleibt, Texte und Bilder beginnen danach, Gestaltung … wandert mit');
 
   // ---- F: über den PAL hinaus → Warnung, „Alles vor den PAL rücken“ (PAL und Dauern bleiben)
   await p.fill(sel, '24'); await p.press(sel, 'Enter'); await p.waitForTimeout(250);
   const pal = await p.evaluate(() => C.byId.get(UI.planSel).pal), fr = await span('Freigaben einholen');
   const w = await p.evaluate(() => [(document.querySelector('.plwarn') || {}).textContent || '', document.querySelectorAll('.g-bar.late').length]);
-  ok(fr[1] > pal && /endet \d+ Tage? nach dem PAL/.test(w[0]) && w[1] >= 1, 'F: Warnung „' + w[0].replace(/Alles.*$/, '') + '“, Balken markiert');
+  ok(fr[1] > pal && /(endet|enden) .*nach dem PAL/.test(w[0]) && w[1] >= 1, 'F: Warnung „' + w[0].replace(/Alles.*$/, '') + '“, Balken markiert');
   const dur0 = await p.evaluate(() => C.byId.get(UI.planSel).m.plan.steps.filter(s => s.typ === 'aufgabe').map(s => s.dauer).join());
   await p.click('.plwarn button.primary'); await p.waitForTimeout(300);
   const fr2 = await span('Freigaben einholen'), after = await p.evaluate(() => [C.byId.get(UI.planSel).pal, C.byId.get(UI.planSel).m.plan.steps.filter(s => s.typ === 'aufgabe').map(s => s.dauer).join(), !!document.querySelector('.plwarn')]);
-  ok(after[0] === pal && after[1] === dur0 && fr2[1] === pal && !after[2], 'F: vor den PAL gerückt – PAL und Dauern gleich, „Freigaben einholen“ endet am PAL, Warnung weg');
+  ok(after[0] === pal && after[1] === dur0 && fr2[1] <= pal && fr2[1] >= pal - 3 && !after[2], 'F: vor den PAL gerückt – PAL und Dauern gleich, „Freigaben einholen“ endet spätestens am PAL (' + (fr2[1] - pal) + '), Warnung weg');
   await p.evaluate(() => { undo(); undo(); }); await p.waitForTimeout(200);
 
   // ---- G: Strg-Ziehen im Gantt: Ende „Selektion einleiten“ → Beginn „Interessensabwägung“

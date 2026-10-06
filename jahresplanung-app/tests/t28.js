@@ -51,8 +51,8 @@ const { chromium, ok, open, finish } = require('./lib');
   const c0 = await p.evaluate(() => { const x = C.byId.get(UI.planSel), st = x.m.plan.steps, g = st.find(s => s.typ === 'gruppe'), bl = groupBlocks(st).get(g.id); return [st.length, st[bl[1] - 1].id, st[bl[0] + 2].id]; });
   await p.click('.pl-table .addlink:has-text("+ Aufgabe") >> nth=0'); await p.waitForTimeout(200);
   const c1 = await p.evaluate(prev => { const x = C.byId.get(UI.planSel), st = x.m.plan.steps, i = st.findIndex(s => s.id === prev), n = st[i + 1], r = x.pc.map.get(n.id);
-    return [st.length, n.name, n.typ, r.end - r.start, document.activeElement.dataset.fk === 'st:' + n.id + ':name', !document.querySelector('.modal')]; }, c0[1]);
-  ok(c1[0] === c0[0] + 1 && c1[1] === 'Neue Aufgabe' && c1[2] === 'aufgabe' && c1[3] === 7 && c1[4] && c1[5], 'C: „+ Aufgabe“ → neue Zeile am Ende des Abschnitts, eine Woche, Name zum Überschreiben markiert, kein Fenster');
+    return [st.length, n.name, n.typ, wtSpan(r.start, r.end) === 5 && +n.dauer === 5 ? 7 : -1, document.activeElement.dataset.fk === 'st:' + n.id + ':name', !document.querySelector('.modal')]; }, c0[1]);   // eine Woche = 5 Werktage
+  ok(c1[0] === c0[0] + 1 && c1[1] === 'Neue Aufgabe' && c1[2] === 'aufgabe' && c1[3] === 7 && c1[4] && c1[5], 'C: „+ Aufgabe“ → neue Zeile am Ende des Abschnitts, eine Woche (5 WT), Name zum Überschreiben markiert, kein Fenster');
   await p.keyboard.type('Probe'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => C.byId.get(UI.planSel).m.plan.steps.some(s => s.name === 'Probe')), 'C: Name direkt eingetippt');
   await p.click(`.pl-row[data-rid="${c0[2]}"] .c-acts .menu-btn`); await p.waitForTimeout(150);

@@ -396,7 +396,7 @@ main.hl .tl-row[data-m]:not(.hl-on) > .tl-lab > *, main.hl .tl-row[data-m]:not(.
 .pl-divider { background: var(--soft); border-left: 1px solid var(--line2); border-right: 1px solid var(--line2); display: flex; justify-content: center; padding-top: 10px; }
 .divbtn { position: sticky; top: 70px; width: 14px; height: 40px; padding: 0; border-radius: 4px; font-size: 13px; line-height: 1; color: var(--faint); background: var(--card); border: 1px solid var(--line2); }
 .divbtn:hover { color: var(--ink2); border-color: var(--faint); }
-.pl-row { display: grid; grid-template-columns: 22px 200px 104px 110px 108px 50px 112px 112px 30px; align-items: center; height: 32px; border-bottom: 1px solid var(--line3); font-size: 12.5px; }
+.pl-row { display: grid; grid-template-columns: 22px 200px 104px 110px 108px 66px 112px 112px 30px; align-items: center; height: 32px; border-bottom: 1px solid var(--line3); font-size: 12.5px; }
 .pl-row.compact { grid-template-columns: 22px 220px 30px; }
 .pl-row.head { height: 52px; background: var(--ink2); color: #fff; font-size: 11.5px; font-weight: 600; }
 .pl-row.head > div { padding: 0 5px; color: #fff; }
@@ -908,6 +908,11 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .rs .rs-yr .rs-opt { margin-right: 0; }
 .rs .rs-ms { margin: -4px 0 0 26px; }
 
+/* 0.13.7: Dauer im Detailplan in Werktagen */
+.c-dur .wtbox { display: flex; align-items: center; justify-content: flex-end; gap: 3px; min-width: 0; flex: 1; padding-right: 8px; }
+.c-dur .wtbox input { flex: 0 1 42px; width: 42px; min-width: 0; padding-left: 2px; padding-right: 2px; }
+.c-dur .unit { font-size: 11px; color: var(--muted); flex: none; }
+
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body:not(.printdoc-mode) #app { padding: 9mm 10mm; }
@@ -947,7 +952,7 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
   table.grid td input, table.grid td select { padding: 1px 2px; }
   .mtable td.name { min-width: 0; }
   .aweek { break-inside: avoid; }
-  .pl-row { grid-template-columns: 0 190px 70px 80px 110px 36px 86px 86px 0; height: 24px; font-size: 9.5px; }
+  .pl-row { grid-template-columns: 0 190px 70px 80px 110px 46px 86px 86px 0; height: 24px; font-size: 9.5px; }
   .pl-row.compact { grid-template-columns: 0 220px 0; }
   .pl-row .c-grip, .pl-row .c-acts, .pl-divider { visibility: hidden; }
   .pl-split { grid-template-columns: auto 0 1fr; }
