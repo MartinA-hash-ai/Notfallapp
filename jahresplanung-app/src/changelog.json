@@ -1,7 +1,7 @@
 [
   {
     "version": "0.13.4",
-    "date": "",
+    "date": "2026-10-05T14:44",
     "items": [
       "Auswertung: der Knopf heißt „+ Buchung hinzufügen“ und ist rot",
       "Nach dem Hinzufügen eine kurze Zusammenfassung: wie viele Spenden neu sind, wie viele doppelt erkannt wurden und ob sich Zeiträume mit bisherigen Dateien überschneiden (mit welchen); darunter die neuen Spenden in einer Liste (etwa 10 sichtbar, der Rest zum Rollen); mit ✕, „Schließen“ oder Esc wegklicken"
