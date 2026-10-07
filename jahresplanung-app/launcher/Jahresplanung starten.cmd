@@ -42,17 +42,6 @@ start "" "%JP_EDGE%" --new-window "%JP_APP%"
 exit /b 0
 
 :nobrowser
-
-rem Pfad als Datei-Adresse (Leerzeichen und Umlaute korrekt kodiert)
-powershell -NoProfile -NonInteractive -Command "Start-Process -FilePath $env:JP_EDGE -ArgumentList ('--app=' + ([uri]$env:JP_APP).AbsoluteUri)" >nul 2>&1
-if not errorlevel 1 exit /b 0
-
-rem Falls PowerShell gesperrt ist: einfache Variante
-set "JP_URL=%JP_APP:\=/%"
-start "" "%JP_EDGE%" --app="file:///%JP_URL%"
-exit /b 0
-
-:nobrowser
 rem Kein Edge gefunden: im Standardbrowser oeffnen
 start "" "%JP_APP%"
 exit /b 0
