@@ -1,7 +1,23 @@
 [
   {
-    "version": "0.13.7",
+    "version": "0.14",
     "date": "",
+    "items": [
+      "Einstellungen als eigene Seite mit Rubriken: Allgemein, Bereiche & Personen, Urlaub & Feiertage, Vorlagen für Detailpläne, Version",
+      "Ferienzeiten: unter Urlaub & Feiertage („+ Ferienzeiten eintragen“) im Kalender-Fenster ohne Person, mit Notiz – erscheinen im Kalender, in der Zeitleiste und in der Urlaubsübersicht; Ferientage bleiben Werktage",
+      "Urlaub-/Ferien-Fenster ohne die Hinweistexte",
+      "Verknüpfte Termine haben immer dasselbe Datum: Verlängern schiebt die Nachfolger, früher beginnen oder Verschieben eines Nachfolgers zieht die Vorgänger (und alles davor) mit; der PAL bleibt fest",
+      "Das Ende einer Aufgabe ist der Übergabetag (nächster Werktag) – endet sie freitags, steht als Ende der Montag, an dem der Nachfolger beginnt",
+      "Verknüpfungen mit Abstand aus früheren Versionen: Hinweis im Plan mit „Angleichen“",
+      "Neuer Detailplan: „Blanko“ (leer), „Einfach“ oder eine Vorlage; Vorlagen in den Einstellungen bearbeiten, kopieren, löschen und neu anlegen – z. B. für Presse- und Öffentlichkeitsarbeit mit eigenen Abschnitten",
+      "„Als Vorlage speichern …“ im Kopf eines Detailplans",
+      "Abschnitt löschen: Rückfrage „Alle Aufgaben darin mitlöschen“ (vorausgewählt) – ohne Häkchen bleibt nur der Inhalt; der Briefkasten-Termin (PAL) bleibt immer",
+      "Buchungen hinzugefügt: Zusammenfassung in sechs Feldern (Zeitraum, neue Spenden, Gesamtsumme, Überschneidung, doppelte Spenden, erkannte Regeln); in der Liste steht am Zeilenende das Schlagwort der passenden Regel in der Farbe der Maßnahme"
+    ]
+  },
+  {
+    "version": "0.13.7",
+    "date": "2026-10-06T11:18",
     "items": [
       "Detailplan: die Dauer der Arbeitsschritte zählt in Werktagen (Mo–Fr ohne Feiertage und eigene freie Tage) – links mit „WT“ angezeigt und so eingegeben; Wochenenden und Feiertage verlängern einen Schritt automatisch",
       "Ein Schritt beginnt immer an einem Werktag; Verschieben behält die Dauer in Werktagen",

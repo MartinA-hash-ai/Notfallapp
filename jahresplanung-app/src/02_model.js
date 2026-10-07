@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF'];
+const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -60,9 +60,16 @@ function lineBg(k, c, f = 0) {
   return solid(f <= 0 ? c : dk ? mix(c, 0.5 * f, DARK_SURF) : mix(c, 0.62 * f));
 }
 const demoChip = (k, cls) => h('span', { class: 'chip demo ' + (k === 'P' ? 'P' : 'ph') + ' st-' + stilOf(k) + (cls ? ' ' + cls : '') }, sym(k));
+// Vorlagen: Beispiel-PAL (die Vorlage „Mailing (komplex)“ stammt aus dem Sommermailing) und neutrale Farbe
+const TPL_PAL = typeof MAILING_TEMPLATE_PAL === 'string' ? MAILING_TEMPLATE_PAL : '2027-06-18', TPL_COLOR = '#6E7B87';
+function defaultVorlagen() {
+  const plan = JSON.parse(JSON.stringify(MAILING_TEMPLATE));
+  (plan.steps || []).forEach(s => { s.wer = ''; s.fortschritt = 0; });
+  return [{ id: 'tpl-mailing', name: 'Mailing (komplex)', pal: TPL_PAL, plan }];
+}
 function emptyData() {
   return { version: DATA_VERSION, meta: { savedAt: null, savedBy: '' }, settings: { year: new Date().getFullYear() + 1, bereiche: JSON.parse(JSON.stringify(DEF_BEREICHE)) },
-    personen: [], massnahmen: [], urlaube: [], sondertage: [], log: [], spenden: { zu: {}, vor: {}, nein: {} } };
+    personen: [], massnahmen: [], urlaube: [], sondertage: [], ferien: [], log: [], spenden: { zu: {}, vor: {}, nein: {} } };
 }
 // Detailplan aus Version ≤ 0.7 (markierte Schritte S/I) auf Abschnitte mit Bereich umstellen; „Mailing“ wird in Inhalt und Produktion geteilt
 // Der Briefkasten-Termin (PAL) ist eine feste Zeile im Plan: Ziel, hängt am PAL (Abstand 0), rot markiert, nicht löschbar.
@@ -179,6 +186,27 @@ function normMarks(st) {
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
 const str = v => typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '';
 const dateStr = v => typeof v === 'string' && v ? v : null;
+// Plan einer Maßnahme oder Vorlage prüfen und auf den aktuellen Stand bringen (Abschnitte, PAL-Zeile, Werktage, Verknüpfungen vorwärts)
+function normPlan(m, keys) {
+  m.plan.steps = Array.isArray(m.plan.steps) ? m.plan.steps.filter(isObj) : [];
+  migratePlan(m.plan, keys);                                    // vor der Prüfung der Schritte, damit neue Abschnitte vollständig sind
+  const sids = new Set();
+  m.plan.steps.forEach(s => {
+    s.id = str(s.id) && !sids.has(str(s.id)) ? str(s.id) : uid(); sids.add(s.id);
+    s.name = str(s.name); s.wer = str(s.wer); s.kommentar = str(s.kommentar);
+    if (!['gruppe', 'aufgabe', 'meilenstein', 'ziel'].includes(s.typ)) s.typ = 'aufgabe';
+    if (!isObj(s.anker)) s.anker = { art: 'offen' };
+    if (s.fix !== true || s.typ !== 'aufgabe') delete s.fix;                  // feste Dauer (nur Aufgaben)
+    if (s.anker.art === 'nach') { s.anker.refs = [...new Set((Array.isArray(s.anker.refs) ? s.anker.refs : []).map(str).filter(id => id && id !== s.id))]; s.anker.offset = Math.round(+s.anker.offset || 0); }
+    if (s.typ === 'gruppe') { if (s.bereich && !keys.includes(s.bereich)) delete s.bereich; } else delete s.bereich;
+  });
+  ensurePalStep(m.plan);
+  if (m.plan.wt !== true) planToWT(m); else m.plan.wt = true;   // Dauern in Werktagen (ab 0.13.7)
+  unlinkSections(m);
+  forwardLinks(m);
+  m.plan.marks = isObj(m.plan.marks) ? m.plan.marks : {};
+  for (const k of Object.keys(m.plan.marks)) if (!keys.includes(k) || !m.plan.steps.some(q => q.id === m.plan.marks[k])) delete m.plan.marks[k];
+}
 // Feiertage/freie Tage beim Normalisieren aus den Daten, die gerade geladen werden (D ist dann evtl. noch leer)
 let HOLSRC = null;
 function normalize(d) {
@@ -200,7 +228,7 @@ function normalizeData(d) {
   delete d.settings.vorlaufS; delete d.settings.vorlaufI;
   const keys = d.settings.bereiche.map(p => p.key);
   d.log = Array.isArray(d.log) ? d.log.filter(isObj).slice(-LOG_MAX) : [];
-  ['personen', 'massnahmen', 'urlaube', 'sondertage'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(isObj) : []; });
+  ['personen', 'massnahmen', 'urlaube', 'sondertage', 'ferien'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(isObj) : []; });
   if (!isObj(d.feiertage)) d.feiertage = {};
   HOLSRC = d;
   d.personen = d.personen.filter(p => str(p.name).trim());
@@ -225,29 +253,20 @@ function normalizeData(d) {
       if (r.worte.length || 'ab' in r || 'bis' in r) m.regel = r; else delete m.regel;
     } else delete m.regel;
     if (m.plan != null && !isObj(m.plan)) m.plan = null;
-    if (m.plan) {
-      m.plan.steps = Array.isArray(m.plan.steps) ? m.plan.steps.filter(isObj) : [];
-      migratePlan(m.plan, keys);                                    // vor der Prüfung der Schritte, damit neue Abschnitte vollständig sind
-      const sids = new Set();
-      m.plan.steps.forEach(s => {
-        s.id = str(s.id) && !sids.has(str(s.id)) ? str(s.id) : uid(); sids.add(s.id);
-        s.name = str(s.name); s.wer = str(s.wer); s.kommentar = str(s.kommentar);
-        if (!['gruppe', 'aufgabe', 'meilenstein', 'ziel'].includes(s.typ)) s.typ = 'aufgabe';
-        if (!isObj(s.anker)) s.anker = { art: 'offen' };
-        if (s.fix !== true || s.typ !== 'aufgabe') delete s.fix;                  // feste Dauer (nur Aufgaben)
-        if (s.anker.art === 'nach') { s.anker.refs = [...new Set((Array.isArray(s.anker.refs) ? s.anker.refs : []).map(str).filter(id => id && id !== s.id))]; s.anker.offset = Math.round(+s.anker.offset || 0); }
-        if (s.typ === 'gruppe') { if (s.bereich && !keys.includes(s.bereich)) delete s.bereich; } else delete s.bereich;
-      });
-      ensurePalStep(m.plan);
-      if (m.plan.wt !== true) planToWT(m); else m.plan.wt = true;   // Dauern in Werktagen (ab 0.13.7)
-      unlinkSections(m);
-      forwardLinks(m);
-      m.plan.marks = isObj(m.plan.marks) ? m.plan.marks : {};
-      for (const k of Object.keys(m.plan.marks)) if (!keys.includes(k) || !m.plan.steps.some(q => q.id === m.plan.marks[k])) delete m.plan.marks[k];
-    }
+    if (m.plan) normPlan(m, keys);
+  });
+  // Vorlagen für Detailpläne (ab 0.14): wie ein Plan an einem Beispiel-PAL; erstmals mit dem Aufbau des Sommer-/Weihnachtsmailings
+  if (!Array.isArray(d.vorlagen)) d.vorlagen = defaultVorlagen();
+  d.vorlagen = d.vorlagen.filter(isObj);
+  d.vorlagen.forEach(v => {
+    v.id = freshId(v.id); v.name = str(v.name).trim() || 'Vorlage'; v.pal = dateStr(v.pal) || TPL_PAL; v.farbe = TPL_COLOR;
+    if (!isObj(v.plan)) v.plan = { steps: [], marks: {} };
+    normPlan(v, keys);
+    for (const k of ['verantwortlich', 'hinweis', 'palStatus', 'vorlauf', 'ende', 'regel', 'kosten', 'auflage']) delete v[k];
   });
   d.urlaube.forEach(u => { u.id = freshId(u.id); u.wer = str(u.wer); u.von = dateStr(u.von); u.bis = dateStr(u.bis); if (u.art !== 'abwesenheit') delete u.art; });   // Art: Urlaub (Standard) oder Abwesenheit
   d.sondertage.forEach(s => { s.id = freshId(s.id); s.name = str(s.name); s.datum = dateStr(s.datum); });
+  d.ferien.forEach(u => { u.id = freshId(u.id); u.von = dateStr(u.von); u.bis = dateStr(u.bis); u.notiz = str(u.notiz); });   // Schulferien u. Ä. – nur zur Info, keine freien Tage
   // Spenden-Zuordnungen (ohne Namen/IBAN): Schlüssel → { m, d, b }; Vormerkungen zur Prüfung; abgelehnte Vorschläge
   const sp = isObj(d.spenden) ? d.spenden : {};
   d.spenden = { zu: {}, vor: {}, nein: {} };
@@ -296,6 +315,7 @@ const wtSpan = (a, b) => a != null && b != null && b > a ? workdays(a, b - 1) : 
 function addWT(a, w) { if (!(w > 0)) return a; let n = a, c = 0; while (c < w && n - a < 4000) { if (isWorkday(n)) c++; n++; } return n; }
 function subWT(e, w) { if (!(w > 0)) return e; let n = e, c = 0; while (c < w && e - n < 4000) { n--; if (isWorkday(n)) c++; } return n; }
 const nextWorkday = n => { let k = n; while (!isWorkday(k) && k - n < 60) k++; return k; };
+const handover = (n, pal) => { let k = n; while (!isWorkday(k) && k !== pal && k - n < 60) k++; return k; };
 // Plan aus Versionen vor 0.13.7 (Dauer in Kalendertagen) auf Werktage umstellen – die Termine bleiben so weit wie möglich gleich
 function planToWT(m) {
   if (!m.plan) return;
@@ -319,11 +339,16 @@ function personColor(name) {
 // Urlaub oder Abwesenheit (z. B. Fortbildung, Dienstreise): Abwesenheiten erscheinen gestreift
 const isAbw = u => !!u && u.art === 'abwesenheit';
 const vacKind = u => isAbw(u) ? 'Abwesenheit' : 'Urlaub';
+// Ferienzeiten (Schulferien): eigene Farbe, ohne Person – nur zur Orientierung, zählen nicht als freie Tage
+const FER_COLOR = '#2E8FA3';
+const ferOn = n => (C && C.fer || []).find(f => f.von <= n && n <= f.bis) || null;
+const ferLabel = f => 'Ferien' + (f.u.notiz ? ': ' + f.u.notiz : '') + ' (' + fmtS(f.von) + '–' + fmtS(f.bis) + ')';
 const vacFill = (c, u) => isAbw(u) ? 'repeating-linear-gradient(135deg, ' + c + ' 0 3px, ' + mix(c, 0.6) + ' 3px 6px)' : c;
 function ensurePersons(d) {
   const names = new Set();
   d.urlaube.forEach(u => names.add(str(u.wer).trim()));
   d.massnahmen.forEach(m => { names.add(str(m.verantwortlich).trim()); (m.plan?.steps || []).forEach(s => names.add(str(s.wer).trim())); });
+  (d.vorlagen || []).forEach(v => (v.plan?.steps || []).forEach(s => names.add(str(s.wer).trim())));
   for (const n of names) if (n && !d.personen.some(p => p.name === n)) {
     const used = new Set(d.personen.map(p => p.farbe));
     d.personen.push({ name: n, farbe: PERSON_COLORS.find(c => !used.has(c)) || PERSON_COLORS[d.personen.length % PERSON_COLORS.length] });
@@ -363,8 +388,11 @@ function planCalc(m, days = !(m.plan && m.plan.wt)) {
       }
     }
     const dur = s.typ === 'aufgabe' ? clamp(Math.round(+s.dauer || 0), 0, MAX_DAUER) : 0;
-    if (b != null && !days) b = nextWorkday(b);
-    const out = b != null ? { start: b, end: days ? b + dur : addWT(b, dur), err } : { start: e != null ? (days ? e - dur : subWT(e, dur)) : null, end: e, err };
+    if (b != null && !days && b !== pal) b = nextWorkday(b);      // (am PAL – auch an einem Samstag – bleibt der Beginn auf dem Übergabetag)
+    // Werktage: das Ende einer Aufgabe ist der Übergabetag – der nächste Werktag nach der Arbeit (dort beginnt ein verknüpfter Nachfolger,
+    // beide zeigen dasselbe Datum); höchstens bis zum PAL (fällt der auf einen Samstag, bleibt er das Ende)
+    const hand = n => days || dur <= 0 || n == null ? n : handover(n, pal);
+    const out = b != null ? { start: b, end: days ? b + dur : hand(addWT(b, dur)), err } : { start: e != null ? (days ? e - dur : subWT(e, dur)) : null, end: hand(e), err };
     busy.delete(s.id);
     res.set(s.id, out);
     return out;
@@ -402,7 +430,7 @@ function phaseEnds(st, enx, pal) {
 function derive() {
   _holYear = new Map();
   const keys = PH().map(p => p.key);
-  const ms = D.massnahmen.map(m => {
+  const mk = m => {
     const pal = dn(m.pal), st = {}, enx = {};
     let pc = null;
     if (m.plan) { pc = planCalc(m); for (const k of keys) if (pc.ph[k]) { st[k] = pc.ph[k].start; enx[k] = pc.ph[k].end; } }
@@ -411,12 +439,15 @@ function derive() {
       if (isNum(v)) { st[k] = pal - v; if (isNum(e)) enx[k] = Math.max(st[k], pal - e); }
     }
     return { m, id: m.id, pal, st, en: phaseEnds(st, enx, pal), enx, pc, color: m.farbe || '#7F7F7F', s: st.S ?? null, i: st.I ?? null };
-  });
+  };
+  const ms = D.massnahmen.map(mk);
   ms.sort((a, b) => (a.pal ?? 1e9) - (b.pal ?? 1e9) || a.m.name.localeCompare(b.m.name, 'de'));
   const byId = new Map(ms.map(x => [x.id, x]));
+  for (const v of D.vorlagen || []) byId.set(v.id, Object.assign(mk(v), { tpl: true }));   // Vorlagen nur für den Plan-Editor (nicht in Listen/Ansichten)
   const vac = D.urlaube.map(u => ({ u, von: dn(u.von), bis: dn(u.bis) || dn(u.von) })).filter(v => v.von != null && v.bis >= v.von)
     .map(v => v.bis - v.von > 400 ? Object.assign(v, { bis: v.von + 400, tooLong: true }) : v);   // Tippfehler im Jahr bremst sonst alle Ansichten
-  C = { ms, byId, vac };
+  const fer = D.ferien.map(u => ({ u, von: dn(u.von), bis: dn(u.bis) ?? dn(u.von) })).filter(v => v.von != null && v.bis >= v.von && v.bis - v.von <= 400).sort((p, q) => p.von - q.von);
+  C = { ms, byId, vac, fer };
   C.warnings = computeWarnings();
   return C;
 }
@@ -522,7 +553,7 @@ function computeWarnings() {
 /* ---------- Änderungen, Rückgängig */
 function commit(fn, msg) {
   const before = JSON.stringify(D);
-  try { fn(D); ensurePersons(D); D.massnahmen.forEach(m => { unlinkSections(m); forwardLinks(m); }); }
+  try { fn(D); ensurePersons(D); D.massnahmen.concat(D.vorlagen || []).forEach(m => { if (m.plan) { unlinkSections(m); forwardLinks(m); } }); }
   catch (e) {                                 // Fehler mitten in der Änderung: alles zurück, nichts halb geändert speichern
     console.error(e); D = JSON.parse(before); derive(); requestRender();
     toast('Die Änderung ließ sich nicht ausführen – es wurde nichts verändert. (' + ((e && e.message) || e) + ')', 'err');
@@ -546,4 +577,5 @@ function redo() {
 }
 function changed() { LAST_EDIT = new Date().toISOString(); saveDraft(); scheduleAutosave(); requestRender(); }
 const isDirty = () => JSON.stringify(D) !== SAVED_JSON;
-const findM = (d, id) => d.massnahmen.find(m => m.id === id);
+const findM = (d, id) => d.massnahmen.find(m => m.id === id) || (d.vorlagen || []).find(v => v.id === id);   // auch Vorlagen (Plan-Editor)
+const isTpl = (d, id) => (d.vorlagen || []).some(v => v.id === id);

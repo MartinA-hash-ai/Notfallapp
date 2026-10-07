@@ -90,7 +90,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.fill(`[data-fk="st:${nfk}:name"]`, 'Wochenschritt'); await p.press(`[data-fk="st:${nfk}:name"]`, 'Enter'); await p.waitForTimeout(150);
   const nsr = await p.evaluate(() => { const x = C.byId.get(UI.planSel), s = x.m.plan.steps.find(s => s.name === 'Wochenschritt'), r = x.pc.map.get(s.id); return [ds(r.start), ds(r.end), s.wer]; });
   const wt5 = await p.evaluate(([a, b]) => wtSpan(dn(a), dn(b)), pre);
-  ok(pre[1] && wt5 === 5 && post[1] === '2027-05-15' && nsr[0] === '2027-05-10' && nsr[1] === '2027-05-15' && nsr[2] === 'Eva',
+  ok(pre[1] && wt5 === 5 && post[1] === '2027-05-18' && nsr[0] === '2027-05-10' && nsr[1] === '2027-05-18' && nsr[2] === 'Eva',   // 5 WT ab Mo 10.05., Übergabetag Di 18.05. (Pfingstmontag)
     'Neuer Schritt: Vorbelegung ' + pre.join('/') + ', Beginn geändert → ' + post.join('–') + ', angelegt ' + nsr.join(' '));
   // Schritt ohne Termin: nur Ende setzen → eine Woche
   const und = await p.evaluate(() => { const x = C.ms.find(x => x.m.plan && x.m.plan.steps.some(s => s.typ === 'aufgabe' && x.pc.map.get(s.id).start == null)); UI.planSel = x.id; renderNow(); return x.m.plan.steps.find(s => s.typ === 'aufgabe' && x.pc.map.get(s.id).start == null).id; });
@@ -131,25 +131,27 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   // ---------- Einstellungen
   await p.click('header .actions .menu-btn:has-text("⋯")'); await p.waitForTimeout(80);
   await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(150);
-  const st = await p.evaluate(() => document.querySelector('.modal').textContent);
+  const st = await p.evaluate(async () => { let t = ''; for (const k of ['allgemein', 'bereiche', 'version']) { UI.settTab = k; renderNow(); t += document.querySelector('.sett-body').textContent; } return t; });
   ok(!/Vorlauf|Max\. Starts/.test(st) && st.includes('Programmversion ' + T.VERSION) && /Datenstand Nr\./.test(st) && /Personen/.test(st), 'Einstellungen: ' + (st.match(/Programmversion[^·]*·[^D]*/) || [''])[0] + ' | ' + (st.match(/Datenstand[^W]*/) || [''])[0]);
-  await p.click('.modal button:has-text("Was ist neu")'); await p.waitForTimeout(100);
+  await p.click('.sett-body button:has-text("Was ist neu")'); await p.waitForTimeout(100);
   const cl = await p.evaluate(() => document.querySelectorAll('.changelog .cl-v').length);
   ok(cl === T.CHANGELOG_N, 'Änderungsliste mit ' + cl + ' Versionen');
   // Person umbenennen und anlegen
-  const pin = p.locator('.modal .ptable input[aria-label="Name"]').nth(1);
+  await p.click('.sett-tab[data-tab="bereiche"]'); await p.waitForTimeout(100);
+  const pin = p.locator('.sett-body .ptable input[aria-label="Name"]').nth(1);
   const oldName = await pin.inputValue();
   await pin.fill('Eva M.'); await pin.press('Tab'); await p.waitForTimeout(150);
-  await p.fill('.modal input[placeholder="neue Person"]', 'Kati'); await p.click('.modal button:has-text("Person hinzufügen")'); await p.waitForTimeout(150);
+  await p.fill('.sett-body input[placeholder="neue Person"]', 'Kati'); await p.click('.sett-body button:has-text("Person hinzufügen")'); await p.waitForTimeout(150);
   const pr = await p.evaluate(() => [D.personen.map(q => q.name).join(','), D.massnahmen.some(m => (m.plan?.steps || []).some(s => s.wer === 'Eva M.'))]);
   ok(pr[0].includes('Eva M.') && pr[0].includes('Kati') && pr[1], 'Personen: ' + oldName + ' → Eva M. (überall), neu: Kati · ' + pr[0]);
   await p.screenshot({ path: 'r7_settings.png' });
   // Darkmode
-  await p.click('.modal .theme-pick label:has-text("Dunkel") input'); await p.waitForTimeout(150);
-  const dm = await p.evaluate(() => [document.documentElement.dataset.theme, getComputedStyle(document.body).backgroundColor, getComputedStyle(document.querySelector('.modal')).backgroundColor]);
+  await p.click('.sett-tab[data-tab="allgemein"]'); await p.waitForTimeout(100);
+  await p.click('.sett-body .theme-pick label:has-text("Dunkel") input'); await p.waitForTimeout(150);
+  const dm = await p.evaluate(() => [document.documentElement.dataset.theme, getComputedStyle(document.body).backgroundColor, getComputedStyle(document.querySelector('.sett-body .form')).backgroundColor]);
   ok(dm[0] === 'dark' && dm[1] !== 'rgb(247, 247, 245)', 'Darkmode aktiv ' + JSON.stringify(dm));
   await p.screenshot({ path: 'r7_dark_settings.png' });
-  await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  await p.click('.view-head .backbtn'); await p.waitForTimeout(150);
   for (const [tab, name] of [['Jahresplanung', 'jahr'], ['Detailpläne', 'plan'], ['Auswertung', 'spenden']]) {
     await p.click('nav.tabs >> text=' + tab); await p.waitForTimeout(200);
     await p.screenshot({ path: 'r7_dark_' + name + '.png' });

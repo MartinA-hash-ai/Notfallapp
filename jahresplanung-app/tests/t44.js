@@ -163,10 +163,10 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
     'F: vier Kacheln – Spendensumme, Ø-Spende, Responsequote 0,6 % (darunter die absolute Zahl: 6 Spenden), ROI 19,8 – ohne Richtwerte');
   ok(await p.evaluate(() => !/Richtwert/.test(document.querySelector('#main').textContent)), 'F: Richtwerte ausgeblendet (Kacheln, Übersicht, Erklärung)');
   // Richtwerte in den Einstellungen einschalten und ändern
-  await p.evaluate(() => { settingsDialog(); }); await p.waitForTimeout(250);
-  await p.click('.modal label.check:has-text("Richtwerte bei den Kennzahlen anzeigen") input'); await p.waitForTimeout(150);
-  const rws = await p.$$('.modal .rw-in'); await rws[1].fill('5'); await rws[1].press('Tab'); await p.waitForTimeout(150);
-  await p.click('.modal footer button.primary'); await p.waitForTimeout(250);
+  await p.evaluate(() => { openSettings('allgemein'); }); await p.waitForTimeout(250);
+  await p.click('.sett-body label.check:has-text("Richtwerte bei den Kennzahlen anzeigen") input'); await p.waitForTimeout(150);
+  const rws = await p.$$('.sett-body .rw-in'); await rws[1].fill('5'); await rws[1].press('Tab'); await p.waitForTimeout(150);
+  await p.click('.view-head .backbtn'); await p.waitForTimeout(250);
   const rw = await p.evaluate(() => [JSON.stringify(D.settings.richtwerte), [...document.querySelectorAll('.sp-tile')].map(t => t.textContent).slice(2).join(' | '), document.querySelector('.sp-ueb tr[data-mid="m5"] td.below') ? 1 : 0]);
   ok(rw[0] === '{"an":true,"resp":[2.7,5],"roi":[4,5]}' && /▼ unter Richtwert 2,7–5,0 %/.test(rw[1]) && /▲ über Richtwert 4,0–5,0/.test(rw[1]) && rw[2] === 1, 'F: Einstellungen – Richtwerte eingeschaltet und angepasst (' + rw[1] + ')');
   await p.evaluate(() => undo()); await p.evaluate(() => undo()); await p.waitForTimeout(200);
@@ -259,9 +259,17 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(kb && kb[0] === '+ Buchung hinzufügen' && kb[1], 'K: Knopf „+ Buchung hinzufügen“ (rot)');
   const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-sec="sp-ueb"] .tools button:has-text("Buchung hinzufügen")')]);
   await fc.setFiles(tmp); await p.waitForTimeout(700);
-  const rep = await p.evaluate(() => { const m = document.querySelector('.modal'); return m ? [m.querySelector('h2').textContent, [...m.querySelectorAll('.sp-addsum > div')].map(d => d.textContent).join(' | '), m.querySelector('.sp-addfiles').textContent, [...m.querySelectorAll('.sp-addlist tr')].map(r => r.textContent).join(' / ')] : null; });
-  ok(rep && rep[0] === 'Buchungen hinzugefügt' && /^1neue Spende60,00 € \| 0doppelt erkannt/.test(rep[1]) && /Zeiträume überschneiden sich$/.test(rep[1]) && /abgelegt als „export1 \(2\)\.csv“/.test(rep[2]) && /26\.09\.2027.*60,00 €.*JB Upload/.test(rep[3]),
-    'K: Zusammenfassung – ' + (rep ? rep[1] + ' · ' + rep[3] : 'fehlt'));
+  const repOf = () => p.evaluate(() => { const m = document.querySelector('.modal'), l = m && m.querySelector('.sp-addlist'), r = l && l.querySelector('tr');
+    return m ? { h2: m.querySelector('h2').textContent, top: [...m.querySelectorAll('.sp-addsum:not(.sp-addsum2) > div')].map(d => d.textContent).join(' | '),
+      low: [...m.querySelectorAll('.sp-addsum2 > div')].map(d => d.textContent).join(' | '), rows: l ? [...l.querySelectorAll('tr')].map(q => q.textContent).join(' / ') : '', n: l ? l.querySelectorAll('tr').length : 0,
+      old: !!m.querySelector('.sp-addfiles, h3'), scroll: l ? [l.scrollHeight > l.clientHeight, Math.round(l.clientHeight / r.getBoundingClientRect().height)] : null,
+      chips: [...m.querySelectorAll('.sp-addlist .sp-rc .sp-rchip')].map(c => c.textContent + '@' + c.style.borderColor), rchips: [...m.querySelectorAll('.sp-as-rules .sp-rchip')].map(c => c.textContent) } : null; });
+  const rep = await repOf();
+  ok(rep && rep.h2 === 'Buchungen hinzugefügt' && rep.top === '26.09.2027Spenden hinzugefügt | 1neue Spende | 60,00 €Gesamtsumme' && /^Zeiträume überschneiden sich( nicht)? \| Keine doppelten Spenden erkannt \| /.test(rep.low) && /26\.09\.2027.*60,00 €.*JB Upload/.test(rep.rows) && !rep.old,
+    'K: Zusammenfassung in sechs Feldern – ' + (rep ? rep.top + ' || ' + rep.low + ' · ' + rep.rows : 'fehlt'));
+  const mc = await p.evaluate(() => { const c = C.byId.get('m5').color, t = document.createElement('i'); t.style.borderColor = c; return t.style.borderColor; });
+  ok(rep && rep.rchips.join() === 'JB · Jahresbericht (1)' && rep.chips.length === 1 && rep.chips[0] === 'JB@' + mc && /Spenden mit folgenden Regeln erkannt/.test(rep.low),
+    'K: Regel erkannt – Feld „' + (rep && rep.rchips.join()) + '“, Zeilenende mit Schlagwort in Maßnahmenfarbe (' + (rep && rep.chips.join()) + ')');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.modal')), 'K: Zusammenfassung lässt sich wegklicken');
   const k = await p.evaluate(() => [Object.keys(__fs.files).filter(n => n.includes('Spendeneingänge 2027/')).map(n => n.split('/').pop()).sort().join(','), SP.rows.some(r => r.name === 'Upload Test')]);
@@ -272,11 +280,11 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
     ...Array.from({ length: 24 }, (_, i) => line(String(10 + (i % 18)).padStart(2, '0') + '.09.2027', String(5 + i), 'DE001000000000000009' + String(i).padStart(2, '0'), 'Neu ' + i, 'Spende Neu ' + i))]));
   const [fc2] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-sec="sp-ueb"] .tools button:has-text("Buchung hinzufügen")')]);
   await fc2.setFiles([tmp, big]); await p.waitForTimeout(900);
-  const rep2 = await p.evaluate(() => { const m = document.querySelector('.modal'), l = m && m.querySelector('.sp-addlist'), r = l && l.querySelector('tr').getBoundingClientRect().height;
-    return m ? [[...m.querySelectorAll('.sp-addsum > div')].map(d => d.textContent).join(' | '), m.querySelector('.sp-addfiles').textContent, l.querySelectorAll('tr').length, l.scrollHeight > l.clientHeight, Math.round(l.clientHeight / r)] : null; });
-  ok(rep2 && /^24neue Spenden/.test(rep2[0]) && /2doppelt erkannt/.test(rep2[0]) && /jaZeiträume überschneiden sich/.test(rep2[0]) && /genau diese Datei lag schon im Ordner \(als „export1 \(2\)\.csv“\)Zeitraum 26\.09\.2027 – 26\.09\.2027 · 1 Spende: 0 neu, 1 doppelt(keine|erste)/.test(rep2[1].replace(/\s+/g, ' ').replace(/ ?Zeitraum/g, 'Zeitraum').replace(/doppelt ?/g, 'doppelt')) && /Überschneidet sich mit/.test(rep2[1]),
-    'K: zweimal dieselbe Buchung + 24 neue: ' + (rep2 ? rep2[0] : 'fehlt'));
-  ok(rep2 && rep2[2] === 24 && rep2[3] && rep2[4] >= 9 && rep2[4] <= 11, 'K: Liste der neuen Spenden zeigt etwa ' + (rep2 && rep2[4]) + ' Zeilen, der Rest ist rollbar');
+  const rep2 = await repOf();
+  ok(rep2 && rep2.top === '10.09.2027 – 27.09.2027Spenden hinzugefügt | 24neue Spenden | 396,00 €Gesamtsumme' && /^Zeiträume überschneiden sich(doppelte Buchungen zählen nur einmal)? \| 2 doppelte Spenden erkannt/.test(rep2.low) && !rep2.old,
+    'K: zweimal dieselbe Buchung + 24 neue: ' + (rep2 ? rep2.top + ' || ' + rep2.low : 'fehlt'));
+  ok(rep2 && rep2.n === 24 && rep2.scroll[0] && rep2.scroll[1] >= 9 && rep2.scroll[1] <= 11, 'K: Liste der neuen Spenden zeigt etwa ' + (rep2 && rep2.scroll[1]) + ' Zeilen, der Rest ist rollbar');
+  ok(rep2 && /Keine Spenden mit Regel erkannt$/.test(rep2.low) && !rep2.chips.length, 'K: keine Regel passt → „Keine Spenden mit Regel erkannt“');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.modal')), 'K: auch mit Esc wegklickbar');
 

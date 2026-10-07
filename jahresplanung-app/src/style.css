@@ -892,8 +892,6 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .sp-addsum b { font-size: 22px; }
 .sp-addsum span { font-weight: 600; color: var(--ink2); }
 .sp-addsum small { color: var(--muted); }
-.sp-addfiles { margin: 0 0 10px; padding-left: 18px; font-size: 13px; }
-.sp-addfiles li { margin-bottom: 6px; }
 .sp-ov { color: var(--warn); }
 .sp-addrep h3 { font-size: 14px; margin: 10px 0 6px; }
 .sp-addlist { max-height: 272px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius); }
@@ -912,6 +910,51 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .c-dur .wtbox { display: flex; align-items: center; justify-content: flex-end; gap: 3px; min-width: 0; flex: 1; padding-right: 8px; }
 .c-dur .wtbox input { flex: 0 1 42px; width: 42px; min-width: 0; padding-left: 2px; padding-right: 2px; }
 .c-dur .unit { font-size: 11px; color: var(--muted); flex: none; }
+
+/* 0.14: Abschnitt löschen, Ferienzeiten */
+.gdel .gdel-opt { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0 10px; cursor: pointer; }
+.gdel .gdel-opt input { margin-top: 3px; }
+.tl-bg .fer { background: rgba(46,143,163,.08); border-top: 3px solid rgba(46,143,163,.55); pointer-events: auto; }
+.um-bg .fer { background: rgba(46,143,163,.09); }
+.um-bar.fer { background: #2E8FA3; color: #fff; font-size: 10.5px; line-height: 14px; padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.day.fer { box-shadow: inset 0 3px 0 rgba(46,143,163,.6); }
+.day.fer.today { box-shadow: inset 0 0 0 2px var(--red), inset 0 5px 0 rgba(46,143,163,.6); }
+.tt-fer { color: #2E8FA3; font-weight: 600; }
+.vtag.fer { background: rgba(46,143,163,.12); border-color: #2E8FA3; }
+.vd-day.fer { box-shadow: inset 0 -3px 0 rgba(46,143,163,.55); }
+.fertable .fdot { width: 14px; padding-right: 0; }
+.fertable td input[type=date] { width: 128px; }
+.banner.plgap { margin: 0 0 8px; }
+.newplan .np-links { display: flex; gap: 10px; }
+.newplan .np-links .np-copybtn { width: auto; flex: 1; }
+/* 0.14: Einstellungen als eigene Seite (Rubriken links), Vorlagen */
+.sett-page { display: grid; grid-template-columns: 210px minmax(0, 1fr); gap: 22px; align-items: start; }
+.sett-nav { display: flex; flex-direction: column; gap: 2px; position: sticky; top: calc(var(--toph, 60px) + 12px); }
+.sett-tab { text-align: left; padding: 8px 12px; border: 0; border-radius: 8px; background: none; color: var(--ink2); font-weight: 600; cursor: pointer; }
+.sett-tab:hover { background: var(--hover); }
+.sett-tab.on { background: var(--soft); color: var(--red-d); box-shadow: inset 3px 0 0 var(--red); }
+.sett-body { min-width: 0; }
+.sett-body > .form.settings { max-width: 860px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 18px 18px; }
+.sett-head { margin-bottom: 8px; }
+.sett-head h2 { margin: 0; font-size: 19px; }
+.tpltable { width: 100%; }
+.tpltable td.tpl-n { width: 34%; }
+.tpltable td.tpl-n input { width: 100%; font-weight: 600; }
+.tpltable td.acts { white-space: nowrap; text-align: right; }
+.tpltable .tpl-edit { margin-right: 4px; }
+.phead .tpl-name { font-size: 18px; font-weight: 700; min-width: 260px; }
+.tpl-hint { margin: 0 0 8px; }
+@media (max-width: 900px) { .sett-page { grid-template-columns: 1fr; } .sett-nav { position: static; flex-direction: row; flex-wrap: wrap; } }
+.sp-addsum2 { grid-template-columns: 1fr 1fr 1.4fr; align-items: stretch; }
+.sp-addsum2 > div { justify-content: center; gap: 2px; }
+.sp-addsum2 > div > span { font-weight: 600; }
+.sp-addsum2 .warn > span { color: var(--warn); }
+.sp-addsum .sp-as-span b { font-size: 17px; line-height: 27px; }
+.sp-rchips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 4px; }
+.sp-rchip { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 8px; border: 1px solid; white-space: nowrap; line-height: 16px; }
+.sp-rchip small { font-weight: 400; color: var(--muted); }
+.sp-addlist td.sp-rc { text-align: right; white-space: nowrap; }
+.sp-addlist td.sp-rc .sp-rchip + .sp-rchip { margin-left: 3px; }
 
 @media print {
   body { background: #fff; font-size: 11px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
@@ -1066,7 +1109,7 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .newplan .wtbox .unit { font-size: 11px; color: var(--faint); }
 .newplan input.bad { border-color: var(--red); box-shadow: 0 0 0 2px var(--errbg); }
 .newplan .np-msg { color: var(--errink); font-weight: 600; min-height: 1.2em; margin: 2px 0 4px; }
-.newplan .np-choice { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 6px 0 10px; }
+.newplan .np-choice { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 6px 0 10px; }
 .newplan .np-big { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px 16px; min-height: 84px; text-align: left;
   border: 1px solid var(--line2); border-radius: 10px; background: var(--card); cursor: pointer; }
 .newplan .np-big b { font-size: 17px; color: var(--ink); }

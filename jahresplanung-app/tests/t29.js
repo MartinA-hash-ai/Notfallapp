@@ -18,17 +18,17 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => highlight(null));
 
   // ---- B: in den Einstellungen umstellen
-  await p.evaluate(() => { settingsDialog(); }); await p.waitForTimeout(250);
-  const opts = await p.evaluate(() => [...document.querySelectorAll('.modal .btable tr[data-key="S"] .lcol option')].map(o => o.textContent).join(' | '));
+  await p.evaluate(() => { openSettings('bereiche'); }); await p.waitForTimeout(250);
+  const opts = await p.evaluate(() => [...document.querySelectorAll('.sett-body .btable tr[data-key="S"] .lcol option')].map(o => o.textContent).join(' | '));
   ok(opts === 'Abgestuft (Standard) | Pastell | Kräftig | Gestreift | Nur Rahmen', 'B: Auswahl Linie: ' + opts);
-  ok(await p.evaluate(() => /keine Linie/.test(document.querySelector('.modal .btable tr[data-key="P"]').textContent)), 'B: PAL ist ein Punkt – ohne Linien-Auswahl');
-  await p.selectOption('.modal .btable tr[data-key="S"] .lcol select', 'kraeftig');
-  await p.selectOption('.modal .btable tr[data-key="I"] .lcol select', 'streifen');
-  await p.selectOption('.modal .btable tr[data-key="D"] .lcol select', 'rahmen');
+  ok(await p.evaluate(() => /keine Linie/.test(document.querySelector('.sett-body .btable tr[data-key="P"]').textContent)), 'B: PAL ist ein Punkt – ohne Linien-Auswahl');
+  await p.selectOption('.sett-body .btable tr[data-key="S"] .lcol select', 'kraeftig');
+  await p.selectOption('.sett-body .btable tr[data-key="I"] .lcol select', 'streifen');
+  await p.selectOption('.sett-body .btable tr[data-key="D"] .lcol select', 'rahmen');
   await p.waitForTimeout(150);
-  const pv = await p.evaluate(() => ['S', 'I', 'D'].map(k => document.querySelector('.modal .btable tr[data-key="' + k + '"] .lprev .lp').className).join(' '));
+  const pv = await p.evaluate(() => ['S', 'I', 'D'].map(k => document.querySelector('.sett-body .btable tr[data-key="' + k + '"] .lprev .lp').className).join(' '));
   ok(pv === 'lp ln-kraeftig lp ln-streifen lp ln-rahmen', 'B: Vorschau der Linien aktualisiert (' + pv + ')');
-  await p.click('.modal footer button:has-text("Schließen")'); await p.waitForTimeout(200);
+  await p.click('.view-head .backbtn'); await p.waitForTimeout(200);
 
   // ---- C: Kalender – Verbindungslinie und Verbund-Linien
   const col = await p.evaluate(id => { const x = C.byId.get(id); return [x.color, lineBg('S', x.color), pastel(x.color)]; }, id);

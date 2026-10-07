@@ -21,9 +21,10 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(/gespeichert wird aber in den Ordner „Mailing“/.test(ban), 'Warnung bei falschem Ordner: ' + ban.slice(0, 160));
   await p.screenshot({ path: 'r9_banner.png', clip: { x: 0, y: 0, width: 1400, height: 140 } });
   await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(150);
+  await p.click('.sett-tab[data-tab="version"]'); await p.waitForTimeout(100);
   const st = await p.evaluate(() => document.querySelector('.verbox').innerText);
   ok(/Geöffnete Datei: .*jahresplanung-app/.test(st) && /passt nicht/.test(st), 'Einstellungen zeigen Datei und Speicherort: ' + st.replace(/\n/g, ' / '));
-  await p.click('.modal footer button.primary');
+  await p.click('.view-head .backbtn');
 
   // 2) Aufräumen: Speicherort neu wählen (richtiger Ordner), Sicherung übernehmen
   await p.evaluate(t => {

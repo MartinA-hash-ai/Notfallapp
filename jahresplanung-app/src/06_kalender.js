@@ -62,9 +62,11 @@ function vacTag(v) {
   return h('span', { class: 'vtag', style: { background: pastel(c), borderColor: c } }, v.u.wer || '?');
 }
 function dayTip(n, evs, away, hn) {
+  const fe = ferOn(n);
   return h('div', null,
     h('div', { class: 'tt-title plain' }, WDL[wd(n)] + ', ' + fmtD(n), h('span', { class: 'muted' }, ' · KW ' + isoWeek(n))),
     hn ? h('div', { class: 'tt-hol' }, 'Feiertag: ' + hn) : null,
+    fe ? h('div', { class: 'tt-fer' }, ferLabel(fe)) : null,
     evs.map(e => h('div', { class: 'tt-row' }, chip(e, { noTip: true, noClick: true, noHl: true }), ' ', e.x.m.name, h('span', { class: 'muted' }, ' – ' + TYPE_LABEL[e.t]))),
     away.length ? h('div', { class: 'tt-vac' }, 'Urlaub: ', away.map(vacTag)) : null,
     (!evs.length && !away.length && !hn) ? h('div', { class: 'muted' }, 'keine Termine') : null);
@@ -83,7 +85,7 @@ function verbundLanes() {
 }
 function dayCell(n, evs, vacs, today, vb) {
   const hn = holName(n), w = wd(n), away = vacs.filter(v => v.von <= n && n <= v.bis);
-  const cls = 'day' + (w >= 5 ? ' we' : '') + (hn ? ' hol' : '') + (n === today ? ' today' : '') + (away.length ? ' away' : '');
+  const cls = 'day' + (w >= 5 ? ' we' : '') + (hn ? ' hol' : '') + (ferOn(n) ? ' fer' : '') + (n === today ? ' today' : '') + (away.length ? ' away' : '');
   return h('div', { class: cls, dataset: { dn: n }, tip: () => dayTip(n, evs, away, hn) },
     h('span', { class: 'dnum' }, ymd(n)[2]),
     evs.length ? h('div', { class: 'chips' }, evs.map(e => chip(e))) : null,
@@ -128,6 +130,8 @@ function monthCard(y, mo, byDay, vacs, today, vb) {
               return c; })), h('b', null, x.m.name || '(ohne Namen)'),
         pinned ? pinEditBtn(x.id) : null));
     }
+    const fm = C.fer.filter(f => f.bis >= first && f.von <= last);
+    if (fm.length) list.append(h('div', { class: 'mvac mfer' }, 'Ferien: ', fm.map(f => h('span', { class: 'vtag fer' }, (f.u.notiz ? f.u.notiz + ' ' : '') + fmtS(Math.max(f.von, first)) + (f.bis > f.von ? '–' + fmtS(Math.min(f.bis, last)) : '')))));
     const vm = vacs.filter(v => v.bis >= first && v.von <= last);
     if (vm.length) list.append(h('div', { class: 'mvac' }, vm.some(v => isAbw(v.u)) ? 'Urlaub/Abwesenheit: ' : 'Urlaub: ', vm.map(v => h('span', { class: 'vtag' + (isAbw(v.u) ? ' abw' : ''), style: { background: pastel(personColor(v.u.wer)), borderColor: personColor(v.u.wer) } },
       (v.u.wer || '?') + ' ' + fmtS(Math.max(v.von, first)) + (v.bis > v.von ? '–' + fmtS(Math.min(v.bis, last)) : '') + (isAbw(v.u) ? ' (abwesend)' : '')))));

@@ -14,8 +14,10 @@ const { chromium, ok, open, finish } = require('./lib');
   const tpl = await p.evaluate(() => { const o = JSON.parse(JSON.stringify(D)), m = o.massnahmen.find(m => m.name === 'Sommermailing'); m.plan = JSON.parse(JSON.stringify(MAILING_TEMPLATE)); m.plan.steps.forEach(s => { s.wer = ''; });
     const before = (() => { const c = JSON.parse(JSON.stringify(m)); migratePlan(c.plan, PH().map(p => p.key)); ensurePalStep(c.plan); const r = planCalc(c).map; return c.plan.steps.filter(s => s.typ !== 'gruppe').map(s => r.get(s.id).end); })();
     const n = normalize(o).massnahmen.find(m => m.name === 'Sommermailing'), r = planCalc(n).map; return [before.join(), n.plan.steps.filter(s => s.typ !== 'gruppe').map(s => r.get(s.id).end).join()]; });
-  const tdiff = tpl[0].split(',').map((v, i) => Math.abs(+v - +tpl[1].split(',')[i]));
-  ok(tdiff.length > 10 && Math.max(...tdiff) <= 1 && tdiff.filter(Boolean).length <= 3, 'A: beim Umstellen (Laden) bleiben die Termine gleich – ab 0.13.7 (Werktage) rückt höchstens ein Ende vom Sonntag auf den Samstag (' + tdiff.filter(Boolean).length + ' von ' + tdiff.length + ')');
+  // ab 0.13.7 (Werktage) rückt höchstens ein Ende vom Sonntag auf den Samstag; ab 0.14 ist das Ende einer Aufgabe der Übergabetag (nächster Werktag)
+  const tbad = await p.evaluate(([b0, a0]) => { const B = b0.split(',').map(Number), A = a0.split(',').map(Number);
+    return [B.length, A.filter((a, i) => { const b = B[i]; if (a === b || (b - a === 1 && wd(b) === 6)) return false; if (a < b) return true; for (let n = b; n < a; n++) if (isWorkday(n)) return true; return false; }).length, A.filter((a, i) => a !== B[i]).length]; }, tpl);
+  ok(tbad[0] > 10 && tbad[1] === 0, 'A: beim Umstellen (Laden) bleiben die Termine gleich – nur Enden am Wochenende rücken auf den Übergabetag (' + tbad[2] + ' von ' + tbad[0] + ', falsch: ' + tbad[1] + ')');
 
   // ---- B: ersten Schritt im Inhalt ziehen → was danach beginnt, wandert mit (nur im Inhalt), Selektion und Produktion bleiben
   await p.evaluate(id => { UI.view = 'plaene'; UI.planSel = id; UI.planPxd = 20; renderNow(); }, sm); await p.waitForTimeout(250);

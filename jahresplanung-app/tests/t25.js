@@ -51,16 +51,16 @@ const { chromium, T, ORIG, ok, open, finish, fs } = require('./lib');
   await p.keyboard.press('Escape');
 
   // ---- F: Einstellungen – neuen Bereich V anlegen, er erscheint überall; entfernen räumt auf
-  await p.evaluate(() => { settingsDialog(); }); await p.waitForTimeout(200);
-  await p.fill('.modal input[placeholder="Buchstabe"]', 'v'); await p.fill('.modal input[placeholder^="Name"]', 'Versand');
-  await p.click('.modal button:has-text("+ Bereich hinzufügen")'); await p.waitForTimeout(150);
-  await p.click('.modal footer button:has-text("Schließen")'); await p.waitForTimeout(150);
+  await p.evaluate(() => { openSettings('bereiche'); }); await p.waitForTimeout(200);
+  await p.fill('.sett-body input[placeholder="Buchstabe"]', 'v'); await p.fill('.sett-body input[placeholder^="Name"]', 'Versand');
+  await p.click('.sett-body button:has-text("+ Bereich hinzufügen")'); await p.waitForTimeout(150);
+  await p.click('.view-head .backbtn'); await p.waitForTimeout(150);
   const f1 = await p.evaluate(() => [PH().map(q => q.key).join(''), !!document.querySelector('.mtable th.h-ph_V'), [...document.querySelectorAll('.sec[data-sec="kal"] .tpill')].map(b => b.textContent).join(',')]);
   ok(f1[0] === 'SIDV' && f1[1] && /Versand/.test(f1[2]), 'F: Bereich V Versand angelegt – Spalte und Kalender-Knopf da (' + f1[2] + ')');
-  await p.evaluate(() => { settingsDialog(); }); await p.waitForTimeout(200);
-  await p.evaluate(() => document.querySelector('.modal .btable tr[data-key="V"] button[aria-label="entfernen"]').click()); await p.waitForTimeout(150);
+  await p.evaluate(() => { openSettings('bereiche'); }); await p.waitForTimeout(200);
+  await p.evaluate(() => document.querySelector('.sett-body .btable tr[data-key="V"] button[aria-label="entfernen"]').click()); await p.waitForTimeout(150);
   await p.click('.modal:has-text("Bereich entfernen") footer button.primary'); await p.waitForTimeout(150);
-  await p.click('.modal footer button:has-text("Schließen")'); await p.waitForTimeout(150);
+  await p.click('.view-head .backbtn'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => PH().map(q => q.key).join('')) === 'SID', 'F: Bereich wieder entfernt');
 
   // ---- G: Detailplan-Vorlage „Bereiche“ und Bereich am Abschnitt ändern

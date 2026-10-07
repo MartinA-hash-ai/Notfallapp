@@ -250,35 +250,44 @@ async function spAddFiles(files) {
   spAddReport(report, known, oldFiles);
 }
 // Zusammenfassung nach dem Hinzufügen: neu, doppelt, Zeiträume; die neuen Spenden in einer kurzen Liste (rollbar)
+// Zusammenfassung nach „+ Buchung hinzufügen“: oben Zeitraum, Anzahl und Summe der neuen Spenden; darunter Überschneidung,
+// doppelte Buchungen und erkannte Regeln; dann die neuen Spenden – passt eine Regel, steht ihr Schlagwort farbig am Zeilenende
 function spAddReport(report, known, oldFiles) {
   const seen = new Set(), fresh = [];
-  let total = 0, dup = 0, neg = 0, bad = 0;
-  const per = report.map(r => {
+  let dup = 0, neg = 0, bad = 0, over = false;
+  const errs = [];
+  for (const r of report) {
     const P = r.parsed || {};
-    if (P.err) return h('li', null, h('b', null, r.name), ': ', h('span', { class: 'warn' }, 'ließ sich nicht lesen (' + P.err + ')'));
+    if (P.err) { errs.push(r.name + ' (' + P.err + ')'); continue; }
     const recs = P.recs || [], span = spSpan(recs);
-    let n = 0, d = 0;
-    for (const rec of recs) { if (known.has(rec.k) || seen.has(rec.k)) d++; else { n++; seen.add(rec.k); fresh.push(SP.byKey.get(rec.k) || rec); } }
-    total += recs.length; dup += d; neg += P.neg || 0; bad += P.bad || 0;
-    const over = span ? oldFiles.filter(o => o.name !== r.dupOf && o.span && o.span[0] <= span[1] && span[0] <= o.span[1]) : [];
-    return h('li', null, h('b', null, r.name), r.saved && r.saved !== r.name ? h('span', { class: 'muted' }, ' (abgelegt als „' + r.saved + '“)') : null,
-      !r.saved ? ' – genau diese Datei lag schon im Ordner' + (r.dupOf && r.dupOf !== r.name ? ' (als „' + r.dupOf + '“)' : '') : '', h('br'),
-      span ? 'Zeitraum ' + fmtD(span[0]) + ' – ' + fmtD(span[1]) + ' · ' : '', spCount(recs.length) + ': ' + n + ' neu, ' + d + ' doppelt', h('br'),
-      over.length ? h('span', { class: 'sp-ov' }, 'Überschneidet sich mit ' + over.map(o => '„' + o.name + '“ (' + fmtS(o.span[0]) + '–' + fmtS(o.span[1]) + ')').join(', ') + ' – doppelte Buchungen zählen nur einmal')
-        : h('span', { class: 'muted' }, oldFiles.length ? 'keine Überschneidung mit den bisherigen Dateien' : 'erste Datei'));
-  });
+    for (const rec of recs) { if (known.has(rec.k) || seen.has(rec.k)) dup++; else { seen.add(rec.k); fresh.push(SP.byKey.get(rec.k) || rec); } }
+    neg += P.neg || 0; bad += P.bad || 0;
+    if (span && oldFiles.some(o => o.name !== r.dupOf && o.span && o.span[0] <= span[1] && span[0] <= o.span[1])) over = true;
+  }
   fresh.sort((a, b) => a.d - b.d || b.b - a.b);
-  const cmp = spCompute(), inCheck = fresh.filter(r => cmp.sugg.has(r.k)).length, sum = fresh.reduce((t, r) => t + r.b, 0);
+  const cmp = spCompute(), sum = fresh.reduce((t, r) => t + r.b, 0), fs = spSpan(fresh), n = fresh.length;
+  const chip = (id, w, extra) => { const x = spX(id), c = x ? x.color : '#7F7F7F';
+    return h('span', { class: 'sp-rchip', style: { background: pastel(c), borderColor: c, color: inkC(c) }, tip: 'Regel der Maßnahme „' + spMName(id) + '“ – Schlagwort „' + w + '“' }, w, extra || null); };
+  const rules = new Map();                                    // Maßnahme + Schlagwort → Anzahl
+  for (const r of fresh) for (const g of cmp.sugg.get(r.k) || []) { const k = g.id + '\u0000' + g.w; rules.set(k, { id: g.id, w: g.w, n: ((rules.get(k) || {}).n || 0) + 1 }); }
+  const box = (cls, big, label) => h('div', { class: cls }, h('b', null, big), h('span', null, label));
   modal('Buchungen hinzugefügt', h('div', { class: 'sp-addrep' },
     h('div', { class: 'sp-addsum' },
-      h('div', null, h('b', null, fresh.length.toLocaleString('de-DE')), h('span', null, fresh.length === 1 ? 'neue Spende' : 'neue Spenden'), fresh.length ? h('small', null, eur(sum)) : null),
-      h('div', null, h('b', null, dup.toLocaleString('de-DE')), h('span', null, 'doppelt erkannt'), h('small', null, 'nicht noch einmal gezählt')),
-      h('div', null, h('b', null, report.some(r => !(r.parsed || {}).err && oldFiles.some(o => { const s = spSpan((r.parsed || {}).recs); return o.name !== r.dupOf && s && o.span && o.span[0] <= s[1] && s[0] <= o.span[1]; })) ? 'ja' : 'nein'), h('span', null, 'Zeiträume überschneiden sich'))),
-    h('ul', { class: 'sp-addfiles' }, per),
-    fresh.length ? [h('h3', null, 'Neue Spenden' + (inCheck ? ' · ' + inCheck + ' davon passen zu einer Regel und liegen in „Prüfen“' : '')),
-      h('div', { class: 'sp-addlist' }, h('table', { class: 'grid' }, h('tbody', null, fresh.map(r => h('tr', null,
-        h('td', null, fmtD(r.d)), h('td', { class: 'num' }, eur(r.b)), UI.spDet ? h('td', null, r.name || '') : null, h('td', { class: 'sp-z' }, r.zweck || '–'))))))] :
+      box('sp-as-span', fs ? (fs[0] === fs[1] ? fmtD(fs[0]) : fmtD(fs[0]) + ' – ' + fmtD(fs[1])) : '–', 'Spenden hinzugefügt'),
+      box('sp-as-n', n.toLocaleString('de-DE'), n === 1 ? 'neue Spende' : 'neue Spenden'),
+      box('sp-as-sum', eur(sum), 'Gesamtsumme')),
+    h('div', { class: 'sp-addsum sp-addsum2' },
+      h('div', { class: 'sp-as-ov' + (over ? ' warn' : '') }, h('span', null, over ? 'Zeiträume überschneiden sich' : 'Zeiträume überschneiden sich nicht'),
+        over ? h('small', null, 'doppelte Buchungen zählen nur einmal') : null),
+      h('div', { class: 'sp-as-dup' }, h('span', null, dup ? dup.toLocaleString('de-DE') + (dup === 1 ? ' doppelte Spende erkannt' : ' doppelte Spenden erkannt') : 'Keine doppelten Spenden erkannt'),
+        dup ? h('small', null, 'nicht noch einmal gezählt') : null),
+      h('div', { class: 'sp-as-rules' }, h('span', null, rules.size ? 'Spenden mit folgenden Regeln erkannt' : 'Keine Spenden mit Regel erkannt'),
+        rules.size ? h('div', { class: 'sp-rchips' }, [...rules.values()].sort((p, q) => q.n - p.n).map(g => chip(g.id, g.w, h('small', null, ' · ' + spMName(g.id) + ' (' + g.n + ')')))) : null)),
+    n ? h('div', { class: 'sp-addlist' }, h('table', { class: 'grid' }, h('tbody', null, fresh.map(r => h('tr', null,
+        h('td', null, fmtD(r.d)), h('td', { class: 'num' }, eur(r.b)), UI.spDet ? h('td', null, r.name || '') : null, h('td', { class: 'sp-z' }, r.zweck || '–'),
+        h('td', { class: 'sp-rc' }, (cmp.sugg.get(r.k) || []).map(g => chip(g.id, g.w)))))))) :
       h('p', { class: 'muted' }, 'Keine neuen Spenden – alle Buchungen waren schon eingelesen.'),
+    errs.length ? h('p', { class: 'warn small' }, 'Nicht lesbar: ' + errs.join(', ')) : null,
     neg || bad ? h('p', { class: 'muted small' }, [neg ? neg + ' Abbuchungen/Rücklastschriften übersprungen' : '', bad ? bad + ' Zeilen ohne gültiges Datum oder Betrag' : ''].filter(Boolean).join(' · ')) : null),
     [['Schließen', true, 'primary']], { wide: true, cls: 'sp-addw' });
 }

@@ -76,7 +76,7 @@ const path = require('path');
     await p.evaluate(id => { createPlan(id); }, id); await p.waitForTimeout(150);
     const btn = await p.evaluate(() => [...document.querySelectorAll('.modal .np-big b')].map(e => e.textContent).concat(document.querySelector('.modal .np-copybtn').textContent,
       document.querySelector('.modal .np-big.tpl-simple').getBoundingClientRect().left < document.querySelector('.modal .np-big.tpl-complex').getBoundingClientRect().left));
-    ok(btn.join('|') === 'Einfach|Komplex|Kopie aus vorherigem Plan …|true', 'D: Knöpfe ' + btn.join(' | '));
+    ok(btn.join('|') === 'Blanko|Einfach|Mailing (komplex)|Kopie aus vorherigem Plan …|true', 'D: Knöpfe ' + btn.join(' | '));   // ab 0.14: Blanko und Vorlagen
     await p.click('.modal .tpl-simple'); await p.waitForTimeout(150);
     const nopal = await p.evaluate(() => [!!document.querySelector('.modal'), document.querySelector('.modal .np-msg').textContent, document.querySelector('[data-fk="np:pal"]').classList.contains('bad')]);
     ok(nopal[0] && /PAL/.test(nopal[1]) && nopal[2], 'D: ohne PAL geht es nicht weiter: „' + nopal[1] + '“');

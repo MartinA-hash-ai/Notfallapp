@@ -42,6 +42,12 @@ function checkData(d = D) {
     if (str(u.wer) !== str(u.wer).trim()) add(un + ': Name mit Leerzeichen am Rand', 'Leerzeichen entfernen', dd => { U(dd).wer = str(U(dd).wer).trim(); });
   }
   for (const s of d.sondertage) if (dn(s.datum) == null) { const sid = s.id; add('Freier Tag „' + (s.name || '?') + '“: Datum „' + (s.datum || '') + '“ ungültig', 'löschen', dd => { dd.sondertage = dd.sondertage.filter(q => q.id !== sid); }); }
+  for (const u of d.ferien || []) {
+    const fid = u.id, F = dd => dd.ferien.find(q => q.id === fid), fn0 = 'Ferien' + (u.notiz ? ' „' + u.notiz + '“' : ''), a = dn(u.von), b = dn(u.bis);
+    if (a == null) add(fn0 + ': Beginn „' + (u.von || '') + '“ ungültig', 'löschen', dd => { dd.ferien = dd.ferien.filter(q => q.id !== fid); });
+    else if (u.bis && b == null) add(fn0 + ' ab ' + fmtD(a) + ': Ende „' + u.bis + '“ ungültig', 'Ende = Beginn setzen', dd => { F(dd).bis = F(dd).von; });
+    else if (b != null && b < a) add(fn0 + ': Ende ' + fmtD(b) + ' liegt vor dem Beginn ' + fmtD(a), 'Beginn und Ende tauschen', dd => { const x = F(dd); [x.von, x.bis] = [x.bis, x.von]; });
+  }
   const ids0 = new Set(d.massnahmen.map(m => m.id)), mids = { has: id => ids0.has(id) || isAllg(id) }, S = d.spenden || { zu: {}, vor: {}, nein: {} };
   const orphan = Object.values(S.zu).filter(z => !mids.has(z.m)).length + Object.values(S.vor).filter(v => !mids.has(v)).length + Object.values(S.nein).filter(a => a.some(v => !mids.has(v))).length;
   if (orphan) add(orphan + ' Spenden-Zuordnung' + (orphan === 1 ? '' : 'en') + ' zu einer gelöschten Maßnahme', 'entfernen (die Spenden gelten wieder als offen)', dd => {

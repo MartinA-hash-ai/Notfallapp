@@ -42,7 +42,8 @@ async function pdfDialog() {
         msPicker(f.ms, list)));
   };
   const fromView = () => {
-    f.secs = Object.fromEntries(PDF_SECS.map(([k]) => [k, (VIEW_SECS[UI.view] || []).includes(k) && (UI.secOpen[k] !== undefined ? UI.secOpen[k] : !SEC_CLOSED0.has(k))]));
+    const vs = UI.view === 'einstellungen' ? (UI.settTab === 'urlaub' ? ['urlaub'] : []) : VIEW_SECS[UI.view] || [];
+    f.secs = Object.fromEntries(PDF_SECS.map(([k]) => [k, vs.includes(k) && (UI.secOpen[k] !== undefined ? UI.secOpen[k] : !SEC_CLOSED0.has(k))]));
     if (!Object.values(f.secs).some(Boolean)) f.secs.mass = true;
     f.show = Object.fromEntries(evKeys().map(k => [k, showType(k)])); f.vac = UI.showVac; f.verbund = !!UI.verbund;
     f.ms = new Set(list.filter(x => visibleM(x)).map(x => x.id));

@@ -1,6 +1,6 @@
 /* ===================================================================== Rahmen: Kopfzeile, Reiter, Seitenleiste, Warnungen, Menüs */
 
-// Drei Reiter: planen (Jahresplanung), durchführen (Detailpläne), auswerten (Auswertung). Urlaub & Feiertage über ⋯ bzw. Einstellungen.
+// Drei Reiter: planen (Jahresplanung), durchführen (Detailpläne), auswerten (Auswertung). Urlaub & Feiertage und Vorlagen in den Einstellungen (⋯).
 const VIEWS = [['jahr', 'Jahresplanung'], ['plaene', 'Detailpläne'], ['spenden', 'Auswertung']];
 const OLD_VIEWS = { kalender: 'jahr', massnahmen: 'jahr', zeitleiste: 'jahr', agenda: 'jahr', zeit: 'jahr' };
 const VIEW_FN = {};                  // wird von den Ansichten befüllt
@@ -100,8 +100,8 @@ function topBar() {
         ['Änderungsprotokoll …', logDialog], ['Daten prüfen …', checkDialog], ['Daten zurücksetzen …', resetDialog], null,
         [(DARK ? '☀ Helles Design' : '☾ Dunkles Design'), () => setTheme(DARK ? 'light' : 'dark')],
         ['Programm-Update einspielen …', updateProgram], null,
-        ['Urlaub & Feiertage …', openUrlaub], ['Urlaub / Abwesenheit eintragen …', addVac], null,
-        ['Einstellungen …', settingsDialog], ['Hilfe', helpDialog]], 'right')));
+        ['Urlaub & Feiertage …', () => openSettings('urlaub')], ['Urlaub / Abwesenheit eintragen …', addVac], null,
+        ['Einstellungen …', () => openSettings()], ['Hilfe', helpDialog]], 'right')));
 }
 // Daten zurücksetzen: Spenden-Zuordnungen, Exportdateien, Maßnahmen eines Jahres. Einstellungen bleiben; vorher Datensicherung.
 async function resetDialog() {
@@ -145,15 +145,6 @@ async function resetDialog() {
   renderNow();
   toast('Zurückgesetzt: ' + what.join(', ') + (opt.files && gone < files.length ? ' – ' + (files.length - gone) + ' Datei(en) ließen sich nicht löschen' : '') + '.', gone < files.length && opt.files ? 'warn' : 'ok');
 }
-// Urlaub & Feiertage: eigene Seite ohne Reiter, „← zurück“ führt zur vorherigen Ansicht
-function openUrlaub() {
-  if (UI.view !== 'urlaub') UI._backView = UI.view;
-  UI.view = 'urlaub'; renderNow(); window.scrollTo(0, 0);
-}
-function closeUrlaub() {
-  UI.view = VIEW_FN[UI._backView] && UI._backView !== 'urlaub' ? UI._backView : 'jahr'; renderNow(); window.scrollTo(0, 0);
-}
-
 // Wer hat die Jahresplanung gerade noch geöffnet? (aus den Anwesenheitsdateien im Mailing-Ordner)
 const presName = o => o.name ? (o.name === UI.userName ? o.name + ' (anderes Fenster)' : o.name) : 'Jemand ohne Namen';
 const editingNow = o => o.edit && Date.now() - Date.parse(o.edit) < 5 * 60000;
@@ -473,19 +464,54 @@ async function removeBereich(k) {
 }
 
 /* ---------- Einstellungen: alles wirkt sofort, Personen hier zentral verwalten */
-async function settingsDialog() {
-  const wrap = h('div', { class: 'form settings' });
-  let showLog = false, newName = '', newKey = '', newBName = '', goUrlaub = false, closeSett = () => {};
+// Einstellungen: eigene Seite ohne Reiter, links die Rubriken (auch Urlaub & Feiertage und die Vorlagen der Detailpläne);
+// „← zurück“ führt zur vorherigen Ansicht
+const SETT_TABS = [['allgemein', 'Allgemein'], ['bereiche', 'Bereiche & Personen'], ['urlaub', 'Urlaub & Feiertage'], ['vorlagen', 'Vorlagen für Detailpläne'], ['version', 'Version']];
+const SETT = { showLog: false, newName: '', newKey: '', newBName: '' };
+function openSettings(tab) {
+  if (UI.view !== 'einstellungen') UI._backView = UI.view;
+  if (tab) UI.settTab = tab;
+  UI.view = 'einstellungen'; hideTip(); renderNow(); window.scrollTo(0, 0);
+}
+function closeSettings() {
+  UI.tplSel = null;
+  UI.view = VIEW_FN[UI._backView] && !['einstellungen', 'urlaub'].includes(UI._backView) ? UI._backView : 'jahr'; renderNow(); window.scrollTo(0, 0);
+}
+const settingsDialog = () => openSettings();
+const openUrlaub = () => openSettings('urlaub');
+const closeUrlaub = closeSettings;
+VIEW_FN.einstellungen = main => {
+  const tab = SETT_TABS.some(t => t[0] === UI.settTab) ? UI.settTab : (UI.settTab = 'allgemein');
+  const body = h('div', { class: 'sett-body sett-' + tab });
+  put(main, h('div', { class: 'view-head' }, h('button', { class: 'ghostbtn backbtn screen-only', onclick: closeSettings, tip: 'zurück zur vorherigen Ansicht' }, '← zurück'), h('h1', null, 'Einstellungen')),
+    h('div', { class: 'sett-page' },
+      h('nav', { class: 'sett-nav screen-only' }, SETT_TABS.map(([k, l]) => h('button', { class: 'sett-tab' + (k === tab ? ' on' : ''), dataset: { tab: k }, onclick: () => { UI.settTab = k; if (k !== 'vorlagen') UI.tplSel = null; hideTip(); renderNow(); window.scrollTo(0, 0); } }, l))),
+      body));
+  if (tab === 'urlaub') VIEW_FN.urlaub(body, true);
+  else if (tab === 'vorlagen') tplSettings(body);
+  else put(body, settingsParts()[tab]);
+};
+VIEW_FN['einstellungen:after'] = main => { if (UI.settTab === 'urlaub' || (UI.settTab === 'vorlagen' && UI.tplSel)) VIEW_FN['plaene:after'](main); };
+function settingsParts() {
+  let { showLog, newName, newKey, newBName } = SETT;
+  const draw = () => { Object.assign(SETT, { showLog, newName, newKey, newBName }); renderNow(); };
   const row = (label, inp, hint) => h('div', { class: 'frow' }, h('span', null, label), inp, hint ? h('small', null, hint) : null);
   const usage = n => {
     const u = D.urlaube.filter(v => v.wer === n).length, m = D.massnahmen.filter(q => q.verantwortlich === n).length,
       st = D.massnahmen.reduce((a, q) => a + (q.plan?.steps || []).filter(s => s.wer === n && s.typ !== 'gruppe').length, 0);
     return [u ? u + ' Urlaub' + (u > 1 ? 'e' : '') : '', m ? m + '× hauptverantwortlich' : '', st ? st + ' Schritt' + (st > 1 ? 'e' : '') : ''].filter(Boolean).join(' · ');
   };
-  const draw = () => {
+  const out = {};
+  {
+    const RICHT = [h('h3', null, 'Spenden: Richtwerte'),
+      (() => { const R = spRicht(), set = fn => { commit(d => { const r = Object.assign({}, SP_RICHT0, d.settings.richtwerte); r.resp = r.resp.slice(); r.roi = r.roi.slice(); fn(r); d.settings.richtwerte = r; }); draw(); };
+        const num = (v, k, i) => h('input', { type: 'number', step: '0.1', min: 0, class: 'rw-in', value: v, 'aria-label': 'Richtwert', onchange: e => { const n = parseFloat(e.target.value); if (n >= 0) set(r => { r[k][i] = n; if (r[k][0] > r[k][1]) r[k].reverse(); }); } });
+        return [h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: R.an, onchange: e => set(r => { r.an = e.target.checked; }) }), 'Richtwerte bei den Kennzahlen anzeigen (unter / im / über Richtwert)'),
+          row('Responsequote (%)', h('div', { class: 'inl' }, num(R.resp[0], 'resp', 0), '–', num(R.resp[1], 'resp', 1))),
+          row('ROI (Spenden je 1 € Kosten)', h('div', { class: 'inl' }, num(R.roi[0], 'roi', 0), '–', num(R.roi[1], 'roi', 1)))]; })()];
     const theme = UI.theme || 'light';
     const radio = (v, l) => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'theme', checked: theme === v, onchange: () => { setTheme(v); draw(); } }), l);
-    setKids(wrap, 
+    out.allgemein = h('div', { class: 'form settings' },
       h('h3', null, 'Allgemein'),
       row('Dein Name', h('input', { value: UI.userName || '', onchange: e => { UI.userName = e.target.value.trim(); saveUI(); } }), 'wird beim Speichern vermerkt („gespeichert von …“), nur in diesem Browser'),
       row('Planungsjahr', h('input', { type: 'number', min: 2000, max: 2099, value: D.settings.year, onchange: e => { const v = +e.target.value; if (v >= 2000 && v <= 2099) commit(d => { d.settings.year = v; }); } }),
@@ -493,6 +519,8 @@ async function settingsDialog() {
       h('h3', null, 'Darstellung'),
       h('div', { class: 'inl theme-pick' }, radio('light', 'Hell'), radio('dark', 'Dunkel'), radio('system', 'wie Windows')),
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.splash !== false, onchange: e => { UI.splash = e.target.checked; saveUI(); } }), 'Startbildschirm mit Animation beim Öffnen zeigen'),
+      RICHT);
+    out.bereiche = h('div', { class: 'form settings' },
       h('h3', null, 'Bereiche und Markierungen'),
       h('p', { class: 'muted small' }, 'Die Phasen jeder Maßnahme bis zum PAL, in zeitlicher Reihenfolge. Das Zeichen erscheint als Markierung im Kalender, in der Zeitleiste, in der Tabelle und in den Exporten. Die Linie ist das Teilstück des Bereichs: Verbindungslinie im Kalender und Balken in der Zeitleiste (im Detailplan bleiben die Abschnitte einheitlich grau). „Abgestuft“ = von hell (erster Bereich) nach kräftig (letzter). Im Detailplan wird jeder Abschnitt einem Bereich zugeordnet. Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start.'),
       h('table', { class: 'grid ptable btable' },
@@ -518,15 +546,6 @@ async function settingsDialog() {
         h('input', { placeholder: 'Buchstabe', maxlength: 1, style: 'width:86px', value: newKey, oninput: e => { newKey = e.target.value.toUpperCase(); e.target.value = newKey; } }),
         h('input', { placeholder: 'Name, z. B. Versand', value: newBName, oninput: e => { newBName = e.target.value; }, onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addB(); } } }),
         h('button', { class: 'addbtn', onclick: e => { e.preventDefault(); addB(); } }, '+ Bereich hinzufügen')),
-      h('h3', null, 'Spenden: Richtwerte'),
-      (() => { const R = spRicht(), set = fn => { commit(d => { const r = Object.assign({}, SP_RICHT0, d.settings.richtwerte); r.resp = r.resp.slice(); r.roi = r.roi.slice(); fn(r); d.settings.richtwerte = r; }); draw(); };
-        const num = (v, k, i) => h('input', { type: 'number', step: '0.1', min: 0, class: 'rw-in', value: v, 'aria-label': 'Richtwert', onchange: e => { const n = parseFloat(e.target.value); if (n >= 0) set(r => { r[k][i] = n; if (r[k][0] > r[k][1]) r[k].reverse(); }); } });
-        return [h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: R.an, onchange: e => set(r => { r.an = e.target.checked; }) }), 'Richtwerte bei den Kennzahlen anzeigen (unter / im / über Richtwert)'),
-          row('Responsequote (%)', h('div', { class: 'inl' }, num(R.resp[0], 'resp', 0), '–', num(R.resp[1], 'resp', 1))),
-          row('ROI (Spenden je 1 € Kosten)', h('div', { class: 'inl' }, num(R.roi[0], 'roi', 0), '–', num(R.roi[1], 'roi', 1)))]; })(),
-      h('h3', null, 'Urlaub & Feiertage'),
-      h('div', { class: 'inl' }, h('button', { class: 'sett-urlaub', onclick: e => { e.preventDefault(); goUrlaub = true; closeSett(true); } }, 'Urlaub & Feiertage öffnen …'),
-        h('span', { class: 'muted small' }, 'Urlaube und Abwesenheiten eintragen, Feiertage NRW anpassen, eigene freie Tage (z. B. Brückentage)')),
       h('h3', null, 'Personen'),
       h('p', { class: 'muted small' }, 'Die Farbe gilt für Urlaube und Arbeitsschritte. Umbenennen ändert den Namen überall (Urlaube, Hauptverantwortliche, Arbeitsschritte).'),
       h('table', { class: 'grid ptable' }, h('tbody', null, D.personen.map(p => {
@@ -538,7 +557,8 @@ async function settingsDialog() {
           h('td', { class: 'acts' }, used ? null : h('button', { class: 'icon', tip: 'entfernen', 'aria-label': 'entfernen', onclick: () => { commit(d => { d.personen = d.personen.filter(q => q.name !== p.name); }); draw(); } }, '✕')));
       }))),
       h('div', { class: 'inl addline' }, h('input', { placeholder: 'neue Person', value: newName, oninput: e => { newName = e.target.value; },
-        onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addP(); } } }), h('button', { class: 'addbtn', onclick: e => { e.preventDefault(); addP(); } }, '+ Person hinzufügen')),
+        onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addP(); } } }), h('button', { class: 'addbtn', onclick: e => { e.preventDefault(); addP(); } }, '+ Person hinzufügen')));
+    out.version = h('div', { class: 'form settings' },
       h('h3', null, 'Version'),
       h('div', { class: 'verbox' },
         h('div', null, h('b', null, 'Programmversion ' + APP_INFO.version), h('span', { class: 'muted' }, ' · Stand ' + fmtIsoLocal(APP_INFO.date))),
@@ -549,7 +569,7 @@ async function settingsDialog() {
       showLog ? h('div', { class: 'changelog' }, CHANGELOG.map(c => h('div', { class: 'cl-v' },
         h('div', { class: 'cl-h' }, h('b', null, 'Version ' + c.version), h('span', { class: 'muted small' }, ' · ' + fmtIsoLocal(c.date))),
         h('ul', null, c.items.map(t => h('li', null, t)))))) : null);
-  };
+  }
   const addB = () => {
     const z = newKey.trim().toUpperCase(), nm = newBName.trim();
     if (!SYM_RE.test(z)) { toast('Bitte einen Buchstaben (A–Z) oder eine Ziffer wählen.', 'warn'); return; }
@@ -567,9 +587,7 @@ async function settingsDialog() {
     commit(d => { const used = new Set(d.personen.map(q => q.farbe)); d.personen.push({ name: nv, farbe: PERSON_COLORS.find(c => !used.has(c)) || '#888888' }); });
     newName = ''; draw();
   };
-  draw();
-  await modal('Einstellungen', wrap, [['Schließen', true, 'primary']], { wide: true, cls: 'settingsw', expose: c => { closeSett = c; } });
-  if (goUrlaub) openUrlaub(); else renderNow();
+  return out;
 }
 function helpDialog() {
   const p = t => h('p', null, t);
@@ -581,7 +599,7 @@ function helpDialog() {
     p('Beim ersten Mal einmal den Mailing-Ordner wählen und „Bearbeiten zulassen“. Danach speichert die App automatisch wenige Sekunden nach jeder Änderung – in die Programmdatei und in die Ansichts-Excel „' + VIEW_XLSX + '“. Bei jedem neuen Start fragt der Browser einmal kurz nach („Speichern aktivieren“).'),
     p('Die Excel-Ansicht ist für alle, die nur in Teams hineinschauen: Sie zeigt immer den zuletzt gespeicherten Stand (Übersicht, Kalender, Zeitleiste, Termine, Detailpläne, Urlaub). Sie ist schreibgeschützt; Änderungen dort würden beim nächsten Speichern überschrieben.'),
     h('h3', null, 'Aufbau'),
-    p('Drei Reiter für die drei Aufgaben: „Jahresplanung“ (planen – Maßnahmen, Zeitleiste, Kalender und „Was steht an?“ untereinander, jeder Bereich mit ▾ ein- und ausklappbar), „Detailpläne“ (durchführen) und „Auswertung“ (Spenden zuordnen und auswerten). Urlaub & Feiertage stehen unter ⋯ → „Urlaub & Feiertage …“ und in den Einstellungen; ⋯ → „Urlaub / Abwesenheit eintragen …“ öffnet direkt das Eintragen.'),
+    p('Drei Reiter für die drei Aufgaben: „Jahresplanung“ (planen – Maßnahmen, Zeitleiste, Kalender und „Was steht an?“ untereinander, jeder Bereich mit ▾ ein- und ausklappbar), „Detailpläne“ (durchführen) und „Auswertung“ (Spenden zuordnen und auswerten). Unter ⋯ → „Einstellungen …“ stehen links die Rubriken: Allgemein, Bereiche & Personen, Urlaub & Feiertage (mit Ferienzeiten), Vorlagen für Detailpläne und Version. ⋯ → „Urlaub & Feiertage …“ springt direkt dorthin, ⋯ → „Urlaub / Abwesenheit eintragen …“ öffnet direkt das Eintragen.'),
     h('h3', null, 'Im Team'),
     p('Es sollte immer nur eine Person gleichzeitig ändern. Die App prüft alle 15 Sekunden, ob jemand anderes gespeichert hat: Ohne eigene offene Änderungen lädt sie den neuen Stand automatisch, sonst bietet sie an, beide Stände zusammenzuführen (bei Überschneidungen fragt sie nach).'),
     p('Haben zwei Personen fast gleichzeitig gespeichert, legt OneDrive manchmal eine Kopie mit dem Computernamen an (z. B. „…-LAPTOP.html“). Die App meldet solche Kopien; über „Vergleichen …“ lassen sich fehlende Einträge übernehmen, danach wird die Kopie weggeräumt.'),
@@ -599,7 +617,9 @@ function helpDialog() {
     h('h3', null, 'Bedienung'),
     p('Jahresplanung: oben die Maßnahmen, darunter Zeitleiste, Kalender und „Was steht an?“ – jeder Bereich lässt sich mit ▾ ein- und ausklappen. Maus über einen Tag oder eine Markierung zeigt die Details. Markierung ziehen: P verschiebt das ganze Projekt (alle Bereiche wandern mit), ein Start verschiebt nur diesen Bereich. Klick hält die Maßnahme hervorgehoben, „Bearbeiten“ steht dann hinter ihren Zeilen in der Terminliste.'),
     p('Zeitleiste: Mausrad zoomt (beim Blättern der Seite erst, wenn die Seite kurz stillsteht – Strg+Mausrad zoomt immer), Klick auf einen Monat zoomt hinein, Klick auf den Namen einer Maßnahme zeigt sie ganz. Mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL, die Griffe mit Buchstaben verschieben nur diesen Start. Strg+Z macht jede Änderung rückgängig.'),
-    p('Detailpläne: Abschnitte mit ▾ ein- und ausklappen, Zeilen am ⋮⋮-Griff hoch/runter ziehen. Balken im Gantt ziehen verschiebt den Schritt, an den Enden ziehen ändert die Dauer; die Farbe zeigt, wer zugeordnet ist. ‹ zwischen Tabelle und Gantt blendet die Spalten aus.'),
+    p('Detailpläne: Abschnitte mit ▾ ein- und ausklappen, Zeilen am ⋮⋮-Griff hoch/runter ziehen. Balken im Gantt ziehen verschiebt den Schritt, an den Enden ziehen ändert die Dauer; die Farbe zeigt, wer zugeordnet ist. ‹ zwischen Tabelle und Gantt blendet die Spalten aus. Dauern zählen in Werktagen; das Ende einer Aufgabe ist der Übergabetag (der nächste Werktag).'),
+    p('Verknüpfte Termine (Strg + Ziehen) haben immer dasselbe Datum: Verlängert man eine Aufgabe nach hinten, rücken die Nachfolger mit; verschiebt man einen Nachfolger oder lässt ihn früher beginnen, wandern die Vorgänger (und alles davor) mit. Der PAL bleibt fest.'),
+    p('Neue Detailpläne: „Blanko“ (leer), „Einfach“ (je Bereich ein Schritt) oder eine Vorlage. Vorlagen bearbeitet man unter Einstellungen → Vorlagen für Detailpläne wie einen Plan; „Als Vorlage speichern …“ im Kopf eines Plans macht aus einem fertigen Plan eine Vorlage.'),
     p('Maßnahmen mit Detailplan (z. B. Sommer- und Weihnachtsmailing) berechnen die Starts der Bereiche aus den Arbeitsschritten – wie im Excel-Gantt.')), null, { wide: true });
 }
 

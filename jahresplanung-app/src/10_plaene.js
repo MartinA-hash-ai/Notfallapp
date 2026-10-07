@@ -129,15 +129,123 @@ function setStepSpan(m, sid, ns, ne, keepDur) {
   const r = planCalc(m).map.get(sid) || {};
   const a = s.anker || { art: 'offen' };
   const pal = dn(m.pal);
+  let ns2 = ns;
   if (a.art === 'fest') s.anker = { art: 'fest', datum: ds(ne) };
-  else if (a.art === 'nach' && r.start != null) a.offset = (+a.offset || 0) + (ns - r.start);   // beginnt nach Vorgängern: Abstand ändert sich
+  else if (a.art === 'nach' && r.start != null) {
+    // verknüpft: der Beginn bleibt am Ende der Vorgänger – sie (und alles davor) wandern mit; geht das nicht, ändert sich der Abstand
+    const want = isWT(m) ? nextWorkday(ns) : ns;
+    if (want !== r.start && !pullPreds(m, sid, want)) a.offset = (+a.offset || 0) + (ns - r.start);
+    else ns2 = (planCalc(m).map.get(sid) || {}).start ?? ns;
+  }
   else if (r.end == null || a.art === 'offen') s.anker = pal != null ? { art: 'pal', offset: ne - pal } : { art: 'fest', datum: ds(ne) };
+  else if (a.art === 'pal' && pal != null) a.offset = ne - pal;
   else a.offset = (+a.offset || 0) + (ne - r.end);
-  if (s.typ === 'aufgabe' && !keepDur) s.dauer = spanOf(m, ns, ne);
+  if (s.typ === 'aufgabe' && !keepDur) s.dauer = spanOf(m, ns2, Math.max(ns2, ne));
+}
+// Beginn eines verknüpften Schritts auf „target“ legen, indem seine Vorgänger-Kette mitwandert: alle Schritte am Anfang der Kette
+// (hängen am PAL oder haben ein festes Datum) rücken um denselben Abstand – alles, was daran hängt, folgt. Der PAL selbst bleibt.
+function pullPreds(m, sid, target) {
+  const byId = new Map(m.plan.steps.map(q => [q.id, q])), roots = [], seen = new Set(), st = [...predsOf(byId.get(sid))], pal = dn(m.pal);
+  while (st.length) {
+    const id = st.pop(); if (seen.has(id)) continue; seen.add(id);
+    const q = byId.get(id); if (!q || q.typ === 'gruppe') continue;
+    if (q.anker && q.anker.art === 'nach') st.push(...predsOf(q)); else roots.push(q);
+  }
+  const fixed = q => q.pal || !q.anker || !((q.anker.art === 'pal' && pal != null) || (q.anker.art === 'fest' && dn(q.anker.datum) != null));
+  if (!roots.length || roots.some(fixed)) return false;
+  const base = roots.map(q => [q, q.anker.art === 'pal' ? pal + (+q.anker.offset || 0) : dn(q.anker.datum)]);
+  const put = d => base.forEach(([q, e]) => { q.anker = q.anker.art === 'pal' ? { art: 'pal', offset: e + d - pal } : { art: 'fest', datum: ds(e + d) }; });
+  const at = () => (planCalc(m).map.get(sid) || {}).start;
+  const s0 = at(); if (s0 == null) return false;
+  let d = target - s0, best = null;
+  for (let i = 0; i < 8; i++) {                   // Wochenenden/Feiertage: nachjustieren, bis der Beginn sitzt (oder so nah wie möglich)
+    put(d); const s1 = at(); if (s1 == null) break;
+    const miss = s1 - target;
+    if (!best || Math.abs(miss) < Math.abs(best.miss)) best = { d, miss };
+    if (!miss) break;
+    d -= miss;
+  }
+  if (!best) { put(0); return false; }
+  put(best.d);
+  return true;
+}
+// Verknüpfungen mit Abstand (aus älteren Versionen oder gelösten Zwischenschritten): beginnt der Nachfolger nicht am Übergabetag?
+const linkGaps = m => (m.plan ? m.plan.steps : []).filter(q => q.anker && q.anker.art === 'nach' && (+q.anker.offset || 0) !== 0);
+function closeLinkGaps(mid) {
+  let n = 0;
+  commit(d => { for (const q of linkGaps(findM(d, mid))) { q.anker.offset = 0; n++; } }, null);
+  if (n) toast(n === 1 ? '1 verknüpfter Termin angeglichen – beginnt jetzt direkt am Ende seines Vorgängers' : n + ' verknüpfte Termine angeglichen – sie beginnen jetzt direkt am Ende ihrer Vorgänger', 'ok');
 }
 
 /* ---------- Anlegen, Entfernen, Schritte */
 // Vorlage „Bereiche“: je Bereich ein Abschnitt mit einem Arbeitsschritt, rückwärts verkettet bis zum PAL (Briefkasten-Termin als Ziel)
+/* ---------- Vorlagen für Detailpläne (Einstellungen → Vorlagen): Blanko, eigene, aus einem Plan */
+const blankPlan = () => ({ steps: [{ id: uid(), typ: 'gruppe', name: 'Arbeitsschritte' }], marks: {}, wt: true });
+const tplInfo = v => { const st = (v.plan && v.plan.steps) || [], n = st.filter(s => s.typ !== 'gruppe' && !s.pal).length, g = st.filter(s => s.typ === 'gruppe').map(s => s.name);
+  return n + (n === 1 ? ' Schritt' : ' Schritte') + (g.length ? ' in ' + g.length + (g.length === 1 ? ' Abschnitt' : ' Abschnitten') + ': ' + g.join(', ') : ''); };
+function addTemplate(t, msg) {
+  t.plan.steps.forEach(s => { s.fortschritt = 0; });
+  ensurePalStep(t.plan);
+  commit(d => { (d.vorlagen = d.vorlagen || []).push(t); }, msg);
+  return t.id;
+}
+function newTemplate(fromMid) {
+  const src = fromMid && findM(D, fromMid), id = uid();
+  addTemplate(src && src.plan ? { id, name: (src.name || 'Plan') + ' (Vorlage)', pal: src.pal || TPL_PAL, plan: JSON.parse(JSON.stringify(src.plan)) } : { id, name: 'Neue Vorlage', pal: TPL_PAL, plan: blankPlan() },
+    src ? 'Vorlage aus „' + src.name + '“ angelegt' : 'Neue Vorlage angelegt');
+  UI.settTab = 'vorlagen'; UI.tplSel = id; UI.focusFk = 'tpl:' + id + ':name';
+  if (UI.view !== 'einstellungen') openSettings('vorlagen'); else { renderNow(); window.scrollTo(0, 0); }
+}
+async function saveAsTemplate(mid) {
+  const m = findM(D, mid); if (!m || !m.plan) return;
+  let name = (m.name || 'Plan') + ' (Vorlage)';
+  const ok = await modal('Als Vorlage speichern', h('div', { class: 'form' },
+    h('label', { class: 'frow' }, h('span', null, 'Name der Vorlage'), h('input', { class: 'tpl-nm', value: name, oninput: e => { name = e.target.value; } })),
+    h('p', { class: 'muted small' }, 'Abschnitte, Aufgaben, Dauern, Verknüpfungen, Personen und Kommentare werden übernommen; die Termine hängen am PAL. Bearbeiten unter Einstellungen → Vorlagen für Detailpläne.')),
+    [['Abbrechen', false], ['Speichern', true, 'primary']]);
+  if (ok !== true || !name.trim()) return;
+  addTemplate({ id: uid(), name: name.trim(), pal: m.pal || TPL_PAL, plan: JSON.parse(JSON.stringify(m.plan)) }, 'Vorlage „' + name.trim() + '“ gespeichert');
+  toast('Vorlage „' + name.trim() + '“ gespeichert – sie steht beim Anlegen eines Detailplans zur Wahl.', 'ok');
+}
+function copyTemplate(id) {
+  const v = (D.vorlagen || []).find(q => q.id === id); if (!v) return;
+  addTemplate(Object.assign(JSON.parse(JSON.stringify(v)), { id: uid(), name: v.name + ' (Kopie)' }), 'Vorlage kopiert');
+}
+async function deleteTemplate(id) {
+  const v = (D.vorlagen || []).find(q => q.id === id); if (!v) return;
+  if (!await confirmBox('Vorlage löschen', '„' + v.name + '“ löschen? Bestehende Detailpläne bleiben unverändert. (Strg+Z macht es rückgängig.)', 'Löschen')) return;
+  commit(d => { d.vorlagen = d.vorlagen.filter(q => q.id !== id); }, 'Vorlage gelöscht');
+  if (UI.tplSel === id) UI.tplSel = null;
+}
+// Einstellungen → Vorlagen: Liste – oder eine Vorlage im Plan-Editor
+function tplSettings(body) {
+  const sel = UI.tplSel && (D.vorlagen || []).find(v => v.id === UI.tplSel), x = sel && C.byId.get(sel.id);
+  if (x) {
+    put(body, h('div', { class: 'view-head sett-head' },
+      h('button', { class: 'ghostbtn tpl-back', onclick: () => { UI.tplSel = null; renderNow(); window.scrollTo(0, 0); } }, '← alle Vorlagen'), h('h2', null, 'Vorlage bearbeiten')),
+      h('p', { class: 'muted small tpl-hint' }, 'Wie ein Detailplan: Abschnitte, Aufgaben, Dauern in Werktagen, Verknüpfungen (Strg + Ziehen). Beim Anlegen eines Plans rechnet die App alles vom echten PAL aus.'));
+    planEditor(body, x);
+    return;
+  }
+  UI.tplSel = null;
+  const list = D.vorlagen || [], plans = C.ms.filter(q => q.m.plan);
+  let from = plans[0] ? plans[0].id : null;
+  put(body, h('div', { class: 'form settings' },
+    h('h3', null, 'Vorlagen für Detailpläne'),
+    h('p', { class: 'muted small' }, 'Beim Anlegen eines Detailplans stehen „Blanko“ (leer), „Einfach“ (je Bereich ein Schritt) und diese Vorlagen zur Wahl – z. B. eine eigene für Presse- und Öffentlichkeitsarbeit mit anderen Abschnitten.'),
+    list.length ? h('table', { class: 'grid tpltable' }, h('tbody', null, list.map(v => h('tr', { dataset: { tpl: v.id } },
+      h('td', { class: 'tpl-n' }, h('input', { value: v.name, 'aria-label': 'Name der Vorlage', onchange: e => { const nv = e.target.value.trim(); if (nv) setM(v.id, 'name', nv, 'Vorlage umbenannt'); } })),
+      h('td', { class: 'muted small' }, tplInfo(v)),
+      h('td', { class: 'acts' },
+        h('button', { class: 'tpl-edit', onclick: () => { UI.tplSel = v.id; renderNow(); window.scrollTo(0, 0); } }, 'Bearbeiten'),
+        h('button', { class: 'icon tpl-dup', tip: 'kopieren', 'aria-label': 'kopieren', onclick: () => copyTemplate(v.id) }, '⧉'),
+        h('button', { class: 'icon tpl-del', tip: 'löschen', 'aria-label': 'löschen', onclick: () => deleteTemplate(v.id) }, '✕')))))) : h('p', { class: 'muted' }, 'Noch keine Vorlagen.'),
+    h('div', { class: 'inl addline' },
+      h('button', { class: 'addbtn tpl-new', onclick: () => newTemplate() }, '+ Neue Vorlage'),
+      plans.length ? [h('span', { class: 'muted small' }, 'oder aus einem Detailplan:'),
+        h('select', { class: 'tpl-from', onchange: e => { from = e.target.value; } }, plans.map(q => h('option', { value: q.id }, q.m.name + (q.pal != null ? ' (' + ymd(q.pal)[0] + ')' : '')))),
+        h('button', { class: 'addbtn tpl-fromplan', onclick: () => from && newTemplate(from) }, 'übernehmen')] : null)));
+}
 function phasePlan(pal, starts) {
   const list = PH().filter(p => starts[p.key] != null).sort((a, b) => starts[a.key] - starts[b.key]);
   const steps = [], tasks = [];
@@ -195,9 +303,12 @@ async function createPlan(id) {
     h('p', { class: 'muted small' }, 'Leer gelassene Starts übernimmt die App aus der Vorlage. Die Arbeitsschritte werden rückwärts vom PAL aus geplant.'),
     msg,
     h('div', { class: 'np-choice' },
-      h('button', { class: 'np-big tpl-simple', onclick: () => pick('bereiche') }, h('b', null, 'Einfach'), h('span', null, 'nur die Bereiche: ' + PH().map(p => p.name).join(', ') + ' – dann PAL')),
-      h('button', { class: 'np-big tpl-complex', onclick: () => pick('mailing') }, h('b', null, 'Komplex'), h('span', null, 'Aufbau wie Sommer-/Weihnachtsmailing: alle Arbeitsschritte, ohne Personen'))),
-    h('button', { class: 'np-copybtn tpl-copy', onclick: () => { showCopy = !showCopy; drawCopy(); } }, 'Kopie aus vorherigem Plan …'),
+      h('button', { class: 'np-big tpl-blank', onclick: () => pick('blanko') }, h('b', null, 'Blanko'), h('span', null, 'leer – nur der PAL; Abschnitte und Aufgaben trägst du selbst ein')),
+      h('button', { class: 'np-big tpl-simple', onclick: () => pick('bereiche') }, h('b', null, 'Einfach'), h('span', null, 'je Bereich ein Schritt: ' + PH().map(p => p.name).join(', ') + ' – dann PAL')),
+      (D.vorlagen || []).map(v => h('button', { class: 'np-big tpl-own' + (v.id === 'tpl-mailing' ? ' tpl-complex' : ''), dataset: { tpl: v.id }, onclick: () => pick('tpl', v.id) }, h('b', null, v.name), h('span', null, tplInfo(v))))),
+    h('div', { class: 'np-links' },
+      h('button', { class: 'np-copybtn tpl-copy', onclick: () => { showCopy = !showCopy; drawCopy(); } }, 'Kopie aus vorherigem Plan …'),
+      h('button', { class: 'np-copybtn tpl-manage', tip: 'Einstellungen → Vorlagen für Detailpläne', onclick: () => { close(null); openSettings('vorlagen'); } }, 'Vorlagen bearbeiten oder eigene erstellen …')),
     copyBox);
   const res = await modal('Detailplan anlegen für „' + x.m.name + '“', body, [['Abbrechen', false]], { wide: true, expose: c => { close = c; } });
   if (!res || !res.kind) return;
@@ -206,7 +317,12 @@ async function createPlan(id) {
     const m = findM(d, id), pal = f.pal;
     const starts = Object.fromEntries(PH().map(p => [p.key, f.st[p.key]]).filter(([, v]) => v != null));
     let plan;
-    if (res.kind === 'mailing') {
+    if (res.kind === 'blanko') plan = blankPlan();
+    else if (res.kind === 'tpl') {                                                            // eigene Vorlage: hängt am PAL – feste Termine wandern mit
+      const v = (d.vorlagen || []).find(q => q.id === res.src), vp = dn(v.pal);
+      plan = JSON.parse(JSON.stringify(v.plan));
+      if (vp != null) plan.steps.forEach(s => { if (s.anker && s.anker.art === 'fest' && dn(s.anker.datum) != null) s.anker.datum = ds(dn(s.anker.datum) + (pal - vp)); });
+    } else if (res.kind === 'mailing') {
       plan = migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key));
       plan.steps.forEach(s => { s.wer = ''; });                                              // ohne Zugehörigkeiten
     } else if (res.kind === 'bereiche') plan = phasePlan(pal, Object.assign(Object.fromEntries(PH().filter(p => isNum(p.vorlauf)).map(p => [p.key, pal - p.vorlauf])), starts));
@@ -223,7 +339,7 @@ async function createPlan(id) {
     if (!plan.wt) planToWT(m);                             // Vorlage (Kalendertage) am echten PAL auf Werktage umrechnen
     unlinkSections(m); forwardLinks(m);                     // Vorlage: Verknüpfungen vorwärts (Beginn nach Ende), alte über Abschnitte gelöst
     // vom PAL aus rückwärts anpassen (spätester Bereich zuerst), sonst verschiebt ein späterer Bereich die früheren wieder
-    if (res.kind !== 'bereiche') for (const k of Object.keys(starts).sort((a, b) => starts[b] - starts[a])) {
+    if (res.kind !== 'bereiche' && res.kind !== 'blanko') for (const k of Object.keys(starts).sort((a, b) => starts[b] - starts[a])) {
       const r = adjustMark(m, k, starts[k]);
       if (r && r.changed.length) info = info.concat(r.changed);
     }
@@ -314,6 +430,7 @@ function addStep(mid, gid, afterId) {
     let at = steps.length;
     const i = afterId ? steps.findIndex(q => q.id === afterId) : -1, b2 = gid ? groupBlocks(steps).get(gid) : null;
     if (i >= 0) at = i + 1; else if (b2) at = b2[1];
+    if (at > 0 && isPalStep(steps[at - 1]) && !(i >= 0 && steps[i].pal)) at--;      // am Ende des Abschnitts: vor dem Briefkasten-Termin einfügen
     steps.splice(at, 0, { id: nid, typ: 'aufgabe', name: 'Neue Aufgabe', wer, kommentar: '', dauer: DEF_WT, fortschritt: 0,
       anker: pal != null ? { art: 'pal', offset: e0 - pal } : { art: 'fest', datum: ds(e0) } });
   }, 'Aufgabe angelegt');
@@ -328,29 +445,50 @@ function addGroup(mid) {
 function deleteStep(mid, sid) {
   const s0 = ((findM(D, mid) || {}).plan || { steps: [] }).steps.find(q => q.id === sid);
   if (s0 && s0.pal) { toast('Der Briefkasten-Termin (PAL) gehört immer zum Plan und lässt sich nicht löschen.', 'warn'); return; }
+  dropSteps(mid, [sid], 'Gelöscht');
+}
+// Schritte entfernen – wer nach einem gelöschten Schritt begann, beginnt jetzt nach dessen (nicht gelöschten) Vorgängern
+// (sonst hängt er am PAL); die Termine der übrigen Schritte bleiben gleich
+function dropSteps(mid, ids, msg) {
   let lostMark = [];
   commit(d => {
-    const m = findM(d, mid), p = m.plan, pc = planCalc(m), del = p.steps.find(q => q.id === sid);
-    if (!del) return;
-    const da = del.anker || { art: 'offen' }, pal = dn(m.pal);
-    p.steps = p.steps.filter(q => q.id !== sid);
-    // wer nach dem gelöschten Schritt begann, beginnt jetzt nach dessen Vorgängern (sonst hängt er am PAL) – die Termine bleiben gleich
-    p.steps.forEach(q => { if (predsOf(q).includes(sid)) setPreds(q, [...new Set(predsOf(q).filter(id => id !== sid).concat(predsOf(del)))], pc.map.get(q.id), pc.map, pal); });
-    // (ältere Pläne) wer am gelöschten Schritt hing, hängt jetzt an dessen Bezugspunkt
+    const m = findM(d, mid), p = m.plan, pc = planCalc(m), pal = dn(m.pal), gone = new Set(ids), byId = new Map(p.steps.map(q => [q.id, q]));
+    if (!p.steps.some(q => gone.has(q.id))) return;
+    const up = id => { const out = [], seen = new Set(), st = [id]; while (st.length) { const q = st.pop(); if (seen.has(q)) continue; seen.add(q); for (const r of predsOf(byId.get(q))) (gone.has(r) ? st : out).push(r); } return out; };
+    p.steps = p.steps.filter(q => !gone.has(q.id));
+    p.steps.forEach(q => { const pr = predsOf(q); if (pr.some(id => gone.has(id))) setPreds(q, [...new Set(pr.flatMap(id => gone.has(id) ? up(id) : [id]))], pc.map.get(q.id), pc.map, pal); });
+    // (ältere Pläne) wer an einem gelöschten Schritt hing, hängt jetzt an dessen Bezugspunkt
     p.steps.forEach(q => {
-      if (!q.anker || q.anker.ref !== sid) return;
+      if (!q.anker || !gone.has(q.anker.ref)) return;
+      const del = byId.get(q.anker.ref), da = del.anker || { art: 'offen' };
       const r = pc.map.get(q.id) || {}, qo = +q.anker.offset || 0;
-      const rd = pc.map.get(sid), span = rd && rd.start != null && rd.end != null ? rd.end - rd.start : Math.round(+del.dauer || 0);
+      const rd = pc.map.get(del.id), span = rd && rd.start != null && rd.end != null ? rd.end - rd.start : Math.round(+del.dauer || 0);
       const shift = qo + (q.anker.art === 'start' && del.typ === 'aufgabe' ? -span : 0);
-      if (da.art === 'pal' || da.art === 'start' || da.art === 'ende') q.anker = { art: da.art, ref: da.ref, offset: (+da.offset || 0) + shift };
+      if ((da.art === 'pal' || da.art === 'start' || da.art === 'ende') && !gone.has(da.ref)) q.anker = { art: da.art, ref: da.ref, offset: (+da.offset || 0) + shift };
       else if (r.end != null) q.anker = pal != null ? { art: 'pal', offset: r.end - pal } : { art: 'fest', datum: ds(r.end) };
       else q.anker = { art: 'offen' };
       if (q.anker.art === 'pal') delete q.anker.ref;
     });
-    for (const k of Object.keys(p.marks || {})) if (p.marks[k] === sid) delete p.marks[k];
-    if (del.typ === 'gruppe' && del.bereich && !p.steps.some(q => q.typ === 'gruppe' && q.bereich === del.bereich)) lostMark.push(phName(del.bereich));
-  }, 'Gelöscht');
+    for (const k of Object.keys(p.marks || {})) if (gone.has(p.marks[k])) delete p.marks[k];
+    for (const id of gone) { const del = byId.get(id); if (del && del.typ === 'gruppe' && del.bereich && !p.steps.some(q => q.typ === 'gruppe' && q.bereich === del.bereich)) lostMark.push(phName(del.bereich)); }
+  }, msg);
   if (lostMark.length) toast('Der Bereich „' + lostMark.join(', ') + '“ hat jetzt keinen Abschnitt mehr – an einem anderen Abschnitt wählen.', 'warn');
+}
+// Abschnitt löschen: auf Wunsch (vorausgewählt) mit allen Schritten darin – der Briefkasten-Termin (PAL) bleibt immer
+async function deleteGroup(mid, gid) {
+  const p = C.byId.get(mid).m.plan, bl = groupBlocks(p.steps).get(gid); if (!bl) return;
+  const g = p.steps[bl[0]], inner = p.steps.slice(bl[0] + 1, bl[1]), del = inner.filter(s => !s.pal), keep = inner.some(s => s.pal);
+  if (!del.length) { dropSteps(mid, [gid], 'Abschnitt „' + g.name + '“ gelöscht'); return; }
+  let all = true;
+  const ok = await modal('Abschnitt „' + g.name + '“ löschen', h('div', { class: 'form' },
+    h('label', { class: 'gdel-opt' }, h('input', { type: 'checkbox', checked: true, onchange: e => { all = e.target.checked; } }),
+      h('span', null, h('b', null, 'Alle Aufgaben darin mitlöschen'), h('span', { class: 'muted small' }, ' (' + del.length + (del.length === 1 ? ' Schritt' : ' Schritte') + ')'))),
+    h('p', { class: 'muted small' }, 'Ohne Häkchen wird nur die Abschnittszeile gelöscht, die Aufgaben bleiben im Plan.' +
+      (keep ? ' Der Briefkasten-Termin (PAL) bleibt in jedem Fall bestehen.' : '') + ' Strg+Z macht das Löschen rückgängig.')),
+    [['Abbrechen', false], ['Löschen', true, 'danger']], { cls: 'gdel' });
+  if (ok !== true) return;
+  if (all) dropSteps(mid, [gid, ...del.map(s => s.id)], 'Abschnitt „' + g.name + '“ mit ' + del.length + (del.length === 1 ? ' Schritt' : ' Schritten') + ' gelöscht');
+  else dropSteps(mid, [gid], 'Abschnitt „' + g.name + '“ gelöscht – die Schritte bleiben');
 }
 function moveRows(mid, fromId, beforeId) {      // Schritt oder ganzen Abschnitt verschieben
   commit(d => {
@@ -382,9 +520,15 @@ VIEW_FN.plaene = main => {
     cand.length ? h('span', { class: 'pnew' }, h('select', { onchange: e => { newFor = e.target.value; } }, cand.map(x => h('option', { value: x.id }, x.m.name))),
       h('button', { class: 'primary', onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
-    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
+    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; verknüpfte Termine haben immer dasselbe Datum (verschiebt man einen, wandert der andere mit). Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);
   if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan mit PAL in ' + UI.year + '. Oben eine Maßnahme wählen und „Detailplan anlegen“' + (C.ms.some(q => q.m.plan) ? ' – oder mit ‹ › oben das Jahr wechseln.' : '.'))); return; }
+  planEditor(main, x);
+};
+// Welcher Plan ist gerade im Editor? In den Einstellungen die gewählte Vorlage, sonst der Detailplan
+const curPlanId = () => UI.view === 'einstellungen' && UI.settTab === 'vorlagen' && UI.tplSel ? UI.tplSel : UI.planSel;
+// Editor eines Plans (Tabelle + Gantt) – für Detailpläne und für Vorlagen (x.tpl: Beispiel-PAL, ohne Bereichs-Starts der Maßnahme)
+function planEditor(main, x) {
   const m = x.m, p = m.plan, pc = x.pc, today = todayDn(), compact = !!UI.planCompact;
   const persons = [...new Set(p.steps.filter(s => s.typ === 'aufgabe').map(s => s.wer || ''))];
   const barColor = w => w ? personColor(w) : '#9E9E9E';
@@ -401,14 +545,17 @@ VIEW_FN.plaene = main => {
   // Kopf: oben Name und PAL, rechts die Legende; darunter die Starts der Bereiche (und künftige weitere Termine)
   put(main, h('div', { class: 'phead', style: { borderColor: x.color } },
     h('div', { class: 'ph-top' },
-      h('h2', { style: { color: inkC(x.color) } }, m.name),
-      h('label', { class: 'inl ph-pal' }, demoChip('P', 'palred'), 'PAL', dateInput(m.pal, 'pl:pal', v => setM(m.id, 'pal', v || null))),
+      x.tpl ? h('input', { class: 'tpl-name', value: m.name, 'data-fk': 'tpl:' + m.id + ':name', 'aria-label': 'Name der Vorlage', onchange: e => { const v = e.target.value.trim(); if (v) setM(m.id, 'name', v); } })
+        : h('h2', { style: { color: inkC(x.color) } }, m.name),
+      h('label', { class: 'inl ph-pal', tip: x.tpl ? 'Nur zum Anschauen: beim Anlegen eines Plans rechnet die Vorlage vom echten PAL aus' : null }, demoChip('P', 'palred'), x.tpl ? 'Beispiel-PAL' : 'PAL',
+        dateInput(m.pal, 'pl:pal', v => { if (v || !x.tpl) setM(m.id, 'pal', v || null); })),
       h('div', { class: 'plegend' }, persons.map(w => h('span', { class: 'pleg' }, h('span', { class: 'pbox', style: { background: midtone(barColor(w)), borderColor: barColor(w) } }), w || 'nicht zugeordnet')))),
     h('div', { class: 'ph-bot' },
       h('div', { class: 'pdates' },
         PH().map(ph => h('label', { class: 'inl', tip: pc.ph[ph.key] ? 'Datum eintragen – die Dauer des längsten Schritts davor passt sich an' : 'Noch kein Abschnitt mit Bereich „' + ph.name + '“ (Bereich am Abschnitt wählen)' },
           demoChip(ph.key), startLabel(ph.key), dateInput(x.st[ph.key] != null ? ds(x.st[ph.key]) : '', 'pl:' + ph.key, v => setMarkDate(m.id, ph.key, v), { disabled: !pc.ph[ph.key] })))),
-      h('span', { class: 'tools' }, h('button', { class: 'ghostbtn danger', onclick: () => removePlan(m.id) }, 'Plan entfernen')))));
+      h('span', { class: 'tools' }, x.tpl ? null : [h('button', { class: 'ghostbtn tpl-save', tip: 'Aufbau dieses Plans als Vorlage für neue Detailpläne speichern (Einstellungen → Vorlagen)', onclick: () => saveAsTemplate(m.id) }, 'Als Vorlage speichern …'),
+        h('button', { class: 'ghostbtn danger', onclick: () => removePlan(m.id) }, 'Plan entfernen')]))));
 
   // ---- Kopf und Hintergrund des Gantt
   const ghead = h('div', { class: 'g-head', style: { width: W + 'px' } });
@@ -471,7 +618,7 @@ VIEW_FN.plaene = main => {
           h('div', { class: 'c-grest muted small' }, inner.length + (inner.length === 1 ? ' Schritt' : ' Schritte') + (spans.length ? ' · ' + fmtS(Math.min(...spans.map(q => q.start))) + ' – ' + fmtS(Math.max(...spans.map(q => q.end))) : ''))],
         h('div', { class: 'c-acts' }, menuButton('⋯', [['Neue Aufgabe', () => addStep(m.id, s.id)], ['Ganzen Abschnitt zuordnen …', () => groupPersonDialog(m.id, s.id)],
           spans.length ? ['Abschnitt verschieben …', () => shiftGroupDialog(m.id, s.id)] : false, ['Neuer Abschnitt', () => addGroup(m.id)], null,
-          ['Abschnitt löschen (Schritte bleiben)', () => deleteStep(m.id, s.id)]], 'right'))));
+          ['Abschnitt löschen …', () => deleteGroup(m.id, s.id)]], 'right'))));
       const g = h('div', { class: 'g-row grp' });
       if (spans.length) {
         const a = Math.min(...spans.map(q => q.start)), b = Math.max(...spans.map(q => q.end));
@@ -560,12 +707,12 @@ VIEW_FN.plaene = main => {
   const table = h('div', { class: 'pl-table' }, thead, trows,
     h('div', { class: 'pl-row addrow' + (compact ? ' compact' : '') }, h('div', { class: 'c-add' }, h('button', { class: 'addlink', onclick: () => addGroup(m.id) }, '+ Abschnitt'))));
   linkHandlers(table, m.id);
-  put(main, palOverBanner(x, over), personList(), h('div', { class: 'pl-split' + (compact ? ' compact' : ''), style: { '--lkc': inkC(x.color) } },
+  put(main, palOverBanner(x, over), linkGapBanner(x), personList(), h('div', { class: 'pl-split' + (compact ? ' compact' : ''), style: { '--lkc': inkC(x.color) } },
     table,
     h('div', { class: 'pl-divider' }, h('button', { class: 'divbtn', tip: compact ? 'alle Spalten zeigen' : 'nur Arbeitsschritte zeigen – mehr Platz für das Gantt', 'aria-label': 'Tabelle ein-/ausklappen',
       onclick: () => { UI.planCompact = !compact; UI.planPxd = 0; saveUI(); renderNow(); } }, compact ? '›' : '‹')),
     gantt));
-};
+}
 // Zeichen des Bereichs in der Abschnittszeile (nicht mehr am ersten Schritt); Hinweis: Start und womit er beginnt
 function groupMark(g, pc, p) {
   const k = g.bereich; if (!k || !phase(k)) return null;
@@ -612,12 +759,17 @@ function shiftGroup(mid, gid, dd) {
   commit(d => {
     const m = findM(d, mid); if (!m || !m.plan) return;
     const pc0 = planCalc(m), bl = groupBlocks(m.plan.steps).get(gid); if (!bl) return;
-    const tg = m.plan.steps.slice(bl[0] + 1, bl[1]).filter(q => !q.pal).map(q => [q.id, pc0.map.get(q.id)]).filter(([, r]) => r && r.end != null)
+    const inner = m.plan.steps.slice(bl[0] + 1, bl[1]).filter(q => !q.pal), inG = new Set(inner.map(q => q.id));
+    // nur die Anfänge der Ketten im Abschnitt verschieben – wer nach einem Schritt im Abschnitt beginnt, folgt über die Verknüpfung (dasselbe Datum)
+    const tg = inner.filter(q => !predsOf(q).some(r => inG.has(r))).map(q => [q.id, pc0.map.get(q.id)]).filter(([, r]) => r && r.end != null)
       .map(([id, r]) => [id, (r.start ?? r.end) + dd, r.end + dd]);
-    // mehrere Durchgänge: hängt ein Schritt an einem anderen im Abschnitt, wandert er beim ersten schon mit – danach wird nachkorrigiert
+    // mehrere Durchgänge: hängen Schritte über andere Abschnitte zusammen, wird nachkorrigiert
     for (let pass = 0; pass < 8; pass++) {
       let moved = false;
-      for (const [id, ns, ne] of tg) { const r = planCalc(m).map.get(id); if (r && r.end !== ne) { setStepSpan(m, id, ns, ne); moved = true; } }
+      for (const [id, ns, ne] of tg) {
+        const r = planCalc(m).map.get(id), q = m.plan.steps.find(z => z.id === id), task = q && q.typ === 'aufgabe' && isWT(m);
+        if (r && (task ? r.start !== nextWorkday(ns) : r.end !== ne)) { setStepSpan(m, id, ns, ne, true); moved = true; }   // Dauer (Werktage) bleibt
+      }
       if (!moved) break;
     }
   }, 'Abschnitt um ' + (dd > 0 ? '+' : '') + dd + ' Tage verschoben');
@@ -756,7 +908,7 @@ const stepName = (p, id) => '„' + ((p.steps.find(s => s.id === id) || {}).name
 function linkSteps(mid, a, b) {
   const p = C.byId.get(mid).m.plan;
   commit(d => { const q = findM(d, mid).plan.steps.find(s => s.id === b); if (!q) return;
-    q.anker = { art: 'nach', refs: predsOf(q).concat(a), offset: q.anker && q.anker.art === 'nach' ? +q.anker.offset || 0 : 0 }; },   // neu verknüpft: beginnt direkt am Ende
+    q.anker = { art: 'nach', refs: predsOf(q).concat(a), offset: 0 }; },   // neu verknüpft: beginnt direkt am Ende (dasselbe Datum)
     stepName(p, b) + ' beginnt nach ' + stepName(p, a));
 }
 function unlinkSteps(mid, pairs) {                // [[Vorgänger, Nachfolger], …] – Termine bleiben
@@ -803,7 +955,7 @@ function linkHl(mid, sid, f) {
 // Gelenke im Gantt: Punkt am Ende des Vorgängers und am Beginn des Nachfolgers, feine gepunktete Verbindung
 let LINK_PTS = null;                              // Punkte der Gelenke im Gantt (relativ zum Gantt-Inhalt)
 function drawLinks() {
-  const body = $('.pl-gantt .g-body'), x = C.byId.get(UI.planSel);
+  const body = $('.pl-gantt .g-body'), x = C.byId.get(curPlanId());
   LINK_PTS = null;
   if (!body || UI.printing || !x || !x.m.plan) return;
   $$('svg.g-links', body).forEach(e => e.remove());
@@ -930,6 +1082,17 @@ function palOverSteps(m, pc) {
     const r = pc.map.get(s.id); if (r && !r.err && r.end != null && r.end > pal) out.push({ id: s.id, name: s.name, end: r.end, over: r.end - pal, ber });
   }
   return out;
+}
+// Verknüpfte Termine mit Abstand (aus früheren Versionen): anbieten, sie auf dasselbe Datum zu bringen
+function linkGapBanner(x) {
+  const g = linkGaps(x.m); if (!g.length || UI.printing) return null;
+  const sig = x.id + ':' + g.map(q => q.id + '@' + q.anker.offset).join(',');
+  if (UI.gapSeen === sig) return null;
+  return h('div', { class: 'banner info plgap' },
+    h('span', null, (g.length === 1 ? '„' + g[0].name + '“ beginnt' : g.length + ' verknüpfte Schritte beginnen') + ' nicht direkt am Ende ' + (g.length === 1 ? 'seines Vorgängers' : 'ihrer Vorgänger') +
+      ' (Abstand aus einer früheren Version). Verknüpfte Termine haben sonst immer dasselbe Datum.'),
+    h('button', { class: 'primary', tip: 'Die Nachfolger rücken direkt an das Ende ihrer Vorgänger – Strg+Z macht es rückgängig', onclick: () => closeLinkGaps(x.id) }, 'Angleichen'),
+    h('button', { onclick: () => { UI.gapSeen = sig; renderNow(); } }, 'Ausblenden'));
 }
 function palOverBanner(x, over) {
   if (!over.length) return null;

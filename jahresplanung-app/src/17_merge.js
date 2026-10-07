@@ -6,7 +6,7 @@ const JS = v => JSON.stringify(v === undefined ? null : v);
 const clone = v => v === undefined ? undefined : JSON.parse(JSON.stringify(v));
 const contentOf = d => JSON.stringify(Object.assign({}, d, { meta: null }));
 const sameContent = (a, b) => contentOf(a) === contentOf(b);
-const MERGE_COLL = [['massnahmen', 'id'], ['urlaube', 'id'], ['sondertage', 'id'], ['personen', 'name']];
+const MERGE_COLL = [['massnahmen', 'id'], ['urlaube', 'id'], ['sondertage', 'id'], ['ferien', 'id'], ['vorlagen', 'id'], ['personen', 'name']];
 
 function mergeObj(b, m, t, where, conflicts, cnt) {
   b = b || {}; m = m || {}; t = t || {};
@@ -70,6 +70,8 @@ function recLabel(coll, rec, key) {
   rec = rec || {};
   if (coll === 'massnahmen') return 'Maßnahme „' + (rec.name || '(ohne Namen)') + '“';
   if (coll === 'urlaube') return vacKind(rec) + ' ' + (rec.wer || '?') + ' ' + fmtS(dn(rec.von)) + '–' + fmtS(dn(rec.bis) ?? dn(rec.von));
+  if (coll === 'vorlagen') return 'Vorlage „' + (rec.name || 'ohne Namen') + '“';
+  if (coll === 'ferien') return 'Ferien' + (rec.notiz ? ' „' + rec.notiz + '“' : '') + ' ' + fmtS(dn(rec.von)) + '–' + fmtS(dn(rec.bis) ?? dn(rec.von));
   if (coll === 'sondertage') return 'Freier Tag „' + (rec.name || 'ohne Namen') + '“ ' + fmtS(dn(rec.datum));
   if (coll === 'personen') return 'Person ' + (rec.name || key);
   if (coll === 'feiertage') return 'Feiertage';

@@ -5,7 +5,8 @@ import base64, glob, json, os, sys, zipfile
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = sys.argv[1] if len(sys.argv) > 1 else os.path.join(HERE, 'Jahresplanung_Aussenkommunikation.html')
 data = json.load(open(os.path.join(HERE, 'src', 'initial_data.json'), encoding='utf8'))
-tpl = next(m['plan'] for m in data['massnahmen'] if m.get('plan'))
+tpl_m = next(m for m in data['massnahmen'] if m.get('plan'))
+tpl = tpl_m['plan']
 css = open(os.path.join(HERE, 'src', 'style.css'), encoding='utf8').read()
 js = '\n'.join(open(f, encoding='utf8').read() for f in sorted(glob.glob(os.path.join(HERE, 'src', '[0-9][0-9]_*.js'))))
 FAVICON = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='13' fill='%23E30714'/%3E"
@@ -37,7 +38,7 @@ SPLASH = recolor(json.load(open(os.path.join(HERE, 'src', 'splash_original.json'
 LOGO = 'data:image/png;base64,' + base64.b64encode(open(os.path.join(HERE, 'src', 'logo.png'), 'rb').read()).decode()
 # weißes Logo (aus der Malteser-Vorlage „Logo_malteser_einfarbig_weiss.pdf“) für das dunkle Design
 LOGO_DARK = 'data:image/svg+xml;base64,' + base64.b64encode(open(os.path.join(HERE, 'src', 'logo_weiss.svg'), 'rb').read()).decode()
-js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst LOGO_DARK = " + json.dumps(LOGO_DARK) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";\nconst APP_INFO = " + json.dumps(APP_INFO) + ";\nconst CHANGELOG = " + json.dumps(CHANGELOG, ensure_ascii=False) + ";\nconst SPLASH_ANIM = " + json.dumps(SPLASH, separators=(',', ':')) + ";", 1)
+js = js.replace("'use strict';", "'use strict';\nconst LOGO = " + json.dumps(LOGO) + ";\nconst LOGO_DARK = " + json.dumps(LOGO_DARK) + ";\nconst MAILING_TEMPLATE = " + json.dumps(tpl, ensure_ascii=False) + ";\nconst MAILING_TEMPLATE_PAL = " + json.dumps(tpl_m.get('pal')) + ";\nconst FAVICON = " + json.dumps(FAVICON) + ";\nconst APP_INFO = " + json.dumps(APP_INFO) + ";\nconst CHANGELOG = " + json.dumps(CHANGELOG, ensure_ascii=False) + ";\nconst SPLASH_ANIM = " + json.dumps(SPLASH, separators=(',', ':')) + ";", 1)
 for bad in ('</script', '<!--'):
     assert bad not in js.lower(), bad
 dj = json.dumps(data, ensure_ascii=False).replace('<', '\\u003c')

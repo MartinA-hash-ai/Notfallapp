@@ -66,7 +66,9 @@ const { chromium, ok, open, finish } = require('./lib');
   const after = await p.evaluate(([id, ids]) => { const x = C.byId.get(id); return [ids.map(i => { const r = x.pc.map.get(i); return [r.start, r.end]; }), x.pal]; }, [sm, grp.ids]);
   // ab 0.13.7 zählen Dauern in Werktagen: Feiertage im neuen Zeitraum (Himmelfahrt, Pfingsten, Fronleichnam) verschieben einzelne Termine um 1–2 Tage mehr
   const sh = after[0].map((r, i) => [r[0] - grp.pos[i][0], r[1] - grp.pos[i][1]]);
-  ok(sh[0][0] === 7 && sh.every(([a, e]) => a >= 5 && a <= 9 && e >= 5 && e <= 9) && after[1] === grp.pal, 'C: Abschnitt „Inhalt“ um 7 Tage gezogen – alle ' + grp.ids.length + ' Schritte +7 (Feiertage im Zeitraum: ±2), PAL bleibt (' + sh.map(x => x.join('/')).join(' ') + ')');
+  // ab 0.14: die Dauer (WT) bleibt, das Ende ist der Übergabetag – mit Himmelfahrt und Pfingstmontag im neuen Zeitraum bis zu +3 Tage
+  const durSame = await p.evaluate(([id, ids]) => { const x = C.byId.get(id); return ids.every(i => { const s = x.m.plan.steps.find(q => q.id === i), r = x.pc.map.get(i); return s.typ !== 'aufgabe' || wtSpan(r.start, r.end) === +s.dauer; }); }, [sm, grp.ids]);
+  ok(sh[0][0] === 7 && sh.every(([a, e]) => a >= 4 && a <= 10 && e >= 4 && e <= 10) && durSame && after[1] === grp.pal, 'C: Abschnitt „Inhalt“ um 7 Tage gezogen – alle ' + grp.ids.length + ' Schritte +7 (Feiertage im Zeitraum: ±3), Dauern (WT) bleiben, PAL bleibt (' + sh.map(x => x.join('/')).join(' ') + ')');
   ok(during[0] === 1 && !during[1] && during[2] === 'rgb(255, 255, 255)', 'C: beim Ziehen nur ein (helles) Fenster');
   await p.evaluate(() => undo()); await p.waitForTimeout(100);
   await p.evaluate(([id, gid]) => { shiftGroupDialog(id, gid); }, [sm, grp.gid]); await p.waitForTimeout(150);
@@ -75,7 +77,10 @@ const { chromium, ok, open, finish } = require('./lib');
   const after2 = await p.evaluate(([id, ids]) => ids.map(i => C.byId.get(id).pc.map.get(i).start), [sm, grp.ids]);
   const sh2 = after2.map((v, i) => v - grp.pos[i][0]);
   const nsd = await p.evaluate(v => nextWorkday(dn(v)), newStart);   // 06.05.2027 ist Christi Himmelfahrt → Freitag
-  ok(Math.min(...after2) === nsd && sh2.every(v => v >= 12 && v <= 16), 'C: „Abschnitt verschieben …“ auf neuen Beginn ' + newStart + ' → alle Schritte +14 Tage (Feiertage im Zeitraum: ±2; ' + sh2.join(' ') + ')');
+  const ok2 = await p.evaluate(([id, ids]) => { const x = C.byId.get(id); return ids.every(i => { const s = x.m.plan.steps.find(q => q.id === i), r = x.pc.map.get(i);
+    return (s.typ !== 'aufgabe' || wtSpan(r.start, r.end) === +s.dauer) && predsOf(s).every(a => !ids.includes(a) || x.pc.map.get(a).end <= r.start); }); }, [sm, grp.ids]);
+  // ab 0.14: Dauern (WT) bleiben, Verknüpfte beginnen am Übergabetag – Himmelfahrt, Pfingstmontag und Wochenenden schieben einzelne Schritte bis zu 4 Tage weiter
+  ok(Math.min(...after2) === nsd && sh2.every(v => v >= 14 && v <= 18) && ok2, 'C: „Abschnitt verschieben …“ auf neuen Beginn ' + newStart + ' → beginnt am ' + await p.evaluate(n => fmtW(n), nsd) + ', alle Schritte +14 Tage und mehr (Feiertage; ' + sh2.join(' ') + '), Dauern und Verknüpfungen bleiben');
   await p.evaluate(() => undo()); await p.waitForTimeout(100);
 
   // ---- D: Hinweis am Balken ohne „Ziehen = …“, in Werktagen

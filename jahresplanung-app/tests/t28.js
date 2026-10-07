@@ -60,19 +60,19 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(await p.evaluate(prev => { const st = C.byId.get(UI.planSel).m.plan.steps; return st[st.findIndex(s => s.id === prev) + 1].name === 'Neue Aufgabe'; }, c0[2]), 'C: „Neue Aufgabe darunter“ im ⋯-Menü fügt direkt unter dem Schritt ein');
 
   // ---- D: Markierungen einstellen
-  await p.evaluate(() => { UI.view = 'jahr'; renderNow(); settingsDialog(); }); await p.waitForTimeout(250);
-  await p.selectOption('.modal .btable tr[data-key="S"] .scol select', 'kraeftig'); await p.waitForTimeout(100);
-  await p.fill('.modal .btable tr[data-key="S"] .zcol input', 'x'); await p.press('.modal .btable tr[data-key="S"] .zcol input', 'Tab'); await p.waitForTimeout(100);
-  await p.fill('.modal .btable tr[data-key="I"] .zcol input', 'X'); await p.press('.modal .btable tr[data-key="I"] .zcol input', 'Tab'); await p.waitForTimeout(100);
-  await p.fill('.modal .btable tr[data-key="P"] .zcol input', 'B'); await p.press('.modal .btable tr[data-key="P"] .zcol input', 'Tab'); await p.waitForTimeout(100);
-  await p.selectOption('.modal .btable tr[data-key="P"] .scol select', 'rahmen'); await p.waitForTimeout(100);
-  await p.selectOption('.modal .btable tr[data-key="I"] .scol select', 'streifen'); await p.waitForTimeout(100);
+  await p.evaluate(() => { UI.view = 'jahr'; renderNow(); openSettings('bereiche'); }); await p.waitForTimeout(250);
+  await p.selectOption('.sett-body .btable tr[data-key="S"] .scol select', 'kraeftig'); await p.waitForTimeout(100);
+  await p.fill('.sett-body .btable tr[data-key="S"] .zcol input', 'x'); await p.press('.sett-body .btable tr[data-key="S"] .zcol input', 'Tab'); await p.waitForTimeout(100);
+  await p.fill('.sett-body .btable tr[data-key="I"] .zcol input', 'X'); await p.press('.sett-body .btable tr[data-key="I"] .zcol input', 'Tab'); await p.waitForTimeout(100);
+  await p.fill('.sett-body .btable tr[data-key="P"] .zcol input', 'B'); await p.press('.sett-body .btable tr[data-key="P"] .zcol input', 'Tab'); await p.waitForTimeout(100);
+  await p.selectOption('.sett-body .btable tr[data-key="P"] .scol select', 'rahmen'); await p.waitForTimeout(100);
+  await p.selectOption('.sett-body .btable tr[data-key="I"] .scol select', 'streifen'); await p.waitForTimeout(100);
   // neuer Bereich mit dem Buchstaben P (das PAL heißt jetzt B)
-  await p.fill('.modal input[placeholder="Buchstabe"]', 'p'); await p.fill('.modal input[placeholder^="Name"]', 'Prüfung');
-  await p.click('.modal button:has-text("+ Bereich hinzufügen")'); await p.waitForTimeout(150);
-  const st = await p.evaluate(() => [JSON.stringify(D.settings.pal), D.settings.bereiche.map(b => b.key + '/' + b.zeichen + '/' + b.stil).join(' '), [...document.querySelectorAll('.modal .btable tbody tr')].map(r => r.querySelector('.zcol input').value).join('')]);
+  await p.fill('.sett-body input[placeholder="Buchstabe"]', 'p'); await p.fill('.sett-body input[placeholder^="Name"]', 'Prüfung');
+  await p.click('.sett-body button:has-text("+ Bereich hinzufügen")'); await p.waitForTimeout(150);
+  const st = await p.evaluate(() => [JSON.stringify(D.settings.pal), D.settings.bereiche.map(b => b.key + '/' + b.zeichen + '/' + b.stil).join(' '), [...document.querySelectorAll('.sett-body .btable tbody tr')].map(r => r.querySelector('.zcol input').value).join('')]);
   ok(st[0] === '{"zeichen":"B","stil":"rahmen"}' && /^S\/X\/kraeftig I\/I\/streifen D\/D\/pastell [A-OQ-Z]\/P\/pastell$/.test(st[1]) && st[2] === 'XIDPB', 'D: Einstellungen ' + st[1] + ' · PAL ' + st[0] + ' (doppeltes „X“ abgelehnt)');
-  await p.click('.modal footer button:has-text("Schließen")'); await p.waitForTimeout(200);
+  await p.click('.view-head .backbtn'); await p.waitForTimeout(200);
   const vis = await p.evaluate(id => {
     const x = C.byId.get(id), s = document.querySelector('.cal .chip.S[data-m="' + id + '"]'), pc = document.querySelector('.cal .chip.P[data-m="' + id + '"]'), ic = document.querySelector('.cal .chip.I[data-m="' + id + '"]');
     const cs = getComputedStyle(s), cp = getComputedStyle(pc), ci = getComputedStyle(ic);
