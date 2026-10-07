@@ -29,8 +29,16 @@ set "JP_EDGE="
 if exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" set "JP_EDGE=%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe"
 if not defined JP_EDGE if exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" set "JP_EDGE=%ProgramFiles%\Microsoft\Edge\Application\msedge.exe"
 if not defined JP_EDGE if exist "%LocalAppData%\Microsoft\Edge\Application\msedge.exe" set "JP_EDGE=%LocalAppData%\Microsoft\Edge\Application\msedge.exe"
-if not defined JP_EDGE echo      NICHT GEFUNDEN
 if defined JP_EDGE echo      %JP_EDGE%
+if not defined JP_EDGE echo      an den ueblichen Orten nicht gefunden
+set "JP_REG=%SystemRoot%\System32\reg.exe"
+if not defined JP_EDGE if exist "%JP_REG%" call :regedge "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"
+if not defined JP_EDGE if exist "%JP_REG%" call :regedge "HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"
+if not defined JP_EDGE if exist "%JP_REG%" call :regedge "HKLM\SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\App Paths\msedge.exe"
+if defined JP_REGHIT echo      laut Registrierung: %JP_EDGE%
+if not defined JP_EDGE echo      auch in der Registrierung nicht gefunden
+echo      Standardbrowser:
+if exist "%JP_REG%" for /f "tokens=2,*" %%A in ('%JP_REG% query "HKCU\Software\Microsoft\Windows\Shell\Associations\UrlAssociations\http\UserChoice" /v ProgId 2^>nul') do if /i "%%A"=="REG_SZ" echo      %%B
 echo.
 echo  [4] PowerShell:
 set "JP_PS=%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell.exe"
@@ -38,20 +46,22 @@ if not exist "%JP_PS%" set "JP_PS=%ProgramFiles%\PowerShell\7\pwsh.exe"
 if not exist "%JP_PS%" echo      NICHT GEFUNDEN
 if not exist "%JP_PS%" goto :tab
 echo      %JP_PS%
-if not defined JP_EDGE goto :ende
+set "JP_EXE=%JP_EDGE%"
+if not defined JP_EXE set "JP_EXE=msedge"
 echo.
-echo  [5] Start als Programmfenster ueber PowerShell ...
-"%JP_PS%" -NoProfile -NonInteractive -Command "$u = ([uri]$env:JP_APP).AbsoluteUri; Write-Host ('      Adresse: ' + $u); Start-Process -FilePath $env:JP_EDGE -ArgumentList ('--app=' + $u)"
+echo  [5] Start als Programmfenster ueber PowerShell (%JP_EXE%) ...
+"%JP_PS%" -NoProfile -NonInteractive -Command "$u = ([uri]$env:JP_APP).AbsoluteUri; Write-Host ('      Adresse: ' + $u); Start-Process -FilePath $env:JP_EXE -ArgumentList ('--app=' + $u)"
 echo      Rueckgabewert: %errorlevel%
 echo.
 echo  Hat sich das Programm geoeffnet? Wenn nicht: Taste druecken, dann
-echo  versuche ich es als normales Edge-Fenster.
+echo  versuche ich es als normales Fenster.
 pause >nul
 :tab
-if not defined JP_EDGE goto :ende
 echo.
-echo  [6] Start als normales Edge-Fenster ...
-start "" "%JP_EDGE%" --new-window "%JP_APP%"
+if defined JP_EDGE echo  [6] Start als normales Edge-Fenster ...
+if defined JP_EDGE start "" "%JP_EDGE%" --new-window "%JP_APP%"
+if not defined JP_EDGE echo  [6] Start im Standardbrowser ...
+if not defined JP_EDGE start "" "%JP_APP%"
 echo      Rueckgabewert: %errorlevel%
 :ende
 echo.
@@ -60,3 +70,9 @@ echo  und dazuschreiben, was sich geoeffnet hat (nichts / leeres Fenster /
 echo  Edge ohne Programm / Fehlermeldung).
 echo.
 pause
+exit /b 0
+
+:regedge
+for /f "tokens=2,*" %%A in ('%JP_REG% query "%~1" /ve 2^>nul') do if /i "%%A"=="REG_SZ" if exist "%%~B" set "JP_EDGE=%%~B"
+if defined JP_EDGE set "JP_REGHIT=1"
+exit /b 0
