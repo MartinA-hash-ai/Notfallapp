@@ -88,12 +88,10 @@ function topBar() {
         nW ? '⚠ ' + nW : '✓', nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
       menuButton('Export ▾', [
         ['PDF exportieren …', pdfDialog], null,
-        ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS], null,
-        ['Datensicherung exportieren (.json)', exportJSON], ['Datensicherung importieren …', openFile]]),
+        ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS]]),
       presenceChip(),
       saveBox(),
       menuButton('⋯', [                                   // ab 0.15 schlank: Speicherort und Protokoll in den Einstellungen, Speichern immer automatisch
-        ['Daten aus anderer Datei übernehmen …', openFile], ['Kopie speichern unter …', saveCopy], ['Daten als JSON sichern', exportJSON], null,
         ['Daten prüfen …', checkDialog], ['Daten zurücksetzen …', resetDialog], null,
         [(DARK ? '☀ Helles Design' : '☾ Dunkles Design'), () => setTheme(DARK ? 'light' : 'dark')],
         ['Programm-Update einspielen …', updateProgram], null,
@@ -517,6 +515,11 @@ function settingsParts() {
         h('button', { class: 'sett-folder', onclick: async e => { e.preventDefault(); ST.conn = 'none'; ST.dir = null; await connectFolder(); renderNow(); } }, 'Speicherort (Mailing-Ordner) neu wählen …'),
         h('span', { class: 'muted small' + (folderMismatch() ? ' warn' : '') }, ST.conn === 'ok' && ST.dir ? 'Ordner „' + ST.dir.name + '“ – Änderungen werden automatisch gespeichert' + (folderMismatch() ? ' (passt nicht zur geöffneten Datei!)' : '')
           : ST.conn === 'needs-permission' ? 'Ordner „' + (ST.dir ? ST.dir.name : '?') + '“ (Freigabe fehlt noch)' : 'noch kein Speicherort gewählt')),
+      h('h3', null, 'Datensicherung'),
+      h('div', { class: 'inl sett-backup' },
+        h('button', { class: 'sett-bsave', onclick: e => { e.preventDefault(); saveBackup(); } }, 'Sicherung speichern …'),
+        h('button', { class: 'sett-bload', onclick: e => { e.preventDefault(); openFile(); } }, 'Sicherung hochladen …')),
+      h('p', { class: 'muted small' }, 'Die App speichert laufend in die Programmdatei im Mailing-Ordner – das ist keine eigene Sicherung. Frühere Stände dieser Datei stehen im Versionsverlauf von SharePoint/OneDrive. „Sicherung speichern“ legt alle Planungsdaten als eigene Datei (.json) ab, z. B. vor größeren Umbauten; „Sicherung hochladen“ holt einen solchen Stand zurück.'),
       h('h3', null, 'Änderungsprotokoll'),
       h('div', { class: 'inl' }, h('button', { class: 'sett-log', onclick: e => { e.preventDefault(); logDialog(); } }, 'Änderungsprotokoll anzeigen …'), h('span', { class: 'muted small' }, 'wer wann was geändert hat')),
       h('h3', null, 'Darstellung'),

@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.15",
+    "version": "0.15.1",
     "date": "",
+    "items": [
+      "Datensicherung unter Einstellungen → Allgemein: „Sicherung speichern …“ (Speicherort wählen) und „Sicherung hochladen …“ (vorher wird der aktuelle Stand automatisch gesichert; Strg+Z möglich)",
+      "⋯-Menü und Export-Menü ohne „Daten aus anderer Datei übernehmen“, „Kopie speichern unter“ und „Daten als JSON sichern“",
+      "Urlaub ↔ Aufgaben zusätzlich geprüft: Urlaub kürzen, löschen, Aufgabe oder ganzen Abschnitt an jemand anderen übergeben, Rückgängig, Neuladen – die Aufgaben passen sich jedes Mal an"
+    ]
+  },
+  {
+    "version": "0.15",
+    "date": "2026-10-07T10:35",
     "items": [
       "Urlaub und Abwesenheit der zugeordneten Person verlängern ihre Aufgaben im Detailplan: Die Dauer zählt nur ihre Werktage (2 Tage Urlaub → Aufgabe 2 Werktage länger, Nachfolger rücken mit; am PAL hängende Aufgaben beginnen früher). In der Zeile steht „+2“, bei den Warnungen oben ein Hinweis. Aufgaben mit fester Dauer werden nicht verlängert (dann Warnung)",
       "Ferienzeiten erscheinen grau wie Wochenenden (Kalender, Zeitleiste, Urlaubsübersicht) – sie bleiben Werktage",

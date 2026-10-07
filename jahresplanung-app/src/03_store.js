@@ -295,20 +295,6 @@ async function saveDownload() {
     h('p', null, 'Die Excel-Ansicht wird nur in Microsoft Edge oder Google Chrome automatisch aktualisiert.')));
   return true;
 }
-async function saveCopy() {
-  const data = JSON.parse(JSON.stringify(D));
-  data.meta.savedAt = new Date().toISOString(); data.meta.savedBy = UI.userName || '';
-  const text = buildFile(data);
-  if ('showSaveFilePicker' in window) {
-    try {
-      const hnd = await window.showSaveFilePicker({ suggestedName: 'Jahresplanung_Kopie_' + ds(todayDn()) + '.html', types: [{ description: 'Jahresplanung (HTML)', accept: { 'text/html': ['.html'] } }] });
-      const w = await hnd.createWritable(); await w.write(text); await w.close();
-      toast('Kopie gespeichert: ' + hnd.name, 'ok'); return;
-    } catch (e) { if (e && e.name === 'AbortError') return; }
-  }
-  download('Jahresplanung_Kopie_' + ds(todayDn()) + '.html', new Blob([text], { type: 'text/html' }));
-}
-
 /* ---------- Änderungen anderer erkennen (die Datei wird per OneDrive synchronisiert) */
 function externalChange(other, stamp) {
   if (!isDirty() || BROKEN) {
@@ -394,13 +380,16 @@ function pickFileText(accept = '.html,.htm,.json') {
     document.body.append(inp); inp.click();
   });
 }
+// Sicherung hochladen: eine Sicherung (.json) oder ältere Kopie der Programmdatei ersetzt den aktuellen Stand (für alle).
+// Vorher wird der aktuelle Stand als Sicherung heruntergeladen; Strg+Z macht es rückgängig.
 async function openFile(noAsk) {
-  if (!noAsk && !await confirmBox('Daten übernehmen', 'Die Daten aus einer anderen Jahresplanung-Datei (HTML oder JSON) ersetzen den aktuellen Stand. Danach wird gespeichert. Strg+Z macht es rückgängig.', 'Datei wählen')) return;
+  if (!noAsk && !await confirmBox('Sicherung hochladen', 'Die Daten aus der Sicherung (.json oder eine ältere Kopie der Programmdatei) ersetzen den aktuellen Stand – für alle, die mit der Jahresplanung arbeiten. Der aktuelle Stand wird vorher als Sicherung heruntergeladen; Strg+Z macht es rückgängig.', 'Sicherung wählen …')) return;
   const got = await pickFileText();
   if (!got) return;
   const data = parseFileText(got.text);
   if (!data || !Array.isArray(data.massnahmen)) { toast('In dieser Datei wurden keine Planungsdaten gefunden.', 'err'); return; }
-  if (commit(d => { const n = normalize(JSON.parse(JSON.stringify(data))); n.meta = d.meta; Object.keys(d).forEach(k => delete d[k]); Object.assign(d, n); }, 'Daten aus „' + got.name + '“ übernommen') && BROKEN) {
+  if (!noAsk && !BROKEN) exportJSON();
+  if (commit(d => { const n = normalize(JSON.parse(JSON.stringify(data))); n.meta = d.meta; Object.keys(d).forEach(k => delete d[k]); Object.assign(d, n); }, 'Sicherung „' + got.name + '“ hochgeladen') && BROKEN) {
     BROKEN = null; toast('Daten geladen – Speichern ist wieder möglich.', 'ok'); scheduleAutosave(); renderNow();
   }
 }
@@ -541,6 +530,18 @@ async function updateProgram(got) {
 }
 async function exportJSON() {
   download('Jahresplanung_Daten_' + ds(todayDn()) + '.json', new Blob([JSON.stringify(D, null, 1)], { type: 'application/json' }));
+}
+// Sicherung speichern: alle Planungsdaten als eigene Datei (.json) – Speicherort selbst wählen (sonst Download-Ordner)
+async function saveBackup() {
+  const name = 'Jahresplanung_Sicherung_' + ds(todayDn()) + '.json', blob = new Blob([JSON.stringify(D, null, 1)], { type: 'application/json' });
+  if ('showSaveFilePicker' in window) {
+    try {
+      const hnd = await window.showSaveFilePicker({ suggestedName: name, types: [{ description: 'Sicherung der Jahresplanung (JSON)', accept: { 'application/json': ['.json'] } }] });
+      const w = await hnd.createWritable(); await w.write(blob); await w.close();
+      toast('Sicherung gespeichert: ' + hnd.name, 'ok'); return true;
+    } catch (e) { if (e && e.name === 'AbortError') return false; }
+  }
+  download(name, blob); toast('Sicherung im Download-Ordner gespeichert: ' + name, 'ok'); return true;
 }
 
 /* ---------- Entwurf im Browser (Schutz vor Verlust, falls nicht gespeichert wurde) */

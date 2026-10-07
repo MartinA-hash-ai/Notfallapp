@@ -18,7 +18,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.goto('file://' + NEW); await p.waitForTimeout(400);
   const neu = fs.readFileSync(NEW, 'utf8');
   await p.evaluate(t => { __fs.files['/Mailing/Jahresplanung_Aussenkommunikation.html'] = { data: new TextEncoder().encode(t), lm: 1000 }; }, neu);
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Daten aus anderer Datei")'); await p.waitForTimeout(100);
+  await p.evaluate(() => openSettings('allgemein')); await p.click('.sett-backup .sett-bload'); await p.waitForTimeout(100);   // ab 0.15.1: Einstellungen → „Sicherung hochladen …“
   const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('.modal footer button.primary')]);
   await fc.setFiles('alt_mit_daten.html'); await p.waitForTimeout(300);
   const imp = await p.evaluate(() => [APP_INFO.version, D.massnahmen.some(m => m.hinweis === 'MEINE DATEN 0.4'), isDirty()]);

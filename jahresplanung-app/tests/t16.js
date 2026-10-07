@@ -39,7 +39,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.click('.modal footer button.primary'); await p.waitForTimeout(700);
   const ban2 = await p.evaluate(() => [...document.querySelectorAll('.banner')].map(b => b.innerText).join(' || '));
   ok(!/gespeichert wird aber/.test(ban2), 'nach „Speicherort neu wählen“ keine Warnung mehr');
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Daten aus anderer Datei")'); await p.waitForTimeout(100);
+  await p.evaluate(() => openSettings('allgemein')); await p.click('.sett-backup .sett-bload'); await p.waitForTimeout(100);   // ab 0.15.1: Einstellungen → „Sicherung hochladen …“
   const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('.modal footer button.primary')]);
   await fc.setFiles('sicherung.json'); await p.waitForTimeout(3500);   // automatisches Speichern
   const saved = await p.evaluate(() => new TextDecoder().decode(__fs.files['/jahresplanung-app/Jahresplanung_Aussenkommunikation.html'].data));
