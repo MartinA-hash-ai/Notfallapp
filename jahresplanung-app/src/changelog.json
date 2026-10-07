@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.14",
+    "version": "0.15",
     "date": "",
+    "items": [
+      "Urlaub und Abwesenheit der zugeordneten Person verlängern ihre Aufgaben im Detailplan: Die Dauer zählt nur ihre Werktage (2 Tage Urlaub → Aufgabe 2 Werktage länger, Nachfolger rücken mit; am PAL hängende Aufgaben beginnen früher). In der Zeile steht „+2“, bei den Warnungen oben ein Hinweis. Aufgaben mit fester Dauer werden nicht verlängert (dann Warnung)",
+      "Ferienzeiten erscheinen grau wie Wochenenden (Kalender, Zeitleiste, Urlaubsübersicht) – sie bleiben Werktage",
+      "⋯-Menü schlanker: Speichern immer automatisch (Schalter entfällt); „Speicherort neu wählen“ und „Änderungsprotokoll“ unter Einstellungen → Allgemein; Urlaub-Einträge und „Hilfe“ entfernt",
+      "Reiter „Auswertung“ ohne „Beta“",
+      "Auswertung: rote Zahl an jeder Maßnahme, bei der Spenden in „Prüfen“ warten (Regel-Treffer oder von Hand vorgemerkt); eingeklappt nennt die Übersicht diese Maßnahmen"
+    ]
+  },
+  {
+    "version": "0.14",
+    "date": "2026-10-07T09:07",
     "items": [
       "Einstellungen als eigene Seite mit Rubriken: Allgemein, Bereiche & Personen, Urlaub & Feiertage, Vorlagen für Detailpläne, Version",
       "Ferienzeiten: unter Urlaub & Feiertage („+ Ferienzeiten eintragen“) im Kalender-Fenster ohne Person, mit Notiz – erscheinen im Kalender, in der Zeitleiste und in der Urlaubsübersicht; Ferientage bleiben Werktage",

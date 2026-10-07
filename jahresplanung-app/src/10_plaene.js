@@ -5,9 +5,11 @@ const PL_ROW = 32;
 const DEF_WT = 5;                              // Standarddauer neuer bzw. noch nicht geplanter Schritte (Werktage)
 // Dauer ↔ Termine: Werktage (Pläne ab 0.13.7) bzw. Kalendertage (alte Pläne, bis sie umgestellt sind)
 const isWT = m => !!(m && m.plan && m.plan.wt);
-const spanOf = (m, a, b) => isWT(m) ? wtSpan(a, b) : Math.max(0, b - a);
-const endFrom = (m, a, w) => isWT(m) ? addWT(a, w) : a + w;
-const startFrom = (m, e, w) => isWT(m) ? subWT(e, w) : e - w;
+// s: der Schritt – Urlaub/Abwesenheit der zugeordneten Person zählt bei Aufgaben (ohne feste Dauer) nicht als Werktag
+const stepAway = (m, s) => isWT(m) && s && s.typ === 'aufgabe' && !s.fix ? awayDays(s.wer) : null;
+const spanOf = (m, a, b, s) => isWT(m) ? wtSpan(a, b, stepAway(m, s)) : Math.max(0, b - a);
+const endFrom = (m, a, w, s) => isWT(m) ? addWT(a, w, stepAway(m, s)) : a + w;
+const startFrom = (m, e, w, s) => isWT(m) ? subWT(e, w, stepAway(m, s)) : e - w;
 
 /* ---------- Rechenhilfen am Datenobjekt */
 // Schritte (ids) anteilig von [A, E] auf [A2, E2] bringen: Dauern und Abstände werden im gleichen Verhältnis kürzer bzw. länger.
@@ -41,14 +43,14 @@ function scaleRange(m, ids, A, E, A2, E2) {
     if (s.typ !== 'aufgabe') { const e = Math.round(M(r.end)); tgt.set(s.id, [e, e]); continue; }
     if (s.fix) { const a = Math.round(M(r.start)); tgt.set(s.id, [a, isWT(m) ? addWT(a, +s.dauer || 0) : a + (r.end - r.start)]); continue; }
     let a = Math.round(M(r.start)), e = Math.round(M(r.end));
-    if ((+s.dauer || 0) >= 1 && spanOf(m, a, e) < 1) { if (keepEnd) a = startFrom(m, e, 1); else e = endFrom(m, a, 1); partial = true; }   // mindestens 1 Werktag
+    if ((+s.dauer || 0) >= 1 && spanOf(m, a, e, s) < 1) { if (keepEnd) a = startFrom(m, e, 1, s); else e = endFrom(m, a, 1, s); partial = true; }   // mindestens 1 Werktag
     tgt.set(s.id, [a, Math.max(a, e)]);
   }
   const endOf = id => tgt.has(id) ? tgt.get(id)[1] : (r0(id) || {}).end;
   const changed = [];
   for (const s of steps) {
     const [a, e] = tgt.get(s.id), r = r0(s.id), an = s.anker || {};
-    if (s.typ === 'aufgabe' && !s.fix) { const nd = spanOf(m, a, e), od = Math.round(+s.dauer || 0); s.dauer = nd; if (nd !== od) changed.push([s.name, od, nd]); }
+    if (s.typ === 'aufgabe' && !s.fix) { const nd = spanOf(m, a, e, s), od = Math.round(+s.dauer || 0); s.dauer = nd; if (nd !== od) changed.push([s.name, od, nd]); }
     if (an.art === 'nach') { const ends = predsOf(s).map(endOf).filter(v => v != null); if (ends.length) an.offset = a - Math.max(...ends); }
     else if (an.art === 'pal' && pal != null) an.offset = e - pal;
     else if (an.art === 'fest') an.datum = ds(e);
@@ -125,7 +127,7 @@ function setStepSpan(m, sid, ns, ne, keepDur) {
   const s = m.plan.steps.find(q => q.id === sid);
   if (!s || s.typ === 'gruppe') return;
   if (s.typ !== 'aufgabe') ns = ne;
-  else if (keepDur && isWT(m)) { ns = nextWorkday(ns); ne = addWT(ns, Math.round(+s.dauer || 0)); }
+  else if (keepDur && isWT(m)) { ns = nextWorkday(ns); ne = addWT(ns, Math.round(+s.dauer || 0), stepAway(m, s)); }
   const r = planCalc(m).map.get(sid) || {};
   const a = s.anker || { art: 'offen' };
   const pal = dn(m.pal);
@@ -140,7 +142,7 @@ function setStepSpan(m, sid, ns, ne, keepDur) {
   else if (r.end == null || a.art === 'offen') s.anker = pal != null ? { art: 'pal', offset: ne - pal } : { art: 'fest', datum: ds(ne) };
   else if (a.art === 'pal' && pal != null) a.offset = ne - pal;
   else a.offset = (+a.offset || 0) + (ne - r.end);
-  if (s.typ === 'aufgabe' && !keepDur) s.dauer = spanOf(m, ns2, Math.max(ns2, ne));
+  if (s.typ === 'aufgabe' && !keepDur) s.dauer = spanOf(m, ns2, Math.max(ns2, ne), s);
 }
 // Beginn eines verknüpften Schritts auf „target“ legen, indem seine Vorgänger-Kette mitwandert: alle Schritte am Anfang der Kette
 // (hängen am PAL oder haben ein festes Datum) rücken um denselben Abstand – alles, was daran hängt, folgt. Der PAL selbst bleibt.
@@ -520,7 +522,7 @@ VIEW_FN.plaene = main => {
     cand.length ? h('span', { class: 'pnew' }, h('select', { onchange: e => { newFor = e.target.value; } }, cand.map(x => h('option', { value: x.id }, x.m.name))),
       h('button', { class: 'primary', onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
-    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; verknüpfte Termine haben immer dasselbe Datum (verschiebt man einen, wandert der andere mit). Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
+    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; verknüpfte Termine haben immer dasselbe Datum (verschiebt man einen, wandert der andere mit). Urlaub/Abwesenheit der zugeordneten Person verlängert eine Aufgabe („+2“ an der Person). Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);
   if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan mit PAL in ' + UI.year + '. Oben eine Maßnahme wählen und „Detailplan anlegen“' + (C.ms.some(q => q.m.plan) ? ' – oder mit ‹ › oben das Jahr wechseln.' : '.'))); return; }
   planEditor(main, x);
@@ -630,16 +632,18 @@ function planEditor(main, x) {
       grows.push(g);
       continue;
     }
-    const away = s.wer && r.start != null ? C.vac.filter(v => v.u.wer === s.wer && v.von <= Math.max(r.end, r.start) && v.bis >= r.start) : [];
+    const away0 = s.wer && r.start != null ? C.vac.filter(v => v.u.wer === s.wer && v.von <= Math.max(r.end, r.start) && v.bis >= r.start) : [];
     const isTask = s.typ === 'aufgabe';
+    // Urlaub/Abwesenheit: bei Aufgaben ist die Dauer schon verlängert (Hinweis „+N“), sonst (Meilenstein, feste Dauer) Warnung
+    const away = isTask && !s.fix ? [] : away0, vacTxt = away0.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ');
     // Beginn ändern: Ende bleibt (liegt der Beginn danach, wandert das Ende mit). Noch ohne Termin: eine Woche.
     // Frisch angelegte Aufgabe: das erste geänderte Datum verschiebt die ganze Woche, danach wie oben.
     const len = +s.dauer > 0 ? +s.dauer : DEF_WT, fresh = UI.freshStep === s.id;
     const startInp = isTask ? dateInput(r.start != null ? ds(r.start) : '', fk('start'), v => { const ns = dn(v); if (ns == null) return; UI.freshStep = null;
-      commit(d => { const ne = !fresh && r.end != null && r.start != null && ns <= r.end ? r.end : endFrom(m, ns, len); setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
+      commit(d => { const ne = !fresh && r.end != null && r.start != null && ns <= r.end ? r.end : endFrom(m, ns, len, s); setStepSpan(findM(d, m.id), s.id, ns, ne); }); }) : null;
     const endInp = s.pal ? h('span', { class: 'paldate', tip: 'Fester Termin: das PAL der Maßnahme – ändern oben im Kopf oder in der Maßnahmen-Tabelle' }, x.pal != null ? fmtD(x.pal) : '–', h('span', { class: 'pallock', 'aria-label': 'fest' }), demoChip('P', 'palchip palred'))
       : dateInput(r.end != null ? ds(r.end) : '', fk('end'), v => { const ne = dn(v); if (ne == null) return; UI.freshStep = null;
-      commit(d => { const ns = !isTask ? ne : !fresh && r.start != null && r.end != null && r.start <= ne ? r.start : startFrom(m, ne, len); setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
+      commit(d => { const ns = !isTask ? ne : !fresh && r.start != null && r.end != null && r.start <= ne ? r.start : startFrom(m, ne, len, s); setStepSpan(findM(d, m.id), s.id, ns, ne); }); });
     // verknüpfte Daten: Kalendersymbol in der Farbe der Maßnahme (Beginn nach Vorgängern / nach dem Ende beginnen andere)
     if (startInp && predsOf(s).length) startInp.classList.add('lk');
     if (!s.pal && (dependents(p, s).length || (!isTask && predsOf(s).length))) endInp.classList.add('lk');
@@ -652,11 +656,12 @@ function planEditor(main, x) {
           : h('select', { 'data-fk': fk('typ'), onchange: e => setStep(m.id, s.id, st => { st.typ = e.target.value; }) }, ['aufgabe', 'meilenstein'].map(k => h('option', { value: k, selected: s.typ === k }, STEP_TYPES[k])))),
         h('div', { class: 'c-wer' }, h('span', { class: 'pbox', style: { background: s.wer ? midtone(barColor(s.wer)) : 'transparent', borderColor: s.wer ? barColor(s.wer) : 'transparent' } }),
           personInput({ value: s.wer || '', placeholder: '–', 'data-fk': fk('wer'), onchange: e => setStep(m.id, s.id, st => { st.wer = e.target.value.trim(); }) }),
-          away.length ? h('span', { class: 'wi warn', tip: s.wer + ' hat Urlaub: ' + away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ') }, '⚠') : null),
+          away.length ? h('span', { class: 'wi warn', tip: s.wer + ' hat Urlaub: ' + vacTxt }, '⚠')
+            : r.away ? h('span', { class: 'wi vacx', tip: 'Wegen Urlaub/Abwesenheit von ' + s.wer + ' (' + vacTxt + ') um ' + r.away + (r.away === 1 ? ' Werktag' : ' Werktage') + ' verlängert' }, '+' + r.away) : null),
         h('div', { class: 'c-kom' }, h('input', { value: s.kommentar || '', title: s.kommentar || '', placeholder: '–', 'data-fk': fk('kom'), onchange: e => setStep(m.id, s.id, st => { st.kommentar = e.target.value; }) })),
         h('div', { class: 'c-dur' + (s.fix ? ' fix' : '') }, isTask ? h('span', { class: 'wtbox' }, h('input', { type: 'number', class: 'nospin', min: 0, max: MAX_DAUER, value: s.dauer ?? 0, onwheel: wheelStep, 'data-fk': fk('dur'), tip: 'Dauer in Werktagen (Mo–Fr ohne Feiertage und freie Tage)', onchange: e => { const v = Math.round(+e.target.value || 0); if (v > MAX_DAUER) toast('Höchstens ' + MAX_DAUER + ' Werktage – auf ' + MAX_DAUER + ' gesetzt.', 'warn');
           const nv = clamp(v, 0, MAX_DAUER);                       // Beginn bleibt, das Ende wandert (und was danach beginnt)
-          if (r.start != null && !r.err) commit(d => { const mm = findM(d, m.id); setStepSpan(mm, s.id, r.start, endFrom(mm, r.start, nv)); }); else setStep(m.id, s.id, st => { st.dauer = nv; }); } }), h('span', { class: 'unit' }, 'WT')) : null, isTask && s.fix ? h('span', { class: 'fixlock', tip: 'Feste Dauer – bleibt beim anteiligen Anpassen unverändert (⋯ → „Dauer freigeben“)', 'aria-label': 'feste Dauer' }) : null),
+          if (r.start != null && !r.err) commit(d => { const mm = findM(d, m.id); setStepSpan(mm, s.id, r.start, endFrom(mm, r.start, nv, s)); }); else setStep(m.id, s.id, st => { st.dauer = nv; }); } }), h('span', { class: 'unit' }, 'WT')) : null, isTask && s.fix ? h('span', { class: 'fixlock', tip: 'Feste Dauer – bleibt beim anteiligen Anpassen unverändert (⋯ → „Dauer freigeben“)', 'aria-label': 'feste Dauer' }) : null),
         h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : startInp),
         h('div', { class: 'c-date' }, r.err ? '' : endInp)],
       h('div', { class: 'c-acts' }, menuButton('⋯', [['Neue Aufgabe darunter', () => addStep(m.id, curGroupOf(p.steps, row.idx), s.id)],
@@ -672,14 +677,15 @@ function planEditor(main, x) {
     if (r.start != null) {
       const gname = grpName;
       const tip = () => h('div', null, h('b', null, s.name), gname ? h('span', { class: 'muted' }, ' (' + gname + ')') : null,
-        h('div', null, isTask ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' · ' + stepWT(r.start, r.end) + ' WT' : (s.pal ? 'PAL' : STEP_TYPES[s.typ]) + ': ' + fmtW(r.end)),
+        h('div', null, isTask ? fmtW(r.start) + ' – ' + fmtW(r.end) + ' · ' + wtSpan(r.start, r.end, stepAway(m, s)) + ' WT' : (s.pal ? 'PAL' : STEP_TYPES[s.typ]) + ': ' + fmtW(r.end)),
+        r.away ? h('div', { class: 'vacx-t' }, '+' + r.away + (r.away === 1 ? ' Werktag' : ' Werktage') + ' wegen Urlaub/Abwesenheit ' + s.wer + ' (' + vacTxt + ')') : null,
         s.wer ? h('div', null, 'Zugeordnet: ' + s.wer) : null, s.kommentar ? h('div', { class: 'muted' }, s.kommentar) : null,
         h('div', { class: 'muted' }, anchorText(p, s) + (dependents(p, s).length ? ' · danach beginnen: ' + dependents(p, s).map(q => '„' + q.name + '“').join(', ') : '')),
         away.length ? h('div', { class: 'warn' }, '⚠ ' + s.wer + ' hat in dieser Zeit Urlaub') : null);
       const ctx = { x, s, r, pxd, X };
       if (isTask) {
         const c = barColor(s.wer);
-        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : '') + (late.has(s.id) ? ' late' : ''), dataset: { sid: s.id }, tip, style: { left: X(r.start) + pxd / 2 + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: midtone(c), borderColor: c } },
+        const bar = h('div', { class: 'g-bar' + (away.length ? ' conflict' : '') + (r.away ? ' vacx' : '') + (late.has(s.id) ? ' late' : ''), dataset: { sid: s.id }, tip, style: { left: X(r.start) + pxd / 2 + 'px', width: Math.max(3, (r.end - r.start) * pxd) + 'px', background: midtone(c), borderColor: c } },
           (r.end - r.start) * pxd > 70 ? h('span', { class: 'lbl' }, s.name) : null,
           h('span', { class: 'grip gl', onpointerdown: e => barDrag(e, ctx, 'left') }), h('span', { class: 'grip gr', onpointerdown: e => barDrag(e, ctx, 'right') }));
         bar.addEventListener('pointerdown', e => { if (!e.target.classList.contains('grip')) barDrag(e, ctx, 'move'); });
@@ -751,7 +757,6 @@ function planWheel(box, a0, fit) {
 }
 
 // Werktage eines Schritts (Beginn bis zum Tag vor dem Ende, wie der Balken im Gantt)
-const stepWT = (a, b) => a != null && b != null && b > a ? workdays(a, b - 1) : 0;
 
 /* ---------- Ganzen Abschnitt verschieben: alle Schritte darin wandern um dieselbe Zahl Tage mit */
 function shiftGroup(mid, gid, dd) {
@@ -829,14 +834,14 @@ function barDrag(ev, ctx, mode) {
   const move = e => {
     const dd = Math.round((e.clientX - sx) / pxd);
     if (dd) moved = true;
-    if (mode === 'move') { ns = r.start + dd; ne = r.end + dd; if (isTask && isWT(x.m)) { ns = nextWorkday(ns); ne = addWT(ns, Math.round(+s.dauer || 0)); } }   // Dauer (Werktage) bleibt
+    if (mode === 'move') { ns = r.start + dd; ne = r.end + dd; if (isTask && isWT(x.m)) { ns = nextWorkday(ns); ne = handover(addWT(ns, Math.round(+s.dauer || 0), stepAway(x.m, s)), x.pal); } }   // Dauer (Werktage) bleibt
     else if (mode === 'left') { ns = Math.min(r.start + dd, r.end); ne = r.end; }
     else { ns = r.start; ne = Math.max(r.end + dd, r.start); }
     if (isTask) { el.style.left = X(ns) + pxd / 2 + 'px'; el.style.width = Math.max(3, (ne - ns) * pxd) + 'px'; }
     else el.style.left = X(ne) + pxd / 2 + 'px';
     slide(ne - r.end);
     const w = s.wer ? C.vac.filter(v => v.u.wer === s.wer && v.von <= ne && v.bis >= ns).map(v => s.wer + ' Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis)) : [];
-    setKids(lab, h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' · ' + stepWT(ns, ne) + ' WT' : (s.pal ? 'PAL: ' : '') + fmtW(ne)), s.pal ? h('div', { class: 'muted' }, ne !== r.end ? 'um ' + (ne > r.end ? '+' : '') + (ne - r.end) + ' Tage – alle Schritte wandern mit' : 'alle Schritte wandern mit') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
+    setKids(lab, h('b', null, s.name), h('div', null, isTask ? fmtW(ns) + ' – ' + fmtW(ne) + ' · ' + wtSpan(ns, ne, stepAway(x.m, s)) + ' WT' : (s.pal ? 'PAL: ' : '') + fmtW(ne)), s.pal ? h('div', { class: 'muted' }, ne !== r.end ? 'um ' + (ne > r.end ? '+' : '') + (ne - r.end) + ' Tage – alle Schritte wandern mit' : 'alle Schritte wandern mit') : null, w.length ? h('div', { class: 'warn' }, '⚠ ' + w.join(' · ')) : null);
     placeLab(lab, e.clientX, e.clientY);
   };
   const end = okay => {

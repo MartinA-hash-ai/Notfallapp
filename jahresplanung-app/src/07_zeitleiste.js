@@ -42,13 +42,13 @@ function timelineSection(opts = {}) {
 
   // ---- Hintergrund: Wochenenden, Feiertage, Monatslinien, heute
   const bg = h('div', { class: 'tl-bg', style: { left: label + 'px', width: W + 'px' } });
+  for (const f of C.fer) if (f.bis >= x0 && f.von <= x1) { const s0 = Math.max(f.von, x0), e0 = Math.min(f.bis, x1); bg.append(h('div', { class: 'fer', style: { left: X(s0) + 'px', width: (e0 - s0 + 1) * pxd + 'px' }, tip: ferLabel(f) })); }
   if (pxd >= 2.5) for (let n = x0; n <= x1; n++) if (wd(n) >= 5) bg.append(h('div', { class: 'we', style: { left: X(n) + 'px', width: pxd + 'px' } }));
   for (let n = x0; n <= x1; n++) {
     const hn = holName(n);
     if (hn) bg.append(h('div', { class: 'hol', style: { left: X(n) + 'px', width: Math.max(2, pxd) + 'px' }, tip: 'Feiertag: ' + hn + ' (' + fmtW(n) + ')' }));
     if (ymd(n)[2] === 1) bg.append(h('div', { class: 'mline', style: { left: X(n) + 'px' } }));
   }
-  for (const f of C.fer) if (f.bis >= x0 && f.von <= x1) { const s0 = Math.max(f.von, x0), e0 = Math.min(f.bis, x1); bg.append(h('div', { class: 'fer', style: { left: X(s0) + 'px', width: (e0 - s0 + 1) * pxd + 'px' }, tip: ferLabel(f) })); }
   if (today >= x0 && today <= x1) bg.append(h('div', { class: 'today', style: { left: X(today) + pxd / 2 + 'px' }, tip: 'Heute, ' + fmtW(today) }));
 
   // ---- Zeilen der Maßnahmen

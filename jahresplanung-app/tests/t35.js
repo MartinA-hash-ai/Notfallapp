@@ -86,7 +86,7 @@ const { chromium, ok, open, finish } = require('./lib');
   // ---- D: Hinweis am Balken ohne „Ziehen = …“, in Werktagen
   const bar = await p.evaluate(id => { const x = C.byId.get(id), s = x.m.plan.steps.find(q => q.typ === 'aufgabe' && x.pc.map.get(q.id).end - x.pc.map.get(q.id).start >= 7), r = x.pc.map.get(s.id);
     const rows = [...document.querySelectorAll('.pl-table > .pl-row:not(.head)')], i = rows.findIndex(q => q.dataset.rid === s.id), e = document.querySelectorAll('.g-body > .g-row')[i].querySelector('.g-bar');
-    e.scrollIntoView({ block: 'center', inline: 'center' }); const q = e.getBoundingClientRect(); return [q.x + q.width / 2, q.y + q.height / 2, stepWT(r.start, r.end)]; }, sm);
+    e.scrollIntoView({ block: 'center', inline: 'center' }); const q = e.getBoundingClientRect(); return [q.x + q.width / 2, q.y + q.height / 2, wtSpan(r.start, r.end)]; }, sm);
   await p.mouse.move(bar[0], bar[1] - 1); await p.mouse.move(bar[0], bar[1]); await p.waitForTimeout(300);
   const tip = await p.evaluate(() => document.querySelector('#tip').innerText);
   ok(!/Ziehen/.test(tip) && /· \d+ WT/.test(tip) && tip.includes(bar[2] + ' WT') && !/Tage/.test(tip), 'D: Hinweis „' + tip.replace(/\n/g, ' / ') + '“');

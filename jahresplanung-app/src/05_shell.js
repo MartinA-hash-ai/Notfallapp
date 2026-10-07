@@ -72,7 +72,6 @@ function topBar() {
   const dirty = isDirty(), nW = C.warnings.filter(w => w.lvl === 'warn').length, nI = C.warnings.length - nW;
   const pend = SP.rows.length ? spCompute().pend : 0;           // Spenden, die auf Prüfung warten
   const tab = ([k, label]) => h('button', { class: 'tab' + (UI.view === k ? ' on' : ''), onclick: () => { UI.view = k; renderNow(); $('#main').scrollTop = 0; } }, label,
-    k === 'spenden' ? h('span', { class: 'beta' }, 'Beta') : null,
     k === 'spenden' && pend ? h('span', { class: 'tab-badge', tip: pend + (pend === 1 ? ' Spende wartet' : ' Spenden warten') + ' zum Prüfen auf die Zuordnung' }, pend) : null);
   return h('header', { class: 'top' },
     h('div', { class: 'brand' }, h('img', { class: 'logo', src: logoSrc(), alt: 'Malteser' }), h('div', null, h('strong', null, 'Jahresplanung Außenkommunikation'), h('span', null, 'Fundraising · Diözese Paderborn'))),
@@ -93,15 +92,12 @@ function topBar() {
         ['Datensicherung exportieren (.json)', exportJSON], ['Datensicherung importieren …', openFile]]),
       presenceChip(),
       saveBox(),
-      menuButton('⋯', [
-        [(UI.autoSave === false ? '☐' : '☑') + ' Automatisch speichern', () => { UI.autoSave = UI.autoSave === false; saveUI(); if (UI.autoSave && isDirty()) scheduleAutosave(); renderNow(); toast('Automatisch speichern ' + (UI.autoSave ? 'an' : 'aus')); }],
-        ['Speicherort (Mailing-Ordner) neu wählen …', async () => { ST.conn = 'none'; ST.dir = null; await connectFolder(); renderNow(); }], null,
+      menuButton('⋯', [                                   // ab 0.15 schlank: Speicherort und Protokoll in den Einstellungen, Speichern immer automatisch
         ['Daten aus anderer Datei übernehmen …', openFile], ['Kopie speichern unter …', saveCopy], ['Daten als JSON sichern', exportJSON], null,
-        ['Änderungsprotokoll …', logDialog], ['Daten prüfen …', checkDialog], ['Daten zurücksetzen …', resetDialog], null,
+        ['Daten prüfen …', checkDialog], ['Daten zurücksetzen …', resetDialog], null,
         [(DARK ? '☀ Helles Design' : '☾ Dunkles Design'), () => setTheme(DARK ? 'light' : 'dark')],
         ['Programm-Update einspielen …', updateProgram], null,
-        ['Urlaub & Feiertage …', () => openSettings('urlaub')], ['Urlaub / Abwesenheit eintragen …', addVac], null,
-        ['Einstellungen …', () => openSettings()], ['Hilfe', helpDialog]], 'right')));
+        ['Einstellungen …', () => openSettings()]], 'right')));
 }
 // Daten zurücksetzen: Spenden-Zuordnungen, Exportdateien, Maßnahmen eines Jahres. Einstellungen bleiben; vorher Datensicherung.
 async function resetDialog() {
@@ -407,7 +403,7 @@ function warnPanel() {
         'Arbeitsschritte im Urlaub der zugeordneten Person.')));
 }
 
-/* ---------- Einstellungen, Hilfe */
+/* ---------- Einstellungen */
 /* ---------- Darstellung: hell / dunkel / wie Windows */
 const MQ_DARK = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
 function applyTheme() {
@@ -516,6 +512,13 @@ function settingsParts() {
       row('Dein Name', h('input', { value: UI.userName || '', onchange: e => { UI.userName = e.target.value.trim(); saveUI(); } }), 'wird beim Speichern vermerkt („gespeichert von …“), nur in diesem Browser'),
       row('Planungsjahr', h('input', { type: 'number', min: 2000, max: 2099, value: D.settings.year, onchange: e => { const v = +e.target.value; if (v >= 2000 && v <= 2099) commit(d => { d.settings.year = v; }); } }),
         'mit diesem Jahr öffnet die App; die Excel-Ansicht in Teams zeigt immer dieses Jahr'),
+      h('h3', null, 'Speicherort'),
+      h('div', { class: 'inl sett-store' },
+        h('button', { class: 'sett-folder', onclick: async e => { e.preventDefault(); ST.conn = 'none'; ST.dir = null; await connectFolder(); renderNow(); } }, 'Speicherort (Mailing-Ordner) neu wählen …'),
+        h('span', { class: 'muted small' + (folderMismatch() ? ' warn' : '') }, ST.conn === 'ok' && ST.dir ? 'Ordner „' + ST.dir.name + '“ – Änderungen werden automatisch gespeichert' + (folderMismatch() ? ' (passt nicht zur geöffneten Datei!)' : '')
+          : ST.conn === 'needs-permission' ? 'Ordner „' + (ST.dir ? ST.dir.name : '?') + '“ (Freigabe fehlt noch)' : 'noch kein Speicherort gewählt')),
+      h('h3', null, 'Änderungsprotokoll'),
+      h('div', { class: 'inl' }, h('button', { class: 'sett-log', onclick: e => { e.preventDefault(); logDialog(); } }, 'Änderungsprotokoll anzeigen …'), h('span', { class: 'muted small' }, 'wer wann was geändert hat')),
       h('h3', null, 'Darstellung'),
       h('div', { class: 'inl theme-pick' }, radio('light', 'Hell'), radio('dark', 'Dunkel'), radio('system', 'wie Windows')),
       h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: UI.splash !== false, onchange: e => { UI.splash = e.target.checked; saveUI(); } }), 'Startbildschirm mit Animation beim Öffnen zeigen'),
@@ -589,40 +592,6 @@ function settingsParts() {
   };
   return out;
 }
-function helpDialog() {
-  const p = t => h('p', null, t);
-  modal('Hilfe', h('div', { class: 'help' },
-    h('h3', null, 'Starten'),
-    p('Im Mailing-Ordner auf „Jahresplanung starten“ doppelklicken – das Programm öffnet sich in einem eigenen Fenster. Geht das nicht (z. B. weil die IT Startdateien sperrt), im Unterordner „Jahresplanung (Programmdatei)“ die HTML-Datei doppelklicken.'),
-    p('Wer den Ordner nur in Teams oder im Browser sieht: einmalig in Teams unter „Dateien“ auf „Synchronisieren“ klicken. Danach liegt der Ordner im Windows-Explorer und der Start funktioniert. Direkt aus der Teams-/SharePoint-Weboberfläche läuft das Programm nicht.'),
-    h('h3', null, 'Speichern'),
-    p('Beim ersten Mal einmal den Mailing-Ordner wählen und „Bearbeiten zulassen“. Danach speichert die App automatisch wenige Sekunden nach jeder Änderung – in die Programmdatei und in die Ansichts-Excel „' + VIEW_XLSX + '“. Bei jedem neuen Start fragt der Browser einmal kurz nach („Speichern aktivieren“).'),
-    p('Die Excel-Ansicht ist für alle, die nur in Teams hineinschauen: Sie zeigt immer den zuletzt gespeicherten Stand (Übersicht, Kalender, Zeitleiste, Termine, Detailpläne, Urlaub). Sie ist schreibgeschützt; Änderungen dort würden beim nächsten Speichern überschrieben.'),
-    h('h3', null, 'Aufbau'),
-    p('Drei Reiter für die drei Aufgaben: „Jahresplanung“ (planen – Maßnahmen, Zeitleiste, Kalender und „Was steht an?“ untereinander, jeder Bereich mit ▾ ein- und ausklappbar), „Detailpläne“ (durchführen) und „Auswertung“ (Spenden zuordnen und auswerten). Unter ⋯ → „Einstellungen …“ stehen links die Rubriken: Allgemein, Bereiche & Personen, Urlaub & Feiertage (mit Ferienzeiten), Vorlagen für Detailpläne und Version. ⋯ → „Urlaub & Feiertage …“ springt direkt dorthin, ⋯ → „Urlaub / Abwesenheit eintragen …“ öffnet direkt das Eintragen.'),
-    h('h3', null, 'Im Team'),
-    p('Es sollte immer nur eine Person gleichzeitig ändern. Die App prüft alle 15 Sekunden, ob jemand anderes gespeichert hat: Ohne eigene offene Änderungen lädt sie den neuen Stand automatisch, sonst bietet sie an, beide Stände zusammenzuführen (bei Überschneidungen fragt sie nach).'),
-    p('Haben zwei Personen fast gleichzeitig gespeichert, legt OneDrive manchmal eine Kopie mit dem Computernamen an (z. B. „…-LAPTOP.html“). Die App meldet solche Kopien; über „Vergleichen …“ lassen sich fehlende Einträge übernehmen, danach wird die Kopie weggeräumt.'),
-    p('Nach einem Programm-Update bitte alle offenen App-Fenster schließen und neu öffnen. Ein Fenster mit älterer Version merkt das und speichert nicht mehr, bis es neu gestartet wurde.'),
-    p('Oben rechts zeigt „👥 Name“, wer die Jahresplanung gerade ebenfalls geöffnet hat (über OneDrive, kann etwa eine Minute nachhinken). Unter ⋯ → „Änderungsprotokoll“ steht, wer wann was geändert hat.'),
-    h('h3', null, 'Bereiche'),
-    p('Jede Maßnahme läuft in Bereichen auf das PAL zu – ' + PH().map(q => sym(q.key) + ' = ' + q.name).join(', ') + ', ' + sym('P') + ' = PAL. Ein Bereich beginnt an seinem Start und läuft bis zum nächsten Start (der letzte bis zum PAL); im Bearbeiten-Fenster kann er ein eigenes Ende bekommen. In den Einstellungen lassen sich Bereiche umbenennen, umsortieren und neue mit eigenem Buchstaben anlegen. In der Tabelle zeigt der Schalter „Datum – Werktage“ über den Spalten der Bereiche die Starts als Datum oder als Werktage bis zum PAL.'),
-    p('Im Detailplan gehört jeder Abschnitt zu einem Bereich (Auswahl am Abschnitt). Der früheste Schritt des Abschnitts ist dessen Start – oder der Schritt, der im ⋯-Menü als „Beginn“ festgelegt ist.'),
-    h('h3', null, 'Auswertung (Beta)'),
-    p('Exporte der Spendeneingänge (CSV oder Excel) in den Ordner „Spendeneingänge …“ im Mailing-Ordner legen – überlappende Zeiträume sind kein Problem, doppelte Buchungen zählen nur einmal. Im Reiter „Auswertung“ eine Maßnahme wählen: links stehen die offenen Spenden, in der Mitte „Prüfen“, rechts die zugeordneten. Ein Klick links holt eine Spende in die Mitte; erst „zuordnen“ zählt sie für die Maßnahme. Was von Hand in der Mitte liegt, bleibt dort auch beim Wechsel der Maßnahme – zugeordnet wird immer der gerade gewählten.'),
-    p('Spenden ohne Maßnahme (z. B. Daueraufträge) gehören in die erste Zeile „Allgemeine Spenden“ des Jahres.'),
-    p('Eine Regel (Schlagworte im Verwendungszweck, z. B. der Code vom Überweisungsträger, und ein Zeitraum ab PAL) schiebt passende Spenden automatisch in „Prüfen“ – auch aus später hinzugefügten Exporten. Für die Kennzahlen Auflage und Kosten der Maßnahme eintragen.'),
-    h('h3', null, 'Datenschutz'),
-    p('Die App arbeitet komplett offline: Es werden keine Daten ins Internet gesendet und nichts nachgeladen. Wer die Datei hat, sieht alle Daten – also nur intern ablegen. Von den Spendeneingängen speichert die Planungsdatei nur Zuordnung, Datum und Betrag; Namen, IBAN und Verwendungszweck stehen nur in den Exporten im Mailing-Ordner.'),
-    h('h3', null, 'Bedienung'),
-    p('Jahresplanung: oben die Maßnahmen, darunter Zeitleiste, Kalender und „Was steht an?“ – jeder Bereich lässt sich mit ▾ ein- und ausklappen. Maus über einen Tag oder eine Markierung zeigt die Details. Markierung ziehen: P verschiebt das ganze Projekt (alle Bereiche wandern mit), ein Start verschiebt nur diesen Bereich. Klick hält die Maßnahme hervorgehoben, „Bearbeiten“ steht dann hinter ihren Zeilen in der Terminliste.'),
-    p('Zeitleiste: Mausrad zoomt (beim Blättern der Seite erst, wenn die Seite kurz stillsteht – Strg+Mausrad zoomt immer), Klick auf einen Monat zoomt hinein, Klick auf den Namen einer Maßnahme zeigt sie ganz. Mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Balken ziehen verschiebt den PAL, die Griffe mit Buchstaben verschieben nur diesen Start. Strg+Z macht jede Änderung rückgängig.'),
-    p('Detailpläne: Abschnitte mit ▾ ein- und ausklappen, Zeilen am ⋮⋮-Griff hoch/runter ziehen. Balken im Gantt ziehen verschiebt den Schritt, an den Enden ziehen ändert die Dauer; die Farbe zeigt, wer zugeordnet ist. ‹ zwischen Tabelle und Gantt blendet die Spalten aus. Dauern zählen in Werktagen; das Ende einer Aufgabe ist der Übergabetag (der nächste Werktag).'),
-    p('Verknüpfte Termine (Strg + Ziehen) haben immer dasselbe Datum: Verlängert man eine Aufgabe nach hinten, rücken die Nachfolger mit; verschiebt man einen Nachfolger oder lässt ihn früher beginnen, wandern die Vorgänger (und alles davor) mit. Der PAL bleibt fest.'),
-    p('Neue Detailpläne: „Blanko“ (leer), „Einfach“ (je Bereich ein Schritt) oder eine Vorlage. Vorlagen bearbeitet man unter Einstellungen → Vorlagen für Detailpläne wie einen Plan; „Als Vorlage speichern …“ im Kopf eines Plans macht aus einem fertigen Plan eine Vorlage.'),
-    p('Maßnahmen mit Detailplan (z. B. Sommer- und Weihnachtsmailing) berechnen die Starts der Bereiche aus den Arbeitsschritten – wie im Excel-Gantt.')), null, { wide: true });
-}
-
 /* ---------- Tastatur */
 document.addEventListener('keydown', e => {
   if (DRAG) return;

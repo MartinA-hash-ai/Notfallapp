@@ -140,12 +140,12 @@ VIEW_FN.urlaub = (main, embed) => {
   for (let mo = 1; mo <= 12; mo++) { const f = mkdn(y, mo, 1); mh.append(h('div', { style: { left: X(f) + 'px', width: daysIn(y, mo) * pxd + 'px' } }, pxd * 30 > 60 ? MON[mo - 1] : MONS[mo - 1])); }
   const bgl = () => {
     const bg = h('div', { class: 'um-bg' });
+    for (const f of fers) { const s0 = Math.max(f.von, a), e0 = Math.min(f.bis, b); bg.append(h('div', { class: 'fer', style: { left: X(s0) + 'px', width: (e0 - s0 + 1) * pxd + 'px' } })); }
     for (let n = a; n <= b; n++) {
       if (wd(n) >= 5) bg.append(h('div', { class: 'we', style: { left: X(n) + 'px', width: pxd + 'px' } }));
       if (holName(n)) bg.append(h('div', { class: 'hol', style: { left: X(n) + 'px', width: Math.max(1.5, pxd) + 'px' } }));
       if (ymd(n)[2] === 1) bg.append(h('div', { class: 'ml', style: { left: X(n) + 'px' } }));
     }
-    for (const f of fers) { const s0 = Math.max(f.von, a), e0 = Math.min(f.bis, b); bg.append(h('div', { class: 'fer', style: { left: X(s0) + 'px', width: (e0 - s0 + 1) * pxd + 'px' } })); }
     return bg;
   };
   const rows = people.map(p => {

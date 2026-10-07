@@ -34,7 +34,8 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   // ---- A: Reiter und Kopf
   const a = await p.evaluate(() => [[...document.querySelectorAll('nav.tabs .tab')].pop().textContent, !document.querySelector('#main .view-head'), !/Exporte \(CSV oder Excel\)/.test(document.querySelector('#main').textContent),
     !!document.querySelector('[data-sec="sp-ueb"] .sec-h .tools button'), document.querySelector('[data-sec="sp-zu"] .sec-t').textContent]);
-  ok(/^AuswertungBeta/.test(a[0]) && a[1] && a[2] && a[3] && a[4] === 'Spenden zuordnen', 'A: Reiter „' + a[0] + '“, keine Überschrift „Spenden 2027“ und kein Erklärsatz; Einlesen-Knöpfe im Kopf der Übersicht; „Spenden zuordnen“');
+  ok(/^Auswertung/.test(a[0]) && !/Beta/.test(a[0]) &&   // ab 0.15 ohne „Beta“
+     a[1] && a[2] && a[3] && a[4] === 'Spenden zuordnen', 'A: Reiter „' + a[0] + '“, keine Überschrift „Spenden 2027“ und kein Erklärsatz; Einlesen-Knöpfe im Kopf der Übersicht; „Spenden zuordnen“');
 
   // ---- B: Hinweis-Spalte = Hinweis aus der Jahresplanung
   await p.fill('[data-fk="sp-hin:m5"]', 'Thema: Jahresbericht 26/27'); await p.press('[data-fk="sp-hin:m5"]', 'Tab'); await p.waitForTimeout(200);

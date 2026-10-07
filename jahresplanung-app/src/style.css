@@ -914,17 +914,26 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 /* 0.14: Abschnitt löschen, Ferienzeiten */
 .gdel .gdel-opt { display: flex; align-items: flex-start; gap: 8px; margin: 4px 0 10px; cursor: pointer; }
 .gdel .gdel-opt input { margin-top: 3px; }
-.tl-bg .fer { background: rgba(46,143,163,.08); border-top: 3px solid rgba(46,143,163,.55); pointer-events: auto; }
-.um-bg .fer { background: rgba(46,143,163,.09); }
-.um-bar.fer { background: #2E8FA3; color: #fff; font-size: 10.5px; line-height: 14px; padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
-.day.fer { box-shadow: inset 0 3px 0 rgba(46,143,163,.6); }
-.day.fer.today { box-shadow: inset 0 0 0 2px var(--red), inset 0 5px 0 rgba(46,143,163,.6); }
-.tt-fer { color: #2E8FA3; font-weight: 600; }
-.vtag.fer { background: rgba(46,143,163,.12); border-color: #2E8FA3; }
-.vd-day.fer { box-shadow: inset 0 -3px 0 rgba(46,143,163,.55); }
+/* ab 0.15: Ferien grau wie Wochenenden */
+.tl-bg .fer { background: var(--we); pointer-events: auto; }
+.um-bg .fer { background: var(--we); }
+.um-bar.fer { background: #8C8C8C; color: #fff; font-size: 10.5px; line-height: 14px; padding: 0 4px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.day.fer:not(.hol) { background: var(--we); }
+.day.fer:not(.hol) .dnum { color: var(--faint); }
+.tt-fer { color: var(--muted); font-weight: 600; }
+.vtag.fer { background: var(--we); border-color: #8C8C8C; }
+.vd-day.fer { background: var(--line3); color: var(--muted); }
 .fertable .fdot { width: 14px; padding-right: 0; }
 .fertable td input[type=date] { width: 128px; }
 .banner.plgap { margin: 0 0 8px; }
+/* 0.15: Zahl je Maßnahme (Spenden in „Prüfen“), Einstellungen Speicherort */
+.sp-un { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.sp-unm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.sp-un .dot { flex: none; }
+.sp-un .sp-mbadge { flex: none; margin-left: 0; }
+.sett-store { flex-wrap: wrap; gap: 10px; }
+.wi.vacx { color: var(--ink2); background: var(--soft); border: 1px solid var(--line2); border-radius: 8px; padding: 0 5px; font-size: 10.5px; line-height: 15px; }
+.vacx-t { color: var(--muted); }
 .newplan .np-links { display: flex; gap: 10px; }
 .newplan .np-links .np-copybtn { width: auto; flex: 1; }
 /* 0.14: Einstellungen als eigene Seite (Rubriken links), Vorlagen */

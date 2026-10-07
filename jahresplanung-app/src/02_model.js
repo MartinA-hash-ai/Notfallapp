@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'autoSave', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab'];
+const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -210,9 +210,9 @@ function normPlan(m, keys) {
 // Feiertage/freie Tage beim Normalisieren aus den Daten, die gerade geladen werden (D ist dann evtl. noch leer)
 let HOLSRC = null;
 function normalize(d) {
-  const keepSrc = HOLSRC, keepCache = _holYear;
-  _holYear = new Map();
-  try { return normalizeData(d); } finally { HOLSRC = keepSrc; _holYear = keepCache; }
+  const keepSrc = HOLSRC, keepCache = _holYear, keepAway = _awayCache;
+  _holYear = new Map(); _awayCache = new Map();
+  try { return normalizeData(d); } finally { HOLSRC = keepSrc; _holYear = keepCache; _awayCache = keepAway; }
 }
 function normalizeData(d) {
   const e = emptyData();
@@ -308,12 +308,27 @@ function prevWorkday(n) { let k = n; while (!isWorkday(k) && n - k < 60) k--; re
 function prevPalDay(n) { let k = n; while ((wd(k) === 6 || holName(k)) && n - k < 60) k--; return k; }
 // Werktage (Mo–Fr ohne Feiertage) von n bis zum Tag vor dem PAL
 const workdaysBefore = (n, pal) => n == null || pal == null ? null : n < pal ? workdays(n, pal - 1) : -workdays(pal, n - 1);
-function workdays(a, b) { let c = 0; for (let n = a; n <= b; n++) if (isWorkday(n)) c++; return c; }
+// Urlaub/Abwesenheit einer Person (ab 0.15): diese Tage zählen bei ihren Aufgaben nicht als Werktage – die Aufgabe wird entsprechend länger
+let _awayCache = new Map();
+function awayDays(wer) {
+  wer = str(wer).trim(); if (!wer) return null;
+  if (_awayCache.has(wer)) return _awayCache.get(wer);
+  const src = HOLSRC || D, out = new Set();
+  for (const u of (src && src.urlaube) || []) {
+    if (str(u.wer).trim() !== wer) continue;
+    const a = dn(u.von), b = dn(u.bis) ?? a; if (a == null || b == null || b < a || b - a > 400) continue;
+    for (let n = a; n <= b; n++) if (isWorkday(n)) out.add(n);
+  }
+  const r = out.size ? out : null; _awayCache.set(wer, r); return r;
+}
+// aw: freie Tage der zugeordneten Person (oder nichts) – zählen dann zusätzlich nicht
+const isWorkFor = (n, aw) => isWorkday(n) && !(aw && aw.has(n));
+function workdays(a, b, aw) { let c = 0; for (let n = a; n <= b; n++) if (isWorkFor(n, aw)) c++; return c; }
 // Dauer der Arbeitsschritte in Werktagen: Spanne [a, b) wie der Balken im Gantt (Beginn bis Tag vor dem Ende)
-const wtSpan = (a, b) => a != null && b != null && b > a ? workdays(a, b - 1) : 0;
+const wtSpan = (a, b, aw) => a != null && b != null && b > a ? workdays(a, b - 1, aw) : 0;
 // Ende nach w Werktagen ab a (der Tag nach dem letzten Werktag) bzw. Beginn w Werktage vor e (immer ein Werktag)
-function addWT(a, w) { if (!(w > 0)) return a; let n = a, c = 0; while (c < w && n - a < 4000) { if (isWorkday(n)) c++; n++; } return n; }
-function subWT(e, w) { if (!(w > 0)) return e; let n = e, c = 0; while (c < w && e - n < 4000) { n--; if (isWorkday(n)) c++; } return n; }
+function addWT(a, w, aw) { if (!(w > 0)) return a; let n = a, c = 0; while (c < w && n - a < 4000) { if (isWorkFor(n, aw)) c++; n++; } return n; }
+function subWT(e, w, aw) { if (!(w > 0)) return e; let n = e, c = 0; while (c < w && e - n < 4000) { n--; if (isWorkFor(n, aw)) c++; } return n; }
 const nextWorkday = n => { let k = n; while (!isWorkday(k) && k - n < 60) k++; return k; };
 const handover = (n, pal) => { let k = n; while (!isWorkday(k) && k !== pal && k - n < 60) k++; return k; };
 // Plan aus Versionen vor 0.13.7 (Dauer in Kalendertagen) auf Werktage umstellen – die Termine bleiben so weit wie möglich gleich
@@ -339,8 +354,8 @@ function personColor(name) {
 // Urlaub oder Abwesenheit (z. B. Fortbildung, Dienstreise): Abwesenheiten erscheinen gestreift
 const isAbw = u => !!u && u.art === 'abwesenheit';
 const vacKind = u => isAbw(u) ? 'Abwesenheit' : 'Urlaub';
-// Ferienzeiten (Schulferien): eigene Farbe, ohne Person – nur zur Orientierung, zählen nicht als freie Tage
-const FER_COLOR = '#2E8FA3';
+// Ferienzeiten (Schulferien): ohne Person, grau wie Wochenenden – nur zur Orientierung, zählen nicht als freie Tage
+const FER_COLOR = '#8C8C8C';
 const ferOn = n => (C && C.fer || []).find(f => f.von <= n && n <= f.bis) || null;
 const ferLabel = f => 'Ferien' + (f.u.notiz ? ': ' + f.u.notiz : '') + ' (' + fmtS(f.von) + '–' + fmtS(f.bis) + ')';
 const vacFill = (c, u) => isAbw(u) ? 'repeating-linear-gradient(135deg, ' + c + ' 0 3px, ' + mix(c, 0.6) + ' 3px 6px)' : c;
@@ -392,7 +407,10 @@ function planCalc(m, days = !(m.plan && m.plan.wt)) {
     // Werktage: das Ende einer Aufgabe ist der Übergabetag – der nächste Werktag nach der Arbeit (dort beginnt ein verknüpfter Nachfolger,
     // beide zeigen dasselbe Datum); höchstens bis zum PAL (fällt der auf einen Samstag, bleibt er das Ende)
     const hand = n => days || dur <= 0 || n == null ? n : handover(n, pal);
-    const out = b != null ? { start: b, end: days ? b + dur : hand(addWT(b, dur)), err } : { start: e != null ? (days ? e - dur : subWT(e, dur)) : null, end: hand(e), err };
+    // Urlaub/Abwesenheit der zugeordneten Person verlängert die Aufgabe (nicht bei fester Dauer)
+    const aw = !days && dur > 0 && s.typ === 'aufgabe' && !s.fix ? awayDays(s.wer) : null;
+    const out = b != null ? { start: b, end: days ? b + dur : hand(addWT(b, dur, aw)), err } : { start: e != null ? (days ? e - dur : subWT(e, dur, aw)) : null, end: hand(e), err };
+    if (aw && out.start != null && out.end != null) { const x = wtSpan(out.start, out.end) - wtSpan(out.start, out.end, aw); if (x > 0) out.away = x; }
     busy.delete(s.id);
     res.set(s.id, out);
     return out;
@@ -428,7 +446,7 @@ function phaseEnds(st, enx, pal) {
   return en;
 }
 function derive() {
-  _holYear = new Map();
+  _holYear = new Map(); _awayCache = new Map();
   const keys = PH().map(p => p.key);
   const mk = m => {
     const pal = dn(m.pal), st = {}, enx = {};
@@ -534,9 +552,11 @@ function computeWarnings() {
       if (Math.abs(r.start - x.pal) > FAR || Math.abs(r.end - x.pal) > FAR)
         W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.end, text: `${nm} › ${s.name}: Termin ${fmtD(r.start)} – ${fmtD(r.end)} liegt mehr als drei Jahre vom PAL entfernt – Datum prüfen` });
       if (s.wer) {
-        const away = C.vac.filter(v => v.u.wer === s.wer && v.von <= r.end && v.bis >= r.start);
-        if (away.length) W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.start,
-          text: `${nm} › ${s.name}: ${s.wer} hat Urlaub (${away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ')})` });
+        const away = C.vac.filter(v => v.u.wer === s.wer && v.von <= r.end && v.bis >= r.start), when = away.map(v => fmtS(v.von) + '–' + fmtS(v.bis)).join(', ');
+        if (r.away) W.push({ lvl: 'info', mid: x.id, step: s.id, n: r.start,   // Aufgabe ist schon um die freien Tage verlängert
+          text: `${nm} › ${s.name}: +${r.away} ${r.away === 1 ? 'Werktag' : 'Werktage'} wegen ${away.some(v => isAbw(v.u)) && !away.every(v => isAbw(v.u)) ? 'Urlaub/Abwesenheit' : away.some(v => isAbw(v.u)) ? 'Abwesenheit' : 'Urlaub'} ${s.wer} (${when})` });
+        else if (away.length && !(s.typ === 'aufgabe' && !s.fix)) W.push({ lvl: 'warn', mid: x.id, step: s.id, n: r.start,
+          text: `${nm} › ${s.name}: ${s.wer} hat Urlaub (${when})` });
       }
     }
   }
@@ -553,7 +573,8 @@ function computeWarnings() {
 /* ---------- Änderungen, Rückgängig */
 function commit(fn, msg) {
   const before = JSON.stringify(D);
-  try { fn(D); ensurePersons(D); D.massnahmen.concat(D.vorlagen || []).forEach(m => { if (m.plan) { unlinkSections(m); forwardLinks(m); } }); }
+  _awayCache = new Map();
+  try { fn(D); _awayCache = new Map(); ensurePersons(D); D.massnahmen.concat(D.vorlagen || []).forEach(m => { if (m.plan) { unlinkSections(m); forwardLinks(m); } }); }
   catch (e) {                                 // Fehler mitten in der Änderung: alles zurück, nichts halb geändert speichern
     console.error(e); D = JSON.parse(before); derive(); requestRender();
     toast('Die Änderung ließ sich nicht ausführen – es wurde nichts verändert. (' + ((e && e.message) || e) + ')', 'err');

@@ -391,7 +391,7 @@ function spComputeNow() {
   const S = D.spenden, ids = new Set(D.massnahmen.map(m => m.id)), mids = { has: id => ids.has(id) || isAllg(id) };
   const rules = [...D.massnahmen.map(spRuleOf), ...Object.keys(S.allg || {}).map(y => spRuleOf(spAllgX(y).m))].filter(Boolean);
   const assigned = k => { const z = S.zu[k]; return z && mids.has(z.m) ? z.m : null; };
-  const sugg = new Map(); let pend = 0;
+  const sugg = new Map(), pendBy = new Map(); let pend = 0;      // pendBy: je Maßnahme, wie viele Spenden in „Prüfen“ warten
   for (const rec of SP.rows) {
     if (assigned(rec.k)) continue;
     let list = null;
@@ -400,9 +400,11 @@ function spComputeNow() {
       const w = ru.test(rec); if (w) (list || (list = [])).push({ id: ru.id, w });
     }
     if (list) sugg.set(rec.k, list);
-    if (list || (S.vor[rec.k] && mids.has(S.vor[rec.k]))) pend++;
+    const vor = S.vor[rec.k] && mids.has(S.vor[rec.k]) ? S.vor[rec.k] : null;
+    if (list || vor) pend++;
+    for (const id of new Set((list || []).map(g => g.id).concat(vor || []))) pendBy.set(id, (pendBy.get(id) || 0) + 1);
   }
-  return { sugg, pend, assigned };
+  return { sugg, pend, pendBy, assigned };
 }
 // „Prüfen“ ist ein Korb: von Hand Vorgemerktes bleibt beim Wechsel der Maßnahme liegen (zugeordnet wird der gewählten);
 // Regel-Vorschläge erscheinen nur bei ihrer eigenen Maßnahme
@@ -552,7 +554,8 @@ function spOverview(ms, cmp, mid, by) {
   const rt = (v, [lo, hi]) => v == null || !R.an ? '' : v < lo ? ' below' : v > hi ? ' above' : ' within';
   const ids = real.filter(r => r.s.n && r.x.pal != null).map(r => r.x.id), stop = e => e.stopPropagation();
   const row = ({ x, s }) => h('tr', { class: 'sp-urow' + (x.id === mid ? ' on' : '') + (x.allg ? ' allg' : ''), dataset: { mid: x.id }, onclick: () => { UI.spMid = x.id; renderNow(); } },
-    h('td', { class: 'sp-uname' }, h('span', { class: 'dot', style: { background: x.color } }), ' ', x.m.name || '(ohne Namen)'),
+    h('td', { class: 'sp-uname' }, h('div', { class: 'sp-un' }, h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'sp-unm' }, x.m.name || '(ohne Namen)'),
+      cmp.pendBy.get(x.id) ? h('span', { class: 'tab-badge sp-mbadge', tip: cmp.pendBy.get(x.id) + (cmp.pendBy.get(x.id) === 1 ? ' Spende wartet' : ' Spenden warten') + ' in „Prüfen“ auf die Zuordnung' }, cmp.pendBy.get(x.id)) : null)),
     x.allg ? h('td', { class: 'muted small' }, 'Spenden ohne Maßnahme, z. B. Daueraufträge') :
       h('td', { class: 'inp' }, h('input', { class: 'sp-hin', value: x.m.hinweis || '', placeholder: '–', 'data-fk': 'sp-hin:' + x.id, onclick: stop, title: x.m.hinweis || '',
         onchange: e => setM(x.id, 'hinweis', e.target.value, 'Hinweis geändert') })),
@@ -818,7 +821,9 @@ VIEW_FN.spenden = main => {
   const tools = () => [spStatus(), h('button', { disabled: ST.conn !== 'ok', onclick: () => spScan({ manual: true }) }, '↻ Neu einlesen'), h('button', { class: 'primary', onclick: spPickFiles, tip: 'Export der Spendeneingänge (CSV oder Excel) wählen – die App legt ihn im Ordner „Spendeneingänge …“ ab, liest ihn ein und zeigt, was neu ist' }, '+ Buchung hinzufügen')];
   put(main,
     spNotice(),
-    section('sp-ueb', 'Maßnahmen ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { closedSummary: () => 'aufklappen, um die Maßnahme zu wechseln', tools }),
+    section('sp-ueb', 'Maßnahmen ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { tools, closedSummary: () => {
+      const wait = ms.filter(o => cmp.pendBy.get(o.id)).map(o => (o.m.name || '(ohne Namen)') + ' (' + cmp.pendBy.get(o.id) + ')');
+      return 'aufklappen, um die Maßnahme zu wechseln' + (wait.length ? ' · in „Prüfen“: ' + wait.join(', ') : ''); } }),
     section('sp-m', h('span', { class: 'sp-mname', style: { color: inkC(x.color) } }, x.m.name || '(ohne Namen)'),
       () => ({ body: h('div', { class: 'sp-kpi' + (x.allg ? ' allg' : '') }, spTiles(x, s), spCharts(x, by.get(mid))) }),
       { closedSummary: () => s.n ? eur0(s.sum) + ' aus ' + spCount(s.n) : 'noch keine Spenden zugeordnet' }),

@@ -219,7 +219,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
     'H: „Rücklauf im Vergleich“ eingeklappt; Erklärzeile zur Responsequote entfernt');
   await p.click('.sp-cmptog'); await p.waitForTimeout(250);
   const h1 = await p.evaluate(() => ({ cmp: document.querySelectorAll('[data-chart="cmp"] .sp-line').length, leg: document.querySelector('.sp-cpills')?.textContent,
-    rows: [...document.querySelectorAll('.sp-ueb tbody tr')].filter(r => r.children[6].textContent !== '–').map(r => r.children[0].textContent.trim() + '=' + r.children[5].textContent).join(' | '),
+    rows: [...document.querySelectorAll('.sp-ueb tbody tr')].filter(r => r.children[6].textContent !== '–').map(r => r.children[0].querySelector('.sp-unm').textContent.trim() + '=' + r.children[5].textContent).join(' | '),
     cols: [...document.querySelectorAll('.sp-ueb thead th')].map(t => t.textContent).join(','), foot: document.querySelector('.sp-ueb tfoot')?.textContent }));
   ok(h1.cmp === 2 && /Sommermailing/.test(h1.leg) && /Jahresbericht/.test(h1.leg), 'H: Vergleich der Rückläufe mit 2 Linien und Legende');
   ok(h1.rows === 'Sommermailing=35 € | Jahresbericht=9.876 €' && !/Prüfung/.test(h1.cols) && /Summe.*9\.911 €/.test(h1.foot), 'H: Übersicht – ' + h1.rows + ', ohne Spalte „in Prüfung“, Summenzeile');

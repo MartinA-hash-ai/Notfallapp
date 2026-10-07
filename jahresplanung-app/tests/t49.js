@@ -58,18 +58,18 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   ok(b2 > px0 * 1.1, 'B: nach kurzer Pause zoomt das Mausrad über der Zeitleiste (' + px0.toFixed(2) + ' → ' + b2.toFixed(2) + ')');
   await p.mouse.move(5, 500);
 
-  // ---- C: Urlaub & Feiertage über ⋯ – ab 0.14 als Rubrik der Einstellungen (eigene Seite ohne Reiter, „← zurück“)
+  // ---- C: Urlaub & Feiertage – ab 0.14 als Rubrik der Einstellungen (eigene Seite ohne Reiter, „← zurück“); ab 0.15 nicht mehr im ⋯-Menü
   await p.click('nav.tabs >> text=Detailpläne'); await p.waitForTimeout(200);
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Urlaub & Feiertage")'); await p.waitForTimeout(250);
+  await p.evaluate(() => openSettings('urlaub')); await p.waitForTimeout(250);
   const c0 = await p.evaluate(() => [UI.view, UI.settTab, document.querySelector('#main h1').textContent, document.querySelector('.sett-body h2').textContent, document.querySelectorAll('nav.tabs .tab.on').length, !!document.querySelector('.view-head .backbtn'), document.querySelector('.sett-tab.on').textContent]);
-  ok(c0[0] === 'einstellungen' && c0[1] === 'urlaub' && c0[2] === 'Einstellungen' && /^Urlaub & Feiertage 2027/.test(c0[3]) && c0[4] === 0 && c0[5] && c0[6] === 'Urlaub & Feiertage', 'C: ⋯ → „Urlaub & Feiertage …“ öffnet die Einstellungen bei „Urlaub & Feiertage“ (kein Reiter markiert, Knopf „← zurück“)');
+  ok(c0[0] === 'einstellungen' && c0[1] === 'urlaub' && c0[2] === 'Einstellungen' && /^Urlaub & Feiertage 2027/.test(c0[3]) && c0[4] === 0 && c0[5] && c0[6] === 'Urlaub & Feiertage', 'C: „Urlaub & Feiertage“ öffnet die Einstellungen bei „Urlaub & Feiertage“ (kein Reiter markiert, Knopf „← zurück“)');
   await p.click('.view-head .backbtn'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => UI.view === 'plaene'), 'C: „← zurück“ führt zu den Detailplänen zurück');
   await p.evaluate(() => { UI.settTab = 'allgemein'; }); await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(250);
   await p.click('.sett-tab[data-tab="urlaub"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => !document.querySelector('.modal') && UI.view === 'einstellungen' && !!document.querySelector('.sett-body .umatrix') && !!document.querySelector('.sett-body .hcard')), 'C: Einstellungen → Rubrik „Urlaub & Feiertage“ mit Übersicht, Urlauben und Feiertagen');
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Urlaub / Abwesenheit eintragen")'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => !!document.querySelector('.modal') && /Urlaub|Abwesenheit/.test(document.querySelector('.modal h2').textContent)), 'C: ⋯ → „Urlaub / Abwesenheit eintragen …“ öffnet direkt das Eintragen');
+  await p.click('.sett-body .view-head button.primary'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => !!document.querySelector('.modal') && /Urlaub|Abwesenheit/.test(document.querySelector('.modal h2').textContent)), 'C: „+ Urlaub / Abwesenheit“ öffnet das Eintragen');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   await p.click('.view-head .backbtn'); await p.waitForTimeout(200);
 
