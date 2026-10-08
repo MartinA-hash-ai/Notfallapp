@@ -54,8 +54,9 @@ const csv = rows => '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
 
   // ---- B: Ferien grau wie Wochenenden
   await p.evaluate(() => { commit(d => { d.ferien.push({ id: 'f1', von: '2027-07-12', bis: '2027-07-23', notiz: 'Sommerferien' }); }); UI.view = 'jahr'; UI.secOpen.kal = true; renderNow(); }); await p.waitForTimeout(300);
-  const b0 = await p.evaluate(() => { const bg = n => getComputedStyle(document.querySelector('.day[data-dn="' + n + '"]')).backgroundColor; return [bg(mkdn(2027, 7, 14)), bg(mkdn(2027, 7, 10)), bg(mkdn(2027, 7, 28)), isWorkday(mkdn(2027, 7, 14))]; });
-  ok(b0[0] === b0[1] && b0[0] !== b0[2] && b0[3], 'B: Ferientag im Kalender grau wie ein Wochenende (' + b0[0] + '), bleibt ein Werktag');
+  const b0 = await p.evaluate(() => { const bg = n => getComputedStyle(document.querySelector('.day[data-dn="' + n + '"]')).backgroundColor; return [bg(mkdn(2027, 7, 14)), bg(mkdn(2027, 7, 10)), bg(mkdn(2027, 7, 28)), isWorkday(mkdn(2027, 7, 14)), bg(mkdn(2027, 7, 17))]; });
+  const lum = c => c.match(/\d+/g).slice(0, 3).reduce((a, b) => a + +b, 0);
+  ok(lum(b0[1]) < lum(b0[0]) && b0[0] !== b0[2] && b0[4] === b0[1] && b0[3], 'B: Ferientag im Kalender grau, etwas heller als ein Wochenende (' + b0[0] + ' / Wochenende ' + b0[1] + ' / normal ' + b0[2] + '); Samstag in den Ferien bleibt Wochenende; Ferientag bleibt ein Werktag');
 
   // ---- C: ⋯-Menü schlank, Speicherort und Änderungsprotokoll in den Einstellungen, ohne Hilfe; Speichern immer automatisch
   await p.click('header .actions .menu-btn:has-text("⋯")'); await p.waitForTimeout(100);

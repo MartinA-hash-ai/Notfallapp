@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.15.5",
+    "version": "0.15.6",
     "date": "",
+    "items": [
+      "Ferienzeiten etwas heller als Wochenenden (Kalender, Zeitleiste, Urlaubsübersicht und Urlaubsfenster); Wochenenden in den Ferien bleiben im Wochenend-Grau"
+    ]
+  },
+  {
+    "version": "0.15.5",
+    "date": "2026-10-08T14:35",
     "items": [
       "PDF-Export neu aufgebaut: oben die drei Bereiche wie die Reiter – Jahresplanung, Detailpläne, Auswertung –, darunter je Bereich, was ins PDF soll; vorgewählt ist der Reiter, der gerade offen ist",
       "Auswertung im PDF: Übersicht mit Kennzahlen aller Maßnahmen (Auflage, Kosten, Spendensumme, Anzahl, Ø-Spende, Responsequote, ROI, Erlös, Summen), Rücklauf im Vergleich als eigene Seite und je Maßnahme eine Seite mit Kacheln und Grafiken – für alle Maßnahmen mit Spenden oder nur für eine",
