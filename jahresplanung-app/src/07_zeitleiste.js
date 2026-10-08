@@ -67,7 +67,7 @@ function timelineSection(opts = {}) {
       h('span', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : ''), tip: x.m.palStatus !== 'fest' ? 'PAL vorläufig' : 'PAL fest' }, x.pal != null ? fmtS(x.pal) : '–'));
     const track = h('div', { class: 'tl-track', style: { width: W + 'px' } });
     // je Bereich ein Balken (hell → kräftiger), Griffe mit Buchstaben am Start; überlappen Bereiche, liegen sie in eigenen Spuren
-    const phs = PH().filter(p => x.st[p.key] != null);
+    const phs = PH().filter(p => x.st[p.key] != null && showType(p.key));   // ein-/ausblenden wie im Kalender (Knöpfe über der Zeitleiste)
     const tone = f => darkNow() ? mix(x.color, 0.66 - 0.26 * f, DARK_SURF) : mix(x.color, 0.75 - 0.30 * f);
     const segBg = (k, f) => lineOf(k) === 'auto' ? tone(f) : lineOf(k) === 'rahmen' ? 'var(--card)' : lineBg(k, x.color);   // Aussehen je Bereich (Einstellungen „Linie“)
     const segs = {}, hands = {}, dia = h('div', { class: 'dia', style: { background: x.color } });
@@ -88,7 +88,7 @@ function timelineSection(opts = {}) {
         e.classList.toggle('first', !over && oi === 0); e.classList.toggle('last', !over && oi === order.length - 1); e.classList.toggle('lane', over);
         hands[k].style.display = ''; hands[k].style.left = Cx(a) + 'px';
       });
-      dia.style.display = pal != null ? '' : 'none'; if (pal != null) dia.style.left = X(pal) + pxd / 2 + 'px';
+      dia.style.display = pal != null && showType('P') ? '' : 'none'; if (pal != null) dia.style.left = X(pal) + pxd / 2 + 'px';
     };
     place(x.st, x.en, x.pal);
     const tipFn = () => chipTip({ x, t: 'P' });
@@ -150,6 +150,7 @@ function timelineSection(opts = {}) {
   UI._tl = { x0, pxd, label };
   const zoomed = UI.tlPxd && UI.tlPxd * nd > avail + 10;
   return {
+    lead: typePills(),
     tools: [
       vacDropdown(),
       h('span', { class: 'segs' },

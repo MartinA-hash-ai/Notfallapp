@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.15.3",
+    "version": "0.15.4",
     "date": "",
+    "items": [
+      "Zeitleiste: Bereiche (Selektion, Inhalt, Produktion …) und PAL lassen sich wie im Kalender ein- und ausblenden – die Knöpfe stehen über der Zeitleiste; die Einstellung gilt für Zeitleiste, Kalender und „Was steht an?“ gemeinsam"
+    ]
+  },
+  {
+    "version": "0.15.3",
+    "date": "2026-10-08T09:28",
     "items": [
       "Ohne Startdatei: Die Jahresplanung wird direkt geöffnet – Doppelklick auf „Jahresplanung_Aussenkommunikation.html“ im (synchronisierten) Mailing-Ordner im Windows-Explorer; sie öffnet sich im Standardbrowser",
       "Das Update-Paket enthält nur noch die Programmdatei; die alte „Jahresplanung starten.cmd“ im Mailing-Ordner kann gelöscht werden",

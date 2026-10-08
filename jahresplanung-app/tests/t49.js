@@ -37,7 +37,7 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
 
   // ---- A3: ohne Anzahl „N Maßnahmen“, Zeitleiste ohne „Maßnahmen: alle“ und „Detailpläne“, „Urlaub“ rechts, eingeklappt ohne Text
   const a3 = await p.evaluate(() => [document.querySelector('[data-sec="mass"] .sec-h').textContent, [...document.querySelectorAll('[data-sec="tl"] .sec-h .tools')].map(t => (t.classList.contains('lead') ? 'L:' : 'R:') + t.textContent).join(' | ')]);
-  ok(!/\d+ Maßnahmen/.test(a3[0]) && /^R:Urlaub: an/.test(a3[1]) && !/Maßnahmen:|Detailpläne/.test(a3[1]), 'A: Kopf „' + a3[0].slice(0, 40) + '“ ohne Anzahl; Zeitleiste: ' + a3[1].slice(0, 50));
+  ok(!/\d+ Maßnahmen/.test(a3[0]) && /^L:SSelektionIInhaltDProduktionPPAL \| R:Urlaub: an/.test(a3[1]) && !/Maßnahmen:|Detailpläne/.test(a3[1]), 'A: Kopf „' + a3[0].slice(0, 40) + '“ ohne Anzahl; Zeitleiste: ' + a3[1].slice(0, 50));
   await p.click('[data-sec="tl"] .sec-tog'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('[data-sec="tl"] .sec-sum')), 'A: eingeklappte Zeitleiste ohne Zusatztext');
   await p.click('[data-sec="tl"] .sec-tog'); await p.waitForTimeout(200);

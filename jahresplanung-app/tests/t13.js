@@ -61,7 +61,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const tt = await p.evaluate(() => document.querySelector('#tip.on') ? document.querySelector('#tip').innerText : '');
   ok(tt.includes(hs[2] + ' Werktage vor PAL'), 'Tooltip S: ' + tt.replace(/\n/g, ' / '));
   await p.mouse.move(5, 900);
-  const tlTools = await p.evaluate(() => [...document.querySelectorAll('[data-sec="tl"] .sec-h > .tools')].map(t => t.textContent).join(' | '));
+  const tlTools = await p.evaluate(() => [...document.querySelectorAll('[data-sec="tl"] .sec-h > .tools:not(.lead)')].map(t => t.textContent).join(' | '));
   ok(/^Urlaub: an/.test(tlTools) && !/Maßnahmen:|Detailpläne/.test(tlTools), 'Zeitleiste: rechts „Urlaub“, ohne „Maßnahmen“ und „Detailpläne“ (' + tlTools + ')');
   await p.click('.sec[data-sec="tl"] .fbtn'); await p.waitForTimeout(100);
   await p.click('.menu.pop input[type=checkbox] >> nth=0'); await p.waitForTimeout(150);
