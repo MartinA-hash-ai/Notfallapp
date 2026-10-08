@@ -150,6 +150,10 @@ function presenceChip() {
 }
 function banners() {
   const out = h('div', { class: 'banners' });
+  if (!FSA && !UI.brwHidden && !UI.printing) out.append(h('div', { class: 'banner warn brw-banner' },   // Firefox, Safari, Brave: kein Speichern in den Ordner
+    h('span', null, browserName() + ' kann nicht direkt in den Mailing-Ordner speichern – Änderungen landen nur als Download, die anderen sehen sie nicht. Die Jahresplanung braucht Microsoft Edge oder Google Chrome.'),
+    h('button', { class: 'primary', onclick: browserDialog }, 'Edge oder Chrome als Standardbrowser …'),
+    h('button', { onclick: () => { UI.brwHidden = true; renderNow(); } }, 'Ausblenden')));
   if (FSA && ST.conn === 'ok' && !UI.userName && !UI.nameLater) out.append(nameBanner());
   const busy = PRESENCE.others.filter(editingNow);
   if (busy.length && !UI.presClosed) out.append(h('div', { class: 'banner warn' },

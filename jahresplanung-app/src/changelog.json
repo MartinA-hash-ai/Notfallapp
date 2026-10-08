@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.15.1",
+    "version": "0.15.2",
     "date": "",
+    "items": [
+      "Browser ohne Speichern in den Mailing-Ordner (z. B. Firefox, Safari, Brave): Hinweis-Leiste mit Erklärung und Anleitung, Edge oder Chrome als Standardbrowser festzulegen (Knopf zu den Windows-Einstellungen) – auch nach „Speichern“",
+      "Startdatei „Jahresplanung starten“ öffnet immer den Standardbrowser – Edge und Chrome als eigenes Programmfenster; Edge wird auch an ungewöhnlichen Installationsorten gefunden"
+    ]
+  },
+  {
+    "version": "0.15.1",
+    "date": "2026-10-07T11:04",
     "items": [
       "Datensicherung unter Einstellungen → Allgemein: „Sicherung speichern …“ (Speicherort wählen) und „Sicherung hochladen …“ (vorher wird der aktuelle Stand automatisch gesichert; Strg+Z möglich)",
       "⋯-Menü und Export-Menü ohne „Daten aus anderer Datei übernehmen“, „Kopie speichern unter“ und „Daten als JSON sichern“",

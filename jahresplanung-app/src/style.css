@@ -932,6 +932,11 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .sp-un .dot { flex: none; }
 .sp-un .sp-mbadge { flex: none; margin-left: 0; }
 .sett-store { flex-wrap: wrap; gap: 10px; }
+/* 0.15.2: Hinweis für Browser ohne Ordnerzugriff */
+.brw ol { margin: 4px 0 10px 20px; padding: 0; }
+.brw li { margin: 3px 0; }
+.brw a.brw-btn { display: inline-block; padding: 7px 14px; border-radius: 8px; background: var(--red); color: #fff; font-weight: 600; text-decoration: none; }
+.brw a.brw-btn:hover { background: var(--red-d); }
 .wi.vacx { color: var(--ink2); background: var(--soft); border: 1px solid var(--line2); border-radius: 8px; padding: 0 5px; font-size: 10.5px; line-height: 15px; }
 .vacx-t { color: var(--muted); }
 .newplan .np-links { display: flex; gap: 10px; }

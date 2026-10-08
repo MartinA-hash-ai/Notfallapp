@@ -291,9 +291,32 @@ async function saveDownload() {
   download(currentFileName(), new Blob([buildFile(data)], { type: 'text/html' }));
   D.meta = data.meta; D.log = data.log; SAVED_JSON = JSON.stringify(D); clearDraft(); updateSaveUI();
   modal('Als Download gespeichert', h('div', null,
-    h('p', null, `Dieser Browser kann nicht direkt in den Ordner speichern. Die Datei „${currentFileName()}“ liegt jetzt in deinem Download-Ordner – ersetze damit die bisherige Datei.`),
-    h('p', null, 'Die Excel-Ansicht wird nur in Microsoft Edge oder Google Chrome automatisch aktualisiert.')));
+    h('p', null, `${browserName()} kann nicht direkt in den Mailing-Ordner speichern. Die Datei „${currentFileName()}“ liegt jetzt in deinem Download-Ordner – ersetze damit die bisherige Datei.`),
+    h('p', null, 'Mit Microsoft Edge oder Google Chrome speichert die Jahresplanung automatisch in den Mailing-Ordner.')),
+    [['Edge oder Chrome einrichten …', () => { setTimeout(browserDialog, 0); return true; }], ['OK', true, 'primary']]);
   return true;
+}
+// Welcher Browser? (nur für Hinweise) – Brave sperrt den Ordnerzugriff, Firefox und Safari haben ihn nicht
+function browserName() {
+  const u = navigator.userAgent;
+  return navigator.brave ? 'Brave' : /Firefox\//.test(u) ? 'Firefox' : /Edg\//.test(u) ? 'Edge' : /OPR\//.test(u) ? 'Opera' : /Vivaldi/.test(u) ? 'Vivaldi' : /Chrome\//.test(u) ? 'Dieser Browser' : /Safari\//.test(u) ? 'Safari' : 'Dieser Browser';
+}
+// Browser ohne Ordnerzugriff: Zusammenhang erklären und Edge/Chrome als Standardbrowser anbieten
+function browserDialog() {
+  const b = browserName(), inB = b === 'Dieser Browser' ? 'diesem Browser' : b;
+  modal('Edge oder Chrome als Standardbrowser', h('div', { class: 'help brw' },
+    h('p', null, 'Die Jahresplanung speichert automatisch direkt in die Programmdatei im Mailing-Ordner – das können nur ', h('b', null, 'Microsoft Edge'), ' und ', h('b', null, 'Google Chrome'), '. ',
+      'In ' + inB + ' landet jede Änderung nur als Download: Die gemeinsame Datei im Mailing-Ordner bleibt unverändert, die anderen sehen deine Änderungen nicht, und die Spendeneingänge lassen sich nicht einlesen.'),
+    h('h3', null, 'Edge oder Chrome als Standardbrowser festlegen (Windows 10/11)'),
+    h('ol', null,
+      h('li', null, 'Windows-Einstellungen öffnen – Knopf unten oder Start → Einstellungen.'),
+      h('li', null, '„Apps“ → „Standard-Apps“.'),
+      h('li', null, '„Microsoft Edge“ oder „Google Chrome“ wählen und „Als Standard festlegen“ klicken.'),
+      h('li', null, 'Die Jahresplanung schließen und neu öffnen.')),
+    h('p', null, h('a', { class: 'brw-btn', href: 'ms-settings:defaultapps' }, 'Windows-Einstellungen „Standard-Apps“ öffnen')),
+    h('h3', null, 'Standardbrowser lieber behalten?'),
+    h('p', null, 'Dann die Jahresplanung gezielt mit Edge öffnen: Rechtsklick auf „Jahresplanung_Aussenkommunikation.html“ → „Öffnen mit“ → „Microsoft Edge“.')),
+    [['Schließen', true, 'primary']], { wide: true });
 }
 /* ---------- Änderungen anderer erkennen (die Datei wird per OneDrive synchronisiert) */
 function externalChange(other, stamp) {
