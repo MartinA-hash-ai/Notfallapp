@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.15.2",
+    "version": "0.15.3",
     "date": "",
+    "items": [
+      "Ohne Startdatei: Die Jahresplanung wird direkt geöffnet – Doppelklick auf „Jahresplanung_Aussenkommunikation.html“ im (synchronisierten) Mailing-Ordner im Windows-Explorer; sie öffnet sich im Standardbrowser",
+      "Das Update-Paket enthält nur noch die Programmdatei; die alte „Jahresplanung starten.cmd“ im Mailing-Ordner kann gelöscht werden",
+      "Hinweise in der App und in der Excel-Ansicht nennen den neuen Weg"
+    ]
+  },
+  {
+    "version": "0.15.2",
+    "date": "2026-10-08T07:56",
     "items": [
       "Browser ohne Speichern in den Mailing-Ordner (z. B. Firefox, Safari, Brave): Hinweis-Leiste mit Erklärung und Anleitung, Edge oder Chrome als Standardbrowser festzulegen (Knopf zu den Windows-Einstellungen) – auch nach „Speichern“",
       "Startdatei „Jahresplanung starten“ öffnet immer den Standardbrowser – Edge und Chrome als eigenes Programmfenster; Edge wird auch an ungewöhnlichen Installationsorten gefunden"

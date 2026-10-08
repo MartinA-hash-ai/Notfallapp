@@ -204,7 +204,7 @@ function banners() {
     h('button', { class: 'primary', onclick: async () => { ST.conn = 'none'; ST.dir = null; ST.html = null; await connectFolder(); renderNow(); } }, 'Speicherort neu wählen')));
   if (openedFromDownloads() && !UI.dlHintClosed) out.append(h('div', { class: 'banner err' },
     h('span', null, 'Achtung: Diese Datei wurde aus dem Download-Ordner bzw. dem Browser geöffnet. Änderungen landen dann nicht im gemeinsamen Mailing-Ordner. ' +
-      'Bitte schließen und über „Jahresplanung starten“ im (synchronisierten) Mailing-Ordner öffnen.'),
+      'Bitte schließen und „' + DEFAULT_FILE + '“ im (synchronisierten) Mailing-Ordner im Windows-Explorer öffnen.'),
     h('button', { onclick: () => { UI.dlHintClosed = true; renderNow(); } }, 'Trotzdem hier arbeiten')));
   if (DRAFT_OFFER) out.append(h('div', { class: 'banner warn' },
     h('span', null, `In diesem Browser gibt es ungespeicherte Änderungen vom ${fmtStamp(DRAFT_OFFER.at)}.` +

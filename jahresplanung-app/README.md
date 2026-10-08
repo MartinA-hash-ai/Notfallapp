@@ -6,10 +6,9 @@ Die Datei enthält Programm **und** Daten; „Speichern“ schreibt sie zurück.
 **Benutzen:** `Jahresplanung_Aussenkommunikation.html` in Microsoft Edge oder Google Chrome öffnen.
 Es werden keine Daten ins Internet gesendet und nichts nachgeladen.
 
-**Für den Mailing-Ordner:** `Jahresplanung_fuer_Mailing-Ordner.zip` in den (über OneDrive synchronisierten)
-Mailing-Ordner entpacken:
+**Für den Mailing-Ordner:** Die Programmdatei liegt einmal im (über OneDrive synchronisierten) Mailing-Ordner;
+alle öffnen dieselbe Datei per Doppelklick im Windows-Explorer (Standardbrowser – Speichern nur mit Edge oder Chrome):
 
-- `Jahresplanung starten.cmd` – Doppelklick öffnet die App in einem eigenen Edge-Fenster (`msedge --app`)
 - `Jahresplanung_Aussenkommunikation.html` – Programm und Daten
 - `Jahresplanung – aktueller Stand.xlsx` – entsteht beim ersten Speichern: schreibgeschützte Ansicht
   (Übersicht, Kalender, Zeitleiste, Termine, Detailpläne, Urlaub) für alle, die nur in Teams hineinschauen
@@ -23,8 +22,7 @@ Direkt aus der Teams-/SharePoint-Weboberfläche läuft die App nicht (SharePoint
 
 - Quellcode: `src/*.js` (werden in Reihenfolge der Nummern zusammengefügt), `src/style.css`
 - Startdaten: `src/initial_data.json`, erzeugt aus der Excel-Datei mit `python3 make_initial_data.py`
-- Startknopf: `launcher/Jahresplanung starten.cmd` (nur ASCII, CRLF)
-- Bauen: `python3 build.py` → `Jahresplanung_Aussenkommunikation.html` und `Jahresplanung_fuer_Mailing-Ordner.zip`
+- Bauen: `python3 build.py` → `Jahresplanung_Aussenkommunikation.html` und `Jahresplanung_fuer_Mailing-Ordner.zip` (Update-Paket, nur die Programmdatei)
 
 - Tests: `sh tests/run.sh` (alle) oder `sh tests/run.sh t21` (einer) – laufen mit Playwright/Chromium gegen die
   gebaute Datei; Bilder, PDFs und Downloads landen in `tests/out/`. Playwright wird global gesucht oder über

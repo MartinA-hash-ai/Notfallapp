@@ -121,7 +121,7 @@ function viewWorkbook(opts = {}) {             // Excel immer in heller Optik; o
 function viewWorkbookLight(opts = {}) {
   const y = UI.year, a = mkdn(y, 1, 1), b = mkdn(y, 12, 31), protect = opts.protect !== false;
   const stand = D.meta.savedAt ? 'Stand: gespeichert ' + fmtStamp(D.meta.savedAt) + (D.meta.savedBy ? ' von ' + D.meta.savedBy : '') : 'Stand: ' + fmtD(todayDn());
-  const hint = protect ? 'Nur zur Ansicht – bearbeitet wird im Programm („Jahresplanung starten“). Änderungen hier werden beim nächsten Speichern überschrieben. ' + stand : stand;
+  const hint = protect ? 'Nur zur Ansicht – bearbeitet wird im Programm („' + DEFAULT_FILE + '“ im Mailing-Ordner). Änderungen hier werden beim nächsten Speichern überschrieben. ' + stand : stand;
   const ms = C.ms.filter(x => (x.pal != null && ymd(x.pal)[0] === y) || inYear(x, y));
   const warnBy = new Map();
   C.warnings.forEach(w => { if (w.mid) warnBy.set(w.mid, (warnBy.get(w.mid) || []).concat(w.text.replace(/^[^:]+: /, ''))); });

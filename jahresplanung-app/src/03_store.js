@@ -178,7 +178,7 @@ async function connectFolder() {
     }
     const p = localPath(), folder = p ? p.slice(0, p.lastIndexOf('\\')) : null;
     const ok = await modal('Speicherort wählen', h('div', { class: 'help' },
-      h('p', null, 'Wähle im nächsten Fenster einmalig den Mailing-Ordner (den Ordner, in dem „Jahresplanung starten“ und diese Datei liegen) und bestätige „Bearbeiten zulassen“.'),
+      h('p', null, 'Wähle im nächsten Fenster einmalig den Mailing-Ordner (den Ordner, in dem diese Datei liegt) und bestätige „Bearbeiten zulassen“.'),
       folder ? h('p', { class: 'pathbox' }, folder) : null,
       h('p', null, 'Danach speichert die App automatisch nach jeder Änderung – in die Programmdatei und in die Ansichts-Excel „' + VIEW_XLSX + '“, die sich jede/r auch in Teams ansehen kann.'),
       h('p', { class: 'muted small' }, 'Bei späteren Starts fragt der Browser nur noch einmal kurz, ob die App den Ordner bearbeiten darf.')),
@@ -545,7 +545,7 @@ async function updateProgram(got) {
     await modal('Update gespeichert – aber woanders', h('div', { class: 'help' },
       h('p', null, 'Version ' + (info ? info.version : '') + ' liegt jetzt im verbundenen Ordner „' + mm.connected + '“.'),
       h('p', null, 'Geöffnet ist aber die Datei aus:'), h('p', { class: 'pathbox' }, mm.opened),
-      h('p', null, 'Bitte dieses Fenster schließen und die App über „Jahresplanung starten“ in dem Ordner öffnen, in dem gespeichert werden soll.')));
+      h('p', null, 'Bitte dieses Fenster schließen und „' + DEFAULT_FILE + '“ in dem Ordner öffnen, in dem gespeichert werden soll (im Windows-Explorer doppelklicken).')));
     return;
   }
   toast('Update gespeichert – Neustart …', 'ok');
