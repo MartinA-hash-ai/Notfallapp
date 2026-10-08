@@ -1033,11 +1033,6 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
   .pd-plan .pdates input { border: 0; padding: 0; width: 80px; font-size: 10px; }
   .pd-plan .pl-row, .pd-plan .g-row { height: 15px; font-size: 8.5px; }
   .pd-plan .pl-row.head, .pd-plan .g-head { height: 30px; }
-  .pd-urlaub .cols2 { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
-  .pd-urlaub .card { padding: 8px 10px; margin-bottom: 8px; }
-  .pd-urlaub .htable td, .pd-urlaub .utable td { padding: 1px 4px; }
-  .pd-urlaub .htable input, .pd-urlaub .utable input { padding: 0 2px; font-size: 9px; }
-  .pd-urlaub .um-row { min-height: 18px; } .pd-urlaub .um-track { height: 18px; } .pd-urlaub .um-bar { top: 3px; height: 12px; }
   .pd-plan .pl-row.grp .c-name input, .pd-plan .pl-row input { font-size: 9px; padding: 0 2px; }
   .pd-plan .g-bar { top: 2px; height: 10px; } .pd-plan .g-bar .lbl { font-size: 7.5px; line-height: 8px; } .pd-plan .g-dia { top: 3px; width: 8px; height: 8px; margin-left: -4px; } .pd-plan .g-pal { top: 1px; width: 11px; height: 11px; margin-left: -5.5px; font-size: 7.5px; line-height: 11px; border-radius: 2px; box-shadow: none; }
   .pd-plan .g-sum { top: 5px; height: 4px; }
@@ -1054,8 +1049,42 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .pd-head span { font-size: 10px; color: #666; }
 .pdf-top { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; }
 .pdf-top p { margin: 0; }
-.pdf-cols { display: grid; grid-template-columns: 1fr 1.2fr; gap: 18px; }
-.pdf-cols h3:first-child { margin-top: 4px; }
+.modal.pdfmodal { max-width: 900px; }
+.pdf-areas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 10px 0 12px; }
+.pdf-area { border: 1px solid var(--line); border-radius: var(--radius); padding: 0 10px 10px; background: var(--soft); }
+.pdf-area.on { border-color: var(--red); background: var(--card); box-shadow: inset 0 3px 0 var(--red); }
+.pdf-ah { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; cursor: pointer; padding: 10px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
+.pdf-area:not(.on) .pdf-ab { opacity: .5; }
+.pdf-ab .checks { gap: 5px; }
+.pdf-ab label.check { font-size: 13px; }
+.pdf-ab label.check.sub { margin-left: 22px; color: var(--ink2); }
+.pdf-lbl { font-size: 11.5px; color: var(--muted); margin: 10px 0 4px; }
+.pdf-pills { display: flex; flex-wrap: wrap; gap: 4px; }
+.pdf-pills .tpill { padding: 2px 8px 2px 4px; font-size: 12px; gap: 4px; }
+.pdf-info { font-size: 13px; margin: 0 0 8px; }
+.pdf-note { display: block; font-size: 11.5px; color: var(--muted); margin: -2px 0 2px 22px; }
+p.pdf-note { margin: 8px 0 0; }
+.pdf-for { display: flex; align-items: center; gap: 6px; margin-left: 22px; font-size: 13px; color: var(--ink2); }
+.pdf-for select { min-width: 0; flex: 1; font-size: 12.5px; padding: 2px 4px; }
+.pdfform .mspick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 14px; max-height: 210px; align-content: start; }
+.pdfform .mspick .pop-h { grid-column: 1 / -1; }
+.pdf-count { margin: 10px 0 0; font-weight: 600; color: var(--ink2); }
+@media (max-width: 760px) { .pdf-areas, .pdfform .mspick { grid-template-columns: minmax(0, 1fr); } }
+/* PDF: Auswertung */
+.pd-spt th.num, .pd-spt td.num { text-align: right; white-space: nowrap; }
+.pd-spt td.below { color: var(--warn); font-weight: 600; }
+.pd-spt td.within, .pd-spt td.above { color: var(--ok); font-weight: 600; }
+.pd-spt tr.allg td { color: #666; }
+.pd-spt tfoot td { font-weight: 700; border-top: 1px solid #bbb; border-bottom: 0; }
+.pd-note { font-size: 9.5px; color: #777; margin: 6px 0 0; }
+.pd-cmp { break-inside: avoid; }
+.pd-cmp .sp-chart { margin: 4px 0 4px; }
+.pd-legend { display: flex; flex-wrap: wrap; gap: 3px 14px; font-size: 10px; }
+.pd-legend .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 4px; vertical-align: -1px; }
+.pd-meta { font-size: 11px; color: #555; margin: 0 0 8px; }
+.pd-spm .sp-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: auto; }
+.pd-spm .sp-tiles.allg { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pd-spm .sp-charts { margin-top: 12px; break-inside: avoid; }
 .settings h3 { margin-top: 16px; }
 .settings h3:first-child { margin-top: 2px; }
 .ptable td { padding: 2px 4px; }

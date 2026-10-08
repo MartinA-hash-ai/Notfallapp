@@ -166,19 +166,22 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(await p.evaluate(() => /PDF exportieren/.test(document.querySelector('.modal h2').textContent)), 'Strg+P öffnet PDF-Dialog');
   await p.screenshot({ path: 'r7_pdf_dialog.png' });
   await p.click('.modal button:has-text("Wie aktuelle Ansicht")'); await p.waitForTimeout(100);
-  const pv = await p.evaluate(() => [[...document.querySelectorAll('.modal .checks')[0].querySelectorAll('input')].map(i => i.checked ? 1 : 0).join(''), $$('.modal .mspick input:checked').length]);
-  ok(pv[0] === '000010' && pv[1] === 1, 'Wie aktuelle Ansicht (Detailpläne): ' + JSON.stringify(pv));
-  // alle Bereiche, alle Maßnahmen
-  await p.evaluate(() => { $$('.modal .checks')[0].querySelectorAll('input').forEach(i => { if (!i.checked) i.click(); }); });
+  const pv = await p.evaluate(() => [$$('.modal .pdf-area').map(a => a.classList.contains('on') ? 1 : 0).join(''), $$('.modal .mspick input:checked').length]);
+  ok(pv[0] === '010' && pv[1] === 1, 'Wie aktuelle Ansicht (Detailpläne): ' + JSON.stringify(pv));
+  // alle Bereiche mit allen Teilen, alle Maßnahmen
+  await p.evaluate(() => {         // jedes Häkchen zeichnet die Bereiche neu – deshalb immer frisch suchen
+    const next = () => [...$$('.modal .pdf-ah input'), ...$$('.modal .pdf-ab label.check input')].find(i => !i.checked && !/Verbund|nur Arbeitsschritte/.test(i.parentNode.textContent));
+    for (let i, n = 0; (i = next()) && n < 20; n++) i.click(); });
   await p.click('.modal .mspick button:has-text("alle")');
   await p.evaluate(() => { window.print = () => { window._printed = true; }; });
   await p.click('.modal button:has-text("PDF erstellen")'); await p.waitForTimeout(400);
-  const pages = await p.evaluate(() => [$$('#printdoc .pd-page').length, window._printed, document.title]);
+  const pages = await p.evaluate(() => [$$('#printdoc .pd-page').length, window._printed, document.title, $$('#printdoc .pd-head h1').map(e => e.textContent).join(' | ')]);
   await p.emulateMedia({ media: 'print' });
   await p.pdf({ path: 'r7_export.pdf', preferCSSPageSize: true, printBackground: true });
   await p.emulateMedia({ media: 'screen' });
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint')));
-  ok(pages[0] === 8 && pages[1], 'PDF: ' + pages[0] + ' Bereiche/Seiten gebaut, Titel „' + pages[2] + '“');
+  ok(pages[0] === 8 && pages[1] && /^Maßnahmen 2027 \| Kalender 2027 \| Zeitleiste 2027 \| Was steht an\? · .* \| Detailplan .* \| Detailplan .* \| Detailplan .* \| Auswertung 2027$/.test(pages[3]),
+    'PDF: ' + pages[0] + ' Seiten gebaut (' + pages[3] + '), Titel „' + pages[2] + '“');
   await p.evaluate(() => setTheme('light'));
 
   // ---------- Outlook-Export

@@ -26,7 +26,8 @@ const { chromium, ok, open, finish } = require('./lib');
   // ohne „Wie aktuelle Ansicht“: Häkchen im Dialog entscheidet
   await p.evaluate(id => { UI.view = 'plaene'; UI.planSel = id; UI.planCompact = false; UI.planColl = {}; renderNow(); }, sm);
   await p.evaluate(() => { pdfDialog(); }); await p.waitForTimeout(200);
-  await p.evaluate(() => { const l = [...document.querySelectorAll('.modal label.check')]; l.find(q => /Detailpläne \(je Plan/.test(q.textContent)).querySelector('input').click(); l.find(q => /nur Arbeitsschritte/.test(q.textContent)).querySelector('input').click(); });
+  ok(await p.evaluate(() => $$('.modal .pdf-area').map(a => a.classList.contains('on') ? 1 : 0).join('') === '010'), 'D: im Reiter Detailpläne ist im PDF-Dialog der Bereich „Detailpläne“ vorgewählt');
+  await p.evaluate(() => { [...document.querySelectorAll('.modal label.check')].find(q => /nur Arbeitsschritte/.test(q.textContent)).querySelector('input').click(); });
   await p.click('.modal footer button.primary'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => [...document.querySelectorAll('#printdoc .pd-plan .pl-split')].every(s => s.classList.contains('compact')) && UI.planCompact === false), 'D: Häkchen „nur Arbeitsschritte“ gesetzt → alle Detailpläne eingeklappt gedruckt, Ansicht bleibt');
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint')));

@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.15.4",
+    "version": "0.15.5",
     "date": "",
+    "items": [
+      "PDF-Export neu aufgebaut: oben die drei Bereiche wie die Reiter – Jahresplanung, Detailpläne, Auswertung –, darunter je Bereich, was ins PDF soll; vorgewählt ist der Reiter, der gerade offen ist",
+      "Auswertung im PDF: Übersicht mit Kennzahlen aller Maßnahmen (Auflage, Kosten, Spendensumme, Anzahl, Ø-Spende, Responsequote, ROI, Erlös, Summen), Rücklauf im Vergleich als eigene Seite und je Maßnahme eine Seite mit Kacheln und Grafiken – für alle Maßnahmen mit Spenden oder nur für eine",
+      "Veralteten Teil „Urlaub & Feiertage“ aus dem PDF entfernt (steht jetzt in den Einstellungen; Urlaube sind in Kalender und Zeitleiste zu sehen)",
+      "Der Dialog zeigt vorab, wie viele Seiten das PDF etwa hat, und meldet, wenn die Auswahl nichts ergibt (z. B. keine gewählte Maßnahme mit Detailplan)"
+    ]
+  },
+  {
+    "version": "0.15.4",
+    "date": "2026-10-08T13:38",
     "items": [
       "Zeitleiste: Bereiche (Selektion, Inhalt, Produktion …) und PAL lassen sich wie im Kalender ein- und ausblenden – die Knöpfe stehen über der Zeitleiste; die Einstellung gilt für Zeitleiste, Kalender und „Was steht an?“ gemeinsam"
     ]

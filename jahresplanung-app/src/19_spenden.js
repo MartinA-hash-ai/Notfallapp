@@ -875,7 +875,7 @@ function spXTicks(svg, g, sr, X) {
   for (let n = a - Math.floor((a - sr.d0) / step) * step; n <= sr.d1; n += step) svg.append(sv('text', { class: 'sp-ax', x: X(n - sr.d0), y: y0 + 16, 'text-anchor': 'middle' }, fmtS(n)));
 }
 function spFrame(el, H, ml = 70) {
-  const W = Math.max(320, Math.floor(el.clientWidth)), g = { W, H, ml, mr: 70, mt: 18, mb: 26 };
+  const W = Math.max(320, Math.floor(+el.dataset.w || el.clientWidth)), g = { W, H, ml, mr: 70, mt: 18, mb: 26 };
   g.pw = W - g.ml - g.mr; g.ph = H - g.mt - g.mb;
   const svg = sv('svg', { width: W, height: H, class: 'sp-svg', role: 'img' });
   el.replaceChildren(svg);
@@ -950,7 +950,7 @@ function spDrawCmp(el, ids, by) {
     return { x, cum, last };
   }).filter(s => s.cum[s.last] > 0);
   if (!ser.length) { el.replaceChildren(); return; }
-  const T = Math.min(365, Math.max(56, ...ser.map(s => s.last))), { svg, g } = spFrame(el, 230, 70);
+  const T = Math.min(365, Math.max(56, ...ser.map(s => s.last))), { svg, g } = spFrame(el, +el.dataset.h || 230, 70);
   g.mr = 150; g.pw = g.W - g.ml - g.mr;
   const X = t => g.ml + t / T * g.pw, Y = spYAxis(svg, g, Math.max(...ser.map(s => s.cum[Math.min(s.last, T)])) / 100), y0 = g.mt + g.ph;
   for (let t = 0; t <= T; t += T > 120 ? 28 : 14) svg.append(sv('text', { class: 'sp-ax', x: X(t), y: y0 + 16, 'text-anchor': 'middle' }, t === 0 ? 'PAL' : '+' + t + ' T.'));
