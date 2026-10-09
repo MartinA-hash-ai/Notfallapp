@@ -6,7 +6,7 @@ const JS = v => JSON.stringify(v === undefined ? null : v);
 const clone = v => v === undefined ? undefined : JSON.parse(JSON.stringify(v));
 const contentOf = d => JSON.stringify(Object.assign({}, d, { meta: null }));
 const sameContent = (a, b) => contentOf(a) === contentOf(b);
-const MERGE_COLL = [['massnahmen', 'id'], ['urlaube', 'id'], ['sondertage', 'id'], ['ferien', 'id'], ['vorlagen', 'id'], ['personen', 'name']];
+const MERGE_COLL = [['massnahmen', 'id'], ['urlaube', 'id'], ['sondertage', 'id'], ['ferien', 'id'], ['vorlagen', 'id'], ['zwecke', 'id'], ['personen', 'name']];
 
 function mergeObj(b, m, t, where, conflicts, cnt) {
   b = b || {}; m = m || {}; t = t || {};
@@ -45,8 +45,8 @@ function merge3(base, mine, theirs) {
   out.settings = mergeObj(base.settings, mine.settings, theirs.settings, { coll: 'settings', key: null }, conflicts, cnt);
   out.feiertage = mergeObj(base.feiertage, mine.feiertage, theirs.feiertage, { coll: 'feiertage', key: null }, conflicts, cnt);
   out.spenden = {};                                          // Spenden je Buchung: wie ein Feld behandeln
-  for (const sub of ['zu', 'vor', 'nein']) {
-    const cf = sub === 'zu' ? conflicts : [];                  // nur echte Zuordnungen nachfragen; Vormerkungen: eigene Fassung, Ablehnungen: beide
+  for (const sub of ['zu', 'vor', 'nein', 'zweck']) {
+    const cf = sub === 'zu' ? conflicts : [];                  // nur echte Zuordnungen nachfragen; Vormerkungen und Zwecke von Hand: eigene Fassung, Ablehnungen: beide
     out.spenden[sub] = mergeObj((base.spenden || {})[sub], (mine.spenden || {})[sub], (theirs.spenden || {})[sub], { coll: 'spenden', key: sub, rec: { sub } }, cf, cnt);
     if (sub === 'nein') for (const c of cf) out.spenden.nein[c.field] = [...new Set([].concat(c.mine || [], c.theirs || []))];
   }
@@ -65,12 +65,13 @@ function applyPick(data, c) {
 
 /* ---------- Anzeige */
 const FIELD_LABEL = { name: 'Name', pal: 'PAL', palStatus: 'PAL-Status', vorlauf: 'Starts der Bereiche', ende: 'Enden der Bereiche', bereiche: 'Bereiche', verantwortlich: 'Hauptverantwortlich',
-  auflage: 'Auflage', kosten: 'Kosten', regel: 'Spendenregel', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
+  auflage: 'Auflage', kosten: 'Kosten', regel: 'Spendenregel', worte: 'Schlagworte', konten: 'Konten (Gliederungen)', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
 function recLabel(coll, rec, key) {
   rec = rec || {};
   if (coll === 'massnahmen') return 'Maßnahme „' + (rec.name || '(ohne Namen)') + '“';
   if (coll === 'urlaube') return vacKind(rec) + ' ' + (rec.wer || '?') + ' ' + fmtS(dn(rec.von)) + '–' + fmtS(dn(rec.bis) ?? dn(rec.von));
   if (coll === 'vorlagen') return 'Vorlage „' + (rec.name || 'ohne Namen') + '“';
+  if (coll === 'zwecke') return 'Spendenzweck „' + (rec.name || 'ohne Namen') + '“';
   if (coll === 'ferien') return 'Ferien' + (rec.notiz ? ' „' + rec.notiz + '“' : '') + ' ' + fmtS(dn(rec.von)) + '–' + fmtS(dn(rec.bis) ?? dn(rec.von));
   if (coll === 'sondertage') return 'Freier Tag „' + (rec.name || 'ohne Namen') + '“ ' + fmtS(dn(rec.datum));
   if (coll === 'personen') return 'Person ' + (rec.name || key);
@@ -94,6 +95,7 @@ function valText(coll, field, v, rec) {
   if (field === 'plan') return v && v.steps ? v.steps.length + ' Schritte' : 'kein Detailplan';
   if (field === 'kosten') return eur(Math.round(+v * 100));
   if (field === 'regel') { const r = v || {}, p = dn(rec && rec.pal); return ((r.worte || []).map(w => '„' + w + '“').join(', ') || 'ohne Schlagwort') + (p != null && (isNum(r.ab) || isNum(r.bis)) ? ' (' + (isNum(r.ab) ? fmtS(p + r.ab) : '…') + '–' + (isNum(r.bis) ? fmtS(p + r.bis) : '…') + ')' : '') + (r.ohneDA ? ', ohne Daueraufträge' : ''); }
+  if ((field === 'worte' || field === 'konten') && Array.isArray(v)) return v.length ? v.map(w => '„' + (field === 'konten' ? spGlied(w) : w) + '“').join(', ') : '–';
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
   return String(v).slice(0, 80);
 }
@@ -191,6 +193,10 @@ function describeChanges(a, b, max = 12) {
   const mName = id => { if (isAllg(id)) return '„Allgemeine Spenden ' + id.slice(5) + '“'; const m = (b.massnahmen || []).find(q => q.id === id) || (a.massnahmen || []).find(q => q.id === id); return '„' + ((m && m.name) || '?') + '“'; };
   for (const [id, n] of plus) out.push('Spenden: ' + n + ' der Maßnahme ' + mName(id) + ' zugeordnet');
   for (const [id, n] of minus) out.push('Spenden: ' + n + ' Zuordnung' + (n === 1 ? '' : 'en') + ' bei ' + mName(id) + ' gelöst');
+  const wa = (a.spenden || {}).zweck || {}, wb = (b.spenden || {}).zweck || {};
+  const nz = Object.keys(wb).filter(k => wa[k] !== wb[k]).length, nr = Object.keys(wa).filter(k => !(k in wb)).length;
+  if (nz) out.push('Spendenzwecke: bei ' + nz + ' Spende' + (nz === 1 ? '' : 'n') + ' den Zweck von Hand festgelegt');
+  if (nr) out.push('Spendenzwecke: ' + nr + ' Festlegung' + (nr === 1 ? '' : 'en') + ' von Hand aufgehoben');
   const sa = a.settings || {}, sb = b.settings || {};
   if (JS(sa.bereiche) !== JS(sb.bereiche)) out.push('Bereiche: ' + (sb.bereiche || []).map(p => (p.zeichen || p.key) + ' ' + p.name).join(', '));
   if (JS(sa.pal) !== JS(sb.pal)) out.push('PAL-Markierung: ' + ((sb.pal || {}).zeichen || 'P') + ' (' + (STILE[(sb.pal || {}).stil] || '') + ')');

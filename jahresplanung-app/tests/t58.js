@@ -39,12 +39,12 @@ const { chromium, ok, open, finish, fs } = require('./lib');
     'B: PDF mit Jahresplanung und Auswertung: ' + t1.join(' | '));
   await done();
 
-  // ---- C: nur Auswertung (aus dem Reiter Auswertung): Übersicht, Vergleich, je Maßnahme eine Seite, Allgemeine Spenden zuletzt
+  // ---- C: nur Auswertung (aus dem Reiter Auswertung): Übersicht, Vergleich, je Maßnahme eine Seite (ohne eingelesene Dateien keine Seite „Spenden 2027“ – die prüft t59)
   await dlg('spenden');
   const est = await p.evaluate(() => +document.querySelector('.pdf-count').textContent.match(/\d+/)[0]);
   const t2 = await make();
   const names = await p.evaluate(ids => ids.map(id => C.byId.get(id).m.name), ids);
-  ok(t2.length === 7 && est === 7 && t2[0] === 'Auswertung 2027' && t2[1] === 'Rücklauf im Vergleich 2027' && t2[6] === 'Auswertung · Allgemeine Spenden 2027' &&
+  ok(t2.length === 6 && est === 6 && t2[0] === 'Auswertung 2027' && t2[1] === 'Rücklauf im Vergleich 2027' &&
     names.every((n, i) => t2[2 + i] === 'Auswertung · ' + n), 'C: Auswertung auf ' + t2.length + ' Seiten (geschätzt ' + est + '): ' + t2.join(' | '));
   const tab = await p.evaluate(() => {
     const t = document.querySelector('#printdoc .pd-spt'), rows = [...t.querySelectorAll(':scope > tbody > tr')], foot = t.querySelector(':scope > tfoot > tr');
@@ -52,18 +52,18 @@ const { chromium, ok, open, finish, fs } = require('./lib');
     return { n: rows.length, allg: rows[rows.length - 1].classList.contains('allg'), first: cells(rows[0]), foot: cells(foot), inputs: t.querySelectorAll('input').length };
   });
   // Maßnahme 1: 40 × 20 € = 800 €, Kosten 5.000 €? → hier 5000 € Kosten bei 800 € Spenden
-  ok(tab.allg && tab.inputs === 0 && tab.first[5] === '800 €' && tab.first[6] === '40' && tab.first[3] === '10.000 Stk.' && tab.first[4] === '5.000 €',
-    'C: Übersicht als feste Tabelle (ohne Eingabefelder), Allgemeine Spenden als letzte Zeile: ' + tab.first.slice(1, 10).join(' / '));
+  ok(!tab.allg && tab.inputs === 0 && tab.first[5] === '800 €' && tab.first[6] === '40' && tab.first[3] === '10.000 Stk.' && tab.first[4] === '5.000 €',
+    'C: Übersicht als feste Tabelle (ohne Eingabefelder), ohne Dateien keine Zeile „Spenden 2027“: ' + tab.first.slice(1, 10).join(' / '));
   ok(tab.foot[1] === 'Summe der Maßnahmen' && tab.foot[5] === (800 + 1000 + 1200 + 1400).toLocaleString('de-DE') + ' €' && tab.foot[6] === '160',
-    'C: Summenzeile ohne Allgemeine Spenden: ' + tab.foot.slice(1, 10).join(' / '));
+    'C: Summenzeile nur der Maßnahmen: ' + tab.foot.slice(1, 10).join(' / '));
   const ch = await p.evaluate(() => $$('#printdoc [data-chart]').map(el => { const s = el.querySelector('svg'); return el.dataset.chart + ':' + (s ? s.getAttribute('width') + 'x' + s.getAttribute('height') : '-'); }));
-  ok(ch[0] === 'cmp:1000x440' && ch.slice(1).every(c => /^(span:1000x150|day:1000x150)$/.test(c)) && ch.length === 1 + 2 * 5, 'C: Grafiken in Druckbreite gezeichnet: ' + ch.slice(0, 3).join(', ') + ' … (' + ch.length + ')');
+  ok(ch[0] === 'cmp:1000x440' && ch.slice(1).every(c => /^(span:1000x150|day:1000x150)$/.test(c)) && ch.length === 1 + 2 * 4, 'C: Grafiken in Druckbreite gezeichnet: ' + ch.slice(0, 3).join(', ') + ' … (' + ch.length + ')');
   const tiles = await p.evaluate(() => $$('#printdoc .pd-spm').map(e => e.querySelectorAll('.sp-tile').length).join(','));
-  ok(tiles === '4,4,4,4,2', 'C: Kacheln je Maßnahme (Allgemeine Spenden: 2): ' + tiles);
+  ok(tiles === '4,4,4,4', 'C: Kacheln je Maßnahme: ' + tiles);
   await p.emulateMedia({ media: 'print' });
   await p.pdf({ path: 'auswertung.pdf', preferCSSPageSize: true, printBackground: true });
   await p.emulateMedia({ media: 'screen' });
-  ok(nPages('auswertung.pdf') === 7, 'C: echtes PDF hat ' + nPages('auswertung.pdf') + ' Seiten – nichts läuft über');
+  ok(nPages('auswertung.pdf') === 6, 'C: echtes PDF hat ' + nPages('auswertung.pdf') + ' Seiten – nichts läuft über');
   await done();
 
   // ---- D: nur eine Maßnahme („für …“) – Übersicht bleibt, Vergleich aus

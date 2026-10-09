@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab'];
+const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -69,7 +69,7 @@ function defaultVorlagen() {
 }
 function emptyData() {
   return { version: DATA_VERSION, meta: { savedAt: null, savedBy: '' }, settings: { year: new Date().getFullYear() + 1, bereiche: JSON.parse(JSON.stringify(DEF_BEREICHE)) },
-    personen: [], massnahmen: [], urlaube: [], sondertage: [], ferien: [], log: [], spenden: { zu: {}, vor: {}, nein: {} } };
+    personen: [], massnahmen: [], urlaube: [], sondertage: [], ferien: [], zwecke: [], log: [], spenden: { zu: {}, vor: {}, nein: {}, zweck: {} } };
 }
 // Detailplan aus Version ≤ 0.7 (markierte Schritte S/I) auf Abschnitte mit Bereich umstellen; „Mailing“ wird in Inhalt und Produktion geteilt
 // Der Briefkasten-Termin (PAL) ist eine feste Zeile im Plan: Ziel, hängt am PAL (Abstand 0), rot markiert, nicht löschbar.
@@ -228,7 +228,7 @@ function normalizeData(d) {
   delete d.settings.vorlaufS; delete d.settings.vorlaufI;
   const keys = d.settings.bereiche.map(p => p.key);
   d.log = Array.isArray(d.log) ? d.log.filter(isObj).slice(-LOG_MAX) : [];
-  ['personen', 'massnahmen', 'urlaube', 'sondertage', 'ferien'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(isObj) : []; });
+  ['personen', 'massnahmen', 'urlaube', 'sondertage', 'ferien', 'zwecke'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(isObj) : []; });
   if (!isObj(d.feiertage)) d.feiertage = {};
   HOLSRC = d;
   d.personen = d.personen.filter(p => str(p.name).trim());
@@ -267,12 +267,18 @@ function normalizeData(d) {
   d.urlaube.forEach(u => { u.id = freshId(u.id); u.wer = str(u.wer); u.von = dateStr(u.von); u.bis = dateStr(u.bis); if (u.art !== 'abwesenheit') delete u.art; });   // Art: Urlaub (Standard) oder Abwesenheit
   d.sondertage.forEach(s => { s.id = freshId(s.id); s.name = str(s.name); s.datum = dateStr(s.datum); });
   d.ferien.forEach(u => { u.id = freshId(u.id); u.von = dateStr(u.von); u.bis = dateStr(u.bis); u.notiz = str(u.notiz); });   // Schulferien u. Ä. – nur zur Info, keine freien Tage
+  // Spendenzwecke (für alle Jahre): Name, Farbe, Schlagworte im Verwendungszweck, Konten (Spalte „Personenname“ = Gliederung)
+  const uniq = a => [...new Set((Array.isArray(a) ? a : []).map(w => str(w).trim()).filter(Boolean))];
+  d.zwecke.forEach(z => { z.id = freshId(z.id); z.name = str(z.name).trim() || 'Zweck'; z.farbe = typeof z.farbe === 'string' && /^#[0-9a-f]{6}$/i.test(z.farbe) ? z.farbe : '#7F7F7F';
+    z.worte = uniq(z.worte); z.konten = uniq(z.konten); });
   // Spenden-Zuordnungen (ohne Namen/IBAN): Schlüssel → { m, d, b }; Vormerkungen zur Prüfung; abgelehnte Vorschläge
   const sp = isObj(d.spenden) ? d.spenden : {};
-  d.spenden = { zu: {}, vor: {}, nein: {} };
+  d.spenden = { zu: {}, vor: {}, nein: {}, zweck: {} };
   if (isObj(sp.zu)) for (const [k, z] of Object.entries(sp.zu)) if (isObj(z) && str(z.m) && dn(z.d) != null && isNum(z.b)) d.spenden.zu[k] = { m: str(z.m), d: z.d, b: Math.round(+z.b) };
   if (isObj(sp.vor)) for (const [k, v] of Object.entries(sp.vor)) if (str(v) && !d.spenden.zu[k]) d.spenden.vor[k] = str(v);
   if (isObj(sp.nein)) for (const [k, v] of Object.entries(sp.nein)) { const a = [...new Set((Array.isArray(v) ? v : []).map(str).filter(Boolean))]; if (a.length) d.spenden.nein[k] = a; }
+  const zids = new Set(d.zwecke.map(z => z.id));                     // Zweck von Hand festgelegt: Schlüssel → Zweck-Id oder „-“ (zweckungebunden)
+  if (isObj(sp.zweck)) for (const [k, v] of Object.entries(sp.zweck)) if (v === '-' || zids.has(v)) d.spenden.zweck[k] = v;
   if (isObj(sp.allg)) for (const [y, v] of Object.entries(sp.allg)) {      // allgemeine Spenden je Jahr: Regel (Schlagworte, Daueraufträge vorschlagen)
     const r = isObj(v) && isObj(v.regel) ? v.regel : {}, worte = [...new Set((Array.isArray(r.worte) ? r.worte : []).map(w => str(w).trim()).filter(Boolean))];
     if (/^\d{4}$/.test(y) && (worte.length || r.da === true)) (d.spenden.allg = d.spenden.allg || {})[y] = { regel: Object.assign({ worte }, r.da === true ? { da: true } : {}) };

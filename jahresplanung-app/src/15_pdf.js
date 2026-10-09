@@ -40,13 +40,14 @@ async function pdfDialog() {
   const secsNow = () => Object.fromEntries(PDF_AREAS.flatMap(a => a.secs.map(([s]) => [s, !!f.area[a.k] && !!f.sub[s]])));
   const sel = () => list.filter(x => f.ms.has(x.id));
   const plans = () => sel().filter(x => x.pc);
-  const hasSp = x => (by.get(x.id) || []).length > 0;
+  if (SP.at == null && !SP.busy && ST.conn === 'ok') spScan();                   // „Spenden JJJJ“ rechnet mit den Spendendateien
+  const hasSp = x => x.allg ? SP.rows.length > 0 && spjCompute(y).list.length > 0 : (by.get(x.id) || []).length > 0;
   const cmpIds = () => sel().filter(x => hasSp(x) && x.pal != null).map(x => x.id);
   const spPages = () => f.spOne ? [f.spOne] : [...sel().filter(hasSp).map(x => x.id), ...(hasSp(allg) ? [allg.id] : [])];
   const estimate = () => {
     const s = secsNow(), n = sel().length;
     return (s.mass ? Math.max(1, Math.ceil(n / 20)) : 0) + (s.tl ? Math.max(1, Math.ceil(n / TL_PER_PAGE)) : 0) + (s.kal ? 1 : 0) + (s.ag ? 1 : 0) +
-      (s.plaene ? plans().length : 0) + (s.sp ? 1 : 0) + (s.spcmp && cmpIds().length >= 2 ? 1 : 0) + (s.spm ? spPages().length : 0);
+      (s.plaene ? plans().length : 0) + (s.sp ? 1 : 0) + (s.spcmp && cmpIds().length >= 2 ? 1 : 0) + (s.spm ? spPages().reduce((t, id) => t + (isAllg(id) ? 2 : 1), 0) : 0);   // „Spenden JJJJ“: zwei Seiten
   };
   const areasBox = h('div', { class: 'pdf-areas' }), countEl = h('p', { class: 'pdf-count small' });
   const drawAreas = () => {
@@ -73,7 +74,7 @@ async function pdfDialog() {
           cb(f.sub, 'spm', 'Kennzahlen und Grafiken je Maßnahme', { area: 'spenden' }),
           h('label', { class: 'pdf-for' }, 'für ', h('select', { onchange: e => { f.spOne = e.target.value; f.sub.spm = true; on('spenden')(); drawAreas(); } },
             h('option', { value: '', selected: !f.spOne }, 'alle gewählten mit Spenden'),
-            opts.map(x => h('option', { value: x.id, selected: f.spOne === x.id }, x.m.name || '(ohne Namen)'))))),
+            opts.map(x => h('option', { value: x.id, selected: f.spOne === x.id }, spDispName(x)))))),
           !opts.length ? h('p', { class: 'pdf-note' }, 'Noch keine Spenden zugeordnet – die Übersicht zeigt dann nur Auflage und Kosten.') : null];
       },
     };
@@ -210,7 +211,8 @@ function buildPrintDoc(f) {
 const PD_CHART_W = 1000;                             // px – passt in die A4-Querseite (277 mm ≈ 1047 px) samt Rahmen
 function spPrintPages(f, ms, page) {
   const y = UI.year, by = spByM(), R = spRicht(), allg = spAllgX(y), out = [];
-  const rows = ms.map(x => ({ x, s: spStats(x.m, by.get(x.id)) })), ga = spStats(allg.m, by.get(allg.id));
+  const J = SP.rows.length ? spjCompute(y) : null;                               // „Spenden JJJJ“: alle Spenden des Jahres aus den Dateien
+  const rows = ms.map(x => ({ x, s: spStats(x.m, by.get(x.id)) })), ga = spStats(allg.m, J ? J.list.map(e => ({ d: e.rec.d, b: e.rec.b })) : []);
   const rt = (v, [lo, hi]) => v == null || !R.an ? '' : v < lo ? 'below' : v > hi ? 'above' : 'within';
   const td = (v, cls) => h('td', { class: 'num' + (cls ? ' ' + cls : '') }, v);
   const top = [];
@@ -218,18 +220,18 @@ function spPrintPages(f, ms, page) {
     const real = rows.filter(r => r.s.n);
     const tot = real.reduce((t, r) => ({ n: t.n + r.s.n, sum: t.sum + r.s.sum, auf: t.auf + (r.s.auf || 0), kos: t.kos + (r.s.kos || 0) }), { n: 0, sum: 0, auf: 0, kos: 0 });
     const row = ({ x, s }, cls) => h('tr', { class: cls || null },
-      h('td', null, h('span', { class: 'dot', style: { background: x.color } })), h('td', { class: 'nm', style: { color: x.allg ? null : inkC(x.color) } }, x.m.name || '(ohne Namen)'),
+      h('td', null, h('span', { class: 'dot', style: { background: x.color } })), h('td', { class: 'nm', style: { color: x.allg ? null : inkC(x.color) } }, spDispName(x)),
       h('td', null, x.pal != null ? fmtD(x.pal) : '–'), td(s.auf ? s.auf.toLocaleString('de-DE') + ' Stk.' : '–'), td(s.kos ? eur0(s.kos * 100) : '–'),
       td(s.n ? eur0(s.sum) : '–'), td(s.n || '–'), td(s.avg != null ? eur(s.avg) : '–'),
       td(s.resp != null ? num1(s.resp) + ' %' : '–', rt(s.resp, R.resp)), td(s.roi != null ? num1(s.roi) : '–', rt(s.roi, R.roi)),
       td(s.net != null && s.n ? (s.net < 0 ? '− ' : '') + eur0(Math.abs(s.net)) : '–', s.net != null && s.n ? (s.net < 0 ? 'below' : '') : ''),
-      h('td', { class: 'hinweis' }, x.allg ? 'Spenden ohne Maßnahme, z. B. Daueraufträge' : x.m.hinweis || ''));
+      h('td', { class: 'hinweis' }, x.allg ? 'alle Spenden des Jahres' : x.m.hinweis || ''));
     top.push(h('table', { class: 'pd-table pd-spt' },
       h('thead', null, h('tr', null, h('th'), h('th', null, 'Maßnahme'), h('th', null, 'PAL'), ['Auflage', 'Kosten', 'Spendensumme', 'Anzahl', 'Ø-Spende', 'Responsequote', 'ROI', 'Erlös'].map(t => h('th', { class: 'num' }, t)), h('th', null, 'Hinweis'))),
       h('tbody', null, rows.map(r => row(r)), ga.n ? row({ x: allg, s: ga }, 'allg') : null),
       tot.n ? h('tfoot', null, h('tr', null, h('td'), h('td', null, 'Summe der Maßnahmen'), h('td'), td(tot.auf ? tot.auf.toLocaleString('de-DE') + ' Stk.' : '–'), td(tot.kos ? eur0(tot.kos * 100) : '–'),
         td(eur0(tot.sum)), td(tot.n), td(eur(tot.sum / tot.n)), td(tot.auf ? num1(tot.n / tot.auf * 100) + ' %' : '–'), td(tot.kos ? num1(tot.sum / 100 / tot.kos) : '–'), td(''), h('td'))) : null),
-      h('p', { class: 'pd-note' }, 'Summen ohne „Allgemeine Spenden“; Auflage und Kosten nur von Maßnahmen mit Spenden. ROI = Spendensumme ÷ Kosten, Erlös = Spendensumme − Kosten.' +
+      h('p', { class: 'pd-note' }, 'Summen nur der Maßnahmen (ohne die Zeile „' + spjName(y) + '“ mit allen Spenden des Jahres); Auflage und Kosten nur von Maßnahmen mit Spenden. ROI = Spendensumme ÷ Kosten, Erlös = Spendensumme − Kosten.' +
         (R.an ? ' Richtwerte: Responsequote ' + num1(R.resp[0]) + '–' + num1(R.resp[1]) + ' %, ROI ' + num1(R.roi[0]) + '–' + num1(R.roi[1]) + ' (grün = erreicht, orange = darunter).' : '')));
   }
   const ids = rows.filter(r => r.s.n && r.x.pal != null).map(r => r.x.id);
@@ -242,6 +244,13 @@ function spPrintPages(f, ms, page) {
   if (f.secs.spm) {
     const xs = f.spOne ? [spX(f.spOne)].filter(Boolean) : [...rows.filter(r => r.s.n).map(r => r.x), ...(ga.n ? [allg] : [])];
     for (const x of xs) {
+      if (x.allg) {                                               // alle Spenden des Jahres: Kennzahlen und Verlauf, dann Zwecke und Gliederungen
+        if (!J) continue;
+        out.push(page('Auswertung · ' + spjName(y), h('div', { class: 'pd-spm' }, h('p', { class: 'pd-meta' }, 'alle Spenden des Jahres aus den eingelesenen Dateien (' + SP.files.length + (SP.files.length === 1 ? ' Datei' : ' Dateien') + '), egal ob einer Maßnahme zugeordnet'),
+          spjTiles(J.list), spjCharts(y, true))));
+        out.push(page(spjName(y) + ' · Zwecke und Gliederungen', h('div', { class: 'spj-tabs pd-spj' }, spjZweckTable(J.list, true), spjGliedTable(J.list, true))));
+        continue;
+      }
       const list = by.get(x.id) || [], s = spStats(x.m, list), m = x.m;
       const meta = x.allg ? ['Spenden ohne Maßnahme, z. B. Daueraufträge'] : [x.pal != null ? 'PAL ' + fmtD(x.pal) : 'ohne PAL', s.auf ? 'Auflage ' + s.auf.toLocaleString('de-DE') + ' Stk.' : null,
         s.kos ? 'Kosten ' + eur0(s.kos * 100) : null, m.art || null, m.hinweis ? 'Hinweis: ' + m.hinweis : null].filter(Boolean);

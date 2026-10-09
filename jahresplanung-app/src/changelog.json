@@ -1,7 +1,21 @@
 [
   {
-    "version": "0.15.6",
+    "version": "0.16",
     "date": "",
+    "items": [
+      "Auswertung: Aus „Allgemeine Spenden 2027“ wird „Spenden 2027“ – die Übersicht über alle Spenden des Jahres aus den eingelesenen Dateien, egal ob einer Maßnahme zugeordnet. Mit „Herkunft“ lassen sich die Spenden aus Maßnahmen und die ohne Maßnahme getrennt ansehen",
+      "Kacheln: Spendensumme (mit Zahl der Spender:innen), Ø-Spende und Median, Daueraufträge (Buchungen, Spender:innen, Anteil) und zweckgebundene Spenden; dazu der Jahresverlauf (kumuliert, mit den PAL der Maßnahmen) und die Spenden pro Woche, getrennt nach Einzelspenden und Daueraufträgen",
+      "Spendenzwecke: Zwecke anlegen (Name, Farbe, Reihenfolge) mit Schlagworten wie bei den Maßnahmen (ohne Zeitraum) und/oder Konten – z. B. alle Spenden aufs Hospizkonto. Gezählt wird automatisch; was zu keinem Zweck passt, ist zweckungebunden. Passt eine Spende zu mehreren Zwecken, steht sie unter „zu klären“ und wird per Klick entschieden; einzelne Spenden lassen sich von Hand umhängen",
+      "Gliederungen: Spenden je Konto bzw. Gliederung (Spalte „Personenname“ im Export, ohne das vorangestellte „Paderborn - “)",
+      "Ein Klick auf einen Zweck oder eine Gliederung filtert Kacheln, Grafiken und die Liste der Spenden darunter",
+      "Der Bereich zum Abhaken allgemeiner Spenden heißt jetzt „Allgemeine Spenden (ohne Maßnahme) zuordnen“",
+      "PDF-Export: „Spenden 2027“ auf zwei Seiten – Kennzahlen und Verlauf, dann Zwecke und Gliederungen",
+      "„Daten zurücksetzen“ entfernt mit den Spenden-Zuordnungen auch die von Hand festgelegten Zwecke; die Zwecke selbst bleiben"
+    ]
+  },
+  {
+    "version": "0.15.6",
+    "date": "2026-10-08T16:00",
     "items": [
       "Ferienzeiten etwas heller als Wochenenden (Kalender, Zeitleiste, Urlaubsübersicht und Urlaubsfenster); Wochenenden in den Ferien bleiben im Wochenend-Grau"
     ]

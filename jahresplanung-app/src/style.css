@@ -1347,3 +1347,65 @@ html[data-theme=dark] .mtable td.art select, html[data-theme=dark] .mtable td.ar
 .vd-del { color: var(--red-d); }
 .vd-line { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
 .vd-sum { margin-top: 8px; font-size: 12.5px; min-height: 18px; display: flex; flex-direction: column; gap: 3px; }
+/* 0.16 Auswertung „Spenden JJJJ“: alle Spenden des Jahres, Zwecke, Gliederungen */
+:root { --spj0: #3d5a78; --spj1: #5b7fa3; --spj2: #b3c6da; }
+@media screen { html[data-theme=dark] { --spj0: #a9c5e0; --spj1: #7fa3c7; --spj2: #3f5670; } }
+.spj-empty { padding: 18px 4px; }
+.spj-bar { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; margin: 0 0 12px; }
+.spj-lbl { font-size: 13px; font-weight: 600; color: var(--ink2); }
+.spj-her .seg-btn { padding: 4px 10px; font-size: 13px; }
+.spj-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 3px 1px 10px; border-radius: 12px; background: var(--runbg); color: var(--runink); font-weight: 600; font-size: 13px; }
+.spj-tiles .sp-ts { font-size: 11.5px; }
+.sp-erl.spj-herk { gap: 4px 22px; justify-content: center; }
+.sp-erl.spj-herk span { font-size: 13px; color: var(--ink2); white-space: nowrap; }
+.sp-erl.spj-herk b { font-size: 15px; }
+.spj-key { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-left: 6px; }
+.spj-key.k1 { background: var(--spj1); } .spj-key.k2 { background: var(--spj2); }
+.spj-line { stroke: var(--spj0); } .spj-area { fill: var(--spj0); } .spj-dot { fill: var(--spj0); }
+.spj-b1 { fill: var(--spj1); } .spj-b2 { fill: var(--spj2); }
+.spj-mon { stroke: var(--line3); }
+.spj-palm { stroke: var(--card); stroke-width: 1.5; cursor: help; }
+.spj-tabs { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 16px; margin-top: 16px; align-items: start; }
+@media (max-width: 1100px) { .spj-tabs { grid-template-columns: minmax(0, 1fr); } }
+.spj-box { border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; }
+.spj-h { display: flex; align-items: center; gap: 8px; padding: 8px 10px; }
+.spj-h b { font-size: 14px; }
+.spj-h .spj-add { margin-left: auto; font-weight: 600; }
+.spj-t { table-layout: auto; }
+.spj-t th.num, .spj-t td.num { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.spj-t tbody tr { cursor: pointer; }
+.spj-t tr.on td { background: var(--runbg); }
+.spj-t td.spj-nm { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.spj-t td.spj-nm .dot { margin-right: 7px; vertical-align: 0; }
+.spj-t .dot.ring { background: transparent; border: 1.5px solid var(--faint); box-sizing: border-box; }
+.spj-t tr.frei td.spj-nm { font-weight: 400; color: var(--ink2); }
+.spj-t tr.offen td { color: var(--warn); background: var(--warnbg); }
+.spj-t tr.offen.on td { background: var(--warnbg); box-shadow: inset 0 0 0 1px var(--warnline); }
+.spj-t tfoot td { border-top: 2px solid var(--line2); font-weight: 600; padding: 5px; }
+.spj-bc { width: 26%; min-width: 60px; }
+.spj-b { display: block; height: 9px; border-radius: 3px; background: var(--spj1); min-width: 1px; }
+.spj-ed { margin-top: 14px; padding: 10px 12px; border: 1px solid var(--line); border-left: 4px solid var(--runink); border-radius: var(--radius); }
+.spj-ed .sp-rule + .sp-rule { margin-top: 8px; }
+.spj-ed .sp-rl { min-width: 92px; }
+.spj-name { width: 240px; font-weight: 600; }
+.spj-sw { width: 22px; height: 22px; border-radius: 50%; padding: 0; border: 2px solid var(--card); box-shadow: 0 0 0 1px var(--line2); }
+.spj-del { margin-left: auto; }
+.sp-word.konto { background: var(--chipbg); color: var(--ink2); }
+.spj-konto { max-width: 240px; }
+.spj-prev { color: var(--runink); font-weight: 600; }
+.spj-listbox { margin-top: 14px; border: 1px solid var(--line); border-radius: var(--radius); }
+.spj-listbox .sp-ch .spj-zsel { margin-left: auto; }
+.spj-list { max-height: 460px; overflow: auto; border-top: 1px solid var(--line); }
+.spj-row { display: grid; grid-template-columns: 82px 92px 130px minmax(0, 1fr) auto 190px; gap: 8px; align-items: center; padding: 3px 10px; font-size: 13px; border-bottom: 1px solid var(--line3); }
+.spj-row:has(.sp-n) { grid-template-columns: 82px 92px 130px 160px minmax(0, 1fr) auto 190px; }
+.spj-row.offen { background: var(--warnbg); }
+.spj-row .spj-g { color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spj-row .sp-z, .spj-row .sp-n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spj-tags { display: flex; gap: 4px; justify-content: flex-end; min-width: 0; }
+.spj-tags .sp-tag.rule { border: 1.5px solid; background: var(--card); color: var(--ink2); }
+.spj-pick { border: 0; background: none; padding: 0; font: inherit; color: var(--runink); font-weight: 700; cursor: pointer; }
+.spj-zsel { font-size: 12.5px; padding: 2px 4px; }
+.spj-row.hand .spj-zsel { font-weight: 600; }
+.spj-more { display: block; padding: 8px 10px; }
+.pd-spj { margin-top: 0; }
+.pd-spj .spj-box { break-inside: avoid; }

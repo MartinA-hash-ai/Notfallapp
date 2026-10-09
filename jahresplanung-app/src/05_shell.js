@@ -100,7 +100,7 @@ function topBar() {
 // Daten zurücksetzen: Spenden-Zuordnungen, Exportdateien, Maßnahmen eines Jahres. Einstellungen bleiben; vorher Datensicherung.
 async function resetDialog() {
   if (BROKEN) { toast('Erst die beschädigten Daten wiederherstellen (Hinweis oben).', 'err'); return; }
-  const S = D.spenden, nZu = Object.keys(S.zu).length, nVor = Object.keys(S.vor).length, nAllg = Object.keys(S.allg || {}).length;
+  const S = D.spenden, nZu = Object.keys(S.zu).length, nVor = Object.keys(S.vor).length, nAllg = Object.keys(S.allg || {}).length, nZw = Object.keys(S.zweck || {}).length;
   const files = [];
   if (FSA && ST.conn === 'ok') {
     const walk = async (dh, depth) => { for await (const [n, e] of dh.entries()) { if (e.kind === 'file' && SP_FILE_RE.test(n) && !/^(~\$|\.)/.test(n)) files.push({ dir: dh, name: n, label: dh.name + '/' + n }); else if (e.kind === 'directory' && depth < 1) await walk(e, depth + 1); } };
@@ -109,14 +109,14 @@ async function resetDialog() {
   }
   const years = [...new Set(C.ms.filter(x => x.pal != null).map(x => ymd(x.pal)[0]))].sort();
   const ofYear = y => C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === y);
-  const opt = { sp: nZu + nVor + nAllg > 0, rules: false, files: false, ms: false, year: years.includes(UI.year) ? UI.year : years[years.length - 1] };
+  const opt = { sp: nZu + nVor + nAllg + nZw > 0, rules: false, files: false, ms: false, year: years.includes(UI.year) ? UI.year : years[years.length - 1] };
   const msInfo = h('div', { class: 'muted small rs-ms' });
   const showMs = () => { const l = ofYear(opt.year); setKids(msInfo, l.length ? l.length + ' Maßnahme' + (l.length === 1 ? '' : 'n') + ': ' + l.map(x => x.m.name || '(ohne Namen)').join(', ') + (l.some(x => x.m.plan) ? ' – samt Detailplänen' : '') : 'keine Maßnahme in diesem Jahr'); };
   const cb = (k, label, sub, dis) => h('label', { class: 'check rs-opt' + (dis ? ' muted' : '') }, h('input', { type: 'checkbox', checked: opt[k], disabled: !!dis, onchange: e => { opt[k] = e.target.checked; } }), h('span', null, h('b', null, label), sub ? h('div', { class: 'muted small' }, sub) : null));
   showMs();
   const body = h('div', { class: 'form rs' },
     h('p', null, 'Vorher lädt die App automatisch eine Datensicherung (.json) herunter. Bereiche, Personen, Urlaube, Feiertage und Einstellungen bleiben. Das betrifft die gemeinsame Datei – also alle.'),
-    cb('sp', 'Alle Spenden-Zuordnungen entfernen', nZu + ' zugeordnet, ' + nVor + ' von Hand in „Prüfen“' + (nAllg ? ', Regeln der allgemeinen Spenden (' + nAllg + ' Jahr' + (nAllg === 1 ? '' : 'e') + ')' : '') + ' – in allen Jahren; Auflage und Kosten der Maßnahmen bleiben', !(nZu + nVor + nAllg)),
+    cb('sp', 'Alle Spenden-Zuordnungen entfernen', nZu + ' zugeordnet, ' + nVor + ' von Hand in „Prüfen“' + (nAllg ? ', Regeln der allgemeinen Spenden (' + nAllg + ' Jahr' + (nAllg === 1 ? '' : 'e') + ')' : '') + (nZw ? ', ' + nZw + ' von Hand festgelegte Zwecke' : '') + ' – in allen Jahren; Auflage und Kosten der Maßnahmen und die Spendenzwecke selbst bleiben', !(nZu + nVor + nAllg + nZw)),
     cb('rules', 'Auch die Schlagwort-Regeln der Maßnahmen entfernen', null, !D.massnahmen.some(m => m.regel)),
     cb('files', 'Exportdateien der Spendeneingänge löschen', files.length ? files.length + ' Datei' + (files.length === 1 ? '' : 'en') + ': ' + files.map(f => f.label).join(', ') + ' – sie landen im Papierkorb von OneDrive/SharePoint. Ohne das tauchen die Spenden wieder unter „Offen“ auf.' : 'keine Dateien gefunden' + (ST.conn !== 'ok' ? ' (Mailing-Ordner nicht verbunden)' : ''), !files.length),
     h('div', { class: 'rs-yr' }, cb('ms', 'Maßnahmen löschen mit PAL im Jahr', null, !years.length),
@@ -129,7 +129,7 @@ async function resetDialog() {
   if (!await confirmBox('Wirklich zurücksetzen?', 'Entfernt werden: ' + what.join(', ') + '. Eine Datensicherung wird vorher heruntergeladen' + (opt.files ? '; gelöschte Dateien liegen im Papierkorb von OneDrive/SharePoint' : '') + '.', 'Ja, zurücksetzen')) return;
   exportJSON();
   commit(d => {
-    if (opt.sp) { d.spenden.zu = {}; d.spenden.vor = {}; d.spenden.nein = {}; d.spenden.allg = {}; }
+    if (opt.sp) { d.spenden.zu = {}; d.spenden.vor = {}; d.spenden.nein = {}; d.spenden.allg = {}; d.spenden.zweck = {}; }
     if (opt.rules) d.massnahmen.forEach(m => { delete m.regel; });
     if (del.length) { d.massnahmen = d.massnahmen.filter(m => !del.includes(m.id)); del.forEach(id => spForget(d, id)); }
   }, 'Zurückgesetzt: ' + what.join(', '));

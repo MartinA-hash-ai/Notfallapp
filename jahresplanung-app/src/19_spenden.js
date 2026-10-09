@@ -548,15 +548,16 @@ function spNotice() {
   return null;
 }
 function spOverview(ms, cmp, mid, by) {
-  const rows = ms.map(x => ({ x, s: spStats(x.m, by.get(x.id)) })), R = spRicht(), real = rows.filter(r => !r.x.allg);
+  const yl = x => x.allg && SP.rows.length ? spjCompute(x.allg).list.map(e => ({ d: e.rec.d, b: e.rec.b })) : by.get(x.id);   // „Spenden JJJJ“: alle Spenden des Jahres
+  const rows = ms.map(x => ({ x, s: spStats(x.m, yl(x)) })), R = spRicht(), real = rows.filter(r => !r.x.allg);
   const tot = real.reduce((t, r) => ({ n: t.n + r.s.n, sum: t.sum + r.s.sum, auf: t.auf + (r.s.n && r.s.auf ? r.s.auf : 0), kos: t.kos + (r.s.n && r.s.kos ? r.s.kos : 0) }), { n: 0, sum: 0, auf: 0, kos: 0 });
   const cell = (v, cls) => h('td', { class: 'num' + (cls ? ' ' + cls : '') }, v);
   const rt = (v, [lo, hi]) => v == null || !R.an ? '' : v < lo ? ' below' : v > hi ? ' above' : ' within';
   const ids = real.filter(r => r.s.n && r.x.pal != null).map(r => r.x.id), stop = e => e.stopPropagation();
   const row = ({ x, s }) => h('tr', { class: 'sp-urow' + (x.id === mid ? ' on' : '') + (x.allg ? ' allg' : ''), dataset: { mid: x.id }, onclick: () => { UI.spMid = x.id; renderNow(); } },
-    h('td', { class: 'sp-uname' }, h('div', { class: 'sp-un' }, h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'sp-unm' }, x.m.name || '(ohne Namen)'),
+    h('td', { class: 'sp-uname' }, h('div', { class: 'sp-un' }, h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'sp-unm' }, spDispName(x)),
       cmp.pendBy.get(x.id) ? h('span', { class: 'tab-badge sp-mbadge', tip: cmp.pendBy.get(x.id) + (cmp.pendBy.get(x.id) === 1 ? ' Spende wartet' : ' Spenden warten') + ' in „Prüfen“ auf die Zuordnung' }, cmp.pendBy.get(x.id)) : null)),
-    x.allg ? h('td', { class: 'muted small' }, 'Spenden ohne Maßnahme, z. B. Daueraufträge') :
+    x.allg ? h('td', { class: 'muted small' }, 'alle Spenden des Jahres – Zwecke, Gliederungen, Daueraufträge') :
       h('td', { class: 'inp' }, h('input', { class: 'sp-hin', value: x.m.hinweis || '', placeholder: '–', 'data-fk': 'sp-hin:' + x.id, onclick: stop, title: x.m.hinweis || '',
         onchange: e => setM(x.id, 'hinweis', e.target.value, 'Hinweis geändert') })),
     h('td', null, x.pal != null ? fmtD(x.pal) : '–'),
@@ -824,12 +825,20 @@ VIEW_FN.spenden = main => {
     section('sp-ueb', 'Maßnahmen ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { tools, closedSummary: () => {
       const wait = ms.filter(o => cmp.pendBy.get(o.id)).map(o => (o.m.name || '(ohne Namen)') + ' (' + cmp.pendBy.get(o.id) + ')');
       return 'aufklappen, um die Maßnahme zu wechseln' + (wait.length ? ' · in „Prüfen“: ' + wait.join(', ') : ''); } }),
+    x.allg ? section('sp-m', spjName(y), () => ({ body: spjView(y) }), {          // alle Spenden des Jahres: Zwecke, Gliederungen, Daueraufträge
+      info: 'Alle Spenden des Jahres aus den eingelesenen Dateien – egal, ob sie einer Maßnahme zugeordnet sind. Mit „Herkunft“ lassen sich die Spenden aus Maßnahmen oder die ohne Maßnahme getrennt ansehen.',
+      closedSummary: () => { if (!SP.rows.length) return 'Spendendateien noch nicht eingelesen'; const st = spjStats(spjCompute(y).list); return eur0(st.sum) + ' aus ' + spCount(st.n); } }) :
     section('sp-m', h('span', { class: 'sp-mname', style: { color: inkC(x.color) } }, x.m.name || '(ohne Namen)'),
-      () => ({ body: h('div', { class: 'sp-kpi' + (x.allg ? ' allg' : '') }, spTiles(x, s), spCharts(x, by.get(mid))) }),
+      () => ({ body: h('div', { class: 'sp-kpi' }, spTiles(x, s), spCharts(x, by.get(mid))) }),
       { closedSummary: () => s.n ? eur0(s.sum) + ' aus ' + spCount(s.n) : 'noch keine Spenden zugeordnet' }),
-    section('sp-zu', 'Spenden zuordnen', () => spAssign(x, cmp), { closedSummary: () => spCount(P.R.length) + ' zugeordnet · ' + spCount(P.M.length) + ' in Prüfung' }));
+    section('sp-zu', x.allg ? 'Allgemeine Spenden (ohne Maßnahme) zuordnen' : 'Spenden zuordnen', () => spAssign(x, cmp), {
+      info: x.allg ? 'Spenden, die zu keiner Maßnahme gehören (z. B. Daueraufträge), lassen sich hier als „allgemein“ abhaken – dann stehen sie nicht mehr in „Offen“. In der Übersicht oben zählen sie unter „ohne Maßnahme“.' : null,
+      closedSummary: () => spCount(P.R.length) + ' zugeordnet · ' + spCount(P.M.length) + ' in Prüfung' }));
 };
-VIEW_FN['spenden:after'] = main => { for (const el of $$('[data-chart]', main)) try { spDraw(el); } catch (e) { console.error(e); } };
+VIEW_FN['spenden:after'] = main => {
+  for (const el of $$('[data-chart]', main)) try { spDraw(el); } catch (e) { console.error(e); }
+  if (SPJ.focusName) { SPJ.focusName = false; const e = $('.spj-name', main); if (e) { e.focus(); e.select(); } }   // neuer Zweck: Namen gleich überschreiben
+};
 
 /* ---------- Grafiken (SVG): Zeitspanne (kumuliert), Spenden pro Tag, Vergleich der Maßnahmen */
 const SVG_NS = 'http://www.w3.org/2000/svg';
@@ -892,6 +901,7 @@ function spPalMark(svg, g, x) {
 }
 function spDraw(el) {
   const kind = el.dataset.chart, by = spByM();
+  if (kind === 'ycum' || kind === 'yweek') return spjDraw(el);
   if (kind === 'cmp') { const ids = el.dataset.ids.split(',').filter(id => C.byId.has(id) && by.get(id)); if (!ids.length) { el.replaceChildren(h('p', { class: 'muted small' }, 'Alle Maßnahmen ausgeblendet – oben wieder einblenden.')); return; } return spDrawCmp(el, ids, by); }
   const x = spX(el.dataset.mid), list = x && by.get(x.id);
   if (!list || !list.length) return;

@@ -222,7 +222,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
     rows: [...document.querySelectorAll('.sp-ueb tbody tr')].filter(r => r.children[6].textContent !== '–').map(r => r.children[0].querySelector('.sp-unm').textContent.trim() + '=' + r.children[5].textContent).join(' | '),
     cols: [...document.querySelectorAll('.sp-ueb thead th')].map(t => t.textContent).join(','), foot: document.querySelector('.sp-ueb tfoot')?.textContent }));
   ok(h1.cmp === 2 && /Sommermailing/.test(h1.leg) && /Jahresbericht/.test(h1.leg), 'H: Vergleich der Rückläufe mit 2 Linien und Legende');
-  ok(h1.rows === 'Sommermailing=35 € | Jahresbericht=9.876 €' && !/Prüfung/.test(h1.cols) && /Summe.*9\.911 €/.test(h1.foot), 'H: Übersicht – ' + h1.rows + ', ohne Spalte „in Prüfung“, Summenzeile');
+  ok(/^Spenden 2027=[\d.]+ € \| Sommermailing=35 € \| Jahresbericht=9\.876 €$/.test(h1.rows) && !/Prüfung/.test(h1.cols) && /Summe.*9\.911 €/.test(h1.foot), 'H: Übersicht – ' + h1.rows + ' (oben alle Spenden des Jahres), ohne Spalte „in Prüfung“, Summenzeile nur der Maßnahmen');
 
   const rs = await p.$('.sp-ueb thead th:first-child .col-rs'); await rs.evaluate(e => e.scrollIntoView({ block: 'center' })); const rb = await rs.boundingBox(), w0 = await p.evaluate(() => Math.round(document.querySelector('.sp-ueb thead th').getBoundingClientRect().width));
   await p.mouse.move(rb.x + 3, rb.y + rb.height / 2); await p.mouse.down(); await p.mouse.move(rb.x + 63, rb.y + rb.height / 2, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(250);

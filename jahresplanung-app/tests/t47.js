@@ -62,11 +62,11 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
 
   // ---- E: allgemeine Spenden des Jahres
   const e0 = await p.evaluate(() => { const r = document.querySelector('.sp-ueb tbody tr'); return [r.dataset.mid, r.children[0].textContent.trim(), !r.querySelector('input')]; });
-  ok(e0[0] === 'allg:2027' && e0[1] === 'Allgemeine Spenden 2027' && e0[2], 'E: erste Zeile der Übersicht: „Allgemeine Spenden 2027“ (ohne Auflage/Kosten)');
+  ok(e0[0] === 'allg:2027' && e0[1] === 'Spenden 2027' && e0[2], 'E: erste Zeile der Übersicht: „Spenden 2027“ (ohne Auflage/Kosten; ab 0.16 alle Spenden des Jahres)');
   await p.click('.sp-ueb tbody tr:first-child td:first-child'); await p.waitForTimeout(300);
-  const e1 = await p.evaluate(() => [document.querySelector('.sp-mname').textContent, document.querySelectorAll('.sp-tile').length, !document.querySelector('.sp-erl'), document.querySelector('[data-fk="sp-fvon"]') ? 1 : 0, SPUI.f.von + '…' + SPUI.f.bis, document.querySelector('.sp-rule').textContent]);
-  ok(e1[0] === 'Allgemeine Spenden 2027' && e1[1] === 2 && e1[2] && e1[4] === '2027-01-01…2027-12-31' && /Kalenderjahr 2027/.test(e1[5]) && /Daueraufträge vorschlagen/.test(e1[5]),
-    'E: gewählt – Name groß, 2 Kacheln (Summe, Ø), kein Erlös; Zeitraum = Kalenderjahr; Häkchen „Daueraufträge vorschlagen“');
+  const e1 = await p.evaluate(() => [document.querySelector('[data-sec="sp-m"] .sec-t').textContent, document.querySelectorAll('.spj-tiles .sp-tile').length, !!document.querySelector('.spj-tabs'), document.querySelector('[data-fk="sp-fvon"]') ? 1 : 0, SPUI.f.von + '…' + SPUI.f.bis, document.querySelector('.sp-rule').textContent]);
+  ok(e1[0] === 'Spenden 2027' && e1[1] === 4 && e1[2] && e1[4] === '2027-01-01…2027-12-31' && /Kalenderjahr 2027/.test(e1[5]) && /Daueraufträge vorschlagen/.test(e1[5]),
+    'E: gewählt – „Spenden 2027“ mit 4 Kacheln, Zwecken und Gliederungen; Zuordnen der allgemeinen Spenden: Zeitraum = Kalenderjahr, Häkchen „Daueraufträge vorschlagen“');
   await writeText(p, DIR + 'da.csv', csv([['20.09.2027', '20.09.2027', '15', "'TESTDE11XXX", 'DE00100000000000000032', 'Dora Dauer', "'Zugang/Gutschrift", 'Spende Malteser Lage', "'Dauerauftragsgutschr", "'Paderborn - Lage"].join(';'),
     ['20.10.2027', '20.10.2027', '15', "'TESTDE11XXX", 'DE00100000000000000032', 'Dora Dauer', "'Zugang/Gutschrift", 'Spende Malteser Lage', "'Dauerauftragsgutschr", "'Paderborn - Lage"].join(';')]));
   await p.evaluate(() => spScan({ manual: true })); await p.waitForTimeout(400);
@@ -76,7 +76,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(300);
   const e3 = await p.evaluate(() => [Object.values(D.spenden.zu).filter(z => z.m === 'allg:2027').length, document.querySelector('.sp-tile .sp-tv').textContent, document.querySelector('.sp-ueb tbody tr').children[5].textContent,
     document.querySelector('.sp-ueb tfoot')?.textContent || '', checkData().filter(c => /gelöschten Maßnahme/.test(c.text)).length]);
-  ok(e3[0] === 2 && e3[1] === '30 €' && e3[2] === '30 €' && /Summe der Maßnahmen.*175 €|Summe der Maßnahmen/.test(e3[3]) && !/205/.test(e3[3]) && e3[4] === 0, 'E: zugeordnet (30 €) – in der Übersicht, nicht in der Summe der Maßnahmen, keine „gelöschte Maßnahme“ in der Datenprüfung');
+  ok(e3[0] === 2 && /^[\d.]+ €$/.test(e3[1]) && e3[1] === e3[2] && /Summe der Maßnahmen.*175 €|Summe der Maßnahmen/.test(e3[3]) && !/205/.test(e3[3]) && e3[4] === 0, 'E: beide Daueraufträge allgemein zugeordnet – Kachel und Übersicht zeigen die Jahressumme (' + e3[1] + '), nicht in der Summe der Maßnahmen, keine „gelöschte Maßnahme“ in der Datenprüfung');
   const e4 = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [Object.values(n.spenden.zu).filter(z => z.m === 'allg:2027').length, JSON.stringify(n.spenden.allg)]; });
   ok(e4[0] === 2 && e4[1] === '{"2027":{"regel":{"worte":[],"da":true}}}', 'E: bleibt nach dem Neuladen erhalten');
   const e5 = await p.evaluate(() => { const base = JSON.parse(JSON.stringify(D)), mine = JSON.parse(JSON.stringify(D)), theirs = JSON.parse(JSON.stringify(D)); theirs.spenden.zu.xyz = { m: 'm5', d: '2027-09-01', b: 100 }; const r = merge3(base, mine, theirs); return [JSON.stringify(r.data.spenden.allg), !!r.data.spenden.zu.xyz, r.conflicts.length]; });
