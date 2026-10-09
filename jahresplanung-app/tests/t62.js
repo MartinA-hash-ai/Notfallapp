@@ -40,6 +40,8 @@ const F = { a: ['2027-01-04', '2027-02-15', '2027-03-31'], b: ['2027-03-01', '20
   // ---- C: seit der letzten Buchung gelb; Wochenende + Feiertag + ein Werktag sind noch nicht „offen“; vor Jahresbeginn nichts offen
   const c0 = await p.evaluate(() => [spCoverage(2027, mkdn(2027, 11, 2)).segs.map(g => g.k).join(','), spCoverage(2027, mkdn(2026, 10, 9)).segs.map(g => g.k).join(',')]);
   ok(c0[0] === 'cov,gap,cov' && c0[1] === 'cov,gap,cov', 'C: heute 02.11. (nach Wochenende und Allerheiligen) noch nichts offen; ebenso vor Jahresbeginn (' + c0.join(' / ') + ')');
+  const c1 = await p.evaluate(() => [3, 4].map(t => spCoverage(2027, mkdn(2027, 11, t)).segs.map(g => g.k).join(',')));
+  ok(c1[0] === 'cov,gap,cov' && c1[1] === 'cov,gap,cov,open', 'C: heute 03.11. fehlt ein Werktag (02.11.) – noch nicht gelb; am 04.11. fehlen zwei – gelb (' + c1.join(' / ') + ')');
 
   // ---- D: Jahr ohne Daten; Daten aus 2026 zählen nur im Jahr 2026
   await p.evaluate(() => { UI.year = 2028; renderNow(); }); await p.waitForTimeout(150);
@@ -48,5 +50,14 @@ const F = { a: ['2027-01-04', '2027-02-15', '2027-03-31'], b: ['2027-03-01', '20
   await p.evaluate(() => { UI.year = 2026; renderNow(); }); await p.waitForTimeout(150);
   const d1 = await segs();
   ok(d1.join(' | ') === 'gap 01.01.2026–13.12.2026 | cov 14.12.2026–30.12.2026', 'D: 2026: ' + d1.join(' | '));
+  // ---- E: zwei fehlende Werktage zwischen zwei Dateien sind eine Lücke (rot), einer nicht
+  await p.evaluate(() => { UI.year = 2027; renderNow(); });
+  const E = { f: ['2027-11-04', '2027-11-10'], g: ['2027-11-12'] };   // d endet Fr 29.10. → Di 02.11. + Mi 03.11. fehlen (Allerheiligen zählt nicht); f endet Mi 10.11. → nur Do 11.11. fehlt
+  await p.evaluate(F => { for (const [k, t] of Object.entries(F)) __fs.files['/Mailing/Spendeneingänge 2027/' + k + '.csv'] = { data: new TextEncoder().encode(t), lm: 82000 }; },
+    Object.fromEntries(Object.entries(E).map(([k, d]) => [k, file(d)])));
+  await p.evaluate(() => spScan({ manual: true })); await p.waitForFunction(() => SP.rows.length === 16); await p.waitForTimeout(300);
+  const e0 = await segs();
+  ok(e0.slice(2).join(' | ') === 'cov 01.07.2027–29.10.2027 | gap 30.10.2027–03.11.2027 | cov 04.11.2027–12.11.2027', 'E: 2 Werktage fehlen → rot, 1 Werktag (11.11.) → keine Lücke: ' + e0.slice(2).join(' | '));
+  ok(await p.evaluate(() => document.querySelector('.sp-cov-i').textContent === 'eingelesen bis 12.11.2027 · ⚠ 2 Lücken'), 'E: Text: „' + await p.evaluate(() => document.querySelector('.sp-cov-i').textContent) + '“');
   await finish(b, pages);
 })();

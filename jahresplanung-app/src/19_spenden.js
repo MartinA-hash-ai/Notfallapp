@@ -539,9 +539,9 @@ function spStatus() {
   bad.length ? h('span', { class: 'warn' }, ' · ⚠ ' + bad.length + ' nicht lesbar') : null);
 }
 /* ---------- Zeitstrahl: welche Zeiträume des Jahres sind eingelesen? Jede Datei deckt die Tage von ihrer ersten bis zur letzten Buchung ab.
-   Dazwischen liegende Tage ohne Werktag (Wochenende, Feiertag) oder mit höchstens zwei Werktagen gelten als abgedeckt – an solchen Tagen
-   gehen oft einfach keine Spenden ein. Lücken zwischen eingelesenen Zeiträumen (und vor dem ersten) sind rot, der Rest bis heute gelb. */
-const SP_GAP_WT = 2;
+   An Wochenenden und Feiertagen wird nicht gebucht; ein einzelner Werktag ohne Spende kommt vor – ab zwei fehlenden Werktagen ist es eine Lücke (rot).
+   Seit der letzten Buchung bis gestern Fehlendes ist gelb (die Buchungen von heute können noch nicht im Export sein). */
+const SP_GAP_WT = 1;
 function spCoverage(y, t = todayDn()) {
   const a = mkdn(y, 1, 1), b = mkdn(y, 12, 31), wt = (s, e) => { let n = 0; for (let d = s; d <= e; d++) if (isWorkday(d)) n++; return n; };
   const spans = [];
@@ -565,7 +565,8 @@ function spCoverage(y, t = todayDn()) {
     const nx = cov[i + 1]; if (nx) segs.push({ k: 'gap', s: c.e + 1, e: nx.s - 1, wt: wt(c.e + 1, nx.s - 1) });
   });
   const last = cov.length ? cov[cov.length - 1].e : a - 1;
-  if (now > last && wt(last + 1, now) > (cov.length ? SP_GAP_WT : 0)) segs.push({ k: 'open', s: last + 1, e: now });   // seit der letzten Buchung (bis heute) nichts eingelesen
+  const upto = t <= b ? now - 1 : b;                                                 // heute zählt nicht mit – außer das Jahr ist schon vorbei
+  if (now > last && wt(last + 1, upto) > (cov.length ? SP_GAP_WT : 0)) segs.push({ k: 'open', s: last + 1, e: now, wt: wt(last + 1, upto) });   // seit der letzten Buchung nichts eingelesen
   for (const g of segs) if (g.k !== 'cov' && g.wt == null) g.wt = wt(g.s, g.e);
   return { y, a, b, t, cov, segs, last: cov.length ? last : null };
 }
@@ -576,7 +577,7 @@ function spCovBar(y) {
   const tipOf = g => g.k === 'cov' ? h('div', null, h('b', null, 'Eingelesen ' + span(g.s, g.e)), h('div', null, spCount(g.n) + ' · ' + eur(g.sum)),
       h('div', { class: 'muted small' }, (g.files.length === 1 ? 'Datei: ' : 'Dateien: ') + g.files.join(', '))) :
     g.k === 'gap' ? h('div', null, h('b', null, 'Lücke ' + span(g.s, g.e)), h('div', null, 'Für diesen Zeitraum ist keine Datei eingelesen (' + g.wt + (g.wt === 1 ? ' Werktag' : ' Werktage') + ').')) :
-    h('div', null, h('b', null, 'Noch nicht eingelesen: ' + span(g.s, g.e)), h('div', null, 'Seit der letzten eingelesenen Buchung (' + g.wt + (g.wt === 1 ? ' Werktag' : ' Werktage') + ' bis heute).'));
+    h('div', null, h('b', null, 'Noch nicht eingelesen: ' + span(g.s, g.e)), h('div', null, 'Seit der letzten eingelesenen Buchung fehlen ' + g.wt + (g.wt === 1 ? ' Werktag' : ' Werktage') + ' (ohne heute).'));
   const gaps = C0.segs.filter(g => g.k === 'gap'), open = C0.segs.find(g => g.k === 'open');
   const info = !C0.cov.length ? h('span', { class: 'muted' }, 'noch keine Spenden aus ' + y + ' eingelesen') : [
     h('span', null, C0.cov.length === 1 ? 'eingelesen ' + span(C0.cov[0].s, C0.cov[0].e) : 'eingelesen bis ' + fmtD(C0.last)),
@@ -584,7 +585,7 @@ function spCovBar(y) {
     open && !gaps.length ? h('span', { class: 'muted' }, ' · seit ' + dd(open.s) + ' noch nichts') : null];
   return h('div', { class: 'sp-cov' },
     h('span', { class: 'sp-cov-l', tip: 'Welche Zeiträume aus den Dateien im Ordner „Spendeneingänge …“ eingelesen sind. Jede Datei zählt von ihrer ersten bis zur letzten Buchung; ' +
-      'Wochenenden, Feiertage und bis zu ' + SP_GAP_WT + ' Werktage ohne Buchung dazwischen gelten nicht als Lücke.' }, 'Eingelesen ' + y),
+      'Wochenenden und Feiertage zählen nicht; ein einzelner Werktag ohne Buchung ist keine Lücke, ab zwei fehlenden Werktagen ist sie rot.' }, 'Eingelesen ' + y),
     h('div', { class: 'sp-cov-bar' },
       h('div', { class: 'sp-cov-track' },
         MON_S.map((m, i) => i ? h('i', { class: 'sp-cov-m', style: { left: pct(mkdn(y, i + 1, 1) - C0.a) } }) : null),
@@ -890,13 +891,15 @@ VIEW_FN.spenden = main => {
       () => ({ body: h('div', { class: 'sp-kpi' }, spTiles(x, s), spCharts(x, by.get(mid))) }),
       { closedSummary: () => s.n ? eur0(s.sum) + ' aus ' + spCount(s.n) : 'noch keine Spenden zugeordnet' }),
     x.allg ? section('sp-zu', 'Spendenzwecke zuordnen', () => spjAssign(y), {          // Auswertung oben, Zuordnung der Zwecke hier – getrennt
-      info: 'Zwecke anlegen und mit Schlagworten (Verwendungszweck) oder Konten (Gliederung) versehen – die Spenden des ganzen Jahres zählen dann automatisch. Passt eine Spende zu mehreren Zwecken, steht sie unter „zu klären“; einzelne Spenden lassen sich von Hand festlegen.',
+      info: 'Links die Zwecke, rechts der gewählte Zweck mit seinen Regeln (Schlagworte im Verwendungszweck, Konten, Maßnahmen) – die Spenden des ganzen Jahres zählen dann automatisch. Darunter die Spenden ohne Zweck: Klick markiert, die Leiste unten verschiebt. Passt eine Spende zu mehreren Zwecken, steht sie unter „zu klären“.',
       closedSummary: () => { if (!SP.rows.length) return null; const n = spjCompute(y).list.filter(e => e.z === SPJ_OFFEN).length; return D.zwecke.length + (D.zwecke.length === 1 ? ' Zweck' : ' Zwecke') + (n ? ' · ' + n + ' zu klären' : ''); } }) :
     section('sp-zu', 'Spenden zuordnen', () => spAssign(x, cmp), { closedSummary: () => spCount(P.R.length) + ' zugeordnet · ' + spCount(P.M.length) + ' in Prüfung' }));
 };
 VIEW_FN['spenden:after'] = main => {
   for (const el of $$('[data-chart]', main)) try { spDraw(el); } catch (e) { console.error(e); }
   if (SPJ.focusName) { SPJ.focusName = false; const e = $('.spj-name', main); if (e) { e.focus(); e.select(); } }   // neuer Zweck: Namen gleich überschreiben
+  const sg = $('.spj-sugbar:not(.all) .spj-sugs', main), more = $('.spj-sugmore', main);          // „alle N“ nur, wenn nicht alle Vorschläge in die Zeile passen
+  if (sg && more) more.classList.toggle('hide', sg.scrollHeight <= sg.clientHeight + 2);
 };
 
 /* ---------- Grafiken (SVG): Zeitspanne (kumuliert), Spenden pro Tag, Vergleich der Maßnahmen */

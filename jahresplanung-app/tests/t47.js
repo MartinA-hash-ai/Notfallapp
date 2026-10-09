@@ -65,7 +65,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(e0[0] === 'allg:2027' && e0[1] === 'Spenden 2027' && e0[2], 'E: erste Zeile der Übersicht: „Spenden 2027“ (ohne Auflage/Kosten; ab 0.16 alle Spenden des Jahres)');
   await p.click('.sp-ueb tbody tr:first-child td:first-child'); await p.waitForTimeout(300);
   const e1 = await p.evaluate(() => [document.querySelector('[data-sec="sp-m"] .sec-t').textContent, document.querySelectorAll('.spj-tiles .sp-tile').length, !!document.querySelector('[data-sec="sp-m"] .spj-tabs'),
-    document.querySelector('[data-sec="sp-zu"] .sec-t').textContent, !document.querySelector('.sp-col'), !document.querySelector('[data-sec="sp-m"] .spj-ed, [data-sec="sp-m"] .spj-listbox'), !!document.querySelector('[data-sec="sp-zu"] .spj-pills')]);
+    document.querySelector('[data-sec="sp-zu"] .sec-t').textContent, !document.querySelector('.sp-col'), !document.querySelector('[data-sec="sp-m"] .spj-ed, [data-sec="sp-m"] .spj-listbox'), !!document.querySelector('[data-sec="sp-zu"] .spj-side')]);
   ok(e1[0] === 'Spenden 2027' && e1[1] === 4 && e1[2] && e1[3] === 'Spendenzwecke zuordnen' && e1[4] && e1[5] && e1[6],
     'E: gewählt – oben die Auswertung (4 Kacheln, Zwecke, Gliederungen), darunter getrennt „Spendenzwecke zuordnen“ statt der drei Spalten (ab 0.16.1)');
   await writeText(p, DIR + 'da.csv', csv([['20.09.2027', '20.09.2027', '15', "'TESTDE11XXX", 'DE00100000000000000032', 'Dora Dauer', "'Zugang/Gutschrift", 'Spende Malteser Lage', "'Dauerauftragsgutschr", "'Paderborn - Lage"].join(';'),

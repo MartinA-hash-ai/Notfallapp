@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.16.8",
+    "version": "0.17.0",
     "date": "",
+    "items": [
+      "„Spendenzwecke zuordnen“ neu aufgebaut: links die Zwecke untereinander mit Anzahl und Summe, darunter „zweckungebunden“ und „zu klären“ – Klick wählt, Ziehen ändert die Reihenfolge",
+      "Rechts der gewählte Zweck: Name oben (anklicken zum Umbenennen), Farbpunkt, „⋯“ für Farbe, Reihenfolge und Löschen; darunter seine Regeln in einer Zeile – Schlagworte, Konten, Maßnahmen – mit „+ Schlagwort“ und „+ Konto oder Maßnahme“",
+      "Vorschläge als eine graue Zeile: Begriff (Klick = Vorschau), Anzahl und „+“ (zum gewählten Zweck, ohne gewählten Zweck als neuer Zweck); „×“ erscheint beim Hinzeigen, „alle N ▾“ klappt auf, „Ausgeblendet (N)“ holt ausgeblendete zurück",
+      "Vorschau (Vorschlag angeklickt oder Schlagwort getippt): im Kopf der Liste „+ zu „Zweck““ und „+ als neuer Zweck“",
+      "Liste: Häkchen in jeder Zeile, das Häkchen oben markiert alle; „→ Zweck“ in jeder Zeile entfällt – die Leiste zum Verschieben erscheint unten erst beim Markieren, der gewählte Zweck ist als Ziel schon eingetragen",
+      "Zeitstrahl „Eingelesen“: eine Lücke ist schon ab zwei fehlenden Werktagen rot (Wochenenden und Feiertage zählen nicht, ein einzelner Werktag ohne Buchung ist noch keine Lücke); „noch nicht eingelesen“ (gelb) zählt ohne den heutigen Tag"
+    ]
+  },
+  {
+    "version": "0.16.8",
+    "date": "2026-10-09T16:30",
     "items": [
       "Neuer Zeitstrahl „Eingelesen 2027“ oben in der Auswertung: zeigt Januar bis Dezember, welche Zeiträume aus den Spendendateien schon eingelesen sind (grau), wo eine Lücke ist (rot) und was seit der letzten Buchung bis heute noch fehlt (gelb); Hinzeigen nennt Zeitraum, Anzahl, Summe und Dateien",
       "Jede Datei zählt von ihrer ersten bis zur letzten Buchung; Wochenenden, Feiertage und bis zu zwei Werktage ohne Buchung gelten nicht als Lücke",
