@@ -240,7 +240,84 @@ function spjAssign(y) {
       h('button', { class: 'spj-add', onclick: spjAddZweck }, '+ Zweck')),
     zSel ? spjEditor(J, zSel) : h('div', { class: 'spj-ed none' }, h('span', { class: 'muted' }, D.zwecke.length ? 'Einen Zweck wählen, um seine Schlagworte und Konten zu bearbeiten – oder mit „+ Zweck“ einen neuen anlegen.' :
       'Noch keine Zwecke – mit „+ Zweck“ beginnen, z. B. „Hospizarbeit“ mit dem Schlagwort Hospiz* oder dem Konto der Gliederung.')),
+    spjSugBox(J, zSel),
     spjList(J)) };
+}
+
+/* ---------- Vorschläge: wiederkehrende Begriffe in den Verwendungszwecken der zweckungebundenen Spenden (läuft nur im Browser) */
+// Füllwörter und Begriffe ohne Aussage über den Zweck; Wörter aus dem Namen der Spenderin/des Spenders und Adressteile fallen ebenfalls weg
+const SPJ_STOP = new Set(('spende spenden spendet gespendet spendenbetrag malteser malteserhilfsdienst hilfsdienst diözese dioezese paderborn danke dank dankeschön dankeschoen ' +
+  'vielen herzlichen herzliche herzlich gruss gruß grüße gruesse liebe lieben für fuer und oder der die das den dem des ein eine einen einem einer mit von vom zum zur bei ' +
+  'aus auf als auch nach sowie wie ihr ihre ihren unsere unser unseren mein meine meinen dein deine sein seine euer eure dies diese dieser dieses ' +
+  'dauerauftrag dauerauftragsgutschr dauerauftragsgutschrift gutschrift überweisung ueberweisung sepa lastschrift einzug mandat referenz kundenreferenz ' +
+  'verwendungszweck betrag euro monat monatlich monatliche monatlichen jährlich jaehrlich jahr jahres januar februar märz maerz april juni juli august september ' +
+  'oktober november dezember spendenquittung spendenbescheinigung zuwendungsbestätigung zuwendungsbestaetigung bescheinigung quittung bitte adresse anschrift ' +
+  'strasse straße familie frau herr herrn eheleute').split(' '));
+const SPJ_ADDR = /(str|strasse|straße|weg|allee|platz|gasse|ring|damm|ufer)$/;
+const SPJ_SUG_MIN = 3;                                               // erst ab drei Spenden vorschlagen
+const spjCap = t => t.replace(/(^|\s)\p{L}/gu, c => c.toUpperCase());
+let _spjSug = { key: null, val: null };
+function spjSuggest(J) {
+  const ign = (D.spenden && D.spenden.ignor) || {}, key = _spj.key + '|' + JSON.stringify(ign);
+  if (_spjSug.key === key && _spjSug.list === J.list) return _spjSug.val;
+  const pool = J.list.filter(e => e.z === SPJ_FREI && !e.hand), amt = new Map(pool.map(e => [e.rec.k, e.rec.b])), words = new Map(), pairs = new Map();
+  const add = (mp, t, k) => { let o = mp.get(t); if (!o) mp.set(t, o = { t, keys: new Set() }); o.keys.add(k); };
+  for (const e of pool) {
+    const own = new Set(spWords(e.rec.name)), toks = spWords(e.rec.zweck);
+    const ok = toks.map(t => t.length >= 4 && !/\d/.test(t) && !SPJ_STOP.has(t) && !SPJ_ADDR.test(t) && !own.has(t));
+    toks.forEach((t, i) => { if (!ok[i]) return; add(words, t, e.rec.k); if (ok[i + 1]) add(pairs, t + ' ' + toks[i + 1], e.rec.k); });
+  }
+  // ähnliche Schreibweisen zusammenfassen (wie die ~-Suche: ab 8 Buchstaben zwei, sonst ein Zeichen Abstand) – Kopf ist die häufigste Form
+  const all = [...words.values()].sort((a, b) => b.keys.size - a.keys.size || a.t.localeCompare(b.t)), byFirst = new Map(), used = new Map(), groups = [];
+  for (const w of all) { const f = w.t[0]; if (!byFirst.has(f)) byFirst.set(f, []); byFirst.get(f).push(w); }
+  all.forEach((w, i) => {
+    if (used.has(w.t)) return;
+    const g = { label: w.t, keys: new Set(w.keys), vars: [] }; used.set(w.t, g);
+    if (w.t.length >= 5 && w.keys.size >= 2 && i < 400) { const max = w.t.length >= 8 ? 2 : 1;          // nur die 400 häufigsten Wörter suchen Varianten (hält es schnell)
+      for (const u of byFirst.get(w.t[0])) if (!used.has(u.t) && Math.abs(u.t.length - w.t.length) <= max && spLev(u.t, w.t, max) <= max) { used.set(u.t, g); g.vars.push(u.t); u.keys.forEach(k => g.keys.add(k)); } }
+    groups.push(g);
+  });
+  // Wortpaare, die fast immer zusammen stehen („Herzenswunsch Krankenwagen“), statt der Einzelwörter
+  for (const p of [...pairs.values()].sort((a, b) => b.keys.size - a.keys.size)) {
+    if (p.keys.size < SPJ_SUG_MIN) break;
+    const [a, b] = p.t.split(' '), ga = used.get(a), gb = used.get(b);
+    if (!ga || !gb || ga === gb || ga.gone || gb.gone || p.keys.size < 0.8 * Math.max(ga.keys.size, gb.keys.size)) continue;
+    ga.gone = gb.gone = true; groups.push({ label: p.t, keys: p.keys, vars: [], phrase: true });
+  }
+  const list = groups.filter(g => !g.gone && g.keys.size >= SPJ_SUG_MIN && !ign[g.label]).map(g => Object.assign(g, {
+    n: g.keys.size, sum: [...g.keys].reduce((t, k) => t + amt.get(k), 0), word: (g.vars.length ? '~' : '') + spjCap(g.label) }))
+    .sort((a, b) => b.n - a.n || b.sum - a.sum);
+  _spjSug = { key, list: J.list, val: { list, ign: Object.keys(ign).length } };
+  return _spjSug.val;
+}
+function spjIgnore(label, on) {
+  commit(d => { const o = Object.assign({}, d.spenden.ignor); if (on) o[label] = 1; else delete o[label]; d.spenden.ignor = o; }, on ? 'Vorschlag „' + spjCap(label) + '“ ausgeblendet' : 'Vorschlag wieder eingeblendet');
+}
+function spjSugBox(J, zSel) {
+  const S = spjSuggest(J), open = UI.spjSug !== false, shown = S.list.slice(0, SPJ.sugAll ? 40 : 10);
+  const addTo = g => spjEditZweck(zSel.id, q => { if (!q.worte.includes(g.word)) q.worte.push(g.word); }, 'Zweck „' + zSel.name + '“: Schlagwort „' + g.word + '“ (Vorschlag)');
+  const newZ = g => {
+    const used = new Set(D.zwecke.map(z => z.farbe.toLowerCase())), id = uid(), farbe = (PALETTE.find(p => !used.has(p[1].toLowerCase())) || PALETTE[D.zwecke.length % PALETTE.length])[1];
+    SPJ.z = id; SPJ.g = null; SPJ.typed = ''; SPJ.lv = 'frei';
+    commit(d => { d.zwecke.push({ id, name: spjCap(g.label), farbe, worte: [g.word], konten: [], massnahmen: [] }); }, 'Spendenzweck „' + spjCap(g.label) + '“ aus Vorschlag angelegt');
+  };
+  const item = g => h('div', { class: 'spj-sug' + (SPJ.typed === g.word ? ' on' : ''), dataset: { w: g.label } },
+    h('button', { class: 'spj-sw-l', tip: 'Vorschau: die passenden Spenden unten in der Liste zeigen', onclick: () => { SPJ.typed = SPJ.typed === g.word ? '' : g.word; SPJ.more = 0; renderNow(); } }, spjCap(g.label)),
+    h('span', { class: 'spj-sug-n muted small' }, spCount(g.n) + ' · ' + eur0(g.sum)),
+    g.vars.length ? h('span', { class: 'spj-sug-v muted small', tip: 'ähnliche Schreibweisen – die Regel „' + g.word + '“ erfasst sie mit' }, 'auch: ' + g.vars.slice(0, 3).join(', ') + (g.vars.length > 3 ? ' …' : '')) : h('span'),
+    h('span', { class: 'spj-sug-b' },
+      zSel ? h('button', { class: 'spj-to', tip: 'Schlagwort „' + g.word + '“ zum Zweck „' + zSel.name + '“ hinzufügen', onclick: () => addTo(g) }, '+ zu „' + zSel.name + '“') : null,
+      h('button', { class: 'spj-to ghost', tip: 'neuen Zweck „' + spjCap(g.label) + '“ mit dem Schlagwort „' + g.word + '“ anlegen', onclick: () => newZ(g) }, '+ neuer Zweck'),
+      h('button', { class: 'sp-x', 'aria-label': 'Vorschlag ausblenden', tip: 'diesen Vorschlag dauerhaft ausblenden (für alle)', onclick: () => spjIgnore(g.label, true) }, '×')));
+  return h('div', { class: 'spj-sugbox' + (open ? '' : ' closed') },
+    h('div', { class: 'spj-sugh' },
+      h('button', { class: 'link spj-sugtog', 'aria-expanded': String(open), onclick: () => { UI.spjSug = !open; saveUI(); renderNow(); } }, (open ? '▾ ' : '▸ ') + 'Vorschläge'),
+      h('span', { class: 'muted small' }, S.list.length ? S.list.length + ' wiederkehrende Begriffe in den zweckungebundenen Spenden' : 'keine wiederkehrenden Begriffe (ab ' + SPJ_SUG_MIN + ' Spenden) in den zweckungebundenen Spenden'),
+      h('span', { class: 'info', tip: 'Die App sucht in den Verwendungszwecken der zweckungebundenen Spenden nach Wörtern, die immer wieder vorkommen – ähnliche Schreibweisen (Tippfehler) werden zusammengefasst und mit „~“ als Regel angelegt. Füllwörter, Namen der Spender:innen und Adressteile zählen nicht. Was ein Zweck erfasst, verschwindet aus den Vorschlägen.' }, 'ⓘ'),
+      h('span', { class: 'spj-sugr' },
+        open && S.list.length > 10 ? h('button', { class: 'link small spj-sugmore', onclick: () => { SPJ.sugAll = !SPJ.sugAll; renderNow(); } }, SPJ.sugAll ? 'nur die ersten 10' : 'alle ' + Math.min(40, S.list.length) + ' zeigen') : null,
+        S.ign ? h('button', { class: 'link small spj-sugign', tip: 'ausgeblendete Vorschläge wieder anzeigen', onclick: () => commit(d => { d.spenden.ignor = {}; }, 'Ausgeblendete Vorschläge wieder eingeblendet') }, S.ign + ' ausgeblendet – zurückholen') : null)),
+    open ? h('div', { class: 'spj-sugs', 'data-keep-scroll': 'spj-sugs' }, shown.map(item)) : null);
 }
 // Liste unter „Spendenzwecke zuordnen“: standardmäßig alle zweckungebundenen Spenden (beim Tippen nur die mit dem Schlagwort) – was ein Schlagwort
 // einem Zweck zuordnet, verschwindet daraus; mit „→ Zweck“ direkt dem gewählten Zweck zuordnen. Umschaltbar auf die Spenden, die schon beim
@@ -285,6 +362,7 @@ function spjList(J) {
       h('button', { class: 'seg-btn' + (lv === 'zweck' ? ' on' : ''), dataset: { lv: 'zweck' }, onclick: () => { SPJ.lv = 'zweck'; SPJ.more = 0; renderNow(); } },
         'Bei „' + zn(zSel) + '“ (' + base.filter(e => e.z === zSel).length.toLocaleString('de-DE') + ')')) : h('b', null, title),
       h('span', { class: 'spj-sub muted small' }, sub),
+      typed ? h('button', { class: 'link small spj-prevx', onclick: () => { SPJ.typed = ''; renderNow(); } }, 'Vorschau schließen') : null,
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen'),
       zSelect(null, list.map(e => e.rec.k))),
     h('div', { class: 'spj-list', 'data-keep-scroll': 'spj-list' }, list.slice(0, lim).map(row),

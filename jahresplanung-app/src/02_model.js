@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer'];
+const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -279,6 +279,7 @@ function normalizeData(d) {
   if (isObj(sp.nein)) for (const [k, v] of Object.entries(sp.nein)) { const a = [...new Set((Array.isArray(v) ? v : []).map(str).filter(Boolean))]; if (a.length) d.spenden.nein[k] = a; }
   const zids = new Set(d.zwecke.map(z => z.id));                     // Zweck von Hand festgelegt: Schlüssel → Zweck-Id oder „-“ (zweckungebunden)
   if (isObj(sp.zweck)) for (const [k, v] of Object.entries(sp.zweck)) if (v === '-' || zids.has(v)) d.spenden.zweck[k] = v;
+  if (isObj(sp.ignor)) for (const k of Object.keys(sp.ignor)) if (sp.ignor[k] && str(k).trim()) (d.spenden.ignor = d.spenden.ignor || {})[str(k).trim()] = 1;   // ausgeblendete Vorschläge
   if (isObj(sp.allg)) for (const [y, v] of Object.entries(sp.allg)) {      // allgemeine Spenden je Jahr: Regel (Schlagworte, Daueraufträge vorschlagen)
     const r = isObj(v) && isObj(v.regel) ? v.regel : {}, worte = [...new Set((Array.isArray(r.worte) ? r.worte : []).map(w => str(w).trim()).filter(Boolean))];
     if (/^\d{4}$/.test(y) && (worte.length || r.da === true)) (d.spenden.allg = d.spenden.allg || {})[y] = { regel: Object.assign({ worte }, r.da === true ? { da: true } : {}) };

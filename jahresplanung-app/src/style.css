@@ -1442,3 +1442,19 @@ html, body { overflow-anchor: none; }   /* die App zeichnet ganze Bereiche neu �
 .spj-gscroll thead tr { height: 31px; }
 .spj-gscroll tbody tr { height: 26px; }
 .spj-gscroll th { z-index: 1; }
+/* Vorschläge für Schlagworte */
+.spj-sugbox { border: 1px solid var(--line); border-radius: var(--radius); background: var(--soft); }
+.spj-sugh { display: flex; align-items: center; gap: 10px; padding: 6px 10px; min-height: 34px; box-sizing: border-box; flex-wrap: nowrap; }
+.spj-sugh .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.spj-sugtog { font-weight: 700; font-size: 13.5px; color: var(--ink); text-decoration: none; white-space: nowrap; }
+.spj-sugr { margin-left: auto; display: flex; gap: 14px; white-space: nowrap; }
+.spj-sugs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 3px 18px; height: 164px; overflow: auto; align-content: start; padding: 2px 10px 8px; border-top: 1px solid var(--line); }
+@media (max-width: 1100px) { .spj-sugs { grid-template-columns: minmax(0, 1fr); } }
+.spj-sug { display: grid; grid-template-columns: minmax(90px, auto) auto minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: 29px; padding: 0 4px; border-radius: 6px; }
+.spj-sug.on { background: var(--runbg); }
+.spj-sw-l { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spj-sw-l:hover { color: var(--runink); text-decoration: underline; }
+.spj-sug-n { white-space: nowrap; }
+.spj-sug-v { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-style: italic; }
+.spj-sug-b { display: flex; align-items: center; gap: 5px; }
+.spj-to.ghost { border-style: dashed; }

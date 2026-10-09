@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.16.4",
+    "version": "0.16.5",
     "date": "",
+    "items": [
+      "Spendenzwecke zuordnen: neuer Kasten „Vorschläge“ – die App sucht in den Verwendungszwecken der zweckungebundenen Spenden nach wiederkehrenden Begriffen (ab drei Spenden) und zeigt die häufigsten mit Anzahl und Summe",
+      "Ähnliche Schreibweisen (Tippfehler wie „Riksha“, „Rickscha“) werden zusammengefasst und als „~Rikscha“ angelegt, damit die Regel sie mit erfasst; Wörter, die fast immer zusammen stehen, erscheinen als Wortpaar („Herzenswunsch Krankenwagen“)",
+      "Füllwörter (Spende, Malteser, Danke, Monatsnamen …), Zahlen, Namen der Spender:innen und Adressteile zählen nicht",
+      "Je Vorschlag: „+ zu …“ (Schlagwort zum gewählten Zweck), „+ neuer Zweck“ oder „×“ (dauerhaft ausblenden, für alle; „zurückholen“ holt sie wieder). Klick auf den Begriff zeigt die passenden Spenden als Vorschau in der Liste",
+      "Was ein Zweck erfasst, verschwindet aus den Vorschlägen; der Kasten hat eine feste Höhe und lässt sich einklappen. Alles läuft nur im Browser – die Verwendungszwecke verlassen den Rechner nicht"
+    ]
+  },
+  {
+    "version": "0.16.4",
+    "date": "2026-10-09T12:05",
     "items": [
       "Spendenzwecke zuordnen: Die Liste zeigt standardmäßig immer alle zweckungebundenen Spenden des Jahres – was ein Schlagwort, Konto oder eine Maßnahme einem Zweck zuordnet, verschwindet daraus, die Liste wird also mit jeder Regel kleiner. Umschalten auf „Bei …“ zeigt die Spenden des gewählten Zwecks",
       "Die Filter der Auswertung oben (Herkunft, Gliederung) wirken nicht mehr auf diese Liste – sie ist immer vollständig",
