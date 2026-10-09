@@ -3,7 +3,7 @@
   --bg: #f7f7f5; --card: #ffffff; --input: #ffffff; --soft: #fafafa; --head: #f5f5f4; --hover: #f1f1f1; --solid: #404040;
   --we: #efefef; --fer: #f4f4f4; --hol1: #e4e4e4; --hol2: #cfcfcf; --warn: #b45309; --warnbg: #fff4e0; --warnline: #f0c27a; --vorl: #9a3412; --vorlbg: #fff4ee;
   --errbg: #fdecea; --errline: #f5b5ae; --errink: #8a1c12; --okbg: #e8f5e9; --okline: #a5d6a7; --okink: #1b5e20; --infobg: #f1f3f5;
-  --runbg: #e3f2fd; --runink: #0d47a1; --flash: #fff3a8; --chipbg: #e6e6e6; --phbg: #f3f3f1; --phline: #d6d6d3; --head2: #ebebe9;
+  --spcov: #a7b1bd; --runbg: #e3f2fd; --runink: #0d47a1; --flash: #fff3a8; --chipbg: #e6e6e6; --phbg: #f3f3f1; --phline: #d6d6d3; --head2: #ebebe9;
   --chk-line: #d9d9d9; --chk-on: #f2f2f2; --chk-mark: #ababab;
   --monthbg: #ffffff; --monthhead: #f0f0ed; --monthline: #d6d6d3; --monthout: #f7f7f5;
   --ok: #2e7d32; --focus: #1F77B4; --side: 250px; --radius: 8px;
@@ -16,7 +16,7 @@
     --bg: #141516; --card: #26282b; --input: #1e2022; --soft: #2b2d31; --head: #303236; --hover: #36383c; --solid: #44474c;
     --we: #2e3034; --fer: #2a2c2f; --hol1: #33363a; --hol2: #43464b; --warn: #f0a24a; --warnbg: #3a2b14; --warnline: #7a5a22; --vorl: #ffb088; --vorlbg: #33231a;
     --errbg: #3b1d1c; --errline: #7a3430; --errink: #ffb4ab; --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6; --infobg: #25282c;
-    --runbg: #1a2c40; --runink: #9ccaff; --flash: #5a5220; --chipbg: #3a3c40; --phbg: #2d2f33; --phline: #4b4e54; --head2: #393b40;
+    --spcov: #66717e; --runbg: #1a2c40; --runink: #9ccaff; --flash: #5a5220; --chipbg: #3a3c40; --phbg: #2d2f33; --phline: #4b4e54; --head2: #393b40;
     --chk-line: #4a4d52; --chk-on: #2c2e31; --chk-mark: #8a8e94;
     --monthbg: #1d1f22; --monthhead: #373a3f; --monthline: #52555b; --monthout: #191a1d;
     --ok: #7fd08a; --focus: #5aa9e6;
@@ -728,6 +728,21 @@ h1 .beta { font-size: 11px; line-height: 18px; vertical-align: 4px; }
 .banner.sp-notice button { flex: none; }
 main.sp-drop { outline: 3px dashed var(--focus); outline-offset: -8px; }
 .sp-status { cursor: help; }
+/* Zeitstrahl „Eingelesen 2027“: eingelesene Zeiträume grau, Lücken rot, seit der letzten Buchung gelb */
+.sp-cov { display: flex; align-items: center; gap: 12px; margin: 0 0 12px; padding: 6px 12px 4px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); font-size: 13px; }
+.sp-cov-l { font-weight: 600; white-space: nowrap; cursor: help; }
+.sp-cov-bar { flex: 1; min-width: 200px; }
+.sp-cov-track { position: relative; height: 12px; border-radius: 3px; background: var(--line3); box-shadow: inset 0 0 0 1px var(--line); overflow: hidden; }
+.sp-cov-s { position: absolute; top: 0; bottom: 0; }
+.sp-cov-s.cov { background: var(--spcov); }
+.sp-cov-s.gap { background: repeating-linear-gradient(-45deg, var(--red) 0 2px, var(--errbg) 2px 5px); }
+.sp-cov-s.open { background: repeating-linear-gradient(-45deg, var(--warnline) 0 2px, var(--warnbg) 2px 5px); }
+.sp-cov-m { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--card); opacity: .9; pointer-events: none; z-index: 1; }
+.sp-cov-today { position: absolute; top: -1px; bottom: -1px; width: 2px; margin-left: -1px; background: var(--ink); z-index: 2; }
+.sp-cov-ml { position: relative; height: 14px; }
+.sp-cov-ml span { position: absolute; top: 1px; text-align: center; font-size: 10.5px; color: var(--muted); }
+.sp-cov-i { white-space: nowrap; }
+.sp-cov-w { color: var(--red-d); font-weight: 600; }
 .sp-ueb tbody tr { cursor: pointer; }
 .sp-ueb tr.on td { background: var(--runbg); }
 .sp-ueb td.within { color: var(--ok); font-weight: 600; }
@@ -1460,7 +1475,11 @@ html, body { overflow-anchor: none; }   /* die App zeichnet ganze Bereiche neu �
 .spj-sugp-in { position: absolute; inset: 0; display: flex; flex-direction: column; min-height: 0; }
 .spj-sugh { display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
 .spj-sugh b { font-size: 13.5px; }
-.spj-sugign { margin-left: auto; }
+.spj-sugign { margin-left: auto; padding: 1px 8px; font-size: 11.5px; border-radius: 10px; color: var(--ink2); background: transparent; }
+.spj-sugign.on { background: var(--card); border-color: var(--focus); color: var(--focus); font-weight: 600; }
+.spj-ignh { display: flex; align-items: center; gap: 8px; padding: 4px 4px 6px; }
+.spj-ignh span { flex: 1; }
+.spj-ig-l { color: var(--ink2); text-decoration: line-through; text-decoration-color: var(--faint); }
 .spj-sugs { flex: 1; min-height: 0; overflow: auto; padding: 3px 6px 6px; }
 .spj-sug0 { padding: 8px 4px; white-space: normal; }
 .spj-sug { display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 8px; align-items: center; min-height: 27px; padding: 0 4px; border-radius: 6px; }

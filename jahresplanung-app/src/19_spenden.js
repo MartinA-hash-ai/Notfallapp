@@ -538,6 +538,61 @@ function spStatus() {
   SP.busy && !SP.at ? 'liest ein …' : ok.length + ' Datei' + (ok.length === 1 ? '' : 'en') + ' · ' + SP.rows.length.toLocaleString('de-DE') + ' Buchungen' + (SP.at ? ' · ' + new Date(SP.at).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) + ' Uhr' : ''),
   bad.length ? h('span', { class: 'warn' }, ' · ⚠ ' + bad.length + ' nicht lesbar') : null);
 }
+/* ---------- Zeitstrahl: welche Zeiträume des Jahres sind eingelesen? Jede Datei deckt die Tage von ihrer ersten bis zur letzten Buchung ab.
+   Dazwischen liegende Tage ohne Werktag (Wochenende, Feiertag) oder mit höchstens zwei Werktagen gelten als abgedeckt – an solchen Tagen
+   gehen oft einfach keine Spenden ein. Lücken zwischen eingelesenen Zeiträumen (und vor dem ersten) sind rot, der Rest bis heute gelb. */
+const SP_GAP_WT = 2;
+function spCoverage(y, t = todayDn()) {
+  const a = mkdn(y, 1, 1), b = mkdn(y, 12, 31), wt = (s, e) => { let n = 0; for (let d = s; d <= e; d++) if (isWorkday(d)) n++; return n; };
+  const spans = [];
+  for (const f of SP.files) {
+    if (f.err || !f.recs || !f.recs.length) continue;
+    const r = spSpan(f.recs); if (r[1] < a || r[0] > b) continue;
+    spans.push({ s: Math.max(a, r[0]), e: Math.min(b, r[1]), files: [f.name] });
+  }
+  spans.sort((p, q) => p.s - q.s || p.e - q.e);
+  const cov = [];
+  for (const sp of spans) {
+    const l = cov[cov.length - 1];
+    if (l && (sp.s <= l.e + 1 || wt(l.e + 1, sp.s - 1) <= SP_GAP_WT)) { l.e = Math.max(l.e, sp.e); if (!l.files.includes(sp.files[0])) l.files.push(sp.files[0]); }
+    else cov.push({ s: sp.s, e: sp.e, files: sp.files.slice() });
+  }
+  const segs = [], now = Math.min(t, b);
+  if (cov.length && cov[0].s > a) { if (wt(a, cov[0].s - 1) <= SP_GAP_WT) cov[0].s = a; else segs.push({ k: 'gap', s: a, e: cov[0].s - 1 }); }   // vor der ersten Datei
+  cov.forEach((c, i) => {
+    c.n = 0; c.sum = 0; for (const r of SP.rows) if (r.d >= c.s && r.d <= c.e) { c.n++; c.sum += r.b; }
+    segs.push(Object.assign({ k: 'cov' }, c));
+    const nx = cov[i + 1]; if (nx) segs.push({ k: 'gap', s: c.e + 1, e: nx.s - 1, wt: wt(c.e + 1, nx.s - 1) });
+  });
+  const last = cov.length ? cov[cov.length - 1].e : a - 1;
+  if (now > last && wt(last + 1, now) > (cov.length ? SP_GAP_WT : 0)) segs.push({ k: 'open', s: last + 1, e: now });   // seit der letzten Buchung (bis heute) nichts eingelesen
+  for (const g of segs) if (g.k !== 'cov' && g.wt == null) g.wt = wt(g.s, g.e);
+  return { y, a, b, t, cov, segs, last: cov.length ? last : null };
+}
+function spCovBar(y) {
+  if (ST.conn !== 'ok' || !SP.at) return null;
+  const C0 = spCoverage(y), days = C0.b - C0.a + 1, pct = n => (n / days * 100).toFixed(3) + '%', dd = n => fmtD(n).slice(0, 6);
+  const span = (s, e) => s === e ? fmtD(s) : dd(s) + '–' + fmtD(e);
+  const tipOf = g => g.k === 'cov' ? h('div', null, h('b', null, 'Eingelesen ' + span(g.s, g.e)), h('div', null, spCount(g.n) + ' · ' + eur(g.sum)),
+      h('div', { class: 'muted small' }, (g.files.length === 1 ? 'Datei: ' : 'Dateien: ') + g.files.join(', '))) :
+    g.k === 'gap' ? h('div', null, h('b', null, 'Lücke ' + span(g.s, g.e)), h('div', null, 'Für diesen Zeitraum ist keine Datei eingelesen (' + g.wt + (g.wt === 1 ? ' Werktag' : ' Werktage') + ').')) :
+    h('div', null, h('b', null, 'Noch nicht eingelesen: ' + span(g.s, g.e)), h('div', null, 'Seit der letzten eingelesenen Buchung (' + g.wt + (g.wt === 1 ? ' Werktag' : ' Werktage') + ' bis heute).'));
+  const gaps = C0.segs.filter(g => g.k === 'gap'), open = C0.segs.find(g => g.k === 'open');
+  const info = !C0.cov.length ? h('span', { class: 'muted' }, 'noch keine Spenden aus ' + y + ' eingelesen') : [
+    h('span', null, C0.cov.length === 1 ? 'eingelesen ' + span(C0.cov[0].s, C0.cov[0].e) : 'eingelesen bis ' + fmtD(C0.last)),
+    gaps.length ? h('span', { class: 'sp-cov-w' }, ' · ⚠ ' + (gaps.length === 1 ? 'Lücke ' + span(gaps[0].s, gaps[0].e) : gaps.length + ' Lücken')) : null,
+    open && !gaps.length ? h('span', { class: 'muted' }, ' · seit ' + dd(open.s) + ' noch nichts') : null];
+  return h('div', { class: 'sp-cov' },
+    h('span', { class: 'sp-cov-l', tip: 'Welche Zeiträume aus den Dateien im Ordner „Spendeneingänge …“ eingelesen sind. Jede Datei zählt von ihrer ersten bis zur letzten Buchung; ' +
+      'Wochenenden, Feiertage und bis zu ' + SP_GAP_WT + ' Werktage ohne Buchung dazwischen gelten nicht als Lücke.' }, 'Eingelesen ' + y),
+    h('div', { class: 'sp-cov-bar' },
+      h('div', { class: 'sp-cov-track' },
+        MON_S.map((m, i) => i ? h('i', { class: 'sp-cov-m', style: { left: pct(mkdn(y, i + 1, 1) - C0.a) } }) : null),
+        C0.segs.map(g => h('div', { class: 'sp-cov-s ' + g.k, dataset: { k: g.k, s: fmtD(g.s), e: fmtD(g.e) }, style: { left: pct(g.s - C0.a), width: pct(g.e - g.s + 1) }, tip: () => tipOf(g) })),
+        C0.t >= C0.a && C0.t <= C0.b ? h('i', { class: 'sp-cov-today', style: { left: pct(C0.t - C0.a + 0.5) }, tip: 'heute' }) : null),
+      h('div', { class: 'sp-cov-ml' }, MON_S.map((m, i) => h('span', { style: { left: pct(mkdn(y, i + 1, 1) - C0.a), width: pct((i === 11 ? C0.b + 1 : mkdn(y, i + 2, 1)) - mkdn(y, i + 1, 1)) } }, m)))),
+    h('span', { class: 'sp-cov-i small' }, info));
+}
 function spNotice() {
   if (!FSA) return null;
   if (ST.conn !== 'ok') return h('div', { class: 'banner sp-notice' }, h('span', null, 'Die Spendeneingänge liegen im Mailing-Ordner. Dafür muss die App mit dem Ordner verbunden sein. Die Auswertung bisheriger Zuordnungen geht auch so.'),
@@ -824,6 +879,7 @@ VIEW_FN.spenden = main => {
   const tools = () => [spStatus(), h('button', { disabled: ST.conn !== 'ok', onclick: () => spScan({ manual: true }) }, '↻ Neu einlesen'), h('button', { class: 'primary', onclick: spPickFiles, tip: 'Export der Spendeneingänge (CSV oder Excel) wählen – die App legt ihn im Ordner „Spendeneingänge …“ ab, liest ihn ein und zeigt, was neu ist' }, '+ Buchung hinzufügen')];
   put(main,
     spNotice(),
+    spCovBar(y),
     section('sp-ueb', 'Maßnahmen ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { tools, closedSummary: () => {
       const wait = ms.filter(o => cmp.pendBy.get(o.id)).map(o => (o.m.name || '(ohne Namen)') + ' (' + cmp.pendBy.get(o.id) + ')');
       return 'aufklappen, um die Maßnahme zu wechseln' + (wait.length ? ' · in „Prüfen“: ' + wait.join(', ') : ''); } }),

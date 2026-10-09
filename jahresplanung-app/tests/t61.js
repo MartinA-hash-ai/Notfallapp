@@ -73,7 +73,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok(f1[0] === 4 && f1[1] === 0, 'F: alle 4 von Hand auf „zweckungebunden“ – die Liste „Bei Rikscha“ ist leer');
   await p.click('.spj-lv [data-lv="frei"]'); await p.waitForTimeout(200);
   const f2 = await p.evaluate(() => [document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.hand').length, document.querySelector('[data-sec="sp-zu"] .spj-row.hand .sp-tag.hand')?.textContent]);
-  ok(f2[0] === 12 && f2[1] === 4 && f2[2] === 'von Hand', 'F: in „Zweckungebunden“ stehen jetzt alle 12, die 4 mit „von Hand“ gekennzeichnet');
+  ok(f2[0] === 12 && f2[1] === 0 && await p.evaluate(() => document.querySelectorAll('[data-sec="sp-zu"] .spj-row.hand').length === 4), 'F: in „Zweckungebunden“ stehen jetzt alle 12 – ohne Kennzeichen „von Hand“');
   for (const n of ['Probe A', 'Probe B']) await clickRow(n);
   await p.selectOption('.spj-selbar .spj-move', '*'); await p.waitForTimeout(250);
   const f3 = await p.evaluate(() => [Object.values(D.spenden.zweck).filter(v => v === '-').length, spjCompute(2027).list.filter(e => e.z === 'zr').length, document.querySelector('#toasts').textContent]);

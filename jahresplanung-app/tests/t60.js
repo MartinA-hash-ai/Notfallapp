@@ -54,11 +54,11 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   // ---- E: ausblenden (für alle, in der Datei) und zurückholen; Strg+Z
   await p.click('.spj-sug[data-w="herzenswunsch krankenwagen"] .sp-x'); await p.waitForTimeout(250);
   const e0 = await p.evaluate(() => [JSON.stringify(D.spenden.ignor), document.querySelectorAll('.spj-sug').length, document.querySelector('.spj-sugign')?.textContent]);
-  ok(e0[0] === '{"herzenswunsch krankenwagen":1}' && e0[1] === 1 && /1 ausgeblendet/.test(e0[2]), 'E: „×“ blendet den Vorschlag aus (gespeichert) – „1 ausgeblendet“ holt ihn zurück');
+  ok(e0[0] === '{"herzenswunsch krankenwagen":1}' && e0[1] === 1 && e0[2] === 'Ausgeblendet (1)', 'E: „×“ blendet den Vorschlag aus (gespeichert) – Knopf „Ausgeblendet (1)“');
   ok(await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); const base = JSON.parse(JSON.stringify(D)), th = JSON.parse(JSON.stringify(D)); th.spenden.ignor = Object.assign({}, th.spenden.ignor, { jubiläum: 1 });
     const m = normalize(merge3(base, JSON.parse(JSON.stringify(D)), th).data); return JSON.stringify(n.spenden.ignor) === '{"herzenswunsch krankenwagen":1}' && Object.keys(m.spenden.ignor).length === 2; }), 'E: bleibt nach dem Neuladen und beim Zusammenführen erhalten');
-  await p.click('.spj-sugign'); await p.waitForTimeout(250);
-  ok((await sugs()).length === 2 && await p.evaluate(() => !Object.keys(D.spenden.ignor || {}).length), 'E: „1 ausgeblendet“ zeigt ihn wieder');
+  await p.click('.spj-sugign'); await p.waitForTimeout(150); await p.click('.spj-ig .spj-to'); await p.waitForTimeout(250);
+  ok((await sugs()).length === 2 && await p.evaluate(() => !Object.keys(D.spenden.ignor || {}).length), 'E: „Ausgeblendet (1)“ → „einblenden“ zeigt ihn wieder');
   await p.evaluate(() => document.activeElement && document.activeElement.blur()); await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
   ok((await sugs()).length === 1, 'E: Strg+Z macht das Zurückholen rückgängig');
 
@@ -96,5 +96,40 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.click('.spj-pill:has-text("Wärmebus")'); await p.waitForTimeout(150);
   await p.click('.spj-unhand'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !Object.values(D.spenden.zweck).some(v => v === '-') && !document.querySelector('.spj-unhand')), 'G: „… wieder automatisch“ hebt die Markierung von Hand auf');
+
+  // ---- H: gewählter Vorschlag bleibt beim Wechsel des Zwecks stehen; „von Hand“ nur beim Zweck, nicht in „Zweckungebunden“
+  await p.evaluate(() => { if (D.zwecke.length < 2) commit(d => { d.zwecke.push({ id: 'zt', name: 'Testzweck', farbe: '#1565c0', worte: [], konten: [], massnahmen: [] }); }, 'Testzweck'); });
+  const pills = await p.evaluate(() => D.zwecke.slice(0, 2).map(z => z.id));
+  await p.click('.spj-pill[data-z="' + pills[0] + '"]'); await p.waitForTimeout(150);
+  const w = await p.evaluate(() => document.querySelector('.spj-sug').dataset.w);
+  await p.click('.spj-sug[data-w="' + w + '"] .spj-sw-l'); await p.waitForTimeout(200);
+  await p.click('.spj-pill[data-z="' + pills[1] + '"]'); await p.waitForTimeout(200);
+  const hh0 = await p.evaluate(w => [SPJ.z, SPJ.typed, document.querySelector('.spj-sug[data-w="' + w + '"]').classList.contains('on'), document.querySelector('.spj-lh b')?.textContent, document.querySelector('.spj-ed .sp-wordin').value], w);
+  ok(hh0[0] === pills[1] && hh0[1] && hh0[2] && /^Vorschau/.test(hh0[3]) && hh0[4] === hh0[1], 'H: Vorschlag „' + hh0[1] + '“ bleibt nach dem Zweckwechsel gewählt (Vorschau und Eingabefeld)');
+  await p.click('.spj-pill[data-z="' + pills[0] + '"]'); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => !!SPJ.typed), 'H: auch beim Zurückwechseln');
+  await p.click('.spj-prevx'); await p.waitForTimeout(150);
+  const k0 = await p.evaluate(() => document.querySelector('[data-sec="sp-zu"] .spj-row').dataset.k);
+  await p.click('.spj-row[data-k="' + k0 + '"] .sp-d'); await p.selectOption('.spj-selbar .spj-move', '-'); await p.waitForTimeout(250);
+  const hh1 = await p.evaluate(k => [D.spenden.zweck[k], !!document.querySelector('.spj-row[data-k="' + k + '"]'), document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.hand').length], k0);
+  ok(hh1[0] === '-' && hh1[1] && hh1[2] === 0, 'H: von Hand auf „zweckungebunden“ gesetzt – in der Liste „Zweckungebunden“ ohne Kennzeichen');
+  await p.click('.spj-row[data-k="' + k0 + '"] .sp-d'); await p.selectOption('.spj-selbar .spj-move', pills[0]); await p.click('.spj-lv [data-lv="zweck"]'); await p.waitForTimeout(250);
+  ok(await p.evaluate(k => document.querySelector('.spj-row[data-k="' + k + '"] .sp-tag.hand')?.textContent === 'von Hand', k0), 'H: beim Zweck („Bei …“) steht „von Hand“');
+
+  // ---- I: ausgeblendete Vorschläge: Knopf „Ausgeblendet (N)“ oben rechts, einzeln oder alle wieder einblenden
+  await p.click('.spj-lv [data-lv="frei"]'); await p.evaluate(() => commit(d => { d.spenden.ignor = {}; }, 'Test')); await p.waitForTimeout(200);
+  const ws = await p.evaluate(() => [...document.querySelectorAll('.spj-sug')].slice(0, 2).map(e => e.dataset.w));
+  for (const x of ws) { await p.click('.spj-sug[data-w="' + x + '"] .sp-x'); await p.waitForTimeout(200); }
+  const i0 = await p.evaluate(() => { const b = document.querySelector('.spj-sugign'), hd = document.querySelector('.spj-sugh').getBoundingClientRect(), r = b.getBoundingClientRect(); return [b.textContent, hd.right - r.right < 20]; });
+  ok(i0[0] === 'Ausgeblendet (2)' && i0[1], 'I: nach zweimal „×“: Knopf „' + i0[0] + '“ oben rechts im Vorschlagsfeld');
+  await p.click('.spj-sugign'); await p.waitForTimeout(150);
+  const i1 = await p.evaluate(() => [[...document.querySelectorAll('.spj-ig')].map(e => e.dataset.w).sort().join(','), document.querySelectorAll('.spj-sugs .spj-sug:not(.spj-ig)').length]);
+  ok(i1[0] === ws.slice().sort().join(',') && i1[1] === 0, 'I: Klick zeigt die ausgeblendeten Begriffe (' + i1[0] + ')');
+  await p.click('.spj-ig[data-w="' + ws[0] + '"] .spj-to'); await p.waitForTimeout(200);
+  const i2 = await p.evaluate(w => [document.querySelector('.spj-sugign')?.textContent, Object.keys(D.spenden.ignor).join(), document.querySelectorAll('.spj-ig').length], ws[0]);
+  ok(i2[0] === 'Ausgeblendet (1)' && i2[1] === ws[1] && i2[2] === 1, 'I: „einblenden“ holt „' + ws[0] + '“ zurück, einer bleibt ausgeblendet');
+  await p.click('.spj-ignall'); await p.waitForTimeout(200);
+  const i3 = await p.evaluate(ws => [!document.querySelector('.spj-sugign'), !Object.keys(D.spenden.ignor).length, ws.every(w => !!document.querySelector('.spj-sug[data-w="' + w + '"]'))], ws);
+  ok(i3.every(Boolean), 'I: „alle einblenden“ – beide Vorschläge wieder da, Knopf verschwindet');
   await finish(b, pages);
 })();

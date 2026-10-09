@@ -99,7 +99,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.click('.spj-row[data-k="' + k1 + '"] .sp-d'); await p.selectOption('.spj-selbar .spj-move', '-'); await p.waitForTimeout(250);
   ok((await ztab())['Hospizarbeit'] === '1/50 €' && await p.evaluate(k => D.spenden.zweck[k] === '-', k1), 'D: einzelne Spende von Hand auf „zweckungebunden“ gesetzt');
   await p.click('.spj-t tr[data-z="-"]'); await p.waitForTimeout(200);
-  ok(await p.evaluate(k => document.querySelector('.spj-row[data-k="' + k + '"] .sp-tag.hand')?.textContent === 'von Hand', k1), 'D: Zeile zeigt „von Hand“');
+  ok(await p.evaluate(k => !!document.querySelector('.spj-row.hand[data-k="' + k + '"]') && !document.querySelector('.spj-row[data-k="' + k + '"] .sp-tag.hand'), k1), 'D: Zeile steht in „Zweckungebunden“ – ohne Kennzeichen „von Hand“');
   await p.click('.spj-row[data-k="' + k1 + '"] .sp-d'); await p.selectOption('.spj-selbar .spj-move', '*'); await p.waitForTimeout(250);
   ok((await ztab())['Hospizarbeit'] === '2/250 €' && await p.evaluate(k => !(k in D.spenden.zweck), k1), 'D: „nicht festgelegt (automatisch)“ hebt die Festlegung wieder auf');
 

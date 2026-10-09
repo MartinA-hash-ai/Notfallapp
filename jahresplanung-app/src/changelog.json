@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.16.7",
+    "version": "0.16.8",
     "date": "",
+    "items": [
+      "Neuer Zeitstrahl „Eingelesen 2027“ oben in der Auswertung: zeigt Januar bis Dezember, welche Zeiträume aus den Spendendateien schon eingelesen sind (grau), wo eine Lücke ist (rot) und was seit der letzten Buchung bis heute noch fehlt (gelb); Hinzeigen nennt Zeitraum, Anzahl, Summe und Dateien",
+      "Jede Datei zählt von ihrer ersten bis zur letzten Buchung; Wochenenden, Feiertage und bis zu zwei Werktage ohne Buchung gelten nicht als Lücke",
+      "Spendenzwecke zuordnen: ein angeklickter Vorschlag bleibt beim Wechsel des Zwecks stehen – so lässt er sich gleich einem anderen Zweck hinzufügen; markierte Spenden bleiben markiert, solange die Liste dieselbe ist",
+      "Ausgeblendete Vorschläge: Knopf „Ausgeblendet (N)“ oben rechts im Vorschlagsfeld zeigt sie – einzeln oder alle wieder einblenden",
+      "Liste „Zweckungebunden“ ohne das Kennzeichen „von Hand“ (beim Zweck bleibt es)"
+    ]
+  },
+  {
+    "version": "0.16.7",
+    "date": "2026-10-09T15:39",
     "items": [
       "Spendenliste unter „Spendenzwecke zuordnen“: Spenden per Klick markieren (blau), Umschalt-Klick markiert einen Bereich, „Alle auswählen“ markiert die ganze Liste",
       "Markierte Spenden gesammelt verschieben nach: einem Zweck, „zweckungebunden“ oder „nicht festgelegt (automatisch)“ – Leiste über der Liste mit Anzahl und Summe der markierten",
