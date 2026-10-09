@@ -45,7 +45,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.fill('.spj-name', 'Hospizarbeit'); await p.press('.spj-name', 'Tab'); await p.waitForTimeout(200);
   await p.click('.spj-ed .sp-wordin'); await p.keyboard.type('Hospiz*'); await p.waitForTimeout(450);
   const b1 = await p.evaluate(() => [document.querySelector('.spj-lh').textContent, document.querySelectorAll('.spj-row').length, document.activeElement.classList.contains('sp-wordin')]);
-  ok(/Vorschau „Hospiz\*“2 Spenden noch ohne Zweck \(130,00 €\) – Enter übernimmt/.test(b1[0]) && b1[1] === 2 && b1[2], 'B: Vorschau beim Tippen im Kopf der Liste: ' + b1[0].split('Namen')[0] + ' – Liste zeigt sie, Fokus bleibt');
+  ok(/Vorschau „Hospiz\*“2 Spenden zweckungebunden \(130,00 €\) – Enter übernimmt/.test(b1[0]) && b1[1] === 2 && b1[2], 'B: Vorschau beim Tippen im Kopf der Liste: ' + b1[0].split('Namen')[0] + ' – Liste zeigt sie, Fokus bleibt');
   await p.keyboard.press('Enter'); await p.waitForTimeout(250);
   ok(JSON.stringify(await p.evaluate(() => D.zwecke[0])) .includes('"name":"Hospizarbeit"') && (await ztab())['Hospizarbeit'] === '2/130 €', 'B: Enter übernimmt Hospiz* – Hospizarbeit zählt 2 Spenden (130 €)');
 
@@ -62,7 +62,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.click('.spj-ed .sp-wordin'); await p.keyboard.type('Herzenswunsch'); await p.waitForTimeout(450);
   const d00 = await p.evaluate(() => [document.querySelector('.spj-lh').textContent, [...document.querySelectorAll('.spj-row')].map(r => SP.byKey.get(r.dataset.k).name).sort().join(','),
     scrollY, document.querySelector('.spj-list').offsetHeight, Math.round(document.querySelector('.spj-ed').getBoundingClientRect().top)]);
-  ok(/2 Spenden noch ohne Zweck \(140,00 €\) · 1 weitere schon erfasst/.test(d00[0]) && d00[1] === 'Bernd Probe,Frida Probe', 'D: Vorschau zeigt nur Spenden ohne Zweck (' + d00[1] + ') – die schon bei „Hospizarbeit“ erfasste nicht');
+  ok(/2 Spenden zweckungebunden \(140,00 €\) · 1 weitere schon erfasst/.test(d00[0]) && d00[1] === 'Bernd Probe,Frida Probe', 'D: Vorschau zeigt nur Spenden ohne Zweck (' + d00[1] + ') – die schon bei „Hospizarbeit“ erfasste nicht');
   ok(d00[2] === y0[0] && d00[3] === y0[1] && d00[4] === y0[2], 'D: beim Tippen bleibt die Seite stehen – Liste gleich hoch (' + d00[3] + ' px), Fensterposition unverändert ' + JSON.stringify([y0, d00.slice(2)]));
   await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   const d0 = await ztab();
@@ -87,7 +87,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   // Zweck gewählt: unten stehen immer die Spenden noch ohne Zweck – mit „→ Hospizarbeit“ direkt zuordnen
   const l0 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(r => SP.byKey.get(r.dataset.k).name).sort().join(','),
     document.querySelectorAll('[data-sec="sp-zu"] .spj-row .spj-to').length, document.querySelector('.spj-lv .seg-btn.on').textContent]);
-  ok(l0[0] === 'Carla Dauer,Carla Dauer,Gerd Probe' && l0[1] === 3 && /^Noch ohne Zweck \(3\)/.test(l0[2]), 'D: Zweck gewählt – die Liste zeigt die Spenden noch ohne Zweck (' + l0[0] + '), je mit „→ Hospizarbeit“');
+  ok(l0[0] === 'Carla Dauer,Carla Dauer,Gerd Probe' && l0[1] === 3 && /^Zweckungebunden \(3\)/.test(l0[2]), 'D: Zweck gewählt – die Liste zeigt standardmäßig alle zweckungebundenen Spenden (' + l0[0] + '), je mit „→ Hospizarbeit“');
   await p.evaluate(() => [...document.querySelectorAll('.spj-row')].find(r => SP.byKey.get(r.dataset.k).name === 'Gerd Probe').querySelector('.spj-to').click()); await p.waitForTimeout(250);
   const l1 = await p.evaluate(() => [document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, Object.values(D.spenden.zweck).filter(v => v === D.zwecke[0].id).length]);
   ok(l1[0] === 2 && l1[1] === 1 && (await ztab())['Hospizarbeit'] === '3/275 €', 'D: „→ Hospizarbeit“ ordnet zu – die Spende verschwindet aus der Liste, Hospizarbeit 3 (275 €)');
@@ -107,14 +107,16 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok(sum === 555, 'E: Zwecke + zweckungebunden = 555 € (' + JSON.stringify(e0) + ')');
   await p.evaluate(() => { const r = SP.rows.find(r => r.name === 'Bernd Probe'); commit(d => { d.spenden.zu[r.k] = { m: 'm5', d: ds(r.d), b: r.b }; }); SPJ.z = null; renderNow(); }); await p.waitForTimeout(200);
   await p.click('.spj-her .seg-btn:has-text("aus Maßnahmen")'); await p.waitForTimeout(250);
-  const e1 = await tile();
+  const e1 = await tile(), e1l = await p.evaluate(() => [document.querySelector('.spj-lh b')?.textContent, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length]);
   await p.click('.spj-her .seg-btn:has-text("ohne Maßnahme")'); await p.waitForTimeout(250);
   const e2 = await tile();
   ok(/^100 € \| 1 Spende/.test(e1[0]) && /^455 € \| 7 Spenden/.test(e2[0]), 'E: Herkunft – aus Maßnahmen ' + e1[0] + ' · ohne Maßnahme ' + e2[0]);
+  ok(e1l[0] === 'Zweckungebunden' && e1l[1] === 3, 'E: die Zuordnungsliste zeigt trotz Herkunft-Filter alle zweckungebundenen (' + e1l[1] + ')');
   await p.click('.spj-her .seg-btn:has-text("alle Spenden")'); await p.waitForTimeout(200);
   await p.click('.spj-t tr[data-g="Paderborn - Lage"]'); await p.waitForTimeout(250);
   const e3 = await tile(), e4 = await p.evaluate(() => [document.querySelector('.spj-chip').textContent, document.querySelectorAll('.spj-row').length]);
-  ok(/^60 € \| 2 Spenden/.test(e3[0]) && /^60 €/.test(e3[2]) && /Gliederung: Lage/.test(e4[0]) && e4[1] === 2, 'E: Klick auf „Lage“ filtert Kacheln und Liste (60 €, beide Daueraufträge)');
+  ok(/^60 € \| 2 Spenden/.test(e3[0]) && /^60 €/.test(e3[2]) && /Gliederung: Lage/.test(e4[0]) && e4[1] === 3, 'E: Klick auf „Lage“ filtert die Kacheln (60 €, beide Daueraufträge) – die Zuordnungsliste bleibt vollständig (' + e4[1] + ')');
+  ok(await p.evaluate(() => { const w = document.querySelector('.spj-gscroll'); return getComputedStyle(w).maxHeight === '213px' && getComputedStyle(w).overflowY === 'auto'; }), 'E: Gliederungen-Tabelle höchstens 7 Zeilen hoch, Rest per Scrollen');
   await p.click('.spj-chip .sp-x'); await p.waitForTimeout(200);
   ok(/^555 €/.test((await tile())[0]), 'E: × hebt den Filter auf');
 

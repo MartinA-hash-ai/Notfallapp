@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.16.3",
+    "version": "0.16.4",
     "date": "",
+    "items": [
+      "Spendenzwecke zuordnen: Die Liste zeigt standardmäßig immer alle zweckungebundenen Spenden des Jahres – was ein Schlagwort, Konto oder eine Maßnahme einem Zweck zuordnet, verschwindet daraus, die Liste wird also mit jeder Regel kleiner. Umschalten auf „Bei …“ zeigt die Spenden des gewählten Zwecks",
+      "Die Filter der Auswertung oben (Herkunft, Gliederung) wirken nicht mehr auf diese Liste – sie ist immer vollständig",
+      "Gliederungen: höchstens sieben Zeilen sichtbar, der Rest per Scrollen (im PDF weiterhin alle)"
+    ]
+  },
+  {
+    "version": "0.16.3",
+    "date": "2026-10-09T11:17",
     "items": [
       "Spendenzwecke: neue Zeile „Maßnahmen“ – alle Spenden, die einer Maßnahme zugeordnet sind, zählen für den Zweck, auch wenn im Verwendungszweck nur eine Spendennummer steht, und auch künftig zugeordnete. In der Liste steht als Grund „Maßnahme …“",
       "Passt eine Spende über ihre Maßnahme zu einem Zweck und über Schlagwort oder Konto zu einem anderen, steht sie unter „zu klären“"

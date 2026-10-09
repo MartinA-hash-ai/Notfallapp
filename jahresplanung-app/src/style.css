@@ -1437,3 +1437,8 @@ html, body { overflow-anchor: none; }   /* die App zeichnet ganze Bereiche neu ‚
 .spj-lv .seg-btn { padding: 3px 10px; font-size: 12.5px; white-space: nowrap; }
 .spj-to { border: 1px solid var(--runink); color: var(--runink); background: var(--card); border-radius: 10px; padding: 0 8px; font-size: 11.5px; font-weight: 700; line-height: 18px; white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
 .spj-to:hover { background: var(--runbg); }
+/* Gliederungen: h√∂chstens 7 Zeilen sichtbar, der Rest per Scrollen (Kopfzeile bleibt stehen) */
+.spj-gscroll { max-height: calc(31px + 7 * 26px); overflow-y: auto; }
+.spj-gscroll thead tr { height: 31px; }
+.spj-gscroll tbody tr { height: 26px; }
+.spj-gscroll th { z-index: 1; }
