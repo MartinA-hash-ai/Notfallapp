@@ -84,7 +84,18 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok(d3['Herzenswunsch-Krankenwagen'] === '3/220 €' && !d3.offen, 'D: „alle angezeigten festlegen …“ ordnet den Klärfall dem gewählten Zweck zu');
   // einzelne Spende von Hand umhängen und wieder automatisch
   await p.click('.spj-t tr[data-z="' + hz + '"]'); await p.waitForTimeout(200);
-  const k1 = await p.evaluate(() => document.querySelector('.spj-row').dataset.k);
+  // Zweck gewählt: unten stehen immer die Spenden noch ohne Zweck – mit „→ Hospizarbeit“ direkt zuordnen
+  const l0 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(r => SP.byKey.get(r.dataset.k).name).sort().join(','),
+    document.querySelectorAll('[data-sec="sp-zu"] .spj-row .spj-to').length, document.querySelector('.spj-lv .seg-btn.on').textContent]);
+  ok(l0[0] === 'Carla Dauer,Carla Dauer,Gerd Probe' && l0[1] === 3 && /^Noch ohne Zweck \(3\)/.test(l0[2]), 'D: Zweck gewählt – die Liste zeigt die Spenden noch ohne Zweck (' + l0[0] + '), je mit „→ Hospizarbeit“');
+  await p.evaluate(() => [...document.querySelectorAll('.spj-row')].find(r => SP.byKey.get(r.dataset.k).name === 'Gerd Probe').querySelector('.spj-to').click()); await p.waitForTimeout(250);
+  const l1 = await p.evaluate(() => [document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, Object.values(D.spenden.zweck).filter(v => v === D.zwecke[0].id).length]);
+  ok(l1[0] === 2 && l1[1] === 1 && (await ztab())['Hospizarbeit'] === '3/275 €', 'D: „→ Hospizarbeit“ ordnet zu – die Spende verschwindet aus der Liste, Hospizarbeit 3 (275 €)');
+  await p.evaluate(() => document.activeElement && document.activeElement.blur()); await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
+  await p.click('.spj-lv [data-lv="zweck"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(id => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].every(r => spjCompute(2027).list.find(e => e.rec.k === r.dataset.k).z === id) && document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length === 2, hz),
+    'D: Umschalter „Bei „Hospizarbeit““ zeigt die schon zugeordneten Spenden');
+  const k1 = await p.evaluate(() => document.querySelector('[data-sec="sp-zu"] .spj-row').dataset.k);
   await p.selectOption('.spj-row[data-k="' + k1 + '"] .spj-zsel', '-'); await p.waitForTimeout(250);
   ok((await ztab())['Hospizarbeit'] === '1/50 €' && await p.evaluate(k => D.spenden.zweck[k] === '-', k1), 'D: einzelne Spende von Hand auf „zweckungebunden“ gesetzt');
   await p.click('.spj-t tr[data-z="-"]'); await p.waitForTimeout(200);

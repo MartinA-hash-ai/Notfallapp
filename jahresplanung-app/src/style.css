@@ -1432,3 +1432,6 @@ html, body { overflow-anchor: none; }   /* die App zeichnet ganze Bereiche neu â
 .spj-more { display: block; padding: 8px 10px; }
 .pd-spj { margin-top: 0; }
 .pd-spj .spj-box { break-inside: avoid; }
+.spj-lv .seg-btn { padding: 3px 10px; font-size: 12.5px; white-space: nowrap; }
+.spj-to { border: 1px solid var(--runink); color: var(--runink); background: var(--card); border-radius: 10px; padding: 0 8px; font-size: 11.5px; font-weight: 700; line-height: 18px; white-space: nowrap; max-width: 200px; overflow: hidden; text-overflow: ellipsis; }
+.spj-to:hover { background: var(--runbg); }

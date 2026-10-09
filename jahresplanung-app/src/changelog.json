@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.16.1",
+    "version": "0.16.2",
     "date": "",
+    "items": [
+      "Spendenzwecke zuordnen: Bei gewähltem Zweck zeigt die Liste immer die Spenden, die noch keinem Zweck zugeordnet sind – mit „→ Zweck“ je Spende direkt zuordnen (oder alle angezeigten auf einmal)",
+      "Über den Umschalter im Kopf der Liste („Bei …“) lassen sich die Spenden ansehen, die schon beim gewählten Zweck sind; „zu klären“ und „zweckungebunden“ (samt von Hand festgelegten) über die Knöpfe oben"
+    ]
+  },
+  {
+    "version": "0.16.1",
+    "date": "2026-10-09T10:45",
     "items": [
       "Auswertung „Spenden 2027“ und Zuordnung getrennt: oben Kacheln, Grafiken, Zwecke und Gliederungen; darunter statt der drei Spalten der Bereich „Spendenzwecke zuordnen“ mit Zweck-Auswahl, Schlagworten, Konten und der Liste der Spenden",
       "Beim Tippen eines Schlagworts zeigt die Liste nur Spenden, die noch keinem Zweck zugeordnet sind; wie viele schon erfasst sind, steht im Kopf der Liste",
