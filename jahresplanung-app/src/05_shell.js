@@ -37,6 +37,7 @@ function renderInner() {
   const ae = document.activeElement, fk = ae && ae.dataset ? ae.dataset.fk : null;
   const selS = ae && 'selectionStart' in ae ? (() => { try { return [ae.selectionStart, ae.selectionEnd]; } catch (e) { return null; } })() : null;
   const main0 = $('#main'), sc = main0 ? [main0.scrollTop, main0.scrollLeft] : [0, 0];
+  const win = [scrollX, scrollY];                           // Fensterposition: beim Neuzeichnen mit Fokus in einem Eingabefeld verschiebt der Browser sonst die Seite
   const inner = $$('[data-keep-scroll]').map(e => [e.dataset.keepScroll, e.scrollLeft, e.scrollTop]);
   try { derive(); }
   catch (e) {                                               // Daten lassen sich nicht auswerten: nicht leer weiterarbeiten, sondern sichern lassen
@@ -63,6 +64,7 @@ function renderInner() {
   }
   document.title = (isDirty() ? '● ' : '') + 'Jahresplanung ' + UI.year;
   syncTopHeight();
+  if (scrollX !== win[0] || scrollY !== win[1]) scrollTo(win[0], win[1]);   // erst nach dem Kopf (layoutHeader), sonst ist die Seite kurz zu kurz
   (VIEW_FN[UI.view + ':after'] || (() => {}))(main);
   flashTarget();
   saveUI();

@@ -389,7 +389,7 @@ function spRuleOf(m) {
 }
 function spComputeNow() {
   const S = D.spenden, ids = new Set(D.massnahmen.map(m => m.id)), mids = { has: id => ids.has(id) || isAllg(id) };
-  const rules = [...D.massnahmen.map(spRuleOf), ...Object.keys(S.allg || {}).map(y => spRuleOf(spAllgX(y).m))].filter(Boolean);
+  const rules = D.massnahmen.map(spRuleOf).filter(Boolean);       // ab 0.16 ohne Regeln der allgemeinen Spenden (dort werden jetzt Zwecke zugeordnet)
   const assigned = k => { const z = S.zu[k]; return z && mids.has(z.m) ? z.m : null; };
   const sugg = new Map(), pendBy = new Map(); let pend = 0;      // pendBy: je Maßnahme, wie viele Spenden in „Prüfen“ warten
   for (const rec of SP.rows) {
@@ -402,7 +402,7 @@ function spComputeNow() {
     if (list) sugg.set(rec.k, list);
     const vor = S.vor[rec.k] && mids.has(S.vor[rec.k]) ? S.vor[rec.k] : null;
     if (list || vor) pend++;
-    for (const id of new Set((list || []).map(g => g.id).concat(vor || []))) pendBy.set(id, (pendBy.get(id) || 0) + 1);
+    for (const id of new Set((list || []).map(g => g.id).concat(vor || []))) if (!isAllg(id)) pendBy.set(id, (pendBy.get(id) || 0) + 1);
   }
   return { sugg, pend, pendBy, assigned };
 }
@@ -556,6 +556,8 @@ function spOverview(ms, cmp, mid, by) {
   const ids = real.filter(r => r.s.n && r.x.pal != null).map(r => r.x.id), stop = e => e.stopPropagation();
   const row = ({ x, s }) => h('tr', { class: 'sp-urow' + (x.id === mid ? ' on' : '') + (x.allg ? ' allg' : ''), dataset: { mid: x.id }, onclick: () => { UI.spMid = x.id; renderNow(); } },
     h('td', { class: 'sp-uname' }, h('div', { class: 'sp-un' }, h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'sp-unm' }, spDispName(x)),
+      x.allg && SP.rows.length && spjCompute(x.allg).list.some(e => e.z === SPJ_OFFEN) ? h('span', { class: 'tab-badge sp-mbadge warn', tip: 'Spenden passen zu mehreren Zwecken – unter „Spendenzwecke zuordnen“ klären' },
+        spjCompute(x.allg).list.filter(e => e.z === SPJ_OFFEN).length) : null,
       cmp.pendBy.get(x.id) ? h('span', { class: 'tab-badge sp-mbadge', tip: cmp.pendBy.get(x.id) + (cmp.pendBy.get(x.id) === 1 ? ' Spende wartet' : ' Spenden warten') + ' in „Prüfen“ auf die Zuordnung' }, cmp.pendBy.get(x.id)) : null)),
     x.allg ? h('td', { class: 'muted small' }, 'alle Spenden des Jahres – Zwecke, Gliederungen, Daueraufträge') :
       h('td', { class: 'inp' }, h('input', { class: 'sp-hin', value: x.m.hinweis || '', placeholder: '–', 'data-fk': 'sp-hin:' + x.id, onclick: stop, title: x.m.hinweis || '',
@@ -581,7 +583,7 @@ function spOverview(ms, cmp, mid, by) {
         return h('button', { class: 'sp-cpill' + (off ? ' off' : ''), 'aria-pressed': String(!off), tip: off ? 'im Vergleich einblenden' : 'im Vergleich ausblenden',
           onclick: () => { const o = new Set(UI.spCmpOff || []); if (off) o.delete(id); else o.add(id); UI.spCmpOff = [...o]; renderNow(); } },
           h('span', { class: 'sp-cdot', style: { background: off ? 'transparent' : x.color, borderColor: x.color } }), x.m.name || '(ohne Namen)'); })),
-        h('div', { class: 'sp-chart', dataset: { chart: 'cmp', ids: ids.filter(id => !(UI.spCmpOff || []).includes(id)).join(',') } })] : null) : null];
+        h('div', { class: 'sp-chart', style: { height: '230px' }, dataset: { chart: 'cmp', ids: ids.filter(id => !(UI.spCmpOff || []).includes(id)).join(',') } })] : null) : null];
 }
 // Spalten der Übersicht; ganz rechts ein leerer Rest, damit sich jede Spalte (auch ROI) verstellen lässt.
 // Breite ziehen wie in der Jahresplanung: nur diese Spalte und ihre rechte Nachbarin ändern sich
@@ -831,9 +833,10 @@ VIEW_FN.spenden = main => {
     section('sp-m', h('span', { class: 'sp-mname', style: { color: inkC(x.color) } }, x.m.name || '(ohne Namen)'),
       () => ({ body: h('div', { class: 'sp-kpi' }, spTiles(x, s), spCharts(x, by.get(mid))) }),
       { closedSummary: () => s.n ? eur0(s.sum) + ' aus ' + spCount(s.n) : 'noch keine Spenden zugeordnet' }),
-    section('sp-zu', x.allg ? 'Allgemeine Spenden (ohne Maßnahme) zuordnen' : 'Spenden zuordnen', () => spAssign(x, cmp), {
-      info: x.allg ? 'Spenden, die zu keiner Maßnahme gehören (z. B. Daueraufträge), lassen sich hier als „allgemein“ abhaken – dann stehen sie nicht mehr in „Offen“. In der Übersicht oben zählen sie unter „ohne Maßnahme“.' : null,
-      closedSummary: () => spCount(P.R.length) + ' zugeordnet · ' + spCount(P.M.length) + ' in Prüfung' }));
+    x.allg ? section('sp-zu', 'Spendenzwecke zuordnen', () => spjAssign(y), {          // Auswertung oben, Zuordnung der Zwecke hier – getrennt
+      info: 'Zwecke anlegen und mit Schlagworten (Verwendungszweck) oder Konten (Gliederung) versehen – die Spenden des ganzen Jahres zählen dann automatisch. Passt eine Spende zu mehreren Zwecken, steht sie unter „zu klären“; einzelne Spenden lassen sich von Hand festlegen.',
+      closedSummary: () => { if (!SP.rows.length) return null; const n = spjCompute(y).list.filter(e => e.z === SPJ_OFFEN).length; return D.zwecke.length + (D.zwecke.length === 1 ? ' Zweck' : ' Zwecke') + (n ? ' · ' + n + ' zu klären' : ''); } }) :
+    section('sp-zu', 'Spenden zuordnen', () => spAssign(x, cmp), { closedSummary: () => spCount(P.R.length) + ' zugeordnet · ' + spCount(P.M.length) + ' in Prüfung' }));
 };
 VIEW_FN['spenden:after'] = main => {
   for (const el of $$('[data-chart]', main)) try { spDraw(el); } catch (e) { console.error(e); }
@@ -874,9 +877,9 @@ function spCharts(x, list) {
   return h('div', { class: 'sp-charts' },
     h('div', { class: 'sp-cht' }, h('b', null, 'Zeitspanne der Eingänge'), h('span', { class: 'muted' }, sr.lo != null ? ' · ' + fmtD(sr.lo) + ' – ' + fmtD(sr.hi) + ' (' + (sr.hi - sr.lo + 1) + ' Tage), Summe kumuliert' : ''),
       sr.pre ? h('span', { class: 'warn small' }, ' · inkl. ' + spCount(sr.pre) + ' vor dem PAL (' + eur(sr.preSum) + ')') : null),
-    h('div', { class: 'sp-chart', dataset: { chart: 'span', mid: x.id } }),
+    h('div', { class: 'sp-chart', style: { height: '150px' }, dataset: { chart: 'span', mid: x.id } }),
     h('div', { class: 'sp-cht' }, h('b', null, 'Spenden pro Tag'), h('span', { class: 'muted' }, ' · grau hinterlegt: Wochenenden')),
-    h('div', { class: 'sp-chart', dataset: { chart: 'day', mid: x.id } }));
+    h('div', { class: 'sp-chart', style: { height: '150px' }, dataset: { chart: 'day', mid: x.id } }));
 }
 const spDayLab = (sr, n) => fmtW(n) + (sr.pal != null && n >= sr.pal ? ' · Tag ' + (n - sr.pal) + ' ab PAL' : sr.pal != null ? ' · vor dem PAL' : '');
 function spXTicks(svg, g, sr, X) {

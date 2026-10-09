@@ -22,21 +22,30 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
 
   // ---- A: erste Zeile „Spenden 2027“ = alle Spenden des Jahres; Kacheln mit Daueraufträgen; Gliederungen ohne „Paderborn - “
   const a0 = await p.evaluate(() => { const r = document.querySelector('.sp-ueb tbody tr'); return [r.dataset.mid, r.querySelector('.sp-unm').textContent, r.children[5].textContent, r.children[6].textContent, document.querySelector('[data-sec="sp-m"] .sec-t').textContent, document.querySelector('[data-sec="sp-zu"] .sec-t').textContent]; });
-  ok(a0[0] === 'allg:2027' && a0[1] === 'Spenden 2027' && a0[2] === '555 €' && a0[3] === '8' && a0[4] === 'Spenden 2027' && /Allgemeine Spenden \(ohne Maßnahme\) zuordnen/.test(a0[5]),
+  ok(a0[0] === 'allg:2027' && a0[1] === 'Spenden 2027' && a0[2] === '555 €' && a0[3] === '8' && a0[4] === 'Spenden 2027' && a0[5] === 'Spendenzwecke zuordnen' && await p.evaluate(() => !document.querySelector('.sp-col')),
     'A: Übersicht beginnt mit „Spenden 2027“ (555 € aus 8 – ohne die Vorjahresbuchung); darunter „' + a0[5] + '“');
   const a1 = await tile();
   ok(a1[0] === '555 € | 8 Spenden · 7 Spender:innen' && /^69,38 € \| Median 45,00 €/.test(a1[1]) && /^60 € \| 2 Buchungen · 1 Spender:in · 10,8 % der Summe/.test(a1[2]), 'A: Kacheln – ' + a1.slice(0, 3).join(' ; '));
   const a2 = await p.evaluate(() => [...document.querySelectorAll('.spj-box:nth-child(2) .spj-t tbody tr')].map(r => r.children[0].textContent + ' ' + r.children[2].textContent).join(', '));
   ok(a2 === 'Hospiz Dortmund 280 €, DGS Paderborn 125 €, Gütersloh 90 €, Lage 60 €', 'A: Gliederungen nach Summe, ohne „Paderborn - “: ' + a2);
   ok(await p.evaluate(() => [...document.querySelectorAll('.sp-chart[data-chart="ycum"] svg, .sp-chart[data-chart="yweek"] svg')].length === 2 && document.querySelectorAll('.spj-b1, .spj-b2').length >= 8), 'A: Jahresverlauf und Wochen-Säulen (Einzelspenden / Daueraufträge) gezeichnet');
+  const a3 = await p.evaluate(() => { const n = C.ms.filter(x => x.pal != null && x.pal >= mkdn(2027, 1, 1) && x.pal <= mkdn(2027, 12, 31)).length, h = document.querySelector('[data-chart="yweek"] .spj-palhit');
+    return [n, document.querySelectorAll('[data-chart="ycum"] .spj-palhit').length, document.querySelectorAll('[data-chart="yweek"] .spj-palhit').length, +h.getAttribute('width'), +h.getAttribute('height')]; });
+  ok(a3[0] > 0 && a3[1] === a3[0] && a3[2] === a3[0] && a3[3] >= 20 && a3[4] >= 20, 'A: PAL-Punkte in beiden Grafiken (' + a3[0] + ' je Grafik), Trefferfläche ' + a3[3] + '×' + a3[4] + ' px');
+  const hb = await p.evaluate(() => { const r = document.querySelector('[data-chart="ycum"] .spj-palhit').getBoundingClientRect(); return [r.x + r.width / 2, r.y + 3]; });
+  await p.evaluate(() => document.querySelector('[data-chart="ycum"]').scrollIntoView());
+  const hb2 = await p.evaluate(() => { const r = document.querySelector('[data-chart="ycum"] .spj-palhit').getBoundingClientRect(); return [r.x + r.width / 2, r.y + 3]; });
+  await p.mouse.move(hb2[0], hb2[1]); await p.waitForTimeout(350);
+  ok(await p.evaluate(() => /PAL /.test((document.querySelector('#tip') || {}).textContent || '')), 'A: Hinzeigen auf einen PAL-Punkt (Rand der Trefferfläche) zeigt Maßnahme und PAL');
+  await p.mouse.move(5, 5);
 
   // ---- B: Zweck anlegen, umbenennen, Schlagwort mit Vorschau
   await p.click('.spj-add'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => D.zwecke.length === 1 && document.activeElement === document.querySelector('.spj-name') && !!document.querySelector('.spj-ed')), 'B: „+ Zweck“ legt einen Zweck an, öffnet ihn, Name markiert');
   await p.fill('.spj-name', 'Hospizarbeit'); await p.press('.spj-name', 'Tab'); await p.waitForTimeout(200);
   await p.click('.spj-ed .sp-wordin'); await p.keyboard.type('Hospiz*'); await p.waitForTimeout(450);
-  const b1 = await p.evaluate(() => [document.querySelector('.spj-prev').textContent, document.querySelectorAll('.spj-row').length, document.activeElement.classList.contains('sp-wordin')]);
-  ok(/„Hospiz\*“ passt zu 2 Spenden \(130 €\)/.test(b1[0]) && b1[1] === 2 && b1[2], 'B: Vorschau beim Tippen: ' + b1[0] + ' – Liste zeigt sie, Fokus bleibt');
+  const b1 = await p.evaluate(() => [document.querySelector('.spj-lh').textContent, document.querySelectorAll('.spj-row').length, document.activeElement.classList.contains('sp-wordin')]);
+  ok(/Vorschau „Hospiz\*“2 Spenden noch ohne Zweck \(130,00 €\) – Enter übernimmt/.test(b1[0]) && b1[1] === 2 && b1[2], 'B: Vorschau beim Tippen im Kopf der Liste: ' + b1[0].split('Namen')[0] + ' – Liste zeigt sie, Fokus bleibt');
   await p.keyboard.press('Enter'); await p.waitForTimeout(250);
   ok(JSON.stringify(await p.evaluate(() => D.zwecke[0])) .includes('"name":"Hospizarbeit"') && (await ztab())['Hospizarbeit'] === '2/130 €', 'B: Enter übernimmt Hospiz* – Hospizarbeit zählt 2 Spenden (130 €)');
 
@@ -48,7 +57,14 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   // ---- D: zweiter Zweck mit Überschneidung → „zu klären“; per Klick entscheiden; Strg+Z; alle angezeigten festlegen
   await p.click('.spj-add'); await p.waitForTimeout(250);
   await p.fill('.spj-name', 'Herzenswunsch-Krankenwagen'); await p.press('.spj-name', 'Tab'); await p.waitForTimeout(200);
-  await p.click('.spj-ed .sp-wordin'); await p.keyboard.type('Herzenswunsch'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  await p.evaluate(() => document.querySelector('[data-sec="sp-zu"]').scrollIntoView()); await p.waitForTimeout(100);
+  const y0 = await p.evaluate(() => [scrollY, document.querySelector('.spj-list').offsetHeight, Math.round(document.querySelector('.spj-ed').getBoundingClientRect().top)]);
+  await p.click('.spj-ed .sp-wordin'); await p.keyboard.type('Herzenswunsch'); await p.waitForTimeout(450);
+  const d00 = await p.evaluate(() => [document.querySelector('.spj-lh').textContent, [...document.querySelectorAll('.spj-row')].map(r => SP.byKey.get(r.dataset.k).name).sort().join(','),
+    scrollY, document.querySelector('.spj-list').offsetHeight, Math.round(document.querySelector('.spj-ed').getBoundingClientRect().top)]);
+  ok(/2 Spenden noch ohne Zweck \(140,00 €\) · 1 weitere schon erfasst/.test(d00[0]) && d00[1] === 'Bernd Probe,Frida Probe', 'D: Vorschau zeigt nur Spenden ohne Zweck (' + d00[1] + ') – die schon bei „Hospizarbeit“ erfasste nicht');
+  ok(d00[2] === y0[0] && d00[3] === y0[1] && d00[4] === y0[2], 'D: beim Tippen bleibt die Seite stehen – Liste gleich hoch (' + d00[3] + ' px), Fensterposition unverändert ' + JSON.stringify([y0, d00.slice(2)]));
+  await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   const d0 = await ztab();
   ok(d0['Hospizarbeit'] === '2/250 €' && d0['Herzenswunsch-Krankenwagen'] === '2/140 €' && d0.offen === '1/80 €' && d0.frei === '3/85 €', 'D: Überschneidung (Hospiz + Herzenswunsch) steht unter „zu klären“: ' + JSON.stringify(d0));
   ok(await p.evaluate(() => { SPJ.z = null; renderNow(); return /1 zu klären/.test(document.querySelectorAll('.spj-tiles .sp-tile')[3].textContent); }), 'D: Kachel „Zweckgebunden“ weist auf den Klärfall hin (ohne gewählten Zweck)');
@@ -63,7 +79,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok((await ztab()).offen === '1/80 €' && await p.evaluate(() => !Object.keys(D.spenden.zweck).length), 'D: Strg+Z macht die Entscheidung rückgängig');
   await p.click('.spj-t tr[data-z="?"]'); await p.waitForTimeout(150);
   if (!(await p.evaluate(() => SPJ.z === '?'))) { await p.click('.spj-t tr[data-z="?"]'); await p.waitForTimeout(150); }
-  await p.selectOption('.spj-listbox .sp-ch .spj-zsel', hw); await p.waitForTimeout(250);
+  await p.selectOption('.spj-lh .spj-zsel', hw); await p.waitForTimeout(250);
   const d3 = await ztab();
   ok(d3['Herzenswunsch-Krankenwagen'] === '3/220 €' && !d3.offen, 'D: „alle angezeigten festlegen …“ ordnet den Klärfall dem gewählten Zweck zu');
   // einzelne Spende von Hand umhängen und wieder automatisch

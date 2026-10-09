@@ -1,7 +1,20 @@
 [
   {
-    "version": "0.16",
+    "version": "0.16.1",
     "date": "",
+    "items": [
+      "Auswertung „Spenden 2027“ und Zuordnung getrennt: oben Kacheln, Grafiken, Zwecke und Gliederungen; darunter statt der drei Spalten der Bereich „Spendenzwecke zuordnen“ mit Zweck-Auswahl, Schlagworten, Konten und der Liste der Spenden",
+      "Beim Tippen eines Schlagworts zeigt die Liste nur Spenden, die noch keinem Zweck zugeordnet sind; wie viele schon erfasst sind, steht im Kopf der Liste",
+      "Schlagwort- und Konto-Eingabe stehen immer links, die vorhandenen Schlagworte und Konten rechts daneben",
+      "Die Seite springt nicht mehr: die Liste hat eine feste Höhe, Grafiken behalten ihre Höhe beim Neuzeichnen, und die Fensterposition bleibt beim Tippen erhalten (betrifft auch die Schlagwort-Regeln der Maßnahmen)",
+      "PAL der Maßnahmen jetzt auch unter „Spenden pro Woche“; die Punkte sind größer, leichter zu treffen und zeigen beim Hinzeigen eine Linie durchs Diagramm sowie die zugeordneten Spenden der Maßnahme",
+      "Die alte Regel der allgemeinen Spenden („Daueraufträge vorschlagen“) schlägt nichts mehr vor; frühere Zuordnungen bleiben gültig und zählen unter „ohne Maßnahme“",
+      "Die Zeile „Spenden 2027“ in der Übersicht zeigt eine orange Zahl, wenn Spenden zu mehreren Zwecken passen und geklärt werden müssen"
+    ]
+  },
+  {
+    "version": "0.16",
+    "date": "2026-10-09T10:00",
     "items": [
       "Auswertung: Aus „Allgemeine Spenden 2027“ wird „Spenden 2027“ – die Übersicht über alle Spenden des Jahres aus den eingelesenen Dateien, egal ob einer Maßnahme zugeordnet. Mit „Herkunft“ lassen sich die Spenden aus Maßnahmen und die ohne Maßnahme getrennt ansehen",
       "Kacheln: Spendensumme (mit Zahl der Spender:innen), Ø-Spende und Median, Daueraufträge (Buchungen, Spender:innen, Anteil) und zweckgebundene Spenden; dazu der Jahresverlauf (kumuliert, mit den PAL der Maßnahmen) und die Spenden pro Woche, getrennt nach Einzelspenden und Daueraufträgen",
