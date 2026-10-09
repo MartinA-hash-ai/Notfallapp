@@ -79,9 +79,9 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok((await ztab()).offen === '1/80 €' && await p.evaluate(() => !Object.keys(D.spenden.zweck).length), 'D: Strg+Z macht die Entscheidung rückgängig');
   await p.click('.spj-t tr[data-z="?"]'); await p.waitForTimeout(150);
   if (!(await p.evaluate(() => SPJ.z === '?'))) { await p.click('.spj-t tr[data-z="?"]'); await p.waitForTimeout(150); }
-  await p.selectOption('.spj-lh .spj-zsel', hw); await p.waitForTimeout(250);
+  await p.click('.spj-selbar .spj-all'); await p.selectOption('.spj-selbar .spj-move', hw); await p.waitForTimeout(250);
   const d3 = await ztab();
-  ok(d3['Herzenswunsch-Krankenwagen'] === '3/220 €' && !d3.offen, 'D: „alle angezeigten festlegen …“ ordnet den Klärfall dem gewählten Zweck zu');
+  ok(d3['Herzenswunsch-Krankenwagen'] === '3/220 €' && !d3.offen, 'D: „Alle auswählen“ + „verschieben nach …“ ordnet den Klärfall dem gewählten Zweck zu');
   // einzelne Spende von Hand umhängen und wieder automatisch
   await p.click('.spj-t tr[data-z="' + hz + '"]'); await p.waitForTimeout(200);
   // Zweck gewählt: unten stehen immer die Spenden noch ohne Zweck – mit „→ Hospizarbeit“ direkt zuordnen
@@ -96,11 +96,12 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok(await p.evaluate(id => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].every(r => spjCompute(2027).list.find(e => e.rec.k === r.dataset.k).z === id) && document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length === 2, hz),
     'D: Umschalter „Bei „Hospizarbeit““ zeigt die schon zugeordneten Spenden');
   const k1 = await p.evaluate(() => document.querySelector('[data-sec="sp-zu"] .spj-row').dataset.k);
-  await p.selectOption('.spj-row[data-k="' + k1 + '"] .spj-zsel', '-'); await p.waitForTimeout(250);
+  await p.click('.spj-row[data-k="' + k1 + '"] .sp-d'); await p.selectOption('.spj-selbar .spj-move', '-'); await p.waitForTimeout(250);
   ok((await ztab())['Hospizarbeit'] === '1/50 €' && await p.evaluate(k => D.spenden.zweck[k] === '-', k1), 'D: einzelne Spende von Hand auf „zweckungebunden“ gesetzt');
   await p.click('.spj-t tr[data-z="-"]'); await p.waitForTimeout(200);
-  await p.selectOption('.spj-row[data-k="' + k1 + '"] .spj-zsel', ''); await p.waitForTimeout(250);
-  ok((await ztab())['Hospizarbeit'] === '2/250 €' && await p.evaluate(k => !(k in D.spenden.zweck), k1), 'D: „automatisch“ hebt die Festlegung wieder auf');
+  ok(await p.evaluate(k => document.querySelector('.spj-row[data-k="' + k + '"] .sp-tag.hand')?.textContent === 'von Hand', k1), 'D: Zeile zeigt „von Hand“');
+  await p.click('.spj-row[data-k="' + k1 + '"] .sp-d'); await p.selectOption('.spj-selbar .spj-move', '*'); await p.waitForTimeout(250);
+  ok((await ztab())['Hospizarbeit'] === '2/250 €' && await p.evaluate(k => !(k in D.spenden.zweck), k1), 'D: „nicht festgelegt (automatisch)“ hebt die Festlegung wieder auf');
 
   // ---- E: Summen gehen auf; Herkunft (aus Maßnahmen / ohne Maßnahme); Filter nach Gliederung
   const e0 = await ztab(), sum = Object.values(e0).reduce((t, v) => t + +v.split('/')[1].replace(/\D/g, ''), 0);

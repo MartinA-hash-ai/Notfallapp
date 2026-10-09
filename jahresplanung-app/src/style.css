@@ -1407,14 +1407,26 @@ html[data-theme=dark] .mtable td.art select, html[data-theme=dark] .mtable td.ar
 .sp-word.mass .dot { width: 8px; height: 8px; }
 .spj-listbox { border: 1px solid var(--line); border-radius: var(--radius); }
 .spj-listbox.prev { border-color: var(--runink); }
-.spj-lh { display: flex; align-items: center; gap: 10px; padding: 7px 10px; min-height: 36px; box-sizing: border-box; }
+.spj-lh { display: flex; align-items: center; gap: 10px; padding: 0 10px; height: 38px; box-sizing: border-box; }   /* feste Höhe: Umschalter, Titel und Vorschau wechseln, ohne dass die Seite springt */
 .spj-lh b { white-space: nowrap; }
 .spj-lh .spj-sub { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .spj-listbox.prev .spj-lh b, .spj-listbox.prev .spj-sub { color: var(--runink); }
 .spj-lh label.check { white-space: nowrap; }
 .spj-list { height: 400px; overflow: auto; border-top: 1px solid var(--line); }
-.spj-row { display: grid; grid-template-columns: 82px 92px 130px minmax(0, 1fr) auto 190px; gap: 8px; align-items: center; padding: 3px 10px; font-size: 13px; border-bottom: 1px solid var(--line3); }
-.spj-row:has(.sp-n) { grid-template-columns: 82px 92px 130px 160px minmax(0, 1fr) auto 190px; }
+.spj-row { display: grid; grid-template-columns: 82px 92px 130px minmax(0, 1fr) auto 62px; gap: 8px; align-items: center; padding: 3px 10px; font-size: 13px; border-bottom: 1px solid var(--line3); cursor: pointer; }
+.spj-row:has(.sp-n) { grid-template-columns: 82px 92px 130px 160px minmax(0, 1fr) auto 62px; }
+.spj-row:hover { background: var(--hover, var(--phbg)); }
+.spj-row.sel, .spj-row.sel:hover { background: var(--runbg); box-shadow: inset 3px 0 0 var(--focus); }
+.spj-how { text-align: right; }
+.sp-tag.hand { background: var(--head2); color: var(--ink); font-weight: 600; }
+/* Leiste zum Markieren und Verschieben – steht fest über der Liste */
+.spj-selbar { display: flex; align-items: center; gap: 10px; padding: 5px 10px; min-height: 38px; box-sizing: border-box; border-top: 1px solid var(--line3); background: var(--phbg); }
+.spj-selbar.any { background: var(--runbg); }
+.spj-selbar .spj-all { padding: 3px 10px; font-size: 12.5px; white-space: nowrap; }
+.spj-selbar .spj-selinfo { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spj-selbar.any .spj-selinfo { color: var(--runink); font-weight: 600; }
+.spj-selbar .spj-move { margin-left: auto; max-width: 280px; }
+.spj-selbar.any .spj-move { border-color: var(--focus); font-weight: 600; }
 .spj-row.offen { background: var(--warnbg); }
 .spj-row .spj-g { color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .spj-row .sp-z, .spj-row .sp-n { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1422,7 +1434,6 @@ html[data-theme=dark] .mtable td.art select, html[data-theme=dark] .mtable td.ar
 .spj-tags .sp-tag.rule { border: 1.5px solid; background: var(--card); color: var(--ink2); }
 .spj-pick { border: 0; background: none; padding: 0; font: inherit; color: var(--runink); font-weight: 700; cursor: pointer; }
 .spj-zsel { font-size: 12.5px; padding: 2px 4px; max-width: 220px; }
-.spj-row.hand .spj-zsel { font-weight: 600; }
 .spj-hint { padding: 0 10px 8px; margin: 0; }
 .spj-palhit { fill: transparent; cursor: help; }
 .spj-palm { stroke: var(--card); stroke-width: 1.5; pointer-events: none; transition: r .1s; }

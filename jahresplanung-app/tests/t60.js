@@ -79,5 +79,22 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
     const t0 = performance.now(), r = spjSuggest({ list }); return [Math.round(performance.now() - t0), r.list.length];
   });
   ok(f0[0] < 1500, 'F: 6.000 Spenden mit 3.000 verschiedenen Wörtern in ' + f0[0] + ' ms ausgewertet (' + f0[1] + ' Vorschläge)');
+
+  // ---- G: von Hand auf „zweckungebunden“ gesetzte Spenden (z. B. alle markiert und dorthin verschoben) blockieren Vorschläge und Regeln nicht
+  await p.evaluate(() => { SPJ.z = null; SPJ.typed = ''; renderNow(); }); await p.waitForTimeout(150);
+  await p.click('.spj-selbar .spj-all'); await p.selectOption('.spj-selbar .spj-move', '-'); await p.waitForTimeout(300);
+  const g0 = await p.evaluate(() => [spjCompute(2027).list.filter(e => e.z === '-' && e.hand).length, spjCompute(2027).list.filter(e => e.z === '-').length, document.querySelector('.spj-unhand')?.textContent]);
+  const g1 = await sugs();
+  ok(g0[0] === g0[1] && g0[0] > 10 && g1.some(t => /^Trauer\*/.test(t)) && g1.some(t => /^JB /.test(t)) && /von Hand festgelegt – wieder automatisch/.test(g0[2]),
+    'G: alle ' + g0[0] + ' zweckungebundenen von Hand festgelegt – Vorschläge bleiben (' + g1.length + '), Knopf „' + g0[2] + '“');
+  await p.click('.spj-pill:has-text("Wärmebus")'); await p.waitForTimeout(200);
+  const n0 = await p.evaluate(() => spjCompute(2027).list.filter(e => e.z === D.zwecke.find(z => z.name === 'Wärmebus').id).length);
+  await p.click('.spj-sug[data-w="trauer"] .spj-to'); await p.waitForTimeout(300);
+  const g2 = await p.evaluate(() => { const z = D.zwecke.find(z => z.name === 'Wärmebus'), tr = SP.rows.filter(r => /trauer/i.test(r.zweck)).map(r => r.k);
+    return [spjCompute(2027).list.filter(e => e.z === z.id).length, tr.every(k => !(k in D.spenden.zweck)), Object.values(D.spenden.zweck).filter(v => v === '-').length]; });
+  ok(g2[0] === n0 + 3 && g2[1] && g2[2] === g0[0] - 3, 'G: „+ übernehmen“ (Trauer*) holt die drei passenden Spenden trotz Markierung von Hand zum Zweck (' + n0 + ' → ' + g2[0] + '), die übrigen bleiben markiert');
+  await p.click('.spj-pill:has-text("Wärmebus")'); await p.waitForTimeout(150);
+  await p.click('.spj-unhand'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => !Object.values(D.spenden.zweck).some(v => v === '-') && !document.querySelector('.spj-unhand')), 'G: „… wieder automatisch“ hebt die Markierung von Hand auf');
   await finish(b, pages);
 })();

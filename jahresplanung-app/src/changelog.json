@@ -1,7 +1,20 @@
 [
   {
-    "version": "0.16.6",
+    "version": "0.16.7",
     "date": "",
+    "items": [
+      "Spendenliste unter „Spendenzwecke zuordnen“: Spenden per Klick markieren (blau), Umschalt-Klick markiert einen Bereich, „Alle auswählen“ markiert die ganze Liste",
+      "Markierte Spenden gesammelt verschieben nach: einem Zweck, „zweckungebunden“ oder „nicht festgelegt (automatisch)“ – Leiste über der Liste mit Anzahl und Summe der markierten",
+      "Die Auswahlliste in jeder Zeile entfällt; stattdessen zeigt die Zeile „von Hand“, wenn die Zuordnung von Hand festgelegt ist (Regeln greifen dort nicht)",
+      "Vorschläge und Vorschau berücksichtigen auch Spenden, die von Hand auf „zweckungebunden“ gesetzt sind – bisher blieben sie außen vor, deshalb kamen keine Vorschläge",
+      "Wird einem Zweck ein Schlagwort, Konto oder eine Maßnahme hinzugefügt, wandern auch solche von Hand gesetzten Spenden mit, wenn sie zur neuen Regel passen",
+      "Neuer Knopf in der Liste: „… von Hand festgelegt – wieder automatisch“ hebt alle Festlegungen von Hand auf einmal auf",
+      "Ähnliche Schreibweisen werden auch bei seltenen Wörtern zusammengefasst („Fußballturnier“/„Fussballturnier“); Wortpaare greifen öfter; weitere Füllwörter („letzte“, „bitte“, „Weiterleitung“ …)"
+    ]
+  },
+  {
+    "version": "0.16.6",
+    "date": "2026-10-09T14:41",
     "items": [
       "Vorschläge stehen jetzt grau hinterlegt rechts neben Zweck, Schlagworten, Konten und Maßnahmen (gleich hoch, scrollt innen); je Vorschlag „+ übernehmen“ (zum gewählten Zweck), „+ neu“ (neuer Zweck) und „×“",
       "Kürzel wie „JB“ (auch in „JB 25-26“) oder „HWK“ werden erkannt – großgeschrieben, zwei bis vier Buchstaben, nicht in Texten, die ganz in Großbuchstaben stehen",
