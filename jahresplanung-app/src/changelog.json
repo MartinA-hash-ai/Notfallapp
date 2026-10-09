@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.16.5",
+    "version": "0.16.6",
     "date": "",
+    "items": [
+      "Vorschläge stehen jetzt grau hinterlegt rechts neben Zweck, Schlagworten, Konten und Maßnahmen (gleich hoch, scrollt innen); je Vorschlag „+ übernehmen“ (zum gewählten Zweck), „+ neu“ (neuer Zweck) und „×“",
+      "Kürzel wie „JB“ (auch in „JB 25-26“) oder „HWK“ werden erkannt – großgeschrieben, zwei bis vier Buchstaben, nicht in Texten, die ganz in Großbuchstaben stehen",
+      "Gleiche Wortanfänge werden zusammengefasst: „Trauer“, „Trauerfall“, „Trauerspende“ → Regel „Trauer*“",
+      "Vorschläge schon ab zwei Spenden; die von der Bank zerteilte „SPEND E“ zählt als Füllwort"
+    ]
+  },
+  {
+    "version": "0.16.5",
+    "date": "2026-10-09T14:21",
     "items": [
       "Spendenzwecke zuordnen: neuer Kasten „Vorschläge“ – die App sucht in den Verwendungszwecken der zweckungebundenen Spenden nach wiederkehrenden Begriffen (ab drei Spenden) und zeigt die häufigsten mit Anzahl und Summe",
       "Ähnliche Schreibweisen (Tippfehler wie „Riksha“, „Rickscha“) werden zusammengefasst und als „~Rikscha“ angelegt, damit die Regel sie mit erfasst; Wörter, die fast immer zusammen stehen, erscheinen als Wortpaar („Herzenswunsch Krankenwagen“)",
