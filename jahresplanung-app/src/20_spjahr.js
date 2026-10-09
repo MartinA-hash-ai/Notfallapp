@@ -27,13 +27,19 @@ function spGlied(k) {
   return p && k.startsWith(p) && k.length > p.length ? k.slice(p.length).replace(/^\s*[-–]\s*/, '') || k : k;
 }
 
-// Prüffunktion eines Zwecks: ausschließende Schlagworte zuerst, dann Konto, dann Schlagworte → Grund des Treffers oder null
+// Prüffunktion eines Zwecks: ausschließende Schlagworte zuerst, dann Maßnahme (der die Spende zugeordnet ist), Konto, Schlagworte → Grund des Treffers oder null
 const _spjM = new Map();
 function spjMatcher(z) {
-  const key = JSON.stringify([z.worte || [], z.konten || []]);
+  const key = JSON.stringify([z.worte || [], z.konten || [], z.massnahmen || []]);
   let f = _spjM.get(key); if (f) return f;
-  const tests = (z.worte || []).map(spTerm).filter(Boolean), pos = tests.filter(t => !t.neg), neg = tests.filter(t => t.neg), kt = new Set(z.konten || []);
-  f = rec => { for (const t of neg) if (t.test(rec)) return null; if (kt.has(rec.konto)) return 'Konto ' + spGlied(rec.konto); for (const t of pos) if (t.test(rec)) return t.word; return null; };
+  const tests = (z.worte || []).map(spTerm).filter(Boolean), pos = tests.filter(t => !t.neg), neg = tests.filter(t => t.neg), kt = new Set(z.konten || []), mt = new Set(z.massnahmen || []);
+  f = (rec, mid) => {
+    for (const t of neg) if (t.test(rec)) return null;
+    if (mid && mt.has(mid)) { const x = C.byId.get(mid); return 'Maßnahme ' + ((x && x.m.name) || '?'); }
+    if (kt.has(rec.konto)) return 'Konto ' + spGlied(rec.konto);
+    for (const t of pos) if (t.test(rec)) return t.word;
+    return null;
+  };
   if (_spjM.size > 200) _spjM.clear();
   _spjM.set(key, f);
   return f;
@@ -46,8 +52,8 @@ function spjCompute(y) {
   const a = mkdn(+y, 1, 1), b = mkdn(+y, 12, 31), ids = new Set(D.zwecke.map(z => z.id)), fs = D.zwecke.map(z => [z.id, spjMatcher(z)]), list = [];
   for (const rec of SP.rows) {
     if (rec.d < a || rec.d > b) continue;
-    const hits = []; for (const [id, f] of fs) { const w = f(rec); if (w) hits.push({ id, w }); }
-    const hv = D.spenden.zweck[rec.k], hand = hv === SPJ_FREI || ids.has(hv), m = cmp.assigned(rec.k);
+    const m = cmp.assigned(rec.k), hits = []; for (const [id, f] of fs) { const w = f(rec, m); if (w) hits.push({ id, w }); }
+    const hv = D.spenden.zweck[rec.k], hand = hv === SPJ_FREI || ids.has(hv);
     list.push({ rec, hits, hand, z: hand ? hv : hits.length === 1 ? hits[0].id : hits.length ? SPJ_OFFEN : SPJ_FREI, mass: !!m && !isAllg(m), m, da: spIsDA(rec) });
   }
   const missing = Object.entries(D.spenden.zu).filter(([k, z]) => !SP.byKey.has(k) && dn(z.d) >= a && dn(z.d) <= b).length;   // zugeordnet, aber keine Datei mehr
@@ -88,7 +94,7 @@ function spjAddZweck() {
   const farbe = (PALETTE.find(p => !used.has(p[1].toLowerCase())) || PALETTE[D.zwecke.length % PALETTE.length])[1];
   let n = 1; while (D.zwecke.some(z => z.name === 'Neuer Zweck' + (n > 1 ? ' ' + n : ''))) n++;
   SPJ.z = id; SPJ.g = null; SPJ.typed = ''; SPJ.lv = 'frei'; SPJ.focusName = true;                // vor dem Neuzeichnen: der neue Zweck ist gleich gewählt, Name zum Überschreiben markiert
-  commit(d => { d.zwecke.push({ id, name: 'Neuer Zweck' + (n > 1 ? ' ' + n : ''), farbe, worte: [], konten: [] }); }, 'Spendenzweck angelegt');
+  commit(d => { d.zwecke.push({ id, name: 'Neuer Zweck' + (n > 1 ? ' ' + n : ''), farbe, worte: [], konten: [], massnahmen: [] }); }, 'Spendenzweck angelegt');
 }
 function spjEditZweck(id, fn, msg) { commit(d => { const z = d.zwecke.find(q => q.id === id); if (z) fn(z); }, msg); }
 async function spjDelZweck(z) {
@@ -186,6 +192,7 @@ function spjEditor(J, z) {
   let tq = null;
   const add = () => { const w = SPJ.typed.trim(); SPJ.typed = ''; if (w && !z.worte.includes(w)) spjEditZweck(z.id, q => { q.worte.push(w); }, 'Zweck „' + z.name + '“: Schlagwort „' + w + '“'); else renderNow(); };
   const konten = [...new Set(J.list.map(e => e.rec.konto).filter(Boolean))].filter(k => !z.konten.includes(k)).sort((a, b) => spGlied(a).localeCompare(spGlied(b), 'de'));
+  const by = spByM(), zm = z.massnahmen || [], mass = C.ms.filter(x => inYear(x, J.y) && !zm.includes(x.id));          // Maßnahmen des Jahres, die noch nicht dabei sind
   const sw = h('button', { class: 'spj-sw', style: { background: z.farbe }, 'aria-label': 'Farbe wählen', tip: 'Farbe wählen', onclick: e => { e.stopPropagation(); colorPicker(sw, z.farbe, c => spjEditZweck(z.id, q => { q.farbe = c; }, 'Zweck „' + z.name + '“: Farbe')); } });
   const i = D.zwecke.findIndex(q => q.id === z.id);
   return h('div', { class: 'spj-ed' },
@@ -208,7 +215,15 @@ function spjEditor(J, z) {
       h('span', { class: 'spj-ein' }, h('select', { class: 'spj-konto', disabled: !konten.length, onchange: e => { const k = e.target.value; if (k) spjEditZweck(z.id, q => { q.konten.push(k); }, 'Zweck „' + z.name + '“: Konto ' + spGlied(k)); } },
         h('option', { value: '' }, konten.length ? '+ Konto hinzufügen …' : 'keine weiteren Konten'), konten.map(k => h('option', { value: k }, spGlied(k))))),
       h('span', { class: 'spj-items' }, z.konten.length ? z.konten.map(k => h('span', { class: 'sp-word konto' }, spGlied(k), h('button', { class: 'sp-x', 'aria-label': spGlied(k) + ' entfernen',
-        onclick: () => spjEditZweck(z.id, q => { q.konten = q.konten.filter(x => x !== k); }, 'Zweck „' + z.name + '“: Konto entfernt') }, '×'))) : h('span', { class: 'muted small' }, 'keine'))));
+        onclick: () => spjEditZweck(z.id, q => { q.konten = q.konten.filter(x => x !== k); }, 'Zweck „' + z.name + '“: Konto entfernt') }, '×'))) : h('span', { class: 'muted small' }, 'keine'))),
+    h('div', { class: 'spj-er' },
+      h('span', { class: 'sp-rl' }, 'Maßnahmen', h('span', { class: 'info', tip: 'Alle Spenden, die dieser Maßnahme zugeordnet sind (Auswertung → Maßnahme → Spenden zuordnen), zählen für den Zweck – auch die, in deren Verwendungszweck nur eine Spendennummer steht, und auch künftige.' }, ' ⓘ')),
+      h('span', { class: 'spj-ein' }, h('select', { class: 'spj-mass', disabled: !mass.length, onchange: e => { const id = e.target.value, x = C.byId.get(id); if (id) spjEditZweck(z.id, q => { q.massnahmen = (q.massnahmen || []).concat(id); }, 'Zweck „' + z.name + '“: alle Spenden der Maßnahme „' + ((x && x.m.name) || '?') + '“'); } },
+        h('option', { value: '' }, mass.length ? '+ Maßnahme hinzufügen …' : 'keine weiteren Maßnahmen'), mass.map(x => h('option', { value: x.id }, (x.m.name || '(ohne Namen)') + (by.get(x.id) ? ' (' + by.get(x.id).length + ')' : ''))))),
+      h('span', { class: 'spj-items' }, zm.length ? zm.map(id => { const x = C.byId.get(id), n = (by.get(id) || []).length;
+        return h('span', { class: 'sp-word mass', style: x ? { borderColor: x.color } : null, tip: n ? spCount(n) + ' zugeordnet' : 'noch keine Spenden zugeordnet' }, x ? h('span', { class: 'dot', style: { background: x.color } }) : null, x ? x.m.name || '(ohne Namen)' : '(Maßnahme fehlt)',
+          h('button', { class: 'sp-x', 'aria-label': 'Maßnahme entfernen', onclick: () => spjEditZweck(z.id, q => { q.massnahmen = (q.massnahmen || []).filter(v => v !== id); }, 'Zweck „' + z.name + '“: Maßnahme entfernt') }, '×')); }) :
+        h('span', { class: 'muted small' }, 'keine'))));
 }
 // Bereich „Spendenzwecke zuordnen“: Zweck wählen, Schlagworte und Konten pflegen, Spenden prüfen und festlegen – feste Höhen, damit nichts springt
 function spjAssign(y) {

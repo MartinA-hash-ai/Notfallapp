@@ -65,7 +65,7 @@ function applyPick(data, c) {
 
 /* ---------- Anzeige */
 const FIELD_LABEL = { name: 'Name', pal: 'PAL', palStatus: 'PAL-Status', vorlauf: 'Starts der Bereiche', ende: 'Enden der Bereiche', bereiche: 'Bereiche', verantwortlich: 'Hauptverantwortlich',
-  auflage: 'Auflage', kosten: 'Kosten', regel: 'Spendenregel', worte: 'Schlagworte', konten: 'Konten (Gliederungen)', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
+  auflage: 'Auflage', kosten: 'Kosten', regel: 'Spendenregel', worte: 'Schlagworte', konten: 'Konten (Gliederungen)', massnahmen: 'Maßnahmen', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
 function recLabel(coll, rec, key) {
   rec = rec || {};
   if (coll === 'massnahmen') return 'Maßnahme „' + (rec.name || '(ohne Namen)') + '“';
@@ -96,6 +96,7 @@ function valText(coll, field, v, rec) {
   if (field === 'kosten') return eur(Math.round(+v * 100));
   if (field === 'regel') { const r = v || {}, p = dn(rec && rec.pal); return ((r.worte || []).map(w => '„' + w + '“').join(', ') || 'ohne Schlagwort') + (p != null && (isNum(r.ab) || isNum(r.bis)) ? ' (' + (isNum(r.ab) ? fmtS(p + r.ab) : '…') + '–' + (isNum(r.bis) ? fmtS(p + r.bis) : '…') + ')' : '') + (r.ohneDA ? ', ohne Daueraufträge' : ''); }
   if ((field === 'worte' || field === 'konten') && Array.isArray(v)) return v.length ? v.map(w => '„' + (field === 'konten' ? spGlied(w) : w) + '“').join(', ') : '–';
+  if (field === 'massnahmen' && Array.isArray(v)) return v.length ? v.map(id => '„' + ((C.byId.get(id) || { m: {} }).m.name || '?') + '“').join(', ') : '–';
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
   return String(v).slice(0, 80);
 }

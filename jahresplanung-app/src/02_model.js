@@ -267,10 +267,10 @@ function normalizeData(d) {
   d.urlaube.forEach(u => { u.id = freshId(u.id); u.wer = str(u.wer); u.von = dateStr(u.von); u.bis = dateStr(u.bis); if (u.art !== 'abwesenheit') delete u.art; });   // Art: Urlaub (Standard) oder Abwesenheit
   d.sondertage.forEach(s => { s.id = freshId(s.id); s.name = str(s.name); s.datum = dateStr(s.datum); });
   d.ferien.forEach(u => { u.id = freshId(u.id); u.von = dateStr(u.von); u.bis = dateStr(u.bis); u.notiz = str(u.notiz); });   // Schulferien u. Ä. – nur zur Info, keine freien Tage
-  // Spendenzwecke (für alle Jahre): Name, Farbe, Schlagworte im Verwendungszweck, Konten (Spalte „Personenname“ = Gliederung)
+  // Spendenzwecke (für alle Jahre): Name, Farbe, Schlagworte im Verwendungszweck, Konten (Spalte „Personenname“ = Gliederung), Maßnahmen
   const uniq = a => [...new Set((Array.isArray(a) ? a : []).map(w => str(w).trim()).filter(Boolean))];
   d.zwecke.forEach(z => { z.id = freshId(z.id); z.name = str(z.name).trim() || 'Zweck'; z.farbe = typeof z.farbe === 'string' && /^#[0-9a-f]{6}$/i.test(z.farbe) ? z.farbe : '#7F7F7F';
-    z.worte = uniq(z.worte); z.konten = uniq(z.konten); });
+    z.worte = uniq(z.worte); z.konten = uniq(z.konten); z.massnahmen = uniq(z.massnahmen).filter(id => d.massnahmen.some(m => m.id === id)); });   // Maßnahmen: alle ihre zugeordneten Spenden
   // Spenden-Zuordnungen (ohne Namen/IBAN): Schlüssel → { m, d, b }; Vormerkungen zur Prüfung; abgelehnte Vorschläge
   const sp = isObj(d.spenden) ? d.spenden : {};
   d.spenden = { zu: {}, vor: {}, nein: {}, zweck: {} };

@@ -148,5 +148,25 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.click('.modal footer button.primary'); await p.waitForTimeout(250);
   const h0 = await ztab();
   ok(await p.evaluate(() => D.zwecke.length === 1 && !Object.keys(D.spenden.zweck).length) && h0.frei === '5/225 €', 'H: Zweck gelöscht – Festlegungen weg, seine Spenden wieder zweckungebunden (' + JSON.stringify(h0) + ')');
+
+  // ---- I: alle Spenden einer Maßnahme einem Zweck zuordnen (auch ohne Schlagwort im Verwendungszweck)
+  await p.evaluate(() => { SPJ.z = null; SPJ.g = null; UI.spHer = 'alle'; renderNow(); }); await p.waitForTimeout(150);
+  await p.click('.spj-add'); await p.waitForTimeout(250);
+  await p.fill('.spj-name', 'Mailing-Zweck'); await p.press('.spj-name', 'Tab'); await p.waitForTimeout(200);
+  const mName = await p.evaluate(() => C.byId.get('m5').m.name);
+  const i0 = await p.evaluate(() => [...document.querySelectorAll('.spj-mass option')].map(o => o.value));
+  await p.selectOption('.spj-mass', 'm5'); await p.waitForTimeout(250);
+  const i1 = await ztab();
+  ok(i0.includes('m5') && i1['Mailing-Zweck'] === '1/100 €' && await p.evaluate(() => D.zwecke[1].massnahmen.join() === 'm5' && /•?/.test(document.querySelector('.sp-word.mass').textContent)),
+    'I: Maßnahme „' + mName + '“ hinzugefügt – ihre zugeordnete Spende zählt für den Zweck (1/100 €), obwohl kein Schlagwort passt');
+  await p.evaluate(() => { const g = SP.rows.find(r => r.name === 'Gerd Probe'); commit(d => { d.spenden.zu[g.k] = { m: 'm5', d: ds(g.d), b: g.b }; }); }); await p.waitForTimeout(250);
+  const i2 = await ztab();
+  ok(i2['Mailing-Zweck'] === '2/125 €' && i2.frei === '3/100 €', 'I: später der Maßnahme zugeordnete Spenden zählen automatisch mit (2/125 €)');
+  await p.click('.spj-lv [data-lv="zweck"]'); await p.waitForTimeout(200);
+  const i3 = await p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.rule')].map(t => t.textContent).join(','));
+  ok(i3 === 'Maßnahme ' + mName + ',Maßnahme ' + mName, 'I: in der Liste steht als Grund „Maßnahme …“ (' + i3 + ')');
+  await p.evaluate(() => { const r = SP.rows.find(r => r.name === 'Dora Probe'); commit(d => { d.spenden.zu[r.k] = { m: 'm5', d: ds(r.d), b: r.b }; }); }); await p.waitForTimeout(250);
+  ok((await ztab()).offen === '1/200 €', 'I: Spende der Maßnahme, die auch zum Hospizkonto passt, steht unter „zu klären“');
+  ok(await p.evaluate(() => { const c = JSON.parse(JSON.stringify(D)); c.zwecke[1].massnahmen.push('gibtsnicht'); return normalize(c).zwecke[1].massnahmen.join(); }) === 'm5', 'I: normalize behält die Maßnahme, verwirft unbekannte');
   await finish(b, pages);
 })();

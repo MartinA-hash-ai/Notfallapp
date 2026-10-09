@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.16.2",
+    "version": "0.16.3",
     "date": "",
+    "items": [
+      "Spendenzwecke: neue Zeile „Maßnahmen“ – alle Spenden, die einer Maßnahme zugeordnet sind, zählen für den Zweck, auch wenn im Verwendungszweck nur eine Spendennummer steht, und auch künftig zugeordnete. In der Liste steht als Grund „Maßnahme …“",
+      "Passt eine Spende über ihre Maßnahme zu einem Zweck und über Schlagwort oder Konto zu einem anderen, steht sie unter „zu klären“"
+    ]
+  },
+  {
+    "version": "0.16.2",
+    "date": "2026-10-09T11:03",
     "items": [
       "Spendenzwecke zuordnen: Bei gewähltem Zweck zeigt die Liste immer die Spenden, die noch keinem Zweck zugeordnet sind – mit „→ Zweck“ je Spende direkt zuordnen (oder alle angezeigten auf einmal)",
       "Über den Umschalter im Kopf der Liste („Bei …“) lassen sich die Spenden ansehen, die schon beim gewählten Zweck sind; „zu klären“ und „zweckungebunden“ (samt von Hand festgelegten) über die Knöpfe oben"
