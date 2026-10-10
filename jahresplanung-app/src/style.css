@@ -573,7 +573,7 @@ td.vis, th.h-vis { width: 28px; text-align: center; }
 .mtable tr.hidden-m td:not(.vis) { opacity: .45; }
 .month { background: var(--monthbg); border-color: var(--monthline); border-radius: 10px; box-shadow: 0 1px 3px rgba(0,0,0,.08); }
 .month > header { background: var(--monthhead); color: var(--ink); font-size: 14.5px; font-weight: 700; padding: 7px 12px; border-bottom: 1px solid var(--monthline); }
-.month .day.out { background: var(--monthout); }
+.month .day.out { background: var(--monthbg); }   /* Tage außerhalb des Monats ohne grauen Hintergrund (0.17.1) */
 .mgrid .wh { border-bottom-color: var(--line3); }
 .mgrid .kw { border-right-color: var(--line3); }
 .day { border-right-color: var(--line3); border-bottom-color: var(--line3); }
@@ -1493,18 +1493,22 @@ html, body { overflow-anchor: none; }   /* die App zeichnet ganze Bereiche neu �
 .spj-gscroll th { z-index: 1; }
 /* Vorschläge als eine Zeile (grau): Begriff · Anzahl · „+“ – „×“ beim Hinzeigen; „alle N“ klappt auf */
 .spj-sugbar { display: flex; align-items: flex-start; gap: 10px; padding: 6px 14px; background: var(--phbg); border-top: 1px solid var(--line); font-size: 12.5px; }
-.spj-sugt { font-weight: 700; white-space: nowrap; line-height: 26px; }
+.spj-sugt { font-weight: 600; color: var(--muted); white-space: nowrap; line-height: 26px; }
 .spj-sugs { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; gap: 6px; height: 26px; overflow: hidden; align-items: center; }
 .spj-sugbar.all .spj-sugs, .spj-sugbar.ignv .spj-sugs { height: auto; max-height: 132px; overflow-y: auto; }
 .spj-sug0 { line-height: 26px; }
-.spj-sug { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 3px 0 9px; border: 1px solid var(--line2); background: var(--card); border-radius: 12px; white-space: nowrap; box-sizing: border-box; }
-.spj-sug.on { background: var(--runbg); border-color: var(--runink); }
-.spj-sw-l { border: 0; background: none; padding: 0; font: inherit; font-weight: 700; color: var(--ink); cursor: pointer; white-space: nowrap; }
-.spj-sw-l:hover { color: var(--runink); text-decoration: underline; }
-.spj-sug.on .spj-sw-l { color: var(--runink); }
+/* dezent (0.17.1): nur Grautöne – die Vorschläge sind ein Hinweis, keine Hauptsache */
+.spj-sug { display: inline-flex; align-items: center; gap: 5px; height: 24px; padding: 0 3px 0 9px; border: 1px solid var(--line); background: transparent; border-radius: 12px; white-space: nowrap; box-sizing: border-box; }
+.spj-sug:hover { border-color: var(--line2); }
+.spj-sug.on { background: var(--head2); border-color: var(--faint); }
+.spj-sw-l { border: 0; background: none; padding: 0; font: inherit; font-weight: 600; color: var(--ink2); cursor: pointer; white-space: nowrap; }
+.spj-sw-l:hover { color: var(--ink); text-decoration: underline; }
+.spj-sug.on .spj-sw-l { color: var(--ink); }
 .spj-sug-n { color: var(--muted); font-variant-numeric: tabular-nums; }
-.spj-sug .spj-to { border: 0; background: var(--runbg); border-radius: 9px; padding: 0 7px; font-size: 13px; line-height: 18px; }
-.spj-sug .spj-to:hover { background: var(--runink); color: #fff; }
+.spj-sug .spj-to { border: 0; background: transparent; color: var(--muted); border-radius: 9px; padding: 0 6px; font-size: 13px; line-height: 18px; }
+.spj-sug .spj-to:hover { background: var(--head2); color: var(--ink); }
+.spj-sugbar .spj-to.ghost { border: 1px solid var(--line2); color: var(--ink2); background: transparent; font-weight: 600; }
+.spj-sugbar .link { color: var(--muted); }
 .spj-sug .sp-x { display: none; } .spj-sug:hover .sp-x { display: inline-block; }
 .spj-sug.spj-ig { padding-right: 4px; }
 .spj-ig-l { color: var(--ink2); text-decoration: line-through; text-decoration-color: var(--faint); }
@@ -1512,5 +1516,5 @@ html, body { overflow-anchor: none; }   /* die App zeichnet ganze Bereiche neu �
 .spj-sugmore, .spj-sugign { white-space: nowrap; line-height: 26px; }
 .spj-sugmore.hide { visibility: hidden; }
 .spj-sugign { padding: 0 9px; font-size: 11.5px; border-radius: 10px; color: var(--ink2); background: transparent; line-height: 22px; margin-top: 2px; }
-.spj-sugign.on { background: var(--card); border-color: var(--focus); color: var(--focus); font-weight: 600; }
+.spj-sugign.on { background: var(--head2); border-color: var(--faint); color: var(--ink); font-weight: 600; }
 .spj-to.ghost { border-style: dashed; }

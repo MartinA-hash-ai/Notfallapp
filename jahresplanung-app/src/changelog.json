@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.17.0",
+    "version": "0.17.1",
     "date": "",
+    "items": [
+      "Kalender: Tage außerhalb des Monats ohne grauen Hintergrund – grau sind nur noch Wochenenden, Feiertage und Ferien",
+      "Spendenzwecke zuordnen: Vorschläge dezenter – nur Grautöne, normale Schrift; Funktion unverändert"
+    ]
+  },
+  {
+    "version": "0.17.0",
+    "date": "2026-10-09T17:30",
     "items": [
       "„Spendenzwecke zuordnen“ neu aufgebaut: links die Zwecke untereinander mit Anzahl und Summe, darunter „zweckungebunden“ und „zu klären“ – Klick wählt, Ziehen ändert die Reihenfolge",
       "Rechts der gewählte Zweck: Name oben (anklicken zum Umbenennen), Farbpunkt, „⋯“ für Farbe, Reihenfolge und Löschen; darunter seine Regeln in einer Zeile – Schlagworte, Konten, Maßnahmen – mit „+ Schlagwort“ und „+ Konto oder Maßnahme“",
