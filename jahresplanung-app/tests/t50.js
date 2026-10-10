@@ -21,13 +21,13 @@ const files = p => p.evaluate(() => Object.keys(__fs.files).filter(k => /Spenden
   await p.waitForSelector('.modal'); await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
   ok(await files(p) === 'Spendeneingänge 2026/20261005_export.csv,Spendeneingänge 2027/alt.csv', 'A: 2026er Export im Ordner „Spendeneingänge 2026“ abgelegt (' + await files(p) + ')');
 
-  // ---- B: Testdaten: zwei Maßnahmen mit PAL 2026, Zuordnungen, „Prüfen“, allgemeine Regel
+  // ---- B: Testdaten: zwei Maßnahmen mit PAL 2026, Zuordnungen von Hand, eine ausgeschlossene Spende, allgemeine Regel
   await p.evaluate(() => {
-    const ks = SP.rows.map(r => r.k);
+    const k = w => SP.rows.find(r => r.name.startsWith(w)).k, ks = [k('Anna'), k('Bernd'), k('Carla')];
     commit(d => {
       for (const [id, nm, pal] of [['t26a', 'Test 2026 A', '2026-05-04'], ['t26b', 'Test 2026 B', '2026-09-21']]) { const c = JSON.parse(JSON.stringify(d.massnahmen.find(m => !m.plan))); Object.assign(c, { id, name: nm, pal, regel: { worte: ['Herbst'], ab: 0, bis: 60 } }); d.massnahmen.push(c); }
       const r = SP.byKey.get(ks[1]), q = SP.byKey.get(ks[0]);
-      d.spenden.zu[ks[1]] = { m: 't26b', d: ds(r.d), b: r.b }; d.spenden.zu[ks[0]] = { m: 'm5', d: ds(q.d), b: q.b }; d.spenden.vor[ks[2]] = 't26b';
+      d.spenden.zu[ks[1]] = { m: 't26b', d: ds(r.d), b: r.b }; d.spenden.zu[ks[0]] = { m: 'm5', d: ds(q.d), b: q.b }; d.spenden.nein[ks[2]] = ['t26b'];
       d.spenden.allg = { 2026: { regel: { worte: ['Spende'], da: true } } };
     });
   });
@@ -38,13 +38,13 @@ const files = p => p.evaluate(() => Object.keys(__fs.files).filter(k => /Spenden
   const c0 = await p.evaluate(() => { const m = document.querySelector('.modal'); return [m.querySelector('h2').textContent, [...m.querySelectorAll('.rs-opt')].map(l => (l.querySelector('input').checked ? '☑' : '☐') + l.querySelector('b').textContent).join(' | '), m.querySelector('.rs-yr select').value, m.querySelector('.rs-ms').textContent, m.textContent]; });
   ok(c0[0] === 'Daten zurücksetzen' && /^☑Alle Spenden-Zuordnungen entfernen \| ☐Auch die Schlagwort-Regeln/.test(c0[1]) && /☐Exportdateien der Spendeneingänge löschen \| ☐Maßnahmen löschen/.test(c0[1]) && c0[2] === '2026' && /^2 Maßnahmen: Test 2026 A, Test 2026 B/.test(c0[3]),
     'C: Auswahl – ' + c0[1] + ' · Jahr ' + c0[2] + ': ' + c0[3]);
-  ok(/2 zugeordnet, 1 von Hand in „Prüfen“/.test(c0[4]) && /2 Dateien: Spendeneingänge 2026\/20261005_export\.csv, Spendeneingänge 2027\/alt\.csv/.test(c0[4]) && /Datensicherung/.test(c0[4]), 'C: zeigt, was betroffen ist (Zuordnungen, Dateien, Datensicherung)');
+  ok(/2 zugeordnet, 1 ausgeschlossen/.test(c0[4]) && /2 Dateien: Spendeneingänge 2026\/20261005_export\.csv, Spendeneingänge 2027\/alt\.csv/.test(c0[4]) && /Datensicherung/.test(c0[4]), 'C: zeigt, was betroffen ist (Zuordnungen, Dateien, Datensicherung)');
   await p.click('.modal .rs-opt:has-text("Exportdateien") input'); await p.click('.modal .rs-yr .rs-opt input');
   await p.click('.modal footer button.danger'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => /Wirklich zurücksetzen/.test(document.querySelector('.modal h2').textContent)), 'C: zweite Rückfrage');
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.modal footer button.primary')]);
   await p.waitForTimeout(600);
-  const c1 = await p.evaluate(() => [Object.keys(D.spenden.zu).length, Object.keys(D.spenden.vor).length, JSON.stringify(D.spenden.allg || {}), D.massnahmen.filter(m => /^Test 2026/.test(m.name)).length, SP.rows.length,
+  const c1 = await p.evaluate(() => [Object.keys(D.spenden.zu).length, Object.keys(D.spenden.nein).length, JSON.stringify(D.spenden.allg || {}), D.massnahmen.filter(m => /^Test 2026/.test(m.name)).length, SP.rows.length,
     D.massnahmen.some(m => m.regel), D.massnahmen.filter(m => m.pal && m.pal.startsWith('2027')).length]);
   ok(/^Jahresplanung_Daten_.*\.json$/.test(dl.suggestedFilename()), 'C: vorher Datensicherung heruntergeladen (' + dl.suggestedFilename() + ')');
   ok(c1[0] === 0 && c1[1] === 0 && c1[2] === '{}' && c1[3] === 0 && c1[4] === 0 && c1[6] === n27, 'C: keine Zuordnungen mehr, 2026 leer, keine Spenden mehr eingelesen – die ' + n27 + ' Maßnahmen aus 2027 bleiben');

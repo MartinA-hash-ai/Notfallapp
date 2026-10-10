@@ -1,5 +1,5 @@
 // 0.12.5 Stresstest-Funde: PAL nachträglich geändert (Zuordnungen vor dem PAL lösen), Reiterwechsel liest neue Dateien, Regel ohne PAL aus,
-// Zeitraum nie verkehrt, deutsche Zahleneingabe (Kosten/Auflage), Zusammenführen ohne Rückfrage zu Ablehnungen, Rückfrage bei sehr vielen → Prüfen
+// Zeitraum nie verkehrt, deutsche Zahleneingabe (Kosten/Auflage), Zusammenführen ohne Rückfrage zu Ausschlüssen; ab 0.18: die Regel wandert mit dem PAL, Hinweis nur für von Hand Zugeordnetes
 const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN } = require('./lib');
 const path = require('path');
 const DIR = 'Spendeneingänge 2027/';
@@ -30,26 +30,30 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await writeText(p, DIR + '~$export3.xlsx', 'Sperrdatei');
   await p.evaluate(() => { UI.year = 2027; UI.view = 'spenden'; UI.spMid = 'm5'; SP.at = null; renderNow(); });
   await p.waitForFunction(() => SP.at && SP.rows.length > 0); await p.waitForTimeout(300);
-  const st = () => p.evaluate(() => ({ zu: document.querySelectorAll('.sp-col:last-child .sp-row').length, pre: document.querySelector('.sp-pre')?.textContent || '', tile: document.querySelector('.sp-tile .sp-tv')?.textContent,
+  const st = () => p.evaluate(() => ({ zu: Object.values(D.spenden.zu).filter(z => z.m === 'm5').length, pre: document.querySelector('.sp-pre')?.textContent || '', tile: document.querySelector('.sp-tile .sp-tv')?.textContent,
     warn: C.warnings.filter(w => /vor dem PAL/.test(w.text)).map(w => w.text).join(' | ') }));
 
-  // ---- A: PAL zuerst falsch (einen Monat zu früh), alles zugeordnet, dann PAL korrigiert
+  // ---- A: PAL zuerst falsch (einen Monat zu früh), Regel ordnet zu, dann PAL korrigiert – die Regel wandert mit
   await p.evaluate(() => { commit(d => { d.massnahmen.find(m => m.id === 'm5').pal = '2027-07-27'; }); renderNow(); }); await p.waitForTimeout(200);
-  await p.fill('.sp-wordin', 'JB'); await p.press('.sp-wordin', 'Enter'); await p.waitForTimeout(250);
-  await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(300);
+  await p.fill('.sp-wordin', 'JB'); await p.press('.sp-wordin', 'Enter'); await p.waitForTimeout(300);
   const a0 = await st();
-  ok(a0.zu === 5 && !a0.pre && !a0.warn, 'A: mit falschem PAL (27.07.) 5 zugeordnet, noch kein Hinweis');
+  ok(a0.zu === 5 && !a0.pre && !a0.warn, 'A: mit falschem PAL (27.07.) ordnet die Regel 5 zu, kein Hinweis');
   await p.evaluate(() => { UI.view = 'jahr'; renderNow(); commit(d => { d.massnahmen.find(m => m.id === 'm5').pal = '2027-09-17'; }); }); await p.waitForTimeout(200);
-  ok(/Jahresbericht: 3 zugeordnete Spenden vor dem PAL – im Reiter „Auswertung“ prüfen/.test((await st()).warn), 'A: Hinweisliste meldet „3 zugeordnete Spenden vor dem PAL“');
-  await p.click('nav.tabs >> text=Auswertung'); await p.waitForTimeout(400);
   const a1 = await st();
-  ok(/^3 Spenden \(95,00 €\) sind zugeordnet, aber vor dem PAL \(17\.09\.2027\) eingegangen/.test(a1.pre) && a1.tile === '201 €', 'A: im Reiter Spenden der Hinweis „' + a1.pre.slice(0, 70) + '…“');
-  await p.click('.sp-pre button'); await p.waitForTimeout(300);
+  ok(a1.zu === 2 && !a1.warn, 'A: PAL auf 17.09. korrigiert – der Zeitraum der Regel wandert mit: die 3 Spenden davor fallen heraus, 2 bleiben, keine Warnung');
+  await p.click('nav.tabs >> text=Auswertung'); await p.waitForTimeout(400);
+  ok((await st()).tile === '106 €' && !(await st()).pre, 'A: Kennzahlen aktualisiert (106 €), kein Hinweis „vor dem PAL“');
+  // von Hand Zugeordnetes bleibt – vor dem PAL gibt es dafür Hinweis und Knopf
+  await p.evaluate(() => { const r = SP.rows.find(r => r.name === 'Dora Vorher'); spAssignTo([r.k], 'm5'); }); await p.waitForTimeout(300);
   const a2 = await st();
-  ok(a2.zu === 2 && !a2.pre && a2.tile === '106 €' && !a2.warn, 'A: „Diese 3 lösen“ – 2 bleiben zugeordnet, Kennzahlen und Hinweise aktualisiert (' + a2.tile + ')');
+  ok(a2.zu === 3 && /^1 Spende \(25,00 €\) ist zugeordnet, aber vor dem PAL \(17\.09\.2027\) eingegangen/.test(a2.pre) && /Jahresbericht: 1 zugeordnete Spende vor dem PAL/.test(a2.warn),
+    'A: von Hand zugeordnete Spende vor dem PAL – Hinweis „' + a2.pre.slice(0, 60) + '…“ und in der Hinweisliste');
+  await p.click('.sp-pre button'); await p.waitForTimeout(300);
+  const a3 = await st();
+  ok(a3.zu === 2 && !a3.pre && a3.tile === '106 €' && !a3.warn, 'A: „Diese 1 herausnehmen“ – Kennzahlen und Hinweise aktualisiert');
   await p.evaluate(() => saveAll({ manual: true })); await p.waitForTimeout(500);
   const re = dataOf(await readF(p));
-  ok(Object.keys(re.spenden.zu).length === 2 && re.massnahmen.find(m => m.id === 'm5').pal === '2027-09-17', 'A: gespeichert – nach dem Neuladen bleibt es so (2 Zuordnungen, PAL 17.09.)');
+  ok(Object.values(re.spenden.zu).filter(z => z.m === 'm5').length === 2 && re.massnahmen.find(m => m.id === 'm5').pal === '2027-09-17', 'A: gespeichert – nach dem Neuladen bleibt es so (2 Zuordnungen, PAL 17.09.)');
 
   // ---- B: neue Datei, während ein anderer Reiter offen ist → beim Wechsel auf „Spenden“ eingelesen
   await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.tl = true; renderNow(); }); await p.waitForTimeout(200);
@@ -58,8 +62,8 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(await p.evaluate(() => SP.rows.some(r => r.name === 'Neu Eingang')), 'B: Wechsel auf den Reiter liest die neue Datei sofort ein');
 
   // ---- C: Regel ohne PAL ist aus; D: Zeitraum-Ende nie vor dem Beginn
-  const c = await p.evaluate(() => { commit(d => { const m = d.massnahmen.find(m => m.id === 'm3'); m.pal = null; m.regel = { worte: ['Spende'] }; }); return [spCompute().sugg.size === [...spCompute().sugg.values()].filter(l => l.every(s => s.id !== 'm3')).length, spRuleOf(findM(D, 'm3'))]; });
-  ok(c[0] && c[1] === null, 'C: Maßnahme ohne PAL – ihre Regel macht keine Vorschläge (sonst unbegrenzt über alle Jahre)');
+  const c = await p.evaluate(() => { commit(d => { const m = d.massnahmen.find(m => m.id === 'm3'); m.pal = null; m.regel = { worte: ['Spende'] }; }); return [[...spCompute().hits.values()].every(l => l.every(s => s.id !== 'm3')), spRuleOf(findM(D, 'm3')), Object.values(D.spenden.zu).some(z => z.m === 'm3')]; });
+  ok(c[0] && c[1] === null && !c[2], 'C: Maßnahme ohne PAL – ihre Regel ordnet nichts zu (sonst unbegrenzt über alle Jahre)');
   await p.evaluate(() => undo());
   await p.evaluate(() => { UI.view = 'spenden'; renderNow(); }); await p.waitForTimeout(150);
   await p.fill('[data-fk="sp-rbis"]', '2027-09-01'); await p.press('[data-fk="sp-rbis"]', 'Tab'); await p.waitForTimeout(150);
@@ -83,26 +87,29 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await typeIn('[data-fk="m:m4:auflage"]', '2.300');
   ok(await p.evaluate(() => D.massnahmen.find(m => m.id === 'm4').auflage === 2300), 'E: auch in der Maßnahmen-Tabelle: Auflage „2.300“ → 2300 (vorher 2,3 → 2)');
 
-  // ---- F: Zusammenführen – Ablehnungen und Vormerkungen ohne Rückfrage, Zuordnungen mit
+  // ---- F: Zusammenführen – Ausschlüsse, Neu-Markierungen und eingelesene Spenden ohne Rückfrage, Zuordnungen mit
   const f = await p.evaluate(() => {
     const k = SP.rows[0].k, k2 = SP.rows[1].k, k3 = SP.rows[2].k, base = JSON.parse(JSON.stringify(D)), mine = JSON.parse(JSON.stringify(D)), theirs = JSON.parse(JSON.stringify(D));
-    mine.spenden.nein[k2] = ['m5']; theirs.spenden.nein[k2] = ['m4']; mine.spenden.vor[k3] = 'm5'; theirs.spenden.vor[k3] = 'm4';
+    mine.spenden.nein[k2] = ['m5']; theirs.spenden.nein[k2] = ['m4']; mine.spenden.neu[k3] = 'm'; theirs.spenden.bek['2030'] = ['xx1']; mine.spenden.bek['2030'] = ['xx2'];
     const r1 = merge3(base, mine, theirs);
     mine.spenden.zu[k] = { m: 'm5', d: '2027-09-01', b: 1 }; theirs.spenden.zu[k] = { m: 'm4', d: '2027-09-01', b: 1 };
     const r2 = merge3(base, mine, theirs);
-    return [r1.conflicts.length, JSON.stringify(r1.data.spenden.nein[k2]), r1.data.spenden.vor[k3], r2.conflicts.length, r2.conflicts[0] && r2.conflicts[0].coll];
+    return [r1.conflicts.length, JSON.stringify(r1.data.spenden.nein[k2]), r1.data.spenden.neu[k3], r1.data.spenden.bek['2030'].sort().join(), r2.conflicts.length, r2.conflicts[0] && r2.conflicts[0].coll];
   });
-  ok(f[0] === 0 && f[1] === '["m5","m4"]' && f[2] === 'm5' && f[3] === 1 && f[4] === 'spenden', 'F: Ablehnungen beider Seiten zusammengelegt, Vormerkung ohne Rückfrage; nur echte Zuordnungskonflikte werden nachgefragt');
+  ok(f[0] === 0 && f[1] === '["m5","m4"]' && f[2] === 'm' && f[3] === 'xx1,xx2' && f[4] === 1 && f[5] === 'spenden', 'F: Ausschlüsse beider Seiten zusammengelegt, Neu-Markierung und eingelesene Spenden ohne Rückfrage; nur echte Zuordnungskonflikte werden nachgefragt');
 
   // ---- G: sehr viele Spenden auf einmal → Rückfrage
   await p.evaluate(() => { UI.view = 'spenden'; renderNow(); }); await p.waitForTimeout(150);
   const many = []; for (let i = 0; i < 230; i++) many.push(line('2' + (i % 8) + '.09.2027', String(10 + i), 'DE001000000000000' + String(10000 + i), 'Viele ' + i, 'Sammelspende'));
   await writeText(p, DIR + 'viele.csv', csv(many)); await p.evaluate(() => spScan({ manual: true })); await p.waitForTimeout(500);
-  await p.click('.sp-col:first-child .sp-cf button:last-child'); await p.waitForTimeout(250);
-  const g = await p.evaluate(() => [document.querySelector('.modal')?.textContent || '', Object.keys(D.spenden.vor).length]);
-  ok(/Spenden auf einmal nach „Prüfen“ schieben\?/.test(g[0]) && g[1] === 0, 'G: über 200 Spenden → erst Rückfrage („' + g[0].slice(0, 60) + '…“)');
-  await p.click('.modal footer button:has-text("Abbrechen")'); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => !Object.keys(D.spenden.vor).length && !document.querySelector('.modal')), 'G: Abbrechen schiebt nichts');
+  await p.evaluate(() => { SPUI.tab = 'offen'; renderNow(); }); await p.waitForTimeout(200);
+  await p.click('.spm-listbox .spj-lh .spj-all'); await p.waitForTimeout(200);
+  const g = await p.evaluate(() => [SPUI.sel.size, document.querySelector('.spj-act.on .spj-selinfo')?.textContent, document.querySelectorAll('.spm-listbox .spj-row').length]);
+  ok(g[0] >= 230 && /^2\d\d Spenden markiert/.test(g[1]) && g[2] <= 400, 'G: über 200 Spenden – Häkchen oben markiert alle (' + g[1] + '), die Liste zeigt höchstens 400 auf einmal');
+  await p.click('.spj-act .spj-go'); await p.waitForTimeout(300);
+  const g2 = await p.evaluate(() => Object.values(D.spenden.zu).filter(z => z.m === 'm5' && !z.r).length);
+  await p.evaluate(() => undo()); await p.waitForTimeout(200);
+  ok(g2 >= 230 && await p.evaluate(() => Object.values(D.spenden.zu).filter(z => z.m === 'm5' && !z.r).length === 0), 'G: „Zuordnen“ ordnet alle von Hand zu (' + g2 + '), Strg+Z nimmt es zurück');
 
   // ---- H: unlesbare Zeilen werden gemeldet
   await writeText(p, DIR + 'kaputt.csv', csv(['31.02.2027;31.02.2027;20;X;DE1;A;T;JB;S;K', line('02.09.2027', '20', 'DE00100000000000000777', 'Gut', 'ok')]));

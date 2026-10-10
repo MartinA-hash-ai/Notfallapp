@@ -45,11 +45,13 @@ function merge3(base, mine, theirs) {
   out.settings = mergeObj(base.settings, mine.settings, theirs.settings, { coll: 'settings', key: null }, conflicts, cnt);
   out.feiertage = mergeObj(base.feiertage, mine.feiertage, theirs.feiertage, { coll: 'feiertage', key: null }, conflicts, cnt);
   out.spenden = {};                                          // Spenden je Buchung: wie ein Feld behandeln
-  for (const sub of ['zu', 'vor', 'nein', 'zweck', 'ignor']) {
-    const cf = sub === 'zu' ? conflicts : [];                  // nur echte Zuordnungen nachfragen; Vormerkungen und Zwecke von Hand: eigene Fassung, Ablehnungen: beide
+  for (const sub of ['zu', 'nein', 'zweck', 'ignor', 'neu']) {
+    const cf = sub === 'zu' ? conflicts : [];                  // nur echte Zuordnungen nachfragen; Zwecke von Hand, Neu-Markierungen: eigene Fassung, Ausschlüsse: beide
     out.spenden[sub] = mergeObj((base.spenden || {})[sub], (mine.spenden || {})[sub], (theirs.spenden || {})[sub], { coll: 'spenden', key: sub, rec: { sub } }, cf, cnt);
     if (sub === 'nein') for (const c of cf) out.spenden.nein[c.field] = [...new Set([].concat(c.mine || [], c.theirs || []))];
   }
+  const bek = out.spenden.bek = {};                          // schon eingelesene Spenden: von beiden Seiten
+  for (const src of [mine, theirs]) for (const [y, a] of Object.entries((src.spenden || {}).bek || {})) bek[y] = [...new Set((bek[y] || []).concat(a))];
   out.spenden.allg = mergeObj((base.spenden || {}).allg, (mine.spenden || {}).allg, (theirs.spenden || {}).allg, { coll: 'spenden', key: 'allg' }, [], cnt);   // Regeln der allgemeinen Spenden: eigene Fassung
   out.meta = clone(theirs.meta);
   return { data: clone(out), conflicts, cnt };
@@ -76,7 +78,7 @@ function recLabel(coll, rec, key) {
   if (coll === 'sondertage') return 'Freier Tag „' + (rec.name || 'ohne Namen') + '“ ' + fmtS(dn(rec.datum));
   if (coll === 'personen') return 'Person ' + (rec.name || key);
   if (coll === 'feiertage') return 'Feiertage';
-  if (coll === 'spenden') return rec && rec.n ? rec.n + ' Spendenzuordnung' + (rec.n === 1 ? '' : 'en') + ', die hier fehlen' : key === 'vor' ? 'Spende zur Prüfung' : key === 'nein' ? 'abgelehnter Vorschlag' : 'Spendenzuordnung';
+  if (coll === 'spenden') return rec && rec.n ? rec.n + ' Spendenzuordnung' + (rec.n === 1 ? '' : 'en') + ', die hier fehlen' : key === 'neu' ? 'Neu-Markierung einer Spende' : key === 'nein' ? 'ausgeschlossene Spende' : 'Spendenzuordnung';
   return 'Einstellungen';
 }
 function valText(coll, field, v, rec) {
@@ -160,7 +162,7 @@ async function compareDialog(other, label) {
   for (const it of act) {
     if (!it.take) continue;
     if (it.coll === 'feiertage') { out.feiertage = clone(it.rec); continue; }
-    if (it.coll === 'spenden') { for (const k of it.keys) { out.spenden.zu[k] = clone(oz[k]); delete out.spenden.vor[k]; } continue; }
+    if (it.coll === 'spenden') { for (const k of it.keys) out.spenden.zu[k] = clone(oz[k]); continue; }
     const key = it.coll === 'personen' ? 'name' : 'id', arr = out[it.coll], i = arr.findIndex(r => r[key] === it.key);
     if (i >= 0) arr[i] = clone(it.rec); else arr.push(clone(it.rec));
   }

@@ -1,7 +1,22 @@
 [
   {
-    "version": "0.17.1",
+    "version": "0.18.0",
     "date": "",
+    "items": [
+      "„Spenden zuordnen“ (Maßnahme) im gleichen Aufbau wie die Spendenzwecke: links die Maßnahmen des Jahres mit Anzahl und Summe, rechts die gewählte mit ihrer Regel in einer Zeile – Schlagworte, Zeitraum ab PAL, „ohne Daueraufträge“",
+      "Regeln ordnen jetzt selbst zu, auch Spenden aus später eingelesenen Dateien – der Zwischenschritt „Prüfen“ entfällt",
+      "Prüfen beim Anlegen: Beim Tippen eines Schlagworts zeigt die Liste, welche Spenden dazukämen – Häkchen weg = ausschließen, „Regel übernehmen“ ordnet den Rest zu",
+      "Darunter „Zugeordnet“ (mit „von Hand“ bzw. dem passenden Schlagwort), „Offen“ (mit Zeitraum, Daueraufträgen, Suche) und „Ausgeschlossen“: Klick markiert, die Leiste unten nimmt heraus, ordnet zu oder lässt wieder zu",
+      "Neu eingelesene Spenden, die per Regel in eine Maßnahme oder einen Spendenzweck fallen, sind als „neu“ markiert – Zahl an der Maßnahme bzw. am Zweck, in der Übersicht und am Reiter; „ansehen“ zeigt nur die neuen, „✓ geprüft“ hebt die Markierung auf",
+      "Passt eine Spende zu den Regeln mehrerer Maßnahmen, wird sie nicht zugeordnet, sondern steht unter „⚠ zu klären“ – dort mit einem Klick die richtige Maßnahme wählen",
+      "Beim ersten Einlesen mit dieser Version ist alles, was die Regeln zuordnen, einmal als „neu“ markiert – einmal durchsehen",
+      "Zusammenfassung nach „+ Buchung hinzufügen“ nennt, was per Regel neu zugeordnet wurde und was zu klären ist",
+      "Daten zurücksetzen: zählt zugeordnete und ausgeschlossene Spenden"
+    ]
+  },
+  {
+    "version": "0.17.1",
+    "date": "2026-10-10T07:43",
     "items": [
       "Kalender: Tage außerhalb des Monats ohne grauen Hintergrund – grau sind nur noch Wochenenden, Feiertage und Ferien",
       "Spendenzwecke zuordnen: Vorschläge dezenter – nur Grautöne, normale Schrift; Funktion unverändert"

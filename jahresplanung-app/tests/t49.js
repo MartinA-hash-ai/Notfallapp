@@ -1,5 +1,5 @@
 // 0.13: drei Reiter (Jahresplanung mit Zeitleiste und „Was steht an?“, Detailpläne, Auswertung); Urlaub & Feiertage über ⋯ und Einstellungen;
-// Mausrad blättert weiter, Zeitleiste ohne eigene Filter, Detailpläne nur mit PAL im gewählten Jahr, wenn das Blättern außerhalb der Zeitleiste begann; „Prüfen“ als Korb; Alle markieren; Update direkt aus dem ZIP-Paket
+// Mausrad blättert weiter, Zeitleiste ohne eigene Filter, Detailpläne nur mit PAL im gewählten Jahr, wenn das Blättern außerhalb der Zeitleiste begann; Spenden markieren und zuordnen; Alle markieren; Update direkt aus dem ZIP-Paket
 const { chromium, ok, open, connect, finish, fs, T, ORIG } = require('./lib');
 const { execSync } = require('child_process');
 const DIR = 'Spendeneingänge 2027/';
@@ -93,18 +93,17 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   ok(await p.evaluate(id => UI.view === 'plaene' && UI.year === 2026 && UI.planSel === id, wm), 'D: „Plan ›“ bei einer Maßnahme aus 2026 öffnet ihren Plan und wechselt ins Jahr 2026');
   await p.evaluate(() => { UI.allYears = false; UI.year = 2027; renderNow(); });
 
-  // ---- E: Auswertung – „Maßnahmen 2027“, Hinweis leer = „–“, Prüfen als Korb, Alle markieren
+  // ---- E: Auswertung – „Maßnahmen 2027“, Hinweis leer = „–“, Regel und Zuordnen von Hand, Alle markieren
   await writeBytes(p, DIR + 'export.csv', Buffer.from(EXPORT, 'utf8'));
   await p.evaluate(() => { UI.view = 'spenden'; UI.spMid = 'm5'; SP.at = null; renderNow(); });
   await p.waitForFunction(() => SP.at && SP.rows.length > 0); await p.waitForTimeout(300);
   const e0 = await p.evaluate(() => [document.querySelector('[data-sec="sp-ueb"] .sec-t').textContent, document.querySelector('.sp-hin').placeholder]);
   ok(e0[0] === 'Maßnahmen 2027' && e0[1] === '–', 'E: Überschrift „' + e0[0] + '“, leerer Hinweis zeigt „' + e0[1] + '“ wie in der Jahresplanung');
-  const inL = () => p.evaluate(() => Math.round(document.querySelector('.sp-wordin').getBoundingClientRect().left));
-  const l0 = await inL();
   await p.click('.sp-wordin'); await p.keyboard.type('JB'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   await p.click('.sp-wordin'); await p.keyboard.type('Jahresbericht'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  const w0 = await p.evaluate(() => { const i = document.querySelector('.sp-wordin').getBoundingClientRect(), w = document.querySelector('.sp-words'); return [!document.querySelector('.sp-rule .sp-word'), w ? [...w.querySelectorAll('.sp-word')].map(e => e.firstChild.textContent).join(',') : '', w && w.getBoundingClientRect().top >= i.bottom]; });
-  ok(w0[0] && w0[1] === 'JB,Jahresbericht' && w0[2] && await inL() === l0, 'E: Schlagworte sammeln sich in eigener Zeile darunter (' + w0[1] + '), das Eingabefeld bleibt an seinem Platz');
+  const w0 = await p.evaluate(() => { const i = document.querySelector('.spm-rules .sp-wordin').getBoundingClientRect(), w = [...document.querySelectorAll('.spm-rules .sp-word')];
+    return [w.map(e => e.firstChild.textContent).join(','), w.every(e => Math.abs(e.getBoundingClientRect().top + e.getBoundingClientRect().height / 2 - i.top - i.height / 2) < 4)]; });
+  ok(w0[0] === 'JB,Jahresbericht' && w0[1], 'E: Schlagworte stehen in der Regelzeile vor dem Eingabefeld (' + w0[0] + ')');
   await p.evaluate(() => commit(d => { findM(d, 'm5').auflage = 1000; })); await p.waitForTimeout(200);
   const t0 = await p.evaluate(() => { const c = e => { const r = e.getBoundingClientRect(); return r.left + r.width / 2; }, rg = document.createRange();
     const tv = [...document.querySelectorAll('.sp-tile .sp-tv')].map(e => { rg.selectNodeContents(e); return Math.abs(c(rg) - c(e.closest('.sp-tile'))) < 3; });
@@ -113,47 +112,36 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   const lab = await p.evaluate(() => [getComputedStyle(document.querySelector('.sp-tile .sp-tl')).textAlign, getComputedStyle(document.querySelector('.sp-erl .sp-el')).justifySelf,
     Math.round(document.querySelector('.sp-erl .sp-el').getBoundingClientRect().left - document.querySelector('.sp-erl').getBoundingClientRect().left)]);
   ok(lab[0] === 'center' && lab[2] < 20, 'E: Bezeichnungen der Kacheln mittig, „Erlös“ bleibt links (' + lab.join(', ') + ')');
-  // Breite der mittleren Spalte an den Griffen ziehen – symmetrisch
-  const cw = () => p.evaluate(() => [...document.querySelectorAll('.sp-cols > .sp-col')].map(c => Math.round(c.getBoundingClientRect().width)));
-  const gr = await p.evaluate(() => { const g = [...document.querySelectorAll('.sp-col.mid .sp-grip')], c = [...document.querySelectorAll('.sp-cols > .sp-col')].map(e => e.getBoundingClientRect()), r = g.map(e => e.getBoundingClientRect());
-    return [g.length, r[0] && r[0].left >= c[0].right - 2 && r[0].right <= c[1].left + 2, r[1] && r[1].left >= c[1].right - 2 && r[1].right <= c[2].left + 2]; });
-  ok(gr[0] === 2 && gr[1] && gr[2], 'E: zwei Griffe zwischen den Spalten (links und rechts der Mitte)');
-  await p.evaluate(() => document.querySelector('.sp-col.mid .sp-grip.l').scrollIntoView({ block: 'center' })); await p.waitForTimeout(100);
-  const k0 = await cw(), gl = await (await p.$('.sp-col.mid .sp-grip.l')).boundingBox();
-  await p.mouse.move(gl.x + 5, gl.y + 15); await p.mouse.down(); await p.mouse.move(gl.x + 65, gl.y + 15, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(200);
-  const k1 = await cw(), mf1 = await p.evaluate(() => UI.spMidF);
-  ok(Math.abs(k0[1] - k1[1] - 120) <= 4 && Math.abs(k1[0] - k0[0] - 60) <= 3 && Math.abs(k1[0] - k1[2]) <= 1 && mf1 > 0 && mf1 < 1 / 3,
-    'E: linken Griff 60 px zur Mitte gezogen – Mitte ' + k0[1] + ' → ' + k1[1] + ' px, „Offen“ und „Zugeordnet“ je ' + k1[0] + '/' + k1[2] + ' px (gemerkt: ' + mf1 + ')');
-  await p.evaluate(() => renderNow()); await p.waitForTimeout(150);
-  const k1b = await cw();
-  ok(k1b.every((w, i) => Math.abs(w - k1[i]) <= 1), 'E: Breite bleibt nach dem Neuzeichnen (' + k1b.join('/') + ')');
-  const gR = await (await p.$('.sp-col.mid .sp-grip.r')).boundingBox();
-  await p.mouse.move(gR.x + 5, gR.y + 15); await p.mouse.down(); await p.mouse.move(gR.x + 45, gR.y + 15, { steps: 6 }); await p.mouse.up(); await p.waitForTimeout(200);
-  const k2 = await cw();
-  ok(Math.abs(k2[1] - k1[1] - 80) <= 4 && Math.abs(k2[0] - k2[2]) <= 1, 'E: rechten Griff nach außen gezogen – Mitte breiter (' + k1[1] + ' → ' + k2[1] + ' px), außen wieder gleich breit');
-  await p.dblclick('.sp-col.mid .sp-grip.l'); await p.waitForTimeout(200);
-  const k3 = await cw();
-  ok(Math.abs(k3[0] - k3[1]) <= 2 && Math.abs(k3[1] - k3[2]) <= 2 && await p.evaluate(() => UI.spMidF === undefined), 'E: Doppelklick auf einen Griff – wieder drei gleich breite Spalten (' + k3.join('/') + ')');
-  const nm = () => p.evaluate(() => [...document.querySelectorAll('.sp-col.mid .sp-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
-  await p.click('.sp-col:first-child .sp-row:has-text("Spende")'); await p.waitForTimeout(250);
-  const e1 = await nm();
+  // von Hand zuordnen: unter „Offen“ markieren, Ziel ist die gewählte Maßnahme
+  const nm = () => p.evaluate(() => [...document.querySelectorAll('.spm-listbox .spj-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
+  const keyOf = who => p.evaluate(w => SP.rows.find(r => r.name.startsWith(w)).k, who);
+  const kA = await keyOf('Anna'), kB = await keyOf('Bernd');
+  const e0b = [await nm(), await p.evaluate(() => [...document.querySelectorAll('.spm-listbox .sp-tag.rule')].map(t => t.textContent).join(','))];
+  ok(e0b[0] === 'Bernd' && e0b[1] === 'JB', 'E: die Regel ordnet „JB danke“ (Bernd) gleich zu, markiert mit „JB“');
+  await p.click('.spm-listbox .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
+  await p.click('.spm-listbox .spj-row:has-text("Spende")'); await p.waitForTimeout(100);
+  const e1 = await p.evaluate(() => [document.querySelector('.spj-act .spj-move').value, document.querySelector('.spj-act .spj-selinfo').textContent]);
+  ok(e1[0] === 'm5' && /^1 Spende markiert/.test(e1[1]), 'E: „Offen“ – Klick markiert, Ziel ist die gewählte Maßnahme (' + e1[1] + ')');
+  await p.click('.spj-act .spj-go'); await p.waitForTimeout(250);
+  const e2 = await p.evaluate(([a, b]) => [D.spenden.zu[a] && D.spenden.zu[a].m + (D.spenden.zu[a].r ? '/Regel' : '/Hand'), D.spenden.zu[b] && D.spenden.zu[b].m + (D.spenden.zu[b].r ? '/Regel' : '/Hand')], [kA, kB]);
+  ok(e2[0] === 'm5/Hand' && e2[1] === 'm5/Regel', 'E: Anna von Hand, Bernd über die Regel bei „Jahresbericht“ (' + e2.join(', ') + ')');
+  // im „Zugeordnet“ markieren und einer anderen Maßnahme zuordnen
+  await p.click('.spm-listbox .seg-btn[data-tab="zu"]'); await p.waitForTimeout(150);
+  await p.click('.spm-listbox .spj-row:has-text("Spende")'); await p.waitForTimeout(100);
+  await p.selectOption('.spj-act .spj-move', 'm4'); await p.click('.spj-act .spj-go'); await p.waitForTimeout(250);
   await p.evaluate(() => { UI.spMid = 'm4'; renderNow(); }); await p.waitForTimeout(250);
-  const e2 = [await nm(), await p.evaluate(() => document.querySelector('.sp-col.mid .sp-tag').textContent)];
-  ok(e1 === 'Anna,Bernd' && e2[0] === 'Anna' && e2[1] === 'von Hand', 'E: bei „Jahresbericht“ von Hand nach „Prüfen“ (' + e1 + ') – beim Wechsel zu „Sommermailing“ bleibt Anna liegen, der Regel-Vorschlag „JB“ (Bernd) nicht');
-  await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(250);
-  const e3 = await p.evaluate(() => Object.values(D.spenden.zu).map(z => z.m).join(','));
-  ok(e3 === 'm4', 'E: „zuordnen“ ordnet sie der gewählten Maßnahme (Sommermailing) zu');
-  await p.evaluate(() => { UI.spMid = 'm5'; renderNow(); }); await p.waitForTimeout(250);
-  ok(await nm() === 'Bernd', 'E: zurück bei „Jahresbericht“: nur noch der Regel-Vorschlag in „Prüfen“');
-  await p.evaluate(() => { UI.spMid = 'm4'; renderNow(); }); await p.waitForTimeout(200);
-  await p.click('.sp-col:first-child .sp-cf button:has-text("→ Prüfen") >> nth=1'); await p.waitForTimeout(250);
-  await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(250);
-  const r0 = await p.evaluate(() => document.querySelectorAll('.sp-col:last-child .sp-row').length);
-  await p.click('.sp-col:last-child .sp-mark'); await p.waitForTimeout(100);
-  const r1 = await p.evaluate(() => [SPUI.sel.r.size, document.querySelector('.sp-col:last-child .sp-mark').textContent, document.querySelector('.sp-col:last-child .sp-cf button:not(.sp-mark)').textContent]);
-  ok(r0 >= 3 && r1[0] === r0 && r1[1] === 'Markierung aufheben' && new RegExp('\\(' + r0 + '\\)').test(r1[2]), 'E: „Zugeordnet“ – „Alle markieren“ markiert alle ' + r0 + ' („' + r1[2] + '“)');
-  await p.click('.sp-col:last-child .sp-mark'); await p.waitForTimeout(100);
-  ok(await p.evaluate(() => SPUI.sel.r.size === 0 && document.querySelector('.sp-col:last-child .sp-mark').textContent === 'Alle markieren'), 'E: nochmal klicken hebt die Markierung auf');
+  const e3 = [await nm(), await p.evaluate(() => document.querySelector('.spm-listbox .spj-row .sp-tag').textContent), await p.evaluate(k => D.spenden.zu[k].m, kA)];
+  ok(e3[0] === 'Anna' && e3[1] === 'von Hand' && e3[2] === 'm4', 'E: Anna nach „Sommermailing“ verschoben – dort „von Hand“');
+  await p.evaluate(() => { UI.spMid = 'm5'; renderNow(); }); await p.waitForTimeout(200);
+  ok(await nm() === 'Bernd', 'E: zurück bei „Jahresbericht“: nur noch Bernd über die Regel');
+  // Alle markieren
+  await p.click('.spm-listbox .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
+  const r0 = await p.evaluate(() => document.querySelectorAll('.spm-listbox .spj-row').length);
+  await p.click('.spm-listbox .spj-all'); await p.waitForTimeout(100);
+  const r1 = await p.evaluate(() => [SPUI.sel.size, document.querySelectorAll('.spm-listbox .spj-row.sel').length, document.querySelector('.spj-act .spj-selinfo').textContent, document.querySelector('.spj-act').classList.contains('on')]);
+  ok(r0 >= 2 && r1[0] === r0 && r1[1] === r0 && new RegExp('^' + r0 + ' Spenden markiert').test(r1[2]) && r1[3], 'E: „Offen“ – Häkchen oben markiert alle ' + r0 + ' („' + r1[2] + '“)');
+  await p.click('.spm-listbox .spj-all'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => SPUI.sel.size === 0 && !document.querySelector('.spm-listbox .spj-row.sel') && !document.querySelector('.spj-act').classList.contains('on')), 'E: nochmal klicken hebt die Markierung auf');
 
   // ---- F: Update direkt aus dem ZIP – im Dialog gewählt (ohne Entpacken)
   await p.evaluate(() => commit(d => { d.massnahmen[0].hinweis = 'MEINE DATEN 0.13'; })); await p.waitForTimeout(100);

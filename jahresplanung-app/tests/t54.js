@@ -1,6 +1,6 @@
 // 0.15: Urlaub/Abwesenheit der zugeordneten Person verlängert ihre Aufgaben (Info bei den Warnungen), Ferien grau wie Wochenenden,
 // schlankes ⋯-Menü (Speichern immer automatisch, Speicherort und Änderungsprotokoll in den Einstellungen), „Auswertung“ ohne „Beta“,
-// Zahl der Spenden in „Prüfen“ je Maßnahme
+// Zahl der Spenden in „Prüfen“ je Maßnahme (seit 0.18: neu zugeordnete und „zu klären“)
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 let n = 0;
@@ -71,7 +71,7 @@ const csv = rows => '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
   await p.keyboard.press('Escape'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => typeof helpDialog === 'undefined' && !UI_KEYS.includes('autoSave')), 'C: Hilfe entfernt; „Automatisch speichern“ wird nicht mehr gemerkt (immer an)');
 
-  // ---- D: Auswertung ohne „Beta“; Zahl der Spenden in „Prüfen“ je Maßnahme
+  // ---- D: Auswertung ohne „Beta“; neue und zu klärende Spenden je Maßnahme
   ok(await p.evaluate(() => !/Beta/.test(document.querySelector('nav.tabs').textContent)), 'D: Reiter „Auswertung“ ohne „Beta“');
   const q = await open(b); pages.push(q);
   ok(await connect(q) === 'ok', 'D: Mailing-Ordner verbunden');
@@ -80,11 +80,26 @@ const csv = rows => '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
     [csv([line('05.09.2027', '50', 'Anna Probe', 'Herbst'), line('06.09.2027', '30', 'Bernd Probe', 'Herbst Spende'), line('07.09.2027', '20', 'Carla Probe', 'Danke')]), m1]);
   await q.evaluate(m1 => { UI.year = 2027; UI.view = 'spenden'; UI.spMid = m1; SP.at = null; renderNow(); }, m1);
   await q.waitForFunction(() => SP.at && SP.rows.length === 3); await q.waitForTimeout(300);
-  await q.evaluate(m2 => { const k = SP.rows.find(r => r.name === 'Carla Probe').k; commit(d => { d.spenden.vor[k] = m2; }); }, m2); await q.waitForTimeout(200);
-  const d0 = await q.evaluate(([m1, m2]) => { const bd = id => { const e = document.querySelector('.sp-ueb tr[data-mid="' + id + '"] .sp-mbadge'); return e ? e.textContent : ''; };
-    return [bd(m1), bd(m2), document.querySelector('nav.tabs .tab-badge').textContent, document.querySelectorAll('.sp-ueb .sp-mbadge').length]; }, [m1, m2]);
-  ok(d0[0] === '2' && d0[1] === '1' && d0[2] === '3' && d0[3] === 2, 'D: rote Zahl je Maßnahme – Regel-Treffer 2, von Hand vorgemerkt 1; am Reiter 3 (' + d0.join(',') + ')');
+  // erstes Einlesen: was die Regel zuordnet, ist „neu“; dann passt „Herbst Spende“ auch zur Regel einer zweiten Maßnahme → „zu klären“
+  const d0a = await q.evaluate(m1 => (spCompute().neuBy.get(m1) || 0) + '/' + Object.values(D.spenden.zu).filter(z => z.m === m1 && z.r).length, m1);
+  ok(d0a === '2/2', 'D: nach dem ersten Einlesen ordnet die Regel „Herbst“ zwei Spenden zu, beide „neu“ (' + d0a + ')');
+  await q.evaluate(m2 => commit(d => { d.massnahmen.find(m => m.id === m2).regel = { worte: ['Spende'] }; }), m2); await q.waitForTimeout(200);
+  const d0 = await q.evaluate(([m1, m2]) => { const bd = (id, c) => [...document.querySelectorAll('.sp-ueb tr[data-mid="' + id + '"] .sp-mbadge.' + c)].map(e => e.textContent).join(',');
+    return [bd(m1, 'neu'), bd(m1, 'warn'), bd(m2, 'neu'), bd(m2, 'warn'), document.querySelector('nav.tabs .tab-badge').textContent, document.querySelectorAll('.sp-ueb .sp-mbadge').length]; }, [m1, m2]);
+  ok(d0.join('|') === '1|1||1|2|3', 'D: Zahlen je Maßnahme – 1 neu + 1 zu klären bzw. 1 zu klären; am Reiter 2 (' + d0.join('|') + ')');
   await q.evaluate(() => { UI.secOpen['sp-ueb'] = false; renderNow(); }); await q.waitForTimeout(150);
-  ok(await q.evaluate(() => /in „Prüfen“: .*\(2\).*\(1\)|in „Prüfen“: .*\(1\).*\(2\)/.test(document.querySelector('[data-sec="sp-ueb"]').textContent)), 'D: eingeklappt nennt die Übersicht, wo noch geprüft werden muss');
+  const d1 = await q.evaluate(m1 => [document.querySelector('[data-sec="sp-ueb"]').textContent, spMName(m1)], m1);
+  ok(d1[0].includes('neu: ' + d1[1] + ' (1)') && /1 zu klären/.test(d1[0]), 'D: eingeklappt nennt die Übersicht, wo noch geprüft oder geklärt werden muss');
+  // „zu klären“ → Maßnahme wählen; „✓ geprüft“ nimmt die Markierung „neu“ weg
+  await q.evaluate(() => { UI.secOpen['sp-ueb'] = true; renderNow(); }); await q.waitForTimeout(150);
+  await q.click('.spm .spj-zi[data-mid="?"]'); await q.waitForTimeout(200);
+  const d2 = await q.evaluate(() => [...document.querySelectorAll('.spm-listbox .spj-row')].map(r => SP.byKey.get(r.dataset.k).name + ':' + [...r.querySelectorAll('.spj-pick')].length).join(','));
+  const n2 = await q.evaluate(m2 => spMName(m2), m2);
+  await q.click('.spm-listbox .spj-row .spj-pick:text-is("→ ' + n2 + '")'); await q.waitForTimeout(250);
+  const d3 = await q.evaluate(([m1, m2]) => { const k = SP.rows.find(r => r.name === 'Bernd Probe').k, z = D.spenden.zu[k]; return [z && z.m === m2 && !z.r, spCompute().konf.length, SPUI.klaeren]; }, [m1, m2]);
+  ok(d2 === 'Bernd Probe:2' && d3[0] && d3[1] === 0 && !d3[2], 'D: „zu klären“ zeigt Bernd mit zwei Knöpfen – Wahl ordnet ihn von Hand zu, die Liste ist leer und schließt');
+  await q.evaluate(m1 => { UI.spMid = m1; renderNow(); }, m1); await q.waitForTimeout(150);
+  await q.click('.spj-newbar .spj-ok'); await q.waitForTimeout(200);
+  ok(await q.evaluate(m1 => !spCompute().neuBy.get(m1) && !document.querySelector('nav.tabs .tab-badge') && !document.querySelector('.spj-newbar'), m1), 'D: „✓ geprüft“ – keine Markierung mehr, Reiter ohne Zahl');
   await finish(b, pages);
 })();

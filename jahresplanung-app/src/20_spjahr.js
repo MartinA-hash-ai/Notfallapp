@@ -6,7 +6,7 @@
 // Passt eine Spende zu mehreren Zwecken, wird sie erst gezählt, wenn man sie einmal geklärt hat. Was zu keinem Zweck passt, ist zweckungebunden.
 // Von Hand festgelegt: D.spenden.zweck[Schlüssel] = Zweck-Id oder „-“ (zweckungebunden).
 const SPJ_FREI = '-', SPJ_OFFEN = '?', SPJ_MAX = 200;
-const SPJ = { z: null, g: null, typed: '', more: 0, lv: 'frei', sel: new Set(), selCtx: '', anchor: null, moveTo: null, moveFor: null, ign: false, sugAll: false, drag: null };   // gewählte Zeile (Zweck / Gliederung) – filtert Kacheln und Grafiken; Vorschau beim Tippen; lv: Liste „zweckungebunden“ oder „beim Zweck“; sel: markierte Spenden der Liste
+const SPJ = { z: null, g: null, typed: '', more: 0, lv: 'frei', sel: new Set(), selCtx: '', anchor: null, moveTo: null, moveFor: null, ign: false, sugAll: false, drag: null, onlyNew: false };   // gewählte Zeile (Zweck / Gliederung) – filtert Kacheln und Grafiken; Vorschau beim Tippen; lv: Liste „zweckungebunden“ oder „beim Zweck“; sel: markierte Spenden der Liste
 const spjName = y => 'Spenden ' + y;
 const spDispName = x => x.allg ? spjName(x.allg) : x.m.name || '(ohne Namen)';
 const spjHer = () => ['mass', 'ohne'].includes(UI.spHer) ? UI.spHer : 'alle';
@@ -53,8 +53,8 @@ function spjCompute(y) {
   for (const rec of SP.rows) {
     if (rec.d < a || rec.d > b) continue;
     const m = cmp.assigned(rec.k), hits = []; for (const [id, f] of fs) { const w = f(rec, m); if (w) hits.push({ id, w }); }
-    const hv = D.spenden.zweck[rec.k], hand = hv === SPJ_FREI || ids.has(hv);
-    list.push({ rec, hits, hand, z: hand ? hv : hits.length === 1 ? hits[0].id : hits.length ? SPJ_OFFEN : SPJ_FREI, mass: !!m && !isAllg(m), m, da: spIsDA(rec) });
+    const hv = D.spenden.zweck[rec.k], hand = hv === SPJ_FREI || ids.has(hv), z = hand ? hv : hits.length === 1 ? hits[0].id : hits.length ? SPJ_OFFEN : SPJ_FREI;
+    list.push({ rec, hits, hand, z, mass: !!m && !isAllg(m), m, da: spIsDA(rec), neu: !hand && ids.has(z) && /z/.test(D.spenden.neu[rec.k] || '') });   // neu: nach dem Einlesen neu beim Zweck, noch nicht geprüft
   }
   const missing = Object.entries(D.spenden.zu).filter(([k, z]) => !SP.byKey.has(k) && dn(z.d) >= a && dn(z.d) <= b).length;   // zugeordnet, aber keine Datei mehr
   _spj = { key, rows: SP.rows, val: { y: +y, a, b, list, missing } };
@@ -84,9 +84,20 @@ function spjStats(set) {
 const spjWho = n => n.toLocaleString('de-DE') + (n === 1 ? ' Spender:in' : ' Spender:innen');
 const spjPct = (v, tot) => tot ? num1(v / tot * 100) + ' %' : '–';
 
+// fällt eine Spende per Regel in genau einen Zweck? (für die Markierung „neu“ nach dem Einlesen – 19_spenden.js: spRegister)
+function spjRuleZweck(d) {
+  const fs = d.zwecke.map(z => spjMatcher(z)), ids = new Set(d.massnahmen.map(m => m.id));
+  return rec => { if (!fs.length || d.spenden.zweck[rec.k]) return false; const z = d.spenden.zu[rec.k], m = z && ids.has(z.m) ? z.m : null; let n = 0; for (const f of fs) if (f(rec, m)) n++; return n === 1; };
+}
+// neue Spenden eines Zwecks als geprüft markieren
+function spjChecked(id) {
+  const ks = spjCompute(UI.year).list.filter(e => e.z === id && e.neu).map(e => e.rec.k);
+  SPJ.onlyNew = false;
+  commit(d => { for (const k of ks) spUnflag(d, k, 'z'); }, 'Neue Spenden bei „' + spjZn(id) + '“ geprüft');
+}
 /* ---------- Aktionen (alle mit Strg+Z rückgängig) */
 function spjSetZweck(keys, v, msg) {
-  commit(d => { for (const k of keys) { if (v) d.spenden.zweck[k] = v; else delete d.spenden.zweck[k]; } },
+  commit(d => { for (const k of keys) { if (v) d.spenden.zweck[k] = v; else delete d.spenden.zweck[k]; spUnflag(d, k, 'z'); } },
     msg || (keys.length === 1 ? 'Zweck einer Spende ' : 'Zweck von ' + keys.length + ' Spenden ') + (v ? 'festgelegt' : 'wieder automatisch'));
 }
 function spjAddZweck() {
@@ -217,20 +228,21 @@ function spjSugNew(w) {
 }
 // links: Zwecke mit Anzahl und Summe, darunter „zweckungebunden“ und „zu klären“
 function spjSide(J) {
-  const st = new Map(); for (const e of J.list) { const o = st.get(e.z) || { n: 0, sum: 0 }; o.n++; o.sum += e.rec.b; st.set(e.z, o); }
+  const st = new Map(); for (const e of J.list) { const o = st.get(e.z) || { n: 0, sum: 0, neu: 0 }; o.n++; o.sum += e.rec.b; if (e.neu) o.neu++; st.set(e.z, o); }
   const clear = () => $$('.spj-zi.dropa, .spj-zi.dropb').forEach(e => e.classList.remove('dropa', 'dropb'));
   const item = (id, name, color, cls) => {
-    const o = st.get(id) || { n: 0, sum: 0 }, real = !cls, on = SPJ.z === id;
+    const o = st.get(id) || { n: 0, sum: 0, neu: 0 }, real = !cls, on = SPJ.z === id;
     return h('div', { class: 'spj-zi' + (on ? ' on' : '') + (cls ? ' ' + cls : ''), dataset: { z: id }, role: 'button', tabindex: '0', 'aria-pressed': String(on),
       style: color ? { '--zc': color } : null, draggable: real && D.zwecke.length > 1 ? 'true' : null,
-      onclick: () => { if (SPJ.z === id) return; SPJ.z = id; SPJ.more = 0; SPJ.lv = 'frei'; renderNow(); },          // ein gewählter Vorschlag (Vorschau) bleibt stehen
+      onclick: () => { if (SPJ.z === id) return; SPJ.z = id; SPJ.more = 0; SPJ.lv = 'frei'; SPJ.onlyNew = false; renderNow(); },          // ein gewählter Vorschlag (Vorschau) bleibt stehen
       onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } },
       ondragstart: real ? e => { SPJ.drag = id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', name); e.currentTarget.classList.add('drag'); } : null,
       ondragover: real ? e => { if (!SPJ.drag || SPJ.drag === id) return; e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); clear(); e.currentTarget.classList.add(e.clientY > r.top + r.height / 2 ? 'dropa' : 'dropb'); } : null,
       ondrop: real ? e => { if (!SPJ.drag || SPJ.drag === id) return; e.preventDefault(); const after = e.currentTarget.classList.contains('dropa'), from = SPJ.drag; SPJ.drag = null; clear(); spjReorder(from, id, after); } : null,
       ondragend: real ? e => { SPJ.drag = null; clear(); e.currentTarget.classList.remove('drag'); } : null },
       h('span', { class: 'spj-zn' }, cls === 'offen' ? '⚠ ' : h('span', { class: 'dot' + (color ? '' : ' ring'), style: color ? { background: color } : null }), name),
-      h('span', { class: 'spj-zs' }, o.n.toLocaleString('de-DE') + ' · ' + eur0(o.sum)));
+      h('span', { class: 'spj-zs' }, o.neu ? h('span', { class: 'spj-neu', tip: o.neu + (o.neu === 1 ? ' Spende ist' : ' Spenden sind') + ' nach dem Einlesen neu dazugekommen – bitte einmal prüfen' }, o.neu + ' neu') : null,
+        o.n.toLocaleString('de-DE') + ' · ' + eur0(o.sum)));
   };
   return h('div', { class: 'spj-side' }, h('div', { class: 'spj-side-in', 'data-keep-scroll': 'spj-side' },
     h('div', { class: 'spj-sh' }, h('span', null, 'Zwecke'), h('button', { class: 'link spj-add', onclick: spjAddZweck }, '+ Zweck')),
@@ -245,13 +257,16 @@ function spjSide(J) {
 function spjHead(J, z) {
   const st = id => { let n = 0, sum = 0; for (const e of J.list) if (e.z === id) { n++; sum += e.rec.b; } return spCount(n) + ' · ' + eur0(sum); };
   if (z) {
-    const i = D.zwecke.findIndex(q => q.id === z.id);
+    const i = D.zwecke.findIndex(q => q.id === z.id), nNeu = J.list.filter(e => e.z === z.id && e.neu).length;
     const sw = h('button', { class: 'spj-sw', style: { background: z.farbe }, 'aria-label': 'Farbe wählen', tip: 'Farbe wählen', onclick: e => { e.stopPropagation(); colorPicker(sw, z.farbe, c => spjEditZweck(z.id, q => { q.farbe = c; }, 'Zweck „' + z.name + '“: Farbe')); } });
     return h('div', { class: 'spj-zh' }, sw,
       h('input', { class: 'spj-name', value: z.name, size: Math.max(6, z.name.length + 1), 'aria-label': 'Name des Zwecks', tip: 'Klick: umbenennen', 'data-fk': 'spj-name',
         oninput: e => { e.target.size = Math.max(6, e.target.value.length + 1); }, onkeydown: e => { if (e.key === 'Enter') e.target.blur(); },
         onchange: e => { const v = e.target.value.trim(); if (v && v !== z.name) spjEditZweck(z.id, q => { q.name = v; }, 'Spendenzweck umbenannt in „' + v + '“'); else e.target.value = z.name; } }),
       h('span', { class: 'spj-zst muted' }, st(z.id)),
+      nNeu ? h('span', { class: 'spj-newbar' }, h('span', { class: 'spj-neu' }, nNeu + ' neu'),
+        h('button', { class: 'link small spj-shownew', onclick: () => { SPJ.lv = 'zweck'; SPJ.onlyNew = true; SPJ.typed = ''; SPJ.more = 0; renderNow(); } }, 'ansehen'),
+        h('button', { class: 'spj-ok', tip: 'Die neuen Spenden gehören zu „' + z.name + '“ – Markierung „neu“ aufheben. Falsche vorher markieren und verschieben.', onclick: () => spjChecked(z.id) }, '✓ geprüft')) : null,
       h('span', { class: 'spj-zmenu' }, menuButton('⋯', [['Farbe ändern …', () => sw.click()], i > 0 ? ['Nach oben', () => spjMoveZweck(z.id, -1)] : false,
         i < D.zwecke.length - 1 ? ['Nach unten', () => spjMoveZweck(z.id, 1)] : false, null, ['Zweck löschen …', () => spjDelZweck(z)]], 'right')));
   }
@@ -404,14 +419,14 @@ function spjList(J) {
     sub = spCount(list.length) + ' zweckungebunden (' + eur(sumOf(list)) + ')' + (hit.length > list.length ? ' · ' + (hit.length - list.length) + ' weitere schon erfasst' : '');
   } else {
     if (SPJ.z === SPJ_OFFEN) { list = base.filter(e => e.z === SPJ_OFFEN); title = 'Zu klären'; }
-    else if (zSel && SPJ.lv === 'zweck') { list = base.filter(e => e.z === zSel); lv = 'zweck'; }
+    else if (zSel && SPJ.lv === 'zweck') { list = base.filter(e => e.z === zSel); lv = 'zweck'; if (!list.some(e => e.neu)) SPJ.onlyNew = false; else if (SPJ.onlyNew) list = list.filter(e => e.neu); }
     else { list = frei; title = 'Zweckungebunden'; lv = zSel ? 'frei' : null; }      // Standard: alle zweckungebundenen Spenden
     sub = spCount(list.length) + ' · ' + eur(sumOf(list));
   }
   list = list.slice().sort((a, b) => b.rec.d - a.rec.d || b.rec.b - a.rec.b);
   const lim = SPJ_MAX + SPJ.more;
   // die Markierung gilt für die gezeigte Liste – wechselt sie (Umschalter, Vorschau, „zu klären“), beginnt sie neu; bei gleicher Liste (anderer Zweck) bleibt sie
-  const ctx = UI.year + '|' + (typed ? 'v:' + typed : lv === 'zweck' ? 'z:' + zSel : title === 'Zweckungebunden' ? 'frei' : 'offen');
+  const ctx = UI.year + '|' + (typed ? 'v:' + typed : lv === 'zweck' ? 'z:' + zSel + (SPJ.onlyNew ? ':neu' : '') : title === 'Zweckungebunden' ? 'frei' : 'offen');
   if (SPJ.selCtx !== ctx) { SPJ.sel = new Set(); SPJ.anchor = null; SPJ.selCtx = ctx; SPJ.moveTo = null; }
   const inList = new Set(list.map(e => e.rec.k));
   for (const k of SPJ.sel) if (!inList.has(k)) SPJ.sel.delete(k);
@@ -460,7 +475,7 @@ function spjList(J) {
         e.z === SPJ_OFFEN && !e.hand ? h('button', { class: 'spj-pick', tip: 'dem Zweck „' + zn(t.id) + '“ zuordnen', onclick: ev => { ev.stopPropagation(); spjSetZweck([r.k], t.id, 'Spende dem Zweck „' + zn(t.id) + '“ zugeordnet'); } }, '→ ' + zn(t.id)) :
         SPJ.z === t.id ? t.w : zn(t.id)))),         // im gewählten Zweck: warum die Spende passt (Schlagwort oder Konto)
       // beim Zweck: „von Hand“ zugeordnet oder per Regel; in „Zweckungebunden“ ohne Kennzeichen
-      h('span', { class: 'spj-how' }, e.hand && e.z !== SPJ_FREI ? h('span', { class: 'sp-tag hand', tip: 'von Hand zugeordnet' }, 'von Hand') : null));
+      h('span', { class: 'spj-how' }, e.hand && e.z !== SPJ_FREI ? h('span', { class: 'sp-tag hand', tip: 'von Hand zugeordnet' }, 'von Hand') : e.neu ? h('span', { class: 'sp-tag neu', tip: 'nach dem Einlesen neu beim Zweck – noch nicht geprüft' }, 'neu') : null));
   };
   return h('div', { class: 'spj-listbox' + (typed ? ' prev' : '') },
     h('div', { class: 'spj-lh' }, allBox(),
@@ -469,6 +484,8 @@ function spjList(J) {
         h('button', { class: 'seg-btn' + (lv === 'zweck' ? ' on' : ''), dataset: { lv: 'zweck' }, onclick: () => { SPJ.lv = 'zweck'; SPJ.more = 0; renderNow(); } },
           'Bei „' + zn(zSel) + '“ (' + base.filter(e => e.z === zSel).length.toLocaleString('de-DE') + ')')) : h('b', null, title),
       h('span', { class: 'spj-sub muted small' }, sub),
+      lv === 'zweck' && base.some(e => e.z === zSel && e.neu) ? h('button', { class: 'spj-onlynew' + (SPJ.onlyNew ? ' on' : ''), 'aria-pressed': String(!!SPJ.onlyNew), onclick: () => { SPJ.onlyNew = !SPJ.onlyNew; SPJ.more = 0; renderNow(); } },
+        'nur neue (' + base.filter(e => e.z === zSel && e.neu).length + ')') : null,
       typed ? [zObj ? h('button', { class: 'spj-to spj-prev-add', tip: 'Schlagwort „' + typed + '“ zum Zweck „' + zObj.name + '“ hinzufügen', onclick: () => spjSugAdd(zObj, typed) }, '+ zu „' + zObj.name + '“') : null,
         h('button', { class: 'spj-to ghost spj-prev-new', tip: 'neuen Zweck mit dem Schlagwort „' + typed + '“ anlegen', onclick: () => spjSugNew(typed) }, '+ als neuer Zweck'),
         h('button', { class: 'link small spj-prevx', onclick: () => { SPJ.typed = ''; renderNow(); } }, 'Vorschau schließen')] :

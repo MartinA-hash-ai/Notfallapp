@@ -1,5 +1,5 @@
 // 0.12.7 Auswertung: Reiter „Auswertung Beta“, ohne Überschrift; Hinweis-Spalte; allgemeine Spenden je Jahr; Regel mit Live-Vorschau;
-// ein Zuordnen-Knopf; Vergleich mit Ein-/Ausblenden; Spaltenbreiten wie in der Jahresplanung; rote P im dunklen Design (Detailplan)
+// (ab 0.18 Vorschau mit Häkchen statt „Prüfen“); Vergleich mit Ein-/Ausblenden; Spaltenbreiten wie in der Jahresplanung; rote P im dunklen Design (Detailplan)
 const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN } = require('./lib');
 const path = require('path');
 const DIR = 'Spendeneingänge 2027/';
@@ -42,23 +42,19 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   const bb = await p.evaluate(() => [D.massnahmen.find(m => m.id === 'm5').hinweis, [...document.querySelectorAll('.sp-ueb thead th')].map(t => t.textContent).slice(0, 3).join(',')]);
   ok(bb[0] === 'Thema: Jahresbericht 26/27' && bb[1] === 'Maßnahme,Hinweis,PAL', 'B: Spalte „Hinweis“ nach „Maßnahme“; Eingabe landet im Hinweis der Maßnahme (wie in der Jahresplanung)');
 
-  // ---- C: Regel mit Live-Vorschau: Tippen filtert „Offen“, Enter übernimmt
+  // ---- C: Regel mit Live-Vorschau: Tippen zeigt, was zugeordnet würde (mit Häkchen), Enter übernimmt
   await p.click('.sp-wordin'); await p.keyboard.type('JB'); await p.waitForTimeout(450);
-  const c1 = await p.evaluate(() => [[...document.querySelectorAll('.sp-col:first-child .sp-row')].map(e => SP.byKey.get(e.dataset.k).name).sort().join(', '), document.querySelector('.sp-col:first-child .sp-ch').textContent, !(D.massnahmen.find(m => m.id === 'm5').regel), document.activeElement && document.activeElement.className]);
-  ok(c1[0] === 'Anna Probe, Emil Klein, Erika Test, Max Muster' && /Vorschau für „JB“/.test(c1[1]) && c1[2] && c1[3] === 'sp-wordin', 'C: beim Tippen zeigt „Offen“ sofort die passenden (' + c1[0] + '), Regel noch unverändert, Eingabe behält den Fokus');
+  const c1 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(e => SP.byKey.get(e.dataset.k).name).sort().join(', '), document.querySelector('.spm-listbox .spj-lh').textContent, !(D.massnahmen.find(m => m.id === 'm5').regel), document.activeElement && document.activeElement.className]);
+  ok(c1[0] === 'Anna Probe, Emil Klein, Erika Test, Max Muster' && /^Vorschau „JB“/.test(c1[1]) && c1[2] && c1[3] === 'sp-wordin', 'C: beim Tippen zeigt die Liste sofort die passenden (' + c1[0] + '), Regel noch unverändert, Eingabe behält den Fokus');
   await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  const c2 = await p.evaluate(() => [JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte), document.querySelectorAll('.sp-col.mid .sp-row').length, document.querySelectorAll('.sp-col:first-child .sp-row').length]);
-  ok(c2[0] === '["JB"]' && c2[1] === 4 && c2[2] === 6, 'C: Enter übernimmt „JB“ – 4 in der Mitte, „Offen“ wieder ungefiltert (6)');
+  const c2 = await p.evaluate(() => [JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte), Object.values(D.spenden.zu).filter(z => z.m === 'm5').length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, document.querySelector('.spm-listbox .seg-btn.on')?.textContent]);
+  ok(c2[0] === '["JB"]' && c2[1] === 4 && c2[2] === 4 && c2[3] === 'Zugeordnet (4)', 'C: Enter übernimmt „JB“ – die Regel ordnet die 4 zu, Liste zeigt „Zugeordnet (4)“');
 
-  // ---- D: ein Knopf zum Zuordnen (markierte oder alle), Knöpfe einzeilig
-  const d0 = await p.evaluate(() => { const f = document.querySelector('.sp-col.mid .sp-cf'), bs = [...f.querySelectorAll('button')]; return [bs.map(b => b.textContent).join(' | '), new Set(bs.map(b => Math.round(b.getBoundingClientRect().top))).size]; });
-  ok(d0[0] === '← Alle zurück | ← Markierte zurück | Alle 4 zuordnen →' && d0[1] === 1, 'D: mittlere Spalte – drei Knöpfe in einer Zeile („' + d0[0] + '“)');
-  await p.click('.sp-col.mid .sp-row:first-child'); await p.waitForTimeout(100);
-  ok(await p.evaluate(() => document.querySelector('.sp-col.mid .sp-cf button.primary').textContent === '1 markierte zuordnen →'), 'D: mit Markierung heißt der Knopf „1 markierte zuordnen →“');
-  await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => Object.keys(D.spenden.zu).length === 1 && document.querySelectorAll('.sp-col.mid .sp-row').length === 3), 'D: nur die markierte zugeordnet, 3 bleiben in der Mitte');
-  await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => Object.keys(D.spenden.zu).length === 4), 'D: ohne Markierung ordnet derselbe Knopf alle zu');
+  // ---- D: Abbrechen lässt die Regel unverändert; Esc ebenso
+  await p.click('.sp-wordin'); await p.keyboard.type('Danke'); await p.waitForTimeout(450);
+  await p.click('.spm-listbox .spj-prevx'); await p.waitForTimeout(200);
+  await p.click('.sp-wordin'); await p.keyboard.type('Danke'); await p.waitForTimeout(450); await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte) === '["JB"]' && !SPUI.typed && !document.querySelector('.spm-listbox.prev')), 'D: „Abbrechen“ und Esc schließen die Vorschau, die Regel bleibt');
 
   // ---- E: allgemeine Spenden des Jahres
   const e0 = await p.evaluate(() => { const r = document.querySelector('.sp-ueb tbody tr'); return [r.dataset.mid, r.children[0].textContent.trim(), !r.querySelector('input')]; });
@@ -76,7 +72,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
     commit(d => { for (const k of ks) { const r = SP.byKey.get(k); d.spenden.zu[k] = { m: 'allg:2027', d: ds(r.d), b: r.b }; } d.spenden.allg = { 2027: { regel: { worte: [], da: true } } }; }); });
   await p.waitForTimeout(300);
   const e3 = await p.evaluate(() => [Object.values(D.spenden.zu).filter(z => z.m === 'allg:2027').length, document.querySelector('.sp-tile .sp-tv').textContent, document.querySelector('.sp-ueb tbody tr').children[5].textContent,
-    document.querySelector('.sp-ueb tfoot')?.textContent || '', checkData().filter(c => /gelöschten Maßnahme/.test(c.text)).length, [...spCompute().sugg.values()].flat().some(g => isAllg(g.id))]);
+    document.querySelector('.sp-ueb tfoot')?.textContent || '', checkData().filter(c => /gelöschten Maßnahme/.test(c.text)).length, [...spCompute().hits.values()].flat().some(g => isAllg(g.id))]);
   ok(e3[0] === 2 && /^[\d.]+ €$/.test(e3[1]) && e3[1] === e3[2] && /Summe der Maßnahmen/.test(e3[3]) && !/205/.test(e3[3]) && e3[4] === 0 && !e3[5],
     'E: alte Topf-Zuordnungen zählen weiter (ohne Maßnahme), Kachel = Übersicht (' + e3[1] + '), nicht in der Summe der Maßnahmen, keine Vorschläge der alten Topf-Regel, Datenprüfung ruhig');
   const e4 = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [Object.values(n.spenden.zu).filter(z => z.m === 'allg:2027').length, JSON.stringify(n.spenden.allg)]; });
@@ -86,10 +82,9 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
 
   // ---- F: Vergleich – Maßnahmen ein- und ausblenden
   await p.click('.sp-ueb tr[data-mid="m4"] td:first-child'); await p.waitForTimeout(250);
-  await p.evaluate(() => { UI.spFilt = true; renderNow(); }); await p.waitForTimeout(100);
-  await p.fill('.sp-q', 'Lautsprecher'); await p.waitForTimeout(450);
-  await p.click('.sp-col:first-child .sp-row'); await p.waitForTimeout(250);
-  await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(250);
+  await p.evaluate(() => { SPUI.tab = 'offen'; renderNow(); }); await p.waitForTimeout(100);
+  await p.fill('.spm-filter .sp-q', 'Lautsprecher'); await p.waitForTimeout(450);
+  await p.click('[data-sec="sp-zu"] .spj-row .sp-z'); await p.click('.spj-act .spj-go'); await p.waitForTimeout(250);
   await p.click('.sp-cmptog'); await p.waitForTimeout(250);
   const f0 = await p.evaluate(() => [[...document.querySelectorAll('.sp-cpill')].map(b => b.textContent).join(','), document.querySelectorAll('[data-chart="cmp"] .sp-line').length]);
   ok(f0[0] === 'Sommermailing,Jahresbericht' && f0[1] === 2, 'F: Knöpfe je Maßnahme über dem Vergleich, beide Linien sichtbar');

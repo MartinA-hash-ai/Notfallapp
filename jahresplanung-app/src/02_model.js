@@ -271,12 +271,15 @@ function normalizeData(d) {
   const uniq = a => [...new Set((Array.isArray(a) ? a : []).map(w => str(w).trim()).filter(Boolean))];
   d.zwecke.forEach(z => { z.id = freshId(z.id); z.name = str(z.name).trim() || 'Zweck'; z.farbe = typeof z.farbe === 'string' && /^#[0-9a-f]{6}$/i.test(z.farbe) ? z.farbe : '#7F7F7F';
     z.worte = uniq(z.worte); z.konten = uniq(z.konten); z.massnahmen = uniq(z.massnahmen).filter(id => d.massnahmen.some(m => m.id === id)); });   // Maßnahmen: alle ihre zugeordneten Spenden
-  // Spenden-Zuordnungen (ohne Namen/IBAN): Schlüssel → { m, d, b }; Vormerkungen zur Prüfung; abgelehnte Vorschläge
+  // Spenden-Zuordnungen (ohne Namen/IBAN): Schlüssel → { m, d, b, r? } (r = von der Regel der Maßnahme, sonst von Hand); ausgeschlossen (nein);
+  // neu = nach dem Einlesen neu bei einer Maßnahme (m) oder einem Zweck (z), noch nicht geprüft; bek = schon eingelesene Spenden je Jahr
+  // (ab 0.18 ordnen Regeln selbst zu – die Vormerkungen zur Prüfung „vor“ entfallen)
   const sp = isObj(d.spenden) ? d.spenden : {};
-  d.spenden = { zu: {}, vor: {}, nein: {}, zweck: {} };
-  if (isObj(sp.zu)) for (const [k, z] of Object.entries(sp.zu)) if (isObj(z) && str(z.m) && dn(z.d) != null && isNum(z.b)) d.spenden.zu[k] = { m: str(z.m), d: z.d, b: Math.round(+z.b) };
-  if (isObj(sp.vor)) for (const [k, v] of Object.entries(sp.vor)) if (str(v) && !d.spenden.zu[k]) d.spenden.vor[k] = str(v);
+  d.spenden = { zu: {}, nein: {}, zweck: {}, neu: {}, bek: {} };
+  if (isObj(sp.zu)) for (const [k, z] of Object.entries(sp.zu)) if (isObj(z) && str(z.m) && dn(z.d) != null && isNum(z.b)) d.spenden.zu[k] = Object.assign({ m: str(z.m), d: z.d, b: Math.round(+z.b) }, z.r ? { r: 1 } : {});
   if (isObj(sp.nein)) for (const [k, v] of Object.entries(sp.nein)) { const a = [...new Set((Array.isArray(v) ? v : []).map(str).filter(Boolean))]; if (a.length) d.spenden.nein[k] = a; }
+  if (isObj(sp.neu)) for (const [k, v] of Object.entries(sp.neu)) { const f = (/m/.test(v) ? 'm' : '') + (/z/.test(v) ? 'z' : ''); if (f) d.spenden.neu[k] = f; }
+  if (isObj(sp.bek)) for (const [y, a] of Object.entries(sp.bek)) if (/^\d{4}$/.test(y) && Array.isArray(a)) d.spenden.bek[y] = [...new Set(a.map(str).filter(Boolean))];
   const zids = new Set(d.zwecke.map(z => z.id));                     // Zweck von Hand festgelegt: Schlüssel → Zweck-Id oder „-“ (zweckungebunden)
   if (isObj(sp.zweck)) for (const [k, v] of Object.entries(sp.zweck)) if (v === '-' || zids.has(v)) d.spenden.zweck[k] = v;
   if (isObj(sp.ignor)) for (const k of Object.keys(sp.ignor)) if (sp.ignor[k] && str(k).trim()) (d.spenden.ignor = d.spenden.ignor || {})[str(k).trim()] = 1;   // ausgeblendete Vorschläge
@@ -581,7 +584,8 @@ function computeWarnings() {
 function commit(fn, msg) {
   const before = JSON.stringify(D);
   _awayCache = new Map();
-  try { fn(D); _awayCache = new Map(); ensurePersons(D); D.massnahmen.concat(D.vorlagen || []).forEach(m => { if (m.plan) { unlinkSections(m); forwardLinks(m); } }); }
+  // Regeln der Maßnahmen ordnen bei jeder Änderung gleich mit zu (spSyncZu, 19_spenden.js)
+  try { fn(D); if (typeof spSyncZu === 'function') spSyncZu(D); _awayCache = new Map(); ensurePersons(D); D.massnahmen.concat(D.vorlagen || []).forEach(m => { if (m.plan) { unlinkSections(m); forwardLinks(m); } }); }
   catch (e) {                                 // Fehler mitten in der Änderung: alles zurück, nichts halb geändert speichern
     console.error(e); D = JSON.parse(before); derive(); requestRender();
     toast('Die Änderung ließ sich nicht ausführen – es wurde nichts verändert. (' + ((e && e.message) || e) + ')', 'err');

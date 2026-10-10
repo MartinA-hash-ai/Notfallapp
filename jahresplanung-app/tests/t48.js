@@ -1,5 +1,5 @@
 // 0.12.8 Auswertung: Suchausdrücke (* ? ~ + -) für Regeln und Suche; Hilfe erst nach Verweilen; Daueraufträge einblenden/ausblenden/nur;
-// mittlere Liste beginnt ganz oben; „Stk.“ und „€“ in der Übersicht; jede Spalte (auch ROI) verstellbar
+// (seit 0.18: Vorschau beim Tippen, Regel ordnet selbst zu, Filter unter „Offen“); „Stk.“ und „€“ in der Übersicht; jede Spalte (auch ROI) verstellbar
 const { chromium, ok, open, connect, finish } = require('./lib');
 const DIR = 'Spendeneingänge 2027/';
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -46,17 +46,17 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   ok(names.only === '' && names.onlyAll.split(',').length === 9, 'A: nur ausschließend – als Regel nichts, in der Suche alle übrigen (' + names.onlyAll.split(',').length + ')');
   ok(names.jb === 'Fritz,Gina' && names.star3 === '', 'A: „JB“ bleibt ganzes Wort; „Hos*JB“ greift nicht über Wortgrenzen (' + names.jb + '|' + names.star3 + ')');
 
-  // ---- B: Regel mit Platzhalter über die Oberfläche
+  // ---- B: Regel mit Platzhalter über die Oberfläche – Vorschau beim Tippen, dann ordnet die Regel selbst zu
   await p.click('.sp-wordin'); await p.keyboard.type('*bericht'); await p.waitForTimeout(450);
-  const b0 = await p.evaluate(() => [...document.querySelectorAll('.sp-col:first-child .sp-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
+  const b0 = await p.evaluate(() => [...document.querySelectorAll('.spm-listbox.prev .spj-row.sel')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
   ok(b0 === 'Anna,Bernd,Carla,Emil', 'B: Live-Vorschau mit „*bericht“: ' + b0);
   await p.keyboard.press('Enter'); await p.waitForTimeout(250);
   await p.click('.sp-wordin'); await p.keyboard.type('-Trauer'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  const b1 = await p.evaluate(() => [JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte), [...document.querySelectorAll('.sp-col.mid .sp-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','),
-    [...document.querySelectorAll('.sp-col.mid .sp-tag.rule')].map(t => t.textContent).join(',')]);
-  ok(b1[0] === '["*bericht","-Trauer"]' && b1[1] === 'Anna,Bernd,Carla' && b1[2] === '*bericht,*bericht,*bericht', 'B: Regel „*bericht“ + „-Trauer“ – drei zum Prüfen (' + b1[1] + '), markiert mit „*bericht“');
+  const b1 = await p.evaluate(() => [JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte), [...document.querySelectorAll('.spm-listbox .spj-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','),
+    [...document.querySelectorAll('.spm-listbox .spj-row .sp-tag.rule')].map(t => t.textContent).join(',')]);
+  ok(b1[0] === '["*bericht","-Trauer"]' && b1[1] === 'Anna,Bernd,Carla' && b1[2] === '*bericht,*bericht,*bericht', 'B: Regel „*bericht“ + „-Trauer“ ordnet drei zu (' + b1[1] + '), markiert mit „*bericht“');
 
-  // ---- C: Hilfe erst nach Verweilen über dem Schlagwort-Feld, ⓘ sofort
+  // ---- C: Hilfe erst nach Verweilen über dem Schlagwort-Feld, „ordnet zu:“ sofort
   await p.mouse.move(5, 5); await p.waitForTimeout(100);
   const wi = await p.$('.sp-wordin'); await wi.scrollIntoViewIfNeeded(); const wb = await wi.boundingBox();
   await p.mouse.move(wb.x + 20, wb.y + wb.height / 2, { steps: 3 }); await p.waitForTimeout(800);
@@ -66,36 +66,34 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   ok(!c0 && c1[0] && c1[1] && /\*bericht/.test(c1[2]) && /~Jahresbericht/.test(c1[2]) && /-Trauer/.test(c1[2]), 'C: Hilfe zu den Suchausdrücken erscheint erst nach etwa 2 s über dem Schlagwort-Feld');
   await p.mouse.move(5, 5, { steps: 2 }); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.getElementById('tip').classList.contains('on')), 'C: Maus weg – Hilfe verschwindet');
-  const ib = await (await p.$('.sp-rule .info')).boundingBox();
-  await p.mouse.move(ib.x + 3, ib.y + 3, { steps: 2 }); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => !!document.querySelector('#tip.on .sp-help')), 'C: ⓘ an „Regel“ zeigt die Hilfe sofort');
+  const ib = await (await p.$('.spm-rules .spj-rl')).boundingBox();
+  await p.mouse.move(ib.x + 3, ib.y + 3, { steps: 2 }); await p.waitForTimeout(400);
+  ok(await p.evaluate(() => !!document.querySelector('#tip.on .sp-help')), 'C: „ordnet zu:“ zeigt die Hilfe gleich');
   await p.mouse.move(5, 5, { steps: 2 });
 
   // ---- D: Suche in „Offen“ versteht dieselben Ausdrücke; Daueraufträge: einblenden / ausblenden / nur
-  await p.evaluate(() => { UI.spFilt = true; renderNow(); }); await p.waitForTimeout(100);
-  const offen = () => p.evaluate(() => [...document.querySelectorAll('.sp-col:first-child .sp-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
-  await p.fill('.sp-q', '~Weihnachtspende'); await p.waitForTimeout(450);
+  await p.click('.spm-listbox .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
+  const offen = () => p.evaluate(() => [...document.querySelectorAll('.spm-listbox .spj-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
+  const dAll = await offen();
+  await p.fill('.spm-filter .sp-q', '~Weihnachtspende'); await p.waitForTimeout(450);
   const d0 = await offen();
-  await p.fill('.sp-q', ''); await p.waitForTimeout(450);
-  await p.selectOption('.sp-filter .sp-da select', 'nur'); await p.waitForTimeout(250);
+  await p.fill('.spm-filter .sp-q', ''); await p.waitForTimeout(450);
+  await p.selectOption('.spm-filter .sp-da select', 'nur'); await p.waitForTimeout(250);
   const d1 = [await offen(), await p.evaluate(() => UI.spDA)];
-  await p.selectOption('.sp-filter .sp-da select', 'ohne'); await p.waitForTimeout(250);
+  await p.selectOption('.spm-filter .sp-da select', 'ohne'); await p.waitForTimeout(250);
   const d2 = await offen();
-  await p.click('.sp-ftog'); await p.waitForTimeout(200);
-  const d3 = await p.evaluate(() => document.querySelector('.sp-filter').textContent);
-  ok(d0 === 'Jan' && d1[0] === 'Ida' && d1[1] === 'nur' && !/Ida/.test(d2) && /Jan/.test(d2) && /ohne Daueraufträge/.test(d3),
-    'D: Suche „~Weihnachtspende“ findet „Weihnachtsspende“; „nur Daueraufträge“ → ' + d1[0] + '; „ausblenden“ → ohne Ida; eingeklappt „· ohne Daueraufträge“');
+  ok(dAll === 'Dora,Emil,Fritz,Gina,Hans,Ida,Jan' && d0 === 'Jan' && d1[0] === 'Ida' && d1[1] === 'nur' && !/Ida/.test(d2) && /Jan/.test(d2),
+    'D: „Offen“ ohne die zugeordneten (' + dAll + '); Suche „~Weihnachtspende“ findet „Weihnachtsspende“; „nur Daueraufträge“ → ' + d1[0] + '; „ausblenden“ → ohne Ida');
   await p.evaluate(() => { UI.spHideDA = true; UI.spDA = undefined; renderNow(); }); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => spDAMode() === 'ohne'), 'D: alte Einstellung „Daueraufträge ausblenden“ wird übernommen');
-  await p.evaluate(() => { UI.spHideDA = false; UI.spDA = 'alle'; UI.spFilt = false; renderNow(); }); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => spDAMode() === 'ohne' && document.querySelector('.spm-filter .sp-da select').value === 'ohne'), 'D: alte Einstellung „Daueraufträge ausblenden“ wird übernommen');
+  await p.evaluate(() => { UI.spHideDA = false; UI.spDA = 'alle'; SPUI.tab = 'zu'; renderNow(); }); await p.waitForTimeout(150);
 
-  // ---- E: mittlere Liste beginnt ganz oben, Knöpfe bündig mit den Nachbarn
-  const e0 = await p.evaluate(() => { const c = [...document.querySelectorAll('.sp-col')].map(e => e.getBoundingClientRect()), l = [...document.querySelectorAll('.sp-col .sp-list')].map(e => e.getBoundingClientRect()),
-    f = [...document.querySelectorAll('.sp-col .sp-cf')].map(e => Math.round(e.getBoundingClientRect().top)); return [Math.round(l[1].top - c[1].top), Math.round(l[0].top - c[0].top), new Set(f).size, Math.round(l[1].bottom - l[0].bottom), c[1].height - c[0].height]; });
-  ok(e0[0] <= 2 && e0[1] > 30 && e0[2] === 1 && Math.abs(e0[3]) <= 2 && Math.abs(e0[4]) <= 2, 'E: mittlere Liste beginnt oben in der Spalte (' + e0[0] + ' px statt ' + e0[1] + ' px), unten bündig, Spalten gleich hoch');
+  // ---- E: Liste direkt unter der Regelzeile, Maßnahmen links oben bündig mit dem rechten Teil
+  const e0 = await p.evaluate(() => { const r = q => document.querySelector(q).getBoundingClientRect(), sd = r('.spm .spj-side'), mn = r('.spm .spj-main'), ru = r('.spm .spj-rules'), lb = r('.spm .spm-listbox');
+    return [Math.round(sd.top - mn.top), Math.round(lb.top - ru.bottom), Math.round(lb.width - (mn.width))]; });
+  ok(Math.abs(e0[0]) <= 2 && e0[1] >= 0 && e0[1] <= 16 && Math.abs(e0[2]) <= 2, 'E: Seitenleiste und rechter Teil oben bündig, Liste direkt unter der Regel, volle Breite (' + e0.join(' / ') + ')');
 
   // ---- F: Einheiten in der Übersicht
-  await p.click('.sp-col.mid .sp-cf button.primary'); await p.waitForTimeout(250);
   await p.fill('[data-fk="sp-auf:m5"]', '5000'); await p.press('[data-fk="sp-auf:m5"]', 'Tab'); await p.waitForTimeout(200);
   await p.fill('[data-fk="sp-kos:m5"]', '1234,5'); await p.press('[data-fk="sp-kos:m5"]', 'Tab'); await p.waitForTimeout(200);
   const f0 = await p.evaluate(() => { const r = document.querySelector('.sp-ueb tr[data-mid="m5"]'), u = r.querySelectorAll('.sp-unit'), m = D.massnahmen.find(x => x.id === 'm5');

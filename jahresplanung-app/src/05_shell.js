@@ -72,9 +72,9 @@ function renderInner() {
 
 function topBar() {
   const dirty = isDirty(), nW = C.warnings.filter(w => w.lvl === 'warn').length, nI = C.warnings.length - nW;
-  const pend = SP.rows.length ? spCompute().pend : 0;           // Spenden, die auf Prüfung warten
+  const pend = SP.rows.length ? spAttention() : 0;              // neue Spenden bei Maßnahmen/Zwecken und Spenden, die zu mehreren passen
   const tab = ([k, label]) => h('button', { class: 'tab' + (UI.view === k ? ' on' : ''), onclick: () => { UI.view = k; renderNow(); $('#main').scrollTop = 0; } }, label,
-    k === 'spenden' && pend ? h('span', { class: 'tab-badge', tip: pend + (pend === 1 ? ' Spende wartet' : ' Spenden warten') + ' zum Prüfen auf die Zuordnung' }, pend) : null);
+    k === 'spenden' && pend ? h('span', { class: 'tab-badge', tip: pend + (pend === 1 ? ' Spende ist' : ' Spenden sind') + ' zu prüfen: neu bei einer Maßnahme oder einem Zweck oder passend zu mehreren' }, pend) : null);
   return h('header', { class: 'top' },
     h('div', { class: 'brand' }, h('img', { class: 'logo', src: logoSrc(), alt: 'Malteser' }), h('div', null, h('strong', null, 'Jahresplanung Außenkommunikation'), h('span', null, 'Fundraising · Diözese Paderborn'))),
     h('div', { class: 'year' },
@@ -102,7 +102,7 @@ function topBar() {
 // Daten zurücksetzen: Spenden-Zuordnungen, Exportdateien, Maßnahmen eines Jahres. Einstellungen bleiben; vorher Datensicherung.
 async function resetDialog() {
   if (BROKEN) { toast('Erst die beschädigten Daten wiederherstellen (Hinweis oben).', 'err'); return; }
-  const S = D.spenden, nZu = Object.keys(S.zu).length, nVor = Object.keys(S.vor).length, nAllg = Object.keys(S.allg || {}).length, nZw = Object.keys(S.zweck || {}).length;
+  const S = D.spenden, nZu = Object.keys(S.zu).length, nVor = Object.keys(S.nein).length, nAllg = Object.keys(S.allg || {}).length, nZw = Object.keys(S.zweck || {}).length;
   const files = [];
   if (FSA && ST.conn === 'ok') {
     const walk = async (dh, depth) => { for await (const [n, e] of dh.entries()) { if (e.kind === 'file' && SP_FILE_RE.test(n) && !/^(~\$|\.)/.test(n)) files.push({ dir: dh, name: n, label: dh.name + '/' + n }); else if (e.kind === 'directory' && depth < 1) await walk(e, depth + 1); } };
@@ -118,7 +118,7 @@ async function resetDialog() {
   showMs();
   const body = h('div', { class: 'form rs' },
     h('p', null, 'Vorher lädt die App automatisch eine Datensicherung (.json) herunter. Bereiche, Personen, Urlaube, Feiertage und Einstellungen bleiben. Das betrifft die gemeinsame Datei – also alle.'),
-    cb('sp', 'Alle Spenden-Zuordnungen entfernen', nZu + ' zugeordnet, ' + nVor + ' von Hand in „Prüfen“' + (nAllg ? ', Regeln der allgemeinen Spenden (' + nAllg + ' Jahr' + (nAllg === 1 ? '' : 'e') + ')' : '') + (nZw ? ', ' + nZw + ' von Hand festgelegte Zwecke' : '') + ' – in allen Jahren; Auflage und Kosten der Maßnahmen und die Spendenzwecke selbst bleiben', !(nZu + nVor + nAllg + nZw)),
+    cb('sp', 'Alle Spenden-Zuordnungen entfernen', nZu + ' zugeordnet, ' + nVor + ' ausgeschlossen' + (nAllg ? ', Regeln der allgemeinen Spenden (' + nAllg + ' Jahr' + (nAllg === 1 ? '' : 'e') + ')' : '') + (nZw ? ', ' + nZw + ' von Hand festgelegte Zwecke' : '') + ' – in allen Jahren; Auflage und Kosten der Maßnahmen und die Spendenzwecke selbst bleiben', !(nZu + nVor + nAllg + nZw)),
     cb('rules', 'Auch die Schlagwort-Regeln der Maßnahmen entfernen', null, !D.massnahmen.some(m => m.regel)),
     cb('files', 'Exportdateien der Spendeneingänge löschen', files.length ? files.length + ' Datei' + (files.length === 1 ? '' : 'en') + ': ' + files.map(f => f.label).join(', ') + ' – sie landen im Papierkorb von OneDrive/SharePoint. Ohne das tauchen die Spenden wieder unter „Offen“ auf.' : 'keine Dateien gefunden' + (ST.conn !== 'ok' ? ' (Mailing-Ordner nicht verbunden)' : ''), !files.length),
     h('div', { class: 'rs-yr' }, cb('ms', 'Maßnahmen löschen mit PAL im Jahr', null, !years.length),
@@ -131,7 +131,7 @@ async function resetDialog() {
   if (!await confirmBox('Wirklich zurücksetzen?', 'Entfernt werden: ' + what.join(', ') + '. Eine Datensicherung wird vorher heruntergeladen' + (opt.files ? '; gelöschte Dateien liegen im Papierkorb von OneDrive/SharePoint' : '') + '.', 'Ja, zurücksetzen')) return;
   exportJSON();
   commit(d => {
-    if (opt.sp) { d.spenden.zu = {}; d.spenden.vor = {}; d.spenden.nein = {}; d.spenden.allg = {}; d.spenden.zweck = {}; }
+    if (opt.sp) { d.spenden.zu = {}; d.spenden.nein = {}; d.spenden.allg = {}; d.spenden.zweck = {}; d.spenden.neu = {}; d.spenden.bek = {}; }
     if (opt.rules) d.massnahmen.forEach(m => { delete m.regel; });
     if (del.length) { d.massnahmen = d.massnahmen.filter(m => !del.includes(m.id)); del.forEach(id => spForget(d, id)); }
   }, 'Zurückgesetzt: ' + what.join(', '));
