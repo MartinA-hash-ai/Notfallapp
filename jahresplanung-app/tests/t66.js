@@ -29,7 +29,7 @@ const year = y => { const r = [];
   await p.click('.top .tab:has-text("Jahresvergleich")'); await p.waitForTimeout(500);
   const a1 = await p.evaluate(() => [UI.view, [...document.querySelectorAll('#main .sec')].map(e => e.dataset.sec).join(), !!document.querySelector('#main .jv > .jv-bar'), document.querySelector('.jv-grid2') ? [...document.querySelectorAll('.jv-grid2 > .sec')].map(e => e.dataset.sec).join() : '']);
   ok(a0[0] === 'Jahresplanung|Detailpläne|Auswertung|Jahresvergleich' && !a0[1], 'A: Reiter „Jahresvergleich“ neben der Auswertung, dort kein Abschnitt „Jahresvergleich“ mehr');
-  ok(a1[0] === 'vergleich' && a1[1] === 'jv-kpi,jv-verlauf,jv-bruecke,jv-bindung,jv-mail,jv-seg,jv-zweck,jv-konto,jv-dauer' && a1[2] && a1[3] === 'jv-zweck,jv-konto', 'A: oben die Leiste, darunter die Abschnitte; Zwecke und Konten nebeneinander');
+  ok(a1[0] === 'vergleich' && a1[1] === 'jv-kpi,jv-ziel,jv-verlauf,jv-bruecke,jv-bindung,jv-top,jv-mail,jv-seg,jv-zweck,jv-konto,jv-dauer' && a1[2] && a1[3] === 'jv-zweck,jv-konto', 'A: oben die Leiste, darunter die Abschnitte; Zwecke und Konten nebeneinander');
   await p.click('[data-sec="jv-kpi"] .sec-tog'); await p.waitForTimeout(300);
   const a2 = await p.evaluate(() => document.querySelector('[data-sec="jv-kpi"] .sec-sum')?.textContent);
   ok(a2 === '2027 bis 10.10.: 530 € · 3 Spender:innen · 14 Spenden', 'A: „Kennzahlen“ eingeklappt mit Zusammenfassung „' + a2 + '“');

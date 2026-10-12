@@ -283,6 +283,7 @@ function normalizeData(d) {
   const zids = new Set(d.zwecke.map(z => z.id));                     // Zweck von Hand festgelegt: Schlüssel → Zweck-Id oder „-“ (zweckungebunden)
   if (isObj(sp.zweck)) for (const [k, v] of Object.entries(sp.zweck)) if (v === '-' || zids.has(v)) d.spenden.zweck[k] = v;
   if (isObj(sp.ignor)) for (const k of Object.keys(sp.ignor)) if (sp.ignor[k] && str(k).trim()) (d.spenden.ignor = d.spenden.ignor || {})[str(k).trim()] = 1;   // ausgeblendete Vorschläge
+  if (isObj(sp.ziel)) for (const [k, v] of Object.entries(sp.ziel)) if (/^\d{4}[pi]?$/.test(k) && isNum(v) && v > 0) (d.spenden.ziel = d.spenden.ziel || {})[k] = Math.round(v);   // Jahresvergleich: Jahresziel je Jahr (Cent), „p“/„i“ = nur Privat / nur Institutionen
   if (isObj(sp.grenze)) for (const [y, v] of Object.entries(sp.grenze)) if (/^\d{4}$/.test(y) && isNum(v) && v > 0) (d.spenden.grenze = d.spenden.grenze || {})[y] = Math.round(v);   // Statistik „Spenden JJJJ“: Spenden über … (Cent) ausblenden
   // Jahresvergleich (0.26): Zahler je Kürzel (Hash aus IBAN bzw. Name – keine Kontonummern in der Datei): von Hand als Institution „i“ oder privat „p“ eingestuft;
   // regelmäßig erkannt, aber nicht als Dauerspender:in zählen; eigene Stichwörter für Institutionen (Name des Kontoinhabers, Verwendungszweck)

@@ -28,11 +28,11 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     getComputedStyle(k.querySelector('.jv-kh')).backgroundColor !== getComputedStyle(k.querySelector('.jv-kd')).backgroundColor, getComputedStyle(k.querySelector('.jv-kh')).borderBottomStyle,
     [...k.querySelectorAll('.jv-lad rect')].map(r => r.getAttribute('x')).join(), document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi').length]; });
   ok(a0[0] === 'Kennzahlen' && a0[1] === 'Spendensumme' && a0[2] === '5.780 €' && a0[3] && a0[4] === 'solid', 'A: „Kennzahlen“ – Titel und Zahl im abgesetzten Kopf mit Linie darunter, Säulen auf weißem Grund');
-  ok(a0[5] === '110.5,205.5' && a0[6] === 6, 'A: zwei Jahre – die Säulen stehen mittig nebeneinander (x ' + a0[5] + ')');
+  ok(a0[5] === '110.5,205.5' && a0[6] === 8, 'A: zwei Jahre – die Säulen stehen mittig nebeneinander (x ' + a0[5] + ')');
   await p.hover('[data-sec="jv-kpi"] .jv-kpi[data-k="n"]'); await p.click('[data-sec="jv-kpi"] .jv-kpi[data-k="n"] .jv-kx'); await p.waitForTimeout(250);
   await p.hover('[data-sec="jv-kpi"] .jv-kpi[data-k="neu"]'); await p.click('[data-sec="jv-kpi"] .jv-kpi[data-k="neu"] .jv-kx'); await p.waitForTimeout(250);
   const a1 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi')].map(k => k.dataset.k).join(), document.querySelector('[data-sec="jv-kpi"] .jv-kpis').className, JSON.stringify(UI.jvKHide), UI_KEYS.includes('jvKHide')]);
-  ok(a1[0] === 'sum,don,avg,dauer' && /\bc2\b/.test(a1[1]) && a1[2] === '{"n":true,"neu":true}' && a1[3], 'A: „Spenden“ und „Erstmals gespendet“ ausgeblendet – vier Kacheln in zwei Spalten, gemerkt');
+  ok(a1[0] === 'sum,don,avg,med,dauer,top' && /\bc3\b/.test(a1[1]) && a1[2] === '{"n":true,"neu":true}' && a1[3], 'A: „Spenden“ und „Erstmals gespendet“ ausgeblendet – sechs Kacheln in drei Spalten, gemerkt');
   // Klick auf Kacheln: hervorheben, die anderen treten zurück; noch ein Klick nimmt sie heraus; Klick daneben hebt die Auswahl auf
   const kf = () => p.evaluate(() => [document.querySelector('[data-sec="jv-kpi"] .jv-kpis').classList.contains('jv-kfocus'), [...document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi.jv-ksel')].map(k => k.dataset.k).join(),
     getComputedStyle(document.querySelector('[data-sec="jv-kpi"] .jv-kpi[data-k="avg"]')).opacity]);
@@ -45,7 +45,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   ok(k0[0] && k0[1] === 'sum,don' && +k0[2] < 0.5 && k1[1] === 'don' && !k2[0] && k2[1] === '' && k2[2] === '1', 'A: Klick auf Kacheln hebt sie hervor (die anderen blass), noch ein Klick nimmt sie heraus, Klick daneben zeigt wieder alle');
   await p.click('.jv-bbtn'); await p.waitForTimeout(150);
   const a2 = await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bpop .jv-brow label.mchk')].map(l => l.textContent).join('|') + ' / ' + [...document.querySelectorAll('.menu.pop .jv-bsub label')].map(l => l.textContent + (l.querySelector('input').checked ? '+' : '-')).join('|'));
-  ok(a2 === 'Kennzahlen|Jahresverlauf & Quartale|Spendenbrücke|Spenderbindung|Mailings vergleichen|Spendersegmente|Zwecke über die Jahre|Konten über die Jahre|Dauerspender:innen / Spendensumme+|Spender:innen+|Ø je Spende+|Spenden-|Dauerspender:innen+|Erstmals gespendet-',
+  ok(a2 === 'Kennzahlen|Jahresziel & Hochrechnung|Jahresverlauf & Quartale|Spendenbrücke|Spenderbindung|Größte Spender:innen|Mailings vergleichen|Spendersegmente|Zwecke über die Jahre|Konten über die Jahre|Dauerspender:innen / Spendensumme+|Spender:innen+|Ø je Spende+|Median je Spende+|Spenden-|Dauerspender:innen+|Anteil der größten 10 %+|Erstmals gespendet-',
     'A: „Bausteine“ – alle Bausteine, unter „Kennzahlen“ jede Kennzahl einzeln (Ø je Spende statt je Spender:in): ' + a2);
   await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bsub label')].find(l => l.textContent === 'Spenden').querySelector('input').click()); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !!document.querySelector('[data-sec="jv-kpi"] .jv-kpi[data-k="n"]') && !UI.jvKHide.n), 'A: über „Bausteine“ wieder eingeblendet');
@@ -113,20 +113,20 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.click('.jv-bbtn'); await p.waitForTimeout(150);
   await p.click('.menu.pop .jv-brow:has-text("Kennzahlen") .jv-mv[aria-label$="nach unten"]'); await p.waitForTimeout(400);
   const i0 = await p.evaluate(() => [JSON.stringify(UI.jvOrder), [...document.querySelectorAll('#main .sec')].map(e => e.dataset.sec).join(), !!document.querySelector('.menu.pop .jv-bpop'), UI_KEYS.includes('jvOrder')]);
-  ok(i0[0] === '["verlauf","kpi","bruecke","bindung","mail","seg","zweck","konto","dauer"]' && i0[1].startsWith('jv-verlauf,jv-kpi,') && i0[2] && i0[3], 'I: „↓“ bei Kennzahlen – Kennzahlen stehen jetzt unter dem Jahresverlauf, gemerkt; „Bausteine“ bleibt offen');
+  ok(i0[0] === '["ziel","kpi","verlauf","bruecke","bindung","top","mail","seg","zweck","konto","dauer"]' && i0[1].startsWith('jv-ziel,jv-kpi,') && i0[2] && i0[3], 'I: „↓“ bei Kennzahlen – Kennzahlen stehen jetzt unter „Jahresziel“, gemerkt; „Bausteine“ bleibt offen');
   await p.keyboard.press('Escape');
-  await p.setViewportSize({ width: 1400, height: 5200 }); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(300);   // Griff und Ziel gleichzeitig im Bild
+  await p.setViewportSize({ width: 1400, height: 6600 }); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(300);   // Griff und Ziel gleichzeitig im Bild
   const gp = await p.evaluate(() => { const g = document.querySelector('[data-sec="jv-dauer"] .sec-h .jv-drag').getBoundingClientRect(), t = document.querySelector('[data-sec="jv-mail"] .sec-h').getBoundingClientRect();
     return [g.x + g.width / 2, g.y + g.height / 2, t.x + 200, t.y + 6]; });
   await p.mouse.move(gp[0], gp[1]); await p.mouse.down(); await p.mouse.move(gp[0] + 4, gp[1] - 20, { steps: 4 }); await p.mouse.move(gp[2], gp[3], { steps: 12 }); await p.mouse.up(); await p.waitForTimeout(400);
   await p.setViewportSize({ width: 1400, height: 1000 });
   const i1 = await p.evaluate(() => [...document.querySelectorAll('#main .sec')].map(e => e.dataset.sec.replace('jv-', '')).join());
-  ok(i1 === 'verlauf,kpi,bruecke,bindung,dauer,mail,seg,zweck,konto', 'I: „Dauerspender:innen“ am Griff über „Mailings“ gezogen – steht jetzt davor (' + i1 + ')');
+  ok(i1 === 'ziel,kpi,verlauf,bruecke,bindung,top,dauer,mail,seg,zweck,konto', 'I: „Dauerspender:innen“ am Griff über „Mailings“ gezogen – steht jetzt davor (' + i1 + ')');
   await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
   const i2 = await p.evaluate(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => r([window.__printed,
     [...document.querySelectorAll('#printdoc .pd-page .pd-head h1')].map(e => e.textContent).join(' | '), document.body.classList.contains('printdoc-mode'), document.querySelectorAll('#printdoc [data-chart] svg').length,
     /Sondereffekte herausgerechnet · Vergleich mit 2025/.test(document.querySelector('#printdoc .pd-head span').textContent)]), 300)); });
-  ok(i2[0] === 1 && i2[1] === 'Kennzahlen 2026 | Jahresverlauf & Quartale 2026 | Quartale in Zahlen 2026 | Spendenbrücke 2025 → 2026 | Spenderbindung 2026 | Mailings vergleichen | Spendersegmente | Zwecke über die Jahre · Konten über die Jahre | Dauerspender:innen 2026' && i2[2] && i2[3] >= 5 && i2[4],
+  ok(i2[0] === 1 && i2[1] === 'Kennzahlen 2026 | Jahresziel & Hochrechnung 2026 | Jahresverlauf & Quartale 2026 | Quartale in Zahlen 2026 | Spendenbrücke 2025 → 2026 | Spenderbindung 2026 | Größte Spender:innen 2026 | Mailings vergleichen | Spendersegmente | Zwecke über die Jahre · Konten über die Jahre | Dauerspender:innen 2026' && i2[2] && i2[3] >= 5 && i2[4],
     'I: „PDF für die Präsentation“ – je Abschnitt eine Seite in der eingestellten Reihenfolge, Zwecke und Konten auf einer Seite, mit Einstellungen im Kopf: ' + i2[1]);
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('#printdoc') && !document.body.classList.contains('printdoc-mode')), 'I: nach dem Drucken ist die Druckansicht wieder weg');

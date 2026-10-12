@@ -1593,6 +1593,20 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .jv-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .jv-kpis.c1 { grid-template-columns: minmax(0, 1fr); } .jv-kpis.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .jv-kpis.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.jv-lad rect.jv-est { fill-opacity: .4; stroke-width: 1.5; stroke-dasharray: 4 3; }
+.jv-proj { fill: none; stroke-width: 2.5; stroke-dasharray: 6 5; opacity: .85; }
+.jv-zline { stroke: var(--red); stroke-width: 1.5; stroke-dasharray: 3 4; }
+.jv-zlab { font-size: 11px; font-weight: 600; fill: var(--red); }
+.jv-plab { font-style: italic; }
+.jv-zd { padding: 10px 14px 12px; display: flex; flex-direction: column; gap: 9px; }
+.jv-zin { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.jv-zin input { width: 130px; text-align: right; }
+.jv-zl { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; }
+.jv-zbar { height: 10px; border-radius: 5px; background: var(--soft); overflow: hidden; margin-top: 4px; }
+.jv-zbar span { display: block; height: 100%; border-radius: 5px; background: var(--jvH); }
+.jv-zbar span.proj { background: repeating-linear-gradient(45deg, var(--jvH) 0 6px, var(--jvV) 6px 12px); opacity: .75; }
+.jv-ztxt { margin: 0; }
+.jv-topsum { margin: 0 0 8px; }
 @media (max-width: 1100px) { .jv-kpis.c3, .jv-kpis.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .jv-kpi { position: relative; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); min-width: 0; overflow: hidden; }
 .jv-kh { background: var(--soft); border-bottom: 1px solid var(--line); padding: 10px 14px 10px; }

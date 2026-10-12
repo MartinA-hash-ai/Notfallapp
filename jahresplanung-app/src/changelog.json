@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.26.0",
+    "version": "0.27.0",
     "date": "",
+    "items": [
+      "Neu: „Jahresziel & Hochrechnung“ – Hochrechnung bis 31.12.: Stand im Hauptjahr × (Jahressumme ÷ Summe bis zum Stichtag) im Vergleichsjahr; dazu die Spanne über alle gewählten vollständigen Jahre und wie viel der Jahressumme jeweils bis zum Stichtag da war",
+      "Jahresziel eintragen (je Jahr und je Auswahl alle / nur Privat / nur Institutionen; steht in der Planungsdatei): Stand und Hochrechnung als Balken in Prozent des Ziels, was noch fehlt und was im Vergleichsjahr nach dem Stichtag noch kam",
+      "Im Jahresverlauf die Hochrechnung als gestrichelte Linie bis 31.12. und das Ziel als waagerechte Linie",
+      "Kennzahlen: „Median je Spende“ (unempfindlich gegen einzelne große Spenden) und „Anteil der größten 10 %“ (wie viel der Summe von den 10 % größten Spender:innen kommt, Veränderung in Prozentpunkten)",
+      "Neu: „Größte Spender:innen“ – die 10 (oder 25) größten mit Gruppe, Summe, Vorjahr, Veränderung, Anteil und kumuliertem Anteil; im PDF für die Präsentation ohne Namen",
+      "Wer schon eine eigene Reihenfolge der Abschnitte hat, bekommt neue Abschnitte hinter ihren Nachbarn statt ganz ans Ende"
+    ]
+  },
+  {
+    "version": "0.26.0",
+    "date": "2026-10-12T21:30",
     "items": [
       "Privat oder Institution: Die App stuft jede:n Zahler:in ein – Institution, wenn ein Stichwort im Namen (Stiftung, Bank, Pfarrei, GmbH, e.V. …) oder im Verwendungszweck (Gewinnsparen, Reinertrag, Kollekte, Geldauflage …) steht; lange Stichwörter greifen auch mitten im Wort („Bürgerstiftung“), kurze Abkürzungen nur als ganzes Wort",
       "Oben in der Leiste „Spender:innen: alle / nur Privat / nur Institutionen“ – gilt für den ganzen Jahresvergleich; „Einstufung prüfen“ zeigt alle Institutionen und die größten privat eingestuften, jede Einstufung lässt sich von Hand ändern, Stichwörter ergänzen oder entfernen",
