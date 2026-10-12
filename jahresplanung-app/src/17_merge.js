@@ -53,6 +53,7 @@ function merge3(base, mine, theirs) {
   const bek = out.spenden.bek = {};                          // schon eingelesene Spenden: von beiden Seiten
   for (const src of [mine, theirs]) for (const [y, a] of Object.entries((src.spenden || {}).bek || {})) bek[y] = [...new Set((bek[y] || []).concat(a))];
   out.spenden.allg = mergeObj((base.spenden || {}).allg, (mine.spenden || {}).allg, (theirs.spenden || {}).allg, { coll: 'spenden', key: 'allg' }, [], cnt);   // Regeln der allgemeinen Spenden: eigene Fassung
+  out.spenden.grenze = mergeObj((base.spenden || {}).grenze, (mine.spenden || {}).grenze, (theirs.spenden || {}).grenze, { coll: 'spenden', key: 'grenze' }, [], cnt);   // Ausreißer-Grenze je Jahr: eigene Fassung
   out.meta = clone(theirs.meta);
   return { data: clone(out), conflicts, cnt };
 }
@@ -78,7 +79,7 @@ function recLabel(coll, rec, key) {
   if (coll === 'sondertage') return 'Freier Tag „' + (rec.name || 'ohne Namen') + '“ ' + fmtS(dn(rec.datum));
   if (coll === 'personen') return 'Person ' + (rec.name || key);
   if (coll === 'feiertage') return 'Feiertage';
-  if (coll === 'spenden') return rec && rec.n ? rec.n + ' Spendenzuordnung' + (rec.n === 1 ? '' : 'en') + ', die hier fehlen' : key === 'neu' ? 'Neu-Markierung einer Spende' : key === 'nein' ? 'ausgeschlossene Spende' : 'Spendenzuordnung';
+  if (coll === 'spenden') return rec && rec.n ? rec.n + ' Spendenzuordnung' + (rec.n === 1 ? '' : 'en') + ', die hier fehlen' : key === 'neu' ? 'Neu-Markierung einer Spende' : key === 'nein' ? 'ausgeschlossene Spende' : key === 'grenze' ? 'Ausreißer-Grenze der Spendenstatistik' : 'Spendenzuordnung';
   return 'Einstellungen';
 }
 function valText(coll, field, v, rec) {
@@ -200,6 +201,9 @@ function describeChanges(a, b, max = 12) {
   const nz = Object.keys(wb).filter(k => wa[k] !== wb[k]).length, nr = Object.keys(wa).filter(k => !(k in wb)).length;
   if (nz) out.push('Spendenzwecke: bei ' + nz + ' Spende' + (nz === 1 ? '' : 'n') + ' den Zweck von Hand festgelegt');
   if (nr) out.push('Spendenzwecke: ' + nr + ' Festlegung' + (nr === 1 ? '' : 'en') + ' von Hand aufgehoben');
+  const ga = (a.spenden || {}).grenze || {}, gb = (b.spenden || {}).grenze || {};                // Ausreißer-Grenze der Statistik „Spenden JJJJ“
+  for (const y of [...new Set([...Object.keys(ga), ...Object.keys(gb)])].sort()) if (ga[y] !== gb[y])
+    out.push('Spenden ' + y + ': ' + (gb[y] ? 'Spenden über ' + Math.round(gb[y] / 100).toLocaleString('de-DE') + ' € in der Statistik ausgeblendet' : 'alle Spenden wieder in der Statistik'));
   const sa = a.settings || {}, sb = b.settings || {};
   if (JS(sa.bereiche) !== JS(sb.bereiche)) out.push('Bereiche: ' + (sb.bereiche || []).map(p => (p.zeichen || p.key) + ' ' + p.name).join(', '));
   if (JS(sa.pal) !== JS(sb.pal)) out.push('PAL-Markierung: ' + ((sb.pal || {}).zeichen || 'P') + ' (' + (STILE[(sb.pal || {}).stil] || '') + ')');

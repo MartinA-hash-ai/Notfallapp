@@ -283,6 +283,7 @@ function normalizeData(d) {
   const zids = new Set(d.zwecke.map(z => z.id));                     // Zweck von Hand festgelegt: Schlüssel → Zweck-Id oder „-“ (zweckungebunden)
   if (isObj(sp.zweck)) for (const [k, v] of Object.entries(sp.zweck)) if (v === '-' || zids.has(v)) d.spenden.zweck[k] = v;
   if (isObj(sp.ignor)) for (const k of Object.keys(sp.ignor)) if (sp.ignor[k] && str(k).trim()) (d.spenden.ignor = d.spenden.ignor || {})[str(k).trim()] = 1;   // ausgeblendete Vorschläge
+  if (isObj(sp.grenze)) for (const [y, v] of Object.entries(sp.grenze)) if (/^\d{4}$/.test(y) && isNum(v) && v > 0) (d.spenden.grenze = d.spenden.grenze || {})[y] = Math.round(v);   // Statistik „Spenden JJJJ“: Spenden über … (Cent) ausblenden
   if (isObj(sp.allg)) for (const [y, v] of Object.entries(sp.allg)) {      // allgemeine Spenden je Jahr: Regel (Schlagworte, Daueraufträge vorschlagen)
     const r = isObj(v) && isObj(v.regel) ? v.regel : {}, worte = [...new Set((Array.isArray(r.worte) ? r.worte : []).map(w => str(w).trim()).filter(Boolean))];
     if (/^\d{4}$/.test(y) && (worte.length || r.da === true)) (d.spenden.allg = d.spenden.allg || {})[y] = { regel: Object.assign({ worte }, r.da === true ? { da: true } : {}) };

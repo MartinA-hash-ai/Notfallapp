@@ -117,12 +117,13 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.click('.spj-her .seg-btn:has-text("ohne Maßnahme")'); await p.waitForTimeout(250);
   const e2 = await tile();
   ok(/^100 € \| 1 Spende/.test(e1[0]) && /^455 € \| 7 Spenden/.test(e2[0]), 'E: Herkunft – aus Maßnahmen ' + e1[0] + ' · ohne Maßnahme ' + e2[0]);
-  ok(e1l[0] === 'Zweckungebunden' && e1l[1] === 3, 'E: die Zuordnungsliste zeigt trotz Herkunft-Filter alle zweckungebundenen (' + e1l[1] + ')');
+  ok(e1l[0] === 'Alle Spenden 2027' && e1l[1] === 8, 'E: die Zuordnungsliste zeigt trotz Herkunft-Filter alle Spenden des Jahres (' + e1l[1] + ')');
   await p.click('.spj-her .seg-btn:has-text("alle Spenden")'); await p.waitForTimeout(200);
   await p.click('.spj-t tr[data-g="Paderborn - Lage"]'); await p.waitForTimeout(250);
   const e3 = await tile(), e4 = await p.evaluate(() => [document.querySelector('.spj-chip').textContent, document.querySelectorAll('.spj-row').length]);
-  ok(/^60 € \| 2 Spenden/.test(e3[0]) && /^60 €/.test(e3[2]) && /Gliederung: Lage/.test(e4[0]) && e4[1] === 3, 'E: Klick auf „Lage“ filtert die Kacheln (60 €, beide Daueraufträge) – die Zuordnungsliste bleibt vollständig (' + e4[1] + ')');
-  ok(await p.evaluate(() => { const w = document.querySelector('.spj-gscroll'); return getComputedStyle(w).maxHeight === '213px' && getComputedStyle(w).overflowY === 'auto'; }), 'E: Gliederungen-Tabelle höchstens 7 Zeilen hoch, Rest per Scrollen');
+  ok(/^60 € \| 2 Spenden/.test(e3[0]) && /^60 €/.test(e3[2]) && /Gliederung: Lage/.test(e4[0]) && e4[1] === 8, 'E: Klick auf „Lage“ filtert die Kacheln (60 €, beide Daueraufträge) – die Zuordnungsliste bleibt vollständig (' + e4[1] + ')');
+  const e5 = await p.evaluate(() => { const b = [...document.querySelectorAll('.spj-tabs > .spj-box')].map(e => Math.round(e.getBoundingClientRect().height)), w = document.querySelector('.spj-gscroll'); return [b[0], b[1], getComputedStyle(w).overflowY]; });
+  ok(e5[0] === e5[1] && e5[2] === 'auto', 'E: Gliederungen-Tabelle so hoch wie die Zwecke-Tabelle daneben (' + e5[0] + ' / ' + e5[1] + ' px), Rest per Scrollen');
   await p.click('.spj-chip .sp-x'); await p.waitForTimeout(200);
   ok(/^555 €/.test((await tile())[0]), 'E: × hebt den Filter auf');
 

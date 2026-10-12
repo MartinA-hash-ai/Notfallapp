@@ -1501,3 +1501,32 @@ html, body { overflow-anchor: none; }   /* die App zeichnet ganze Bereiche neu �
 .spm-filter .sp-q { flex: 1; min-width: 180px; max-width: 360px; font-size: 12.5px; }
 .spm-listbox .spj-act .spm-excl { white-space: nowrap; }
 .spm-listbox .spj-lh .spm-apply { padding: 3px 12px; font-size: 12.5px; }
+/* 0.19: „Alle Spenden“ in der Seitenleiste, ⓘ zum Anklicken */
+.spj-zi.alle { margin-bottom: 6px; }
+.spj-zi.alle .spj-zn { font-weight: 600; }
+.infobtn { border: 0; background: none; padding: 0 3px; line-height: 1; cursor: pointer; }
+.infobtn:hover { color: var(--focus); }
+.menu.infopop { max-width: 380px; min-width: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink2); }
+mark.sp-hl { background: color-mix(in srgb, #f5c400 38%, transparent); color: var(--ink); border-radius: 3px; padding: 0 1px; box-shadow: 0 0 0 1px color-mix(in srgb, #d9a400 35%, transparent); }
+html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, transparent); }
+.sp-ov.click { cursor: pointer; }
+.sp-hit.click { cursor: pointer; }
+.spj-row.flash { animation: spj-flash 2.6s ease-out; }
+@keyframes spj-flash { 0%, 30% { background: color-mix(in srgb, #f5c400 45%, var(--card)); } 45% { background: color-mix(in srgb, #f5c400 18%, var(--card)); } 60% { background: color-mix(in srgb, #f5c400 45%, var(--card)); } 100% { background: transparent; } }
+.menu.spj-sugpop { min-width: 300px; padding: 10px 12px 12px; }
+.spj-pop-h { margin-bottom: 6px; }
+.spj-pop-l { font-size: 11px; font-weight: 700; letter-spacing: .5px; text-transform: uppercase; color: var(--muted); margin: 10px 0 4px; }
+.spj-pop-r { display: flex; gap: 6px; align-items: center; }
+.spj-pop-r input, .spj-pop-r select { flex: 1; min-width: 0; }
+.spj-pop-r button { white-space: nowrap; }
+/* 0.19: Ausreißer-Grenze rechts in der Leiste von „Spenden JJJJ“ */
+.spj-gr { display: inline-flex; align-items: center; gap: 6px; margin-left: auto; }
+.spj-gr .spj-lbl { font-weight: 500; color: var(--muted); }
+.spj-gr.on .spj-lbl { color: var(--ink2); }
+.spj-gr .spj-grenze { width: 92px; text-align: right; font-size: 13px; padding: 3px 7px; }
+.spj-gr .spj-aus { background: var(--warnbg); color: var(--warn); }
+/* 0.19: Gliederungen so hoch wie die Zwecke-Tabelle daneben (längere Listen rollen) */
+.spj-tabs:not(.pd-spj) { align-items: stretch; }
+.spj-tabs:not(.pd-spj) > .spj-box:has(.spj-gscroll) { display: flex; flex-direction: column; }
+.spj-tabs .spj-gscroll { flex: 1 1 auto; max-height: none; min-height: calc(31px + 4 * 26px); contain: size; }
+@media (max-width: 1100px) { .spj-tabs .spj-gscroll { contain: none; max-height: calc(31px + 7 * 26px); } }

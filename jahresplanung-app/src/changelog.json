@@ -1,7 +1,21 @@
 [
   {
-    "version": "0.18.0",
+    "version": "0.19.0",
     "date": "",
+    "items": [
+      "Spendenzwecke zuordnen: ohne gewählten Zweck zeigt die Liste alle Spenden des Jahres (mit ihrem Zweck); links oben „Alle Spenden JJJJ“, „zweckungebunden“ wählt man wie einen Zweck",
+      "Zweck wechseln behält die Ansicht „Bei Zweck“ – man sieht gleich die Spenden des neuen Zwecks",
+      "Jahr wechseln: „Spenden“ des neuen Jahres mit demselben Zweck; gibt es ihn nicht, alle Spenden",
+      "Was die Regel erkennt, ist in der Zeile hervorgehoben – das Schlagwort im Verwendungszweck (auch getrennt geschrieben), bei Konto-Regeln die Gliederung; ebenso in der Vorschau und bei „Spenden zuordnen“ der Maßnahmen",
+      "Klick in die Jahresgrafik (Tag) oder auf einen Wochenbalken: die Spenden werden unten in der Liste herausgesucht – die Seite springt nicht, die Zeilen leuchten kurz auf, sobald man hinscrollt",
+      "„+“ bei einem Vorschlag öffnet ein kleines Fenster: als neuer Zweck (Name gleich eintippen) oder zu einem bestehenden Zweck",
+      "Ausreißer wie Erbschaften: rechts bei „Spenden JJJJ“ „über … € ausblenden“ – zählt dann nicht in Kacheln, Grafiken, Tabellen, Übersicht und PDF; je Jahr in der Planungsdatei, mit Hinweis, was ausgeblendet ist",
+      "Gliederungen-Tabelle so hoch wie die Zwecke-Tabelle daneben; Erklärung „Zweck wählen …“ hinter ⓘ, Hinweis zum Filtern entfernt"
+    ]
+  },
+  {
+    "version": "0.18.0",
+    "date": "2026-10-10T08:24",
     "items": [
       "„Spenden zuordnen“ (Maßnahme) im gleichen Aufbau wie die Spendenzwecke: links die Maßnahmen des Jahres mit Anzahl und Summe, rechts die gewählte mit ihrer Regel in einer Zeile – Schlagworte, Zeitraum ab PAL, „ohne Daueraufträge“",
       "Regeln ordnen jetzt selbst zu, auch Spenden aus später eingelesenen Dateien – der Zwischenschritt „Prüfen“ entfällt",

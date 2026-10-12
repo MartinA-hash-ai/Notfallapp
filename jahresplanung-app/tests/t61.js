@@ -1,4 +1,4 @@
-// 0.16.7/0.17 Spendenzwecke zuordnen: Zwecke links, Spenden markieren (Klick, Umschalt-Klick, Häkchen oben) und mit der Leiste unten verschieben; Reihenfolge per Ziehen
+// 0.16.7/0.17/0.19 Spendenzwecke zuordnen: Zwecke links, Spenden markieren (Klick, Umschalt-Klick, Häkchen oben) und mit der Leiste unten verschieben; Reihenfolge per Ziehen
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 // erfundene Buchungen: 12 Spenden im März 2027, Betrag = 10 € × Tag
@@ -23,14 +23,20 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   const rowOf = name => p.evaluate(n => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].find(r => SP.byKey.get(r.dataset.k).name === n).dataset.k, name);
   const clickRow = async (name, mod) => { const k = await rowOf(name); await p.click('.spj-row[data-k="' + k + '"] .sp-z', mod ? { modifiers: [mod] } : {}); await p.waitForTimeout(80); };
   const move = async v => { if (v != null) await p.selectOption('.spj-act .spj-move', v); await p.click('.spj-act .spj-go'); await p.waitForTimeout(250); };
-  const side = () => p.evaluate(() => [...document.querySelectorAll('.spj-zi')].map(e => e.querySelector('.spj-zn').textContent.trim() + ' ' + e.querySelector('.spj-zs').textContent + (e.classList.contains('on') ? '*' : '')));
+  const side = () => p.evaluate(() => [...document.querySelectorAll('.spj-zi:not(.alle)')].map(e => e.querySelector('.spj-zn').textContent.trim() + ' ' + e.querySelector('.spj-zs').textContent + (e.classList.contains('on') ? '*' : '')));
 
-  // ---- A: Aufbau – links die Zwecke mit Anzahl und Summe, rechts „Kein Zweck gewählt“; Liste „Zweckungebunden“ (9), nichts markiert, keine Leiste
-  const a0 = await rows(), a1 = await bar(), a2 = await side();
-  ok(a2.join(' | ') === 'Rikscha 3 · 60 € | Wärmebus 0 · 0 € | zweckungebunden 9 · 720 €', 'A: Seitenleiste: ' + a2.join(' | '));
+  // ---- A: Aufbau – links „Alle Spenden“ und die Zwecke mit Anzahl und Summe; ohne gewählten Zweck zeigt die Liste alle Spenden des Jahres (0.19);
+  //      „zweckungebunden“ links gewählt: 9 Spenden, nichts markiert, keine Leiste
+  const a2 = await side(), a3 = await p.evaluate(() => [document.querySelector('.spj-zi.alle').textContent, document.querySelector('.spj-zi.alle').classList.contains('on'), document.querySelector('.spj-zh').textContent]);
+  ok(a2.join(' | ') === 'Rikscha 3 · 60 € | Wärmebus 0 · 0 € | zweckungebunden 9 · 720 €' && a3[0] === 'Alle Spenden 202712 · 780 €' && a3[1], 'A: Seitenleiste: ' + a3[0] + ' (gewählt) | ' + a2.join(' | '));
   ok(await p.evaluate(() => { const s = document.querySelector('.spj-side').getBoundingClientRect(), m = document.querySelector('.spj-main').getBoundingClientRect(); return s.right <= m.left + 1 && s.width > 200 && s.width < 300 && Math.abs(s.top - m.top) < 2; }) &&
-    await p.evaluate(() => document.querySelector('.spj-zh').textContent === 'Kein Zweck gewählt'), 'A: Zwecke links (Seitenleiste), Arbeitsbereich rechts – ohne Wahl „Kein Zweck gewählt“');
-  ok(a0.length === 9 && a0[0] === 'Probe L' && !a0.some(n => n.endsWith('*')), 'A: Liste zeigt die 9 zweckungebundenen Spenden, nichts markiert');
+    a3[2] === 'Alle Spenden 202712 Spenden · 780 €', 'A: Zwecke links (Seitenleiste), Arbeitsbereich rechts – ohne Wahl „' + a3[2] + '“');
+  const aAll = await rows();
+  ok(aAll.length === 12 && aAll[0] === 'Probe L' && await p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.rule')].map(t => t.textContent).join() === 'Rikscha,Rikscha,Rikscha'),
+    'A: ohne gewählten Zweck – Liste aller 12 Spenden, bei den drei Rikscha-Spenden der Zweck');
+  await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(200);
+  const a0 = await rows(), a1 = await bar();
+  ok(a0.length === 9 && a0[0] === 'Probe L' && !a0.some(n => n.endsWith('*')), 'A: „zweckungebunden“ gewählt – Liste der 9 zweckungebundenen Spenden, nichts markiert');
   ok(a1.all === 'keine' && !a1.on && await p.evaluate(() => !document.querySelector('[data-sec="sp-zu"] .spj-row select, [data-sec="sp-zu"] .spj-row .spj-to') && document.querySelectorAll('[data-sec="sp-zu"] .spj-row .spj-cb').length === 9),
     'A: Häkchen je Zeile, keine Auswahlliste und kein „→ Zweck“ in den Zeilen, Leiste unten noch unsichtbar');
 
@@ -41,7 +47,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   const b0 = await rows(), b1 = await bar(), b2 = await p.evaluate(() => { const r = document.querySelector('.spj-row.sel'), n = document.querySelector('.spj-row:not(.sel)'); return [getComputedStyle(r).backgroundColor, getComputedStyle(n).backgroundColor, r.getAttribute('aria-selected'), getComputedStyle(r.querySelector('.spj-cb')).backgroundColor]; });
   ok(b0.filter(n => n.endsWith('*')).join() === 'Probe L*,Probe J*', 'B: zwei Zeilen per Klick markiert (' + b0.filter(n => n.endsWith('*')).join() + ')');
   ok(b2[0] === 'rgb(227, 242, 253)' && b2[0] !== b2[1] && b2[2] === 'true' && b2[3] === 'rgb(31, 119, 180)', 'B: markierte Zeilen blau hinterlegt, Häkchen gefüllt');
-  ok(b1.on && b1.info === '2 Spenden markiert · 220,00 €' && b1.all === 'teils' && b1.target === '' && b1.dis, 'B: Leiste unten erscheint: „' + b1.info + '“ – ohne gewählten Zweck kein Ziel vorbelegt, Häkchen oben „teils“');
+  ok(b1.on && b1.info === '2 Spenden markiert · 220,00 €' && b1.all === 'teils' && b1.target === '' && b1.dis, 'B: Leiste unten erscheint: „' + b1.info + '“ – bei „zweckungebunden“ kein Ziel vorbelegt, Häkchen oben „teils“');
   const top1 = await p.evaluate(() => [scrollY, Math.round(document.querySelector('.spj-list').getBoundingClientRect().top), document.querySelector('.spj-list').offsetHeight]);
   ok(JSON.stringify(top1) === JSON.stringify(top0), 'B: Seite und Liste bleiben beim Markieren stehen ' + JSON.stringify([top0, top1]));
   await clickRow('Probe L');
@@ -95,7 +101,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
 
   // ---- G: Reihenfolge der Zwecke per Ziehen in der Seitenleiste; ⋯ → „Nach oben“; Strg+Z
   await p.dragAndDrop('.spj-zi[data-z="zw"]', '.spj-zi[data-z="zr"]', { targetPosition: { x: 40, y: 3 } }); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => D.zwecke.map(z => z.name).join() === 'Wärmebus,Rikscha' && [...document.querySelectorAll('.spj-zi')].slice(0, 2).map(e => e.dataset.z).join() === 'zw,zr'), 'G: „Wärmebus“ nach oben gezogen – Reihenfolge Wärmebus, Rikscha');
+  ok(await p.evaluate(() => D.zwecke.map(z => z.name).join() === 'Wärmebus,Rikscha' && [...document.querySelectorAll('.spj-zi:not(.alle)')].slice(0, 2).map(e => e.dataset.z).join() === 'zw,zr'), 'G: „Wärmebus“ nach oben gezogen – Reihenfolge Wärmebus, Rikscha');
   await p.click('.spj-zi[data-z="zr"]'); await p.waitForTimeout(150);
   await p.click('.spj-zmenu .menu-btn'); await p.click('.menu button:has-text("Nach oben")'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => D.zwecke.map(z => z.name).join() === 'Rikscha,Wärmebus'), 'G: ⋯ → „Nach oben“ setzt Rikscha wieder an den Anfang');

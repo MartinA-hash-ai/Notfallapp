@@ -230,6 +230,18 @@ function menuButton(label, items, align) {
   });
   return btn;
 }
+// ⓘ zum Anklicken: Erklärung als kleines Fenster daneben (schließt beim Klick daneben, Esc oder Scrollen)
+function infoButton(content) {
+  const btn = h('button', { class: 'info infobtn', type: 'button', 'aria-label': 'Info', 'aria-haspopup': 'dialog', onclick: e => {
+    e.stopPropagation();
+    if (_openMenu) { const was = _openMenu.btn === btn; closeMenu(); if (was) return; }
+    const m = h('div', { class: 'menu pop infopop', role: 'dialog', onclick: ev => ev.stopPropagation() }, typeof content === 'function' ? content() : h('div', null, content));
+    document.body.append(m);
+    placeMenu(m, btn.getBoundingClientRect());
+    _openMenu = { m, btn, at: performance.now() };
+  } }, 'ⓘ');
+  return btn;
+}
 // Klick auf eine Markierung (S, I, D, P …) oder eine Zeile der Terminliste hält die Maßnahme hervorgehoben;
 // „Bearbeiten“ steht dann hinter jeder Zeile dieser Maßnahme in der Terminliste (ohne Terminliste unter der Markierung)
 const clearPinMarks = () => { $$('.mline-edit').forEach(b => b.remove()); $$('.mline.pinned, .chip.pinned').forEach(l => l.classList.remove('pinned')); };
@@ -268,6 +280,7 @@ document.addEventListener('click', e => { if (UI.pin && !e.target.closest('.mlin
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && UI.pin && !$('.modal')) unpin(); });
 function closeMenu() { if (_openMenu) { _openMenu.m.remove(); _openMenu = null; } }
 document.addEventListener('click', () => closeMenu());
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && _openMenu && !$('.modal')) closeMenu(); });
 // Menüs stehen fest am Bildschirm: beim Scrollen der Seite (nicht im Menü selbst) schließen
 document.addEventListener('scroll', e => { if (_openMenu && performance.now() - (_openMenu.at || 0) > 300 && !(e.target instanceof Node && _openMenu.m.contains(e.target))) closeMenu(); }, true);
 // Warnliste beginnt unter der Kopfzeile – die kann bei 150 % Skalierung zweizeilig sein

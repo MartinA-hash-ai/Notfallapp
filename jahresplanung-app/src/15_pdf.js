@@ -246,9 +246,11 @@ function spPrintPages(f, ms, page) {
     for (const x of xs) {
       if (x.allg) {                                               // alle Spenden des Jahres: Kennzahlen und Verlauf, dann Zwecke und Gliederungen
         if (!J) continue;
-        out.push(page('Auswertung · ' + spjName(y), h('div', { class: 'pd-spm' }, h('p', { class: 'pd-meta' }, 'alle Spenden des Jahres aus den eingelesenen Dateien (' + SP.files.length + (SP.files.length === 1 ? ' Datei' : ' Dateien') + '), egal ob einer Maßnahme zugeordnet'),
-          spjTiles(J.list), spjCharts(y, true))));
-        out.push(page(spjName(y) + ' · Zwecke und Gliederungen', h('div', { class: 'spj-tabs pd-spj' }, spjZweckTable(J.list, true), spjGliedTable(J.list, true))));
+        const base = spjBase(J), aus = spjOut(J), gr = spjGrenze(y);                // Ausreißer über der Grenze zählen nicht mit
+        out.push(page('Auswertung · ' + spjName(y), h('div', { class: 'pd-spm' }, h('p', { class: 'pd-meta' }, 'alle Spenden des Jahres aus den eingelesenen Dateien (' + SP.files.length + (SP.files.length === 1 ? ' Datei' : ' Dateien') + '), egal ob einer Maßnahme zugeordnet' +
+            (aus.length ? ' · ohne ' + spCount(aus.length) + ' über ' + eur0(gr) + ' (zusammen ' + eur0(aus.reduce((t, e) => t + e.rec.b, 0)) + ')' : '')),
+          spjTiles(base), spjCharts(y, true))));
+        out.push(page(spjName(y) + ' · Zwecke und Gliederungen', h('div', { class: 'spj-tabs pd-spj' }, spjZweckTable(base, true), spjGliedTable(base, true))));
         continue;
       }
       const list = by.get(x.id) || [], s = spStats(x.m, list), m = x.m;

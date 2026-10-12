@@ -356,6 +356,58 @@ function spTerm(t) {
   const sq = spSqueeze(t), rx = new RegExp('(?<![\\p{L}\\p{N}])' + esc(t).replace(/[*?]/g, '\\$&').replace(/\s+/g, '\\s*') + '(?![\\p{L}\\p{N}])', 'iu');
   return { word: t, test: rec => rx.test(rec.zweck) || (sq.length >= 6 && rec.sq.includes(sq)) };
 }
+// Stellen im Text, auf die Schlagworte greifen – für die Hervorhebung in den Listen (gleiche Regeln wie spTerm; ausschließende zählen nicht): [[von, bis], …]
+const _spMk = new Map();
+function spMarkTerm(t) {
+  if (_spMk.has(t)) return _spMk.get(t);
+  const esc = x => x.replace(/[.+^${}()|[\]\\]/g, '\\$&'), wb = '(?<![\\p{L}\\p{N}])', we = '(?![\\p{L}\\p{N}])';
+  let c = null;
+  if (t.startsWith('~') && t.length > 1) { const w = t.slice(1).toLowerCase().replace(/\s+/g, ''); c = { fuzzy: w, max: w.length >= 8 ? 2 : w.length >= 4 ? 1 : 0 }; }
+  else if (/[*?]/.test(t)) {
+    const lit = spSqueeze(t.replace(/[*?]/g, ''));
+    c = { rx: new RegExp(wb + esc(t).replace(/\*/g, '[\\p{L}\\p{N}]*').replace(/\?/g, '[\\p{L}\\p{N}]').replace(/\s+/g, '\\s*') + we, 'giu'),
+      sx: lit.length >= 6 ? new RegExp(t.toLowerCase().split(/([*?])/).map(x => x === '*' ? '[\\p{L}\\p{N}]{0,15}' : x === '?' ? '[\\p{L}\\p{N}]' : esc(spSqueeze(x))).join(''), 'gu') : null };
+  } else { const sq = spSqueeze(t); c = { rx: new RegExp(wb + esc(t).replace(/\s+/g, '\\s*') + we, 'giu'), sq: sq.length >= 6 ? sq : null }; }
+  if (_spMk.size > 300) _spMk.clear();
+  _spMk.set(t, c);
+  return c;
+}
+function spMarks(words, text) {
+  text = str(text); const out = [];
+  if (!text || !words || !words.length) return out;
+  let SQ = null;
+  const sqz = () => { if (!SQ) { SQ = { s: '', a: [], b: [] }; for (const m of text.matchAll(/[\p{L}\p{N}]/gu)) for (const ch of m[0].toLowerCase()) { SQ.s += ch; SQ.a.push(m.index); SQ.b.push(m.index + m[0].length); } } return SQ; };
+  const parts = [];
+  for (const w of words) for (const p of str(w).split('+')) { const q = p.trim(); if (q && !/^[-!]/.test(q)) parts.push(q); }
+  for (const p of parts) {
+    const c = spMarkTerm(p), n0 = out.length;
+    if (c.fuzzy != null) {
+      const tk = [...text.matchAll(/[\p{L}\p{N}]+/gu)];
+      for (let i = 0; i < tk.length; i++) {
+        if (spLev(tk[i][0].toLowerCase(), c.fuzzy, c.max) <= c.max) out.push([tk[i].index, tk[i].index + tk[i][0].length]);
+        else if (i + 1 < tk.length && spLev((tk[i][0] + tk[i + 1][0]).toLowerCase(), c.fuzzy, c.max) <= c.max) out.push([tk[i].index, tk[i + 1].index + tk[i + 1][0].length]);
+      }
+      continue;
+    }
+    for (const m of text.matchAll(c.rx)) if (m[0]) out.push([m.index, m.index + m[0].length]);
+    if (out.length > n0) continue;
+    const Q = (c.sx || c.sq) ? sqz() : null;                       // von der Bank getrennt („JAHRESBE RICHT“)
+    if (Q && c.sx) for (const m of Q.s.matchAll(c.sx)) { if (m[0]) out.push([Q.a[m.index], Q.b[m.index + m[0].length - 1]]); }
+    else if (Q && c.sq) for (let i = Q.s.indexOf(c.sq); i >= 0; i = Q.s.indexOf(c.sq, i + 1)) out.push([Q.a[i], Q.b[i + c.sq.length - 1]]);
+  }
+  out.sort((a, b) => a[0] - b[0]);
+  const m = []; for (const r of out) { const l = m[m.length - 1]; if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else m.push(r.slice()); }
+  return m;
+}
+// Text mit hervorgehobenen Stellen (für die Spalte „Verwendungszweck“)
+function spHl(text, words, tip) {
+  text = str(text); const rg = spMarks(words, text);
+  if (!rg.length) return text;
+  const out = []; let at = 0;
+  for (const [a, b] of rg) { if (a > at) out.push(text.slice(at, a)); out.push(h('mark', { class: 'sp-hl', title: tip || null }, text.slice(a, b))); at = b; }
+  if (at < text.length) out.push(text.slice(at));
+  return out;
+}
 // Mehrere Schlagworte: eines genügt; ausschließende verhindern den Treffer. Ergebnis: das passende Schlagwort oder null.
 // all = true (Suche): nur ausschließende Begriffe → alles andere passt
 const _spMatch = new Map();
@@ -651,7 +703,7 @@ function spNotice() {
   return null;
 }
 function spOverview(ms, cmp, mid, by) {
-  const yl = x => x.allg && SP.rows.length ? spjCompute(x.allg).list.map(e => ({ d: e.rec.d, b: e.rec.b })) : by.get(x.id);   // „Spenden JJJJ“: alle Spenden des Jahres
+  const yl = x => x.allg && SP.rows.length ? spjBase(spjCompute(x.allg)).map(e => ({ d: e.rec.d, b: e.rec.b })) : by.get(x.id);   // „Spenden JJJJ“: alle Spenden des Jahres (ohne Ausreißer)
   const rows = ms.map(x => ({ x, s: spStats(x.m, yl(x)) })), R = spRicht(), real = rows.filter(r => !r.x.allg);
   const tot = real.reduce((t, r) => ({ n: t.n + r.s.n, sum: t.sum + r.s.sum, auf: t.auf + (r.s.n && r.s.auf ? r.s.auf : 0), kos: t.kos + (r.s.n && r.s.kos ? r.s.kos : 0) }), { n: 0, sum: 0, auf: 0, kos: 0 });
   const cell = (v, cls) => h('td', { class: 'num' + (cls ? ' ' + cls : '') }, v);
@@ -857,7 +909,7 @@ function spmList(x, cmp) {
       return h('div', { class: 'spj-row' + (on ? ' sel' : ''), dataset: { k: rec.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(rec),
         onclick: ev => { if (ev.target.closest('button, a, input, select')) return; if (SPUI.skip.has(rec.k)) SPUI.skip.delete(rec.k); else SPUI.skip.add(rec.k); upd(); } },
         h('span', { class: 'spj-cb', 'aria-hidden': 'true' }), h('span', { class: 'sp-d' }, fmtD(rec.d)), h('span', { class: 'sp-b' }, eur(rec.b)), h('span', { class: 'spj-g' }, spGlied(rec.konto)),
-        UI.spDet ? h('span', { class: 'sp-n' }, rec.name || '') : null, h('span', { class: 'sp-z' }, rec.zweck || '–'),
+        UI.spDet ? h('span', { class: 'sp-n' }, rec.name || '') : null, h('span', { class: 'sp-z' }, rec.zweck ? spHl(rec.zweck, [typed]) : '–'),
         h('span', { class: 'spj-tags' }, (cmp.hits.get(rec.k) || []).filter(g => g.id !== mid).length ? h('span', { class: 'sp-tag other', tip: 'passt auch zur Regel einer anderen Maßnahme – steht danach unter „zu klären“' },
           'auch: ' + (cmp.hits.get(rec.k) || []).filter(g => g.id !== mid).map(g => nm(g.id)).join(', ')) : null,
           (S.nein[rec.k] || []).includes(mid) ? h('span', { class: 'sp-tag gone' }, 'ausgeschlossen') : null, spIsDA(rec) ? h('span', { class: 'sp-tag da' }, 'Dauerauftrag') : null),
@@ -910,12 +962,15 @@ function spmList(x, cmp) {
       if (a >= 0) { for (let j = Math.min(a, i); j <= Math.max(a, i); j++) SPUI.sel.add(list[j].k); selUpd(ev.currentTarget); return; } }
     if (SPUI.sel.has(k)) { SPUI.sel.delete(k); if (SPUI.anchor === k) SPUI.anchor = null; } else { SPUI.sel.add(k); SPUI.anchor = k; }
     selUpd(ev.currentTarget); };
+  // hervorheben, worauf die Regel greift: bei „Zugeordnet“ (per Regel) die Schlagworte dieser Maßnahme, bei „zu klären“ die aller passenden
+  const wordsOf = id => ((spMObj(D, id) || {}).regel || {}).worte || [];
+  const hlW = (rec, z) => tab === 'zu' && z && z.r ? wordsOf(mid) : tab === 'klaeren' ? (cmp.hits.get(rec.k) || []).flatMap(g => wordsOf(g.id)) : [];
   const row = (rec, i) => { const on = SPUI.sel.has(rec.k), z = S.zu[rec.k];
     return h('div', { class: 'spj-row' + (tab === 'klaeren' ? ' offen' : '') + (on ? ' sel' : ''), dataset: { k: rec.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(rec),
       onmousedown: ev => { if (ev.shiftKey) ev.preventDefault(); }, onclick: ev => pick(ev, i) },
       h('span', { class: 'spj-cb', 'aria-hidden': 'true' }),
       h('span', { class: 'sp-d' }, fmtD(rec.d)), h('span', { class: 'sp-b' }, eur(rec.b)), h('span', { class: 'spj-g' }, spGlied(rec.konto)),
-      UI.spDet ? h('span', { class: 'sp-n' }, rec.name || '') : null, h('span', { class: 'sp-z' }, rec.gone ? '' : rec.zweck || '–'),
+      UI.spDet ? h('span', { class: 'sp-n' }, rec.name || '') : null, h('span', { class: 'sp-z' }, rec.gone ? '' : rec.zweck ? spHl(rec.zweck, hlW(rec, z)) : '–'),
       h('span', { class: 'spj-tags' }, tab === 'klaeren' ? (cmp.hits.get(rec.k) || []).map(g => h('button', { class: 'spj-pick', tip: 'der Maßnahme „' + nm(g.id) + '“ zuordnen (passt über „' + g.w + '“)',
         onclick: ev => { ev.stopPropagation(); spAssignTo([rec.k], g.id); } }, '→ ' + nm(g.id))) : tagsOf(rec, tab)),
       h('span', { class: 'spj-how' }, tab === 'zu' && z && z.r && neuK.has(rec.k) ? h('span', { class: 'sp-tag neu', tip: 'nach dem Einlesen neu zugeordnet – noch nicht geprüft' }, 'neu') : null));
@@ -957,7 +1012,8 @@ VIEW_FN.spenden = main => {
   if ((SP.at == null || _spLastView !== 'spenden') && !SP.busy && ST.conn === 'ok') spScan();   // beim Öffnen des Reiters neu einlesen (unveränderte Dateien kommen aus dem Speicher)
   _spLastView = 'spenden';
   const real = C.ms.filter(x => inYear(x, y)), allg = spAllgX(y), ms = [allg, ...real];
-  const mid = ms.some(o => o.id === UI.spMid) ? UI.spMid : spPickM(real) || allg.id, x = ms.find(o => o.id === mid);
+  // beim Wechsel des Jahres (gewählte Maßnahme oder „Spenden JJJJ“ eines anderen Jahres): „Spenden“ des neuen Jahres – der gewählte Zweck bleibt
+  const mid = ms.some(o => o.id === UI.spMid) ? UI.spMid : UI.spMid ? allg.id : spPickM(real) || allg.id, x = ms.find(o => o.id === mid);
   UI.spMid = mid;
   const cmp = spCompute(), by = spByM();
   main.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); main.classList.add('sp-drop'); } });
@@ -977,7 +1033,7 @@ VIEW_FN.spenden = main => {
       return 'aufklappen, um die Maßnahme zu wechseln' + (neu.length ? ' · neu: ' + neu.join(', ') : '') + (cmp.konf.length ? ' · ' + cmp.konf.length + ' zu klären' : ''); } }),
     x.allg ? section('sp-m', spjName(y), () => ({ body: spjView(y) }), {          // alle Spenden des Jahres: Zwecke, Gliederungen, Daueraufträge
       info: 'Alle Spenden des Jahres aus den eingelesenen Dateien – egal, ob sie einer Maßnahme zugeordnet sind. Mit „Herkunft“ lassen sich die Spenden aus Maßnahmen oder die ohne Maßnahme getrennt ansehen.',
-      closedSummary: () => { if (!SP.rows.length) return 'Spendendateien noch nicht eingelesen'; const st = spjStats(spjCompute(y).list); return eur0(st.sum) + ' aus ' + spCount(st.n); } }) :
+      closedSummary: () => { if (!SP.rows.length) return 'Spendendateien noch nicht eingelesen'; const J = spjCompute(y), st = spjStats(spjBase(J)), n = spjOut(J).length; return eur0(st.sum) + ' aus ' + spCount(st.n) + (n ? ' · ' + n + ' Ausreißer ausgeblendet' : ''); } }) :
     section('sp-m', h('span', { class: 'sp-mname', style: { color: inkC(x.color) } }, x.m.name || '(ohne Namen)'),
       () => ({ body: h('div', { class: 'sp-kpi' }, spTiles(x, s), spCharts(x, by.get(mid))) }),
       { closedSummary: () => s.n ? eur0(s.sum) + ' aus ' + spCount(s.n) : 'noch keine Spenden zugeordnet' }),
@@ -991,6 +1047,7 @@ VIEW_FN.spenden = main => {
 VIEW_FN['spenden:after'] = main => {
   for (const el of $$('[data-chart]', main)) try { spDraw(el); } catch (e) { console.error(e); }
   if (SPJ.focusName) { SPJ.focusName = false; const e = $('.spj-name', main); if (e) { e.focus(); e.select(); } }   // neuer Zweck: Namen gleich überschreiben
+  spjFlashRun(main);                                                                                              // Klick in die Jahresgrafik: Tag in der Liste
   const sg = $('.spj-sugbar:not(.all) .spj-sugs', main), more = $('.spj-sugmore', main);          // „alle N“ nur, wenn nicht alle Vorschläge in die Zeile passen
   if (sg && more) more.classList.toggle('hide', sg.scrollHeight <= sg.clientHeight + 2);
 };
@@ -1149,4 +1206,5 @@ function spCross(svg, g, cfg) {
     tipEl.replaceChildren(cfg.tip(i)); tipEl.classList.add('on'); placeTip(ev);
   });
   ov.addEventListener('mouseleave', () => { line.setAttribute('visibility', 'hidden'); dots.replaceChildren(); hideTip(); });
+  if (cfg.click) { ov.classList.add('click'); ov.addEventListener('click', ev => cfg.click(cfg.at(ev.clientX - svg.getBoundingClientRect().left))); }
 }

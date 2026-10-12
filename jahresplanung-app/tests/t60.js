@@ -29,7 +29,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
     await p.evaluate(() => spjSuggest(spjCompute(2027)).list.map(g => eur0(g.sum)).join() === '150 €,100 €,180 €,60 €'),
     'A: Vorschläge (ab zwei Spenden) – ' + a0.join(' | '));
   ok(await p.evaluate(() => [...document.querySelectorAll('.spj-sw-l')].every(b => !/Müller|Hauptstr|^Spende|Danke|Geburtstag/.test(b.textContent))), 'A: keine Namen der Spender:innen, Adressteile, Füllwörter oder Einzelfälle');
-  ok(await p.evaluate(() => document.querySelectorAll('.spj-sug .spj-to').length === 4 && [...document.querySelectorAll('.spj-sug .spj-to')].every(b => b.textContent === '+' && b.getAttribute('aria-label') === 'als neuen Zweck anlegen')), 'A: ohne gewählten Zweck legt „+“ einen neuen Zweck an');
+  ok(await p.evaluate(() => document.querySelectorAll('.spj-sug .spj-to').length === 4 && [...document.querySelectorAll('.spj-sug .spj-to')].every(b => b.textContent === '+' && b.getAttribute('aria-haspopup') === 'dialog')), 'A: „+“ an jedem Vorschlag öffnet die Auswahl (neuer oder bestehender Zweck)');
   const a1 = await p.evaluate(() => { const r = q => document.querySelector(q).getBoundingClientRect(), sb = r('.spj-sugbar'), m = r('.spj-main');
     return [r('.spj-rules').bottom <= sb.top + 1, sb.bottom <= r('.spj-listbox').top + 1, Math.round(sb.height), Math.round(sb.width) === Math.round(m.width), getComputedStyle(document.querySelector('.spj-sugbar')).backgroundColor]; });
   ok(a1[0] && a1[1] && a1[2] <= 40 && a1[3] && a1[4] !== 'rgba(0, 0, 0, 0)', 'A: Vorschläge als eine graue Zeile (' + a1[2] + ' px) zwischen Regeln und Liste, über die ganze Breite');
@@ -41,17 +41,26 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok(/Vorschau „~Rikscha“5 Spenden zweckungebunden/.test(b0[0]) && b0[1] === 'Für die Rikscha,Rickscha Malteser,Rikscha,Riksha Spende,Spende Rikscha', 'B: Vorschau „~Rikscha“ – alle fünf Schreibweisen');
   await p.click('.spj-prevx'); await p.waitForTimeout(200);
 
-  // ---- C: „+ neuer Zweck“ legt den Zweck mit Schlagwort an – der Vorschlag verschwindet, die Liste wird kleiner
+  // ---- C: „+“ → „Als neuer Zweck“ (Name vorbelegt, änderbar) legt den Zweck mit Schlagwort an – der Vorschlag verschwindet, die Liste wird kleiner
+  await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(150);                 // Liste „zweckungebunden“
   const h0 = await p.evaluate(() => [document.querySelector('.spj-sugbar').offsetHeight, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length]);
-  await p.click('.spj-sug[data-w="wärmebus"] .spj-to'); await p.waitForTimeout(300);
+  await p.click('.spj-sug[data-w="wärmebus"] .spj-to'); await p.waitForTimeout(200);
+  const cp = await p.evaluate(() => { const m = document.querySelector('.spj-sugpop'); return m && [m.querySelector('.spj-pop-name').value, document.activeElement === m.querySelector('.spj-pop-name'), !!m.querySelector('.spj-pop-sel'), m.textContent]; });
+  ok(cp && cp[0] === 'Wärmebus' && cp[1] && !cp[2] && /Als neuer Zweck/.test(cp[3]), 'C: „+“ öffnet ein kleines Fenster – Name „Wärmebus“ vorbelegt und markiert (noch kein Zweck zum Angliedern)');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => !document.querySelector('.spj-sugpop') && !D.zwecke.length), 'C: Esc schließt das Fenster, nichts angelegt');
+  await p.click('.spj-sug[data-w="wärmebus"] .spj-to'); await p.waitForTimeout(200);
+  await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   const c0 = await p.evaluate(() => { const z = D.zwecke.find(z => z.name === 'Wärmebus'); return [z && z.worte.join(), SPJ.z === (z && z.id), spjCompute(2027).list.filter(e => e.z === (z && z.id)).length,
     document.querySelector('.spj-sugbar').offsetHeight, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length]; });
-  ok(c0[0] === '~Wärmebus' && c0[1] && c0[2] === 4 && await p.evaluate(() => document.querySelector('.spj-zi.on .spj-zn').textContent.trim() === 'Wärmebus'), 'C: „+“ ohne Zweck – Zweck „Wärmebus“ mit „~Wärmebus“ angelegt und links gewählt, zählt 4 Spenden (auch „Waermebus“)');
+  ok(c0[0] === '~Wärmebus' && c0[1] && c0[2] === 4 && await p.evaluate(() => document.querySelector('.spj-zi.on .spj-zn').textContent.trim() === 'Wärmebus'), 'C: Enter – Zweck „Wärmebus“ mit „~Wärmebus“ angelegt und links gewählt, zählt 4 Spenden (auch „Waermebus“)');
   ok(!(await sugs()).some(t => /Wärmebus/.test(t)) && c0[4] === h0[1] - 4 && c0[3] === h0[0], 'C: Vorschlag verschwindet, Liste der zweckungebundenen um 4 kleiner, Vorschlagsfeld gleich hoch (' + c0[3] + ' px)');
 
-  // ---- D: mit gewähltem Zweck: „+ zu „Wärmebus““ fügt das Schlagwort hinzu
-  ok(await p.evaluate(() => document.querySelector('.spj-sug[data-w="rikscha"] .spj-to').getAttribute('aria-label') === 'zu Wärmebus hinzufügen'), 'D: mit gewähltem Zweck fügt „+“ das Schlagwort dem Zweck hinzu');
-  await p.click('.spj-sug[data-w="rikscha"] .spj-to'); await p.waitForTimeout(300);
+  // ---- D: „+“ → „Zu einem bestehenden Zweck“ (der gewählte ist vorbelegt) fügt das Schlagwort hinzu
+  await p.click('.spj-sug[data-w="rikscha"] .spj-to'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => { const s = document.querySelector('.spj-sugpop .spj-pop-sel'); return s && s.selectedOptions[0].textContent === 'Wärmebus' && document.querySelector('.spj-sugpop .spj-pop-name').value === 'Rikscha'; }),
+    'D: mit gewähltem Zweck ist er im Fenster unter „Zu einem bestehenden Zweck“ vorbelegt');
+  await p.click('.spj-sugpop .spj-pop-add'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => { const z = D.zwecke.find(z => z.name === 'Wärmebus'); return z.worte.join() === '~Wärmebus,~Rikscha' && spjCompute(2027).list.filter(e => e.z === z.id).length === 9; }) &&
     !(await sugs()).some(t => /Rikscha/.test(t)), 'D: „~Rikscha“ beim Zweck – 9 Spenden, Vorschlag weg');
 
@@ -85,7 +94,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok(f0[0] < 1500, 'F: 6.000 Spenden mit 3.000 verschiedenen Wörtern in ' + f0[0] + ' ms ausgewertet (' + f0[1] + ' Vorschläge)');
 
   // ---- G: von Hand auf „zweckungebunden“ gesetzte Spenden (z. B. alle markiert und dorthin verschoben) blockieren Vorschläge und Regeln nicht
-  await p.evaluate(() => { SPJ.z = null; SPJ.typed = ''; renderNow(); }); await p.waitForTimeout(150);
+  await p.evaluate(() => { SPJ.z = '-'; SPJ.typed = ''; renderNow(); }); await p.waitForTimeout(150);
   await p.click('.spj-lh .spj-all'); await move('-');
   const g0 = await p.evaluate(() => [spjCompute(2027).list.filter(e => e.z === '-' && e.hand).length, spjCompute(2027).list.filter(e => e.z === '-').length, document.querySelector('.spj-unhand')?.textContent]);
   const g1 = await sugs();
@@ -93,7 +102,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
     'G: alle ' + g0[0] + ' zweckungebundenen von Hand festgelegt – Vorschläge bleiben (' + g1.length + '), Knopf „' + g0[2] + '“');
   await p.click('.spj-zi:has-text("Wärmebus")'); await p.waitForTimeout(200);
   const n0 = await p.evaluate(() => spjCompute(2027).list.filter(e => e.z === D.zwecke.find(z => z.name === 'Wärmebus').id).length);
-  await p.click('.spj-sug[data-w="trauer"] .spj-to'); await p.waitForTimeout(300);
+  await p.click('.spj-sug[data-w="trauer"] .spj-to'); await p.waitForTimeout(200); await p.click('.spj-sugpop .spj-pop-add'); await p.waitForTimeout(300);
   const g2 = await p.evaluate(() => { const z = D.zwecke.find(z => z.name === 'Wärmebus'), tr = SP.rows.filter(r => /trauer/i.test(r.zweck)).map(r => r.k);
     return [spjCompute(2027).list.filter(e => e.z === z.id).length, tr.every(k => !(k in D.spenden.zweck)), Object.values(D.spenden.zweck).filter(v => v === '-').length]; });
   ok(g2[0] === n0 + 3 && g2[1] && g2[2] === g0[0] - 3, 'G: „+“ (Trauer*) holt die drei passenden Spenden trotz Markierung von Hand zum Zweck (' + n0 + ' → ' + g2[0] + '), die übrigen bleiben markiert');

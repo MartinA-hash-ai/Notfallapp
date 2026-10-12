@@ -16,7 +16,7 @@ const put = (p, name, t, lm) => p.evaluate(([nm, t, lm]) => { __fs.files['/Maili
     line('05.03.2027', '40', 'Dora Probe', 'Rikscha Fahrt')]), 81000);
   await p.evaluate(() => { UI.year = 2027; UI.view = 'spenden'; UI.spMid = 'allg:2027'; SP.at = null; renderNow(); });
   await p.waitForFunction(() => SP.at && SP.rows.length === 4); await p.waitForTimeout(300);
-  const side = () => p.evaluate(() => { const e = document.querySelector('.spj-zi[data-z="zr"], .spj-zi'); return e ? e.querySelector('.spj-zs').textContent : ''; });
+  const side = () => p.evaluate(() => { const e = document.querySelector('.spj-zi[data-z="zr"]'); return e ? e.querySelector('.spj-zs').textContent : ''; });
   const badge = () => p.evaluate(() => { const t = document.querySelector('nav.tabs .tab-badge'); return t ? t.textContent : ''; });
   const names = () => p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(r => SP.byKey.get(r.dataset.k).name.split(' ')[0] + (r.querySelector('.sp-tag.neu') ? '+' : '')).sort().join(','));
 
