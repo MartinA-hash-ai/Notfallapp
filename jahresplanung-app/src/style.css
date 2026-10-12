@@ -1592,7 +1592,8 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .jv-bh .jv-hide { margin-left: auto; color: var(--muted); text-decoration: none; font-size: 12px; }
 .jv-kpis { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
 .jv-kpis.c1 { grid-template-columns: minmax(0, 1fr); } .jv-kpis.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-@media (max-width: 1100px) { .jv-kpis.c3 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.jv-kpis.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .jv-kpis.c3, .jv-kpis.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .jv-kpi { position: relative; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); min-width: 0; overflow: hidden; }
 .jv-kh { background: var(--soft); border-bottom: 1px solid var(--line); padding: 10px 14px 10px; }
 .jv-kt { font-size: 15.5px; font-weight: 700; color: var(--muted); }
@@ -1801,3 +1802,32 @@ body.jv-dragging .jv .sec { transition: box-shadow .1s; }
   .jv-print .jv-qhint, .jv-print .jv-msel { display: none !important; }
   .jv-print .jv-mname { display: block; grid-column: 2 / -1; font-weight: 600; font-size: 12px; }
 }
+/* 0.26: Privat/Institution, regelmäßige Spenden, Spendenbrücke, Spenderbindung */
+:root { --jvplus: #3c9a62; --jvminus: #d0573f; }
+@media screen { html[data-theme=dark] { --jvplus: #4fb57a; --jvminus: #e5715a; } }
+.jv-grpw { display: inline-flex; align-items: center; gap: 6px; margin-left: 8px; }
+.jv-grp { font-size: 12.5px; padding: 2px 6px; }
+.jv-kvs { display: block; font-size: 12px; font-weight: 500; color: var(--muted); margin-top: 2px; }
+.jv-dareg { display: inline-flex; align-items: center; gap: 5px; }
+.jv-inst p { margin: 0 0 8px; }
+.jv-iws { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 6px; }
+.jv-iw { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--soft); }
+.jv-iwh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; } .jv-iwh .link { margin-left: auto; }
+.jv-iwl { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.jv-iwl .sp-word { display: inline-flex; align-items: center; gap: 2px; }
+.jv-iwi { width: 120px; font-size: 12.5px; padding: 2px 6px; }
+.jv-it { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.jv-it th, .jv-it td { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: left; white-space: nowrap; }
+.jv-it th { font-size: 11.5px; color: var(--muted); font-weight: 600; }
+.jv-it .num { text-align: right; }
+.jv-it .jv-in { white-space: normal; font-weight: 600; }
+.jv-it tr.off td { color: var(--faint); }
+.jv-isrch { margin: 0 0 6px; width: 240px; }
+.jv-imodal .modal-body { max-height: 70vh; overflow: auto; }
+.jv-brsum { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 4px; font-size: 13.5px; }
+.jv-missh { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; margin: 16px 0 6px; }
+.jv-missh .jv-h4 { margin: 0 6px 0 0; }
+.jv-missh .jv-right { display: inline-flex; gap: 6px; }
+.jv-mt { margin-top: 4px; }
+.jv-mt .sp-tag + .sp-tag { margin-left: 4px; }
+@media print { .jv-print .jv-mcopy, .jv-print .jv-mcsv, .jv-print .jv-mall, .jv-print .jv-iprf, .jv-print .jv-daprf { display: none !important; } }

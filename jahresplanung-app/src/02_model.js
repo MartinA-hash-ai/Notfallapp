@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvCmp', 'jvSxIn', 'jvOrder'];
+const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvCmp', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -284,6 +284,11 @@ function normalizeData(d) {
   if (isObj(sp.zweck)) for (const [k, v] of Object.entries(sp.zweck)) if (v === '-' || zids.has(v)) d.spenden.zweck[k] = v;
   if (isObj(sp.ignor)) for (const k of Object.keys(sp.ignor)) if (sp.ignor[k] && str(k).trim()) (d.spenden.ignor = d.spenden.ignor || {})[str(k).trim()] = 1;   // ausgeblendete Vorschläge
   if (isObj(sp.grenze)) for (const [y, v] of Object.entries(sp.grenze)) if (/^\d{4}$/.test(y) && isNum(v) && v > 0) (d.spenden.grenze = d.spenden.grenze || {})[y] = Math.round(v);   // Statistik „Spenden JJJJ“: Spenden über … (Cent) ausblenden
+  // Jahresvergleich (0.26): Zahler je Kürzel (Hash aus IBAN bzw. Name – keine Kontonummern in der Datei): von Hand als Institution „i“ oder privat „p“ eingestuft;
+  // regelmäßig erkannt, aber nicht als Dauerspender:in zählen; eigene Stichwörter für Institutionen (Name des Kontoinhabers, Verwendungszweck)
+  if (isObj(sp.styp)) for (const [k, v] of Object.entries(sp.styp)) if (str(k) && (v === 'i' || v === 'p')) (d.spenden.styp = d.spenden.styp || {})[k] = v;
+  if (isObj(sp.sdaNein)) for (const k of Object.keys(sp.sdaNein)) if (sp.sdaNein[k] && str(k)) (d.spenden.sdaNein = d.spenden.sdaNein || {})[k] = 1;
+  if (isObj(sp.sworte)) { const o = {}; for (const f of ['name', 'zweck']) if (Array.isArray(sp.sworte[f])) o[f] = uniq(sp.sworte[f]); if (Object.keys(o).length) d.spenden.sworte = o; }
   if (isObj(sp.allg)) for (const [y, v] of Object.entries(sp.allg)) {      // allgemeine Spenden je Jahr: Regel (Schlagworte, Daueraufträge vorschlagen)
     const r = isObj(v) && isObj(v.regel) ? v.regel : {}, worte = [...new Set((Array.isArray(r.worte) ? r.worte : []).map(w => str(w).trim()).filter(Boolean))];
     if (/^\d{4}$/.test(y) && (worte.length || r.da === true)) (d.spenden.allg = d.spenden.allg || {})[y] = { regel: Object.assign({ worte }, r.da === true ? { da: true } : {}) };

@@ -21,7 +21,7 @@ const year = y => { const r = [];
   ok(await connect(p) === 'ok', 'Mailing-Ordner verbunden');
   await p.evaluate(F => { for (const [y, t] of Object.entries(F)) __fs.files['/Mailing/Spendeneingänge ' + y + '/e' + y + '.csv'] = { data: new TextEncoder().encode(t), lm: 81000 }; },
     Object.fromEntries([2024, 2025, 2026, 2027].map(y => [y, year(y)])));
-  await p.evaluate(() => { UI.year = 2027; UI.view = 'spenden'; SP.at = null; renderNow(); });
+  await p.evaluate(() => { UI.year = 2027; UI.view = 'spenden'; UI.jvDaReg = false; SP.at = null; renderNow(); });   // regelmäßige Buchungen nicht mitzählen (eigener Test t68)
   await p.waitForFunction(() => SP.at && SP.rows.length > 50); await p.waitForTimeout(300);
 
   // ---- A: eigener Reiter „Jahresvergleich“ – in der Auswertung kein Jahresvergleich mehr; Abschnitte wie in den anderen Reitern
@@ -29,7 +29,7 @@ const year = y => { const r = [];
   await p.click('.top .tab:has-text("Jahresvergleich")'); await p.waitForTimeout(500);
   const a1 = await p.evaluate(() => [UI.view, [...document.querySelectorAll('#main .sec')].map(e => e.dataset.sec).join(), !!document.querySelector('#main .jv > .jv-bar'), document.querySelector('.jv-grid2') ? [...document.querySelectorAll('.jv-grid2 > .sec')].map(e => e.dataset.sec).join() : '']);
   ok(a0[0] === 'Jahresplanung|Detailpläne|Auswertung|Jahresvergleich' && !a0[1], 'A: Reiter „Jahresvergleich“ neben der Auswertung, dort kein Abschnitt „Jahresvergleich“ mehr');
-  ok(a1[0] === 'vergleich' && a1[1] === 'jv-kpi,jv-verlauf,jv-mail,jv-seg,jv-zweck,jv-konto,jv-dauer' && a1[2] && a1[3] === 'jv-zweck,jv-konto', 'A: oben die Leiste, darunter die Abschnitte; Zwecke und Konten nebeneinander');
+  ok(a1[0] === 'vergleich' && a1[1] === 'jv-kpi,jv-verlauf,jv-bruecke,jv-bindung,jv-mail,jv-seg,jv-zweck,jv-konto,jv-dauer' && a1[2] && a1[3] === 'jv-zweck,jv-konto', 'A: oben die Leiste, darunter die Abschnitte; Zwecke und Konten nebeneinander');
   await p.click('[data-sec="jv-kpi"] .sec-tog'); await p.waitForTimeout(300);
   const a2 = await p.evaluate(() => document.querySelector('[data-sec="jv-kpi"] .sec-sum')?.textContent);
   ok(a2 === '2027 bis 10.10.: 530 € · 3 Spender:innen · 14 Spenden', 'A: „Kennzahlen“ eingeklappt mit Zusammenfassung „' + a2 + '“');
@@ -46,8 +46,8 @@ const year = y => { const r = [];
   ok(c0['Spendensumme'][0] === '530 €' && c0['Spendensumme'][1] === '530 €|530 €|25.530 €|530 €' && c0['Spendensumme'][3] === '2024|2025|2026|2027*' && c0['Spendensumme'][4] === 4,
     'C: Spendensumme 530 € (2027 bis 10.10.) – je Jahr bis zum Stichtag: ' + c0['Spendensumme'][1]);
   ok(c0['Spendensumme'][2] === '■ ±0,0 %|▲ +4.717,0 %|▼ −97,9 %', 'C: Veränderung zum Vorjahr über jeder Säule (erstes Jahr ohne): ' + c0['Spendensumme'][2]);
-  ok(c0['Spender:innen'][0] === '3' && c0['Neue Spender:innen'][1] === '–|0|1|0' && c0['Dauerspender:innen'][0] === '1' && !/%/.test(c0['Spendensumme'][0]),
-    'C: Spender:innen nach IBAN (3), neue Spender:innen im ersten Jahr nicht bestimmbar (–), Dauerspender:innen 1 – keine Prozentangabe neben der großen Zahl');
+  ok(c0['Spender:innen'][0] === '3' && c0['Erstmals seit 2024'][1] === '–|0|1|0' && c0['Dauerspender:innen'][0] === '1' && !/%/.test(c0['Spendensumme'][0]),
+    'C: Spender:innen nach IBAN (3), „Erstmals seit 2024“ im ersten Jahr nicht bestimmbar (–), Dauerspender:innen 1 – keine Prozentangabe neben der großen Zahl');
   // Sondereffekte 2026: über 10.000 € ausblenden
   await p.fill('.jv-gr[data-fk="jv-gr:2026"]', '10.000'); await p.press('.jv-gr[data-fk="jv-gr:2026"]', 'Enter'); await p.waitForTimeout(400);
   const c1 = await kp();

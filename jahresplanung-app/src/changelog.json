@@ -1,7 +1,21 @@
 [
   {
-    "version": "0.25.0",
+    "version": "0.26.0",
     "date": "",
+    "items": [
+      "Privat oder Institution: Die App stuft jede:n Zahler:in ein – Institution, wenn ein Stichwort im Namen (Stiftung, Bank, Pfarrei, GmbH, e.V. …) oder im Verwendungszweck (Gewinnsparen, Reinertrag, Kollekte, Geldauflage …) steht; lange Stichwörter greifen auch mitten im Wort („Bürgerstiftung“), kurze Abkürzungen nur als ganzes Wort",
+      "Oben in der Leiste „Spender:innen: alle / nur Privat / nur Institutionen“ – gilt für den ganzen Jahresvergleich; „Einstufung prüfen“ zeigt alle Institutionen und die größten privat eingestuften, jede Einstufung lässt sich von Hand ändern, Stichwörter ergänzen oder entfernen",
+      "Dauerspender:innen auch ohne „Dauerauftrag“ im Buchungstext: gleicher Betrag (Erhöhungen erlaubt) am etwa gleichen Tag im Monat, mindestens dreimal monatlich, vierteljährlich, halb- oder jährlich (halb- und jährlich mit gleichem Verwendungszweck); nur Privat, per Schalter, mit Prüfliste zum Abwählen und dem Hinweis „davon X an regelmäßigen Buchungen erkannt“",
+      "Neu: „Spendenbrücke“ – vom Vergleichsjahr zum Hauptjahr: neu oder wieder dabei, mehr gegeben, weniger gegeben, ausgeblieben (beim Zeigen die größten Beiträge)",
+      "Neu: „Spenderbindung“ – Haltequote (Veränderung in Prozentpunkten), gehalten, wieder dabei nach Pause, nicht wieder gespendet",
+      "„Wer fehlt noch?“: alle, die im Vorjahr (ganz oder bis zum Stichtag) gespendet haben und in diesem Jahr noch nicht – zum Kopieren oder als CSV mit IBAN zum Abgleich in der Spenderdatenbank; im PDF für die Präsentation nur Anzahl und Summe, keine Namen",
+      "„Neue Spender:innen“ heißt jetzt „Erstmals seit JJJJ“ (erstes eingelesenes Jahr) und steht in den Kennzahlen hinten",
+      "In der Planungsdatei steht für die Einstufung nur ein Kürzel je Zahler:in – keine Namen, keine IBAN"
+    ]
+  },
+  {
+    "version": "0.25.0",
+    "date": "2026-10-12T18:48",
     "items": [
       "Sondereffekte: ein Schalter oben in der Leiste – „herausrechnen“ oder „einrechnen“ – gilt für den ganzen Jahresvergleich (Kennzahlen, Jahresverlauf, Quartale, Segmente, Zwecke, Konten, Dauerspender:innen); eingerechnete Sondereffekte sind braunrot markiert",
       "Vergleichsjahr nur noch oben („Vergleich mit“, anfangs das Vorjahr) – die Gegenüberstellung unter den Quartalen richtet sich danach; die Spendersegmente zeigen die oben gewählten Jahre",
