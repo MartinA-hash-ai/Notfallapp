@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.23.0",
+    "version": "0.24.0",
     "date": "",
+    "items": [
+      "Kennzahlen: Klick auf eine Kachel hebt sie hervor, die anderen treten zurück; weitere Kacheln lassen sich dazuklicken, noch ein Klick nimmt eine Kachel wieder heraus; Klick daneben zeigt wieder alle gleich",
+      "Jahresverlauf & Quartale: der Quartalsvergleich (Säulen, Sondereffekte, „Quartale in Zahlen“) ist immer zu sehen; Klick auf ein Quartal – in der Linie, den Säulen oder der Tabellenüberschrift – hebt es hervor, die anderen werden blasser; „Auswahl aufheben“ zeigt wieder alle",
+      "Blasser statt durchsichtig: zurückgenommene Säulen und Linien werden heller gemischt, dahinterliegende Linien scheinen nicht mehr durch",
+      "Gegenüberstellung unter den Quartalen: ohne gewähltes Quartal der ganze Zeitraum; an jeder Überschrift steht „im Vergleich zu …“"
+    ]
+  },
+  {
+    "version": "0.23.0",
+    "date": "2026-10-12T16:25",
     "items": [
       "Jahresverlauf & Quartale: „Sondereffekte zeigen“ (rechts über der Linie) rechnet die ausgeblendeten Spenden wieder ein – in der Linie (Raute an der Stelle), in den Quartalssäulen (braunroter Teil obenauf) und in „Quartale in Zahlen“ (Summe inkl. Sondereffekte, darunter braunrot „inkl. … Sondereffekte“)",
       "Unter den Quartalen stehen alle Sondereffekte des Jahres – auch die nach dem Stichtag (blass, „nach dem Stichtag“, zählen im Vergleich nicht)",

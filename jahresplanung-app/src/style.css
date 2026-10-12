@@ -1650,7 +1650,7 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .jv-sxm { margin-top: 2px; }
 .jv-legy { display: inline-flex; align-items: center; border: 1px solid transparent; background: transparent; padding: 1px 7px; border-radius: 12px; font: inherit; color: inherit; cursor: pointer; }
 .jv-legy:hover { background: var(--head); } .jv-legy.on { border-color: var(--line2); background: var(--card); font-weight: 700; } .jv-legy.dim { opacity: .45; }
-.jv-dim { opacity: .18; } .jv-elab.click { cursor: pointer; } .jv-elab.on { fill: var(--ink); }
+.jv-dim { opacity: 1; } .jv-elab.jv-dim { fill: color-mix(in srgb, var(--ink2) 28%, var(--card)); } .jv-sxm.jv-dim { fill: color-mix(in srgb, var(--jvsx) 30%, var(--card)); } .jv-elab.click { cursor: pointer; } .jv-elab.on { fill: var(--ink); }
 .jv-tipr.on { font-weight: 700; }
 .jv .jv-up { fill: var(--jvup); } .jv .jv-dn { fill: var(--jvdn); } .jv .jv-eq { fill: var(--faint); }
 .jv svg tspan.jv-up, .jv svg tspan.jv-dn, .jv svg tspan.jv-eq { font-size: 10px; }
@@ -1753,3 +1753,15 @@ button.chip.jv-pk { cursor: pointer; } .chip.jv-pk.off { border-style: dashed; c
 .jv-grid2 > .sec { margin-bottom: 0; min-width: 0; }
 .jv-qnum tbody th { padding-left: 4px; padding-right: 2px; } .jv-qnum tbody th .dot { margin-right: 5px; }
 .jv-qnum thead th { white-space: normal; }
+/* 0.24: Kennzahlen anklicken (die anderen treten zurück), Quartalsvergleich immer sichtbar, blasser statt durchsichtig */
+.jv-kpi.click { cursor: pointer; transition: opacity .15s, box-shadow .15s, border-color .15s; }
+.jv-kpi.click:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.jv-kpis.jv-kfocus .jv-kpi:not(.jv-ksel) { opacity: .35; }
+.jv-kpi.jv-ksel { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 30%, transparent); }
+.jv-kpi.jv-ksel .jv-kh { background: color-mix(in srgb, var(--focus) 8%, var(--soft)); }
+.sp-chart.click { cursor: pointer; }
+.jv-qnum th.click { cursor: pointer; } .jv-qnum th.click:hover { color: var(--focus); }
+.jv-qnum td.dim, .jv-qnum th.dim { color: var(--faint); } .jv-qnum td.dim > div { opacity: .45; }
+.jv-qsxc.dim { opacity: .4; }
+.jv-qvgl { font-weight: 500; color: var(--muted); }
+span.jv-qx { margin-left: auto; }

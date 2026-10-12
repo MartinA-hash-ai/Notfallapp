@@ -4,7 +4,7 @@
 // Zeitraum „bis Stichtag“: jedes Jahr nur bis zu dem Tag, bis zu dem im Hauptjahr Buchungen eingelesen sind – so werden gleich lange Zeiträume verglichen.
 // Sondereffekte: je Jahr eine Grenze (dieselbe wie „Ausreißer“ bei „Spenden JJJJ“, D.spenden.grenze) – Spenden darüber zählen nicht mit.
 // Spender:innen werden an der IBAN erkannt (ohne IBAN: am Namen). Auswahl der Jahre, Bausteine, Kennzahlen, Zwecke, Konten und Mailings merkt sich jede Person selbst (UI).
-const JV = { q: null, cmp: null, focus: null, sxAll: false, cum: null };   // Quartal (0–3) und Vergleichsjahr im Quartalsvergleich, hervorgehobenes Jahr; cum: Lage der Quartale im Jahresverlauf
+const JV = { q: null, cmp: null, focus: null, sxAll: false, cum: null, kSel: new Set() };   // gewähltes Quartal (0–3) und Vergleichsjahr, hervorgehobenes Jahr; cum: Lage der Quartale im Jahresverlauf; kSel: angeklickte Kennzahlen
 const JV_BLOCKS = [['kpi', 'Kennzahlen'], ['verlauf', 'Jahresverlauf & Quartale'], ['mail', 'Mailings vergleichen'], ['seg', 'Spendersegmente'], ['zweck', 'Zwecke über die Jahre'], ['konto', 'Konten über die Jahre'], ['dauer', 'Dauerspender:innen']];
 const JV_KPIS = [['sum', 'Spendensumme'], ['don', 'Spender:innen'], ['avg', 'Ø je Spender:in'], ['n', 'Spenden'], ['neu', 'Neue Spender:innen'], ['dauer', 'Dauerspender:innen']];
 const JV_SEG = ['ab 5.000 €', '1.000–4.999 €', '500–999 €', '250–499 €', '101–249 €', 'bis 100 €'];   // nach der Summe je Spender:in im Zeitraum
@@ -16,6 +16,8 @@ const de0 = v => Math.round(v).toLocaleString('de-DE');
 const jvShown = k => !(UI.jvHide && UI.jvHide[k]);
 const jvKShown = k => !(UI.jvKHide && UI.jvKHide[k]);
 const jvZHid = () => isObj(UI.jvZHide) ? UI.jvZHide : { [SPJ_FREI]: true, [SPJ_OFFEN]: true };   // anfangs ohne „zweckungebunden“ und „zu klären“
+// blasser statt durchsichtig: Farbe mit dem Hintergrund mischen (sonst scheinen Linien durch)
+const jvMix = (c, p) => 'color-mix(in srgb, ' + c + ' ' + p + '%, var(--card))';
 const jvFocus = y => { JV.focus = JV.focus === y ? null : y; hideTip(); renderNow(); };
 
 // Jahre, Hauptjahr, Stichtag
@@ -89,7 +91,7 @@ function jvLadder(S, vals, fmt, focus = null, sub = null) {
     const d = i ? jvDelta(v, vals[i - 1]) : null;
     if (d != null) { const [c, a, sg] = jvArrow(d); s.append(sv('text', { x: cx, y: 27, 'text-anchor': 'middle', class: 'jv-ld' }, sv('tspan', { class: c }, a), sg + jvPct(d))); }
     if (sub && sub[i]) s.append(sv('text', { x: cx, y: 42, 'text-anchor': 'middle', class: 'jv-ld' }, sv('tspan', { class: 'jv-zu' }, '+' + de0(sub[i][0])), '  ', sv('tspan', { class: 'jv-ab' }, '−' + de0(sub[i][1]))));
-    if (v != null) { const hh = Math.max(2, v / mx * bh); s.append(sv('rect', { x, y: top + bh - hh, width: bw, height: hh, rx: 3, fill: S.col(y), opacity: focus != null && focus !== y ? 0.3 : 1 })); }
+    if (v != null) { const hh = Math.max(2, v / mx * bh); s.append(sv('rect', { x, y: top + bh - hh, width: bw, height: hh, rx: 3, fill: S.col(y), style: focus != null && focus !== y ? 'fill: ' + jvMix(S.col(y), 30) : null })); }
     s.append(sv('text', { x: cx, y: top + bh + 15, 'text-anchor': 'middle', class: 'sp-ax jv-ly' }, y + (y === S.H && S.mode === 'stich' ? '*' : ''))); });
   return s;
 }
@@ -151,17 +153,32 @@ function jvBar(S, Y) {
         outs.some(o => o.aus.length > MAXR) ? h('button', { class: 'link small jv-sxm', onclick: () => { JV.sxAll = !JV.sxAll; renderNow(); } }, JV.sxAll ? 'weniger anzeigen' : 'alle ' + tot + ' anzeigen') : null)) : null);
 }
 
-/* ---------- Kennzahlen (jede einzeln ein- und ausblendbar) */
+/* ---------- Kennzahlen (jede einzeln ein- und ausblendbar); Klick auf Kacheln hebt sie hervor, die anderen treten zurück – Klick daneben hebt die Auswahl auf */
+function jvKApply(grid) {
+  const tiles = [...grid.querySelectorAll('.jv-kpi')], on = tiles.some(t => JV.kSel.has(t.dataset.k));
+  grid.classList.toggle('jv-kfocus', on);
+  for (const t of tiles) { const sel = JV.kSel.has(t.dataset.k); t.classList.toggle('jv-ksel', sel); t.setAttribute('aria-pressed', String(sel)); }
+}
+document.addEventListener('click', e => {
+  if (!JV.kSel.size || e.target.closest('[data-sec="jv-kpi"] .jv-kpi')) return;
+  JV.kSel.clear(); const g = document.querySelector('[data-sec="jv-kpi"] .jv-kpis'); if (g) jvKApply(g);
+});
 function jvKpis(S, Y) {
-  const int = v => de0(v), hide = k => () => { UI.jvKHide = Object.assign({}, UI.jvKHide, { [k]: true }); hideTip(); renderNow(); };
+  const int = v => de0(v), hide = k => () => { JV.kSel.delete(k); UI.jvKHide = Object.assign({}, UI.jvKHide, { [k]: true }); hideTip(); renderNow(); };
   const def = { sum: [o => o.sum, eur0, eur0], don: [o => o.don, int, int, 'gezählt nach IBAN (ohne IBAN: Name)'], avg: [o => o.avg, eur, eur, 'Spendensumme geteilt durch die Zahl der Spender:innen'],
     n: [o => o.n, int, int], neu: [o => o.neu, int, int, 'in keinem früheren Jahr mit eingelesenen Daten dabei – im ersten Jahr mit Daten nicht bestimmbar (–)'],
     dauer: [o => o.dauer, int, int, 'mindestens eine Buchung mit „Dauerauftrag“ im Buchungstext'] };
-  const tiles = JV_KPIS.filter(([k]) => jvKShown(k)).map(([k, t]) => { const [f, fmt, big, tip] = def[k]; return jvTile(S, t, jvVals(S, Y, f), fmt, big, { k, tip, hide: hide(k) }); });
-  return tiles.length ? jvGrid('jv-kpis', tiles) : h('p', { class: 'muted small' }, 'Alle Kennzahlen ausgeblendet – über „Bausteine“ wieder einblenden.');
+  const tiles = JV_KPIS.filter(([k]) => jvKShown(k)).map(([k, t]) => { const [f, fmt, big, tip] = def[k], el = jvTile(S, t, jvVals(S, Y, f), fmt, big, { k, tip, hide: hide(k) });
+    const tog = () => { if (JV.kSel.has(k)) JV.kSel.delete(k); else JV.kSel.add(k); jvKApply(el.parentElement); };
+    el.classList.add('click'); el.tabIndex = 0; el.setAttribute('role', 'button');
+    el.addEventListener('click', e => { if (!e.target.closest('.jv-kx')) tog(); });
+    el.addEventListener('keydown', e => { if ((e.key === 'Enter' || e.key === ' ') && e.target === el) { e.preventDefault(); tog(); } });
+    return el; });
+  if (!tiles.length) return h('p', { class: 'muted small' }, 'Alle Kennzahlen ausgeblendet – über „Bausteine“ wieder einblenden.');
+  const grid = jvGrid('jv-kpis', tiles); jvKApply(grid); return grid;
 }
 
-/* ---------- Jahresverlauf mit Quartalen; Klick auf ein Jahr hebt es hervor, Klick auf ein Quartal öffnet den Quartalsvergleich darunter */
+/* ---------- Jahresverlauf mit Quartalen; Klick auf ein Jahr hebt es hervor, Klick auf ein Quartal hebt es im Quartalsvergleich darunter hervor */
 const jvQOf = d => Math.floor((ymd(d)[1] - 1) / 3);
 // Quartal schon begonnen? Im Modus „bis Stichtag“ zählen Quartale nach dem Stichtag nicht; das Quartal mit dem Stichtag heißt „Q4 (bis 06.10.)“
 const jvQIn = (S, q) => S.mode !== 'stich' || q * 3 + 1 <= S.md[0];
@@ -171,11 +188,12 @@ const jvAnyOut = (S, Y) => S.sel.some(y => ((Y.get(y) || {}).outAll || []).lengt
 const jvSxOn = (S, Y) => UI.jvQsx !== false && jvAnyOut(S, Y);
 const jvQSrc = (Y, y, sx) => { const o = Y.get(y) || {}; return sx ? (o.rows || []).concat(o.out || []) : (o.rows || []); };
 const jvSum = rs => rs.reduce((t, r) => t + r.b, 0);
+const jvQPick = q => { JV.q = JV.q === q ? null : q; hideTip(); renderNow(); };
 function jvQuarter(S, Y) {
-  const q = JV.q; if (q == null) return null;
-  const cmp = jvCmpOf(S, JV.cmp), Q = JV_QN[q], sx = jvSxOn(S, Y), stich = S.mode === 'stich';
+  const q = JV.q, cmp = jvCmpOf(S, JV.cmp), sx = jvSxOn(S, Y), stich = S.mode === 'stich', dim = qq => q != null && qq !== q;
   const qRows = (y, qq) => jvQSrc(Y, y, sx).filter(r => jvQOf(r.d) === qq), qOut = (y, qq) => jvSum(((Y.get(y) || {}).out || []).filter(r => jvQOf(r.d) === qq));
-  const st = y => { const rs = qRows(y, q), sum = jvSum(rs); return { sum, n: rs.length, avg: rs.length ? sum / rs.length : null, don: new Set(rs.map(jvDonor)).size }; };
+  // Gegenüberstellung: das gewählte Quartal – ohne Auswahl der ganze Zeitraum
+  const st = y => { const rs = q == null ? jvQSrc(Y, y, sx) : qRows(y, q), sum = jvSum(rs); return { sum, n: rs.length, avg: rs.length ? sum / rs.length : null, don: new Set(rs.map(jvDonor)).size }; };
   const a = st(S.H), b = cmp != null ? st(cmp) : null;
   const dEl = d => { if (d == null) return h('span', { class: 'muted' }, '–'); const [c, ar, sg] = jvArrow(d); return h('span', { class: 'delta ' + (c === 'jv-up' ? 'up' : c === 'jv-dn' ? 'down' : 'eq') }, ar + sg + jvPct(d)); };
   const dSm = d => { if (d == null) return null; const [c, ar, sg] = jvArrow(d); return h('div', { class: 'jv-qd' }, h('span', { class: c }, ar), sg + jvPct(d)); };
@@ -185,35 +203,39 @@ function jvQuarter(S, Y) {
         late ? h('div', { class: 'muted small' }, 'nach dem Stichtag ' + jvStich(S) + ' – zählt im Vergleich nicht') : null) },
       h('span', { class: 'dot', style: { background: S.col(y) } }), h('b', null, y), ' ', h('span', { class: 'jv-qsxb' }, eur(r.b)), h('div', { class: 'muted' }, fmtS(r.d) + (late ? ' · nach dem Stichtag' : r.zweck ? ' · ' + r.zweck : ''))); };
   const sxL = sx ? h('div', { class: 'jv-qsx' }, [0, 1, 2, 3].map(qq => { const L = S.sel.flatMap(y => ((Y.get(y) || {}).outAll || []).filter(r => jvQOf(r.d) === qq));
-    return h('div', { class: 'jv-qsxc' + (qq === q ? ' on' : '') }, L.length ? L.map(sxItem) : h('span', { class: 'muted' }, '–')); })) : null;
-  // Quartale in Zahlen – Spalten genau unter den Quartalen; ganz rechts die Summe
-  const cell = (y, i, qq) => { if (!jvQIn(S, qq)) return h('td', { class: 'num muted' + (qq === q ? ' on' : '') }, '–');
+    return h('div', { class: 'jv-qsxc' + (qq === q ? ' on' : '') + (dim(qq) ? ' dim' : '') }, L.length ? L.map(sxItem) : h('span', { class: 'muted' }, '–')); })) : null;
+  // Quartale in Zahlen – Spalten genau unter den Quartalen; ganz rechts die Summe; Klick auf ein Quartal hebt es hervor
+  const qc = qq => (qq === q ? ' on' : '') + (dim(qq) ? ' dim' : '');
+  const cell = (y, i, qq) => { if (!jvQIn(S, qq)) return h('td', { class: 'num muted' + qc(qq) }, '–');
     const v = jvSum(qRows(y, qq)), p = i ? jvSum(qRows(S.sel[i - 1], qq)) : null, o = sx ? qOut(y, qq) : 0;
-    return h('td', { class: 'num' + (qq === q ? ' on' : '') }, h('div', { class: 'jv-qv' }, eur(v)), i ? dSm(jvDelta(v, p)) : null, o ? h('div', { class: 'jv-qo' }, 'inkl. ' + eur(o) + ' Sondereffekte') : null); };
+    return h('td', { class: 'num' + qc(qq) }, h('div', { class: 'jv-qv' }, eur(v)), i ? dSm(jvDelta(v, p)) : null, o ? h('div', { class: 'jv-qo' }, 'inkl. ' + eur(o) + ' Sondereffekte') : null); };
   const tot = y => jvSum(jvQSrc(Y, y, sx));
   const yCell = (y, i) => { const v = tot(y), o = sx ? jvSum((Y.get(y) || {}).out || []) : 0;
-    return h('td', { class: 'num jv-qy' }, h('div', { class: 'jv-qv' }, eur(v)), i ? dSm(jvDelta(v, tot(S.sel[i - 1]))) : null, o ? h('div', { class: 'jv-qo' }, 'inkl. ' + eur(o) + ' Sondereffekte') : null); };
+    return h('td', { class: 'num jv-qy' + (q != null ? ' dim' : '') }, h('div', { class: 'jv-qv' }, eur(v)), i ? dSm(jvDelta(v, tot(S.sel[i - 1]))) : null, o ? h('div', { class: 'jv-qo' }, 'inkl. ' + eur(o) + ' Sondereffekte') : null); };
   const num = h('table', { class: 'jv-qnum' }, h('colgroup', null, [0, 1, 2, 3, 4, 5].map(() => h('col'))),
-    h('thead', null, h('tr', null, h('th'), JV_QN.map((t, qq) => h('th', { class: 'num' + (qq === q ? ' on' : '') }, jvQName(S, qq))), h('th', { class: 'num jv-qy' }, 'Summe' + (stich ? ' (bis ' + jvStich(S) + ')' : '')))),
+    h('thead', null, h('tr', null, h('th'), JV_QN.map((t, qq) => h('th', { class: 'num click' + qc(qq), tip: qq === q ? 'Auswahl aufheben' : jvQName(S, qq) + ' hervorheben', onclick: () => jvQPick(qq) }, jvQName(S, qq))),
+      h('th', { class: 'num jv-qy' + (q != null ? ' dim' : '') }, 'Summe' + (stich ? ' (bis ' + jvStich(S) + ')' : '')))),
     h('tbody', null, S.sel.map((y, i) => h('tr', { class: y === S.H ? 'main' : '' }, h('th', null, h('span', { class: 'dot', style: { background: S.col(y) } }), y + (y === S.H && stich ? '*' : '')),
       [0, 1, 2, 3].map(qq => cell(y, i, qq)), yCell(y, i)))));
-  // Gegenüberstellung des gewählten Quartals: Hauptjahr und ein wählbares Jahr
-  const tile = (t, f, fmt) => h('div', { class: 'jv-qcti' }, h('div', { class: 'jv-st' }, t), h('div', { class: 'jv-tv' }, f(a) == null ? '–' : fmt(f(a))),
+  // Gegenüberstellung mit einem wählbaren Jahr – an jeder Überschrift „im Vergleich zu …“
+  const vgl = cmp != null ? h('span', { class: 'jv-qvgl' }, ' im Vergleich zu ' + cmp) : null;
+  const tile = (t, f, fmt) => h('div', { class: 'jv-qcti' }, h('div', { class: 'jv-st' }, t, vgl ? vgl.cloneNode(true) : null), h('div', { class: 'jv-tv' }, f(a) == null ? '–' : fmt(f(a))),
     b ? h('div', { class: 'jv-qctb' }, h('span', { class: 'muted' }, cmp + ': ' + (f(b) == null ? '–' : fmt(f(b)))), dEl(jvDelta(f(a), f(b)))) : null);
+  const what = q == null ? S.H + (stich ? ' bis ' + jvStich(S) : '') : jvQName(S, q) + ' ' + S.H;
   return h('div', { class: 'jv-qp' },
-    h('div', { class: 'jv-qh' }, h('b', null, Q + ' im Vergleich'), stich ? h('span', { class: 'muted small' }, 'jedes Jahr bis ' + jvStich(S)) : null,
+    h('div', { class: 'jv-qh' }, h('b', null, q == null ? 'Quartale im Vergleich' : JV_QN[q] + ' im Vergleich'), stich ? h('span', { class: 'muted small' }, 'jedes Jahr bis ' + jvStich(S)) : null,
       sx ? h('span', { class: 'jv-qsxn small' }, 'mit Sondereffekten') : null,
-      h('button', { class: 'link small jv-qx', onclick: () => { JV.q = null; renderNow(); } }, '× schließen')),
-    h('div', { class: 'jv-qa' }, h('div', { class: 'jv-st' }, 'Alle Quartale – ' + Q + ' hervorgehoben'), h('div', { class: 'sp-chart', style: { height: '200px' }, dataset: { chart: 'jvqa' } }), sxL,
+      q != null ? h('button', { class: 'link small jv-qx', onclick: () => jvQPick(q) }, 'Auswahl aufheben') : h('span', { class: 'muted small jv-qx' }, 'Klick auf ein Quartal hebt es hervor')),
+    h('div', { class: 'jv-qa' }, h('div', { class: 'jv-st' }, q == null ? 'Alle Quartale' : 'Alle Quartale – ' + JV_QN[q] + ' hervorgehoben'), h('div', { class: 'sp-chart click', style: { height: '200px' }, dataset: { chart: 'jvqa' } }), sxL,
       h('div', { class: 'jv-st jv-qtt' }, 'Quartale in Zahlen'), num),
-    h('div', { class: 'jv-qcmp' }, h('div', { class: 'jv-qch' }, h('b', null, jvQName(S, q) + ' ' + S.H), jvCmpSel(S, cmp, v => { JV.cmp = v; }, 'jv-cmp')),
+    h('div', { class: 'jv-qcmp' }, h('div', { class: 'jv-qch' }, h('b', null, what), jvCmpSel(S, cmp, v => { JV.cmp = v; }, 'jv-cmp')),
       h('div', { class: 'jv-qct' }, tile('Spendensumme', o => o.sum, eur), tile('Spenden', o => o.n, de0), tile('Ø je Spende', o => o.avg, eur), tile('Spender:innen', o => o.don, de0))));
 }
 function jvVerlauf(S, Y) {
   const any = jvAnyOut(S, Y);
   return [h('div', { class: 'sp-legend jv-leg' }, S.sel.map(y => h('button', { class: 'jv-legy' + (JV.focus === y ? ' on' : JV.focus != null ? ' dim' : ''), 'aria-pressed': String(JV.focus === y),
       tip: JV.focus === y ? 'Hervorhebung aufheben' : y + ' hervorheben', onclick: () => jvFocus(y) }, h('span', { class: 'jv-ln', style: { background: S.col(y) } }), y)),
-    h('span', { class: 'muted' }, '· Klick auf ein Jahr hebt es hervor, Klick auf ein Quartal vergleicht es darunter'),
+    h('span', { class: 'muted' }, '· Klick auf ein Jahr oder ein Quartal hebt es hervor'),
     any ? h('label', { class: 'check small jv-legsx', tip: 'Spenden über der Grenze (oben bei „Sondereffekte ausblenden“) hier mitrechnen – in der Linie, den Quartalssäulen und „Quartale in Zahlen“; im Quartalsvergleich stehen sie zusätzlich unter den Quartalen' },
       h('input', { type: 'checkbox', checked: UI.jvQsx !== false, onchange: e => { UI.jvQsx = e.target.checked; renderNow(); } }), h('span', { class: 'jv-sxsw' }), 'Sondereffekte zeigen') : null),
   h('div', { class: 'sp-chart', style: { height: '250px' }, dataset: { chart: 'jvcum' } }), jvQuarter(S, Y)];
@@ -383,8 +405,8 @@ function jvDrawCum(el, S, Y) {
   const labs = [], F = JV.focus, dim = y => F != null && F !== y;
   for (const s of ser.slice().sort((a, b) => (a.y === F) - (b.y === F))) {          // das hervorgehobene Jahr zuletzt (obenauf)
     const pts = []; for (let i = 0; i <= s.L; i++) pts.push(fx(i, s.len).toFixed(1) + ',' + Yv(s.cum[i] / 100).toFixed(1));
-    svg.append(sv('polyline', { class: 'jv-line' + (dim(s.y) ? ' jv-dim' : ''), points: pts.join(' '), stroke: S.col(s.y), 'stroke-width': s.y === F ? 3.5 : s.y === S.H ? 3 : 2 }));
-    svg.append(sv('circle', { cx: fx(s.L, s.len), cy: Yv(s.cum[s.L] / 100), r: 4, fill: S.col(s.y), class: 'jv-end' + (dim(s.y) ? ' jv-dim' : '') }));
+    svg.append(sv('polyline', { class: 'jv-line' + (dim(s.y) ? ' jv-dim' : ''), points: pts.join(' '), stroke: S.col(s.y), style: dim(s.y) ? 'stroke: ' + jvMix(S.col(s.y), 22) : null, 'stroke-width': s.y === F ? 3.5 : s.y === S.H ? 3 : 2 }));
+    svg.append(sv('circle', { cx: fx(s.L, s.len), cy: Yv(s.cum[s.L] / 100), r: 4, fill: S.col(s.y), style: dim(s.y) ? 'fill: ' + jvMix(S.col(s.y), 22) : null, class: 'jv-end' + (dim(s.y) ? ' jv-dim' : '') }));
     labs.push({ s, y: Yv(s.cum[s.L] / 100), x: fx(s.L, s.len) });
   }
   labs.sort((a, b) => a.y - b.y); for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 13) labs[i].y = labs[i - 1].y + 13;
@@ -399,10 +421,10 @@ function jvDrawCum(el, S, Y) {
     bands.forEach((b, k) => b.classList.toggle('hov', k === q));
     const d = mkdn(2001, 1, 1) + i, [, m, t] = ymd(d);
     tipEl.replaceChildren(h('div', null, h('b', null, 'bis ' + p2(t) + '.' + p2(m) + '.'), ser.slice().reverse().map(s => { const j = Math.min(i, s.L); return h('div', { class: 'jv-tipr' + (s.y === F ? ' on' : '') }, h('span', { class: 'jv-ln', style: { background: S.col(s.y) } }), s.y + ': ' + eur0(s.cum[j]) + (i > s.L ? ' (Stand ' + fmtS(mkdn(s.y, 1, 1) + s.L) + ')' : '')); }),
-      h('div', { class: 'muted small' }, 'Klick: ' + JV_QN[q] + (JV.q === q ? ' schließen' : ' vergleichen'))));
+      h('div', { class: 'muted small' }, 'Klick: ' + (JV.q === q ? 'Auswahl aufheben' : JV_QN[q] + ' hervorheben'))));
     tipEl.classList.add('on'); placeTip(ev); });
   ov.addEventListener('mouseleave', () => { line.setAttribute('visibility', 'hidden'); bands.forEach(b => b.classList.remove('hov')); hideTip(); });
-  ov.addEventListener('click', ev => { const i = at(ev), q = i < 90 ? 0 : i < 181 ? 1 : i < 273 ? 2 : 3; JV.q = JV.q === q ? null : q; hideTip(); renderNow(); });
+  ov.addEventListener('click', ev => { const i = at(ev); jvQPick(i < 90 ? 0 : i < 181 ? 1 : i < 273 ? 2 : 3); });
   // Sondereffekte als Raute auf der Linie (über der Klickfläche, damit sie sich zeigen lassen)
   for (const s of ser) for (const r of s.out) { const i = r.d - s.a, x = fx(i, s.len), yy = Yv(s.cum[i] / 100);
     const m = sv('path', { d: `M${x} ${yy - 6}L${x + 6} ${yy}L${x} ${yy + 6}L${x - 6} ${yy}Z`, class: 'jv-sxm' + (dim(s.y) ? ' jv-dim' : '') });
@@ -420,13 +442,14 @@ function jvDrawQ(el, S, Y) {
   const svg = sv('svg', { width: W, height: g.H, class: 'sp-svg', role: 'img' }); el.replaceChildren(svg);
   const Yv = spYAxis(svg, g, mx / 100), y0 = g.mt + g.ph, n = S.sel.length, qx = k => g.ml + [0, 90, 181, 273, 365][k] / 365 * g.pw;
   [0, 1, 2, 3].forEach(gi => { const gw = qx(gi + 1) - qx(gi), bw = Math.min(34, (gw - 24) / n - 4), x0 = qx(gi) + (gw - n * (bw + 4) + 4) / 2;
-    S.sel.forEach((y, j) => { const [v, e] = vals[gi][j], op = (gi === q ? 1 : 0.35) * (F != null && F !== y ? 0.35 : 1), x = x0 + j * (bw + 4);
-      const yb = Yv(v / 100), ye = Yv((v + e) / 100), r = sv('rect', { x, y: yb, width: bw, height: Math.max(0.5, y0 - yb), rx: 3, fill: S.col(y), opacity: op, class: 'jv-bar' });
+    S.sel.forEach((y, j) => { const [v, e] = vals[gi][j], k = (q != null && gi !== q ? 0.35 : 1) * (F != null && F !== y ? 0.35 : 1), x = x0 + j * (bw + 4), mix = c => k < 1 ? 'fill: ' + jvMix(c, Math.round(k * 100)) : null;
+      const yb = Yv(v / 100), ye = Yv((v + e) / 100), r = sv('rect', { x, y: yb, width: bw, height: Math.max(0.5, y0 - yb), rx: 3, fill: S.col(y), style: mix(S.col(y)), class: 'jv-bar' });
       const tip = () => h('div', null, h('b', null, jvQName(S, gi) + ' ' + y), h('div', null, eur(v + e)), e ? h('div', { class: 'jv-qo' }, 'darin ' + eur(e) + ' Sondereffekte') : null);
       setTip(r, tip); svg.append(r);
-      if (e) { const t = sv('rect', { x, y: ye, width: bw, height: Math.max(1, yb - ye), rx: 3, class: 'jv-bar jv-sxbar', opacity: op }); setTip(t, tip); svg.append(t); } });
+      if (e) { const t = sv('rect', { x, y: ye, width: bw, height: Math.max(1, yb - ye), rx: 3, class: 'jv-bar jv-sxbar', style: mix('var(--jvsx)') }); setTip(t, tip); svg.append(t); } });
     svg.append(sv('text', { class: 'sp-ax' + (gi === q ? ' jv-qlab on' : ''), x: qx(gi) + gw / 2, y: y0 + 16, 'text-anchor': 'middle' }, jvQName(S, gi))); });
   svg.append(sv('line', { class: 'sp-base', x1: g.ml, x2: g.ml + g.pw, y1: y0, y2: y0 }));
+  svg.addEventListener('click', ev => { const x = ev.clientX - svg.getBoundingClientRect().left; for (let k = 0; k < 4; k++) if (x >= qx(k) && x < qx(k + 1)) return jvQPick(k); });
   // Sondereffekte und „Quartale in Zahlen“ darunter an denselben Quartalen ausrichten
   const wrap = el.parentElement, w = [ml, ...[0, 1, 2, 3].map(k => qx(k + 1) - qx(k)), mr].map(v => Math.max(0, v).toFixed(1) + 'px');
   const lst = wrap && wrap.querySelector('.jv-qsx'); if (lst) Object.assign(lst.style, { paddingLeft: w[0], paddingRight: w[5], gridTemplateColumns: w.slice(1, 5).join(' ') });
