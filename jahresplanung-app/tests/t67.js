@@ -1,5 +1,5 @@
-// 0.21 Jahresvergleich: Kennzahlen einzeln ausblenden, Säulen mittig, ausgeblendete Sondereffekte als Liste, Jahr hervorheben,
-// Spendersegmente (links Spender:innen, rechts Summe), Zwecke und Konten über die Jahre, Dauerspender:innen (Kacheln + Zu-/Abgänge)
+// 0.21–0.23 Jahresvergleich: Kennzahlen einzeln ausblenden, Säulen mittig, ausgeblendete Sondereffekte als Liste, Jahr hervorheben,
+// Spendersegmente (Jahre wählbar, Jahr und Zahl am Balken), Zwecke und Konten nebeneinander, Dauerspender:innen (Kacheln, Zu-/Abgänge per Schalter)
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 const p2 = x => String(x).padStart(2, '0');
@@ -20,28 +20,30 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.evaluate(F => { __fs.files['/Mailing/Spendeneingänge 2025/e.csv'] = { data: new TextEncoder().encode(F[0]), lm: 81000 }; __fs.files['/Mailing/Spendeneingänge 2026/e.csv'] = { data: new TextEncoder().encode(F[1]), lm: 81000 }; }, [csv(y25), csv(y26)]);
   await p.evaluate(() => { commit(d => { d.zwecke.push({ id: 'zh', name: 'Hospizarbeit', farbe: '#2e7d32', worte: ['Hospizarbeit'], konten: [], massnahmen: [] }, { id: 'zr', name: 'Rikscha', farbe: '#1565c0', worte: ['Rikscha'], konten: [], massnahmen: [] });
     d.spenden.grenze = { 2026: 1000000 }; });
-    UI.year = 2026; UI.view = 'spenden'; UI.spMid = 'allg:2026'; UI.jvZeit = 'jahr'; ['sp-ueb', 'sp-m', 'sp-zu'].forEach(k => { UI.secOpen[k] = false; }); UI.secOpen['sp-jv'] = true; SP.at = null; renderNow(); });
+    UI.year = 2026; UI.view = 'vergleich'; UI.jvZeit = 'jahr'; SP.at = null; renderNow(); });
   await p.waitForFunction(() => SP.at && SP.rows.length === 45); await p.waitForTimeout(400);
 
   // ---- A: Kennzahlen – Kopf abgesetzt, Säulen bei zwei Jahren mittig nebeneinander, einzeln ausblenden
-  const a0 = await p.evaluate(() => { const k = document.querySelector('[data-jv="kpi"] .jv-kpi'); return [document.querySelector('[data-jv="kpi"] h3').textContent, k.querySelector('.jv-kh .jv-kt').textContent, k.querySelector('.jv-kh .jv-kv').textContent,
+  const a0 = await p.evaluate(() => { const k = document.querySelector('[data-sec="jv-kpi"] .jv-kpi'); return [document.querySelector('[data-sec="jv-kpi"] .sec-t').textContent, k.querySelector('.jv-kh .jv-kt').textContent, k.querySelector('.jv-kh .jv-kv').textContent,
     getComputedStyle(k.querySelector('.jv-kh')).backgroundColor !== getComputedStyle(k.querySelector('.jv-kd')).backgroundColor, getComputedStyle(k.querySelector('.jv-kh')).borderBottomStyle,
-    [...k.querySelectorAll('.jv-lad rect')].map(r => r.getAttribute('x')).join(), document.querySelectorAll('[data-jv="kpi"] .jv-kpi').length]; });
+    [...k.querySelectorAll('.jv-lad rect')].map(r => r.getAttribute('x')).join(), document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi').length]; });
   ok(a0[0] === 'Kennzahlen' && a0[1] === 'Spendensumme' && a0[2] === '5.780 €' && a0[3] && a0[4] === 'solid', 'A: „Kennzahlen“ – Titel und Zahl im abgesetzten Kopf mit Linie darunter, Säulen auf weißem Grund');
   ok(a0[5] === '110.5,205.5' && a0[6] === 6, 'A: zwei Jahre – die Säulen stehen mittig nebeneinander (x ' + a0[5] + ')');
-  await p.hover('[data-jv="kpi"] .jv-kpi[data-k="n"]'); await p.click('[data-jv="kpi"] .jv-kpi[data-k="n"] .jv-kx'); await p.waitForTimeout(250);
-  await p.hover('[data-jv="kpi"] .jv-kpi[data-k="neu"]'); await p.click('[data-jv="kpi"] .jv-kpi[data-k="neu"] .jv-kx'); await p.waitForTimeout(250);
-  const a1 = await p.evaluate(() => [[...document.querySelectorAll('[data-jv="kpi"] .jv-kpi')].map(k => k.dataset.k).join(), document.querySelector('[data-jv="kpi"] .jv-kpis').className, JSON.stringify(UI.jvKHide), UI_KEYS.includes('jvKHide')]);
+  await p.hover('[data-sec="jv-kpi"] .jv-kpi[data-k="n"]'); await p.click('[data-sec="jv-kpi"] .jv-kpi[data-k="n"] .jv-kx'); await p.waitForTimeout(250);
+  await p.hover('[data-sec="jv-kpi"] .jv-kpi[data-k="neu"]'); await p.click('[data-sec="jv-kpi"] .jv-kpi[data-k="neu"] .jv-kx'); await p.waitForTimeout(250);
+  const a1 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi')].map(k => k.dataset.k).join(), document.querySelector('[data-sec="jv-kpi"] .jv-kpis').className, JSON.stringify(UI.jvKHide), UI_KEYS.includes('jvKHide')]);
   ok(a1[0] === 'sum,don,avg,dauer' && /\bc2\b/.test(a1[1]) && a1[2] === '{"n":true,"neu":true}' && a1[3], 'A: „Spenden“ und „Neue Spender:innen“ ausgeblendet – vier Kacheln in zwei Spalten, gemerkt');
   await p.click('.jv-bbtn'); await p.waitForTimeout(150);
   const a2 = await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bpop > label.mchk')].map(l => l.textContent).join('|') + ' / ' + [...document.querySelectorAll('.menu.pop .jv-bsub label')].map(l => l.textContent + (l.querySelector('input').checked ? '+' : '-')).join('|'));
   ok(a2 === 'Kennzahlen|Jahresverlauf & Quartale|Mailings vergleichen|Spendersegmente|Zwecke über die Jahre|Konten über die Jahre|Dauerspender:innen / Spendensumme+|Spender:innen+|Ø je Spender:in+|Spenden-|Neue Spender:innen-|Dauerspender:innen+',
     'A: „Bausteine“ – alle Bausteine, unter „Kennzahlen“ jede Kennzahl einzeln');
   await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bsub label')].find(l => l.textContent === 'Spenden').querySelector('input').click()); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => !!document.querySelector('[data-jv="kpi"] .jv-kpi[data-k="n"]') && !UI.jvKHide.n), 'A: über „Bausteine“ wieder eingeblendet');
+  ok(await p.evaluate(() => !!document.querySelector('[data-sec="jv-kpi"] .jv-kpi[data-k="n"]') && !UI.jvKHide.n), 'A: über „Bausteine“ wieder eingeblendet');
   await p.keyboard.press('Escape');
 
   // ---- B: Sondereffekte – die ausgeblendeten Spenden je Jahr als Liste
+  ok(await p.evaluate(() => !document.querySelector('.jv-sxt') && /ausgeblendete Spende anzeigen/.test(document.querySelector('.jv-sxtog').textContent)), 'B: die Liste der ausgeblendeten Spenden ist anfangs zu');
+  await p.click('.jv-sxtog'); await p.waitForTimeout(250);
   const b0 = await p.evaluate(() => [...document.querySelectorAll('.jv-sxt tr')].map(r => [...r.children].map(c => c.textContent).join('|')));
   ok(b0.length === 1 && b0[0] === '2026|15.06.2026|30.000,00 €|Probe 7|Nachlass Probe|Lage|', 'B: „Ausgeblendet“ – 2026: 15.06.2026, 30.000,00 €, Name, Verwendungszweck, Gliederung');
 
@@ -52,26 +54,37 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.evaluate(() => document.querySelector('[data-chart="jvcum"] .jv-elab:not(.jv-dim)').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await p.waitForTimeout(300);
   ok(await p.evaluate(() => JV.focus === null && !document.querySelector('[data-chart="jvcum"] .jv-dim')), 'C: Klick auf die Beschriftung des hervorgehobenen Jahres – wieder alle gleich');
 
-  // ---- D: Spendersegmente – je Segment Spender:innen (links) und Summe (rechts), Hauptjahr mit Veränderung zum Vergleichsjahr
-  const d0 = await p.evaluate(() => { const v = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgv')].map(t => t.textContent); const out = []; for (let i = 0; i < v.length; i += 2) out.push(v[i] + ' / ' + v[i + 1]);
-    return [[...document.querySelectorAll('[data-chart="jvseg"] .jv-sgl')].map(t => t.textContent).join('|'), out, document.querySelector('[data-jv="seg"] .jv-bh .jv-segcmp')?.value]; });
-  ok(d0[0] === 'ab 5.000 €|1.000–4.999 €|500–999 €|250–499 €|101–249 €|bis 100 €' && d0[2] === '2025', 'D: sechs Segmente, „verglichen mit 2025“ im Baustein');
-  ok(JSON.stringify(d0[1]) === JSON.stringify(['1▲ +1 / 5.000 €', '0■ ±0 / 0 €', '0■ ±0 / 0 €', '1▲ +1 / 300 €', '2▼ −1 / 480 €▼ −5,9 %', '0▼ −1 / 0 €▼ −100,0 %']), 'D: je Segment 2026 mit Veränderung: ' + d0[1].join(' · '));
+  // ---- D: Spendersegmente – Jahre frei wählbar, an jedem Balken Jahr und Zahl, keine Prozente
+  const sg = () => p.evaluate(() => { const v = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgv')].map(t => t.textContent), n = document.querySelectorAll('.jv-segy:not(.off)').length * 2, out = [];
+    for (let i = 0; i < v.length; i += n) out.push(v.slice(i, i + n).join(' / '));
+    return [[...document.querySelectorAll('.jv-segy')].map(c => c.textContent + (c.classList.contains('off') ? '-' : '+')).join('|'), out, /%/.test(document.querySelector('[data-chart="jvseg"]').textContent),
+      [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgl')].map(t => t.textContent).join('|')]; });
+  const d0 = await sg();
+  ok(d0[0] === '2025+|2026 (Hauptjahr)+' && d0[3] === 'ab 5.000 €|1.000–4.999 €|500–999 €|250–499 €|101–249 €|bis 100 €' && !d0[2], 'D: sechs Segmente, beide Jahre gewählt, keine Prozentangaben');
+  ok(JSON.stringify(d0[1]) === JSON.stringify(['2025: 0 / 2025: 0 € / 2026: 1 / 2026: 5.000 €', '2025: 0 / 2025: 0 € / 2026: 0 / 2026: 0 €', '2025: 0 / 2025: 0 € / 2026: 0 / 2026: 0 €',
+    '2025: 0 / 2025: 0 € / 2026: 1 / 2026: 300 €', '2025: 3 / 2025: 510 € / 2026: 2 / 2026: 480 €', '2025: 1 / 2025: 50 € / 2026: 0 / 2026: 0 €']), 'D: an jedem Balken Jahr und Zahl: ' + d0[1].join(' · '));
+  await p.click('.jv-segy:has-text("2025")'); await p.waitForTimeout(300);
+  const d1 = await sg();
+  ok(d1[0] === '2025-|2026 (Hauptjahr)+' && d1[1][0] === '2026: 1 / 2026: 5.000 €' && JSON.stringify(await p.evaluate(() => UI.jvSegY)) === '[2026]', 'D: 2025 abgewählt – nur noch 2026, gemerkt');
+  await p.click('.jv-segy:has-text("2026")'); await p.waitForTimeout(300);
+  ok((await sg())[0] === '2025-|2026 (Hauptjahr)+' && await p.evaluate(() => /Mindestens ein Jahr/.test(document.querySelector('#toasts').textContent)), 'D: das letzte Jahr bleibt gewählt (Hinweis)');
+  await p.click('.jv-segy:has-text("2025")'); await p.waitForTimeout(300);
 
   // ---- E: Zwecke über die Jahre – Linie je Zweck, „zweckungebunden“ anfangs aus, Klick blendet ein
-  const zw = () => p.evaluate(() => [[...document.querySelectorAll('[data-jv="zweck"] .jv-pk')].map(c => c.textContent + (c.classList.contains('off') ? '-' : '+')).join('|'), document.querySelectorAll('[data-chart="jvzw"] polyline').length,
+  const zw = () => p.evaluate(() => [[...document.querySelectorAll('[data-sec="jv-zweck"] .jv-pk')].map(c => c.textContent + (c.classList.contains('off') ? '-' : '+')).join('|'), document.querySelectorAll('[data-chart="jvzw"] polyline').length,
     [...document.querySelectorAll('[data-chart="jvzw"] .jv-elab, [data-chart="jvzw"] .jv-elv')].map(t => t.textContent).join('|')]);
   const e0 = await zw();
   ok(e0[0] === 'Hospizarbeit+|Rikscha+|zweckungebunden-' && e0[1] === 2 && e0[2] === 'Hospizarbeit|5.000 €|Rikscha|300 €▲ +100,0 %', 'E: Zwecke als Linien, rechts Wert 2026 und Veränderung (' + e0[2] + ')');
-  await p.click('[data-jv="zweck"] .jv-pk:has-text("zweckungebunden")'); await p.waitForTimeout(300);
+  await p.click('[data-sec="jv-zweck"] .jv-pk:has-text("zweckungebunden")'); await p.waitForTimeout(300);
   const e1 = await zw();
   ok(e1[1] === 3 && /zweckungebunden\|480 €▲ \+17,1 %/.test(e1[2]) && JSON.stringify(await p.evaluate(() => UI.jvZHide)) === '{"?":true}', 'E: „zweckungebunden“ eingeblendet (410 € → 480 €), gemerkt');
 
+  ok(await p.evaluate(() => [...document.querySelectorAll('.jv-grid2 > .sec')].map(e => e.dataset.sec).join() === 'jv-zweck,jv-konto'), 'E: Zwecke und Konten nebeneinander');
   // ---- F: Konten über die Jahre – anfangs die größten, entfernen, „+ Konto“, „die 5 größten“
-  const kt = () => p.evaluate(() => [[...document.querySelectorAll('[data-jv="konto"] .jv-pk')].map(c => c.textContent.replace('×', '')).join('|'), document.querySelectorAll('[data-chart="jvkt"] polyline').length]);
+  const kt = () => p.evaluate(() => [[...document.querySelectorAll('[data-sec="jv-konto"] .jv-pk')].map(c => c.textContent.replace('×', '')).join('|'), document.querySelectorAll('[data-chart="jvkt"] polyline').length]);
   const f0 = await kt();
   ok(f0[0] === 'Hospiz|Brakel|Lage|Siegen' && f0[1] === 4, 'F: die größten Konten (' + f0[0] + '), je Konto eine Linie');
-  await p.click('[data-jv="konto"] .jv-pk:has-text("Brakel") .sp-x'); await p.waitForTimeout(250);
+  await p.click('[data-sec="jv-konto"] .jv-pk:has-text("Brakel") .sp-x'); await p.waitForTimeout(250);
   await p.click('.jv-kadd'); await p.waitForTimeout(150);
   const f1 = await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-kpop .mitem')].map(b => b.textContent).join('|'));
   await p.click('.menu.pop .jv-kpop .mitem'); await p.waitForTimeout(250);
@@ -81,14 +94,15 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   ok((await kt())[0] === 'Hospiz|Brakel|Lage|Siegen' && await p.evaluate(() => UI.jvKonten === undefined), 'F: „die 5 größten“ – wieder die größten Konten');
 
   // ---- G: Dauerspender:innen – Anzahl, Summe, Ø Monatsbeitrag; Zu- und Abgänge (Anfang, neu, beendet, Ende)
-  const g0 = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-jv="dauer"] .jv-kpi')].map(k => [k.querySelector('.jv-kt').textContent, k.querySelector('.jv-kv').textContent + ' (' + [...k.querySelectorAll('.jv-lv')].map(t => t.textContent).join('|') + ')'])));
+  const g0 = await p.evaluate(() => Object.fromEntries([...document.querySelectorAll('[data-sec="jv-dauer"] .jv-kpi')].map(k => [k.querySelector('.jv-kt').textContent, k.querySelector('.jv-kv').textContent + ' (' + [...k.querySelectorAll('.jv-lv')].map(t => t.textContent).join('|') + ')'])));
   ok(g0['Dauerspender:innen im Jahr'] === '2 (2|2)' && g0['Summe aus Daueraufträgen'] === '480 € (360 €|480 €)' && g0['Ø Monatsbeitrag'] === '20,00 € (15,00 €|20,00 €)',
     'G: 2 Dauerspender:innen, 480 € aus Daueraufträgen, Ø Monatsbeitrag 20,00 € (vierteljährlich 60 € = 20 € im Monat)');
-  const g1 = await p.evaluate(() => [...document.querySelectorAll('[data-jv="dauer"] .jv-brg')].map(b => b.querySelector('.jv-brt').textContent + ':' + [...b.querySelectorAll('.jv-lv')].map(t => t.textContent).join('|') + (b.querySelector('.jv-brn') ? ' (ohne Vorjahr)' : '')));
-  ok(g1.join(' ; ') === '2025:2 (ohne Vorjahr) ; 2026:2|+1|−1|2', 'G: Zu- und Abgänge 2026 – Anfang 2, neu +1, beendet −1, Ende 2; 2025 ohne Vorjahr');
-
+  ok(await p.evaluate(() => !document.querySelector('[data-sec="jv-dauer"] .jv-brg') && !document.querySelector('[data-sec="jv-dauer"] .jv-zu')), 'G: keine Brücken; Zu- und Abgänge anfangs aus');
+  await p.click('[data-sec="jv-dauer"] .jv-dazu'); await p.waitForTimeout(300);
+  const g1 = await p.evaluate(() => { const k = document.querySelector('[data-sec="jv-dauer"] .jv-kpi'); return [[...k.querySelectorAll('.jv-zu, .jv-ab')].map(t => t.textContent).join('|'), k.querySelector('.jv-kn')?.textContent, document.querySelector('.jv-dazu').textContent, UI.jvDaZu]; });
+  ok(g1[0] === '+1|−1' && /\+ Zugänge \/ − Abgänge gegenüber dem Vorjahr/.test(g1[1]) && g1[2] === 'Zu- und Abgänge ausblenden' && g1[3] === true, 'G: „Zu- und Abgänge einblenden“ – 2026: +1 / −1 unter der Anzahl (2025 ohne Vorjahr)');
   // ---- H: Bausteine ausblenden – Zwecke weg, Konten über die ganze Breite
-  await p.click('[data-jv="zweck"] .jv-hide'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => !document.querySelector('[data-jv="zweck"]') && !document.querySelector('.jv-grid2') && !!document.querySelector('.jv > [data-jv="konto"]')), 'H: „Zwecke“ ausgeblendet – „Konten“ allein über die ganze Breite');
+  await p.click('[data-sec="jv-zweck"] .jv-hide'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => !document.querySelector('[data-sec="jv-zweck"]') && !document.querySelector('.jv-grid2') && !!document.querySelector('.jv > [data-sec="jv-konto"]')), 'H: „Zwecke“ ausgeblendet – „Konten“ allein über die ganze Breite');
   await finish(b, pages);
 })();

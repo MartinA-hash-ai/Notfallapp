@@ -32,7 +32,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.waitForFunction(() => SP.at && SP.rows.length > 0); await p.waitForTimeout(300);
 
   // ---- A: Reiter und Kopf
-  const a = await p.evaluate(() => [[...document.querySelectorAll('nav.tabs .tab')].pop().textContent, !document.querySelector('#main .view-head'), !/Exporte \(CSV oder Excel\)/.test(document.querySelector('#main').textContent),
+  const a = await p.evaluate(() => [[...document.querySelectorAll('nav.tabs .tab')].find(t => t.classList.contains('on')).textContent, !document.querySelector('#main .view-head'), !/Exporte \(CSV oder Excel\)/.test(document.querySelector('#main').textContent),
     !!document.querySelector('[data-sec="sp-ueb"] .sec-h .tools button'), document.querySelector('[data-sec="sp-zu"] .sec-t').textContent]);
   ok(/^Auswertung/.test(a[0]) && !/Beta/.test(a[0]) &&   // ab 0.15 ohne „Beta“
      a[1] && a[2] && a[3] && a[4] === 'Spenden zuordnen', 'A: Reiter „' + a[0] + '“, keine Überschrift „Spenden 2027“ und kein Erklärsatz; Einlesen-Knöpfe im Kopf der Übersicht; „Spenden zuordnen“');

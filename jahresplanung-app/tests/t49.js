@@ -25,10 +25,10 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   ok(await connect(p) === 'ok', 'Mailing-Ordner verbunden');
   await p.evaluate(() => { UI.year = 2027; UI.view = 'jahr'; renderNow(); }); await p.waitForTimeout(200);
 
-  // ---- A: drei Reiter; Jahresplanung = Maßnahmen, Zeitleiste (eingeklappt), Kalender, Was steht an?
+  // ---- A: vier Reiter (seit 0.22 mit „Jahresvergleich“); Jahresplanung = Maßnahmen, Zeitleiste (eingeklappt), Kalender, Was steht an?
   const a = await p.evaluate(() => [[...document.querySelectorAll('nav.tabs .tab')].map(t => t.childNodes[0].textContent).join('|'), [...document.querySelectorAll('#main > .sec')].map(s => s.dataset.sec).join(','),
     document.querySelector('[data-sec="tl"]').classList.contains('closed'), !document.querySelector('.tl'), document.querySelector('[data-sec="tl"] .sec-t').textContent]);
-  ok(a[0] === 'Jahresplanung|Detailpläne|Auswertung' && a[1] === 'mass,tl,kal,ag' && a[2] && a[3] && a[4] === 'Zeitleiste 2027',
+  ok(a[0] === 'Jahresplanung|Detailpläne|Auswertung|Jahresvergleich' && a[1] === 'mass,tl,kal,ag' && a[2] && a[3] && a[4] === 'Zeitleiste 2027',
     'A: Reiter „' + a[0] + '“; Jahresplanung: ' + a[1] + ' – Zeitleiste anfangs eingeklappt');
   await p.click('[data-sec="tl"] .sec-tog'); await p.waitForTimeout(250);
   const a2 = await p.evaluate(() => [document.querySelectorAll('.tl .tl-row[data-m]').length, !!document.querySelector('[data-sec="tl"] .fbtn'), UI.secOpen.tl, !!document.querySelector('[data-sec="kal"] .cal, [data-sec="kal"] .month')]);
