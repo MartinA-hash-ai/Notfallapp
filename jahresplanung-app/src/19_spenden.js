@@ -1112,6 +1112,8 @@ VIEW_FN.spenden = main => {
   put(main,
     spNotice(),
     spCovBar(y),
+    section('sp-jv', 'Jahresvergleich', () => ({ body: jvView() }), { open: false, closedSummary: jvSummary,
+      info: 'Das Hauptjahr (oben gewählt) neben bis zu drei früheren Jahren: Kopfzahlen, Jahresverlauf mit Quartalen, Mailings. „Bis Stichtag“ vergleicht jedes Jahr nur bis zu dem Tag, bis zu dem im Hauptjahr Buchungen eingelesen sind.' }),
     section('sp-ueb', 'Maßnahmen ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { tools, closedSummary: () => {
       const neu = ms.filter(o => cmp.neuBy.get(o.id)).map(o => (o.m.name || '(ohne Namen)') + ' (' + cmp.neuBy.get(o.id) + ')');
       return 'aufklappen, um die Maßnahme zu wechseln' + (neu.length ? ' · neu: ' + neu.join(', ') : '') + (cmp.konf.length ? ' · ' + cmp.konf.length + ' zu klären' : ''); } }),
@@ -1198,6 +1200,7 @@ function spPalMark(svg, g, x) {
 function spDraw(el) {
   const kind = el.dataset.chart, by = spByM();
   if (kind === 'ycum' || kind === 'yweek') return spjDraw(el);
+  if (kind.startsWith('jv')) return jvDraw(el);                    // Jahresvergleich (21_jahresvergleich.js)
   if (kind === 'cmp') { const ids = el.dataset.ids.split(',').filter(id => C.byId.has(id) && by.get(id)); if (!ids.length) { el.replaceChildren(h('p', { class: 'muted small' }, 'Alle Maßnahmen ausgeblendet – oben wieder einblenden.')); return; } return spDrawCmp(el, ids, by); }
   const x = spX(el.dataset.mid), list = x && by.get(x.id);
   if (!list || !list.length) return;

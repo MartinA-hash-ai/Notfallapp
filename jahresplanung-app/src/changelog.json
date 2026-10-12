@@ -1,7 +1,20 @@
 [
   {
-    "version": "0.19.2",
+    "version": "0.20.0",
     "date": "",
+    "items": [
+      "Auswertung: neuer Abschnitt „Jahresvergleich“ (oben, aufklappbar) – das Hauptjahr neben bis zu drei früheren Jahren",
+      "Leiste: Jahre an-/abwählen, Hauptjahr, Zeitraum „bis Stichtag“ (jedes Jahr nur bis zu dem Tag, bis zu dem im Hauptjahr Buchungen eingelesen sind) oder „ganzes Jahr“; Sondereffekte je Jahr ausblenden (gleiche Grenze wie „Ausreißer“ bei „Spenden JJJJ“)",
+      "Kopfzahlen: Spendensumme, Spender:innen, Ø je Spender:in, Spenden, neue Spender:innen, Dauerspender:innen – je Jahr eine Säule mit Zahl, Veränderung zum Vorjahr (Pfeil + Prozent) und Jahr",
+      "Jahresverlauf: Spendensumme kumuliert, Jahre übereinander, Stichtag-Linie; Zeigen hebt das Quartal hervor, Klick öffnet darunter den Quartalsvergleich (alle Quartale, das Quartal nach Monaten, Vergleichsjahr wählbar, Anteil am Jahr)",
+      "Mailings vergleichen: bis zu vier beliebige Mailings aus beliebigen Jahren – Rücklauf ab PAL, Erlös, Response, Ø-Spende, ROI, Tage bis 80 % da; „+ Mailing hinzufügen“, die Farbe bleibt am Mailing",
+      "„Bausteine“: jeden Baustein aus- und wieder einblenden; Auswahl der Jahre, Bausteine und Mailings merkt sich jede Person selbst",
+      "Weitere Bausteine (Spendersegmente, Zwecke, Konten, Dauerspender:innen …) und das PDF für die Präsentation folgen im nächsten Update"
+    ]
+  },
+  {
+    "version": "0.19.2",
+    "date": "2026-10-12T13:40",
     "items": [
       "Spenden zuordnen (Zwecke und Maßnahmen): oben rechts in der Liste der Schalter „Treffer hervorheben“ statt des Hinweises „Klick auf eine Zeile markiert“ – blendet die gelbe Markierung aus und ein (wird gemerkt)",
       "„Buchungen hinzugefügt“: die Überschneidung bezieht sich jetzt auf die schon vorhandenen Daten – „Überschneidet sich mit vorhandenen Daten“ bzw. „Keine Überschneidung …“; aufgeschlüsselt je neuer Datei: Zeitraum, aus welcher vorhandenen Datei, wie viele Buchungen schon da waren",
