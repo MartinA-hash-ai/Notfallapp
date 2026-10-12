@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.19.0",
+    "version": "0.19.1",
     "date": "",
+    "items": [
+      "„Buchungen hinzugefügt“: die drei unteren Felder lassen sich anklicken (beim Zeigen etwas dunkler) – „← zurück“ zeigt wieder die Felder",
+      "Überschneidende Zeiträume: welche Dateien sich überschneiden – als Balken und als Liste mit gemeinsamem Zeitraum und Anzahl gleicher Buchungen; jetzt auch zwischen zwei neuen Dateien",
+      "Doppelte Spenden: Datum, Betrag, Verwendungszweck und in welcher Datei sie schon stehen; „⤢ ganze Breite“ / „⤡ schmaler“",
+      "„Bericht kopieren“: Dateinamen, Zeiträume und Anzahl gleicher Buchungen – ohne Namen, IBAN und Verwendungszweck",
+      "„Per Regel neu zugeordnet“: Klick auf das Feld oder einen Namen fragt kurz nach, schließt das Fenster und führt zu den neuen Spenden der Maßnahme bzw. des Zwecks"
+    ]
+  },
+  {
+    "version": "0.19.0",
+    "date": "2026-10-12T11:25",
     "items": [
       "Spendenzwecke zuordnen: ohne gewählten Zweck zeigt die Liste alle Spenden des Jahres (mit ihrem Zweck); links oben „Alle Spenden JJJJ“, „zweckungebunden“ wählt man wie einen Zweck",
       "Zweck wechseln behält die Ansicht „Bei Zweck“ – man sieht gleich die Spenden des neuen Zwecks",

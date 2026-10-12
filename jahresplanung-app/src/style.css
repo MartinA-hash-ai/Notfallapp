@@ -1530,3 +1530,39 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .spj-tabs:not(.pd-spj) > .spj-box:has(.spj-gscroll) { display: flex; flex-direction: column; }
 .spj-tabs .spj-gscroll { flex: 1 1 auto; max-height: none; min-height: calc(31px + 4 * 26px); contain: size; }
 @media (max-width: 1100px) { .spj-tabs .spj-gscroll { contain: none; max-height: calc(31px + 7 * 26px); } }
+/* 0.19.1: Zusammenfassung „Buchungen hinzugefügt“ – Felder anklickbar, Details im Feld (auf Wunsch über die ganze Breite) */
+.sp-addsum2 > div.click { cursor: pointer; transition: background .12s; }
+.sp-addsum2 > div.click:hover, .sp-addsum2 > div.click:focus-visible { background: color-mix(in srgb, var(--ink) 8%, var(--soft)); }
+.sp-addsum2 .sp-rchip[role=button] { cursor: pointer; }
+.sp-addsum2 .sp-rchip[role=button]:hover { filter: brightness(.94); }
+.sp-addsum2 > .sp-as-det { justify-content: flex-start; text-align: left; background: var(--card); border-color: var(--line2); padding: 8px 10px; min-width: 0; gap: 0; }
+.sp-addsum2 > .sp-as-det.wide { grid-column: 1 / -1; order: -1; }
+.sp-det-h { display: flex; align-items: center; gap: 12px; }
+.sp-det-h b { margin-right: auto; font-size: 13.5px; }
+.sp-det-h .link { white-space: nowrap; text-decoration: none; }
+.sp-det-body { max-height: 240px; overflow: auto; margin-top: 6px; }
+.sp-ovl-r { display: grid; grid-template-columns: minmax(70px, 32%) minmax(60px, 1fr) auto; gap: 8px; align-items: center; font-size: 12px; padding: 2px 0; }
+.sp-ovl-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.sp-ovl-t { position: relative; height: 10px; background: var(--head); border-radius: 3px; }
+.sp-ovl-b { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--focus) 45%, var(--card)); border-radius: 3px; }
+.sp-ovl-x { position: absolute; top: -2px; bottom: -2px; min-width: 3px; background: color-mix(in srgb, var(--warn) 75%, transparent); border-radius: 2px; }
+.sp-ovl-d { white-space: nowrap; font-size: 11.5px; }
+.sp-ovl-l { margin: 8px 0 2px; padding-left: 18px; font-size: 12.5px; }
+.sp-ovl-l li + li { margin-top: 4px; }
+.sp-dup-t { width: 100%; margin: 0; table-layout: auto; }
+.sp-dup-t td { padding: 3px 6px; white-space: nowrap; font-size: 12.5px; }
+.sp-dup-t td.sp-z { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 100%; }
+.sp-as-det.wide .sp-dup-t td.sp-z { white-space: normal; }
+.sp-as-det:not(.wide) .sp-dup-w { display: none; }
+.sp-as-ask { gap: 6px !important; }
+.sp-ask-b { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
+.sp-addsum2 > .sp-as-det b { font-size: inherit; }
+.sp-addsum2 > .sp-as-det .sp-det-h b { font-size: 13.5px; }
+.sp-addsum2 > .sp-as-det span { font-weight: inherit; color: inherit; }
+.sp-addsum2 > .sp-as-det .sp-ovl-n { font-weight: 600; }
+.sp-addsum2 > .sp-as-det .sp-ovl-d { color: var(--muted); }
+.sp-addsum2 > div { min-width: 0; }
+.sp-det-h { flex-wrap: wrap; gap: 2px 12px; }
+.sp-as-det:not(.wide) .sp-det-h b { flex-basis: 100%; }
+.sp-as-det:not(.wide) .sp-ovl-d { display: none; }
+.sp-as-det:not(.wide) .sp-ovl-r { grid-template-columns: minmax(60px, 45%) 1fr; }

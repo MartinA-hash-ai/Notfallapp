@@ -224,7 +224,8 @@ async function spAddFiles(files) {
   if (bad.length) toast('Nur CSV- und Excel-Dateien (.csv, .xlsx): ' + bad.map(f => f.name).join(', ') + ' übersprungen.', 'warn');
   const ok = files.filter(f => SP_FILE_RE.test(f.name)); if (!ok.length) return;
   if (!SP.at) await spScan();                                    // Vergleich braucht den bisherigen Stand
-  const known = new Set(SP.byKey.keys()), oldFiles = (SP.files || []).filter(e => !e.err && e.recs && e.recs.length).map(e => ({ name: e.name, span: spSpan(e.recs) })), report = [];
+  const known = new Set(SP.byKey.keys()), report = [];
+  const oldFiles = (SP.files || []).filter(e => !e.err && e.recs && e.recs.length).map(e => ({ name: e.name, span: spSpan(e.recs), keys: new Set(e.recs.map(r => r.k)) }));
   try {
     const dirs = await spDirs();
     const dirFor = async y => {                                   // Ordner „Spendeneingänge JJJJ“ des Jahres, aus dem die Buchungen stammen
@@ -250,53 +251,129 @@ async function spAddFiles(files) {
   await spScan();
   spAddReport(report, known, oldFiles);
 }
-// Zusammenfassung nach dem Hinzufügen: neu, doppelt, Zeiträume; die neuen Spenden in einer kurzen Liste (rollbar)
 // Zusammenfassung nach „+ Buchung hinzufügen“: oben Zeitraum, Anzahl und Summe der neuen Spenden; darunter Überschneidung,
-// doppelte Buchungen und erkannte Regeln; dann die neuen Spenden – passt eine Regel, steht ihr Schlagwort farbig am Zeilenende
+// doppelte Buchungen und erkannte Regeln – diese drei Felder lassen sich anklicken (Details, „← zurück“, „ganze Breite“);
+// dann die neuen Spenden – passt eine Regel, steht ihr Schlagwort farbig am Zeilenende
 function spAddReport(report, known, oldFiles) {
-  const seen = new Set(), fresh = [];
-  let dup = 0, neg = 0, bad = 0, over = false;
-  const errs = [];
+  const seen = new Map(), fresh = [], dupList = [], pairs = [], batch = [];
+  let dup = 0, neg = 0, bad = 0;
+  const errs = [], same = [];
+  const fileName = r => r.saved || r.name;
   for (const r of report) {
     const P = r.parsed || {};
     if (P.err) { errs.push(r.name + ' (' + P.err + ')'); continue; }
-    const recs = P.recs || [], span = spSpan(recs);
-    for (const rec of recs) { if (known.has(rec.k) || seen.has(rec.k)) dup++; else { seen.add(rec.k); fresh.push(SP.byKey.get(rec.k) || rec); } }
+    const recs = P.recs || [], span = spSpan(recs), keys = new Set(recs.map(x => x.k)), nm = fileName(r);
+    if (r.dupOf) same.push({ name: r.name, as: r.dupOf, n: recs.length });
+    for (const rec of recs) {
+      if (known.has(rec.k) || seen.has(rec.k)) {
+        dup++;
+        const where = oldFiles.filter(o => o.keys.has(rec.k)).map(o => o.name).concat(seen.has(rec.k) ? [seen.get(rec.k)] : []);
+        dupList.push({ rec, file: nm, where: [...new Set(where)] });
+      } else { seen.set(rec.k, nm); fresh.push(SP.byKey.get(rec.k) || rec); }
+    }
     neg += P.neg || 0; bad += P.bad || 0;
-    if (span && oldFiles.some(o => o.name !== r.dupOf && o.span && o.span[0] <= span[1] && span[0] <= o.span[1])) over = true;
+    if (span) {                                                  // Zeiträume, die sich mit schon vorhandenen oder mit anderen neuen Dateien überschneiden
+      for (const o of oldFiles.concat(batch)) if (o.name !== r.dupOf && o.span && o.span[0] <= span[1] && span[0] <= o.span[1]) {
+        let n = 0; for (const k of keys) if (o.keys.has(k)) n++;
+        pairs.push({ a: nm, as: span, b: o.name, bs: o.span, from: Math.max(span[0], o.span[0]), to: Math.min(span[1], o.span[1]), n, neu: batch.includes(o) });
+      }
+      if (!r.dupOf) batch.push({ name: nm, span, keys });
+    }
   }
+  const over = pairs.length > 0;
   fresh.sort((a, b) => a.d - b.d || b.b - a.b);
+  dupList.sort((a, b) => a.rec.d - b.rec.d || b.rec.b - a.rec.b);
   const cmp = spCompute(), sum = fresh.reduce((t, r) => t + r.b, 0), fs = spSpan(fresh), n = fresh.length;
   // wohin die neuen Spenden per Regel gefallen sind: Maßnahme, Spendenzweck oder „zu klären“ (passt zu mehreren Regeln)
   const zw = new Map(); for (const y of new Set(fresh.map(r => ymd(r.d)[0]))) for (const e of spjCompute(y).list) zw.set(e.rec.k, e);
   const catsOf = r => { const out = [], mid = cmp.assigned(r.k), hl = cmp.hits.get(r.k) || [], e = zw.get(r.k);
-    if (mid && !isAllg(mid)) { const x = spX(mid), g = hl.find(q => q.id === mid); out.push({ key: 'm' + mid, label: spMName(mid), c: x ? x.color : '#7F7F7F', tip: 'Maßnahme „' + spMName(mid) + '“' + (g ? ' – Schlagwort „' + g.w + '“' : '') }); }
-    else if (hl.length > 1) out.push({ key: 'k', label: '⚠ zu klären', c: '#b45309', tip: 'passt zu mehreren Maßnahmen: ' + hl.map(q => spMName(q.id)).join(', ') });
-    if (e && e.z !== SPJ_FREI && !e.hand) { const z = D.zwecke.find(q => q.id === e.z); out.push(z ? { key: 'z' + z.id, label: z.name, c: z.farbe, tip: 'Spendenzweck „' + z.name + '“' } : { key: 'zk', label: '⚠ Zweck zu klären', c: '#b45309', tip: 'passt zu mehreren Spendenzwecken' }); }
+    if (mid && !isAllg(mid)) { const x = spX(mid), g = hl.find(q => q.id === mid); out.push({ key: 'm' + mid, kind: 'm', id: mid, label: spMName(mid), c: x ? x.color : '#7F7F7F', tip: 'Maßnahme „' + spMName(mid) + '“' + (g ? ' – Schlagwort „' + g.w + '“' : '') }); }
+    else if (hl.length > 1) out.push({ key: 'k', kind: 'k', id: hl[0].id, label: '⚠ zu klären', c: '#b45309', tip: 'passt zu mehreren Maßnahmen: ' + hl.map(q => spMName(q.id)).join(', ') });
+    if (e && e.z !== SPJ_FREI && !e.hand) { const z = D.zwecke.find(q => q.id === e.z); out.push(z ? { key: 'z' + z.id, kind: 'z', id: z.id, label: z.name, c: z.farbe, tip: 'Spendenzweck „' + z.name + '“' } : { key: 'zk', kind: 'zk', label: '⚠ Zweck zu klären', c: '#b45309', tip: 'passt zu mehreren Spendenzwecken' }); }
     return out; };
-  const chip = (g, extra) => h('span', { class: 'sp-rchip', style: { background: pastel(g.c), borderColor: g.c, color: inkC(g.c) }, tip: g.tip }, g.label, extra || null);
-  const rules = new Map();                                    // Ziel → Anzahl
-  for (const r of fresh) for (const g of catsOf(r)) rules.set(g.key, Object.assign({}, g, { n: ((rules.get(g.key) || {}).n || 0) + 1 }));
+  const chip = (g, extra, props) => h('span', Object.assign({ class: 'sp-rchip', style: { background: pastel(g.c), borderColor: g.c, color: inkC(g.c) }, tip: g.tip }, props || {}), g.label, extra || null);
+  const rules = new Map();                                    // Ziel → Anzahl und Jahre
+  for (const r of fresh) for (const g of catsOf(r)) { const o = rules.get(g.key) || Object.assign({}, g, { n: 0, ys: new Map() }); o.n++; const y = ymd(r.d)[0]; o.ys.set(y, (o.ys.get(y) || 0) + 1); rules.set(g.key, o); }
   const box = (cls, big, label) => h('div', { class: cls }, h('b', null, big), h('span', null, label));
+  // ---- Details der drei unteren Felder
+  let open = null, wide = false, ask = null, close = null, lowEl = null;
+  const redraw = () => { const el = low(); lowEl.replaceWith(el); lowEl = el; };
+  const span2 = (a, b) => a === b ? fmtD(a) : fmtS(a) + '–' + fmtD(b);
+  const copyText = txt => { const done = () => toast('Bericht kopiert – ohne Namen, IBAN und Verwendungszweck', 'ok');
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(txt).then(done, () => fallback()); else fallback();
+    function fallback() { const t = h('textarea', { style: { position: 'fixed', opacity: '0' } }, txt); document.body.append(t); t.select(); try { document.execCommand('copy'); done(); } catch (e) { /* */ } t.remove(); } };
+  const report1 = () => ['Prüfbericht „Buchungen hinzugefügt“ (ohne Namen, IBAN, Verwendungszweck)',
+    'Neu: ' + n + ' Spenden' + (fs ? ', ' + span2(fs[0], fs[1]) : '') + ' · doppelt erkannt: ' + dup,
+    ...report.filter(r => !(r.parsed || {}).err).map(r => { const sp = spSpan((r.parsed || {}).recs); return 'Datei „' + fileName(r) + '“: ' + ((r.parsed.recs || []).length) + ' Buchungen' + (sp ? ', ' + span2(sp[0], sp[1]) : '') + (r.dupOf ? ' – identisch mit „' + r.dupOf + '“' : ''); }),
+    ...pairs.map(q => 'Überschneidung „' + q.a + '“ (' + span2(q.as[0], q.as[1]) + ') mit „' + q.b + '“ (' + span2(q.bs[0], q.bs[1]) + '): ' + span2(q.from, q.to) + ' · ' + q.n + ' gleiche Buchungen')].join('\n');
+  const detHead = (title, extra) => h('div', { class: 'sp-det-h' }, h('b', null, title), extra || null,
+    h('button', { class: 'link small sp-det-wide', tip: wide ? 'wieder schmaler' : 'auf die ganze Breite des Fensters', onclick: e => { e.stopPropagation(); wide = !wide; redraw(); } }, wide ? '⤡ schmaler' : '⤢ ganze Breite'),
+    h('button', { class: 'link small sp-det-back', tip: 'zurück zu den drei Feldern', onclick: e => { e.stopPropagation(); open = null; wide = false; redraw(); } }, '← zurück'));
+  const overDet = () => {
+    const files = new Map(); for (const q of pairs) { files.set(q.a, q.as); files.set(q.b, q.bs); }
+    const lo = Math.min(...[...files.values()].map(s => s[0])), hi = Math.max(...[...files.values()].map(s => s[1])) + 1, pc = v => ((v - lo) / (hi - lo) * 100).toFixed(2) + '%';
+    const hot = name => pairs.filter(q => q.a === name || q.b === name).map(q => [q.from, q.to]);
+    return [detHead('Überschneidende Zeiträume', h('button', { class: 'link small sp-det-copy', tip: 'Dateinamen, Zeiträume und Anzahl gleicher Buchungen kopieren – ohne Namen, IBAN und Verwendungszweck', onclick: e => { e.stopPropagation(); copyText(report1()); } }, 'Bericht kopieren')),
+      h('div', { class: 'sp-det-body' },
+        h('div', { class: 'sp-ovl' }, [...files].sort((a, b) => a[1][0] - b[1][0]).map(([name, sp]) => h('div', { class: 'sp-ovl-r' },
+          h('span', { class: 'sp-ovl-n', tip: name }, name),
+          h('span', { class: 'sp-ovl-t' }, h('span', { class: 'sp-ovl-b', style: { left: pc(sp[0]), width: 'calc(' + pc(sp[1] + 1) + ' - ' + pc(sp[0]) + ')' }, tip: name + ': ' + span2(sp[0], sp[1]) }),
+            hot(name).map(([a, b]) => h('span', { class: 'sp-ovl-x', style: { left: pc(a), width: 'calc(' + pc(b + 1) + ' - ' + pc(a) + ')' } }))),
+          h('span', { class: 'sp-ovl-d muted' }, span2(sp[0], sp[1]))))),
+        h('ul', { class: 'sp-ovl-l' }, pairs.map(q => h('li', null, h('b', null, '„' + q.a + '“'), ' und ', h('b', null, '„' + q.b + '“'), q.neu ? ' (beide neu)' : '',
+          h('div', { class: 'muted small' }, 'gemeinsam: ' + span2(q.from, q.to) + ' · ' + (q.n ? q.n + (q.n === 1 ? ' gleiche Buchung (zählt einmal)' : ' gleiche Buchungen (zählen einmal)') : 'keine gleichen Buchungen – nur die Zeiträume berühren sich'))))),
+        same.length ? h('p', { class: 'muted small' }, same.map(x => '„' + x.name + '“ ist identisch mit „' + x.as + '“ – nicht noch einmal abgelegt.').join(' ')) : null)];
+  };
+  const dupDet = () => [detHead(spCount(dup) + ' doppelt', h('button', { class: 'link small sp-det-copy', tip: 'Dateinamen, Zeiträume und Anzahl gleicher Buchungen kopieren – ohne Namen, IBAN und Verwendungszweck', onclick: e => { e.stopPropagation(); copyText(report1()); } }, 'Bericht kopieren')),
+    h('div', { class: 'sp-det-body' }, h('table', { class: 'grid sp-dup-t' }, h('tbody', null, dupList.slice(0, 1000).map(x => h('tr', null,
+      h('td', null, fmtD(x.rec.d)), h('td', { class: 'num' }, eur(x.rec.b)), h('td', { class: 'sp-z' }, x.rec.zweck || '–'),
+      h('td', { class: 'muted small sp-dup-w', tip: 'neu in „' + x.file + '“, schon in ' + x.where.map(w => '„' + w + '“').join(', ') }, 'auch in ' + (x.where.join(', ') || '?')))))),
+      dupList.length > 1000 ? h('p', { class: 'muted small' }, '… und ' + (dupList.length - 1000) + ' weitere') : null)];
+  const rulesList = () => [...rules.values()].sort((p, q) => q.n - p.n);
+  const goal = g => ({ kind: g.kind, id: g.id, y: [...g.ys].sort((a, b) => b[1] - a[1])[0][0] });
+  const low = () => {
+    const tile = (k, cls, can, kids) => open === k ? h('div', { class: 'sp-as-det' + (wide ? ' wide' : ''), onclick: e => e.stopPropagation() }, k === 'over' ? overDet() : dupDet()) :
+      h('div', { class: cls + (can ? ' click' : ''), role: can ? 'button' : null, tabindex: can ? '0' : null, onclick: can ? () => { if (k === 'rules') { ask = rulesList()[0]; } else { open = k; wide = false; } redraw(); } : null,
+        onkeydown: can ? e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } } : null, tip: can ? (k === 'rules' ? 'Klick: die neuen Spenden jetzt prüfen' : 'Klick: Details') : null }, kids);
+    const rulesTile = ask ? h('div', { class: 'sp-as-rules sp-as-ask' },
+        h('span', null, '„' + ask.label + '“: ' + spCount(ask.n) + ' jetzt prüfen?'), h('small', null, 'Das Fenster schließt sich, und es geht zu ' + (ask.kind === 'm' ? 'der Maßnahme' : ask.kind === 'z' ? 'dem Spendenzweck' : '„zu klären“') + '.'),
+        h('div', { class: 'sp-ask-b' }, h('button', { class: 'primary sp-ask-go', onclick: e => { e.stopPropagation(); const t = goal(ask); if (close) close(true); spGoCheck(t); } }, 'Ja, prüfen'),
+          h('button', { class: 'sp-ask-no', onclick: e => { e.stopPropagation(); ask = null; redraw(); } }, 'Abbrechen'))) :
+      tile('rules', 'sp-as-rules', rules.size > 0, [h('span', null, rules.size ? 'Per Regel neu zugeordnet – dort als „neu“ markiert, bitte einmal prüfen' : 'Keine neue Spende fällt unter eine Regel'),
+        rules.size ? h('div', { class: 'sp-rchips' }, rulesList().map(g => chip(g, h('small', null, ' (' + g.n + ')'), { role: 'button', onclick: e => { e.stopPropagation(); ask = g; redraw(); } }))) : null]);
+    return h('div', { class: 'sp-addsum sp-addsum2' + (open && wide ? ' has-wide' : '') },
+      tile('over', 'sp-as-ov' + (over ? ' warn' : ''), over, [h('span', null, over ? 'Zeiträume überschneiden sich' : 'Zeiträume überschneiden sich nicht'), over ? h('small', null, 'doppelte Buchungen zählen nur einmal') : null]),
+      tile('dup', 'sp-as-dup', dup > 0, [h('span', null, dup ? dup.toLocaleString('de-DE') + (dup === 1 ? ' doppelte Spende erkannt' : ' doppelte Spenden erkannt') : 'Keine doppelten Spenden erkannt'), dup ? h('small', null, 'nicht noch einmal gezählt') : null]),
+      rulesTile);
+  };
+  lowEl = low();
   modal('Buchungen hinzugefügt', h('div', { class: 'sp-addrep' },
     h('div', { class: 'sp-addsum' },
       box('sp-as-span', fs ? (fs[0] === fs[1] ? fmtD(fs[0]) : fmtD(fs[0]) + ' – ' + fmtD(fs[1])) : '–', 'Spenden hinzugefügt'),
       box('sp-as-n', n.toLocaleString('de-DE'), n === 1 ? 'neue Spende' : 'neue Spenden'),
       box('sp-as-sum', eur(sum), 'Gesamtsumme')),
-    h('div', { class: 'sp-addsum sp-addsum2' },
-      h('div', { class: 'sp-as-ov' + (over ? ' warn' : '') }, h('span', null, over ? 'Zeiträume überschneiden sich' : 'Zeiträume überschneiden sich nicht'),
-        over ? h('small', null, 'doppelte Buchungen zählen nur einmal') : null),
-      h('div', { class: 'sp-as-dup' }, h('span', null, dup ? dup.toLocaleString('de-DE') + (dup === 1 ? ' doppelte Spende erkannt' : ' doppelte Spenden erkannt') : 'Keine doppelten Spenden erkannt'),
-        dup ? h('small', null, 'nicht noch einmal gezählt') : null),
-      h('div', { class: 'sp-as-rules' }, h('span', null, rules.size ? 'Per Regel neu zugeordnet – dort als „neu“ markiert, bitte einmal prüfen' : 'Keine neue Spende fällt unter eine Regel'),
-        rules.size ? h('div', { class: 'sp-rchips' }, [...rules.values()].sort((p, q) => q.n - p.n).map(g => chip(g, h('small', null, ' (' + g.n + ')')))) : null)),
+    lowEl,
     n ? h('div', { class: 'sp-addlist' }, h('table', { class: 'grid' }, h('tbody', null, fresh.map(r => h('tr', null,
         h('td', null, fmtD(r.d)), h('td', { class: 'num' }, eur(r.b)), UI.spDet ? h('td', null, r.name || '') : null, h('td', { class: 'sp-z' }, r.zweck || '–'),
         h('td', { class: 'sp-rc' }, catsOf(r).map(g => chip(g)))))))) :
       h('p', { class: 'muted' }, 'Keine neuen Spenden – alle Buchungen waren schon eingelesen.'),
     errs.length ? h('p', { class: 'warn small' }, 'Nicht lesbar: ' + errs.join(', ')) : null,
     neg || bad ? h('p', { class: 'muted small' }, [neg ? neg + ' Abbuchungen/Rücklastschriften übersprungen' : '', bad ? bad + ' Zeilen ohne gültiges Datum oder Betrag' : ''].filter(Boolean).join(' · ')) : null),
-    [['Schließen', true, 'primary']], { wide: true, cls: 'sp-addw' });
+    [['Schließen', true, 'primary']], { wide: true, cls: 'sp-addw', expose: c => { close = c; } });
+}
+// aus der Zusammenfassung zu den neuen Spenden springen: Maßnahme („nur neue“), Spendenzweck („Bei Zweck“, nur neue) oder „zu klären“
+function spGoCheck(t) {
+  UI.view = 'spenden'; UI.year = t.y; UI.secOpen['sp-zu'] = true;
+  if (t.kind === 'm' || t.kind === 'k') {
+    const x = spX(t.id); UI.spMid = t.id; SPUI.typed = ''; SPUI.more = 0; SPUI.klaeren = t.kind === 'k';
+    if (x) { spResetFilter(x.m); SPUI.fmid = t.id; SPUI.fpal = x.pal; }
+    SPUI.tab = 'zu'; SPUI.onlyNew = t.kind === 'm';
+  } else {
+    UI.spMid = SP_ALLG + t.y; SPJ.typed = ''; SPJ.more = 0;
+    if (t.kind === 'z') { SPJ.z = t.id; SPJ.lv = 'zweck'; SPJ.onlyNew = true; } else { SPJ.z = SPJ_OFFEN; SPJ.onlyNew = false; }
+  }
+  renderNow();
+  setTimeout(() => { const s = $('[data-sec="sp-zu"]'); if (s) s.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
 }
 function spPickFiles() {
   const inp = h('input', { type: 'file', multiple: true, accept: '.csv,.txt,.xlsx', style: 'display:none', onchange: () => { spAddFiles(inp.files); inp.remove(); } });
