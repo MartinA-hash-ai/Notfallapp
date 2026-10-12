@@ -1,4 +1,4 @@
-// 0.20–0.23 Jahresvergleich (eigener Reiter): Jahre wählen, Stichtag, Sondereffekte je Jahr, Kennzahlen mit Säulen je Jahr (Zahl, Veränderung, Säule, Jahr),
+// 0.20–0.24 Jahresvergleich (eigener Reiter): Jahre wählen, Stichtag, Sondereffekte je Jahr, Kennzahlen mit Säulen je Jahr (Zahl, Veränderung, Säule, Jahr),
 // Jahresverlauf mit anklickbaren Quartalen (Vergleich darunter: alle Quartale, das Quartal in den Jahren, Gegenüberstellung), Mailings vergleichen (bis zu vier, frei gewählt), Bausteine ein-/ausblenden
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -63,7 +63,7 @@ const year = y => { const r = [];
 
   // ---- D: Jahresverlauf – Klick auf Q4 öffnet den Quartalsvergleich, „× schließen“ schließt ihn
   await p.evaluate(() => document.querySelector('[data-chart="jvcum"]').scrollIntoView({ block: 'center' })); await p.waitForTimeout(200);
-  const d0 = await p.evaluate(() => { const r = document.querySelector('[data-chart="jvcum"] .sp-ov').getBoundingClientRect(); return [document.querySelectorAll('[data-chart="jvcum"] .jv-line').length, { x: r.x + r.width * 0.9, y: r.y + r.height / 2 }, !!document.querySelector('.jv-stich')]; });
+  const d0 = await p.evaluate(() => { const r = document.querySelector('[data-chart="jvcum"] .sp-ov').getBoundingClientRect(); return [document.querySelectorAll('[data-chart="jvcum"] .jv-line').length, { x: r.x + r.width * 0.9, y: r.y + r.height / 2 }, !!document.querySelector('.jv-stich'), document.querySelector('.jv-qp .jv-qh b')?.textContent]; });
   await p.mouse.move(d0[1].x, d0[1].y); await p.waitForTimeout(150);
   const tip = await p.evaluate(() => [document.getElementById('tip').textContent, document.querySelectorAll('.jv-qband.hov').length]);
   await p.mouse.click(d0[1].x, d0[1].y); await p.waitForTimeout(400);
@@ -71,20 +71,21 @@ const year = y => { const r = [];
     return [JV.q, document.querySelector('.jv-qp .jv-qh b')?.textContent, qa.querySelectorAll('rect.jv-bar').length, qa.querySelectorAll('rect.jv-sxbar').length, document.querySelector('.jv-qband.on') != null,
       [...document.querySelectorAll('.jv-qnum tr')].map(t => [...t.children].map(c => c.textContent).join('|')), Math.abs(band.left - th.left), !document.querySelector('.jv-qn') && !/Anteil/.test(document.querySelector('.jv-qp').textContent),
       [...document.querySelectorAll('.jv-qsxc')].map(c => c.textContent).join(' / '), document.querySelectorAll('[data-chart="jvcum"] .jv-sxm').length]; });
-  ok(d0[0] === 4 && d0[2] && /Klick: Q4 vergleichen/.test(tip[0]) && /2027: /.test(tip[0]) && tip[1] === 1, 'D: vier Jahreslinien, Stichtag-Linie; Zeigen hebt das Quartal hervor, Hinweis „Klick: Q4 vergleichen“');
-  ok(d1[0] === 3 && d1[1] === 'Q4 im Vergleich' && d1[2] === 17 && d1[3] === 1 && d1[4] && d1[7], 'D: Klick – „Q4 im Vergleich“: alle Quartale (16 Säulen + Sondereffekt obenauf), keine Säulen in der Mitte, kein „Anteil am Jahr“');
+  ok(d0[0] === 4 && d0[2] && /Klick: Q4 hervorheben/.test(tip[0]) && /2027: /.test(tip[0]) && tip[1] === 1 && d0[3] === 'Quartale im Vergleich', 'D: vier Jahreslinien, Stichtag-Linie; Quartalsvergleich schon ohne Klick zu sehen; Zeigen hebt das Quartal an, Hinweis „Klick: Q4 hervorheben“');
+  ok(d1[0] === 3 && d1[1] === 'Q4 im Vergleich' && d1[2] === 17 && d1[3] === 1 && d1[4] && d1[7], 'D: Klick – „Q4 im Vergleich“, Q4 hervorgehoben: alle Quartale (16 Säulen + Sondereffekt obenauf), keine Säulen in der Mitte, kein „Anteil am Jahr“');
   ok(d1[5][0] === '|Q1|Q2|Q3|Q4 (bis 10.10.)|Summe (bis 10.10.)' && d1[5][1] === '2024|160,00 €|160,00 €|160,00 €|50,00 €|530,00 €' && d1[5][3] === '2026|160,00 €■ ±0,0 %|25.160,00 €▲ +15.625,0 %inkl. 25.000,00 € Sondereffekte|160,00 €■ ±0,0 %|50,00 €■ ±0,0 %|25.530,00 €▲ +4.717,0 %inkl. 25.000,00 € Sondereffekte',
     'D: „Quartale in Zahlen“ – laufendes Quartal „Q4 (bis 10.10.)“, rechts „Summe“, Sondereffekte eingerechnet (' + d1[5][3].slice(0, 70) + '…)');
   ok(d1[6] < 3 && /2026 25\.000,00 €/.test(d1[8]) && d1[9] === 1, 'D: Tabelle genau unter den Quartalen des Jahresverlaufs; der Sondereffekt steht unter Q2 und als Raute auf der Linie');
   const d2 = await p.evaluate(() => [document.querySelector('.jv-qcmp .jv-qch b').textContent, document.querySelector('.jv-qcmp .jv-cmp').value, [...document.querySelectorAll('.jv-qcti')].map(t => t.textContent).join(' | ')]);
-  ok(d2[0] === 'Q4 (bis 10.10.) 2027' && d2[1] === '2026' && d2[2] === 'Spendensumme50,00 €2026: 50,00 €■ ±0,0 % | Spenden22026: 2■ ±0,0 % | Ø je Spende25,00 €2026: 25,00 €■ ±0,0 % | Spender:innen22026: 2■ ±0,0 %',
-    'D: darunter „verglichen mit 2026“ – Summe, Spenden, Ø je Spende, Spender:innen');
+  ok(d2[0] === 'Q4 (bis 10.10.) 2027' && d2[1] === '2026' && d2[2] === 'Spendensumme im Vergleich zu 202650,00 €2026: 50,00 €■ ±0,0 % | Spenden im Vergleich zu 202622026: 2■ ±0,0 % | Ø je Spende im Vergleich zu 202625,00 €2026: 25,00 €■ ±0,0 % | Spender:innen im Vergleich zu 202622026: 2■ ±0,0 %',
+    'D: darunter „verglichen mit 2026“ – Summe, Spenden, Ø je Spende, Spender:innen, jeweils „im Vergleich zu 2026“');
   await p.click('.jv-legsx input'); await p.waitForTimeout(400);
   const d3 = await p.evaluate(() => [UI.jvQsx, [...document.querySelectorAll('.jv-qnum tbody tr')][2].textContent, document.querySelectorAll('[data-chart="jvqa"] rect.jv-sxbar').length, !!document.querySelector('.jv-qsx'), document.querySelectorAll('[data-chart="jvcum"] .jv-sxm').length]);
   ok(d3[0] === false && d3[1] === '2026160,00 €■ ±0,0 %160,00 €■ ±0,0 %160,00 €■ ±0,0 %50,00 €■ ±0,0 %530,00 €■ ±0,0 %' && d3[2] === 0 && !d3[3] && d3[4] === 0, 'D: „Sondereffekte zeigen“ aus – nicht mehr eingerechnet, keine Liste, keine Raute');
   await p.click('.jv-legsx input'); await p.waitForTimeout(300);
   await p.click('.jv-qx'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => JV.q === null && !document.querySelector('.jv-qp')), 'D: „× schließen“ blendet den Quartalsvergleich aus');
+  ok(await p.evaluate(() => JV.q === null && document.querySelector('.jv-qp .jv-qh b').textContent === 'Quartale im Vergleich' && !document.querySelector('.jv-qnum .dim') && /^2027 bis 10\.10\./.test(document.querySelector('.jv-qcmp .jv-qch b').textContent)),
+    'D: „Auswahl aufheben“ – alle Quartale wieder gleich, die Gegenüberstellung zeigt den ganzen Zeitraum');
 
   // ---- E: Mailings vergleichen – frei wählbar, bis zu vier, Farbe bleibt am Eintrag
   await p.evaluate(() => commit(d => { const base = d.massnahmen.find(m => !m.plan);

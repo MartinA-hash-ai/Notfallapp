@@ -1,4 +1,4 @@
-// 0.21–0.23 Jahresvergleich: Kennzahlen einzeln ausblenden, Säulen mittig, ausgeblendete Sondereffekte als Liste, Jahr hervorheben,
+// 0.21–0.24 Jahresvergleich: Kennzahlen einzeln ausblenden, Säulen mittig, ausgeblendete Sondereffekte als Liste, Jahr hervorheben,
 // Spendersegmente (Jahre wählbar, Jahr und Zahl am Balken), Zwecke und Konten nebeneinander, Dauerspender:innen (Kacheln, Zu-/Abgänge per Schalter)
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -33,6 +33,16 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.hover('[data-sec="jv-kpi"] .jv-kpi[data-k="neu"]'); await p.click('[data-sec="jv-kpi"] .jv-kpi[data-k="neu"] .jv-kx'); await p.waitForTimeout(250);
   const a1 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi')].map(k => k.dataset.k).join(), document.querySelector('[data-sec="jv-kpi"] .jv-kpis').className, JSON.stringify(UI.jvKHide), UI_KEYS.includes('jvKHide')]);
   ok(a1[0] === 'sum,don,avg,dauer' && /\bc2\b/.test(a1[1]) && a1[2] === '{"n":true,"neu":true}' && a1[3], 'A: „Spenden“ und „Neue Spender:innen“ ausgeblendet – vier Kacheln in zwei Spalten, gemerkt');
+  // Klick auf Kacheln: hervorheben, die anderen treten zurück; noch ein Klick nimmt sie heraus; Klick daneben hebt die Auswahl auf
+  const kf = () => p.evaluate(() => [document.querySelector('[data-sec="jv-kpi"] .jv-kpis').classList.contains('jv-kfocus'), [...document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi.jv-ksel')].map(k => k.dataset.k).join(),
+    getComputedStyle(document.querySelector('[data-sec="jv-kpi"] .jv-kpi[data-k="avg"]')).opacity]);
+  await p.click('[data-sec="jv-kpi"] .jv-kpi[data-k="sum"]'); await p.click('[data-sec="jv-kpi"] .jv-kpi[data-k="don"]'); await p.waitForTimeout(250);
+  const k0 = await kf();
+  await p.click('[data-sec="jv-kpi"] .jv-kpi[data-k="sum"]'); await p.waitForTimeout(250);
+  const k1 = await kf();
+  await p.click('[data-sec="jv-kpi"] .sec-h', { position: { x: 400, y: 10 } }); await p.waitForTimeout(250);
+  const k2 = await kf();
+  ok(k0[0] && k0[1] === 'sum,don' && +k0[2] < 0.5 && k1[1] === 'don' && !k2[0] && k2[1] === '' && k2[2] === '1', 'A: Klick auf Kacheln hebt sie hervor (die anderen blass), noch ein Klick nimmt sie heraus, Klick daneben zeigt wieder alle');
   await p.click('.jv-bbtn'); await p.waitForTimeout(150);
   const a2 = await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bpop > label.mchk')].map(l => l.textContent).join('|') + ' / ' + [...document.querySelectorAll('.menu.pop .jv-bsub label')].map(l => l.textContent + (l.querySelector('input').checked ? '+' : '-')).join('|'));
   ok(a2 === 'Kennzahlen|Jahresverlauf & Quartale|Mailings vergleichen|Spendersegmente|Zwecke über die Jahre|Konten über die Jahre|Dauerspender:innen / Spendensumme+|Spender:innen+|Ø je Spender:in+|Spenden-|Neue Spender:innen-|Dauerspender:innen+',
