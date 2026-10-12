@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.21.0",
+    "version": "0.22.0",
     "date": "",
+    "items": [
+      "Eigener Reiter „Jahresvergleich“ neben Jahresplanung, Detailpläne und Auswertung – oben die Leiste (Jahre, Hauptjahr, Zeitraum, Sondereffekte, Bausteine), darunter die Abschnitte Kennzahlen, Jahresverlauf & Quartale, Mailings vergleichen, Spendersegmente, Zwecke über die Jahre, Konten über die Jahre, Dauerspender:innen (einklappbar wie in den anderen Reitern)",
+      "Sondereffekte: Die Liste der ausgeblendeten Spenden oben ist anfangs zu – „ausgeblendete Spenden anzeigen“ klappt sie auf",
+      "Quartalsvergleich: unter „Alle Quartale“ stehen je Quartal die Sondereffekte (Jahr, Betrag, Datum, Verwendungszweck) – mit „Sondereffekte zeigen“ ein- und ausblendbar",
+      "Quartalsvergleich: neue Tabelle „Quartale in Zahlen“ – je Jahr eine Zeile mit Q1 bis Q4 und der Summe, auf den Cent genau, mit Veränderung zum Jahr darüber; das gewählte Quartal ist hervorgehoben; ausgeblendete Sondereffekte stehen klein darunter",
+      "Genaue Beträge statt gerundeter Tausender (kein „T€“ mehr) – in Säulen, Beschriftungen und Tabellen"
+    ]
+  },
+  {
+    "version": "0.21.0",
+    "date": "2026-10-12T15:38",
     "items": [
       "Jahresvergleich: „Kopfzahlen“ heißen jetzt „Kennzahlen“ – Titel und Zahl im grau abgesetzten Kopf mit Linie darunter, die Säulen je Jahr auf weißem Grund; jede Kennzahl einzeln aus- und einblendbar (× an der Kachel oder „Bausteine“)",
       "Säulen je Jahr stehen immer mittig nebeneinander, auch wenn nur zwei oder drei Jahre gewählt sind",

@@ -208,9 +208,10 @@ function spScan(opts = {}) {
   })();
   return SP.busy;
 }
-setInterval(() => { if (D && UI.view === 'spenden' && !document.hidden && ST.conn === 'ok' && !DRAG) spScan(); }, 120000);
-document.addEventListener('visibilitychange', () => { if (!document.hidden && D && UI.view === 'spenden' && ST.conn === 'ok') spScan(); });
-window.addEventListener('focus', () => { if (D && UI.view === 'spenden' && ST.conn === 'ok') spScan(); });   // Fenster wieder vorn (z. B. aus dem Explorer)
+const spLive = () => UI.view === 'spenden' || UI.view === 'vergleich';      // Reiter, die mit den Spendendateien rechnen
+setInterval(() => { if (D && spLive() && !document.hidden && ST.conn === 'ok' && !DRAG) spScan(); }, 120000);
+document.addEventListener('visibilitychange', () => { if (!document.hidden && D && spLive() && ST.conn === 'ok') spScan(); });
+window.addEventListener('focus', () => { if (D && spLive() && ST.conn === 'ok') spScan(); });   // Fenster wieder vorn (z. B. aus dem Explorer)
 let _spLastView = null;
 
 // Zeitraum einer eingelesenen Datei (erste und letzte Buchung)
@@ -1112,8 +1113,6 @@ VIEW_FN.spenden = main => {
   put(main,
     spNotice(),
     spCovBar(y),
-    section('sp-jv', 'Jahresvergleich', () => ({ body: jvView() }), { open: false, closedSummary: jvSummary,
-      info: 'Das Hauptjahr (oben gewählt) neben bis zu drei früheren Jahren: Kopfzahlen, Jahresverlauf mit Quartalen, Mailings. „Bis Stichtag“ vergleicht jedes Jahr nur bis zu dem Tag, bis zu dem im Hauptjahr Buchungen eingelesen sind.' }),
     section('sp-ueb', 'Maßnahmen ' + y, () => ({ body: spOverview(ms, cmp, mid, by) }), { tools, closedSummary: () => {
       const neu = ms.filter(o => cmp.neuBy.get(o.id)).map(o => (o.m.name || '(ohne Namen)') + ' (' + cmp.neuBy.get(o.id) + ')');
       return 'aufklappen, um die Maßnahme zu wechseln' + (neu.length ? ' · neu: ' + neu.join(', ') : '') + (cmp.konf.length ? ' · ' + cmp.konf.length + ' zu klären' : ''); } }),

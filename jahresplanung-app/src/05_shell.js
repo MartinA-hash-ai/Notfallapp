@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Reiter, Seitenleiste, Warnungen, Menüs */
 
-// Drei Reiter: planen (Jahresplanung), durchführen (Detailpläne), auswerten (Auswertung). Urlaub & Feiertage und Vorlagen in den Einstellungen (⋯).
-const VIEWS = [['jahr', 'Jahresplanung'], ['plaene', 'Detailpläne'], ['spenden', 'Auswertung']];
+// Vier Reiter: planen (Jahresplanung), durchführen (Detailpläne), auswerten (Auswertung), Jahre vergleichen (Jahresvergleich). Urlaub & Feiertage und Vorlagen in den Einstellungen (⋯).
+const VIEWS = [['jahr', 'Jahresplanung'], ['plaene', 'Detailpläne'], ['spenden', 'Auswertung'], ['vergleich', 'Jahresvergleich']];
 const OLD_VIEWS = { kalender: 'jahr', massnahmen: 'jahr', zeitleiste: 'jahr', agenda: 'jahr', zeit: 'jahr' };
 const VIEW_FN = {};                  // wird von den Ansichten befüllt
 const SIDEBAR_VIEWS = new Set();
@@ -49,7 +49,7 @@ function renderInner() {
   }
   document.body.classList.toggle('printing', !!UI.printing);
   const main = h('main', { id: 'main', class: 'view-' + UI.view });
-  if (UI.view !== 'spenden') _spLastView = UI.view;
+  if (!spLive()) _spLastView = UI.view;
   try { (VIEW_FN[UI.view] || VIEW_FN.kalender)(main); }
   catch (e) { console.error(e); main.append(h('div', { class: 'error' }, 'Fehler in der Ansicht: ' + e.message)); }
   const showSide = SIDEBAR_VIEWS.has(UI.view) && UI.sidebar && !UI.printing;

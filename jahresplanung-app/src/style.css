@@ -1691,3 +1691,34 @@ button.chip.jv-pk { cursor: pointer; } .chip.jv-pk.off { border-style: dashed; c
 .jv-brl { stroke: var(--line2); stroke-dasharray: 3 3; }
 .jv-brn { margin: 0 0 6px; }
 .jv-bpop { min-width: 240px; } .jv-bsub { margin: 0 0 4px 22px; }
+/* 0.22: eigener Reiter „Jahresvergleich“ – Abschnitte, Sondereffekte im Quartalsvergleich, Quartale in Zahlen */
+.view-vergleich .jv > .sec { margin-top: 0; }
+.sec-h .jv-hide { color: var(--muted); text-decoration: none; font-size: 12px; }
+.jv-sxtog { margin-left: 4px; }
+.jv span.jv-up { color: var(--jvup); } .jv span.jv-dn { color: var(--jvdn); } .jv span.jv-eq { color: var(--faint); }
+.jv-qh .jv-qsxtog { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+.jv-qh .jv-qsxtog + .jv-qx { margin-left: 14px; }
+.jv-qsx { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 4px 8px 0 62px; gap: 0; }
+.jv-qsxc { padding: 4px 4px 2px; border-top: 2px solid var(--line); font-size: 11.5px; min-width: 0; text-align: center; }
+.jv-qsxc.on { border-top-color: var(--focus); }
+.jv-qsxi { display: inline-block; text-align: left; margin: 2px 0 4px; line-height: 1.3; max-width: 100%; }
+.jv-qsxi .dot { margin-right: 4px; } .jv-qsxi .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jv-qsxb { font-weight: 700; }
+.jv-qtw { margin-top: 14px; overflow-x: auto; }
+.jv-qnum { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; }
+.jv-qnum th, .jv-qnum td { padding: 6px 12px; white-space: nowrap; vertical-align: top; }
+.jv-qnum thead th { font-size: 12px; font-weight: 600; color: var(--muted); border-bottom: 1px solid var(--line); }
+.jv-qnum thead th.on { color: var(--focus); font-weight: 700; }
+.jv-qnum tbody th { text-align: left; font-weight: 600; } .jv-qnum tbody th .dot { margin-right: 6px; }
+.jv-qnum tbody tr + tr > * { border-top: 1px solid var(--line); }
+.jv-qnum .num { text-align: right; }
+.jv-qnum td.on, .jv-qnum th.on { background: color-mix(in srgb, var(--focus) 7%, var(--card)); }
+.jv-qnum .jv-qy { border-left: 1px solid var(--line); }
+.jv-qnum tr.main .jv-qv { font-weight: 700; }
+.jv-qd { font-size: 11.5px; font-weight: 600; color: var(--ink2); } .jv-qd span { font-size: 10px; margin-right: 2px; }
+.jv-qo { font-size: 11px; color: var(--warn); }
+.view-vergleich .jv-qg { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.75fr) minmax(400px, 1.15fr); }
+@media (max-width: 1250px) { .view-vergleich .jv-qg { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .view-vergleich .jv-qc { grid-column: 1 / -1; } }
+.jv-qtab th, .jv-qtab td { padding: 5px 8px; }
+.jv-qnum { table-layout: fixed; } .jv-qnum th:first-child { width: 90px; }
+.jv-qo { white-space: normal; }
