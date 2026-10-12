@@ -1,7 +1,21 @@
 [
   {
-    "version": "0.24.0",
+    "version": "0.25.0",
     "date": "",
+    "items": [
+      "Sondereffekte: ein Schalter oben in der Leiste – „herausrechnen“ oder „einrechnen“ – gilt für den ganzen Jahresvergleich (Kennzahlen, Jahresverlauf, Quartale, Segmente, Zwecke, Konten, Dauerspender:innen); eingerechnete Sondereffekte sind braunrot markiert",
+      "Vergleichsjahr nur noch oben („Vergleich mit“, anfangs das Vorjahr) – die Gegenüberstellung unter den Quartalen richtet sich danach; die Spendersegmente zeigen die oben gewählten Jahre",
+      "Veränderungen immer zum Jahr davor; ist das direkte Vorjahr abgewählt, steht „ggü. JJJJ“ dabei",
+      "Durchschnitt überall als Ø je Spende (auch in den Kennzahlen statt Ø je Spender:in)",
+      "Farben: Hauptjahr kräftig blau, Vergleichsjahr mittelblau, ältere Jahre grau",
+      "Jeder Abschnitt hat ein ⓘ mit der Rechenregel (z. B. wie Spender:innen, neue Spender:innen und Dauerspender:innen erkannt werden)",
+      "Die Leiste oben bleibt beim Scrollen stehen; Abschnitte lassen sich am Griff ⠿ verschieben oder unter „Bausteine“ mit ↑/↓ ordnen – die Reihenfolge merkt sich jede Person",
+      "„PDF für die Präsentation“: je gezeigtem Abschnitt eine A4-Seite (quer) in der eingestellten Reihenfolge, mit Jahren, Zeitraum, Sondereffekten und Vergleichsjahr im Kopf"
+    ]
+  },
+  {
+    "version": "0.24.0",
+    "date": "2026-10-12T17:20",
     "items": [
       "Kennzahlen: Klick auf eine Kachel hebt sie hervor, die anderen treten zurück; weitere Kacheln lassen sich dazuklicken, noch ein Klick nimmt eine Kachel wieder heraus; Klick daneben zeigt wieder alle gleich",
       "Jahresverlauf & Quartale: der Quartalsvergleich (Säulen, Sondereffekte, „Quartale in Zahlen“) ist immer zu sehen; Klick auf ein Quartal – in der Linie, den Säulen oder der Tabellenüberschrift – hebt es hervor, die anderen werden blasser; „Auswahl aufheben“ zeigt wieder alle",

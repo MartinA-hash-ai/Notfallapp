@@ -1,4 +1,4 @@
-// 0.20–0.24 Jahresvergleich (eigener Reiter): Jahre wählen, Stichtag, Sondereffekte je Jahr, Kennzahlen mit Säulen je Jahr (Zahl, Veränderung, Säule, Jahr),
+// 0.20–0.25 Jahresvergleich (eigener Reiter): Jahre wählen, Stichtag, Sondereffekte je Jahr, Kennzahlen mit Säulen je Jahr (Zahl, Veränderung, Säule, Jahr),
 // Jahresverlauf mit anklickbaren Quartalen (Vergleich darunter: alle Quartale, das Quartal in den Jahren, Gegenüberstellung), Mailings vergleichen (bis zu vier, frei gewählt), Bausteine ein-/ausblenden
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -60,6 +60,14 @@ const year = y => { const r = [];
   await p.click('.jv-y:has-text("2024")'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => JSON.stringify(UI.jvOff) === '[2024]' && document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi')[0].querySelectorAll('rect').length === 3 && UI_KEYS.includes('jvOff')), 'C: 2024 abgewählt – drei Jahre, gemerkt');
   await p.click('.jv-y:has-text("2024")'); await p.waitForTimeout(300);
+  // Farben: Hauptjahr kräftig blau, Vergleichsjahr (Vorjahr) mittelblau, ältere grau
+  ok(await p.evaluate(() => [...document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi')[0].querySelectorAll('rect')].map(r => r.getAttribute('fill')).join() === 'var(--jvG2),var(--jvG1),var(--jvV),var(--jvH)'),
+    'C: Farben – 2027 kräftig blau, 2026 (Vergleichsjahr) mittelblau, 2025 und 2024 grau');
+  // 2026 abgewählt: 2027 wird mit 2025 verglichen – „ggü. 2025“ steht dabei; das Vergleichsjahr wird 2025
+  await p.click('.jv-y:has-text("2026")'); await p.waitForTimeout(300);
+  const c3 = await p.evaluate(() => { const k = document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi')[0]; return [[...k.querySelectorAll('.jv-lg')].map(t => t.textContent).join(), [...k.querySelectorAll('.jv-ld')].map(t => t.textContent).join('|'), document.querySelector('.jv-bar .jv-cmp').value]; });
+  ok(c3[0] === 'ggü. 2025' && c3[1] === '■ ±0,0 %|■ ±0,0 %' && c3[2] === '2025', 'C: Vorjahr abgewählt – Veränderung „ggü. 2025“, Vergleichsjahr 2025 (' + c3.join(' / ') + ')');
+  await p.click('.jv-y:has-text("2026")'); await p.waitForTimeout(300);
 
   // ---- D: Jahresverlauf – Klick auf Q4 öffnet den Quartalsvergleich, „× schließen“ schließt ihn
   await p.evaluate(() => document.querySelector('[data-chart="jvcum"]').scrollIntoView({ block: 'center' })); await p.waitForTimeout(200);
@@ -72,17 +80,24 @@ const year = y => { const r = [];
       [...document.querySelectorAll('.jv-qnum tr')].map(t => [...t.children].map(c => c.textContent).join('|')), Math.abs(band.left - th.left), !document.querySelector('.jv-qn') && !/Anteil/.test(document.querySelector('.jv-qp').textContent),
       [...document.querySelectorAll('.jv-qsxc')].map(c => c.textContent).join(' / '), document.querySelectorAll('[data-chart="jvcum"] .jv-sxm').length]; });
   ok(d0[0] === 4 && d0[2] && /Klick: Q4 hervorheben/.test(tip[0]) && /2027: /.test(tip[0]) && tip[1] === 1 && d0[3] === 'Quartale im Vergleich', 'D: vier Jahreslinien, Stichtag-Linie; Quartalsvergleich schon ohne Klick zu sehen; Zeigen hebt das Quartal an, Hinweis „Klick: Q4 hervorheben“');
-  ok(d1[0] === 3 && d1[1] === 'Q4 im Vergleich' && d1[2] === 17 && d1[3] === 1 && d1[4] && d1[7], 'D: Klick – „Q4 im Vergleich“, Q4 hervorgehoben: alle Quartale (16 Säulen + Sondereffekt obenauf), keine Säulen in der Mitte, kein „Anteil am Jahr“');
-  ok(d1[5][0] === '|Q1|Q2|Q3|Q4 (bis 10.10.)|Summe (bis 10.10.)' && d1[5][1] === '2024|160,00 €|160,00 €|160,00 €|50,00 €|530,00 €' && d1[5][3] === '2026|160,00 €■ ±0,0 %|25.160,00 €▲ +15.625,0 %inkl. 25.000,00 € Sondereffekte|160,00 €■ ±0,0 %|50,00 €■ ±0,0 %|25.530,00 €▲ +4.717,0 %inkl. 25.000,00 € Sondereffekte',
-    'D: „Quartale in Zahlen“ – laufendes Quartal „Q4 (bis 10.10.)“, rechts „Summe“, Sondereffekte eingerechnet (' + d1[5][3].slice(0, 70) + '…)');
-  ok(d1[6] < 3 && /2026 25\.000,00 €/.test(d1[8]) && d1[9] === 1, 'D: Tabelle genau unter den Quartalen des Jahresverlaufs; der Sondereffekt steht unter Q2 und als Raute auf der Linie');
-  const d2 = await p.evaluate(() => [document.querySelector('.jv-qcmp .jv-qch b').textContent, document.querySelector('.jv-qcmp .jv-cmp').value, [...document.querySelectorAll('.jv-qcti')].map(t => t.textContent).join(' | ')]);
-  ok(d2[0] === 'Q4 (bis 10.10.) 2027' && d2[1] === '2026' && d2[2] === 'Spendensumme im Vergleich zu 202650,00 €2026: 50,00 €■ ±0,0 % | Spenden im Vergleich zu 202622026: 2■ ±0,0 % | Ø je Spende im Vergleich zu 202625,00 €2026: 25,00 €■ ±0,0 % | Spender:innen im Vergleich zu 202622026: 2■ ±0,0 %',
-    'D: darunter „verglichen mit 2026“ – Summe, Spenden, Ø je Spende, Spender:innen, jeweils „im Vergleich zu 2026“');
-  await p.click('.jv-legsx input'); await p.waitForTimeout(400);
-  const d3 = await p.evaluate(() => [UI.jvQsx, [...document.querySelectorAll('.jv-qnum tbody tr')][2].textContent, document.querySelectorAll('[data-chart="jvqa"] rect.jv-sxbar').length, !!document.querySelector('.jv-qsx'), document.querySelectorAll('[data-chart="jvcum"] .jv-sxm').length]);
-  ok(d3[0] === false && d3[1] === '2026160,00 €■ ±0,0 %160,00 €■ ±0,0 %160,00 €■ ±0,0 %50,00 €■ ±0,0 %530,00 €■ ±0,0 %' && d3[2] === 0 && !d3[3] && d3[4] === 0, 'D: „Sondereffekte zeigen“ aus – nicht mehr eingerechnet, keine Liste, keine Raute');
-  await p.click('.jv-legsx input'); await p.waitForTimeout(300);
+  ok(d1[0] === 3 && d1[1] === 'Q4 im Vergleich' && d1[2] === 16 && d1[3] === 0 && d1[4] && d1[7], 'D: Klick – „Q4 im Vergleich“, Q4 hervorgehoben: alle Quartale (16 Säulen), keine Säulen in der Mitte, kein „Anteil am Jahr“');
+  ok(d1[5][0] === '|Q1|Q2|Q3|Q4 (bis 10.10.)|Summe (bis 10.10.)' && d1[5][1] === '2024|160,00 €|160,00 €|160,00 €|50,00 €|530,00 €' && d1[5][3] === '2026|160,00 €■ ±0,0 %|160,00 €■ ±0,0 %|160,00 €■ ±0,0 %|50,00 €■ ±0,0 %|530,00 €■ ±0,0 %' && d1[6] < 3 && !d1[8] && d1[9] === 0,
+    'D: „Quartale in Zahlen“ genau unter den Quartalen – laufendes Quartal „Q4 (bis 10.10.)“, rechts „Summe“; Sondereffekte anfangs herausgerechnet');
+  const d2 = await p.evaluate(() => [document.querySelector('.jv-qcmp .jv-qch b').textContent, document.querySelector('.jv-qcmp .jv-qch').textContent, !document.querySelector('.jv-qcmp select'), [...document.querySelectorAll('.jv-qcti')].map(t => t.textContent).join(' | ')]);
+  ok(d2[0] === 'Q4 (bis 10.10.) 2027' && /im Vergleich zu 2026/.test(d2[1]) && d2[2] && d2[3] === 'Spendensumme im Vergleich zu 202650,00 €2026: 50,00 €■ ±0,0 % | Spenden im Vergleich zu 202622026: 2■ ±0,0 % | Ø je Spende im Vergleich zu 202625,00 €2026: 25,00 €■ ±0,0 % | Spender:innen im Vergleich zu 202622026: 2■ ±0,0 %',
+    'D: darunter die Gegenüberstellung mit dem Vergleichsjahr aus der Leiste (2026) – jeweils „im Vergleich zu 2026“');
+  // Sondereffekte einrechnen (oben, gilt überall): Kennzahlen, Linie (Raute), Säulen (obenauf), Tabelle, Liste unter den Quartalen
+  await p.selectOption('.jv-sxmode', 'in'); await p.waitForTimeout(400);
+  const d3 = await p.evaluate(() => [UI.jvSxIn, [...document.querySelectorAll('.jv-qnum tbody tr')][2].textContent, document.querySelectorAll('[data-chart="jvqa"] rect.jv-sxbar').length, [...document.querySelectorAll('.jv-qsxc')].map(c => c.textContent).join(' / '),
+    document.querySelectorAll('[data-chart="jvcum"] .jv-sxm').length, [...document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi')[0].querySelectorAll('.jv-lv')].map(t => t.textContent).join('|')]);
+  ok(d3[0] === true && d3[1] === '2026160,00 €■ ±0,0 %25.160,00 €▲ +15.625,0 %inkl. 25.000,00 € Sondereffekte160,00 €■ ±0,0 %50,00 €■ ±0,0 %25.530,00 €▲ +4.717,0 %inkl. 25.000,00 € Sondereffekte' && d3[2] === 1 && /2026 25\.000,00 €/.test(d3[3]) && d3[4] === 1 && d3[5] === '530 €|530 €|25.530 €|530 €',
+    'D: „Sondereffekte einrechnen“ – überall eingerechnet: Kennzahlen (2026: 25.530 €), Tabelle mit Hinweis, Säule obenauf, Raute, Liste unter Q2');
+  await p.selectOption('.jv-sxmode', 'out'); await p.waitForTimeout(300);
+  // Vergleichsjahr oben wählen: Gegenüberstellung und Farbe folgen
+  await p.selectOption('.jv-bar .jv-cmp', '2025'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => UI.jvCmp === 2025 && /im Vergleich zu 2025/.test(document.querySelector('.jv-qcmp .jv-qch').textContent) && [...document.querySelectorAll('[data-sec="jv-kpi"] .jv-kpi')[0].querySelectorAll('rect')][1].getAttribute('fill') === 'var(--jvV)'),
+    'D: Vergleichsjahr 2025 (oben) – Gegenüberstellung „im Vergleich zu 2025“, 2025 jetzt mittelblau');
+  await p.selectOption('.jv-bar .jv-cmp', '2026'); await p.waitForTimeout(300);
   await p.click('.jv-qx'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => JV.q === null && document.querySelector('.jv-qp .jv-qh b').textContent === 'Quartale im Vergleich' && !document.querySelector('.jv-qnum .dim') && /^2027 bis 10\.10\./.test(document.querySelector('.jv-qcmp .jv-qch b').textContent)),
     'D: „Auswahl aufheben“ – alle Quartale wieder gleich, die Gegenüberstellung zeigt den ganzen Zeitraum');

@@ -1,4 +1,4 @@
-// 0.21–0.24 Jahresvergleich: Kennzahlen einzeln ausblenden, Säulen mittig, ausgeblendete Sondereffekte als Liste, Jahr hervorheben,
+// 0.21–0.25 Jahresvergleich: Kennzahlen einzeln ausblenden, Säulen mittig, ausgeblendete Sondereffekte als Liste, Jahr hervorheben,
 // Spendersegmente (Jahre wählbar, Jahr und Zahl am Balken), Zwecke und Konten nebeneinander, Dauerspender:innen (Kacheln, Zu-/Abgänge per Schalter)
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -44,18 +44,20 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   const k2 = await kf();
   ok(k0[0] && k0[1] === 'sum,don' && +k0[2] < 0.5 && k1[1] === 'don' && !k2[0] && k2[1] === '' && k2[2] === '1', 'A: Klick auf Kacheln hebt sie hervor (die anderen blass), noch ein Klick nimmt sie heraus, Klick daneben zeigt wieder alle');
   await p.click('.jv-bbtn'); await p.waitForTimeout(150);
-  const a2 = await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bpop > label.mchk')].map(l => l.textContent).join('|') + ' / ' + [...document.querySelectorAll('.menu.pop .jv-bsub label')].map(l => l.textContent + (l.querySelector('input').checked ? '+' : '-')).join('|'));
-  ok(a2 === 'Kennzahlen|Jahresverlauf & Quartale|Mailings vergleichen|Spendersegmente|Zwecke über die Jahre|Konten über die Jahre|Dauerspender:innen / Spendensumme+|Spender:innen+|Ø je Spender:in+|Spenden-|Neue Spender:innen-|Dauerspender:innen+',
-    'A: „Bausteine“ – alle Bausteine, unter „Kennzahlen“ jede Kennzahl einzeln');
+  const a2 = await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bpop .jv-brow label.mchk')].map(l => l.textContent).join('|') + ' / ' + [...document.querySelectorAll('.menu.pop .jv-bsub label')].map(l => l.textContent + (l.querySelector('input').checked ? '+' : '-')).join('|'));
+  ok(a2 === 'Kennzahlen|Jahresverlauf & Quartale|Mailings vergleichen|Spendersegmente|Zwecke über die Jahre|Konten über die Jahre|Dauerspender:innen / Spendensumme+|Spender:innen+|Ø je Spende+|Spenden-|Neue Spender:innen-|Dauerspender:innen+',
+    'A: „Bausteine“ – alle Bausteine, unter „Kennzahlen“ jede Kennzahl einzeln (Ø je Spende statt je Spender:in)');
   await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bsub label')].find(l => l.textContent === 'Spenden').querySelector('input').click()); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !!document.querySelector('[data-sec="jv-kpi"] .jv-kpi[data-k="n"]') && !UI.jvKHide.n), 'A: über „Bausteine“ wieder eingeblendet');
   await p.keyboard.press('Escape');
 
   // ---- B: Sondereffekte – die ausgeblendeten Spenden je Jahr als Liste
-  ok(await p.evaluate(() => !document.querySelector('.jv-sxt') && /ausgeblendete Spende anzeigen/.test(document.querySelector('.jv-sxtog').textContent)), 'B: die Liste der ausgeblendeten Spenden ist anfangs zu');
+  ok(await p.evaluate(() => !document.querySelector('.jv-sxt') && /Sondereffekt anzeigen/.test(document.querySelector('.jv-sxtog').textContent) && document.querySelector('.jv-sxmode').value === 'out'), 'B: Sondereffekte anfangs herausgerechnet, ihre Liste zu');
   await p.click('.jv-sxtog'); await p.waitForTimeout(250);
   const b0 = await p.evaluate(() => [...document.querySelectorAll('.jv-sxt tr')].map(r => [...r.children].map(c => c.textContent).join('|')));
-  ok(b0.length === 1 && b0[0] === '2026|15.06.2026|30.000,00 €|Probe 7|Nachlass Probe|Lage|', 'B: „Ausgeblendet“ – 2026: 15.06.2026, 30.000,00 €, Name, Verwendungszweck, Gliederung');
+  ok(b0.length === 1 && b0[0] === '2026|15.06.2026|30.000,00 €|Probe 7|Nachlass Probe|Lage|', 'B: „Herausgerechnet“ – 2026: 15.06.2026, 30.000,00 €, Name, Verwendungszweck, Gliederung');
+  ok(await p.evaluate(() => !document.querySelector('.jv-bar .jv-sxt') && !!document.querySelector('.jv > .jv-sxl .jv-sxt') && getComputedStyle(document.querySelector('.jv-bar')).position === 'sticky'),
+    'B: die Leiste bleibt beim Scrollen stehen, die Liste steht darunter (scrollt mit)');
 
   // ---- C: Jahresverlauf – Klick auf ein Jahr hebt es hervor, die anderen werden blass; noch einmal: wieder alle
   await p.click('.jv-legy:has-text("2025")'); await p.waitForTimeout(300);
@@ -64,21 +66,14 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.evaluate(() => document.querySelector('[data-chart="jvcum"] .jv-elab:not(.jv-dim)').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await p.waitForTimeout(300);
   ok(await p.evaluate(() => JV.focus === null && !document.querySelector('[data-chart="jvcum"] .jv-dim')), 'C: Klick auf die Beschriftung des hervorgehobenen Jahres – wieder alle gleich');
 
-  // ---- D: Spendersegmente – Jahre frei wählbar, an jedem Balken Jahr und Zahl, keine Prozente
-  const sg = () => p.evaluate(() => { const v = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgv')].map(t => t.textContent), n = document.querySelectorAll('.jv-segy:not(.off)').length * 2, out = [];
-    for (let i = 0; i < v.length; i += n) out.push(v.slice(i, i + n).join(' / '));
-    return [[...document.querySelectorAll('.jv-segy')].map(c => c.textContent + (c.classList.contains('off') ? '-' : '+')).join('|'), out, /%/.test(document.querySelector('[data-chart="jvseg"]').textContent),
-      [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgl')].map(t => t.textContent).join('|')]; });
-  const d0 = await sg();
-  ok(d0[0] === '2025+|2026 (Hauptjahr)+' && d0[3] === 'ab 5.000 €|1.000–4.999 €|500–999 €|250–499 €|101–249 €|bis 100 €' && !d0[2], 'D: sechs Segmente, beide Jahre gewählt, keine Prozentangaben');
+  // ---- D: Spendersegmente – die oben gewählten Jahre, an jedem Balken Jahr und Zahl, keine Prozente; Ø je Spende im Hinweis
+  const d0 = await p.evaluate(() => { const v = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgv')].map(t => t.textContent), out = [];
+    for (let i = 0; i < v.length; i += 4) out.push(v.slice(i, i + 4).join(' / '));
+    return [[...document.querySelectorAll('[data-sec="jv-seg"] .jv-leg > span')].map(c => c.textContent).join('|'), out, /%/.test(document.querySelector('[data-chart="jvseg"]').textContent),
+      [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgl')].map(t => t.textContent).join('|'), !document.querySelector('.jv-segy')]; });
+  ok(d0[0] === '2025|2026 (Hauptjahr)' && d0[3] === 'ab 5.000 €|1.000–4.999 €|500–999 €|250–499 €|101–249 €|bis 100 €' && !d0[2] && d0[4], 'D: sechs Segmente, die oben gewählten Jahre, keine eigene Jahresauswahl, keine Prozentangaben');
   ok(JSON.stringify(d0[1]) === JSON.stringify(['2025: 0 / 2025: 0 € / 2026: 1 / 2026: 5.000 €', '2025: 0 / 2025: 0 € / 2026: 0 / 2026: 0 €', '2025: 0 / 2025: 0 € / 2026: 0 / 2026: 0 €',
     '2025: 0 / 2025: 0 € / 2026: 1 / 2026: 300 €', '2025: 3 / 2025: 510 € / 2026: 2 / 2026: 480 €', '2025: 1 / 2025: 50 € / 2026: 0 / 2026: 0 €']), 'D: an jedem Balken Jahr und Zahl: ' + d0[1].join(' · '));
-  await p.click('.jv-segy:has-text("2025")'); await p.waitForTimeout(300);
-  const d1 = await sg();
-  ok(d1[0] === '2025-|2026 (Hauptjahr)+' && d1[1][0] === '2026: 1 / 2026: 5.000 €' && JSON.stringify(await p.evaluate(() => UI.jvSegY)) === '[2026]', 'D: 2025 abgewählt – nur noch 2026, gemerkt');
-  await p.click('.jv-segy:has-text("2026")'); await p.waitForTimeout(300);
-  ok((await sg())[0] === '2025-|2026 (Hauptjahr)+' && await p.evaluate(() => /Mindestens ein Jahr/.test(document.querySelector('#toasts').textContent)), 'D: das letzte Jahr bleibt gewählt (Hinweis)');
-  await p.click('.jv-segy:has-text("2025")'); await p.waitForTimeout(300);
 
   // ---- E: Zwecke über die Jahre – Linie je Zweck, „zweckungebunden“ anfangs aus, Klick blendet ein
   const zw = () => p.evaluate(() => [[...document.querySelectorAll('[data-sec="jv-zweck"] .jv-pk')].map(c => c.textContent + (c.classList.contains('off') ? '-' : '+')).join('|'), document.querySelectorAll('[data-chart="jvzw"] polyline').length,
@@ -111,6 +106,30 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.click('[data-sec="jv-dauer"] .jv-dazu'); await p.waitForTimeout(300);
   const g1 = await p.evaluate(() => { const k = document.querySelector('[data-sec="jv-dauer"] .jv-kpi'); return [[...k.querySelectorAll('.jv-zu, .jv-ab')].map(t => t.textContent).join('|'), k.querySelector('.jv-kn')?.textContent, document.querySelector('.jv-dazu').textContent, UI.jvDaZu]; });
   ok(g1[0] === '+1|−1' && /\+ Zugänge \/ − Abgänge gegenüber dem Vorjahr/.test(g1[1]) && g1[2] === 'Zu- und Abgänge ausblenden' && g1[3] === true, 'G: „Zu- und Abgänge einblenden“ – 2026: +1 / −1 unter der Anzahl (2025 ohne Vorjahr)');
+  // ---- I: ⓘ je Abschnitt, Farben, Reihenfolge (↑/↓ unter „Bausteine“ und Ziehen am Griff), PDF für die Präsentation
+  ok(await p.evaluate(() => ['kpi', 'verlauf', 'mail', 'seg', 'zweck', 'konto', 'dauer'].every(k => { const i = document.querySelector('[data-sec="jv-' + k + '"] .sec-h .info'); return i && TIPS.get(i) && TIPS.get(i).length > 60; })),
+    'I: jeder Abschnitt hat ein ⓘ mit der Rechenregel');
+  ok(await p.evaluate(() => [...document.querySelector('[data-sec="jv-kpi"] .jv-kpi').querySelectorAll('rect')].map(r => r.getAttribute('fill')).join() === 'var(--jvV),var(--jvH)'), 'I: Hauptjahr kräftig blau, Vergleichsjahr (Vorjahr) mittelblau');
+  await p.click('.jv-bbtn'); await p.waitForTimeout(150);
+  await p.click('.menu.pop .jv-brow:has-text("Kennzahlen") .jv-mv[aria-label$="nach unten"]'); await p.waitForTimeout(400);
+  const i0 = await p.evaluate(() => [JSON.stringify(UI.jvOrder), [...document.querySelectorAll('#main .sec')].map(e => e.dataset.sec).join(), !!document.querySelector('.menu.pop .jv-bpop'), UI_KEYS.includes('jvOrder')]);
+  ok(i0[0] === '["verlauf","kpi","mail","seg","zweck","konto","dauer"]' && i0[1].startsWith('jv-verlauf,jv-kpi,') && i0[2] && i0[3], 'I: „↓“ bei Kennzahlen – Kennzahlen stehen jetzt unter dem Jahresverlauf, gemerkt; „Bausteine“ bleibt offen');
+  await p.keyboard.press('Escape');
+  await p.setViewportSize({ width: 1400, height: 3400 }); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(300);   // Griff und Ziel gleichzeitig im Bild
+  const gp = await p.evaluate(() => { const g = document.querySelector('[data-sec="jv-dauer"] .sec-h .jv-drag').getBoundingClientRect(), t = document.querySelector('[data-sec="jv-mail"] .sec-h').getBoundingClientRect();
+    return [g.x + g.width / 2, g.y + g.height / 2, t.x + 200, t.y + 6]; });
+  await p.mouse.move(gp[0], gp[1]); await p.mouse.down(); await p.mouse.move(gp[0] + 4, gp[1] - 20, { steps: 4 }); await p.mouse.move(gp[2], gp[3], { steps: 12 }); await p.mouse.up(); await p.waitForTimeout(400);
+  await p.setViewportSize({ width: 1400, height: 1000 });
+  const i1 = await p.evaluate(() => [...document.querySelectorAll('#main .sec')].map(e => e.dataset.sec.replace('jv-', '')).join());
+  ok(i1 === 'verlauf,kpi,dauer,mail,seg,zweck,konto', 'I: „Dauerspender:innen“ am Griff über „Mailings“ gezogen – steht jetzt davor (' + i1 + ')');
+  await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
+  const i2 = await p.evaluate(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => r([window.__printed,
+    [...document.querySelectorAll('#printdoc .pd-page .pd-head h1')].map(e => e.textContent).join(' | '), document.body.classList.contains('printdoc-mode'), document.querySelectorAll('#printdoc [data-chart] svg').length,
+    /Sondereffekte herausgerechnet · Vergleich mit 2025/.test(document.querySelector('#printdoc .pd-head span').textContent)]), 300)); });
+  ok(i2[0] === 1 && i2[1] === 'Kennzahlen 2026 | Jahresverlauf & Quartale 2026 | Quartale in Zahlen 2026 | Mailings vergleichen | Spendersegmente | Zwecke über die Jahre · Konten über die Jahre | Dauerspender:innen 2026' && i2[2] && i2[3] >= 5 && i2[4],
+    'I: „PDF für die Präsentation“ – je Abschnitt eine Seite in der eingestellten Reihenfolge, Zwecke und Konten auf einer Seite, mit Einstellungen im Kopf');
+  await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => !document.querySelector('#printdoc') && !document.body.classList.contains('printdoc-mode')), 'I: nach dem Drucken ist die Druckansicht wieder weg');
   // ---- H: Bausteine ausblenden – Zwecke weg, Konten über die ganze Breite
   await p.click('[data-sec="jv-zweck"] .jv-hide'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !document.querySelector('[data-sec="jv-zweck"]') && !document.querySelector('.jv-grid2') && !!document.querySelector('.jv > [data-sec="jv-konto"]')), 'H: „Zwecke“ ausgeblendet – „Konten“ allein über die ganze Breite');
