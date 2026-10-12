@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.20.0",
+    "version": "0.21.0",
     "date": "",
+    "items": [
+      "Jahresvergleich: „Kopfzahlen“ heißen jetzt „Kennzahlen“ – Titel und Zahl im grau abgesetzten Kopf mit Linie darunter, die Säulen je Jahr auf weißem Grund; jede Kennzahl einzeln aus- und einblendbar (× an der Kachel oder „Bausteine“)",
+      "Säulen je Jahr stehen immer mittig nebeneinander, auch wenn nur zwei oder drei Jahre gewählt sind",
+      "Sondereffekte: Die ausgeblendeten Spenden stehen je Jahr als Liste unter den Grenzen – Datum, Betrag, Name, Verwendungszweck, Gliederung",
+      "Jahresverlauf: Klick auf ein Jahr (Legende oder Beschriftung am Ende der Linie) hebt es hervor, die anderen Jahre werden blass; noch ein Klick hebt es wieder auf",
+      "Quartalsvergleich: ohne Aufteilung nach Monaten und ohne „Anteil am Jahr“; neu: das Quartal in den Jahren nebeneinander (Summe, Veränderung) und rechts unter „verglichen mit“ die Gegenüberstellung Summe, Spenden, Ø je Spende, Spender:innen",
+      "Neue Bausteine: Spendersegmente (links Spender:innen, rechts Spendensumme je Segment, Hauptjahr gegenüber einem wählbaren Jahr), Zwecke über die Jahre und Konten über die Jahre (Linien; Zwecke an- und abwählbar, „zweckungebunden“ anfangs aus; Konten anfangs die fünf größten, „+ Konto“), Dauerspender:innen (Anzahl, Summe, Ø Monatsbeitrag; Zu- und Abgänge je Jahr: Anfang, neu, beendet, Ende)"
+    ]
+  },
+  {
+    "version": "0.20.0",
+    "date": "2026-10-12T14:53",
     "items": [
       "Auswertung: neuer Abschnitt „Jahresvergleich“ (oben, aufklappbar) – das Hauptjahr neben bis zu drei früheren Jahren",
       "Leiste: Jahre an-/abwählen, Hauptjahr, Zeitraum „bis Stichtag“ (jedes Jahr nur bis zu dem Tag, bis zu dem im Hauptjahr Buchungen eingelesen sind) oder „ganzes Jahr“; Sondereffekte je Jahr ausblenden (gleiche Grenze wie „Ausreißer“ bei „Spenden JJJJ“)",

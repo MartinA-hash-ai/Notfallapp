@@ -46,9 +46,10 @@ function spjMatcher(z) {
 }
 // alle Spenden des Jahres mit Zweck, Herkunft (Maßnahme oder nicht) und Dauerauftrag – nur neu rechnen, wenn sich etwas geändert hat
 let _spj = { key: null, val: null };
+const _spjC = new Map();                                              // je Jahr (der Jahresvergleich rechnet mehrere Jahre nebeneinander)
 function spjCompute(y) {
-  const cmp = spCompute(), key = _spCmp.key + '|' + y + '|' + JSON.stringify(D.zwecke);
-  if (_spj.key === key && _spj.rows === SP.rows) return _spj.val;
+  const cmp = spCompute(), key = _spCmp.key + '|' + y + '|' + JSON.stringify(D.zwecke), c = _spjC.get(+y);
+  if (c && c.key === key && c.rows === SP.rows) { _spj = c; return c.val; }
   const a = mkdn(+y, 1, 1), b = mkdn(+y, 12, 31), ids = new Set(D.zwecke.map(z => z.id)), fs = D.zwecke.map(z => [z.id, spjMatcher(z)]), list = [];
   for (const rec of SP.rows) {
     if (rec.d < a || rec.d > b) continue;
@@ -58,6 +59,7 @@ function spjCompute(y) {
   }
   const missing = Object.entries(D.spenden.zu).filter(([k, z]) => !SP.byKey.has(k) && dn(z.d) >= a && dn(z.d) <= b).length;   // zugeordnet, aber keine Datei mehr
   _spj = { key, rows: SP.rows, val: { y: +y, a, b, list, missing } };
+  _spjC.set(+y, _spj); if (_spjC.size > 8) _spjC.delete(_spjC.keys().next().value);
   return _spj.val;
 }
 // Ausreißer (z. B. Erbschaften): Spenden über der Grenze des Jahres zählen in der Statistik von „Spenden JJJJ“ nicht mit (Kacheln, Grafiken,
