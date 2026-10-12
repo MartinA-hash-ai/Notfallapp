@@ -1722,3 +1722,34 @@ button.chip.jv-pk { cursor: pointer; } .chip.jv-pk.off { border-style: dashed; c
 .jv-qtab th, .jv-qtab td { padding: 5px 8px; }
 .jv-qnum { table-layout: fixed; } .jv-qnum th:first-child { width: 90px; }
 .jv-qo { white-space: normal; }
+/* 0.23: Sondereffekte im Jahresverlauf mitrechnen, Quartale bündig unter dem Jahresverlauf, Segmente je Jahr, Zu- und Abgänge */
+:root { --jvsx: #b4532a; }
+@media screen { html[data-theme=dark] { --jvsx: #e58a5c; } }
+.jv-legsx { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
+.jv-sxsw { display: inline-block; width: 10px; height: 10px; background: var(--jvsx); transform: rotate(45deg); margin: 0 2px; }
+.jv-sxm { fill: var(--jvsx); stroke: var(--card); stroke-width: 1.5; cursor: default; }
+.jv-sxbar { fill: var(--jvsx); }
+.jv-qo { font-size: 11px; color: var(--jvsx); white-space: normal; }
+.jv-qsxn { color: var(--jvsx); font-weight: 600; }
+.jv-qa { margin-top: 2px; }
+.jv-qa > .jv-st { margin-left: 2px; }
+.jv-qtt { margin-top: 12px; }
+.jv-qsx { padding-top: 4px; }
+.jv-qsxi.late { opacity: .6; }
+.jv-qnum th:first-child { width: auto; }
+.jv-qnum th, .jv-qnum td { padding: 6px 8px; overflow: hidden; text-overflow: ellipsis; }
+.jv-qcmp { margin-top: 14px; }
+.jv-qcmp .jv-qch { gap: 10px; }
+.jv-qct { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 1000px) { .jv-qct { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.jv-qcti { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-width: 0; }
+.jv-qctb { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; margin-top: 2px; }
+.jv-lad .jv-zu { fill: var(--jvup); font-size: 11.5px; font-weight: 700; } .jv-lad .jv-ab { fill: var(--jvdn); font-size: 11.5px; font-weight: 700; }
+.jv-zut { color: var(--jvup); font-weight: 700; } .jv-abt { color: var(--jvdn); font-weight: 700; }
+.jv-kn { font-size: 11.5px; color: var(--muted); padding: 0 14px 8px; }
+.jv-dazu { font-size: 12px; padding: 3px 10px; }
+.jv-dazu[aria-pressed="true"] { background: var(--head); }
+.jv-sgy { font-weight: 600; fill: var(--muted); }
+.jv-grid2 > .sec { margin-bottom: 0; min-width: 0; }
+.jv-qnum tbody th { padding-left: 4px; padding-right: 2px; } .jv-qnum tbody th .dot { margin-right: 5px; }
+.jv-qnum thead th { white-space: normal; }

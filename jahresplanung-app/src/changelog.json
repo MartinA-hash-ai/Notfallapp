@@ -1,7 +1,20 @@
 [
   {
-    "version": "0.22.0",
+    "version": "0.23.0",
     "date": "",
+    "items": [
+      "Jahresverlauf & Quartale: „Sondereffekte zeigen“ (rechts über der Linie) rechnet die ausgeblendeten Spenden wieder ein – in der Linie (Raute an der Stelle), in den Quartalssäulen (braunroter Teil obenauf) und in „Quartale in Zahlen“ (Summe inkl. Sondereffekte, darunter braunrot „inkl. … Sondereffekte“)",
+      "Unter den Quartalen stehen alle Sondereffekte des Jahres – auch die nach dem Stichtag (blass, „nach dem Stichtag“, zählen im Vergleich nicht)",
+      "Quartalsvergleich neu angeordnet: Säulen und „Quartale in Zahlen“ stehen genau unter den Quartalen des Jahresverlaufs; das laufende Quartal heißt bei „bis Stichtag“ z. B. „Q4 (bis 06.10.)“, rechts die Spalte „Summe (bis 06.10.)“; die Gegenüberstellung mit „verglichen mit“ steht darunter; die Säulen in der Mitte sind weg",
+      "Spendersegmente: alle oben gewählten Jahre lassen sich an- und abwählen; an jedem Balken Jahr und Zahl, nur absolute Werte",
+      "Dauerspender:innen: die Brücken sind weg; „Zu- und Abgänge einblenden“ (oben rechts) zeigt sie unter der Anzahl je Jahr",
+      "Mailings vergleichen: die Namen rechts neben den Linien in der Farbe des Mailings",
+      "Zwecke über die Jahre und Konten über die Jahre stehen nebeneinander"
+    ]
+  },
+  {
+    "version": "0.22.0",
+    "date": "2026-10-12T16:01",
     "items": [
       "Eigener Reiter „Jahresvergleich“ neben Jahresplanung, Detailpläne und Auswertung – oben die Leiste (Jahre, Hauptjahr, Zeitraum, Sondereffekte, Bausteine), darunter die Abschnitte Kennzahlen, Jahresverlauf & Quartale, Mailings vergleichen, Spendersegmente, Zwecke über die Jahre, Konten über die Jahre, Dauerspender:innen (einklappbar wie in den anderen Reitern)",
       "Sondereffekte: Die Liste der ausgeblendeten Spenden oben ist anfangs zu – „ausgeblendete Spenden anzeigen“ klappt sie auf",
