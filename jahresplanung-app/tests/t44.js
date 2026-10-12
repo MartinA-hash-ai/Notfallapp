@@ -261,7 +261,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
       old: !!m.querySelector('.sp-addfiles, h3'), scroll: l ? [l.scrollHeight > l.clientHeight, Math.round(l.clientHeight / r.getBoundingClientRect().height)] : null,
       chips: [...m.querySelectorAll('.sp-addlist .sp-rc .sp-rchip')].map(c => c.textContent + '@' + c.style.borderColor), rchips: [...m.querySelectorAll('.sp-as-rules .sp-rchip')].map(c => c.textContent) } : null; });
   const rep = await repOf();
-  ok(rep && rep.h2 === 'Buchungen hinzugefügt' && rep.top === '26.09.2027Spenden hinzugefügt | 1neue Spende | 60,00 €Gesamtsumme' && /^Zeiträume überschneiden sich( nicht)? \| Keine doppelten Spenden erkannt \| /.test(rep.low) && /26\.09\.2027.*60,00 €.*JB Upload/.test(rep.rows) && !rep.old,
+  ok(rep && rep.h2 === 'Buchungen hinzugefügt' && rep.top === '26.09.2027Spenden hinzugefügt | 1neue Spende | 60,00 €Gesamtsumme' && /^(Überschneidet sich mit vorhandenen Daten|Keine Überschneidung mit vorhandenen Daten)[^|]* \| Keine doppelten Spenden erkannt \| /.test(rep.low) && /26\.09\.2027.*60,00 €.*JB Upload/.test(rep.rows) && !rep.old,
     'K: Zusammenfassung in sechs Feldern – ' + (rep ? rep.top + ' || ' + rep.low + ' · ' + rep.rows : 'fehlt'));
   const mc = await p.evaluate(() => { const c = C.byId.get('m5').color, t = document.createElement('i'); t.style.borderColor = c; return t.style.borderColor; });
   ok(rep && rep.rchips.join() === 'Jahresbericht (1)' && rep.chips.length === 1 && rep.chips[0] === 'Jahresbericht@' + mc && /Per Regel neu zugeordnet/.test(rep.low),
@@ -278,7 +278,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   const [fc2] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-sec="sp-ueb"] .tools button:has-text("Buchung hinzufügen")')]);
   await fc2.setFiles([tmp, big]); await p.waitForTimeout(900);
   const rep2 = await repOf();
-  ok(rep2 && rep2.top === '10.09.2027 – 27.09.2027Spenden hinzugefügt | 24neue Spenden | 396,00 €Gesamtsumme' && /^Zeiträume überschneiden sich(doppelte Buchungen zählen nur einmal)? \| 2 doppelte Spenden erkannt/.test(rep2.low) && !rep2.old,
+  ok(rep2 && rep2.top === '10.09.2027 – 27.09.2027Spenden hinzugefügt | 24neue Spenden | 396,00 €Gesamtsumme' && /^Überschneidet sich mit vorhandenen Datenschon vorhandene Buchungen zählen nur einmal \| 2 doppelte Spenden erkannt/.test(rep2.low) && !rep2.old,
     'K: zweimal dieselbe Buchung + 24 neue: ' + (rep2 ? rep2.top + ' || ' + rep2.low : 'fehlt'));
   ok(rep2 && rep2.n === 24 && rep2.scroll[0] && rep2.scroll[1] >= 9 && rep2.scroll[1] <= 11, 'K: Liste der neuen Spenden zeigt etwa ' + (rep2 && rep2.scroll[1]) + ' Zeilen, der Rest ist rollbar');
   ok(rep2 && /Keine neue Spende fällt unter eine Regel$/.test(rep2.low) && !rep2.chips.length, 'K: keine Regel passt → „Keine neue Spende fällt unter eine Regel“');

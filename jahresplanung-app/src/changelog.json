@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.19.1",
+    "version": "0.19.2",
     "date": "",
+    "items": [
+      "Spenden zuordnen (Zwecke und Maßnahmen): oben rechts in der Liste der Schalter „Treffer hervorheben“ statt des Hinweises „Klick auf eine Zeile markiert“ – blendet die gelbe Markierung aus und ein (wird gemerkt)",
+      "„Buchungen hinzugefügt“: die Überschneidung bezieht sich jetzt auf die schon vorhandenen Daten – „Überschneidet sich mit vorhandenen Daten“ bzw. „Keine Überschneidung …“; aufgeschlüsselt je neuer Datei: Zeitraum, aus welcher vorhandenen Datei, wie viele Buchungen schon da waren",
+      "Überschneiden sich mehrere neue Dateien untereinander, steht das nur noch als Hinweis darunter"
+    ]
+  },
+  {
+    "version": "0.19.1",
+    "date": "2026-10-12T11:49",
     "items": [
       "„Buchungen hinzugefügt“: die drei unteren Felder lassen sich anklicken (beim Zeigen etwas dunkler) – „← zurück“ zeigt wieder die Felder",
       "Überschneidende Zeiträume: welche Dateien sich überschneiden – als Balken und als Liste mit gemeinsamem Zeitraum und Anzahl gleicher Buchungen; jetzt auch zwischen zwei neuen Dateien",

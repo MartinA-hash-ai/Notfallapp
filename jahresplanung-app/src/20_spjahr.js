@@ -514,7 +514,7 @@ function spjList(J) {
     selUpd(ev.currentTarget); };
   // hervorheben, worauf die Regel greift: in der Vorschau das getippte Schlagwort, sonst die Schlagworte bzw. das Konto des Zwecks (nicht bei „von Hand“)
   const ruleZ = e => typed || e.hand ? [] : (e.z === SPJ_OFFEN ? e.hits.map(t => t.id) : [e.z]).map(id => D.zwecke.find(q => q.id === id)).filter(Boolean);
-  const hlW = e => typed ? [typed] : ruleZ(e).flatMap(z => z.worte), hlK = e => ruleZ(e).some(z => z.konten.includes(e.rec.konto));
+  const hlW = e => typed ? [typed] : ruleZ(e).flatMap(z => z.worte), hlK = e => spHlOn() && ruleZ(e).some(z => z.konten.includes(e.rec.konto));
   const row = (e, i) => { const r = e.rec, on = SPJ.sel.has(r.k);
     return h('div', { class: 'spj-row' + (e.z === SPJ_OFFEN ? ' offen' : '') + (e.hand ? ' hand' : '') + (on ? ' sel' : '') + (SPJ.flash && SPJ.flash.keys.has(r.k) ? ' jump' : ''), dataset: { k: r.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(r),
       onmousedown: ev => { if (ev.shiftKey) ev.preventDefault(); }, onclick: ev => pick(ev, i) },
@@ -541,11 +541,11 @@ function spjList(J) {
         'nur neue (' + base.filter(e => e.z === zSel && e.neu).length + ')') : null,
       typed ? [zObj ? h('button', { class: 'spj-to spj-prev-add', tip: 'Schlagwort „' + typed + '“ zum Zweck „' + zObj.name + '“ hinzufügen', onclick: () => spjSugAdd(zObj, typed) }, '+ zu „' + zObj.name + '“') : null,
         h('button', { class: 'spj-to ghost spj-prev-new', tip: 'neuen Zweck mit dem Schlagwort „' + typed + '“ anlegen', onclick: () => spjSugNew(typed) }, '+ als neuer Zweck'),
-        h('button', { class: 'link small spj-prevx', onclick: () => { SPJ.typed = ''; renderNow(); } }, 'Vorschau schließen')] :
-        h('span', { class: 'muted small spj-clickhint' }, 'Klick auf eine Zeile markiert'),
+        h('button', { class: 'link small spj-prevx', onclick: () => { SPJ.typed = ''; renderNow(); } }, 'Vorschau schließen')] : null,
       !typed && (lv === 'frei' || title === 'Zweckungebunden') && list.some(e => e.hand) ? (() => { const ks = list.filter(e => e.hand).map(e => e.rec.k);
         return h('button', { class: 'link small spj-unhand', tip: 'Diese Spenden stehen von Hand auf „zweckungebunden“. Wieder automatisch heißt: Regeln der Zwecke dürfen sie erfassen.',
           onclick: () => spjSetZweck(ks, '', ks.length + ' Spenden wieder automatisch') }, ks.length + ' von Hand festgelegt – wieder automatisch'); })() : null,
+      spHlToggle(),
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen')),
     h('div', { class: 'spj-listwrap' },
       h('div', { class: 'spj-list', 'data-keep-scroll': 'spj-list', role: 'listbox', 'aria-multiselectable': 'true' }, list.slice(0, lim).map(row),

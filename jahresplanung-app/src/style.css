@@ -1410,7 +1410,7 @@ html[data-theme=dark] .mtable td.art select, html[data-theme=dark] .mtable td.ar
 .spj-lh .spj-all { margin: 0 2px 0 3px; }
 .spj-lh .spj-all:indeterminate { background: var(--chk-on); }
 .spj-lh .spj-all:indeterminate::after { content: ''; width: 7px; height: 0; border-top: 2px solid var(--chk-mark); }
-.spj-clickhint { white-space: nowrap; }
+.spj-clickhint, .sp-hltog { white-space: nowrap; }
 .spj-listwrap { position: relative; }
 .spj-list { height: 420px; overflow: auto; border-top: 1px solid var(--line); padding-bottom: 46px; box-sizing: border-box; }   /* unten Platz für die Leiste */
 .spj-row { display: grid; grid-template-columns: 14px 82px 92px 130px minmax(0, 1fr) auto 62px; gap: 8px; align-items: center; padding: 3px 10px 3px 13px; font-size: 13px; border-bottom: 1px solid var(--line3); cursor: pointer; }
@@ -1566,3 +1566,6 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .sp-as-det:not(.wide) .sp-det-h b { flex-basis: 100%; }
 .sp-as-det:not(.wide) .sp-ovl-d { display: none; }
 .sp-as-det:not(.wide) .sp-ovl-r { grid-template-columns: minmax(60px, 45%) 1fr; }
+.sp-ovl-r.old .sp-ovl-n { color: var(--muted); font-weight: 600; }
+.sp-ovl-o { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--ink) 22%, var(--card)); border-radius: 3px; }
+.sp-ovl-l li > .muted { margin-left: 2px; }

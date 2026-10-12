@@ -255,7 +255,7 @@ async function spAddFiles(files) {
 // doppelte Buchungen und erkannte Regeln – diese drei Felder lassen sich anklicken (Details, „← zurück“, „ganze Breite“);
 // dann die neuen Spenden – passt eine Regel, steht ihr Schlagwort farbig am Zeilenende
 function spAddReport(report, known, oldFiles) {
-  const seen = new Map(), fresh = [], dupList = [], pairs = [], batch = [];
+  const seen = new Map(), fresh = [], dupList = [], pairs = [], inner = [], batch = [], newSpans = [];
   let dup = 0, neg = 0, bad = 0;
   const errs = [], same = [];
   const fileName = r => r.saved || r.name;
@@ -272,10 +272,11 @@ function spAddReport(report, known, oldFiles) {
       } else { seen.set(rec.k, nm); fresh.push(SP.byKey.get(rec.k) || rec); }
     }
     neg += P.neg || 0; bad += P.bad || 0;
-    if (span) {                                                  // Zeiträume, die sich mit schon vorhandenen oder mit anderen neuen Dateien überschneiden
+    if (span) {                                                  // Abgleich mit den schon vorhandenen Daten (und, als Hinweis, der neuen Dateien untereinander)
+      if (!r.dupOf) newSpans.push({ name: nm, span });
       for (const o of oldFiles.concat(batch)) if (o.name !== r.dupOf && o.span && o.span[0] <= span[1] && span[0] <= o.span[1]) {
         let n = 0; for (const k of keys) if (o.keys.has(k)) n++;
-        pairs.push({ a: nm, as: span, b: o.name, bs: o.span, from: Math.max(span[0], o.span[0]), to: Math.min(span[1], o.span[1]), n, neu: batch.includes(o) });
+        (batch.includes(o) ? inner : pairs).push({ a: nm, as: span, b: o.name, bs: o.span, from: Math.max(span[0], o.span[0]), to: Math.min(span[1], o.span[1]), n });
       }
       if (!r.dupOf) batch.push({ name: nm, span, keys });
     }
@@ -305,23 +306,25 @@ function spAddReport(report, known, oldFiles) {
   const report1 = () => ['Prüfbericht „Buchungen hinzugefügt“ (ohne Namen, IBAN, Verwendungszweck)',
     'Neu: ' + n + ' Spenden' + (fs ? ', ' + span2(fs[0], fs[1]) : '') + ' · doppelt erkannt: ' + dup,
     ...report.filter(r => !(r.parsed || {}).err).map(r => { const sp = spSpan((r.parsed || {}).recs); return 'Datei „' + fileName(r) + '“: ' + ((r.parsed.recs || []).length) + ' Buchungen' + (sp ? ', ' + span2(sp[0], sp[1]) : '') + (r.dupOf ? ' – identisch mit „' + r.dupOf + '“' : ''); }),
-    ...pairs.map(q => 'Überschneidung „' + q.a + '“ (' + span2(q.as[0], q.as[1]) + ') mit „' + q.b + '“ (' + span2(q.bs[0], q.bs[1]) + '): ' + span2(q.from, q.to) + ' · ' + q.n + ' gleiche Buchungen')].join('\n');
+    ...pairs.map(q => 'Überschneidung mit vorhandenen Daten: „' + q.a + '“ (' + span2(q.as[0], q.as[1]) + ') und „' + q.b + '“ (' + span2(q.bs[0], q.bs[1]) + '): ' + span2(q.from, q.to) + ' · ' + q.n + ' gleiche Buchungen'),
+    ...inner.map(q => 'Neue Dateien untereinander: „' + q.a + '“ und „' + q.b + '“: ' + span2(q.from, q.to) + ' · ' + q.n + ' gleiche Buchungen')].join('\n');
   const detHead = (title, extra) => h('div', { class: 'sp-det-h' }, h('b', null, title), extra || null,
     h('button', { class: 'link small sp-det-wide', tip: wide ? 'wieder schmaler' : 'auf die ganze Breite des Fensters', onclick: e => { e.stopPropagation(); wide = !wide; redraw(); } }, wide ? '⤡ schmaler' : '⤢ ganze Breite'),
     h('button', { class: 'link small sp-det-back', tip: 'zurück zu den drei Feldern', onclick: e => { e.stopPropagation(); open = null; wide = false; redraw(); } }, '← zurück'));
-  const overDet = () => {
-    const files = new Map(); for (const q of pairs) { files.set(q.a, q.as); files.set(q.b, q.bs); }
-    const lo = Math.min(...[...files.values()].map(s => s[0])), hi = Math.max(...[...files.values()].map(s => s[1])) + 1, pc = v => ((v - lo) / (hi - lo) * 100).toFixed(2) + '%';
-    const hot = name => pairs.filter(q => q.a === name || q.b === name).map(q => [q.from, q.to]);
-    return [detHead('Überschneidende Zeiträume', h('button', { class: 'link small sp-det-copy', tip: 'Dateinamen, Zeiträume und Anzahl gleicher Buchungen kopieren – ohne Namen, IBAN und Verwendungszweck', onclick: e => { e.stopPropagation(); copyText(report1()); } }, 'Bericht kopieren')),
+  const overDet = () => {                                       // die neuen Dateien gegen die schon vorhandenen Daten
+    const byNew = new Map(); for (const q of pairs) (byNew.get(q.a) || byNew.set(q.a, []).get(q.a)).push(q);
+    const olds = [...new Map(pairs.map(q => [q.b, q.bs])).values()], news = newSpans.filter(f => byNew.has(f.name));
+    const lo = Math.min(...news.map(f => f.span[0]), ...olds.map(s => s[0])), hi = Math.max(...news.map(f => f.span[1]), ...olds.map(s => s[1])) + 1, pc = v => ((Math.max(lo, Math.min(hi, v)) - lo) / (hi - lo) * 100).toFixed(2) + '%';
+    const seg = (a, b, cls, t) => h('span', { class: cls, style: { left: pc(a), width: 'calc(' + pc(b + 1) + ' - ' + pc(a) + ')' }, tip: t || null });
+    const row = (name, cls, segs, d) => h('div', { class: 'sp-ovl-r' + cls }, h('span', { class: 'sp-ovl-n', tip: name }, name), h('span', { class: 'sp-ovl-t' }, segs), h('span', { class: 'sp-ovl-d muted' }, d));
+    return [detHead('Überschneidung mit vorhandenen Daten', h('button', { class: 'link small sp-det-copy', tip: 'Dateinamen, Zeiträume und Anzahl gleicher Buchungen kopieren – ohne Namen, IBAN und Verwendungszweck', onclick: e => { e.stopPropagation(); copyText(report1()); } }, 'Bericht kopieren')),
       h('div', { class: 'sp-det-body' },
-        h('div', { class: 'sp-ovl' }, [...files].sort((a, b) => a[1][0] - b[1][0]).map(([name, sp]) => h('div', { class: 'sp-ovl-r' },
-          h('span', { class: 'sp-ovl-n', tip: name }, name),
-          h('span', { class: 'sp-ovl-t' }, h('span', { class: 'sp-ovl-b', style: { left: pc(sp[0]), width: 'calc(' + pc(sp[1] + 1) + ' - ' + pc(sp[0]) + ')' }, tip: name + ': ' + span2(sp[0], sp[1]) }),
-            hot(name).map(([a, b]) => h('span', { class: 'sp-ovl-x', style: { left: pc(a), width: 'calc(' + pc(b + 1) + ' - ' + pc(a) + ')' } }))),
-          h('span', { class: 'sp-ovl-d muted' }, span2(sp[0], sp[1]))))),
-        h('ul', { class: 'sp-ovl-l' }, pairs.map(q => h('li', null, h('b', null, '„' + q.a + '“'), ' und ', h('b', null, '„' + q.b + '“'), q.neu ? ' (beide neu)' : '',
-          h('div', { class: 'muted small' }, 'gemeinsam: ' + span2(q.from, q.to) + ' · ' + (q.n ? q.n + (q.n === 1 ? ' gleiche Buchung (zählt einmal)' : ' gleiche Buchungen (zählen einmal)') : 'keine gleichen Buchungen – nur die Zeiträume berühren sich'))))),
+        h('div', { class: 'sp-ovl' },
+          row('schon vorhanden', ' old', olds.map(s => seg(s[0], s[1], 'sp-ovl-o', span2(s[0], s[1]))), olds.length === 1 ? span2(olds[0][0], olds[0][1]) : olds.length + ' Dateien'),
+          news.map(f => row(f.name, '', [seg(f.span[0], f.span[1], 'sp-ovl-b', f.name + ': ' + span2(f.span[0], f.span[1])), ...byNew.get(f.name).map(q => seg(q.from, q.to, 'sp-ovl-x', 'überschneidet sich mit „' + q.b + '“: ' + span2(q.from, q.to)))], span2(f.span[0], f.span[1])))),
+        h('ul', { class: 'sp-ovl-l' }, news.map(f => h('li', null, h('b', null, '„' + f.name + '“'), ' (' + span2(f.span[0], f.span[1]) + ') überschneidet sich mit vorhandenen Daten:',
+          byNew.get(f.name).map(q => h('div', { class: 'muted small' }, span2(q.from, q.to) + ' aus „' + q.b + '“ · ' + (q.n ? q.n + (q.n === 1 ? ' Buchung war schon da (zählt einmal)' : ' Buchungen waren schon da (zählen einmal)') : 'keine gleichen Buchungen – nur die Zeiträume berühren sich')))))),
+        inner.length ? h('p', { class: 'muted small' }, 'Außerdem überschneiden sich neue Dateien untereinander: ' + inner.map(q => '„' + q.a + '“ und „' + q.b + '“ (' + span2(q.from, q.to) + ', ' + q.n + ' gleiche)').join('; ') + '.') : null,
         same.length ? h('p', { class: 'muted small' }, same.map(x => '„' + x.name + '“ ist identisch mit „' + x.as + '“ – nicht noch einmal abgelegt.').join(' ')) : null)];
   };
   const dupDet = () => [detHead(spCount(dup) + ' doppelt', h('button', { class: 'link small sp-det-copy', tip: 'Dateinamen, Zeiträume und Anzahl gleicher Buchungen kopieren – ohne Namen, IBAN und Verwendungszweck', onclick: e => { e.stopPropagation(); copyText(report1()); } }, 'Bericht kopieren')),
@@ -342,7 +345,8 @@ function spAddReport(report, known, oldFiles) {
       tile('rules', 'sp-as-rules', rules.size > 0, [h('span', null, rules.size ? 'Per Regel neu zugeordnet – dort als „neu“ markiert, bitte einmal prüfen' : 'Keine neue Spende fällt unter eine Regel'),
         rules.size ? h('div', { class: 'sp-rchips' }, rulesList().map(g => chip(g, h('small', null, ' (' + g.n + ')'), { role: 'button', onclick: e => { e.stopPropagation(); ask = g; redraw(); } }))) : null]);
     return h('div', { class: 'sp-addsum sp-addsum2' + (open && wide ? ' has-wide' : '') },
-      tile('over', 'sp-as-ov' + (over ? ' warn' : ''), over, [h('span', null, over ? 'Zeiträume überschneiden sich' : 'Zeiträume überschneiden sich nicht'), over ? h('small', null, 'doppelte Buchungen zählen nur einmal') : null]),
+      tile('over', 'sp-as-ov' + (over ? ' warn' : ''), over, [h('span', null, over ? 'Überschneidet sich mit vorhandenen Daten' : 'Keine Überschneidung mit vorhandenen Daten'),
+        over ? h('small', null, 'schon vorhandene Buchungen zählen nur einmal') : SP.rows.length > fresh.length ? h('small', null, 'die neuen Zeiträume waren noch nicht eingelesen') : null]),
       tile('dup', 'sp-as-dup', dup > 0, [h('span', null, dup ? dup.toLocaleString('de-DE') + (dup === 1 ? ' doppelte Spende erkannt' : ' doppelte Spenden erkannt') : 'Keine doppelten Spenden erkannt'), dup ? h('small', null, 'nicht noch einmal gezählt') : null]),
       rulesTile);
   };
@@ -476,9 +480,12 @@ function spMarks(words, text) {
   const m = []; for (const r of out) { const l = m[m.length - 1]; if (l && r[0] <= l[1]) l[1] = Math.max(l[1], r[1]); else m.push(r.slice()); }
   return m;
 }
-// Text mit hervorgehobenen Stellen (für die Spalte „Verwendungszweck“)
+// Text mit hervorgehobenen Stellen (für die Spalte „Verwendungszweck“) – abschaltbar oben rechts in der Liste („Treffer hervorheben“)
+const spHlOn = () => UI.spHl !== false;
+const spHlToggle = () => h('label', { class: 'check small sp-hltog', tip: 'gelb hervorheben, worauf die Regel im Verwendungszweck (bzw. beim Konto) greift' },
+  h('input', { type: 'checkbox', checked: spHlOn(), onchange: e => { UI.spHl = e.target.checked; renderNow(); } }), 'Treffer hervorheben');
 function spHl(text, words, tip) {
-  text = str(text); const rg = spMarks(words, text);
+  text = str(text); const rg = spHlOn() ? spMarks(words, text) : [];
   if (!rg.length) return text;
   const out = []; let at = 0;
   for (const [a, b] of rg) { if (a > at) out.push(text.slice(at, a)); out.push(h('mark', { class: 'sp-hl', title: tip || null }, text.slice(a, b))); at = b; }
@@ -1062,7 +1069,7 @@ function spmList(x, cmp) {
       tab === 'klaeren' ? h('b', null, 'Zu klären') : h('span', { class: 'segs spj-lv' }, seg('zu', 'Zugeordnet (' + P.R.length.toLocaleString('de-DE') + ')'), seg('offen', 'Offen'), nAus ? seg('aus', 'Ausgeschlossen (' + nAus + ')') : null),
       h('span', { class: 'spj-sub muted small' }, spCount(list.length) + ' · ' + eur(sumOf(list)) + (tab === 'offen' && list.length !== P.L.length ? ' (im Filter)' : '')),
       tab === 'zu' && neuK.size ? h('button', { class: 'spj-onlynew' + (SPUI.onlyNew ? ' on' : ''), 'aria-pressed': String(!!SPUI.onlyNew), onclick: () => { SPUI.onlyNew = !SPUI.onlyNew; SPUI.more = 0; renderNow(); } }, 'nur neue (' + neuK.size + ')') : null,
-      h('span', { class: 'muted small spj-clickhint' }, 'Klick auf eine Zeile markiert'),
+      spHlToggle(),
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen')),
     tab === 'offen' ? h('div', { class: 'spm-filter' },
       h('span', { class: 'spj-rl' }, 'Zeitraum'), dateInput(f.von, 'sp-fvon', v => fset('von', v, true)), '–', dateInput(f.bis, 'sp-fbis', v => fset('bis', v, true)),

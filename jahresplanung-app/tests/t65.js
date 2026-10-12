@@ -1,4 +1,4 @@
-// 0.19.1 Zusammenfassung „Buchungen hinzugefügt“: Felder anklickbar – Überschneidungen (mit Dateinamen, auch zwischen neuen Dateien),
+// 0.19.1/0.19.2 Zusammenfassung „Buchungen hinzugefügt“: Felder anklickbar – Überschneidung mit den vorhandenen Daten (mit Dateinamen; neue Dateien untereinander als Hinweis),
 // doppelte Spenden (Datum, Betrag, Verwendungszweck, „auch in“), ganze Breite / schmaler, zurück; „Per Regel neu …“ fragt und führt zur Prüfung
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -23,7 +23,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
 
   // ---- A: drei Felder, anklickbar (Hover dunkler)
   const a0 = await tiles();
-  ok(a0[0] === 'ov warn click:Zeiträume überschneiden sichdoppelte Buchungen zählen nur einmal' && a0[1] === 'dup click:16 doppelte Spenden erkanntnicht noch einmal gezählt' && /^rules click:Per Regel neu zugeordnet.*Rikscha \(19\)$/.test(a0[2]),
+  ok(a0[0] === 'ov warn click:Überschneidet sich mit vorhandenen Datenschon vorhandene Buchungen zählen nur einmal' && a0[1] === 'dup click:16 doppelte Spenden erkanntnicht noch einmal gezählt' && /^rules click:Per Regel neu zugeordnet.*Rikscha \(19\)$/.test(a0[2]),
     'A: Überschneidung, 16 doppelte, Regel „Rikscha“ (19) – alle drei anklickbar');
   const bg0 = await p.evaluate(() => getComputedStyle(document.querySelector('.sp-as-dup')).backgroundColor);
   await p.hover('.sp-as-dup'); await p.waitForTimeout(250);
@@ -32,16 +32,17 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   // ---- B: Überschneidungen – Dateien als Balken, Paare mit gemeinsamem Zeitraum und gleichen Buchungen (auch zwischen zwei neuen Dateien)
   await p.click('.sp-as-ov'); await p.waitForTimeout(200);
   const b0 = await p.evaluate(() => { const d = document.querySelector('.sp-as-det'); return [[...d.querySelectorAll('.sp-ovl-n')].map(e => e.textContent).join(','), d.querySelectorAll('.sp-ovl-x').length,
-    [...d.querySelectorAll('.sp-ovl-l li')].map(e => e.textContent), d.classList.contains('wide')]; });
-  ok(b0[0] === 'jan.csv,jan_nochmal.csv,feb.csv,mrz.csv' && b0[1] === 4 && !b0[3], 'B: Klick – vier Dateien als Balken, Überschneidungen markiert (' + b0[0] + ')');
-  ok(b0[2][0] === '„jan_nochmal.csv“ und „jan.csv“gemeinsam: 20.01.–31.01.2023 · 12 gleiche Buchungen (zählen einmal)' && b0[2][1] === '„mrz.csv“ und „feb.csv“ (beide neu)gemeinsam: 25.02.–28.02.2023 · 4 gleiche Buchungen (zählen einmal)',
-    'B: Paare mit Dateinamen, gemeinsamem Zeitraum und Anzahl gleicher Buchungen – auch zwischen zwei neuen Dateien');
+    [...d.querySelectorAll('.sp-ovl-l li')].map(e => e.textContent), d.classList.contains('wide'), [...d.querySelectorAll('p.muted')].map(e => e.textContent).join(' ')]; });
+  ok(b0[0] === 'schon vorhanden,jan_nochmal.csv' && b0[1] === 1 && !b0[3], 'B: Klick – die vorhandenen Daten und die neue Datei, die sich damit überschneidet, als Balken (' + b0[0] + ')');
+  ok(b0[2].length === 1 && b0[2][0] === '„jan_nochmal.csv“ (20.01.–31.01.2023) überschneidet sich mit vorhandenen Daten:20.01.–31.01.2023 aus „jan.csv“ · 12 Buchungen waren schon da (zählen einmal)',
+    'B: aufgeschlüsselt – Datei, Zeitraum, aus welcher vorhandenen Datei, wie viele Buchungen schon da waren');
+  ok(/Außerdem überschneiden sich neue Dateien untereinander: „mrz\.csv“ und „feb\.csv“ \(25\.02\.–28\.02\.2023, 4 gleiche\)/.test(b0[4]), 'B: dass sich zwei neue Dateien untereinander überschneiden, steht nur als Hinweis darunter');
   await p.click('.sp-det-wide'); await p.waitForTimeout(150);
   const b1 = await p.evaluate(() => { const d = document.querySelector('.sp-as-det'), m = document.querySelector('.sp-addsum2').getBoundingClientRect(), r = d.getBoundingClientRect(); return [d.classList.contains('wide'), Math.round(r.width) === Math.round(m.width), getComputedStyle(d.querySelector('.sp-ovl-d')).display, document.querySelectorAll('.sp-addsum2 > div').length]; });
   ok(b1[0] && b1[1] && b1[2] !== 'none' && b1[3] === 3, 'B: „ganze Breite“ – Details über die ganze Breite (mit Zeiträumen), die anderen Felder bleiben darunter sichtbar');
   await p.click('.sp-det-copy'); await p.waitForTimeout(200);
   const rep = await p.evaluate(() => navigator.clipboard.readText().catch(() => '')).catch(() => '');
-  ok(await p.evaluate(() => /Bericht kopiert – ohne Namen, IBAN und Verwendungszweck/.test(document.querySelector('#toasts').textContent)) && (!rep || (/Überschneidung „mrz\.csv“ \(25\.02\.–31\.03\.2023\) mit „feb\.csv“/.test(rep) && !/Hospizarbeit|Probe|DE00/.test(rep))),
+  ok(await p.evaluate(() => /Bericht kopiert – ohne Namen, IBAN und Verwendungszweck/.test(document.querySelector('#toasts').textContent)) && (!rep || (/Überschneidung mit vorhandenen Daten: „jan_nochmal\.csv“ \(20\.01\.–31\.01\.2023\) und „jan\.csv“/.test(rep) && !/Hospizarbeit|Probe|DE00/.test(rep))),
     'B: „Bericht kopieren“ – Dateien, Zeiträume, Anzahl; ohne Namen, IBAN und Verwendungszweck');
   await p.click('.sp-det-wide'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.sp-as-det').classList.contains('wide')), 'B: „schmaler“ – wieder im Feld');

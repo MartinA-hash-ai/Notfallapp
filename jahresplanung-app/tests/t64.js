@@ -1,5 +1,5 @@
 // 0.19 Spenden JJJJ: Liste ohne Zweck = alle Spenden; Zweckwechsel behält „Bei Zweck“; Jahreswechsel behält den Zweck; Treffer der Regel hervorgehoben;
-// Klick in die Jahresgrafik sucht den Tag in der Liste (ohne Seitensprung, Aufleuchten erst im Bild); Ausreißer-Grenze; ⓘ zum Anklicken
+// Klick in die Jahresgrafik sucht den Tag in der Liste (ohne Seitensprung, Aufleuchten erst im Bild); Ausreißer-Grenze; ⓘ zum Anklicken; 0.19.2 Schalter „Treffer hervorheben“
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 let n = 0;
@@ -37,6 +37,12 @@ const csv = '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
   const b0 = [await rowOf('Probe ABC', '.sp-z'), await rowOf('Probe Hospiz', '.sp-z'), await rowOf('Probe Konto', '.spj-g'), await rowOf('Probe 3', '.sp-z')];
   ok(b0[0] === 'Spende <mark class="sp-hl">ABC</mark> Lage, Probe' && b0[1] === 'Danke <mark class="sp-hl">HOSPIZ BE RICHT</mark>' && b0[2] === '<mark class="sp-hl">Brakel</mark>' && b0[3] === 'Spende',
     'B: Regel „ABC“ hervorgehoben, „Hospizbericht“ auch getrennt geschrieben, Konto-Regel markiert die Gliederung (' + b0.slice(0, 3).join(' | ') + ')');
+  // 0.19.2: oben rechts statt „Klick auf eine Zeile markiert“ der Schalter „Treffer hervorheben“
+  const tg = () => p.evaluate(() => [document.querySelector('[data-sec="sp-zu"] .spj-lh .sp-hltog input').checked, document.querySelectorAll('[data-sec="sp-zu"] mark.sp-hl').length, !!document.querySelector('.spj-clickhint')]);
+  const bt0 = await tg(); await p.click('[data-sec="sp-zu"] .sp-hltog input'); await p.waitForTimeout(200); const bt1 = await tg();
+  await p.click('[data-sec="sp-zu"] .sp-hltog input'); await p.waitForTimeout(200); const bt2 = await tg();
+  ok(bt0[0] && bt0[1] > 0 && !bt0[2] && !bt1[0] && bt1[1] === 0 && bt2[0] && bt2[1] === bt0[1] && await p.evaluate(() => UI.spHl === true && UI_KEYS.includes('spHl')),
+    'B: Schalter „Treffer hervorheben“ oben rechts (statt des Hinweises) blendet die Markierungen aus und wieder ein (' + bt0[1] + ' → ' + bt1[1] + ' → ' + bt2[1] + '), gemerkt');
   await p.evaluate(() => { const k = SP.rows.find(r => r.name === 'Probe ABC').k; spjSetZweck([k], 'zh', 'von Hand'); }); await p.waitForTimeout(200);
   ok(await rowOf('Probe ABC', '.sp-z') === 'Spende ABC Lage, Probe', 'B: von Hand zugeordnet – nichts hervorgehoben');
   await p.evaluate(() => undo()); await p.waitForTimeout(200);
