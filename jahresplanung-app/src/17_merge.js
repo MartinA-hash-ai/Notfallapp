@@ -55,7 +55,7 @@ function merge3(base, mine, theirs) {
   out.spenden.allg = mergeObj((base.spenden || {}).allg, (mine.spenden || {}).allg, (theirs.spenden || {}).allg, { coll: 'spenden', key: 'allg' }, [], cnt);   // Regeln der allgemeinen Spenden: eigene Fassung
   out.spenden.grenze = mergeObj((base.spenden || {}).grenze, (mine.spenden || {}).grenze, (theirs.spenden || {}).grenze, { coll: 'spenden', key: 'grenze' }, [], cnt);   // Ausreißer-Grenze je Jahr: eigene Fassung
   const zl = mergeObj((base.spenden || {}).ziel, (mine.spenden || {}).ziel, (theirs.spenden || {}).ziel, { coll: 'spenden', key: 'ziel' }, [], cnt); if (Object.keys(zl).length) out.spenden.ziel = zl;   // Jahresziel je Jahr: je Eintrag
-  for (const sub of ['styp', 'sdaNein', 'sworte']) {                // Einstufung der Zahler, Ausnahmen bei Dauerspender:innen, Stichwörter: je Eintrag, sonst eigene Fassung
+  for (const sub of ['styp', 'sdaNein', 'sarten']) {                // Einstufung der Zahler, Ausnahmen bei Dauerspender:innen, Arten mit Stichwörtern: je Eintrag, sonst eigene Fassung
     const v = mergeObj((base.spenden || {})[sub], (mine.spenden || {})[sub], (theirs.spenden || {})[sub], { coll: 'spenden', key: sub }, [], cnt);
     if (Object.keys(v).length) out.spenden[sub] = v;
   }
@@ -84,7 +84,7 @@ function recLabel(coll, rec, key) {
   if (coll === 'sondertage') return 'Freier Tag „' + (rec.name || 'ohne Namen') + '“ ' + fmtS(dn(rec.datum));
   if (coll === 'personen') return 'Person ' + (rec.name || key);
   if (coll === 'feiertage') return 'Feiertage';
-  if (coll === 'spenden') return rec && rec.n ? rec.n + ' Spendenzuordnung' + (rec.n === 1 ? '' : 'en') + ', die hier fehlen' : key === 'neu' ? 'Neu-Markierung einer Spende' : key === 'nein' ? 'ausgeschlossene Spende' : key === 'grenze' ? 'Ausreißer-Grenze der Spendenstatistik' : key === 'ziel' ? 'Jahresziel' : key === 'styp' ? 'Einstufung Privat/Institution' : key === 'sdaNein' ? 'Ausnahme bei Dauerspender:innen' : key === 'sworte' ? 'Stichwörter für Institutionen' : 'Spendenzuordnung';
+  if (coll === 'spenden') return rec && rec.n ? rec.n + ' Spendenzuordnung' + (rec.n === 1 ? '' : 'en') + ', die hier fehlen' : key === 'neu' ? 'Neu-Markierung einer Spende' : key === 'nein' ? 'ausgeschlossene Spende' : key === 'grenze' ? 'Ausreißer-Grenze der Spendenstatistik' : key === 'ziel' ? 'Jahresziel' : key === 'styp' ? 'Einstufung Privat/Institution' : key === 'sdaNein' ? 'Ausnahme bei Dauerspender:innen' : key === 'sarten' ? 'Arten und Stichwörter für Institutionen' : 'Spendenzuordnung';
   return 'Einstellungen';
 }
 function valText(coll, field, v, rec) {
@@ -213,11 +213,11 @@ function describeChanges(a, b, max = 12) {
   for (const k of [...new Set([...Object.keys(ja), ...Object.keys(jb)])].sort()) if (ja[k] !== jb[k])
     out.push('Jahresziel ' + k.slice(0, 4) + (k[4] === 'p' ? ' (nur Privat)' : k[4] === 'i' ? ' (nur Institutionen)' : '') + ': ' + (jb[k] ? Math.round(jb[k] / 100).toLocaleString('de-DE') + ' €' : 'entfernt'));
   const ta = (a.spenden || {}).styp || {}, tb = (b.spenden || {}).styp || {}, tk = [...new Set([...Object.keys(ta), ...Object.keys(tb)])].filter(k => ta[k] !== tb[k]);   // Einstufung Privat/Institution
-  const ti = tk.filter(k => tb[k] === 'i').length, tp = tk.filter(k => tb[k] === 'p').length, tz = tk.filter(k => !tb[k]).length;
+  const ti = tk.filter(k => /^i/.test(tb[k] || '')).length, tp = tk.filter(k => tb[k] === 'p').length, tz = tk.filter(k => !tb[k]).length;
   if (ti) out.push('Jahresvergleich: ' + ti + (ti === 1 ? ' Zahler:in' : ' Zahler:innen') + ' von Hand als Institution eingestuft');
   if (tp) out.push('Jahresvergleich: ' + tp + (tp === 1 ? ' Zahler:in' : ' Zahler:innen') + ' von Hand als privat eingestuft');
   if (tz) out.push('Jahresvergleich: ' + tz + (tz === 1 ? ' Einstufung' : ' Einstufungen') + ' von Hand aufgehoben');
-  if (JS((a.spenden || {}).sworte) !== JS((b.spenden || {}).sworte)) out.push('Jahresvergleich: Stichwörter für Institutionen geändert');
+  if (JS((a.spenden || {}).sarten) !== JS((b.spenden || {}).sarten)) out.push('Jahresvergleich: Arten und Stichwörter für Institutionen geändert');
   const na = (a.spenden || {}).sdaNein || {}, nb = (b.spenden || {}).sdaNein || {}, n1 = Object.keys(nb).filter(k => !na[k]).length, n0 = Object.keys(na).filter(k => !nb[k]).length;
   if (n1) out.push('Jahresvergleich: ' + n1 + ' regelmäßig Spendende nicht als Dauerspender:in gezählt');
   if (n0) out.push('Jahresvergleich: ' + n0 + ' regelmäßig Spendende wieder als Dauerspender:in gezählt');

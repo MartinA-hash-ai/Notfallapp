@@ -1,7 +1,23 @@
 [
   {
-    "version": "0.27.0",
+    "version": "0.28.0",
     "date": "",
+    "items": [
+      "Jahresvergleich neu geordnet: oben „Auf einen Blick“ (ein Satz und vier Zahlen: Spendensumme, Hochrechnung bzw. Jahresziel, Spender:innen, Ø je Spende), darunter Jahresziel & Hochrechnung, Jahresverlauf mit Quartalen, Privat & Institutionen, Spendenbrücke und Spenderbindung nebeneinander, Kennzahlen; die Details (Mailings, Segmente, Zwecke, Konten, Dauerspender:innen, Größte) sind anfangs eingeklappt und zeigen eingeklappt eine kurze Zusammenfassung",
+      "Leiste: „Alle | Privat | Institutionen“ als Knopfgruppe; „Sondereffekte“ als Knopf, der Grenzen je Jahr und die Liste aufklappt; „So wird gerechnet“ sammelt alle ausführlichen Erklärungen – die ⓘ an den Abschnitten sind jetzt ein kurzer Satz, Fußnoten und graue Hinweistexte sind weg",
+      "Neu: „Privat & Institutionen“ – je Jahr ein Balken mit dem Anteil privat/Institutionen und die Institutionen nach Art (Banken & Gewinnsparen, Stiftungen, Kommunen & Städte, Kirchengemeinden, Unternehmen, Vereine & Clubs, Geldauflagen & Justiz) mit Veränderung und Mini-Verlauf; eine Art aufklappen zeigt die Zahler:innen, „→ privat“ stuft um",
+      "„Regeln ansehen und ändern“: je Art die Stichwörter für Name und Verwendungszweck mit Treffern, eigene Arten anlegen, „Standard wiederherstellen“, Liste „Von Hand eingestuft“ mit „aufheben“ und Prüfliste der größten privat eingestuften mit „→ Institution ▾“ (Art wählen); passen mehrere Stichwörter, zählt das längste („Stadtsparkasse“ → Bank, „Kirchengemeinde“ → Kirchengemeinde); bisherige eigene Stichwörter werden übernommen",
+      "Spenderbindung, Spendersegmente, Dauerspender:innen und Größte Spender:innen haben im Kopf eine eigene Auswahl Alle / Privat / Institutionen („eigene Auswahl · wie oben“ setzt sie zurück); im PDF steht die Auswahl im Titel",
+      "Kennzahlen als Tabelle: Vergleichsjahr, Hauptjahr, Veränderung und Mini-Verlauf über alle gewählten Jahre (Jahre im Kopf); Median und „Erstmals“ anfangs ausgeblendet (über „Bausteine“ einblenden)",
+      "Spendenbrücke waagerecht und kompakt; Spenderbindung als vier kleine Kacheln, „Wer fehlt noch?“ als Zeile mit „Liste ▸“ (anfangs bis zum Stichtag – passt zu „nicht wieder gespendet“)",
+      "Spendersegmente als Grafik: oben der Anteil an den Spender:innen, unten an der Summe, Bänder dazwischen, dünne Balken für das Vergleichsjahr, darunter ein Satz („Ab 1.000 €: … geben … der Summe“)",
+      "Zwecke und Konten als Tabellen mit Hauptjahr, Veränderung und Mini-Verlauf (Jahre im Kopf) statt Linien; Mailings: Tabelle mit Erlös, Response, Ø je Spende, Kosten, „Erlös je 1 € Kosten“ und „80 % da nach“, darunter die Veränderung; Dauerspender:innen: drei Kacheln und Zu-/Abgänge; Größte Spender:innen: Balken „größte 10 % / übrige“",
+      "Ganze Euro in Tabellen; Farbe erst ab ±5 % (Anteile ±2 Prozentpunkte), große Sprünge als Faktor (×10); Quartalsdiagramm niedriger"
+    ]
+  },
+  {
+    "version": "0.27.0",
+    "date": "2026-10-12T21:42",
     "items": [
       "Neu: „Jahresziel & Hochrechnung“ – Hochrechnung bis 31.12.: Stand im Hauptjahr × (Jahressumme ÷ Summe bis zum Stichtag) im Vergleichsjahr; dazu die Spanne über alle gewählten vollständigen Jahre und wie viel der Jahressumme jeweils bis zum Stichtag da war",
       "Jahresziel eintragen (je Jahr und je Auswahl alle / nur Privat / nur Institutionen; steht in der Planungsdatei): Stand und Hochrechnung als Balken in Prozent des Ziels, was noch fehlt und was im Vergleichsjahr nach dem Stichtag noch kam",

@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvCmp', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss'];
+const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvCmp', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvGrpSec'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -184,6 +184,24 @@ function normMarks(st) {
 }
 // Daten aus Datei, Import oder Entwurf in eine sichere Form bringen: kaputte Einträge weglassen, Texte als Text
 const isObj = v => !!v && typeof v === 'object' && !Array.isArray(v);
+// Jahresvergleich: Arten von Institutionen mit Stichwörtern im Namen des Kontoinhabers (n) und im Verwendungszweck (z) – Standard, solange niemand sie ändert
+const JV_ARTEN = [
+  { id: 'bank', t: 'Banken & Gewinnsparen', n: ['Sparkasse', 'Volksbank', 'Raiffeisenbank', 'Bank', 'Gewinnspar'], z: ['Gewinnspar', 'Reinertrag', 'Zweckertrag', 'PS-Sparen', 'PS-Los', 'Lotterie'] },
+  { id: 'stift', t: 'Stiftungen', n: ['Stiftung'], z: [] },
+  { id: 'kom', t: 'Kommunen & Städte', n: ['Stadt', 'Gemeinde', 'Stadtwerke', 'Landkreis'], z: [] },
+  { id: 'kirche', t: 'Kirchengemeinden', n: ['Kirchengemeinde', 'Pfarrei', 'Pfarramt', 'Kirchenvorstand', 'Bistum', 'Erzbistum', 'Caritas'], z: ['Kollekte'] },
+  { id: 'firma', t: 'Unternehmen', n: ['GmbH', 'gGmbH', 'mbH', 'AG', 'KG', 'OHG', 'GbR', 'KGaA', 'UG', 'Co.', 'eG', 'Firma', 'Holding'], z: [] },
+  { id: 'verein', t: 'Vereine & Clubs', n: ['Verein', 'Verband', 'e.V.', 'eV', 'Lions', 'Rotary', 'Kolping', 'Schützen'], z: [] },
+  { id: 'justiz', t: 'Geldauflagen & Justiz', n: ['Amtsgericht', 'Landgericht', 'Staatsanwaltschaft', 'Justiz'], z: ['Geldauflage', 'Bußgeld', 'Bussgeld'] },
+];
+// alte Stichwortlisten (0.26/0.27, ohne Arten) auf die Arten verteilen: entfernte Wörter bleiben weg, eigene kommen unter „weitere Institutionen“
+function jvArtenAusWorten(w) {
+  const nm = w.name, zw = w.zweck, o = {}, seenN = new Set(), seenZ = new Set();
+  JV_ARTEN.forEach((a, i) => { const n = a.n.filter(x => !nm || nm.includes(x)), z = a.z.filter(x => !zw || zw.includes(x)); n.forEach(x => seenN.add(x)); z.forEach(x => seenZ.add(x)); o[a.id] = { t: a.t, n, z, o: i }; });
+  const xn = (nm || []).filter(x => !seenN.has(x)), xz = (zw || []).filter(x => !seenZ.has(x));
+  if (xn.length || xz.length) o.weitere = { t: 'weitere Institutionen', n: xn, z: xz, o: JV_ARTEN.length };
+  return o;
+}
 const str = v => typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '';
 const dateStr = v => typeof v === 'string' && v ? v : null;
 // Plan einer Maßnahme oder Vorlage prüfen und auf den aktuellen Stand bringen (Abschnitte, PAL-Zeile, Werktage, Verknüpfungen vorwärts)
@@ -287,9 +305,14 @@ function normalizeData(d) {
   if (isObj(sp.grenze)) for (const [y, v] of Object.entries(sp.grenze)) if (/^\d{4}$/.test(y) && isNum(v) && v > 0) (d.spenden.grenze = d.spenden.grenze || {})[y] = Math.round(v);   // Statistik „Spenden JJJJ“: Spenden über … (Cent) ausblenden
   // Jahresvergleich (0.26): Zahler je Kürzel (Hash aus IBAN bzw. Name – keine Kontonummern in der Datei): von Hand als Institution „i“ oder privat „p“ eingestuft;
   // regelmäßig erkannt, aber nicht als Dauerspender:in zählen; eigene Stichwörter für Institutionen (Name des Kontoinhabers, Verwendungszweck)
-  if (isObj(sp.styp)) for (const [k, v] of Object.entries(sp.styp)) if (str(k) && (v === 'i' || v === 'p')) (d.spenden.styp = d.spenden.styp || {})[k] = v;
+  // 0.28: „i:art“ = Institution einer bestimmten Art (Stiftungen, Banken …)
+  if (isObj(sp.styp)) for (const [k, v] of Object.entries(sp.styp)) if (str(k) && /^(p|i(:[a-z0-9_-]{1,24})?)$/.test(v)) (d.spenden.styp = d.spenden.styp || {})[k] = v;
   if (isObj(sp.sdaNein)) for (const k of Object.keys(sp.sdaNein)) if (sp.sdaNein[k] && str(k)) (d.spenden.sdaNein = d.spenden.sdaNein || {})[k] = 1;
-  if (isObj(sp.sworte)) { const o = {}; for (const f of ['name', 'zweck']) if (Array.isArray(sp.sworte[f])) o[f] = uniq(sp.sworte[f]); if (Object.keys(o).length) d.spenden.sworte = o; }
+  // Arten von Institutionen mit ihren Stichwörtern (je Art: Name t, Wörter im Namen n, im Verwendungszweck z, Reihenfolge o); ohne Eintrag gilt JV_ARTEN
+  const wl = a => Array.isArray(a) ? [...new Set(a.map(w => str(w).trim()).filter(Boolean))] : [];
+  if (isObj(sp.sarten)) { const o = {}; for (const [id, a] of Object.entries(sp.sarten)) if (/^[a-z0-9_-]{1,24}$/.test(id) && isObj(a) && str(a.t).trim()) o[id] = { t: str(a.t).trim(), n: wl(a.n), z: wl(a.z), o: isNum(a.o) ? +a.o : 99 };
+    if (Object.keys(o).length) d.spenden.sarten = o; }
+  else if (isObj(sp.sworte)) d.spenden.sarten = jvArtenAusWorten({ name: Array.isArray(sp.sworte.name) ? wl(sp.sworte.name) : null, zweck: Array.isArray(sp.sworte.zweck) ? wl(sp.sworte.zweck) : null });   // 0.26/0.27: eigene Stichwörter ohne Arten
   if (isObj(sp.allg)) for (const [y, v] of Object.entries(sp.allg)) {      // allgemeine Spenden je Jahr: Regel (Schlagworte, Daueraufträge vorschlagen)
     const r = isObj(v) && isObj(v.regel) ? v.regel : {}, worte = [...new Set((Array.isArray(r.worte) ? r.worte : []).map(w => str(w).trim()).filter(Boolean))];
     if (/^\d{4}$/.test(y) && (worte.length || r.da === true)) (d.spenden.allg = d.spenden.allg || {})[y] = { regel: Object.assign({ worte }, r.da === true ? { da: true } : {}) };
