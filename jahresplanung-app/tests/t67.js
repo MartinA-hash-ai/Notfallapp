@@ -67,6 +67,11 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     'D: Legende von klein nach groß; je Jahr (2025, 2026) ein Balken für Spender:innen und einer für die Summe; keine Bänder dazwischen');
   ok(d0[5] === '25 %|75 %|50 %|25 %|25 %|9 %|91 %|8 %|5 %|87 %' && d0[6] === '4|4|560 €|5.780 €' && d0[7] === 'Ab 1.000 €: 1 Spender:in (25 %) gibt 87 % der Summe – 2025: 0 Spender:innen mit 0 %.' && d0[8],
     'D: Anteile an den Balken, rechts die Gesamtzahl, darunter ein Satz; keine eigene Auswahl im Abschnitt');
+  const d1 = await p.evaluate(() => { const g = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgrow')], r = g.find(x => x.classList.contains('old')).querySelector('.jv-sgb');
+    return [g.map(x => x.classList.contains('main') ? 'H' : 'o').join(''), getComputedStyle(r).fillOpacity, getComputedStyle(g.find(x => x.classList.contains('main')).querySelector('.jv-sgb')).fillOpacity]; });
+  await p.hover('[data-chart="jvseg"] .jv-sgrow.old .jv-sgb', { force: true }); await p.waitForTimeout(250);
+  const d2 = await p.evaluate(() => getComputedStyle(document.querySelector('[data-chart="jvseg"] .jv-sgrow.old .jv-sgb')).fillOpacity);
+  ok(d1[0] === 'oHoH' && d1[1] === '0.38' && d1[2] === '1' && d2 === '1', 'D: Hauptjahr kräftig, die anderen Jahre blass – beim Zeigen kräftig');
   ok(d0[9] === 2 * 2 * 26 + 2 * 22 + 14, 'D: Höhe wächst mit der Zahl der Jahre (' + d0[9] + ' px bei zwei Jahren)');
 
   // ---- E: Zwecke über die Jahre – Tabelle mit Hauptjahr, Veränderung, Mini-Verlauf (Jahre im Kopf); zweckungebunden unten

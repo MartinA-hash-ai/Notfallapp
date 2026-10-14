@@ -147,9 +147,9 @@ const year = y => { const r = [];
   await p.click('.jv-bar .jv-grp button[data-g="alle"]'); await p.waitForTimeout(300);
 
   // ---- E: „Auf einen Blick“ – Satz und vier Zahlen; Farben erst ab ±5 % (Anteile ±2 Pkt.)
-  const e0 = await p.evaluate(() => [document.querySelector('.jv-say').textContent, [...document.querySelectorAll('.jv-gt')].map(t => t.dataset.k + ':' + t.querySelector('.jv-gtt').textContent + '=' + t.querySelector('.jv-gtv').textContent).join(' | ')]);
-  ok(e0[0] === '2027 bis 10.10.: 5.730 € – 16,9 % mehr als 2026 im gleichen Zeitraum. Hochgerechnet ≈ 5.964 €.' && e0[1] === 'sum:Spendensumme bis 10.10.=5.730 € | proj:Hochrechnung 31.12.=≈ 5.964 € | don:Spender:innen=9 | avg:Ø je Spende=318,33 €',
-    'E: ' + e0[0] + ' – Kacheln Spendensumme, Hochrechnung, Spender:innen, Ø je Spende');
+  const e0 = await p.evaluate(() => [!document.querySelector('.jv-say'), [...document.querySelectorAll('.jv-gt')].map(t => t.dataset.k + ':' + t.querySelector('.jv-gtt').textContent + '=' + t.querySelector('.jv-gtv').textContent).join(' | ')]);
+  ok(e0[0] && e0[1] === 'sum:Spendensumme bis 10.10.=5.730 € | proj:Hochrechnung 31.12.=≈ 5.964 € | don:Spender:innen=9 | avg:Ø je Spende=318,33 €',
+    'E: „Auf einen Blick“ – vier Kacheln Spendensumme, Hochrechnung, Spender:innen, Ø je Spende, kein Satz');
   const e1 = await p.evaluate(() => [jvDEl(100, 104).className, jvDEl(100, 105).className, jvDEl(100, 96).className, jvDEl(100, 94).className, jvDEl(0.5, 0.515, { pp: true }).className, jvDEl(0.5, 0.53, { pp: true }).className, jvDEl(10, 5, { inv: true }).className, jvDEl(100, 1200).textContent]);
   ok(e1.join() === 'jv-d jv-sm,jv-d jv-up,jv-d jv-sm,jv-d jv-dn,jv-d jv-sm,jv-d jv-up,jv-d jv-up,▲ ×12', 'E: +4 % / −4 % / +1,5 Pkt. ohne Farbe, ab ±5 % bzw. ±2 Pkt. grün oder rot; „weniger ist besser“ umgekehrt; ab +900 % als Faktor (×12)');
   ok(await p.evaluate(() => !document.querySelector('.jv .jv-foot, .jv .jv-kn.muted, .jv .spj-hint') && !/\* /.test(document.querySelector('.jv').textContent)), 'E: keine Fußnoten, keine Sternchen');

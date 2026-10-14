@@ -1,7 +1,21 @@
 [
   {
-    "version": "0.29.0",
+    "version": "0.30.0",
     "date": "",
+    "items": [
+      "Mailings vergleichen: beliebig viele Vergleiche anlegen und benennen (z. B. Sommermailings, Wintermailings, Jahresberichte) – Klick auf den Namen zeigt nur diesen Vergleich, das Kästchen davor zeigt ihn zusätzlich; mehrere zusammen: je Vergleich eine Farbe, ältere Mailings heller, in der Tabelle je Vergleich eine Zwischenzeile; die Vergleiche merkt sich der Rechner",
+      "Leiste: „Vergleich mit“ entfällt – verglichen wird immer mit dem Vorjahr (ist es abgewählt, mit dem nächsten früheren gewählten Jahr)",
+      "Auf einen Blick: nur noch die vier Zahlen, ohne Satz darüber",
+      "Hochrechnung: die Formel unter der Zahl ist weg (steht beim Zeigen, mit Spanne); unter der Kachel nur noch „Jahresziel … · ändern“ ohne Prozent",
+      "Jahresverlauf: ein Klick auf ein Quartal rahmt es durchgehend ein – Linie, Säulen und Zahlen",
+      "Ältere Jahre (vor dem Vorjahr) in helleren Grautönen",
+      "Spenderbindung: „Vorjahre ▸“ zeigt Haltequote, Gehalten, Wieder dabei und Nicht wieder für jedes gewählte Jahr",
+      "Spendersegmente: das Hauptjahr kräftig, die anderen Jahre blass – beim Zeigen kräftig"
+    ]
+  },
+  {
+    "version": "0.29.0",
+    "date": "2026-10-14T07:21",
     "items": [
       "„Hochrechnung“ und „Kennzahlen“ stehen nebeneinander (ein Drittel / zwei Drittel); die Kästen „Bis … erreicht“ und „Jahresziel“ sind weg",
       "Jahresziel: unter der Hochrechnung „+ Jahresziel eintragen“ bzw. „ändern“ – kleines Fenster mit Betrag, „Übernehmen“ und „entfernen“; darunter steht das Ziel mit dem hochgerechneten Anteil",

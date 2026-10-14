@@ -1973,3 +1973,32 @@ body.jv-dragging .jv .sec { transition: box-shadow .1s; }
 .jv-iwhy { font-weight: 400; font-size: 11px; color: var(--muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px; } button.jv-pill:hover { filter: brightness(.95); text-decoration: underline; }
 .jv-lall { margin-top: 6px; }
+
+/* ---------- Jahresvergleich 0.30: ältere Jahre heller, Quartal als Rahmen, Segmente (Hauptjahr kräftig), Bindung je Jahr, Mailing-Vergleiche */
+:root { --jvG1: #b4b3ac; --jvG2: #d3d2cb; }
+@media screen { html[data-theme=dark] { --jvG1: #74736d; --jvG2: #53524e; } }
+.jv-spl { stroke: color-mix(in srgb, var(--ink) 38%, var(--card)); }
+.jv-qband.on { stroke: none; }
+.jv-qframe { position: absolute; border: 2px solid var(--focus); border-radius: 8px; pointer-events: none; z-index: 2; }
+.jv-sgrow .jv-sghit { fill: transparent; }
+.jv-sgrow.old .jv-sgb { fill-opacity: .38; transition: fill-opacity .12s; }
+.jv-sgrow.old .jv-sgp, .jv-sgrow.old .jv-sgp.inv { fill: var(--ink2); }
+.jv-sgrow.old .jv-pisy, .jv-sgrow.old .jv-lv { fill: var(--muted); }
+.jv-sgrow.old:hover .jv-sgb { fill-opacity: 1; }
+.jv-sgrow.old:hover .jv-sgp.inv { fill: #fff; } .jv-sgrow.old:hover .jv-pisy, .jv-sgrow.old:hover .jv-lv { fill: var(--ink); }
+.jv-byh { display: flex; justify-content: flex-end; margin: 6px 0 2px; }
+.jv-byt { margin: 2px 0 10px; } .jv-byt tbody th { text-align: left; font-weight: 600; } .jv-byt tbody th .dot { margin-right: 6px; } .jv-byt tr.main td, .jv-byt tr.main th { font-weight: 700; }
+.jv-vchips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.jv-vchip { display: inline-flex; align-items: center; gap: 4px; border: 1px solid var(--line2); border-radius: 16px; padding: 1px 4px 1px 7px; background: var(--card); }
+.jv-vchip .jv-vchk { margin: 0; }
+.jv-vchip .jv-vbtn { border: 0; background: transparent; padding: 2px 6px 2px 2px; font-size: 13px; color: var(--ink2); cursor: pointer; }
+.jv-vchip.on { border-color: var(--focus); background: color-mix(in srgb, var(--focus) 8%, var(--card)); } .jv-vchip.on .jv-vbtn { color: var(--ink); font-weight: 600; }
+.jv-vchip.cur { box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 35%, transparent); }
+.jv-vedit { display: flex; flex-direction: column; gap: 6px; border-top: 1px solid var(--line); padding-top: 10px; }
+.jv-vname { font-weight: 600; font-size: 14px; }
+.jv-vdel { align-self: flex-start; color: var(--muted); }
+.jv-mtab tr.jv-mgrp td { font-weight: 700; font-size: 12px; color: var(--ink2); background: var(--soft); padding-top: 6px; }
+.jv-vpdf { margin-bottom: 10px; } .jv-vpdf b { display: block; margin-bottom: 4px; } .jv-vpl { font-size: 12px; } .jv-vpl .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; }
+.jv-grpw { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+.jv-byt th { white-space: normal; vertical-align: bottom; line-height: 1.2; }
+.jv-byt tbody th { white-space: nowrap; }

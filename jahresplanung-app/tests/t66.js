@@ -74,7 +74,7 @@ const year = y => { const r = [];
   // 2026 abgewählt: 2027 wird mit 2025 verglichen
   await p.click('.jv-y:has-text("2026")'); await p.waitForTimeout(300);
   const c3 = await kt();
-  ok(/^bis 10\.10\.\|2025\|2027\|/.test(c3.kopf) && await p.evaluate(() => document.querySelector('.jv-bar .jv-cmp').value === '2025'), 'C: Vorjahr abgewählt – Vergleich mit 2025 (' + c3.kopf + ')');
+  ok(/^bis 10\.10\.\|2025\|2027\|/.test(c3.kopf) && await p.evaluate(() => jvSetup().cmp === 2025), 'C: Vorjahr abgewählt – Vergleich mit 2025 (' + c3.kopf + ')');
   await p.click('.jv-y:has-text("2026")'); await p.waitForTimeout(300);
 
   // ---- D: Jahresverlauf – Klick auf Q4 hebt das Quartal hervor, „Auswahl aufheben“ hebt es auf
@@ -89,6 +89,9 @@ const year = y => { const r = [];
       document.querySelectorAll('.jv-qsxc').length, document.querySelectorAll('[data-chart="jvcum"] .jv-sxm').length, Math.round(qa.getBoundingClientRect().height)]; });
   ok(d0[0] === 4 && d0[2] && d0[3] && /Klick: Q4 hervorheben/.test(tip[0]) && /2027: /.test(tip[0]) && tip[1] === 1, 'D: vier Jahreslinien, Stichtag-Linie; Zeigen hebt das Quartal an, Hinweis „Klick: Q4 hervorheben“');
   ok(d1[0] === 3 && d1[1] === 'Q4 (bis 10.10.)' && d1[2] === 16 && d1[3] === 0 && d1[4] && d1[7] && d1[10] === 130, 'D: Klick – Q4 hervorgehoben (Spalte in der Tabelle), ohne eigene Kopfzeile: alle Quartale (16 Säulen, 130 px hoch)');
+  const fr = await p.evaluate(() => { const f = document.querySelector('[data-sec="jv-verlauf"] .jv-qframe'), b = document.querySelector('[data-chart="jvcum"] .jv-qband.on').getBoundingClientRect(), t = document.querySelector('.jv-qnum').getBoundingClientRect(), q = document.querySelector('[data-chart="jvqa"]').getBoundingClientRect();
+    if (!f) return null; const r = f.getBoundingClientRect(); return [Math.round(r.left - b.left), Math.round(r.right - b.right), Math.round(r.top - b.top), Math.round(r.bottom - t.bottom), r.top < q.top && r.bottom > q.bottom, getComputedStyle(f).borderTopStyle]; });
+  ok(fr && fr.slice(0, 4).join() === '-3,3,-3,3' && fr[4] && fr[5] === 'solid', 'D: ein Rahmen um Q4 – vom Jahresverlauf über die Säulen bis unter die Zahlen (' + JSON.stringify(fr) + ')');
   ok(d1[5][0] === 'Quartale|Q1|Q2|Q3|Q4 (bis 10.10.)|Summe' && d1[5][1] === '2024|160 €|160 €|160 €|50 €|530 €' && d1[5][3] === '2026|160 €■ ±0,0 %|160 €■ ±0,0 %|160 €■ ±0,0 %|50 €■ ±0,0 %|530 €■ ±0,0 %' && d1[6] < 3 && d1[8] === 0 && d1[9] === 0,
     'D: „Quartale in Zahlen“ in ganzen Euro genau unter den Quartalen – „Q4 (bis 10.10.)“, rechts „Summe“; Sondereffekte herausgerechnet');
   ok(await p.evaluate(() => { const r = document.querySelectorAll('.jv-qnum tbody tr')[1], ta = e => getComputedStyle(e).textAlign; return [ta(r.children[0]), ta(r.children[1]), ta(r.children[4]), ta(r.children[5]), ta(document.querySelectorAll('.jv-qnum thead th')[2])].join(); }) === 'left,center,center,right,center',
@@ -102,32 +105,62 @@ const year = y => { const r = [];
   await p.selectOption('.jv-sxmode', 'out'); await p.waitForTimeout(300);
   await p.click('.jv-sxbtn'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !document.querySelector('.jv-sxp') && UI.jvSx === false), 'D: Sondereffekte wieder zugeklappt');
-  // Vergleichsjahr oben wählen: Farbe folgt
-  await p.selectOption('.jv-bar .jv-cmp', '2025'); await p.waitForTimeout(300);
-  ok(await p.evaluate(() => UI.jvCmp === 2025 && [...document.querySelectorAll('.jv-kt tr[data-k="sum"] circle')][1].getAttribute('fill') === 'var(--jvV)' && /^bis 10\.10\.2025/.test(document.querySelector('.jv-kt thead tr').textContent)),
-    'D: Vergleichsjahr 2025 (oben) – Tabelle vergleicht mit 2025, 2025 jetzt mittelblau');
-  await p.selectOption('.jv-bar .jv-cmp', '2026'); await p.waitForTimeout(300);
+  // kein „Vergleich mit“ mehr – verglichen wird immer mit dem Vorjahr; ältere Jahre in hellerem Grau
+  ok(await p.evaluate(() => !document.querySelector('.jv-bar .jv-cmp') && !/Vergleich mit/.test(document.querySelector('.jv-bar').textContent) && jvSetup().cmp === 2026 && !UI_KEYS.includes('jvCmp')),
+    'D: in der Leiste keine Auswahl „Vergleich mit“ – Vergleichsjahr ist das Vorjahr');
+  ok(await p.evaluate(() => { const c = getComputedStyle(document.documentElement); return c.getPropertyValue('--jvG1').trim() + ' ' + c.getPropertyValue('--jvG2').trim(); }) === '#b4b3ac #d3d2cb', 'D: Grautöne der älteren Jahre heller');
   await p.click('.jv-qnum thead th.on'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => JV.q === null && !document.querySelector('.jv-qx') && !document.querySelector('.jv-qnum .dim')), 'D: noch ein Klick auf Q4 – alle Quartale wieder gleich (kein Knopf „Auswahl aufheben“ mehr)');
+  ok(await p.evaluate(() => JV.q === null && !document.querySelector('.jv-qx, .jv-qframe') && !document.querySelector('.jv-qnum .dim')), 'D: noch ein Klick auf Q4 – alle Quartale wieder gleich (kein Knopf „Auswahl aufheben“ mehr)');
 
-  // ---- E: Mailings vergleichen (Detail, anfangs eingeklappt) – frei wählbar, bis zu vier, Farbe bleibt am Eintrag
+  // ---- E: Mailings vergleichen (Detail, anfangs eingeklappt) – gespeicherte Vergleiche, einzeln oder zusammen; im Vergleich frei wählbar, Farbe bleibt am Eintrag
   await p.evaluate(() => commit(d => { const base = d.massnahmen.find(m => !m.plan);
     for (const [id, y] of [['wm25', 2025], ['wm26', 2026], ['wm24', 2024]]) { const c = JSON.parse(JSON.stringify(base)); Object.assign(c, { id, name: 'Weihnachtsmailing ' + y, pal: y + '-11-03', regel: { worte: ['Weihnachtsspende'], ab: 0, bis: 90 }, auflage: 1000, kosten: 200 }); delete c.plan; d.massnahmen.push(c); } }));
-  await p.evaluate(() => { UI.jvMail = undefined; renderNow(); }); await p.waitForTimeout(400);
-  ok(await p.evaluate(() => document.querySelector('[data-sec="jv-mail"] .sec-sum')?.textContent === 'Weihnachtsmailing 2026: 100 € · Weihnachtsmailing 2025: 100 €'), 'E: eingeklappt – Erlös der zwei jüngsten Mailings in der Zusammenfassung');
+  await p.evaluate(() => { UI.jvMail = undefined; UI.jvMv = undefined; renderNow(); }); await p.waitForTimeout(400);
+  const mv = () => p.evaluate(() => [[...document.querySelectorAll('.jv-vchip')].map(c => c.querySelector('.jv-vbtn').textContent + (c.classList.contains('on') ? '+' : '-') + (c.classList.contains('cur') ? '*' : '')).join('|'),
+    document.querySelector('.jv-vname')?.value, [...document.querySelectorAll('.jv-vedit .jv-msel')].map(s => s.value).join(), [...document.querySelectorAll('[data-chart="jvmail"] .jv-elab')].map(t => t.textContent + '=' + t.getAttribute('style')).join(' | '),
+    [...document.querySelectorAll('.jv-mtab tbody tr')].map(t => t.classList.contains('jv-mgrp') ? '[' + t.textContent + ']' : t.children[0].textContent.trim()).join(' / ')]);
+  ok(await p.evaluate(() => document.querySelector('[data-sec="jv-mail"] .sec-sum')?.textContent === 'Vergleich 1: Weihnachtsmailing 2026 100 €, Weihnachtsmailing 2025 100 €'), 'E: eingeklappt – der gezeigte Vergleich mit Erlös je Mailing');
   await p.click('[data-sec="jv-mail"] .sec-tog'); await p.waitForTimeout(400);
-  const e0 = await p.evaluate(() => [[...document.querySelectorAll('.jv-msel')].map(s => s.selectedOptions[0].textContent).join(' | '), document.querySelectorAll('[data-chart="jvmail"] .jv-line').length,
-    [...document.querySelectorAll('.jv-mtab tr')].map(t => [...t.children].map(c => c.textContent.trim()).join('|'))]);
-  ok(/^Weihnachtsmailing 2026 · PAL 03\.11\. \| Weihnachtsmailing 2025 · PAL 03\.11\.$/.test(e0[0]) && e0[1] === 2, 'E: zuerst die zwei jüngsten Mailings mit Spenden: ' + e0[0]);
-  ok(e0[2][0] === 'Mailing|Erlös|Spenden|Response|Ø je Spende|Kosten|Erlös je 1 € Kosten|80 % da nach' && /^Weihnachtsmailing 2026\|100 €\|2\|0,2 %\|50 €\|200 €\|0,50 €\|/.test(e0[2][1]) && /^Veränderung\|■ ±0,0 %\|■ ±0,0 %\|■ ±0,0 Pkt\.\|/.test(e0[2][3]),
-    'E: Tabelle je Mailing (Erlös, Response, „Erlös je 1 € Kosten“), darunter die Veränderung (' + e0[2][1] + ')');
-  await p.click('.jv-madd'); await p.waitForTimeout(200);
-  await p.selectOption('.jv-mrow:nth-child(3) .jv-msel', 'wm24'); await p.waitForTimeout(300);
-  const e1 = await p.evaluate(() => [JSON.stringify(UI.jvMail), document.querySelectorAll('[data-chart="jvmail"] .jv-line').length, document.querySelectorAll('.jv-mtab tbody tr:not(.jv-mdl)').length]);
-  ok(e1[0] === '[{"id":"wm26","c":0},{"id":"wm25","c":1},{"id":"wm24","c":2}]' && e1[1] === 3 && e1[2] === 3, 'E: „+ Mailing hinzufügen“ – drittes Mailing (2024) frei gewählt, eigene Farbe, eigene Zeile');
-  ok(await p.evaluate(() => [...document.querySelectorAll('[data-chart="jvmail"] .jv-elab')].map(t => t.getAttribute('style')).sort().join() === 'fill: var(--jvm1),fill: var(--jvm2),fill: var(--jvm3)'), 'E: Namen rechts neben den Linien in der Farbe des Mailings');
-  await p.click('.jv-mrow:nth-child(1) .sp-x'); await p.waitForTimeout(300);
-  ok(await p.evaluate(() => JSON.stringify(UI.jvMail) === '[{"id":"wm25","c":1},{"id":"wm24","c":2}]'), 'E: erstes entfernt – die anderen behalten ihre Farbe');
+  const e0 = await mv(), e0t = await p.evaluate(() => [...document.querySelectorAll('.jv-mtab tr')].map(t => [...t.children].map(c => c.textContent.trim()).join('|')));
+  ok(e0[0] === 'Vergleich 1+*' && e0[1] === 'Vergleich 1' && e0[2] === 'wm26,wm25' && e0[3] === 'Weihnachtsmailing ’26=fill: var(--jvm1) | Weihnachtsmailing ’25=fill: var(--jvm2)',
+    'E: anfangs ein Vergleich „Vergleich 1“ mit den zwei jüngsten Mailings, je Mailing eine Farbe');
+  ok(e0t[0] === 'Mailing|Erlös|Spenden|Response|Ø je Spende|Kosten|Erlös je 1 € Kosten|80 % da nach' && /^Weihnachtsmailing 2026\|100 €\|2\|0,2 %\|50 €\|200 €\|0,50 €\|/.test(e0t[1]) && /^Veränderung\|■ ±0,0 %\|■ ±0,0 %\|■ ±0,0 Pkt\.\|/.test(e0t[3]),
+    'E: Tabelle je Mailing (Erlös, Response, „Erlös je 1 € Kosten“), darunter die Veränderung (neuestes ggü. vorigem)');
+  // umbenennen, drittes Mailing, Farbe bleibt am Eintrag
+  await p.fill('.jv-vname', 'Weihnachtsmailings'); await p.press('.jv-vname', 'Enter'); await p.waitForTimeout(300);
+  await p.click('.jv-vedit .jv-madd'); await p.waitForTimeout(200);
+  await p.selectOption('.jv-vedit .jv-mrow:nth-of-type(3) .jv-msel', 'wm24'); await p.waitForTimeout(300);
+  const e1 = await mv();
+  ok(e1[0] === 'Weihnachtsmailings+*' && e1[2] === 'wm26,wm25,wm24' && e1[3].split(' | ').length === 3 && await p.evaluate(() => UI_KEYS.includes('jvMv') && JSON.stringify(UI.jvMv.sets[0].ms) === '[{"id":"wm26","c":0},{"id":"wm25","c":1},{"id":"wm24","c":2}]'),
+    'E: umbenannt in „Weihnachtsmailings“, drittes Mailing (2024) dazu – gemerkt');
+  await p.click('.jv-vedit .jv-mrow:nth-of-type(1) .sp-x'); await p.waitForTimeout(300);
+  ok((await mv())[3] === 'Weihnachtsmailing ’25=fill: var(--jvm2) | Weihnachtsmailing ’24=fill: var(--jvm3)', 'E: erstes entfernt – die anderen behalten ihre Farbe');
+  // zweiter Vergleich
+  await p.evaluate(() => commit(d => { const base = d.massnahmen.find(m => !m.plan && !/mailing/.test(m.name || ''));
+    for (const [id, y] of [['sm25', 2025], ['sm26', 2026]]) { const c = JSON.parse(JSON.stringify(base)); Object.assign(c, { id, name: 'Sommermailing ' + y, pal: y + '-01-02', regel: { worte: ['Spende'], ab: 0, bis: 90 }, auflage: 1000, kosten: 100 }); delete c.plan; d.massnahmen.push(c); } })); await p.waitForTimeout(300);
+  await p.click('.jv-vnew'); await p.waitForTimeout(300);
+  const e2 = await mv(), e2f = await p.evaluate(() => document.activeElement === document.querySelector('.jv-vname'));
+  await p.fill('.jv-vname', 'Sommermailings'); await p.press('.jv-vname', 'Enter'); await p.waitForTimeout(300);
+  await p.selectOption('.jv-vedit .jv-mrow:nth-of-type(1) .jv-msel', 'sm26'); await p.waitForTimeout(300);
+  await p.click('.jv-vedit .jv-madd'); await p.waitForTimeout(200);
+  await p.selectOption('.jv-vedit .jv-mrow:nth-of-type(2) .jv-msel', 'sm25'); await p.waitForTimeout(300);
+  const e3 = await mv();
+  ok(e2[0] === 'Weihnachtsmailings-|Vergleich 2+*' && e2[1] === 'Vergleich 2' && e2f && e3[0] === 'Weihnachtsmailings-|Sommermailings+*' && e3[4] === 'Sommermailing 2026 / Sommermailing 2025 / Veränderung',
+    'E: „+ Neuer Vergleich“ – eigener Name, eigene Mailings; gezeigt wird nur dieser');
+  // zusammen zeigen: Kästchen; je Vergleich eine Farbe, ältere heller; Zwischenzeilen in der Tabelle
+  await p.check('.jv-vchip:has-text("Weihnachtsmailings") .jv-vchk'); await p.waitForTimeout(300);
+  const e4 = await mv();
+  ok(e4[0] === 'Weihnachtsmailings+*|Sommermailings+' && e4[4] === '[Weihnachtsmailings] / Weihnachtsmailing 2025 / Weihnachtsmailing 2024 / Veränderung / [Sommermailings] / Sommermailing 2026 / Sommermailing 2025 / Veränderung'
+    && e4[3].split(' | ').sort().join(' | ') === 'Sommermailing ’25=fill: color-mix(in srgb, var(--jvm2) 70%, var(--card)) | Sommermailing ’26=fill: var(--jvm2) | Weihnachtsmailing ’24=fill: color-mix(in srgb, var(--jvm1) 70%, var(--card)) | Weihnachtsmailing ’25=fill: var(--jvm1)',
+    'E: Kästchen – beide Vergleiche zusammen: je Vergleich eine Farbe (Blau, Orange), das ältere Mailing heller; Tabelle mit Zwischenzeilen');
+  await p.click('.jv-vchip:has-text("Sommermailings") .jv-vbtn'); await p.waitForTimeout(300);
+  ok((await mv())[0] === 'Weihnachtsmailings-|Sommermailings+*', 'E: Klick auf den Namen – nur dieser Vergleich');
+  await p.click('.jv-vdel'); await p.waitForTimeout(200);
+  await p.click('.modal button:has-text("Löschen")'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => UI.jvMv.sets.length === 1 && UI.jvMv.sets[0].name === 'Weihnachtsmailings' && JSON.stringify(UI.jvMv.on) === JSON.stringify([UI.jvMv.sets[0].id]) && !document.querySelector('.jv-vdel')), 'E: „Vergleich löschen“ (mit Rückfrage) – der andere bleibt; der letzte lässt sich nicht löschen');
+  const e5 = await p.evaluate(() => { UI.jvMv = undefined; UI.jvMail = [{ id: 'wm24', c: 3 }, { id: 'wm25', c: 0 }]; const M = jvMv(); UI.jvMail = undefined; return JSON.stringify(M); });
+  ok(e5 === '{"sets":[{"id":"v1","name":"Vergleich 1","ms":[{"id":"wm24","c":3},{"id":"wm25","c":0}]}],"on":["v1"],"cur":"v1"}', 'E: bisherige Auswahl (bis 0.29) wird zu „Vergleich 1“');
+  await p.evaluate(() => { UI.jvMv = { sets: [{ id: 'v1', name: 'Weihnachtsmailings', ms: [{ id: 'wm25', c: 1 }, { id: 'wm24', c: 2 }] }], on: ['v1'], cur: 'v1' }; renderNow(); }); await p.waitForTimeout(300);
 
   // ---- F: Bausteine ein- und ausblenden
   await p.click('[data-sec="jv-mail"] .jv-hide'); await p.waitForTimeout(250);

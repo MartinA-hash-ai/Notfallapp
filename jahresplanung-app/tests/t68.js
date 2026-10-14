@@ -104,6 +104,14 @@ const year = y => { const r = [], last = y === 2027 ? 10 : 12;
   const e0 = await bt();
   ok(e0.rate === '77,8 % (▼ −7,9 Pkt. · 2026: 85,7 %)' && /^7 /.test(e0.keep) && /^1 /.test(e0.react) && /^2 /.test(e0.lost),
     'E: Haltequote 77,8 % (−7,9 Pkt. ggü. 85,7 %), 7 gehalten, 1 nach Pause zurück (Probe Elf), 2 nicht wieder (Stiftung, Probe Zehn)');
+  const by = () => p.evaluate(() => [document.querySelector('.jv-byopen')?.textContent, [...document.querySelectorAll('.jv-byt tr')].map(t => [...t.children].map(c => c.textContent).join('|'))]);
+  const e0b = await by();
+  await p.click('.jv-byopen'); await p.waitForTimeout(300);
+  const e0c = await by();
+  ok(e0b[0] === 'Vorjahre ▸' && !e0b[1].length && e0c[0] === 'Vorjahre ▾' && e0c[1][0] === '|Haltequote|Gehalten|Wieder dabei nach Pause|Nicht wieder gespendet|Basis Vorjahr' && /^2026\|85,7 %\|/.test(e0c[1][1]) && e0c[1][2] === '2027|77,8 %|7|1|2|9'
+    && await p.evaluate(() => UI.jvBindY === true && UI_KEYS.includes('jvBindY') && document.querySelector('.jv-byt tr.main th').textContent === '2027'),
+    'E: „Vorjahre ▸“ – dieselben Werte für jedes gewählte Jahr mit Vorjahr (2026, 2027), gemerkt: ' + e0c[1].slice(1).join(' / '));
+  await p.click('.jv-byopen'); await p.waitForTimeout(300);
   const ms = () => p.evaluate(() => [[...document.querySelectorAll('.jv-mt tbody tr')].map(t => t.querySelector('.jv-in').textContent + (t.textContent.includes('Institution') ? '(I)' : '')).join('|'), document.querySelector('.jv-missn')?.textContent]);
   const e2 = await ms();
   ok(e2[0] === '' && e2[1] === '2 Spender:innen · 2.030 €' && await p.evaluate(() => document.querySelector('.jv-mopen').textContent === 'Liste ▸'), 'E: „Wer fehlt noch?“ – erst nur die Zahl (2026 bis 10.10., passt zu „nicht wieder“): ' + e2[1]);
