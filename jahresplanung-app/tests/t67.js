@@ -65,7 +65,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
       document.querySelector('.jv-ins')?.textContent, !document.querySelector('.jv-gctl'), Math.round(c.getBoundingClientRect().height)]; });
   ok(d0[0] === 'bis 100 €|101–249 €|250–499 €|500–999 €|1.000–4.999 €|ab 5.000 €' && d0[1] === 'Spender:innen|Spendensumme' && d0[2] === '2025|2026*' && d0[3] === 10 && d0[4] === 0,
     'D: Legende von klein nach groß; je Jahr (2025, 2026) eine Zeile – Spender:innen und Summe nebeneinander; keine Bänder dazwischen');
-  ok(d0[5] === '25 %|75 %|9 %|91 %|50 %|25 %|25 %|8 %|5%|87 %' && d0[6] === '4|560 €|4|5.780 €' && d0[7] == null && d0[8] && await p.evaluate(() => { const c = document.querySelector('[data-chart="jvseg"]'), l = document.querySelector('.jv-seglg'); return !!(c.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING); }),
+  ok(d0[5] === '25 %|75 %|91 %|50 %|25 %|25 %|87 %' && d0[6] === '4|560 €|4|5.780 €' && d0[7] == null && d0[8] && await p.evaluate(() => { const c = document.querySelector('[data-chart="jvseg"]'), l = document.querySelector('.jv-seglg'); return !!(c.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING); }),
     'D: Anteile im Balken (knappe Abschnitte kleiner ohne Leerzeichen), hinter jedem Balken die Gesamtzahl; Legende unter der Grafik, kein Satz mehr; keine eigene Auswahl im Abschnitt');
   const dt = await p.evaluate(() => [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgrow.main .jv-sgb')].map(r => { const f = TIPS.get(r); const v = typeof f === 'function' ? f() : f; return typeof v === 'string' ? v : v.textContent; }).join(' | '));
   ok(dt === '50 % · 2 Spender:innen | 25 % · 1 Spender:in | 25 % · 1 Spender:in | 8 % · 480 € | 5 % · 300 € | 87 % · 5.000 €', 'D: Zeigen nennt nur Anteil und absolute Zahl: ' + dt);
@@ -151,9 +151,13 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
   const i2 = await p.evaluate(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => r([window.__printed,
     [...document.querySelectorAll('#printdoc .pd-page .pd-head h1')].map(e => e.textContent).join(' | '), document.body.classList.contains('printdoc-mode'), document.querySelectorAll('#printdoc [data-chart] svg').length,
-    /Sondereffekte herausgerechnet · Vergleich mit 2025/.test(document.querySelector('#printdoc .pd-head span').textContent), document.querySelectorAll('#printdoc input, #printdoc select, #printdoc .jv-hide').length]), 300)); });
-  ok(i2[0] === 1 && i2[1] === 'Auf einen Blick 2026 | Hochrechnung 2026 · Kennzahlen 2026 | Jahresverlauf & Quartale 2026 | Quartale in Zahlen 2026 | Privat & Institutionen 2026 | Spendenbrücke 2025 → 2026 · Spendersegmente | Spenderbindung 2026 · Dauerspender:innen 2026 | Maßnahmen vergleichen | Zwecke über die Jahre · Konten über die Jahre | Größte Spender:innen 2026' && i2[2] && i2[3] >= 4 && i2[4],
-    'I: „PDF für die Präsentation“ – gleiche Reihenfolge wie am Bildschirm, Paare auf einer Seite, Einstellungen im Kopf: ' + i2[1]);
+    /Sondereffekte herausgerechnet · Vergleich mit 2025/.test(document.querySelector('#printdoc .pd-head span').textContent), document.querySelectorAll('#printdoc input, #printdoc select, #printdoc .jv-hide').length,
+    (() => { const pg = t => [...document.querySelectorAll('#printdoc .pd-page')].find(x => x.querySelector('h1').textContent.startsWith(t)), v = pg('Jahresverlauf'), sg = pg('Spendersegmente'), hk = pg('Privat & Institutionen');
+      return [!!v.querySelector('[data-chart="jvcum"]') && !!v.querySelector('.jv-qnum'), sg.querySelector('[data-chart="jvseg"]').dataset.w, !!sg.querySelector('[data-chart="jvseg"] svg.jv-full'), sg.querySelector('.jv-pdhalf [data-chart="jvbr"]')?.dataset.w,
+        !!sg.querySelector('[data-chart="jvbr"] .jv-brst'), !!hk.querySelector('.jv-pis.jv-full'), document.querySelectorAll('#printdoc .jv-mset').length === jvMv().sets.filter(x => jvMvLines(Object.assign({}, jvMv(), { on: [x.id] })).some(o => o.sr)).length, [...document.querySelectorAll('#printdoc [data-chart]')].every(e => +e.dataset.w <= 1040)].join(); })()]), 300)); });
+  ok(i2[0] === 1 && i2[1] === 'Auf einen Blick · Hochrechnung · Kennzahlen 2026 | Jahresverlauf & Quartale 2026 | Privat & Institutionen 2026 | Spendersegmente · Spendenbrücke 2025 → 2026 | Spenderbindung · Dauerspender:innen · Zwecke · Konten 2026 | Maßnahmen vergleichen | Größte Spender:innen 2026' && i2[2] && i2[3] >= 4 && i2[4],
+    'I: „PDF für die Präsentation“ – zusammengehörige Abschnitte auf einer Seite, Reihenfolge wie am Bildschirm, Einstellungen im Kopf: ' + i2[1]);
+  ok(i2[6] === 'true,1040,true,510,true,true,true,true', 'I: PDF – Verlauf mit „Quartale in Zahlen“ auf einer Seite, Segmente volle Breite und ausführlich, Brücke halbe Breite mit Stufen, Privat & Institutionen ausführlich, je Vergleich ein Block, nichts breiter als die Seite: ' + i2[6]);
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('#printdoc') && !document.body.classList.contains('printdoc-mode')), 'I: nach dem Drucken ist die Druckansicht wieder weg');
   // ein Abschnitt mit Fehler: das PDF entsteht trotzdem, die Seite nennt den Fehler, oben ein Hinweis
@@ -162,7 +166,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     return new Promise(r => setTimeout(() => { window.jvBindung = keep;
       r([window.__printed, /Dieser Abschnitt konnte nicht erstellt werden \(Testfehler\)/.test(document.querySelector('#printdoc').textContent), document.querySelectorAll('#printdoc .pd-page').length, /Im PDF fehlt etwas: Spenderbindung: Testfehler/.test(document.body.textContent)]); }, 300)); });
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
-  ok(i3[0] === 1 && i3[1] && i3[2] >= 10 && i3[3], 'I: PDF auch dann, wenn ein Abschnitt einen Fehler hat – die Seite nennt ihn, oben ein Hinweis (' + JSON.stringify(i3) + ')');
+  ok(i3[0] === 1 && i3[1] && i3[2] >= 6 && i3[3], 'I: PDF auch dann, wenn ein Abschnitt einen Fehler hat – die Seite nennt ihn, oben ein Hinweis (' + JSON.stringify(i3) + ')');
   // ---- H: Bausteine ausblenden – Zwecke weg, Konten über die ganze Breite
   await p.click('[data-sec="jv-zweck"] .jv-hide'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !document.querySelector('[data-sec="jv-zweck"]') && [...document.querySelectorAll('.jv-grid2')].length === 3 && !!document.querySelector('.jv > [data-sec="jv-konto"]')), 'H: „Zwecke“ ausgeblendet – „Konten“ allein über die ganze Breite');

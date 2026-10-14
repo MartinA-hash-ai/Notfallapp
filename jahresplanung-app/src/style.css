@@ -2068,3 +2068,10 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .jv-brh { paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
 .jv-brt { font-size: 12.5px; } .jv-brn2 { font-size: 11px; fill: var(--muted); }
 .jv-brrow .jv-sghit { fill: transparent; } .jv-brrow:hover .jv-bar { filter: brightness(1.08); }
+
+/* ---------- 0.35: Brücke – links Personen und Betrag, rechts Balken; im PDF die Stufe klein darüber */
+.jv-brst { font-size: 10.5px; fill: var(--muted); }
+.jv-pdgap { height: 16px; }
+.jv-pdhalf { width: calc(50% - 10px); }
+.jv-mset .jv-mtab { margin-top: 4px; }
+@media print { .jv-print .jv-pdb > .jv-blick, .jv-print .jv-mset { break-inside: avoid; } }

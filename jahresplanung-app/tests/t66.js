@@ -153,6 +153,9 @@ const year = y => { const r = [];
   ok(e4[0] === 'Weihnachtsmailings+*|Sommermailings+' && e4[4] === '[Weihnachtsmailings] / Weihnachtsmailing 2025 / Weihnachtsmailing 2024 / Veränderung / [Sommermailings] / Sommermailing 2026 / Sommermailing 2025 / Veränderung'
     && e4[3].split(' | ').sort().join(' | ') === 'Sommermailing ’25=fill: color-mix(in srgb, var(--jvm2) 70%, var(--card)) | Sommermailing ’26=fill: var(--jvm2) | Weihnachtsmailing ’24=fill: color-mix(in srgb, var(--jvm1) 70%, var(--card)) | Weihnachtsmailing ’25=fill: var(--jvm1)',
     'E: Kästchen – beide Vergleiche zusammen: je Vergleich eine Farbe (Blau, Orange), das ältere Mailing heller; Tabelle mit Zwischenzeilen');
+  const ep = await p.evaluate(() => { const d = jvPrintDoc(), pg = [...d.querySelectorAll('.pd-page')].filter(x => x.querySelector('h1').textContent === 'Maßnahmen vergleichen');
+    return [pg.length, pg.map(x => [...x.querySelectorAll('.jv-mset h3')].map(e => e.textContent).join('+')).join(' | '), pg.map(x => x.querySelectorAll('[data-chart="jvmail"] svg').length).join(), [...pg[0].querySelectorAll('.jv-mtab tbody tr')].length].join(' / '); });
+  ok(/^1 \/ Weihnachtsmailings\+Sommermailings \/ 2 \/ \d+$/.test(ep), 'E: PDF – je Vergleich Grafik und Tabelle, zwei Vergleiche auf einer Seite: ' + ep);
   await p.click('.jv-vchip:has-text("Sommermailings") .jv-vbtn'); await p.waitForTimeout(300);
   ok((await mv())[0] === 'Weihnachtsmailings-|Sommermailings+*', 'E: Klick auf den Namen – nur dieser Vergleich');
   await p.click('.jv-vchip:has-text("Sommermailings") .jv-vx'); await p.waitForTimeout(200);

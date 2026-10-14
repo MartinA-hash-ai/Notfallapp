@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.34.0",
+    "version": "0.35.0",
     "date": "",
+    "items": [
+      "Spendenbrücke und Spendersegmente wieder halb und halb",
+      "Spendenbrücke: links je Stufe Personen und Betrag (z. B. „245 Personen (+35.190 €)“), die Jahre mit ihrer Summe; rechts nur die Balken; Zeigen auf einen Balken nennt die Stufe",
+      "PDF neu aufgeteilt: „Auf einen Blick“ mit Hochrechnung und Kennzahlen auf einer Seite; Jahresverlauf über die ganze Breite mit „Quartale in Zahlen“ darunter; Spendersegmente über die ganze Breite, die Brücke darunter auf halber Breite; Spenderbindung, Dauerspender:innen, Zwecke und Konten auf einer Seite",
+      "PDF: Privat & Institutionen und Spendersegmente immer ausführlich (alle Jahre mit Prozenten); in der Brücke steht die Stufe klein über jeder Zeile",
+      "PDF: Maßnahmen vergleichen – jeder Vergleich mit eigener Grafik und Tabelle, zwei Vergleiche auf einer Seite",
+      "PDF: Maßnahmen-Grafik ragte über den Rand, dadurch wurde das ganze PDF verkleinert – behoben"
+    ]
+  },
+  {
+    "version": "0.34.0",
+    "date": "2026-10-14T22:04",
     "items": [
       "Spendenbrücke und Spendersegmente: Brücke auf einem Viertel der Breite, Segmente auf drei Vierteln",
       "Spendenbrücke kompakter beschriftet: Stufe, Zahl der Spender:innen und Betrag über dem Balken, Balken über die ganze Breite; Jahre im Titel nur noch im PDF",
