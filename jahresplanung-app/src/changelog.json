@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.31.0",
+    "version": "0.32.0",
     "date": "",
+    "items": [
+      "Neue Anordnung: Spendenbrücke neben den Spendersegmenten, Spenderbindung neben den Dauerspender:innen (beide jetzt anfangs aufgeklappt); wer eine eigene Reihenfolge hat, bekommt die Paare einmalig zusammengestellt",
+      "Spendersegmente: etwas mehr Abstand zwischen den Abschnitten, damit die Farben auch in den schmalen Vorjahres-Balken gut zu unterscheiden sind",
+      "Privat & Institutionen: ohne Gesamtsumme hinter den Balken; Vorjahre schmal und blass, beim Zeigen breit mit Prozenten – wie bei den Segmenten",
+      "Knopf „ausführlich“ in beiden Bereichen: alle Jahre breit mit Zahlen; „kompakt“ wieder reduziert (wird gemerkt)",
+      "„Mailings vergleichen“ heißt jetzt „Maßnahmen vergleichen“; „+ Maßnahme hinzufügen“ in Grau; einen Vergleich löscht das × an seinem Namen",
+      "Kennzahlen: „Median je Spende“ entfällt"
+    ]
+  },
+  {
+    "version": "0.31.0",
+    "date": "2026-10-14T09:02",
     "items": [
       "Kennzahlen füllen ihre Box in voller Breite und Höhe (auch auf großen Bildschirmen); die Säulen der Hochrechnung werden nicht mehr übergroß",
       "Alle / Privat / Institutionen: die Auswahl hat abgerundete Ecken wie das Feld",

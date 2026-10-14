@@ -2021,3 +2021,22 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .jv-sgrow.old:hover .jv-sgb { fill-opacity: 1; transform: scaleY(1); }
 .jv-sgrow.old:hover .jv-sgp, .jv-sgrow.old:hover .jv-lv { opacity: 1; }
 .jv-sgrow.old:hover .jv-pisy { fill: var(--ink2); font-weight: 600; }
+
+/* ---------- Jahresvergleich 0.32: Privat & Institutionen wie die Segmente (Vorjahre schmal), „ausführlich“, Maßnahmen-Vergleiche */
+.jv-pirow .jv-sghit { fill: transparent; }
+.jv-pirow.old .jv-pp, .jv-pirow.old .jv-pi { fill-opacity: .4; transform-box: fill-box; transform-origin: center; transform: scaleY(.35); transition: transform .15s, fill-opacity .15s; }
+.jv-pirow.old .jv-pit { opacity: 0; transition: opacity .15s; }
+.jv-pirow.old .jv-pisy { fill: var(--faint); font-weight: 400; font-size: 11.5px; }
+.jv-pirow.old:hover .jv-pp, .jv-pirow.old:hover .jv-pi, .jv-full .jv-pirow.old .jv-pp, .jv-full .jv-pirow.old .jv-pi { fill-opacity: 1; transform: none; }
+.jv-pirow.old:hover .jv-pit, .jv-full .jv-pirow.old .jv-pit { opacity: 1; }
+.jv-pirow.old:hover .jv-pisy, .jv-full .jv-pirow.old .jv-pisy { fill: var(--ink2); font-weight: 700; font-size: 13px; }
+.jv-full .jv-sgrow.old .jv-sgb { fill-opacity: 1; transform: none; }
+.jv-full .jv-sgrow.old .jv-sgp, .jv-full .jv-sgrow.old .jv-lv { opacity: 1; }
+.jv-full .jv-sgrow.old .jv-sgp { fill: var(--ink); } .jv-full .jv-sgrow.old .jv-sgp.inv { fill: #fff; }
+.jv-full .jv-sgrow.old .jv-pisy { fill: var(--ink2); font-weight: 600; } .jv-full .jv-sgrow.old .jv-lv { fill: var(--ink); }
+@media screen { html[data-theme=dark] .jv-full .jv-sgrow.old .jv-sgp { fill: #fff; } html[data-theme=dark] .jv-full .jv-sgrow.old .jv-sgp.inv { fill: #10233d; } }
+.jv-dens[aria-pressed="true"] { background: var(--ink); color: var(--card); border-color: var(--ink); }
+.jv-vedit .jv-madd { color: var(--muted); border-color: var(--line2); }
+.jv-vedit .jv-madd:hover { color: var(--ink2); border-color: var(--muted); }
+.jv-vchip .jv-vx { border: 0; background: transparent; color: var(--muted); font-size: 15px; line-height: 1; padding: 0 4px 1px 0; cursor: pointer; }
+.jv-vchip .jv-vx:hover { color: var(--danger, #c62828); }

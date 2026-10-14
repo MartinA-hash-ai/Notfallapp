@@ -45,9 +45,17 @@ const year = y => { const r = [];
     return [[...s.querySelectorAll('.jv-pis .jv-pit')].map(t => t.textContent).join('|'), [...s.querySelectorAll('.jv-pis .jv-lv')].map(t => t.textContent).join('|'), s.querySelector('.jv-pin')?.textContent,
       [...s.querySelectorAll('.jv-arts tr')].map(t => [...t.children].slice(0, 4).map(c => c.textContent).join('|'))]; });
   const b0 = await hk();
-  ok(b0[0] === '18 %|82 %|21 %|79 %' && b0[1] === '4.900 €|5.730 €' && b0[2] === 'Spender:innen 2027: 4 privat · 5 Institutionen', 'B: je Jahr ein Balken privat/Institutionen (2026: 18 % / 82 %, 2027: 21 % / 79 %), darunter die Spender:innen');
+  ok(b0[0] === '18 %|82 %|21 %|79 %' && b0[1] === '' && b0[2] === 'Spender:innen 2027: 4 privat · 5 Institutionen', 'B: je Jahr ein Balken privat/Institutionen (2026: 18 % / 82 %, 2027: 21 % / 79 %) ohne Summe dahinter, darunter die Spender:innen');
   ok(b0[3].join(' ## ') === 'Institutionen nach Art|Anzahl|2027|ggü. 2026 ## ▸Banken & Gewinnsparen|1|2.500 €|▲ +25,0 % ## ▸Stiftungen|1|1.000 €|■ ±0,0 % ## ▸Vereine & Clubs|1|500 €|▼ −16,7 % ## ▸Kirchengemeinden|1|400 €|neu ## ▸Unternehmen|1|150 €|■ ±0,0 % ## ▸Kommunen & Städte|0|0 €|▼ −100,0 % ## zusammen|5|4.550 €|▲ +13,7 %',
     'B: Tabelle „Institutionen nach Art“ – größte zuerst, mit Anzahl, Veränderung, „zusammen“');
+  const dens = () => p.evaluate(() => { const g = [...document.querySelectorAll('[data-sec="jv-herkunft"] .jv-pirow')], cs = e => getComputedStyle(e);
+    return [g.map(x => x.classList.contains('main') ? 'H' : 'o').join(''), cs(g[0].querySelector('.jv-pit')).opacity, cs(g[0].querySelector('.jv-pp')).transform !== 'none', cs(g[1].querySelector('.jv-pit')).opacity, document.querySelector('[data-sec="jv-herkunft"] .jv-dens').textContent].join(); });
+  const b0c = await dens();
+  await p.click('[data-sec="jv-herkunft"] .jv-dens'); await p.waitForTimeout(350);
+  const b0d = await dens(), b0e = await p.evaluate(() => [UI.jvPiFull, UI_KEYS.includes('jvPiFull'), document.querySelector('[data-sec="jv-herkunft"] .jv-pis').classList.contains('jv-full')].join());
+  await p.click('[data-sec="jv-herkunft"] .jv-dens'); await p.waitForTimeout(350);
+  ok(b0c === 'oH,0,true,1,ausführlich' && b0d === 'oH,1,false,1,kompakt' && b0e === 'true,true,true' && await dens() === b0c,
+    'B: Vorjahr schmal ohne Zahlen, Hauptjahr breit; „ausführlich“ zeigt alle breit mit Zahlen, „kompakt“ wieder schmal – gemerkt');
   ok(await p.evaluate(() => document.querySelector('[data-sec="jv-herkunft"] .sec-t').textContent === 'Privat & Institutionen' && !document.querySelector('[data-sec="jv-herkunft"] .jv-gctl')), 'B: keine eigene Auswahl – der Abschnitt zeigt immer beide Gruppen');
   await p.click('.jv-bar .jv-grp button[data-g="privat"]'); await p.waitForTimeout(300);
   ok((await hk())[3].length === 8 && await p.evaluate(() => document.querySelector('.jv-kt tr[data-k="sum"]').children[2].textContent === '1.180 €'), 'B: Leiste „Privat“ – Kennzahlen nur privat (1.180 €), „Privat & Institutionen“ bleibt vollständig');
@@ -141,7 +149,7 @@ const year = y => { const r = [];
     r([pgs.map(x => x.querySelector('h1').textContent).filter(t => /bindung|Größte/.test(t)).join(' | '), !!h && !h.querySelector('.jv-topriv, .jv-chev, tr.jv-artm, button') && !/Sparkasse|Stiftung der|Probe/.test(h.textContent) && h.querySelectorAll('tr.jv-art').length === 6,
       pgs.every(x => !x.querySelector('input, select, .jv-gctl, .jv-hide, .jv-drag')), !/Probe|Muster|Lions/.test(document.querySelector('#printdoc').textContent.replace(/Spendenbrücke|Probe Bau/g, '')),
       pgs.every(x => /· nur Privat$/.test(x.querySelector('.pd-head span').textContent))]); }, 300)); });
-  ok(d3[0] === 'Spendenbrücke 2026 → 2027 · Spenderbindung 2027 | Größte Spender:innen 2027' && d3[4], 'D: PDF – Titel ohne eigene Auswahl, die Auswahl der Leiste steht im Kopf jeder Seite („nur Privat“)');
+  ok(d3[0] === 'Spenderbindung 2027 · Dauerspender:innen 2027 | Größte Spender:innen 2027' && d3[4], 'D: PDF – Titel ohne eigene Auswahl, die Auswahl der Leiste steht im Kopf jeder Seite („nur Privat“)');
   ok(d3[1] && d3[2] && d3[3], 'D: PDF – „Privat & Institutionen“ nur mit den Arten (nicht aufgeklappt, keine Knöpfe), nirgends Namen oder Eingabefelder');
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
   await p.click('.jv-bar .jv-grp button[data-g="alle"]'); await p.waitForTimeout(300);

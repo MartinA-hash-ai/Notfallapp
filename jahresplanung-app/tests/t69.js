@@ -23,7 +23,7 @@ const year = y => { const r = [];
   // ---- A: Kennzahlen – Median je Spende, Anteil der größten 10 %
   const row = k => p.evaluate(k => { const t = document.querySelector('.jv-kt tr[data-k="' + k + '"]'); return t ? [...t.children].slice(0, 4).map(c => c.textContent).join('|') + '#' + t.querySelectorAll('circle').length : null; }, k);
   const a0 = await row('med'), a1 = await row('avg'), a2 = await row('top');
-  ok(a0 === 'Median je Spende|100,00 €|100,00 €|■ ±0,0 %#3' && /^Ø je Spende\|\S+ €\|191,67 €\|/.test(a1), 'A: „Median je Spende“ 100,00 € neben Ø je Spende 191,67 € (eine große Spende verzerrt den Durchschnitt)');
+  ok(a0 === null && /^Ø je Spende\|\S+ €\|191,67 €\|/.test(a1) && await p.evaluate(() => !JV_KPIS.some(k => k[0] === 'med')), 'A: kein „Median je Spende“ mehr; Ø je Spende 191,67 €');
   ok(a2 === 'Anteil der größten 10 %|50,0 %|43,5 %|▼ −6,5 Pkt.#3', 'A: „Anteil der größten 10 %“ 43,5 % – ggü. 2026 in Prozentpunkten: ' + a2);
 
   // ---- B: Hochrechnung bis 31.12. – Stand × (Jahressumme ÷ Summe bis Stichtag) im Vergleichsjahr, Spanne über alle vollständigen Jahre
@@ -83,11 +83,13 @@ const year = y => { const r = [];
 
   // ---- E: Reihenfolge – neue Bausteine hinter ihrem Vorgänger; eigene Reihenfolge aus 0.28 bekommt die Kennzahlen einmalig neben die Hochrechnung; PDF
   const e0 = await p.evaluate(() => { UI.jvOrder = ['verlauf', 'kpi', 'mail', 'seg', 'zweck', 'konto', 'dauer', 'bruecke', 'bindung']; return jvOrder().join(); });
-  ok(e0 === 'blick,ziel,verlauf,herkunft,kpi,mail,seg,zweck,konto,dauer,top,bruecke,bindung', 'E: alte eigene Reihenfolge – neue Bausteine hinter ihrem Vorgänger: ' + e0);
+  ok(e0 === 'blick,ziel,verlauf,herkunft,kpi,mail,seg,zweck,konto,top,dauer,bruecke,bindung', 'E: alte eigene Reihenfolge – neue Bausteine hinter ihrem Vorgänger: ' + e0);
   const e0b = await p.evaluate(() => { UI.jvOrdV = undefined; UI.jvOrder = ['blick', 'ziel', 'verlauf', 'herkunft', 'bruecke', 'bindung', 'kpi', 'top', 'mail', 'seg', 'zweck', 'konto', 'dauer'];
     const a = jvOrder().join(); UI.jvOrder = ['blick', 'ziel', 'verlauf', 'kpi', 'herkunft', 'bruecke', 'bindung', 'mail', 'seg', 'zweck', 'konto', 'dauer', 'top']; return [a, jvOrder().join(), UI.jvOrdV, UI_KEYS.includes('jvOrdV')]; });
-  ok(e0b[0] === 'blick,ziel,kpi,verlauf,herkunft,bruecke,bindung,top,mail,seg,zweck,konto,dauer' && e0b[1] === 'blick,ziel,verlauf,kpi,herkunft,bruecke,bindung,mail,seg,zweck,konto,dauer,top' && e0b[2] === 29 && e0b[3],
-    'E: eigene Reihenfolge aus 0.28 – Kennzahlen einmalig neben die Hochrechnung; danach bleibt eine neue eigene Reihenfolge, wie sie ist');
+  ok(e0b[0] === 'blick,ziel,kpi,verlauf,herkunft,bruecke,seg,bindung,dauer,top,mail,zweck,konto' && e0b[1] === 'blick,ziel,verlauf,kpi,herkunft,bruecke,bindung,mail,seg,zweck,konto,dauer,top' && e0b[2] === 31 && e0b[3],
+    'E: eigene Reihenfolge aus 0.28 – einmalig Kennzahlen neben die Hochrechnung, Segmente neben die Brücke, Dauerspender:innen neben die Bindung; danach bleibt eine neue eigene Reihenfolge, wie sie ist');
+  const e0c = await p.evaluate(() => { UI.jvOrdV = 29; UI.jvOrder = ['blick', 'ziel', 'verlauf', 'kpi', 'herkunft', 'bruecke', 'bindung', 'mail', 'seg', 'zweck', 'konto', 'dauer', 'top']; return jvOrder().join(); });
+  ok(e0c === 'blick,ziel,verlauf,kpi,herkunft,bruecke,seg,bindung,dauer,mail,zweck,konto,top', 'E: eigene Reihenfolge aus 0.29/0.30 – nur Segmente und Dauerspender:innen rücken, die Kennzahlen bleiben, wo sie sind');
   await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
   const e1 = await p.evaluate(() => { window.print = () => {}; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => {
     const pg = t => [...document.querySelectorAll('#printdoc .pd-page')].find(x => x.querySelector('h1').textContent === t);
