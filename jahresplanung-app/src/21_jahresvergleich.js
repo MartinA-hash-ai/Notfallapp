@@ -498,7 +498,7 @@ function jvHerkunft(S, pdf) {
     const rp = sv('rect', { x: lab, y: yy, width: Math.max(0, wp - 1), height: 26, rx: 4, class: 'jv-pp' }), ri = sv('rect', { x: lab + wp + 1, y: yy, width: Math.max(0, wi - 1), height: 26, rx: 4, class: 'jv-pi' });
     setTip(rp, tip); setTip(ri, tip); row.append(rp, ri);
     if (tot && wp > 44) row.append(sv('text', { x: lab + 9, y: yy + 17.5, class: 'jv-pit' }, de0(r.p / tot * 100) + ' %'));
-    if (tot && wi > 44) row.append(sv('text', { x: lab + wp + 9, y: yy + 17.5, class: 'jv-pit' }, de0(r.i / tot * 100) + ' %')); });
+    if (tot && wi > 44) row.append(sv('text', { x: lab + wp + 9, y: yy + 17.5, class: 'jv-pit i' }, de0(r.i / tot * 100) + ' %')); });
   const left = h('div', { class: 'jv-pil' }, h('div', { class: 'jv-pikey' }, h('span', null, h('i', { class: 'p' }), 'Privat'), h('span', null, h('i', { class: 'i' }), 'Institutionen')), svg,
     H && H.has ? h('p', { class: 'jv-pin' }, 'Spender:innen ' + S.H + ': ', h('b', null, de0(H.pn.size) + ' privat'), ' · ', h('b', null, de0(H.inn.size) + ' Institutionen')) : null);
   // Institutionen nach Art
@@ -644,7 +644,7 @@ const JV_TIP = {
   bindung: 'Wie viele Spender:innen des Vorjahres wieder gespendet haben.',
   kpi: 'Werte im gewählten Zeitraum, Veränderung zum Vergleichsjahr.',
   mail: 'Rücklauf ab PAL, nur zugeordnete Spenden.',
-  seg: 'Je Jahr: Anteil der Segmente an den Spender:innen und an der Summe.',
+  seg: 'Je Jahr: Anteil der Segmente an den Spender:innen (links) und an der Summe (rechts).',
   zweck: 'Summe je Zweck im Zeitraum.',
   konto: 'Summe je Konto im Zeitraum.',
   dauer: 'Daueraufträge plus erkannte regelmäßige Spenden.',
@@ -659,7 +659,7 @@ const JV_INFO = {
   bindung: 'Haltequote: Anteil der Spender:innen des Vorjahres (gleicher Zeitraum), die im Jahr wieder gespendet haben. Gehalten: wieder dabei. Wieder dabei nach Pause: im Vorjahr nicht, aber in einem früheren Jahr. Nicht wieder gespendet: im Vorjahr ja, in diesem Jahr (bis zum Stichtag) nicht. „Wer fehlt noch?“: alle aus dem Vorjahr (anfangs bis zum Stichtag, wahlweise das ganze Vorjahr), die in diesem Jahr noch nicht gespendet haben (Sondereffekte wie Nachlässe nur, wenn eingerechnet) – als Liste zum Kopieren oder als CSV mit IBAN zum Abgleich mit der Spenderdatenbank; im PDF nur Anzahl und Summe. „Vorjahre“ zeigt dieselben Werte für jedes oben gewählte Jahr.',
   kpi: 'Spendensumme: alle Spenden im Zeitraum (Sondereffekte je nach Schalter oben). Spender:innen: gezählt nach IBAN, ohne IBAN nach Name – wer von zwei Konten spendet, zählt doppelt. Ø je Spende: Summe ÷ Zahl der Spenden. Anteil der größten 10 %: wie viel der Summe von den 10 % größten Spender:innen kommt. Erstmals seit JJJJ: in keinem früheren eingelesenen Jahr dabei. Dauerspender:innen: siehe dort. Veränderung: Hauptjahr gegenüber dem Vergleichsjahr; rechts der Verlauf über die gewählten Jahre. Weitere Kennzahlen unter „Bausteine“.',
   mail: 'Vergleiche: beliebig viele Zusammenstellungen anlegen (z. B. Sommermailings, Wintermailings, Jahresberichte) – Klick auf den Namen zeigt nur diesen Vergleich, das Kästchen davor zeigt ihn zusätzlich, × löscht ihn; die Vergleiche merkt sich dieser Rechner. Ein Vergleich allein: je Maßnahme eine Farbe; mehrere: je Vergleich eine Farbe, ältere Maßnahmen heller. Je Maßnahme die Spenden, die ihr zugeordnet sind (Regel oder von Hand), ab dem PAL aufaddiert – Spenden ohne Zuordnung zählen nicht. Response: Spenden ÷ Auflage. Ø je Spende: Erlös ÷ Spenden. Erlös je 1 € Kosten: Erlös ÷ Kosten. 80 % da nach: nach wie vielen Tagen ab PAL 80 % des bisherigen Erlöses eingegangen waren. „Veränderung“: die neueste gegenüber der vorigen Maßnahme des Vergleichs.',
-  seg: 'Je Spender:in (IBAN, sonst Name) die Summe im Zeitraum, danach das Segment. Je gewähltem Jahr ein Balken: oben der Anteil der Segmente an den Spender:innen, unten an der Spendensumme; rechts die Gesamtzahl. Das Hauptjahr breit, die Vorjahre schmal – beim Zeigen breit mit Zahlen; „ausführlich“ zeigt alle Jahre breit. Mehr Jahre: oben in der Leiste dazunehmen. Bei „bis Stichtag“ rutschen manche in ein niedrigeres Segment als im ganzen Jahr.',
+  seg: 'Je Spender:in (IBAN, sonst Name) die Summe im Zeitraum, danach das Segment. Je gewähltem Jahr eine Zeile: links der Anteil der Segmente an den Spender:innen, rechts an der Spendensumme, jeweils mit der Gesamtzahl. Farben von Grün (bis 100 €) bis Dunkelrot (ab 5.000 €). Das Hauptjahr breit, die Vorjahre schmal – beim Zeigen breit mit Zahlen; „ausführlich“ zeigt alle Jahre breit. Mehr Jahre: oben in der Leiste dazunehmen. Bei „bis Stichtag“ rutschen manche in ein niedrigeres Segment als im ganzen Jahr.',
   zweck: 'Zuordnung wie unter „Spenden JJJJ“: Schlagworte im Verwendungszweck, Konten, Maßnahmen. „zweckungebunden“ = passt zu keinem Zweck, „zu klären“ = passt zu mehreren und ist noch nicht entschieden. Rechts der Verlauf über die gewählten Jahre.',
   konto: 'Konto bzw. Gliederung aus der Spalte „Personenname“ der Bankdatei (der gemeinsame Anfang wie „Paderborn -“ wird weggelassen). Anfangs die fünf größten Konten der gewählten Jahre; „+ Konto“ nimmt weitere dazu, × nimmt eines heraus.',
   dauer: 'Dauerspender:innen: Buchung mit „Dauerauftrag“ im Buchungstext – oder (Schalter) regelmäßig erkannt: gleicher Betrag (Erhöhungen erlaubt) am etwa gleichen Tag im Monat, mindestens dreimal monatlich, vierteljährlich, halb- oder jährlich (halb- und jährlich mit gleichem Verwendungszweck), nur Privat; „erkannte prüfen“ zeigt die Liste. Unter der Anzahl: Dauerspender:innen des Vorjahres → neu dazu, beendet → dieses Jahr (gleicher Zeitraum). Summe: alle diese Buchungen. Ø Monatsbeitrag: je Dauerspender:in der letzte Betrag, auf einen Monat umgerechnet.',
@@ -910,7 +910,7 @@ function jvDrawMail(el) {
     labs.push({ o, x: X(last), y: Yv(o.sr.cum[last] / 100) }); }
   labs.sort((a, b) => a.y - b.y); for (let i = 1; i < labs.length; i++) if (labs[i].y - labs[i - 1].y < 13) labs[i].y = labs[i - 1].y + 13;
   for (let i = labs.length - 1, lim = y0 - 6; i >= 0; i--, lim -= 13) { if (labs[i].y > lim) labs[i].y = lim; else break; }   // unten nicht über die Achse hinaus
-  for (const l of labs) svg.append(sv('text', { class: 'jv-elab', style: 'fill: ' + l.o.col, x: g.ml + g.pw + 8, y: l.y + 4 }, (l.o.x.m.name || '?').replace(/\s*\d{4}$/, '').slice(0, 22) + ' ’' + String(ymd(l.o.x.pal)[0]).slice(2)));
+  for (const l of labs) svg.append(sv('text', { class: 'jv-elab', style: 'fill: color-mix(in srgb, ' + l.o.col + ' 72%, var(--ink))', x: g.ml + g.pw + 8, y: l.y + 4 }, (l.o.x.m.name || '?').replace(/\s*\d{4}$/, '').slice(0, 22) + ' ’' + String(ymd(l.o.x.pal)[0]).slice(2)));
   spCross(svg, g, { at: px => clamp(Math.round((px - g.ml) / g.pw * days), 0, days), x: X,
     dots: d => st.map(o => sv('circle', { cx: X(d), cy: Yv(o.sr.cum[Math.min(d, o.sr.cum.length - 1)] / 100), r: 4, style: 'fill: ' + o.col, stroke: 'var(--card)', 'stroke-width': 2 })),
     tip: d => h('div', null, h('b', null, d ? d + ' Tage nach dem PAL' : 'am PAL'), st.map(o => h('div', { class: 'jv-tipr' }, h('span', { class: 'jv-ln', style: { background: o.col } }), (o.x.m.name || '?') + ': ' + eur0(o.sr.cum[Math.min(d, o.sr.cum.length - 1)])))) });
@@ -919,23 +919,24 @@ function jvDrawMail(el) {
 const jvDensBtn = key => h('button', { class: 'small jv-dens', 'aria-pressed': String(!!UI[key]), tip: UI[key] ? 'Vorjahre wieder schmal, Zahlen beim Zeigen' : 'alle Jahre als breite Balken mit Zahlen',
   onclick: () => { UI[key] = !UI[key]; hideTip(); renderNow(); } }, UI[key] ? 'kompakt' : 'ausführlich');
 const jvSegYears = (S, Y) => S.sel.filter(y => { const o = Y.get(y); return o && o.has && o.don; });
-const JV_SGR = 26, JV_SGT = 22, jvSegH = n => Math.max(1, n) * JV_SGR * 2 + JV_SGT * 2 + 14;
+const JV_SGR = 26, JV_SGT = 24, jvSegH = n => Math.max(1, n) * JV_SGR + JV_SGT + 4;
+const JV_SGINV = [true, false, false, false, true, true];   // weiße Zahl auf Grün, Rot, Dunkelrot; dunkle auf Hellgrün, Gelb, Orange
+// Spender:innen links, Spendensumme rechts – je gewähltem Jahr eine Zeile; Vorjahre schmal (beim Zeigen breit mit Zahlen)
 function jvDrawSeg(el, S, Y) {
   const ys = jvSegYears(S, Y);
   if (!ys.length) { el.replaceChildren(h('div', { class: 'muted small spj-none' }, 'Keine Spenden im Zeitraum.')); return; }
-  const W = Math.max(420, Math.floor(+el.dataset.w || el.clientWidth)), x0 = 56, vw = 100, bw = W - x0 - vw, blk = JV_SGT + ys.length * JV_SGR;
+  const W = Math.max(420, Math.floor(+el.dataset.w || el.clientWidth)), x0 = 42, gap = 20, colW = (W - x0 - gap) / 2;
   const svg = sv('svg', { width: W, height: jvSegH(ys.length), class: 'sp-svg' + (UI.jvSegFull ? ' jv-full' : ''), role: 'img' }); el.replaceChildren(svg);
-  [['n', 'Spender:innen', o => de0(o.don)], ['sum', 'Spendensumme', o => eur0(o.sum)]].forEach(([f, t, tot], b) => {
-    const y0 = b * (blk + 14);
-    svg.append(sv('text', { x: 0, y: y0 + 14, class: 'jv-sgt' }, t));
-    ys.forEach((y, i) => { const o = Y.get(y), yy = y0 + JV_SGT + i * JV_SGR, T = o.seg.reduce((a, x) => a + x[f], 0); let c = 0;
-      const row = sv('g', { class: 'jv-sgrow' + (y === S.H ? ' main' : ' old') }); svg.append(row);
-      row.append(sv('rect', { x: 0, y: yy - 3, width: W, height: JV_SGR, class: 'jv-sghit' }), sv('text', { x: 0, y: yy + 14.5, class: 'jv-pisy' + (y === S.H ? ' on' : '') }, String(y)));
-      JV_SEGA.forEach((si, j) => { const v = o.seg[si][f], x = x0 + (T ? c / T : 0) * bw, w = T ? v / T * bw : 0; c += v; if (w < 0.5) return;
+  const blocks = [['n', 'Spender:innen', o => de0(o.don), 44], ['sum', 'Spendensumme', o => eur0(o.sum), 78]];
+  blocks.forEach(([, t], b) => svg.append(sv('text', { x: x0 + b * (colW + gap), y: 14, class: 'jv-sgt' }, t)));
+  ys.forEach((y, i) => { const o = Y.get(y), yy = JV_SGT + i * JV_SGR;
+    const row = sv('g', { class: 'jv-sgrow' + (y === S.H ? ' main' : ' old') }); svg.append(row);
+    row.append(sv('rect', { x: 0, y: yy - 3, width: W, height: JV_SGR, class: 'jv-sghit' }), sv('text', { x: 0, y: yy + 14.5, class: 'jv-pisy' + (y === S.H ? ' on' : '') }, String(y)));
+    blocks.forEach(([f, t, tot, tw], b) => { const bx = x0 + b * (colW + gap), bw = colW - tw, T = o.seg.reduce((a, x) => a + x[f], 0); let c = 0;
+      JV_SEGA.forEach((si, j) => { const v = o.seg[si][f], x = bx + (T ? c / T : 0) * bw, w = T ? v / T * bw : 0; c += v; if (w < 0.5) return;
         const r = sv('rect', { x: x + 1.5, y: yy, width: Math.max(0.5, w - 3), height: 20, rx: 3, fill: 'var(--jvs' + (j + 1) + ')', class: 'jv-sgb' });
         setTip(r, () => h('div', null, h('b', null, JV_SEG[si] + ' · ' + y), h('div', null, spjWho(o.seg[si].n) + ' · ' + eur0(o.seg[si].sum)), h('div', { class: 'muted' }, de0(v / T * 100) + ' % der ' + t)));
         row.append(r);
-        if (w > 40) row.append(sv('text', { x: x + w / 2, y: yy + 14.5, 'text-anchor': 'middle', class: 'jv-sgp' + (j >= 2 ? ' inv' : '') }, de0(v / T * 100) + ' %')); });
-      row.append(sv('text', { x: x0 + bw + 8, y: yy + 14.5, class: 'jv-lv' }, tot(o))); });
-  });
+        if (w > 34) row.append(sv('text', { x: x + w / 2, y: yy + 14.5, 'text-anchor': 'middle', class: 'jv-sgp' + (JV_SGINV[j] ? ' inv' : '') }, de0(v / T * 100) + ' %')); });
+      row.append(sv('text', { x: bx + bw + 6, y: yy + 14.5, class: 'jv-lv' }, tot(o))); }); });
 }

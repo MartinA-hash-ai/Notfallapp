@@ -2040,3 +2040,22 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .jv-vedit .jv-madd:hover { color: var(--ink2); border-color: var(--muted); }
 .jv-vchip .jv-vx { border: 0; background: transparent; color: var(--muted); font-size: 15px; line-height: 1; padding: 0 4px 1px 0; cursor: pointer; }
 .jv-vchip .jv-vx:hover { color: var(--danger, #c62828); }
+
+/* ---------- Jahresvergleich 0.33: Segmente von Grün (bis 100 €) bis Dunkelrot (ab 5.000 €) – geprüft auf Unterscheidbarkeit (auch Farbschwäche) */
+:root { --jvs1: #1b6f46; --jvs2: #58b07a; --jvs3: #d6b318; --jvs4: #e3731f; --jvs5: #c92a46; --jvs6: #6e1a2a; }
+@media screen { html[data-theme=dark] { --jvs1: #287a4f; --jvs2: #62bd84; --jvs3: #dcbb2a; --jvs4: #ec7426; --jvs5: #d83568; --jvs6: #92284a; } }
+.jv-sgp, .jv-full .jv-sgrow.old .jv-sgp, .jv-sgrow.old .jv-sgp, .jv-sgrow.old:hover .jv-sgp { fill: #1d1d1b; font-size: 12px; }
+.jv-sgp.inv, .jv-full .jv-sgrow.old .jv-sgp.inv, .jv-sgrow.old .jv-sgp.inv, .jv-sgrow.old:hover .jv-sgp.inv { fill: #fff; }
+@media screen { html[data-theme=dark] .jv-sgp, html[data-theme=dark] .jv-full .jv-sgrow.old .jv-sgp { fill: #1d1d1b; } html[data-theme=dark] .jv-sgp.inv, html[data-theme=dark] .jv-full .jv-sgrow.old .jv-sgp.inv { fill: #fff; } }
+
+/* ---------- 0.33: Kontraste (v. a. Dark Mode) – Zahlen nie dunkel auf dunkel */
+:where(.jv svg text:not([fill])) { fill: var(--ink); }
+.jv-lv { fill: var(--ink); font-size: 12px; font-weight: 700; }
+.jv-pit.i { fill: #1d1d1b; }
+@media screen {
+  html[data-theme=dark] .jv-pit, html[data-theme=dark] .jv-pit.i { fill: #10151c; }
+  html[data-theme=dark] .jv-conc .a { color: #10151c; }
+  html[data-theme=dark] .jv-zlab, html[data-theme=dark] .jv-stx { fill: #ff7d7d; }
+  html[data-theme=dark] .jv-qnum td.dim, html[data-theme=dark] .jv-qnum th.dim { color: var(--muted); }
+  html[data-theme=dark] .jv-qnum td.dim > div { opacity: 1; }
+}

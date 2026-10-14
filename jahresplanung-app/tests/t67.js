@@ -58,15 +58,15 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.evaluate(() => document.querySelector('[data-chart="jvcum"] .jv-elab:not(.jv-dim)').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await p.waitForTimeout(300);
   ok(await p.evaluate(() => JV.focus === null && !document.querySelector('[data-chart="jvcum"] .jv-dim')), 'C: Klick auf die Beschriftung des hervorgehobenen Jahres – wieder alle gleich');
 
-  // ---- D: Spendersegmente – je gewähltem Jahr ein Balken: oben Anteil an den Spender:innen, unten an der Summe; keine Bänder; ein Satz darunter
+  // ---- D: Spendersegmente – je gewähltem Jahr eine Zeile: links Anteil an den Spender:innen, rechts an der Summe (nebeneinander); keine Bänder; ein Satz darunter
   const d0 = await p.evaluate(() => { const c = document.querySelector('[data-chart="jvseg"]');
     return [[...document.querySelectorAll('.jv-seglg > span')].map(s => s.textContent).join('|'), [...c.querySelectorAll('.jv-sgt')].map(t => t.textContent).join('|'), [...c.querySelectorAll('.jv-pisy')].map(t => t.textContent + (t.classList.contains('on') ? '*' : '')).join('|'),
       c.querySelectorAll('rect.jv-sgb').length, c.querySelectorAll('.jv-sgr, .jv-sgb.old').length, [...c.querySelectorAll('.jv-sgp')].map(t => t.textContent).join('|'), [...c.querySelectorAll('.jv-lv')].map(t => t.textContent).join('|'),
       document.querySelector('.jv-ins')?.textContent, !document.querySelector('.jv-gctl'), Math.round(c.getBoundingClientRect().height)]; });
-  ok(d0[0] === 'bis 100 €|101–249 €|250–499 €|500–999 €|1.000–4.999 €|ab 5.000 €' && d0[1] === 'Spender:innen|Spendensumme' && d0[2] === '2025|2026*|2025|2026*' && d0[3] === 10 && d0[4] === 0,
-    'D: Legende von klein nach groß; je Jahr (2025, 2026) ein Balken für Spender:innen und einer für die Summe; keine Bänder dazwischen');
-  ok(d0[5] === '25 %|75 %|50 %|25 %|25 %|9 %|91 %|8 %|87 %' && d0[6] === '4|4|560 €|5.780 €' && d0[7] === 'Ab 1.000 €: 1 Spender:in (25 %) gibt 87 % der Summe – 2025: 0 Spender:innen mit 0 %.' && d0[8],
-    'D: Anteile an den Balken (schmale Abschnitte ohne Zahl), rechts die Gesamtzahl, darunter ein Satz; keine eigene Auswahl im Abschnitt');
+  ok(d0[0] === 'bis 100 €|101–249 €|250–499 €|500–999 €|1.000–4.999 €|ab 5.000 €' && d0[1] === 'Spender:innen|Spendensumme' && d0[2] === '2025|2026*' && d0[3] === 10 && d0[4] === 0,
+    'D: Legende von klein nach groß; je Jahr (2025, 2026) eine Zeile – Spender:innen und Summe nebeneinander; keine Bänder dazwischen');
+  ok(d0[5] === '25 %|75 %|91 %|50 %|25 %|25 %|87 %' && d0[6] === '4|560 €|4|5.780 €' && d0[7] === 'Ab 1.000 €: 1 Spender:in (25 %) gibt 87 % der Summe – 2025: 0 Spender:innen mit 0 %.' && d0[8],
+    'D: Anteile an den Balken (schmale Abschnitte ohne Zahl), hinter jedem Balken die Gesamtzahl, darunter ein Satz; keine eigene Auswahl im Abschnitt');
   const d1 = await p.evaluate(() => { const g = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgrow')], r = g.find(x => x.classList.contains('old')).querySelector('.jv-sgb');
     return [g.map(x => x.classList.contains('main') ? 'H' : 'o').join(''), getComputedStyle(r).fillOpacity, getComputedStyle(g.find(x => x.classList.contains('main')).querySelector('.jv-sgb')).fillOpacity]; });
   await p.mouse.move(2, 2); await p.waitForTimeout(250);
@@ -74,7 +74,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     return [cs(o.querySelector('.jv-sgp')).opacity, cs(o.querySelector('.jv-lv')).opacity, cs(m.querySelector('.jv-sgp')).opacity, cs(o.querySelector('.jv-pisy')).fontWeight, cs(m.querySelector('.jv-pisy')).fontWeight]; });
   await p.hover('[data-chart="jvseg"] .jv-sgrow.old .jv-sgb', { force: true }); await p.waitForTimeout(250);
   const d2 = await p.evaluate(() => getComputedStyle(document.querySelector('[data-chart="jvseg"] .jv-sgrow.old .jv-sgb')).fillOpacity);
-  ok(d1[0] === 'oHoH' && d1[1] === '0.3' && d1[2] === '1' && d2 === '1', 'D: Hauptjahr kräftig, die Vorjahre blass und dünn – beim Zeigen kräftig und dick');
+  ok(d1[0] === 'oH' && d1[1] === '0.3' && d1[2] === '1' && d2 === '1', 'D: Hauptjahr kräftig, die Vorjahre blass und dünn – beim Zeigen kräftig und dick');
   ok(d3.join() === '0,0,1,400,700', 'D: Vorjahre ohne Zahlen (erst beim Zeigen), Jahreszahl dezent: ' + d3.join());
   await p.click('[data-sec="jv-seg"] .jv-dens'); await p.waitForTimeout(350);
   const d4 = await p.evaluate(() => { const o = document.querySelector('[data-chart="jvseg"] .jv-sgrow.old'), cs = e => getComputedStyle(e);
@@ -83,7 +83,28 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   ok(d4 === '1,none,1,kompakt,true,true' && await p.evaluate(() => UI.jvSegFull === false), 'D: „ausführlich“ – alle Jahre breit mit Zahlen; „kompakt“ wieder schmal (gemerkt)');
   const d5 = await p.evaluate(() => { const r = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgrow.main .jv-sgb')].map(e => [+e.getAttribute('x'), +e.getAttribute('width')]); return r.length > 1 ? Math.round((r[1][0] - (r[0][0] + r[0][1])) * 10) / 10 : null; });
   ok(d5 === 3, 'D: 3 px Abstand zwischen den Segmenten (' + d5 + ')');
-  ok(d0[9] === 2 * 2 * 26 + 2 * 22 + 14, 'D: Höhe wächst mit der Zahl der Jahre (' + d0[9] + ' px bei zwei Jahren)');
+  ok(d0[9] === 2 * 26 + 24 + 4, 'D: Höhe wächst mit der Zahl der Jahre (' + d0[9] + ' px bei zwei Jahren)');
+  const d6 = await p.evaluate(() => { const g = document.querySelector('[data-chart="jvseg"]'), c = g.getBoundingClientRect(), m = g.querySelector('.jv-sgrow.main');
+    const col = n => getComputedStyle(document.documentElement).getPropertyValue('--jvs' + n).trim().toLowerCase();
+    const fills = [...g.querySelectorAll('.jv-sgb')].map(r => r.getAttribute('fill') + '=' + getComputedStyle(r).fill), tx = [...g.querySelectorAll('.jv-sgp')].map(t => (t.classList.contains('inv') ? 'w' : 'd') + getComputedStyle(t).fill);
+    return [[1, 2, 3, 4, 5, 6].map(col).join(','), fills.find(f => f.startsWith('var(--jvs1)')), tx.every(t => t === 'wrgb(255, 255, 255)' || t === 'drgb(29, 29, 27)') && tx.some(t => t[0] === 'w') && tx.some(t => t[0] === 'd'),
+      Math.round(Math.max(...[...m.querySelectorAll('.jv-sgb')].map(r => r.getBoundingClientRect().right)) - c.left), Math.round(c.width), [...m.querySelectorAll('.jv-sgb')].filter(r => r.getBoundingClientRect().right < c.left + c.width / 2).length, tx.join(' ')]; });
+  ok(d6[0] === '#1b6f46,#58b07a,#d6b318,#e3731f,#c92a46,#6e1a2a' && d6[1] === 'var(--jvs1)=rgb(27, 111, 70)', 'D: Segmente von Grün (bis 100 €) über Gelb und Orange bis Dunkelrot (ab 5.000 €): ' + d6[0]);
+  ok(d6[2] && d6[5] >= 2 && d6[3] <= d6[4], 'D: Zahlen auf den Segmenten weiß oder dunkel (je nach Farbe); Spender:innen-Balken links, Summe rechts: ' + d6.slice(3).join(' / '));
+  // Dunkelmodus: keine dunkle Schrift auf dunklem Grund (Zahlen neben/auf Balken, Tabellen, Kacheln)
+  const dk = await p.evaluate(async () => { setTheme('dark'); UI.jvSegFull = true; UI.jvPiFull = true; for (const k of ['seg', 'herkunft', 'bruecke', 'top', 'zweck', 'konto', 'dauer']) UI.secOpen['jv-' + k] = true; renderNow(); await new Promise(r => setTimeout(r, 400));
+    const rgb = s => { const m = String(s).match(/rgba?\(([^)]+)\)/); if (!m) return null; const a = m[1].split(/[ ,\/]+/).filter(Boolean).map(Number); return { r: a[0], g: a[1], b: a[2], a: a.length > 3 ? a[3] : 1 }; };
+    const lum = c => { const f = v => { v /= 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); }; return 0.2126 * f(c.r) + 0.7152 * f(c.g) + 0.0722 * f(c.b); };
+    const cr = (a, b) => { const x = lum(a), y = lum(b); return (Math.max(x, y) + 0.05) / (Math.min(x, y) + 0.05); };
+    const vis = e => { for (let x = e; x && x.nodeType === 1; x = x.parentElement || x.parentNode) { const cs = getComputedStyle(x); if (+cs.opacity < 0.5 || cs.display === 'none' || cs.visibility === 'hidden') return false; } return true; };
+    const under = e => { if (e instanceof SVGElement) { const r = e.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2;   // Balken unter der Zahl?
+        const bar = [...e.parentNode.querySelectorAll('rect')].reverse().find(b => { const q = b.getBoundingClientRect(), f = rgb(getComputedStyle(b).fill); return f && f.a > 0.5 && +getComputedStyle(b).fillOpacity > 0.5 && q.left <= cx && q.right >= cx && q.top <= cy && q.bottom >= cy; }); if (bar) return rgb(getComputedStyle(bar).fill); }
+      for (let x = e instanceof SVGElement ? e.ownerSVGElement : e; x; x = x.parentElement) { const c = rgb(getComputedStyle(x).backgroundColor); if (c && c.a > 0.9) return c; } return { r: 0, g: 0, b: 0, a: 1 }; };
+    const bad = []; for (const e of document.querySelectorAll('.jv *')) { const svgT = e instanceof SVGElement && e.tagName === 'text'; if (!svgT && (e instanceof SVGElement || ![...e.childNodes].some(n => n.nodeType === 3 && n.textContent.trim()))) continue;
+      if (e.closest('#printdoc') || !e.getClientRects().length || !vis(e)) continue; const fg = rgb(svgT ? getComputedStyle(e).fill : getComputedStyle(e).color); if (!fg || fg.a < 0.5) continue; const k = cr(fg, under(e));
+      if (k < 3) bad.push(e.textContent.trim().slice(0, 20) + ' (' + (e.getAttribute('class') || e.tagName) + ', ' + k.toFixed(1) + ')'); }
+    setTheme('light'); UI.jvSegFull = false; UI.jvPiFull = false; renderNow(); return bad; });
+  ok(dk.length === 0, 'D: Dunkelmodus – alle Zahlen und Texte im Jahresvergleich gut lesbar (Kontrast ≥ 3:1)' + (dk.length ? ': ' + dk.slice(0, 8).join(' · ') : ''));
 
   // ---- E: Zwecke über die Jahre – Tabelle mit Hauptjahr, Veränderung, Mini-Verlauf (Jahre im Kopf); zweckungebunden unten
   const zw = await p.evaluate(() => [...document.querySelectorAll('[data-sec="jv-zweck"] tr')].map(t => [...t.children].map(c => c.textContent.trim()).join('|')));
