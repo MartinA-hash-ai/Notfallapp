@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.30.0",
+    "version": "0.31.0",
     "date": "",
+    "items": [
+      "Kennzahlen füllen ihre Box in voller Breite und Höhe (auch auf großen Bildschirmen); die Säulen der Hochrechnung werden nicht mehr übergroß",
+      "Alle / Privat / Institutionen: die Auswahl hat abgerundete Ecken wie das Feld",
+      "Spendersegmente: Vorjahre als dünne, blasse Balken ohne Zahlen und mit dezenter Jahreszahl – beim Zeigen wird der Balken dick und die Zahlen erscheinen",
+      "PDF für die Präsentation: hat ein Abschnitt einen Fehler, entsteht das PDF trotzdem (die Seite nennt den Fehler, oben ein Hinweis); kann das PDF gar nicht erstellt werden, steht die Fehlermeldung oben"
+    ]
+  },
+  {
+    "version": "0.30.0",
+    "date": "2026-10-14T08:36",
     "items": [
       "Mailings vergleichen: beliebig viele Vergleiche anlegen und benennen (z. B. Sommermailings, Wintermailings, Jahresberichte) – Klick auf den Namen zeigt nur diesen Vergleich, das Kästchen davor zeigt ihn zusätzlich; mehrere zusammen: je Vergleich eine Farbe, ältere Mailings heller, in der Tabelle je Vergleich eine Zwischenzeile; die Vergleiche merkt sich der Rechner",
       "Leiste: „Vergleich mit“ entfällt – verglichen wird immer mit dem Vorjahr (ist es abgewählt, mit dem nächsten früheren gewählten Jahr)",

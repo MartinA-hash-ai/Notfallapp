@@ -742,7 +742,9 @@ VIEW_FN['vergleich:after'] = main => { for (const el of $$('[data-chart]', main)
 
 /* ---------- PDF für die Präsentation: je gezeigtem Abschnitt eine Seite (A4 quer), so wie eingestellt */
 const jvQCols = (W, ml = 96, mr = 150) => { const pw = W - ml - mr, q = [0, 90, 181, 273, 365].map(d => d / 365 * pw); return [ml, q[1] - q[0], q[2] - q[1], q[3] - q[2], q[4] - q[3], mr]; };
+let jvPdfErr = [];
 function jvPrintDoc() {
+  jvPdfErr = [];
   const S = jvSetup(), title = k => JV_BLOCKS.find(b => b[0] === k)[1];
   const stand = 'Stand ' + fmtD(todayDn()) + (D.meta.savedAt ? ' · gespeichert ' + fmtStamp(D.meta.savedAt) : '');
   const sub = 'Jahre ' + S.sel.join(', ') + ' · ' + (S.mode === 'stich' ? 'jedes Jahr bis ' + jvStich(S) : 'ganze Jahre') + ' · Sondereffekte ' + (S.sx ? 'eingerechnet' : 'herausgerechnet') + (S.cmp != null ? ' · Vergleich mit ' + S.cmp : '') + (S.grp !== 'alle' ? ' · ' + jvGrpName(S.grp) : '');
@@ -751,7 +753,9 @@ function jvPrintDoc() {
     h('tbody', null, h('tr', null, h('td', null, h('header', { class: 'pd-head' }, h('img', { src: LOGO, alt: 'Malteser' }), h('div', null, h('h1', null, t), h('span', null, sub)), h('span', { class: 'pd-stand' }, stand)), content))),
     h('tfoot', null, h('tr', null, h('td', null, h('div', { class: 'pd-sp' }))))));
   // je Abschnitt: Inhalt fürs PDF (ohne Namen, ohne Eingabefelder) und Titel (mit eigener Auswahl, falls abweichend)
-  const part = k => { const Sk = jvSS(S, k), Yk = jvData(Sk);
+  const part = k => { try { return part0(k); } catch (e) { console.error(e); jvPdfErr.push(jvTitle(S, k) + ': ' + e.message);
+    return { body: h('p', { class: 'muted' }, 'Dieser Abschnitt konnte nicht erstellt werden (' + e.message + ').'), t: jvTitle(S, k) }; } };
+  const part0 = k => { const Sk = jvSS(S, k), Yk = jvData(Sk);
     const body = k === 'bindung' ? jvBindung(Sk, Yk, true) : k === 'ziel' ? jvZielSec(Sk, Yk, true) : k === 'top' ? jvTop(Sk, Yk, true) : k === 'herkunft' ? jvHerkunft(Sk, true) : k === 'mail' ? jvMails(Sk, true) : jvSecDefs(Sk, Yk)[k].body();
     const t = jvTitle(Sk, k) + (['blick', 'kpi', 'dauer', 'ziel', 'bindung', 'top', 'herkunft'].includes(k) ? ' ' + S.H : '');
     return { body, t }; };
@@ -776,13 +780,16 @@ function jvPrintDoc() {
 function jvPrintPDF() {
   if (!jvOrder().some(jvShown)) { toast('Kein Abschnitt eingeblendet.', 'warn'); return; }
   hideTip(); closeMenu();
-  const doc = jvPrintDoc();
+  let doc;
+  try { doc = jvPrintDoc(); }
+  catch (e) { console.error(e); $$('#printdoc').forEach(x => x.remove()); document.body.classList.remove('printdoc-mode'); toast('PDF konnte nicht erstellt werden: ' + e.message, 'warn'); return; }
   $$('#printdoc').forEach(e => e.remove());
   document.body.append(doc);
   document.body.classList.add('printdoc-mode');
   PRINT_TITLE = document.title;
   document.title = 'Jahresvergleich_' + UI.year + '_' + ds(todayDn());   // Vorschlag für den Dateinamen
-  setTimeout(() => window.print(), 80);
+  if (jvPdfErr.length) toast('Im PDF fehlt etwas: ' + jvPdfErr.join(' · '), 'warn');
+  setTimeout(() => { try { window.print(); } catch (e) { toast('Drucken nicht möglich: ' + e.message, 'warn'); window.dispatchEvent(new Event('afterprint')); } }, 80);
 }
 
 /* ---------- Grafiken (Abschnitt mit eigener Auswahl: data-jvk am Abschnitt bzw. an der PDF-Seite) */

@@ -2002,3 +2002,22 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .jv-grpw { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .jv-byt th { white-space: normal; vertical-align: bottom; line-height: 1.2; }
 .jv-byt tbody th { white-space: nowrap; }
+
+/* ---------- Jahresvergleich 0.31: Kennzahlen füllen ihre Box, abgerundete Auswahl, Segmente der Vorjahre dezent */
+.jv-it.jv-kt { max-width: none; }
+.jv-grid2 > .sec { display: flex; flex-direction: column; }
+.jv-grid2 > .sec > .sec-b { flex: 1 1 auto; }
+.jv-grid2 > .sec[data-sec="jv-kpi"] > .sec-b > .jv-kt { height: 100%; }
+.jv-grid2 > .sec[data-sec="jv-ziel"] > .sec-b > .jv-kpi { height: 100%; display: flex; flex-direction: column; }
+.jv-grid2 > .sec[data-sec="jv-ziel"] > .sec-b > .jv-kpi > .jv-kd { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; }
+.jv-grid2 > .sec[data-sec="jv-ziel"] .jv-lad { max-width: 440px; margin: 0 auto; }
+.segc { border-radius: 9px; padding: 2px; gap: 2px; background: var(--soft); }
+.segc > button, .segc > button:first-child { border: 0; border-radius: 7px; padding: 2px 10px; }
+.segc > button:hover:not(.on) { background: color-mix(in srgb, var(--ink) 7%, transparent); }
+.segc.sm > button { padding: 1px 8px; }
+.jv-sgrow.old .jv-sgb { fill-opacity: .3; transform-box: fill-box; transform-origin: center; transform: scaleY(.35); transition: transform .15s, fill-opacity .15s; }
+.jv-sgrow.old .jv-sgp, .jv-sgrow.old .jv-lv { opacity: 0; transition: opacity .15s; }
+.jv-sgrow.old .jv-pisy { fill: var(--faint); font-weight: 400; font-size: 11px; }
+.jv-sgrow.old:hover .jv-sgb { fill-opacity: 1; transform: scaleY(1); }
+.jv-sgrow.old:hover .jv-sgp, .jv-sgrow.old:hover .jv-lv { opacity: 1; }
+.jv-sgrow.old:hover .jv-pisy { fill: var(--ink2); font-weight: 600; }

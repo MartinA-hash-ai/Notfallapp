@@ -69,9 +69,13 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     'D: Anteile an den Balken, rechts die Gesamtzahl, darunter ein Satz; keine eigene Auswahl im Abschnitt');
   const d1 = await p.evaluate(() => { const g = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgrow')], r = g.find(x => x.classList.contains('old')).querySelector('.jv-sgb');
     return [g.map(x => x.classList.contains('main') ? 'H' : 'o').join(''), getComputedStyle(r).fillOpacity, getComputedStyle(g.find(x => x.classList.contains('main')).querySelector('.jv-sgb')).fillOpacity]; });
+  await p.mouse.move(2, 2); await p.waitForTimeout(250);
+  const d3 = await p.evaluate(() => { const o = document.querySelector('[data-chart="jvseg"] .jv-sgrow.old'), m = document.querySelector('[data-chart="jvseg"] .jv-sgrow.main'), cs = e => getComputedStyle(e);
+    return [cs(o.querySelector('.jv-sgp')).opacity, cs(o.querySelector('.jv-lv')).opacity, cs(m.querySelector('.jv-sgp')).opacity, cs(o.querySelector('.jv-pisy')).fontWeight, cs(m.querySelector('.jv-pisy')).fontWeight]; });
   await p.hover('[data-chart="jvseg"] .jv-sgrow.old .jv-sgb', { force: true }); await p.waitForTimeout(250);
   const d2 = await p.evaluate(() => getComputedStyle(document.querySelector('[data-chart="jvseg"] .jv-sgrow.old .jv-sgb')).fillOpacity);
-  ok(d1[0] === 'oHoH' && d1[1] === '0.38' && d1[2] === '1' && d2 === '1', 'D: Hauptjahr kräftig, die anderen Jahre blass – beim Zeigen kräftig');
+  ok(d1[0] === 'oHoH' && d1[1] === '0.3' && d1[2] === '1' && d2 === '1', 'D: Hauptjahr kräftig, die Vorjahre blass und dünn – beim Zeigen kräftig und dick');
+  ok(d3.join() === '0,0,1,400,700', 'D: Vorjahre ohne Zahlen (erst beim Zeigen), Jahreszahl dezent: ' + d3.join());
   ok(d0[9] === 2 * 2 * 26 + 2 * 22 + 14, 'D: Höhe wächst mit der Zahl der Jahre (' + d0[9] + ' px bei zwei Jahren)');
 
   // ---- E: Zwecke über die Jahre – Tabelle mit Hauptjahr, Veränderung, Mini-Verlauf (Jahre im Kopf); zweckungebunden unten
@@ -122,6 +126,13 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     'I: „PDF für die Präsentation“ – gleiche Reihenfolge wie am Bildschirm, Paare auf einer Seite, Einstellungen im Kopf: ' + i2[1]);
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('#printdoc') && !document.body.classList.contains('printdoc-mode')), 'I: nach dem Drucken ist die Druckansicht wieder weg');
+  // ein Abschnitt mit Fehler: das PDF entsteht trotzdem, die Seite nennt den Fehler, oben ein Hinweis
+  const i3 = await p.evaluate(() => { const keep = jvBindung; window.jvBindung = () => { throw new Error('Testfehler'); };
+    window.print = () => { window.__printed = (window.__printed || 0) + 1; }; window.__printed = 0; document.querySelector('.jv-pdf').click();
+    return new Promise(r => setTimeout(() => { window.jvBindung = keep;
+      r([window.__printed, /Dieser Abschnitt konnte nicht erstellt werden \(Testfehler\)/.test(document.querySelector('#printdoc').textContent), document.querySelectorAll('#printdoc .pd-page').length, /Im PDF fehlt etwas: Spenderbindung: Testfehler/.test(document.body.textContent)]); }, 300)); });
+  await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
+  ok(i3[0] === 1 && i3[1] && i3[2] >= 10 && i3[3], 'I: PDF auch dann, wenn ein Abschnitt einen Fehler hat – die Seite nennt ihn, oben ein Hinweis (' + JSON.stringify(i3) + ')');
   // ---- H: Bausteine ausblenden – Zwecke weg, Konten über die ganze Breite
   await p.click('[data-sec="jv-zweck"] .jv-hide'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !document.querySelector('[data-sec="jv-zweck"]') && [...document.querySelectorAll('.jv-grid2')].length === 2 && !!document.querySelector('.jv > [data-sec="jv-konto"]')), 'H: „Zwecke“ ausgeblendet – „Konten“ allein über die ganze Breite');
