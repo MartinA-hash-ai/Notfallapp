@@ -30,8 +30,8 @@ const year = y => { const r = [];
   const a1 = await p.evaluate(() => [UI.view, [...document.querySelectorAll('#main .sec')].map(e => e.dataset.sec + (e.classList.contains('closed') ? '-' : '+')).join(), !!document.querySelector('#main .jv > .jv-bar'),
     [...document.querySelectorAll('.jv-grid2')].map(g => [...g.children].map(e => e.dataset.sec).join('/')).join(' ')]);
   ok(a0[0] === 'Jahresplanung|Detailpläne|Auswertung|Jahresvergleich' && !a0[1], 'A: Reiter „Jahresvergleich“ neben der Auswertung, dort kein Abschnitt „Jahresvergleich“ mehr');
-  ok(a1[0] === 'vergleich' && a1[1] === 'jv-blick+,jv-ziel+,jv-verlauf+,jv-herkunft+,jv-bruecke+,jv-bindung+,jv-kpi+,jv-mail-,jv-seg-,jv-zweck-,jv-konto-,jv-dauer-,jv-top-' && a1[2] && a1[3] === 'jv-bruecke/jv-bindung jv-zweck/jv-konto',
-    'A: oben die Leiste, darunter die Abschnitte; Details (Mailings bis Größte) eingeklappt; Brücke/Bindung und Zwecke/Konten nebeneinander');
+  ok(a1[0] === 'vergleich' && a1[1] === 'jv-blick+,jv-ziel+,jv-kpi+,jv-verlauf+,jv-herkunft+,jv-bruecke+,jv-bindung+,jv-mail-,jv-seg-,jv-zweck-,jv-konto-,jv-dauer-,jv-top-' && a1[2] && a1[3] === 'jv-ziel/jv-kpi jv-bruecke/jv-bindung jv-zweck/jv-konto',
+    'A: oben die Leiste, darunter die Abschnitte; Details (Mailings bis Größte) eingeklappt; Hochrechnung/Kennzahlen, Brücke/Bindung und Zwecke/Konten nebeneinander');
   ok(await p.evaluate(() => !document.querySelector('.jv .jv-foot, .jv .jv-kn.muted') && [...document.querySelectorAll('#main .sec .info')].every(i => (i.getAttribute('tip') || i.dataset.tip || '').length < 160 || true)), 'A: keine Fußnoten mehr');
   await p.click('[data-sec="jv-kpi"] .sec-tog'); await p.waitForTimeout(300);
   const a2 = await p.evaluate(() => document.querySelector('[data-sec="jv-kpi"] .sec-sum')?.textContent);
@@ -84,13 +84,15 @@ const year = y => { const r = [];
   const tip = await p.evaluate(() => [document.getElementById('tip').textContent, document.querySelectorAll('.jv-qband.hov').length]);
   await p.mouse.click(d0[1].x, d0[1].y); await p.waitForTimeout(400);
   const d1 = await p.evaluate(() => { const qa = document.querySelector('[data-chart="jvqa"]'), band = document.querySelector('.jv-qband').getBoundingClientRect(), th = document.querySelectorAll('.jv-qnum thead th')[1].getBoundingClientRect();
-    return [JV.q, document.querySelector('.jv-qp .jv-qh b')?.textContent, qa.querySelectorAll('rect.jv-bar').length, qa.querySelectorAll('rect.jv-sxbar').length, document.querySelector('.jv-qband.on') != null,
+    return [JV.q, document.querySelector('.jv-qp .jv-qh') ? 'Kopf' : document.querySelector('.jv-qnum thead th.on')?.textContent, qa.querySelectorAll('rect.jv-bar').length, qa.querySelectorAll('rect.jv-sxbar').length, document.querySelector('.jv-qband.on') != null,
       [...document.querySelectorAll('.jv-qnum tr')].map(t => [...t.children].map(c => c.textContent).join('|')), Math.abs(band.left - th.left), !document.querySelector('.jv-qcmp'),
       document.querySelectorAll('.jv-qsxc').length, document.querySelectorAll('[data-chart="jvcum"] .jv-sxm').length, Math.round(qa.getBoundingClientRect().height)]; });
   ok(d0[0] === 4 && d0[2] && d0[3] && /Klick: Q4 hervorheben/.test(tip[0]) && /2027: /.test(tip[0]) && tip[1] === 1, 'D: vier Jahreslinien, Stichtag-Linie; Zeigen hebt das Quartal an, Hinweis „Klick: Q4 hervorheben“');
-  ok(d1[0] === 3 && d1[1] === 'Q4 hervorgehoben' && d1[2] === 16 && d1[3] === 0 && d1[4] && d1[7] && d1[10] === 130, 'D: Klick – „Q4 hervorgehoben“: alle Quartale (16 Säulen, 130 px hoch), keine Gegenüberstellung mehr');
+  ok(d1[0] === 3 && d1[1] === 'Q4 (bis 10.10.)' && d1[2] === 16 && d1[3] === 0 && d1[4] && d1[7] && d1[10] === 130, 'D: Klick – Q4 hervorgehoben (Spalte in der Tabelle), ohne eigene Kopfzeile: alle Quartale (16 Säulen, 130 px hoch)');
   ok(d1[5][0] === 'Quartale|Q1|Q2|Q3|Q4 (bis 10.10.)|Summe' && d1[5][1] === '2024|160 €|160 €|160 €|50 €|530 €' && d1[5][3] === '2026|160 €■ ±0,0 %|160 €■ ±0,0 %|160 €■ ±0,0 %|50 €■ ±0,0 %|530 €■ ±0,0 %' && d1[6] < 3 && d1[8] === 0 && d1[9] === 0,
     'D: „Quartale in Zahlen“ in ganzen Euro genau unter den Quartalen – „Q4 (bis 10.10.)“, rechts „Summe“; Sondereffekte herausgerechnet');
+  ok(await p.evaluate(() => { const r = document.querySelectorAll('.jv-qnum tbody tr')[1], ta = e => getComputedStyle(e).textAlign; return [ta(r.children[0]), ta(r.children[1]), ta(r.children[4]), ta(r.children[5]), ta(document.querySelectorAll('.jv-qnum thead th')[2])].join(); }) === 'left,center,center,right,center',
+    'D: Quartalszahlen mittig unter den Quartalen, Jahre links, Summe rechts');
   // Sondereffekte einrechnen (gilt überall): Kennzahlen, Linie (Raute), Säulen (obenauf), Tabelle, Liste unter den Quartalen
   await p.selectOption('.jv-sxmode', 'in'); await p.waitForTimeout(400);
   const d3 = await p.evaluate(() => [UI.jvSxIn, [...document.querySelectorAll('.jv-qnum tbody tr')][2].textContent, document.querySelectorAll('[data-chart="jvqa"] rect.jv-sxbar').length, [...document.querySelectorAll('.jv-qsxc')].map(c => c.textContent).join(' / '),
@@ -105,8 +107,8 @@ const year = y => { const r = [];
   ok(await p.evaluate(() => UI.jvCmp === 2025 && [...document.querySelectorAll('.jv-kt tr[data-k="sum"] circle')][1].getAttribute('fill') === 'var(--jvV)' && /^bis 10\.10\.2025/.test(document.querySelector('.jv-kt thead tr').textContent)),
     'D: Vergleichsjahr 2025 (oben) – Tabelle vergleicht mit 2025, 2025 jetzt mittelblau');
   await p.selectOption('.jv-bar .jv-cmp', '2026'); await p.waitForTimeout(300);
-  await p.click('.jv-qx'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => JV.q === null && !document.querySelector('.jv-qp .jv-qh') && !document.querySelector('.jv-qnum .dim')), 'D: „Auswahl aufheben“ – alle Quartale wieder gleich');
+  await p.click('.jv-qnum thead th.on'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => JV.q === null && !document.querySelector('.jv-qx') && !document.querySelector('.jv-qnum .dim')), 'D: noch ein Klick auf Q4 – alle Quartale wieder gleich (kein Knopf „Auswahl aufheben“ mehr)');
 
   // ---- E: Mailings vergleichen (Detail, anfangs eingeklappt) – frei wählbar, bis zu vier, Farbe bleibt am Eintrag
   await p.evaluate(() => commit(d => { const base = d.massnahmen.find(m => !m.plan);

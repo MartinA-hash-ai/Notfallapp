@@ -95,12 +95,16 @@ function jvArtPick(anchor, o, after) {                                 // „→
     jvArten().concat({ id: JV_SONST, t: 'sonstige Institutionen' }).map(a => h('button', { class: 'mitem', onclick: () => { closeMenu(); jvSetTyp(o, 'i:' + a.id, (o.name || 'Zahler:in') + ' als „' + a.t + '“ eingestuft'); if (after) after(); } }, a.t))));
 }
 function jvInstDialog() {
-  const box = h('div', { class: 'jv-inst' });
-  let q = '';
+  const box = h('div', { class: 'jv-inst' }), N0 = 40;
+  let q = '', allP = false, allI = false;
   const draw = () => {
+    const keep = [...box.querySelectorAll('.jv-lscroll')].map(e => e.scrollTop), host = box.parentElement, hs = host ? host.scrollTop : 0;
     const P = jvPayers(), all = [...P.by.values()], A = jvArten(), y = UI.year, a0 = mkdn(y, 1, 1), a1 = mkdn(y, 12, 31);
-    const inY = new Set(); for (const r of SP.rows) if (r.d >= a0 && r.d <= a1) inY.add(P.pidOf.get(jvDonor(r)));
-    const hits = id => all.filter(o => o.typ === 'i' && o.art === id && inY.has(o.pid)).length;
+    // je Zahler:in im Jahr: Spenden, Summe, letzte Buchung, Verwendungszwecke
+    const st = new Map();
+    for (const r of SP.rows) if (r.d >= a0 && r.d <= a1) { const pid = P.pidOf.get(jvDonor(r)); let o = st.get(pid); if (!o) st.set(pid, o = { n: 0, sum: 0, last: r, zw: new Map() });
+      o.n++; o.sum += r.b; if (r.d >= o.last.d) o.last = r; const z = str(r.zweck).trim(); if (z) o.zw.set(z, (o.zw.get(z) || 0) + 1); }
+    const hits = id => all.filter(o => o.typ === 'i' && o.art === id && st.has(o.pid)).length;
     const chips = (a, f) => { let inp = null;
       const add = () => { const v = inp.value.trim(); inp.value = ''; if (!v || a[f].includes(v)) return; jvSetArten(L => { const x = L.find(z => z.id === a.id); if (!x[f].includes(v)) x[f].push(v); }, 'Stichwort „' + v + '“ bei „' + a.t + '“ ergänzt'); draw(); };
       return h('div', { class: 'jv-iwl' }, a[f].map(w => h('span', { class: 'sp-word' }, w, h('button', { class: 'sp-x', 'aria-label': w + ' entfernen', onclick: () => { jvSetArten(L => { const x = L.find(z => z.id === a.id); x[f] = x[f].filter(z => z !== w); }, 'Stichwort „' + w + '“ bei „' + a.t + '“ entfernt'); draw(); } }, '×'))),
@@ -112,22 +116,37 @@ function jvInstDialog() {
       jvSetArten(L => { if (!L.some(x => x.id === id)) L.push({ id, t, n: [], z: [] }); }, 'Art „' + t + '“ angelegt'); draw(); };
     const hand = all.filter(o => o.hand).sort((a, b) => b.sum - a.sum);
     const pill = o => o.typ === 'i' ? h('span', { class: 'jv-pill i' }, jvArtName(o.art)) : h('span', { class: 'jv-pill p' }, 'privat');
-    const priv = all.filter(o => o.typ === 'p' && (!q || (o.name || '').toLowerCase().includes(q.toLowerCase()))).sort((a, b) => b.sum - a.sum).slice(0, q ? 40 : 8);
-    const srch = h('input', { class: 'jv-isrch', type: 'search', placeholder: 'Name suchen …', value: q, oninput: e => { q = e.target.value; draw(); const s = box.querySelector('.jv-isrch'); s.focus(); s.setSelectionRange(q.length, q.length); } });
-    const iN = all.filter(o => o.typ === 'i' && inY.has(o.pid)), pN = all.filter(o => o.typ === 'p' && inY.has(o.pid));
+    // zwei Listen: Privat | Institutionen – Name, Verwendungszweck (der letzte; „+2“ = weitere, beim Zeigen alle), Spenden, Summe im Jahr
+    const ql = q.trim().toLowerCase(), match = o => !ql || (o.name || '').toLowerCase().includes(ql) || [...st.get(o.pid).zw.keys()].some(z => z.toLowerCase().includes(ql));
+    const listOf = typ => all.filter(o => o.typ === typ && st.has(o.pid) && match(o)).sort((a, b) => st.get(b.pid).sum - st.get(a.pid).sum);
+    const zwCell = s => { const z = [...s.zw.entries()].sort((a, b) => b[1] - a[1]), last = str(s.last.zweck).trim() || (z[0] ? z[0][0] : '');
+      return h('td', { class: 'jv-lz', tip: z.length > 1 ? () => h('div', null, h('b', null, 'Verwendungszwecke ' + y), z.slice(0, 10).map(([t, n]) => h('div', { class: 'small' }, (n > 1 ? n + '× ' : '') + t)), z.length > 10 ? h('div', { class: 'muted small' }, '… und ' + (z.length - 10) + ' weitere') : null) : (last || null) },
+        h('div', { class: 'jv-lzt' }, last || '–', z.length > 1 ? h('span', { class: 'jv-lzn' }, ' +' + (z.length - 1)) : null)); };
+    const plist = listOf('p'), ilist = listOf('i'), sumOf = L => L.reduce((t, o) => t + st.get(o.pid).sum, 0);
+    const head = h('thead', null, h('tr', null, h('th', null, 'Name'), h('th', null, 'Verwendungszweck ' + y), h('th', { class: 'num', tip: 'Zahl der Spenden ' + y }, 'Anz.'), h('th', { class: 'num' }, 'Summe'), h('th')));
+    const prow = o => { const s = st.get(o.pid); let b = null; b = h('button', { class: 'small jv-itog', onclick: e => { e.stopPropagation(); jvArtPick(b, o, draw); } }, '→ Institution ▾');
+      return h('tr', null, h('td', { class: 'jv-in', tip: o.name || null }, o.name || '(ohne Namen)'), zwCell(s), h('td', { class: 'num' }, de0(s.n)), h('td', { class: 'num' }, eur0(s.sum)), h('td', { class: 'num' }, b)); };
+    const irow = o => { const s = st.get(o.pid); let ab = null; ab = h('button', { class: 'jv-pill i jv-artch', tip: 'Art ändern', onclick: e => { e.stopPropagation(); jvArtPick(ab, o, draw); } }, jvArtName(o.art) + ' ▾');
+      return h('tr', null, h('td', { class: 'jv-in', tip: o.name || null }, o.name || '(ohne Namen)', h('div', { class: 'jv-iwhy' }, ab, ' ', o.hand ? 'von Hand' : o.why ? 'Treffer ' + o.why.replace(/^[^:]*: /, '') + (/^Verwendungszweck/.test(o.why) ? ' im Zweck' : '') : '')),
+        zwCell(s), h('td', { class: 'num' }, de0(s.n)), h('td', { class: 'num' }, eur0(s.sum)),
+        h('td', { class: 'num' }, h('button', { class: 'small jv-topriv', onclick: () => { jvSetTyp(o, 'p', (o.name || 'Zahler:in') + ' als privat eingestuft'); draw(); } }, '→ privat'))); };
+    const list = (t, cls, L, row, open, setOpen) => h('div', { class: 'jv-ibox jv-lbox' }, h('h4', { class: 'jv-h4' }, t + ' ', h('span', { class: 'muted' }, '(' + de0(L.length) + ' · ' + eur0(sumOf(L)) + ')')),
+      h('div', { class: 'jv-lscroll' }, L.length ? h('table', { class: 'jv-it jv-lt ' + cls }, head.cloneNode(true), h('tbody', null, (open ? L : L.slice(0, N0)).map(row))) : h('p', { class: 'muted small' }, ql ? 'Keine Treffer.' : '–')),
+      L.length > N0 ? h('button', { class: 'link small jv-lall', onclick: () => { setOpen(!open); draw(); } }, open ? 'nur die größten ' + N0 : 'alle ' + de0(L.length) + ' anzeigen') : null);
+    const srch = h('input', { class: 'jv-isrch', type: 'search', placeholder: 'Name oder Verwendungszweck suchen …', value: q, oninput: e => { q = e.target.value; draw(); const s2 = box.querySelector('.jv-isrch'); s2.focus(); s2.setSelectionRange(q.length, q.length); } });
+    const iN = all.filter(o => o.typ === 'i' && st.has(o.pid)), pN = all.filter(o => o.typ === 'p' && st.has(o.pid));
     box.replaceChildren(
       h('p', { class: 'jv-ilead' }, 'Steht eines dieser Wörter im ', h('b', null, 'Namen'), ' des Kontoinhabers oder im ', h('b', null, 'Verwendungszweck'), ', zählt die Zahlung als Institution der jeweiligen Art – alle anderen als privat. Lange Wörter greifen auch im Wort (Bürgerstiftung), kurze Abkürzungen nur einzeln (AG, e.V.).'),
       rules,
       h('div', { class: 'jv-ifoot' }, h('button', { class: 'link small jv-addart', onclick: addArt }, '+ Art hinzufügen'),
         D.spenden.sarten ? h('button', { class: 'link small jv-artstd', onclick: () => { commit(d => { delete d.spenden.sarten; }, 'Arten und Stichwörter auf den Standard zurückgesetzt'); draw(); } }, 'Standard wiederherstellen') : null),
-      h('div', { class: 'jv-icols' },
-        h('div', { class: 'jv-ibox' }, h('h4', { class: 'jv-h4' }, 'Von Hand eingestuft (' + hand.length + ')'),
-          hand.length ? h('table', { class: 'jv-it jv-hand' }, h('tbody', null, hand.map(o => h('tr', null, h('td', { class: 'jv-in' }, o.name || '(ohne Namen)', o.why ? h('div', { class: 'muted small' }, 'Treffer ' + o.why.replace(/^[^:]*: /, '')) : null),
-            h('td', { class: 'num' }, pill(o)), h('td', { class: 'num' }, h('button', { class: 'small jv-unhand', onclick: () => { jvSetTyp(o, null, (o.name || 'Zahler:in') + ': Einstufung von Hand aufgehoben'); draw(); } }, 'aufheben')))))) : h('p', { class: 'muted small' }, '–')),
-        h('div', { class: 'jv-ibox' }, h('h4', { class: 'jv-h4' }, 'Prüfen: größte privat eingestufte Zahler:innen'), srch,
-          h('table', { class: 'jv-it jv-priv' }, h('tbody', null, priv.map(o => { let b = null; b = h('button', { class: 'small jv-itog', onclick: e => { e.stopPropagation(); jvArtPick(b, o, draw); } }, '→ Institution ▾');
-            return h('tr', null, h('td', { class: 'jv-in' }, o.name || '(ohne Namen)'), h('td', { class: 'num' }, eur0(o.sum)), h('td', { class: 'num' }, b)); }))))),
+      h('div', { class: 'jv-ibox jv-handbox' }, h('h4', { class: 'jv-h4' }, 'Von Hand eingestuft (' + hand.length + ')'),
+        hand.length ? h('table', { class: 'jv-it jv-hand' }, h('tbody', null, hand.map(o => h('tr', null, h('td', { class: 'jv-in' }, o.name || '(ohne Namen)', o.why ? h('div', { class: 'muted small' }, 'Treffer ' + o.why.replace(/^[^:]*: /, '')) : null),
+          h('td', { class: 'num' }, pill(o)), h('td', { class: 'num' }, h('button', { class: 'small jv-unhand', onclick: () => { jvSetTyp(o, null, (o.name || 'Zahler:in') + ': Einstufung von Hand aufgehoben'); draw(); } }, 'aufheben')))))) : null),
+      h('div', { class: 'jv-lhead' }, h('h4', { class: 'jv-h4' }, 'Alle Zahler:innen ' + y + ' zum Prüfen'), srch),
+      h('div', { class: 'jv-icols' }, list('Privat', 'jv-priv', plist, prow, allP, v => { allP = v; }), list('Institutionen', 'jv-instl', ilist, irow, allI, v => { allI = v; })),
       h('p', { class: 'jv-ires' }, 'Ergebnis ' + y + ': ', h('b', null, de0(iN.length) + ' Institutionen'), ' · ', h('b', null, de0(pN.length) + ' privat')));
+    box.querySelectorAll('.jv-lscroll').forEach((e, k) => { if (keep[k]) e.scrollTop = keep[k]; }); if (host && hs) host.scrollTop = hs;
   };
   draw();
   modal('Privat und Institutionen – Regeln', box, [['Schließen', true, 'primary']], { wide: true, cls: 'jv-imodal' }).then(() => renderNow());

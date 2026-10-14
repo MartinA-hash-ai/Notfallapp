@@ -1,7 +1,22 @@
 [
   {
-    "version": "0.28.0",
+    "version": "0.29.0",
     "date": "",
+    "items": [
+      "„Hochrechnung“ und „Kennzahlen“ stehen nebeneinander (ein Drittel / zwei Drittel); die Kästen „Bis … erreicht“ und „Jahresziel“ sind weg",
+      "Jahresziel: unter der Hochrechnung „+ Jahresziel eintragen“ bzw. „ändern“ – kleines Fenster mit Betrag, „Übernehmen“ und „entfernen“; darunter steht das Ziel mit dem hochgerechneten Anteil",
+      "Hochrechnung erklärt: sichtbar „Stand × 1,59 wie 2026“, beim Zeigen die ganze Rechnung mit Beträgen, ausführlich unter „So wird gerechnet“ – prozentual, nicht als fester Betrag obendrauf",
+      "Alle / Privat / Institutionen nur noch oben in der Leiste – die eigene Auswahl in Spenderbindung, Segmenten, Dauerspender:innen und Größte ist weg",
+      "Spendersegmente: je gewähltem Jahr ein Balken (z. B. 2023–2026), oben Anteil an den Spender:innen, unten an der Summe, rechts die Gesamtzahl – ohne die grauen Bänder dazwischen",
+      "Quartale: kein Kopf „Qx hervorgehoben / Auswahl aufheben“ mehr (noch ein Klick auf das Quartal hebt die Auswahl auf); in „Quartale in Zahlen“ stehen die Beträge mittig unter den Quartalen",
+      "Privat & Institutionen: Art „Geldauflagen & Justiz“ entfällt (eigenes Konto)",
+      "Regeln-Dialog: zwei Listen nebeneinander – Privat und Institutionen – mit Name, Verwendungszweck (beim Zeigen alle Zwecke des Jahres), Zahl der Spenden und Summe im Hauptjahr; Suche über Name und Verwendungszweck; direkt umstufen („→ Institution ▾“, „→ privat“, Art ändern)",
+      "Wer schon eine eigene Reihenfolge hat, bekommt die Kennzahlen einmalig neben die Hochrechnung"
+    ]
+  },
+  {
+    "version": "0.28.0",
+    "date": "2026-10-13T23:18",
     "items": [
       "Jahresvergleich neu geordnet: oben „Auf einen Blick“ (ein Satz und vier Zahlen: Spendensumme, Hochrechnung bzw. Jahresziel, Spender:innen, Ø je Spende), darunter Jahresziel & Hochrechnung, Jahresverlauf mit Quartalen, Privat & Institutionen, Spendenbrücke und Spenderbindung nebeneinander, Kennzahlen; die Details (Mailings, Segmente, Zwecke, Konten, Dauerspender:innen, Größte) sind anfangs eingeklappt und zeigen eingeklappt eine kurze Zusammenfassung",
       "Leiste: „Alle | Privat | Institutionen“ als Knopfgruppe; „Sondereffekte“ als Knopf, der Grenzen je Jahr und die Liste aufklappt; „So wird gerechnet“ sammelt alle ausführlichen Erklärungen – die ⓘ an den Abschnitten sind jetzt ein kurzer Satz, Fußnoten und graue Hinweistexte sind weg",

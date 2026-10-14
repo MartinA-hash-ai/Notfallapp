@@ -32,9 +32,14 @@ const year = y => { const r = [];
   const b0 = await p.evaluate(() => { const S = jvSetup(), P = jvProj(S, jvData(S)); return P && [P.ist, P.main, P.base.y, Math.round(P.lo), Math.round(P.hi), P.ref.map(r => r.y).join()].join(','); });
   ok(b0 === '230000,345000,2026,345000,383333,2025,2026', 'B: Stand 2.300 € × 3.000/2.000 (2026) = 3.450 €; mit 2025: 3.833 € (' + b0 + ')');
   const b1 = await tile('ziel', 'Jahressumme – 2027 hochgerechnet'), b2 = await tile('ziel', 'Bis 10.10. erreicht');
-  ok(b1 && b1[0] === '≈ 3.450 €' && b1[1] === '2.500 €|3.000 €|≈ 3.450 €' && b1[3] === 'Spanne 3.450 € – 3.833 € (nach 2025, 2026)' && await p.evaluate(() => document.querySelectorAll('[data-sec="jv-ziel"] rect.jv-est').length === 1),
-    'B: Kachel „Jahressumme – 2027 hochgerechnet“: ganze Jahre, 2027 gestrichelt mit ≈, Spanne darunter');
-  ok(b2 && b2[0] === '66,7 %' && b2[1] === '60,0 %|66,7 %|–' && b2[3] === 'der Jahressumme 2026', 'B: „Bis 10.10. erreicht“ – 2025: 60 %, 2026: 66,7 % der Jahressumme');
+  ok(b1 && b1[0] === '≈ 3.450 €' && b1[1] === '2.500 €|3.000 €|≈ 3.450 €' && b1[3] === 'Stand × 1,50 wie 2026 · Spanne 3.450 € – 3.833 €' && await p.evaluate(() => document.querySelectorAll('[data-sec="jv-ziel"] rect.jv-est').length === 1),
+    'B: Kachel „Jahressumme – 2027 hochgerechnet“: ganze Jahre, 2027 gestrichelt mit ≈; darunter sichtbar „Stand × 1,50 wie 2026“ und die Spanne');
+  const b1t = await p.evaluate(() => TIPS.get(document.querySelector('[data-sec="jv-ziel"] .jv-kh')));
+  ok(b1t === '2027 hochgerechnet – prozentual: Stand 10.10. 2.300 € × 1,50 ≈ 3.450 €. Der Faktor kommt aus 2026: Jahressumme 3.000 € ÷ 2.000 € bis 10.10.', 'B: Zeigen erklärt die Rechnung: ' + b1t);
+  ok(!b2 && await p.evaluate(() => !document.querySelector('.jv-zbox') && TIPS.get(document.querySelector('[data-sec="jv-ziel"] .sec-h .info')) === 'Prozentual: Stand × (Jahressumme ÷ Summe bis zum gleichen Tag) im Vergleichsjahr.'),
+    'B: keine Kästen „Bis … erreicht“ und „Jahresziel“ mehr; ⓘ nennt die Rechnung');
+  ok(await p.evaluate(() => { const g = document.querySelector('.jv-grid2.r12'), a = g && g.children[0].getBoundingClientRect(), b = g && g.children[1].getBoundingClientRect();
+    return g && g.children[0].dataset.sec === 'jv-ziel' && g.children[1].dataset.sec === 'jv-kpi' && Math.abs(b.width / a.width - 2) < 0.1; }), 'B: „Hochrechnung“ (ein Drittel) und „Kennzahlen“ (zwei Drittel) nebeneinander');
   ok(await p.evaluate(() => !!document.querySelector('[data-chart="jvcum"] polyline.jv-proj') && [...document.querySelectorAll('[data-chart="jvcum"] .jv-plab')].map(t => t.textContent).join() === '≈ 3.450 €'),
     'B: im Jahresverlauf gestrichelt bis 31.12., am Ende „≈ 3.450 €“');
   const bl = () => p.evaluate(() => [document.querySelector('.jv-say').textContent, [...document.querySelectorAll('.jv-gt')].map(t => t.dataset.k + ':' + t.querySelector('.jv-gtv').textContent + ' / ' + t.querySelector('.jv-gts').textContent).join(' ## ')]);
@@ -42,22 +47,30 @@ const year = y => { const r = [];
   ok(b3[0] === '2027 bis 10.10.: 2.300 € – 15,0 % mehr als 2026 im gleichen Zeitraum. Hochgerechnet ≈ 3.450 €.' && b3[1].startsWith('sum:2.300 € / ▲ +15,0 % 2026: 2.000 € ## proj:≈ 3.450 € / noch kein Jahresziel ## don:3 / '),
     'B: „Auf einen Blick“ – ein Satz und die Hochrechnung als zweite Zahl: ' + b3[0]);
 
-  // ---- C: Jahresziel – eintragen, Fortschritt, gilt je Auswahl
-  const zb = () => p.evaluate(() => { const b = document.querySelector('.jv-zbox'); return [b.querySelector('.jv-kv').textContent, [...b.querySelectorAll('.jv-zl')].map(e => e.textContent).join(' | '), [...b.querySelectorAll('.jv-zbar span')].map(e => e.style.width).join(), b.querySelector('.jv-ztxt').textContent]; });
-  const c0 = await zb();
-  ok(c0[0] === '–' && c0[2] === '' && c0[3] === 'Noch kein Ziel eingetragen. Nach dem 10.10. kamen 2026 noch 1.000 € dazu.', 'C: ohne Ziel – „–“, keine Balken: ' + c0[3]);
+  // ---- C: Jahresziel – unter der Kachel eintragen (kleines Fenster), gilt je Auswahl
+  const zr = () => p.evaluate(() => document.querySelector('[data-sec="jv-ziel"] .jv-zrow2')?.textContent);
+  ok(await zr() === '+ Jahresziel eintragen', 'C: ohne Ziel – „+ Jahresziel eintragen“ unter der Kachel');
+  await p.click('.jv-zedit'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => document.querySelector('.menu.pop .jv-zpop .menu-head').textContent === 'Jahresziel 2027' && document.activeElement === document.querySelector('.menu.pop .jv-ziel')), 'C: kleines Fenster „Jahresziel 2027“, Eingabe hat den Fokus');
   await p.fill('.jv-ziel', '4.000'); await p.press('.jv-ziel', 'Enter'); await p.waitForTimeout(400);
-  const c1 = await zb();
-  ok(await p.evaluate(() => JSON.stringify(D.spenden.ziel)) === '{"2027":400000}' && c1[0] === '4.000 €' && c1[1] === 'Stand 10.10.2.300 € · 57,5 % | Hochrechnung 31.12.≈ 3.450 € · 86,3 %' && c1[2] === '57.5%,86.3%',
-    'C: Ziel 4.000 € – Stand 57,5 %, Hochrechnung 86,3 %, als Balken');
-  ok(c1[3] === 'Bis zum Ziel fehlen noch 1.700 €. Hochrechnung 550 € unter dem Ziel. Nach dem 10.10. kamen 2026 noch 1.000 € dazu.', 'C: ' + c1[3]);
+  ok(await p.evaluate(() => JSON.stringify(D.spenden.ziel)) === '{"2027":400000}' && await zr() === 'Jahresziel 4.000 € · hochgerechnet 86 %ändern' && await p.evaluate(() => !document.querySelector('.menu.pop .jv-zpop')),
+    'C: Ziel 4.000 € – unter der Kachel „Jahresziel 4.000 € · hochgerechnet 86 %“ mit „ändern“');
   ok(await p.evaluate(() => !!document.querySelector('[data-chart="jvcum"] line.jv-zline') && document.querySelector('[data-chart="jvcum"] .jv-zlab').textContent === 'Ziel 4.000 €'), 'C: Ziel als waagerechte Linie im Jahresverlauf');
   const c1b = await bl();
   ok(/Hochgerechnet ≈ 3\.450 €, das sind 86 % des Jahresziels\.$/.test(c1b[0]) && /proj:≈ 3\.450 € \/ 86 % vom Ziel 4\.000 €/.test(c1b[1]), 'C: „Auf einen Blick“ nennt den Anteil am Ziel');
   await p.click('.jv-bar .jv-grp button[data-g="privat"]'); await p.waitForTimeout(300);
-  const c2 = await zb();
-  ok(c2[0] === '–' && await p.evaluate(() => document.querySelector('.jv-zbox .jv-kt').textContent === 'Jahresziel 2027 · nur Privat' && !document.querySelector('[data-chart="jvcum"] line.jv-zline')), 'C: „nur Privat“ hat ein eigenes Ziel (noch leer)');
+  const c2 = await zr();
+  await p.click('.jv-zedit'); await p.waitForTimeout(200);
+  ok(c2 === '+ Jahresziel eintragen' && await p.evaluate(() => document.querySelector('.menu.pop .jv-zpop .menu-head').textContent === 'Jahresziel 2027 · nur Privat' && !document.querySelector('[data-chart="jvcum"] line.jv-zline')), 'C: „nur Privat“ hat ein eigenes Ziel (noch leer)');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   await p.click('.jv-bar .jv-grp button[data-g="alle"]'); await p.waitForTimeout(300);
+  await p.click('.jv-zedit'); await p.waitForTimeout(200);
+  await p.fill('.jv-ziel', 'abc'); await p.click('.jv-zok'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => JSON.stringify(D.spenden.ziel) === '{"2027":400000}' && !!document.querySelector('.menu.pop .jv-zpop')), 'C: Unsinn wird nicht übernommen, das Fenster bleibt offen');
+  await p.click('.jv-zdel'); await p.waitForTimeout(300);
+  const c4 = await zr();
+  await p.click('.jv-zedit'); await p.waitForTimeout(200); await p.fill('.jv-ziel', '4.000'); await p.click('.jv-zok'); await p.waitForTimeout(300);
+  ok(c4 === '+ Jahresziel eintragen' && await p.evaluate(() => JSON.stringify(D.spenden.ziel)) === '{"2027":400000}', 'C: „entfernen“ löscht das Ziel, „Übernehmen“ trägt es wieder ein');
   const c3 = await p.evaluate(() => { const a = clone(D), b = clone(D); delete a.spenden.ziel; b.spenden.ziel = { 2027: 400000, '2027p': 250000 }; return describeChanges(a, b).filter(t => /^Jahresziel/.test(t)).join('|'); });
   ok(c3 === 'Jahresziel 2027: 4.000 €|Jahresziel 2027 (nur Privat): 2.500 €', 'C: Änderungen am Ziel beim Zusammenführen beschrieben: ' + c3);
 
@@ -68,22 +81,27 @@ const year = y => { const r = [];
   ok(d0[2] === ';Name;Gruppe;2027;2026;Veränderung;Anteil / 1.;Probe A;privat;1.000 €;1.000 €;■ ±0,0 %;43,5 % / 2.;Probe B;privat;1.000 €;1.000 €;■ ±0,0 %;43,5 % / 3.;Probe C;privat;300 €;–;neu;13,0 %',
     'D: Tabelle mit Rang, Name, Gruppe, Summe, Vergleichsjahr, Veränderung, Anteil – ohne „kumuliert“');
 
-  // ---- E: Reihenfolge – neue Bausteine hinter ihrem Vorgänger, wenn jemand schon eine eigene Reihenfolge hat; PDF
+  // ---- E: Reihenfolge – neue Bausteine hinter ihrem Vorgänger; eigene Reihenfolge aus 0.28 bekommt die Kennzahlen einmalig neben die Hochrechnung; PDF
   const e0 = await p.evaluate(() => { UI.jvOrder = ['verlauf', 'kpi', 'mail', 'seg', 'zweck', 'konto', 'dauer', 'bruecke', 'bindung']; return jvOrder().join(); });
   ok(e0 === 'blick,ziel,verlauf,herkunft,kpi,mail,seg,zweck,konto,dauer,top,bruecke,bindung', 'E: alte eigene Reihenfolge – neue Bausteine hinter ihrem Vorgänger: ' + e0);
+  const e0b = await p.evaluate(() => { UI.jvOrdV = undefined; UI.jvOrder = ['blick', 'ziel', 'verlauf', 'herkunft', 'bruecke', 'bindung', 'kpi', 'top', 'mail', 'seg', 'zweck', 'konto', 'dauer'];
+    const a = jvOrder().join(); UI.jvOrder = ['blick', 'ziel', 'verlauf', 'kpi', 'herkunft', 'bruecke', 'bindung', 'mail', 'seg', 'zweck', 'konto', 'dauer', 'top']; return [a, jvOrder().join(), UI.jvOrdV, UI_KEYS.includes('jvOrdV')]; });
+  ok(e0b[0] === 'blick,ziel,kpi,verlauf,herkunft,bruecke,bindung,top,mail,seg,zweck,konto,dauer' && e0b[1] === 'blick,ziel,verlauf,kpi,herkunft,bruecke,bindung,mail,seg,zweck,konto,dauer,top' && e0b[2] === 29 && e0b[3],
+    'E: eigene Reihenfolge aus 0.28 – Kennzahlen einmalig neben die Hochrechnung; danach bleibt eine neue eigene Reihenfolge, wie sie ist');
   await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
   const e1 = await p.evaluate(() => { window.print = () => {}; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => {
     const pg = t => [...document.querySelectorAll('#printdoc .pd-page')].find(x => x.querySelector('h1').textContent === t);
-    const z = pg('Jahresziel & Hochrechnung 2027'), t = pg('Größte Spender:innen 2027'), bk = pg('Auf einen Blick 2027');
-    r([!!z, z && !z.querySelector('input'), z && z.querySelectorAll('.jv-zbar').length, !!t, t && [...t.querySelectorAll('th')].map(e => e.textContent).join('|'), t && !/Probe/.test(t.textContent), bk && bk.querySelectorAll('.jv-gt').length]); }, 300)); });
-  ok(e1[0] && e1[1] && e1[2] === 2 && e1[3] && e1[4] === '|Gruppe|2027|2026|Veränderung|Anteil' && e1[5] && e1[6] === 4, 'E: PDF – „Auf einen Blick“ mit vier Zahlen, Jahresziel ohne Eingabefeld, „Größte Spender:innen“ ohne Namen');
+    const z = pg('Hochrechnung 2027 · Kennzahlen 2027'), t = pg('Größte Spender:innen 2027'), bk = pg('Auf einen Blick 2027');
+    r([!!z, z && !z.querySelector('input, .jv-zedit'), z && z.querySelector('.jv-zrow2')?.textContent, z && !!z.querySelector('.jv-grid2.r12 .jv-kt'), !!t, t && [...t.querySelectorAll('th')].map(e => e.textContent).join('|'), t && !/Probe/.test(t.textContent), bk && bk.querySelectorAll('.jv-gt').length]); }, 300)); });
+  ok(e1[0] && e1[1] && e1[2] === 'Jahresziel 4.000 € · hochgerechnet 86 %' && e1[3] && e1[4] && e1[5] === '|Gruppe|2027|2026|Veränderung|Anteil' && e1[6] && e1[7] === 4,
+    'E: PDF – Hochrechnung und Kennzahlen auf einer Seite (Ziel als Zeile, ohne Knopf), „Auf einen Blick“ mit vier Zahlen, „Größte Spender:innen“ ohne Namen');
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
 
   // ---- F: vollständiges Hauptjahr – keine Hochrechnung; Daten überstehen Laden und Zusammenführen
   await p.evaluate(() => { UI.year = 2026; renderNow(); }); await p.waitForTimeout(400);
-  const f0 = await p.evaluate(() => [jvProj(jvSetup(), jvData(jvSetup())), [...document.querySelectorAll('[data-sec="jv-ziel"] .jv-kt')].map(e => e.textContent).join('|'), [...document.querySelectorAll('.jv-zbox .jv-zl')].map(e => e.textContent).join(' | '),
+  const f0 = await p.evaluate(() => [jvProj(jvSetup(), jvData(jvSetup())), [...document.querySelectorAll('[data-sec="jv-ziel"] .jv-kpi .jv-kt')].map(e => e.textContent).join('|'), document.querySelector('[data-sec="jv-ziel"] .jv-zrow2')?.textContent,
     !!document.querySelector('[data-chart="jvcum"] polyline.jv-proj'), [...document.querySelectorAll('.jv-gt')].map(t => t.dataset.k).join()]);
-  ok(f0[0] === null && f0[1] === 'Jahressumme|Jahresziel 2026' && f0[2] === 'Ist 20263.000 €' && !f0[3] && f0[4] === 'sum,ziel,don,avg', 'F: 2026 vollständig – keine Hochrechnung, nur Jahressumme und Ziel; oben statt der Hochrechnung das Jahresziel (' + f0[2] + ')');
+  ok(f0[0] === null && f0[1] === 'Jahressumme' && f0[2] === '+ Jahresziel eintragen' && !f0[3] && f0[4] === 'sum,ziel,don,avg', 'F: 2026 vollständig – keine Hochrechnung, nur die Jahressumme; oben statt der Hochrechnung das Jahresziel');
   const f1 = await p.evaluate(() => { const base = clone(D), mine = clone(D), theirs = clone(D);
     mine.spenden.ziel = { 2027: 400000, 2026: 300000 }; theirs.spenden.ziel = { 2027: 400000, '2027p': 250000 };
     const m = merge3(base, mine, theirs).data, n = normalize(clone(m)), bad = normalize(Object.assign(clone(D), { spenden: { ziel: { x: 5, '2027q': 5, 2028: -1, 2029: 'a', 2030: 99.6 } } }));

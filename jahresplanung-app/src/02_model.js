@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvCmp', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvGrpSec'];
+const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvCmp', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -192,11 +192,12 @@ const JV_ARTEN = [
   { id: 'kirche', t: 'Kirchengemeinden', n: ['Kirchengemeinde', 'Pfarrei', 'Pfarramt', 'Kirchenvorstand', 'Bistum', 'Erzbistum', 'Caritas'], z: ['Kollekte'] },
   { id: 'firma', t: 'Unternehmen', n: ['GmbH', 'gGmbH', 'mbH', 'AG', 'KG', 'OHG', 'GbR', 'KGaA', 'UG', 'Co.', 'eG', 'Firma', 'Holding'], z: [] },
   { id: 'verein', t: 'Vereine & Clubs', n: ['Verein', 'Verband', 'e.V.', 'eV', 'Lions', 'Rotary', 'Kolping', 'Schützen'], z: [] },
-  { id: 'justiz', t: 'Geldauflagen & Justiz', n: ['Amtsgericht', 'Landgericht', 'Staatsanwaltschaft', 'Justiz'], z: ['Geldauflage', 'Bußgeld', 'Bussgeld'] },
 ];
+// 0.28: „Geldauflagen & Justiz“ gibt es nicht mehr (eigenes Konto, erscheint hier nie)
+const JV_ARTEN_ALT = ['Amtsgericht', 'Landgericht', 'Staatsanwaltschaft', 'Justiz', 'Geldauflage', 'Bußgeld', 'Bussgeld'];
 // alte Stichwortlisten (0.26/0.27, ohne Arten) auf die Arten verteilen: entfernte Wörter bleiben weg, eigene kommen unter „weitere Institutionen“
 function jvArtenAusWorten(w) {
-  const nm = w.name, zw = w.zweck, o = {}, seenN = new Set(), seenZ = new Set();
+  const nm = w.name, zw = w.zweck, o = {}, seenN = new Set(JV_ARTEN_ALT), seenZ = new Set(JV_ARTEN_ALT);
   JV_ARTEN.forEach((a, i) => { const n = a.n.filter(x => !nm || nm.includes(x)), z = a.z.filter(x => !zw || zw.includes(x)); n.forEach(x => seenN.add(x)); z.forEach(x => seenZ.add(x)); o[a.id] = { t: a.t, n, z, o: i }; });
   const xn = (nm || []).filter(x => !seenN.has(x)), xz = (zw || []).filter(x => !seenZ.has(x));
   if (xn.length || xz.length) o.weitere = { t: 'weitere Institutionen', n: xn, z: xz, o: JV_ARTEN.length };
@@ -311,6 +312,7 @@ function normalizeData(d) {
   // Arten von Institutionen mit ihren Stichwörtern (je Art: Name t, Wörter im Namen n, im Verwendungszweck z, Reihenfolge o); ohne Eintrag gilt JV_ARTEN
   const wl = a => Array.isArray(a) ? [...new Set(a.map(w => str(w).trim()).filter(Boolean))] : [];
   if (isObj(sp.sarten)) { const o = {}; for (const [id, a] of Object.entries(sp.sarten)) if (/^[a-z0-9_-]{1,24}$/.test(id) && isObj(a) && str(a.t).trim()) o[id] = { t: str(a.t).trim(), n: wl(a.n), z: wl(a.z), o: isNum(a.o) ? +a.o : 99 };
+    if (o.justiz && o.justiz.t === 'Geldauflagen & Justiz') delete o.justiz;          // 0.29: Art entfällt
     if (Object.keys(o).length) d.spenden.sarten = o; }
   else if (isObj(sp.sworte)) d.spenden.sarten = jvArtenAusWorten({ name: Array.isArray(sp.sworte.name) ? wl(sp.sworte.name) : null, zweck: Array.isArray(sp.sworte.zweck) ? wl(sp.sworte.zweck) : null });   // 0.26/0.27: eigene Stichwörter ohne Arten
   if (isObj(sp.allg)) for (const [y, v] of Object.entries(sp.allg)) {      // allgemeine Spenden je Jahr: Regel (Schlagworte, Daueraufträge vorschlagen)
