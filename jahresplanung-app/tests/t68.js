@@ -136,10 +136,11 @@ const year = y => { const r = [], last = y === 2027 ? 10 : 12;
   ok(f0 === '380000,103500,4,30000,1,1000,1,203000,2,309500,5', 'F: 3.800 € + neu/wieder 1.035 € (4) + mehr 300 € (1) − weniger 10 € (1) − ausgeblieben 2.030 € (2) = 3.095 €; 5 gleich: ' + f0);
   const f1 = await p.evaluate(() => { const c = document.querySelector('[data-chart="jvbr"]');
     return [document.querySelector('[data-sec="jv-bruecke"] .sec-t').textContent, [...c.querySelectorAll('.jv-brt')].map(t => t.textContent).join('|'), [...c.querySelectorAll('.jv-lv')].map(t => t.textContent).join('|'), c.querySelectorAll('rect.jv-bar').length,
-      [...c.querySelectorAll('.sp-ax')].map(t => t.textContent).join('|'), Math.round(c.getBoundingClientRect().height), !!c.closest('.jv-grid2')]; });
-  ok(f1[0] === 'Spendenbrücke 2026 → 2027' && f1[1] === '2026|neu / wieder dabei|mehr gegeben|weniger gegeben|ausgeblieben|2027' && f1[2] === '3.800 €|+1.035 €|+300 €|−10 €|−2.030 €|3.095 €' && f1[3] === 6,
+      [...c.querySelectorAll('.jv-brn2')].map(t => t.textContent).join('|'), Math.round(c.getBoundingClientRect().height), !!c.closest('.jv-grid2.r13'),
+      (() => { const g = c.closest('.jv-grid2'); return g ? Math.round(g.children[0].getBoundingClientRect().width / g.getBoundingClientRect().width * 100) : 0; })()]; });
+  ok(f1[0] === 'Spendenbrücke' && f1[1] === '2026|neu / wieder dabei|mehr gegeben|weniger gegeben|ausgeblieben|2027' && f1[2] === '3.800 €|+1.035 €|+300 €|−10 €|−2.030 €|3.095 €' && f1[3] === 6,
     'F: waagerecht – sechs Stufen mit Betrag: ' + f1[2]);
-  ok(f1[4] === '4 Spender:innen|1 Spender:in|1 Spender:in|2 Spender:innen' && f1[5] <= 230 && f1[6], 'F: unter jeder Stufe die Zahl der Spender:innen; kompakt (' + f1[5] + ' px) neben der Spenderbindung');
+  ok(f1[4] === '4 Spender:innen|1 Spender:in|1 Spender:in|2 Spender:innen' && f1[5] <= 230 && f1[6] && f1[7] >= 22 && f1[7] <= 27, 'F: neben jeder Stufe die Zahl der Spender:innen; kompakt (' + f1[5] + ' px), ein Viertel der Breite neben den Segmenten (' + f1[7] + ' %)');
 
   // ---- G: Neue Felder überstehen Normalisieren und Zusammenführen; „Erstmals seit …“ statt „Neue Spender:innen“
   const g0 = await p.evaluate(() => { const base = clone(D), mine = clone(D), theirs = clone(D);

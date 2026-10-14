@@ -65,8 +65,10 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
       document.querySelector('.jv-ins')?.textContent, !document.querySelector('.jv-gctl'), Math.round(c.getBoundingClientRect().height)]; });
   ok(d0[0] === 'bis 100 €|101–249 €|250–499 €|500–999 €|1.000–4.999 €|ab 5.000 €' && d0[1] === 'Spender:innen|Spendensumme' && d0[2] === '2025|2026*' && d0[3] === 10 && d0[4] === 0,
     'D: Legende von klein nach groß; je Jahr (2025, 2026) eine Zeile – Spender:innen und Summe nebeneinander; keine Bänder dazwischen');
-  ok(d0[5] === '25 %|75 %|91 %|50 %|25 %|25 %|87 %' && d0[6] === '4|560 €|4|5.780 €' && d0[7] === 'Ab 1.000 €: 1 Spender:in (25 %) gibt 87 % der Summe – 2025: 0 Spender:innen mit 0 %.' && d0[8],
-    'D: Anteile an den Balken (schmale Abschnitte ohne Zahl), hinter jedem Balken die Gesamtzahl, darunter ein Satz; keine eigene Auswahl im Abschnitt');
+  ok(d0[5] === '25 %|75 %|9 %|91 %|50 %|25 %|25 %|8 %|5%|87 %' && d0[6] === '4|560 €|4|5.780 €' && d0[7] == null && d0[8] && await p.evaluate(() => { const c = document.querySelector('[data-chart="jvseg"]'), l = document.querySelector('.jv-seglg'); return !!(c.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING); }),
+    'D: Anteile im Balken (knappe Abschnitte kleiner ohne Leerzeichen), hinter jedem Balken die Gesamtzahl; Legende unter der Grafik, kein Satz mehr; keine eigene Auswahl im Abschnitt');
+  const dt = await p.evaluate(() => [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgrow.main .jv-sgb')].map(r => { const f = TIPS.get(r); const v = typeof f === 'function' ? f() : f; return typeof v === 'string' ? v : v.textContent; }).join(' | '));
+  ok(dt === '50 % · 2 Spender:innen | 25 % · 1 Spender:in | 25 % · 1 Spender:in | 8 % · 480 € | 5 % · 300 € | 87 % · 5.000 €', 'D: Zeigen nennt nur Anteil und absolute Zahl: ' + dt);
   const d1 = await p.evaluate(() => { const g = [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgrow')], r = g.find(x => x.classList.contains('old')).querySelector('.jv-sgb');
     return [g.map(x => x.classList.contains('main') ? 'H' : 'o').join(''), getComputedStyle(r).fillOpacity, getComputedStyle(g.find(x => x.classList.contains('main')).querySelector('.jv-sgb')).fillOpacity]; });
   await p.mouse.move(2, 2); await p.waitForTimeout(250);

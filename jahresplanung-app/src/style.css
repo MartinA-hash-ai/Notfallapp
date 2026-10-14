@@ -2059,3 +2059,12 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
   html[data-theme=dark] .jv-qnum td.dim, html[data-theme=dark] .jv-qnum th.dim { color: var(--muted); }
   html[data-theme=dark] .jv-qnum td.dim > div { opacity: 1; }
 }
+
+/* ---------- 0.34: Brücke ein Viertel, Segmente drei Viertel; Legende unter den Segmenten; Brücke mit Beschriftung über dem Balken */
+.jv-grid2.r13 { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); } .jv-grid2.r31 { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
+@media (max-width: 1100px) { .jv-grid2.r13, .jv-grid2.r31 { grid-template-columns: minmax(0, 1fr); } }
+@media print { .jv-print .jv-grid2.r21 { grid-template-columns: 2fr 1fr; } .jv-print .jv-grid2.r13 { grid-template-columns: 1fr 3fr; } .jv-print .jv-grid2.r31 { grid-template-columns: 3fr 1fr; } }
+.jv-seglg { margin: 8px 0 0; }
+.jv-brh { paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
+.jv-brt { font-size: 12.5px; } .jv-brn2 { font-size: 11px; fill: var(--muted); }
+.jv-brrow .jv-sghit { fill: transparent; } .jv-brrow:hover .jv-bar { filter: brightness(1.08); }

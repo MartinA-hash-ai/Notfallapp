@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.33.0",
+    "version": "0.34.0",
     "date": "",
+    "items": [
+      "Spendenbrücke und Spendersegmente: Brücke auf einem Viertel der Breite, Segmente auf drei Vierteln",
+      "Spendenbrücke kompakter beschriftet: Stufe, Zahl der Spender:innen und Betrag über dem Balken, Balken über die ganze Breite; Jahre im Titel nur noch im PDF",
+      "Spendersegmente: Legende unter der Grafik, der Satz „Ab 1.000 € …“ entfällt; Prozente möglichst immer im Balken (bei knappen Abschnitten etwas kleiner)",
+      "Spendersegmente: Zeigen auf einen Abschnitt nennt nur Anteil und absolute Zahl; das ⓘ erklärt, dass die Summe je Spender:in im Zeitraum zählt, nicht die einzelne Spende"
+    ]
+  },
+  {
+    "version": "0.33.0",
+    "date": "2026-10-14T20:23",
     "items": [
       "Spendersegmente in Farben von Grün (bis 100 €) über Hellgrün, Gelb und Orange bis Rot und Dunkelrot (ab 5.000 €) – auch die schmalen Vorjahres-Balken sind so gut zu unterscheiden",
       "Spendersegmente: Spender:innen und Spendensumme nebeneinander statt untereinander, je Jahr eine Zeile",
