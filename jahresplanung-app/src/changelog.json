@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.37.0",
+    "version": "0.38.0",
     "date": "",
+    "items": [
+      "Filter (Schlagworte, Verantwortlich) auf Höhe der Überschrift „Maßnahmen“, mittig im Kasten – beim Scrollen bleibt er oben stehen",
+      "Filter-Fenster schließt erst per Klick daneben (oder Esc), auch nicht mehr beim Scrollen",
+      "Auswahl im Filter: Klick = nur diesen, jeder weitere Klick nimmt einen dazu (nochmal Klick nimmt ihn weg); Strg+Klick = einzeln abwählen; wird der letzte abgewählt, ist wieder alles gewählt"
+    ]
+  },
+  {
+    "version": "0.37.0",
+    "date": "2026-10-15T14:30",
     "items": [
       "Jahresplanung: Filterleiste ganz oben mit „Schlagworte“ und neu „Verantwortlich“ (nach Hauptverantwortlich) – sie bleibt beim Scrollen oben stehen und filtert Maßnahmen-Tabelle, Zeitleiste, Kalender und „Was steht an?“; „Filter aufheben“ setzt alles zurück",
       "Maßnahmen-Tabelle: herausgefilterte Maßnahmen sind ausgeblendet, darunter ein Hinweis, wie viele",

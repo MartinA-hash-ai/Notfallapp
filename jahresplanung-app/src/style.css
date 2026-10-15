@@ -2093,7 +2093,7 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .tagedit { min-width: 0; }
 .tagflt { min-width: 260px; }
 .tagflt-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; } .tagflt-h .sp { flex: 1; }
-.tagrow { display: flex; align-items: center; gap: 8px; } .tagrow .mchk { flex: 1; display: flex; align-items: center; gap: 6px; }
+.tagrow { display: flex; align-items: center; gap: 6px; }
 .tag-n { margin-left: auto; } .tag-only { visibility: hidden; } .tagrow:hover .tag-only, .tag-only:focus-visible { visibility: visible; }
 .tagflt-n { margin: 8px 0 0; max-width: 260px; }
 .fbtn.act { border-color: var(--focus); color: var(--focus); }
@@ -2110,12 +2110,15 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .sw-hex { width: 86px; font-family: ui-monospace, Consolas, monospace; text-transform: uppercase; }
 .sw-note { margin: 8px 0 0; max-width: 220px; }
 
-/* ---------- 0.37: Filterleiste über der Jahresplanung (dockt beim Scrollen oben an) */
-.fbar { position: sticky; top: var(--toph, 51px); z-index: 22; display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin: 0 0 10px; padding: 6px 10px; background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); box-shadow: 0 4px 10px -8px rgba(0,0,0,.25); }
-.fbar.on { border-color: color-mix(in srgb, var(--focus) 45%, var(--line)); }
-.fbar-l { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; margin-right: 2px; }
-.fbar-n { margin-left: 6px; }
+/* ---------- 0.37/0.38: Filter auf Höhe der Überschrift „Maßnahmen“, mittig; beim Scrollen bleibt er oben stehen */
+.fbar { position: sticky; top: var(--toph, 51px); z-index: 22; height: 0; display: flex; justify-content: center; align-items: flex-start; pointer-events: none; }
+.fbar-in { pointer-events: auto; display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 3px 8px 3px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 4px 12px -6px rgba(0,0,0,.28); white-space: nowrap; }
+.fbar.on .fbar-in { border-color: color-mix(in srgb, var(--focus) 50%, var(--line)); }
+.fbar-l { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.fbar .fbtn { padding: 3px 10px; }
 .flt-note { margin: 6px 2px 0; }
 .tagflt .vdot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.tagrow { cursor: pointer; padding: 3px 4px; border-radius: 6px; user-select: none; } .tagrow:hover, .tagrow:focus-visible { background: var(--soft); outline: none; }
+.tagrow input { pointer-events: none; margin: 0 2px 0 0; }
 @media print { .fbar { display: none !important; } }
 main.view-jahr { overflow: visible; }                                  /* sonst klebt die Filterleiste nicht (main wäre der Scroll-Container) */

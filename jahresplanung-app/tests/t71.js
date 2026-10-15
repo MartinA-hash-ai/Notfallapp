@@ -45,46 +45,60 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(b2 === 'Print+newsletter' && b3[0] && b3[1] === 'Print+newsletter' && await p.evaluate(() => D.massnahmen[3].tags.join('+') === 'Print+newsletter+Bericht'),
     'B: Bearbeiten-Dialog – Schlagworte ändern, Enter schließt den Dialog nicht, übernommen erst mit „Übernehmen“');
 
-  // ---- C: Filterleiste über der Jahresplanung – Schlagworte und Verantwortlich; gilt für Tabelle, Zeitleiste, Kalender; Häkchen der Tabelle bleiben
-  const c0 = await p.evaluate(() => [[...document.querySelectorAll('.fbar .fbtn')].map(e => e.textContent).join(' | '), document.querySelectorAll('[data-sec="tl"] .tagfbtn, [data-sec="kal"] .tagfbtn').length, document.querySelector('#main').firstElementChild.classList.contains('fbar')]);
-  ok(c0[0] === 'Schlagworte: alle ▾ | Verantwortlich: alle ▾' && c0[1] === 0 && c0[2], 'C: Filterleiste ganz oben mit „Schlagworte“ und „Verantwortlich“ (' + c0[0] + ')');
+  // ---- C: Filter auf Höhe der Überschrift „Maßnahmen“ (mittig), dockt beim Scrollen an; Schlagworte und Verantwortlich; gilt für Tabelle, Zeitleiste, Kalender; Häkchen der Tabelle bleiben
+  // Klick: nur diesen, jeder weitere Klick nimmt einen dazu; Strg+Klick: einzeln abwählen; das Fenster schließt nur per Klick daneben
+  const c0 = await p.evaluate(() => { const f = document.querySelector('.fbar-in').getBoundingClientRect(), hd = document.querySelector('[data-sec="mass"] .sec-h').getBoundingClientRect(), m = document.querySelector('#main').getBoundingClientRect();
+    return [[...document.querySelectorAll('.fbar .fbtn')].map(e => e.textContent).join(' | '), document.querySelectorAll('[data-sec="tl"] .tagfbtn, [data-sec="kal"] .tagfbtn').length,
+      Math.round((f.top + f.bottom) / 2 - (hd.top + hd.bottom) / 2), Math.round((f.left + f.right) / 2 - (m.left + m.right) / 2)]; });
+  ok(c0[0] === 'Schlagworte: alle ▾ | Verantwortlich: alle ▾' && c0[1] === 0 && Math.abs(c0[2]) <= 4 && Math.abs(c0[3]) <= 4, 'C: Filter „Schlagworte“ und „Verantwortlich“ auf Höhe der Überschrift „Maßnahmen“, mittig: ' + c0.join(' / '));
+  const row = t => '.tagflt .tagrow:has-text("' + t + '")', isOpen = () => p.evaluate(() => !!document.querySelector('.menu.pop .tagflt'));
   await p.click('.fbar .tagfbtn'); await p.waitForTimeout(200);
-  const c1 = await p.evaluate(() => [...document.querySelectorAll('.tagflt .tagrow')].map(r => r.querySelector('.mchk').textContent).join(' | '));
-  ok(c1 === 'Bericht1 | Mailing2 | newsletter2 | Print2 | ohne Schlagwort0', 'C: je Schlagwort ein Häkchen mit Anzahl, dazu „ohne Schlagwort“: ' + c1);
-  await p.click('.tagflt .tagrow:has-text("newsletter") input'); await p.waitForTimeout(250);
+  const c1 = await p.evaluate(() => [...document.querySelectorAll('.tagflt .tagrow')].map(r => r.textContent).join(' | '));
+  ok(c1 === 'Bericht1 | Mailing2 | newsletter2 | Print2 | ohne Schlagwort0', 'C: je Schlagwort eine Zeile mit Anzahl, dazu „ohne Schlagwort“: ' + c1);
   const vis = () => p.evaluate(() => [C.ms.filter(visibleM).map(x => x.id).join(','), [...document.querySelectorAll('.mtable tbody tr[data-m]')].map(e => e.dataset.m).join(','), (document.querySelector('.flt-note') || {}).textContent || '',
     [...document.querySelectorAll('.fbar .fbtn')].map(e => e.textContent).join(' | '), (document.querySelector('.fbar-n') || {}).textContent, UI.hiddenM.size]);
+  await p.click(row('Mailing')); await p.waitForTimeout(250);
+  const k1 = await vis(), o1 = await isOpen();
+  await p.click(row('Print')); await p.waitForTimeout(250);
+  const k2 = await vis();
+  await p.click(row('Print')); await p.waitForTimeout(250);
+  const k3 = await vis();
+  ok(k1[0] === 't0,t2' && k2[0] === 't0,t2,t3,t4' && k3[0] === 't0,t2' && o1 && await isOpen(), 'C: Klick auf „Mailing“ – nur Mailing; Klick auf „Print“ nimmt es dazu, nochmal Klick nimmt es wieder weg; das Fenster bleibt offen: ' + [k1[0], k2[0], k3[0]].join(' → '));
+  await p.click(row('Mailing')); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => !UI.tagHide.length) && (await vis())[0] === 't0,t1,t2,t3,t4', 'C: wird der letzte abgewählt, ist wieder alles gewählt');
+  await p.click(row('newsletter'), { modifiers: ['Control'] }); await p.waitForTimeout(250);
   const c2 = await vis();
-  ok(c2[0] === 't0,t2,t3,t4' && c2[1] === 't0,t2,t3,t4' && c2[2] === '1 Maßnahme durch den Filter ausgeblendet – Filter aufheben' && c2[3] === 'Schlagworte: 4 von 5 ▾ | Verantwortlich: alle ▾' && c2[4] === '4 von 5 Maßnahmen' && c2[5] === 0,
-    'C: „newsletter“ aus – Newsletter März fehlt in Tabelle, Zeitleiste und Kalender, Projektbericht bleibt (hat noch „Print“); Häkchen bleiben: ' + c2.join(' / '));
-  await p.hover('.tagflt .tagrow:has-text("Mailing")'); await p.click('.tagflt .tagrow:has-text("Mailing") .tag-only'); await p.waitForTimeout(250);
-  const c3 = await vis();
-  ok(c3[0] === 't0,t2' && await p.evaluate(() => JSON.stringify(UI.tagHide.slice().sort()) === JSON.stringify(['', 'Bericht', 'Print', 'newsletter'].sort())), 'C: „nur“ bei Mailing – nur Maßnahmen mit diesem Schlagwort: ' + c3[0]);
+  ok(c2[0] === 't0,t2,t3,t4' && c2[1] === 't0,t2,t3,t4' && c2[2] === '1 Maßnahme durch den Filter ausgeblendet – Filter aufheben' && c2[3] === 'Schlagworte: 4 von 5 ▾ | Verantwortlich: alle ▾' && c2[4] === '4 von 5' && c2[5] === 0,
+    'C: Strg+Klick auf „newsletter“ – nur das abgewählt: Newsletter März fehlt in Tabelle, Zeitleiste und Kalender, Projektbericht bleibt (hat noch „Print“); Häkchen bleiben: ' + c2.join(' / '));
   const c4 = await p.evaluate(() => { const ev = eventsIn(mkdn(2027, 1, 1), mkdn(2027, 12, 31)); return [...new Set(ev.map(e => e.x.id))].join(','); });
-  ok(c4 === 't0,t2', 'C: Kalender-Termine nur der gefilterten Maßnahmen (' + c4 + ')');
-  await p.click('.tagflt .tagflt-h button:has-text("alle")'); await p.waitForTimeout(250);
+  ok(c4 === 't0,t2,t3,t4', 'C: Kalender-Termine nur der gefilterten Maßnahmen (' + c4 + ')');
+  await p.click(row('ohne Schlagwort'), { modifiers: ['Control'] }); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => JSON.stringify(UI.tagHide.slice().sort()) === '["","newsletter"]'), 'C: „ohne Schlagwort“ lässt sich getrennt abwählen');
+  await p.mouse.wheel(0, 800); await p.waitForTimeout(400);
+  const o2 = await isOpen();
+  await p.mouse.click(1650, 650); await p.waitForTimeout(200);
+  ok(o2 && !(await isOpen()), 'C: beim Scrollen bleibt das Fenster offen, ein Klick daneben schließt es');
+  await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(150);
+  await p.click('.fbar .tagfbtn'); await p.waitForTimeout(200); await p.click('.tagflt .tagflt-h button:has-text("alle")'); await p.waitForTimeout(200);
   ok((await vis())[0] === 't0,t1,t2,t3,t4', 'C: „alle“ zeigt wieder alles');
-  await p.click('.tagflt .tagrow:has-text("ohne Schlagwort") input'); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => JSON.stringify(UI.tagHide) === '[""]'), 'C: „ohne Schlagwort“ lässt sich getrennt ausblenden');
-  await p.click('.tagflt .tagflt-h button:has-text("alle")'); await p.waitForTimeout(150);
-  await p.keyboard.press('Escape'); await p.mouse.click(5, 300); await p.waitForTimeout(150);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   // Verantwortlich
   await p.click('.fbar .respfbtn'); await p.waitForTimeout(200);
-  const r0 = await p.evaluate(() => [...document.querySelectorAll('.tagflt .tagrow')].map(r => r.querySelector('.mchk').textContent).join(' | '));
-  ok(r0 === 'Team A2 | Team B2 | ohne Verantwortliche:n1', 'C: „Verantwortlich“ – je Hauptverantwortliche:r ein Häkchen mit Anzahl, dazu „ohne“: ' + r0);
-  await p.click('.tagflt .tagrow:has-text("Team B") input'); await p.waitForTimeout(250);
+  const r0 = await p.evaluate(() => [...document.querySelectorAll('.tagflt .tagrow')].map(r => r.textContent).join(' | '));
+  ok(r0 === 'Team A2 | Team B2 | ohne Verantwortliche:n1', 'C: „Verantwortlich“ – je Hauptverantwortliche:r eine Zeile mit Anzahl, dazu „ohne“: ' + r0);
+  await p.click(row('Team B'), { modifiers: ['Control'] }); await p.waitForTimeout(250);
   const r1 = await vis();
-  ok(r1[0] === 't0,t2,t4' && r1[1] === 't0,t2,t4' && r1[3] === 'Schlagworte: alle ▾ | Verantwortlich: 2 von 3 ▾' && await p.evaluate(() => UI_KEYS.includes('respHide')), 'C: Team B aus – deren Maßnahmen fehlen überall: ' + r1.slice(0, 2).join(' / '));
-  await p.keyboard.press('Escape'); await p.mouse.click(5, 300); await p.waitForTimeout(150);
-  await p.click('.fbar .tagfbtn'); await p.waitForTimeout(200); await p.click('.tagflt .tagrow:has-text("Print") input'); await p.waitForTimeout(250);
-  await p.keyboard.press('Escape'); await p.mouse.click(5, 300); await p.waitForTimeout(150);
-  ok((await vis())[0] === 't0,t2', 'C: Schlagwort- und Verantwortlich-Filter wirken zusammen – Team B aus, „Print“ aus: Danke-Karte (nur Print) fällt auch weg (' + (await vis())[0] + ')');
+  ok(r1[0] === 't0,t2,t4' && r1[1] === 't0,t2,t4' && r1[3] === 'Schlagworte: alle ▾ | Verantwortlich: 2 von 3 ▾' && await p.evaluate(() => UI_KEYS.includes('respHide')), 'C: Strg+Klick auf Team B – deren Maßnahmen fehlen überall: ' + r1.slice(0, 2).join(' / '));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  await p.click('.fbar .tagfbtn'); await p.waitForTimeout(200); await p.click(row('Print'), { modifiers: ['Control'] }); await p.waitForTimeout(250);
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+  ok((await vis())[0] === 't0,t2', 'C: Schlagwort- und Verantwortlich-Filter wirken zusammen – Team B aus, „Print“ aus: Danke-Karte (nur Print) fällt auch weg');
   await p.click('.fbar .fbar-x'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => !UI.tagHide.length && !UI.respHide.length && C.ms.filter(visibleM).length === 5 && !document.querySelector('.fbar-x')), 'C: „Filter aufheben“ setzt beide zurück');
-  // Leiste dockt beim Scrollen oben an
+  ok(await p.evaluate(() => !UI.tagHide.length && !UI.respHide.length && C.ms.filter(visibleM).length === 5 && !document.querySelector('.fbar-x')), 'C: „aufheben“ setzt beide zurück');
+  // Filter bleibt beim Scrollen oben stehen
   await p.evaluate(() => { document.querySelector('[data-sec="kal"]').scrollIntoView({ block: 'start' }); scrollBy(0, 300); }); await p.waitForTimeout(250);
-  const c5 = await p.evaluate(() => [Math.round(document.querySelector('.fbar').getBoundingClientRect().top), Math.round(document.querySelector('header.top').getBoundingClientRect().bottom), Math.round(scrollY)]);
-  ok(Math.abs(c5[0] - c5[1]) <= 2 && c5[2] > 500, 'C: beim Scrollen bleibt die Filterleiste oben stehen (unter dem Kopf): ' + c5.join(' / '));
+  const c5 = await p.evaluate(() => [Math.round(document.querySelector('.fbar-in').getBoundingClientRect().top), Math.round(document.querySelector('header.top').getBoundingClientRect().bottom), Math.round(scrollY)]);
+  ok(c5[0] - c5[1] >= 4 && c5[0] - c5[1] <= 12 && c5[2] > 500, 'C: beim Scrollen bleibt der Filter oben stehen (unter dem Kopf): ' + c5.join(' / '));
   await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(150);
 
   // ---- D: Bereichsspalten einklappen – nur Buchstaben, Häkchen bei eingetragenem Start, sonst leer (kein „–“)

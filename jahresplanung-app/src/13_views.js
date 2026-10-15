@@ -17,12 +17,12 @@ function section(key, title, fn, opts = {}) {
     open && content ? h('div', { class: 'sec-b' }, content.body) : null);
 }
 
-function popover(anchor, content) {
+function popover(anchor, content, opts = {}) {                      // opts.keep: bleibt beim Scrollen offen (schließt nur per Klick daneben oder Esc), opts.reanchor: aktueller Knopf
   closeMenu();
   const m = h('div', { class: 'menu pop', onclick: e => e.stopPropagation() }, content);
   document.body.append(m);
   placeMenu(m, anchor.getBoundingClientRect());
-  _openMenu = { m, btn: anchor, at: performance.now() };
+  _openMenu = { m, btn: anchor, at: performance.now(), keep: !!opts.keep, reanchor: opts.reanchor || null };
 }
 /* ---------- Anzeige-Einstellungen (einzeln, damit sie im jeweiligen Bereich sitzen können) */
 function typePills() {
@@ -31,36 +31,42 @@ function typePills() {
   return evKeys().map(t => typeBtn(t, phName(t)));
 }
 // Filter nach Schlagwort oder Hauptverantwortlichen: gilt für Maßnahmen-Tabelle, Zeitleiste, Kalender und „Was steht an?“, wird in diesem Browser gemerkt.
-// Schlagworte: sichtbar bleibt eine Maßnahme, solange eins ihrer Schlagworte angehakt ist. „nur“ zeigt nur diesen Eintrag.
+// Klick: ist alles gewählt, nur diesen Eintrag – sonst diesen dazunehmen bzw. wieder abwählen. Strg+Klick: einzeln an-/abwählen (aus „alle“ heraus also abwählen).
+// Wird so der letzte abgewählt, ist wieder alles gewählt (wie bei den Häkchen der Tabelle). Das Fenster schließt nur per Klick daneben oder Esc.
 const FLT = {
   tag: { ui: 'tagHide', label: 'Schlagworte', none: 'ohne Schlagwort', keys: () => allTags(), has: (x, k) => k ? (x.m.tags || []).includes(k) : !(x.m.tags || []).length,
-    item: k => h('span', { class: 'tagchip' }, k), note: 'Sichtbar bleibt eine Maßnahme, solange eins ihrer Schlagworte angehakt ist.' },
+    item: k => h('span', { class: 'tagchip' }, k), note: 'Eine Maßnahme bleibt sichtbar, solange eins ihrer Schlagworte gewählt ist.' },
   resp: { ui: 'respHide', label: 'Verantwortlich', none: 'ohne Verantwortliche:n', keys: () => allResp(), has: (x, k) => respOf(x) === k,
-    item: k => [h('span', { class: 'vdot', style: { background: personColor(k) } }), h('span', { class: 'nm' }, k)], note: 'nach „Hauptverantwortlich“ in der Tabelle' },
+    item: k => [h('span', { class: 'vdot', style: { background: personColor(k) } }), h('span', { class: 'nm' }, k)], note: 'Grundlage ist „Hauptverantwortlich“ in der Tabelle.' },
 };
+function fltPick(kind, k, ctrl) {
+  const F = FLT[kind], keys = [...F.keys(), ''], hd = new Set(Array.isArray(UI[F.ui]) ? UI[F.ui].filter(q => keys.includes(q)) : []);
+  if (!ctrl && !hd.size) UI[F.ui] = keys.filter(q => q !== k);
+  else { if (hd.has(k)) hd.delete(k); else hd.add(k); UI[F.ui] = hd.size >= keys.length ? [] : [...hd]; }
+}
 function fltDropdown(kind) {
   const F = FLT[kind], ks = F.keys(); if (!ks.length) return null;
   const keys = [...ks, ''], hid = () => new Set(Array.isArray(UI[F.ui]) ? UI[F.ui].filter(k => keys.includes(k)) : []), nOn = keys.length - hid().size;
   const inY = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === UI.year);
   const pane = h('div', { class: 'tagflt' });
-  const setHide = a => { UI[F.ui] = a; saveUI(); renderNow(); fill(); };
+  const upd = () => { saveUI(); renderNow(); fill(); };
   const fill = () => { const hd = hid();
-    pane.replaceChildren(...[h('div', { class: 'tagflt-h' }, h('b', null, F.label), h('span', { class: 'sp' }), h('button', { class: 'link small', onclick: () => setHide([]) }, 'alle'), h('button', { class: 'link small', onclick: () => setHide(keys.slice()) }, 'keine')),
-      keys.map(k => h('div', { class: 'tagrow' }, h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: !hd.has(k), onchange: ev => { const n = hid(); ev.target.checked ? n.delete(k) : n.add(k); setHide([...n]); } }),
-          k ? F.item(k) : h('i', { class: 'muted' }, F.none), h('span', { class: 'muted small tag-n' }, String(inY.filter(x => F.has(x, k)).length))),
-        h('button', { class: 'link small tag-only', tip: 'nur ' + (k ? '„' + k + '“' : F.none) + ' zeigen', onclick: () => setHide(keys.filter(q => q !== k)) }, 'nur'))),
-      h('p', { class: 'muted small tagflt-n' }, F.note)].flat()); };
-  const b = h('button', { class: 'fbtn ' + kind + 'fbtn' + (nOn < keys.length ? ' act' : ''), tip: F.label + ': Maßnahmen ein- und ausblenden', onclick: e => { e.stopPropagation(); fill(); popover(b, pane); } },
+    pane.replaceChildren(...[h('div', { class: 'tagflt-h' }, h('b', null, F.label), h('span', { class: 'sp' }), h('button', { class: 'link small', onclick: () => { UI[F.ui] = []; upd(); } }, 'alle'), h('button', { class: 'link small', onclick: () => { UI[F.ui] = keys.slice(); upd(); } }, 'keine')),
+      keys.map(k => h('div', { class: 'tagrow' + (hd.has(k) ? '' : ' on'), role: 'menuitemcheckbox', 'aria-checked': String(!hd.has(k)), tabindex: 0,
+          onclick: e => { fltPick(kind, k, e.ctrlKey || e.metaKey); upd(); }, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fltPick(kind, k, e.ctrlKey || e.metaKey); upd(); } } },
+        h('input', { type: 'checkbox', checked: !hd.has(k), tabindex: -1, 'aria-hidden': 'true' }), k ? F.item(k) : h('i', { class: 'muted' }, F.none), h('span', { class: 'muted small tag-n' }, String(inY.filter(x => F.has(x, k)).length)))),
+      h('p', { class: 'muted small tagflt-n' }, 'Klick: nur diesen – jeder weitere Klick nimmt einen dazu. Strg+Klick: einzeln abwählen. ' + F.note)].flat()); };
+  const b = h('button', { class: 'fbtn ' + kind + 'fbtn' + (nOn < keys.length ? ' act' : ''), tip: F.label + ': Maßnahmen ein- und ausblenden', onclick: e => { e.stopPropagation(); fill(); popover(b, pane, { keep: true, reanchor: () => $('.fbar .' + kind + 'fbtn') }); } },
     F.label + ': ', h('b', null, nOn === keys.length ? 'alle' : !nOn ? 'keine' : nOn + ' von ' + keys.length), ' ▾');
   return b;
 }
-// Leiste über der Jahresplanung: bleibt beim Scrollen oben stehen
+// Filter auf Höhe der Überschrift „Maßnahmen“ (mittig im Kasten); beim Scrollen bleibt er oben stehen
 function filterBar() {
   const t = fltDropdown('tag'), r = fltDropdown('resp'); if (!t && !r) return null;
   const all = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === UI.year), n = all.filter(fltOk).length, on = n < all.length;
-  return h('div', { class: 'fbar' + (on ? ' on' : '') }, h('span', { class: 'fbar-l' }, 'Filter'), t, r,
-    h('span', { class: 'fbar-n muted small' }, on ? n + ' von ' + all.length + ' Maßnahmen' : 'alle ' + all.length + ' Maßnahmen'),
-    on ? h('button', { class: 'link small fbar-x', onclick: () => { UI.tagHide = []; UI.respHide = []; saveUI(); renderNow(); } }, 'Filter aufheben') : null);
+  return h('div', { class: 'fbar' + (on ? ' on' : '') }, h('div', { class: 'fbar-in' }, h('span', { class: 'fbar-l' }, 'Filter'), t, r,
+    h('span', { class: 'fbar-n muted small' }, on ? n + ' von ' + all.length : 'alle ' + all.length),
+    on ? h('button', { class: 'link small fbar-x', tip: 'alle Filter zurücksetzen', onclick: () => { UI.tagHide = []; UI.respHide = []; saveUI(); renderNow(); } }, 'aufheben') : null));
 }
 function vacDropdown() {
   const persons = [...new Set([...D.personen.map(p => p.name), ...C.vac.map(v => v.u.wer).filter(Boolean)])];

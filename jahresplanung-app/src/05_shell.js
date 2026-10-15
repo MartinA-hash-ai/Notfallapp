@@ -282,7 +282,9 @@ function closeMenu() { if (_openMenu) { _openMenu.m.remove(); _openMenu = null; 
 document.addEventListener('click', () => closeMenu());
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && _openMenu && !$('.modal')) closeMenu(); });
 // Menüs stehen fest am Bildschirm: beim Scrollen der Seite (nicht im Menü selbst) schließen
-document.addEventListener('scroll', e => { if (_openMenu && performance.now() - (_openMenu.at || 0) > 300 && !(e.target instanceof Node && _openMenu.m.contains(e.target))) closeMenu(); }, true);
+document.addEventListener('scroll', e => { if (!_openMenu || (e.target instanceof Node && _openMenu.m.contains(e.target))) return;
+  if (_openMenu.keep) { const a = _openMenu.reanchor && _openMenu.reanchor(); if (a) placeMenu(_openMenu.m, a.getBoundingClientRect()); return; }   // Filter-Fenster: bleibt offen und wandert mit seinem Knopf
+  if (performance.now() - (_openMenu.at || 0) > 300) closeMenu(); }, true);
 // Warnliste beginnt unter der Kopfzeile – die kann bei 150 % Skalierung zweizeilig sein
 // Kopfzeile: passt nicht alles in eine Zeile, kommen die Reiter (Jahresplanung … Urlaub & Feiertage) in eine eigene zweite Zeile;
 // oben bleiben Logo, Titel, Jahr und die Knöpfe rechts
