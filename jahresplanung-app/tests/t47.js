@@ -94,12 +94,15 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.click('.sp-cpill:has-text("Sommermailing")'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => document.querySelectorAll('[data-chart="cmp"] .sp-line').length === 2), 'F: nochmal klicken blendet sie wieder ein');
 
-  // ---- G: Spaltenbreite wie in der Jahresplanung – nur die Spalte und ihre rechte Nachbarin ändern sich
+  // ---- G: Spaltenbreite wie in der Jahresplanung (wie in Excel) – nur die gezogene Spalte ändert sich, die rechts davon rücken mit, der leere Rest gleicht aus
   const ths = () => p.evaluate(() => [...document.querySelectorAll('.sp-ueb thead th')].map(t => Math.round(t.getBoundingClientRect().width)));
+  const thx = () => p.evaluate(() => [...document.querySelectorAll('.sp-ueb thead th')].map(t => Math.round(t.getBoundingClientRect().left)));
+  const x0 = await thx();
   const w0 = await ths(), rs = await p.$('.sp-ueb thead th:nth-child(3) .col-rs'); await rs.evaluate(e => e.scrollIntoView({ block: 'center' })); const rb = await rs.boundingBox();
   await p.mouse.move(rb.x + 3, rb.y + rb.height / 2); await p.mouse.down(); await p.mouse.move(rb.x + 43, rb.y + rb.height / 2, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(250);
-  const w1 = await ths();
-  ok(Math.abs(w1[2] - w0[2] - 40) <= 2 && Math.abs(w0[3] - w1[3] - 40) <= 2 && w1[0] === w0[0] && w1[5] === w0[5], 'G: „PAL“ 40 px breiter gezogen – „Auflage“ daneben 40 px schmaler, übrige Spalten bleiben');
+  const w1 = await ths(), x1 = await thx(), n = w0.length;
+  ok(Math.abs(w1[2] - w0[2] - 40) <= 2 && w0.slice(0, n - 1).every((w, k) => k === 2 || Math.abs(w1[k] - w) <= 1) && x0.slice(3, n - 1).every((x, k) => Math.abs(x1[k + 3] - x - 40) <= 2),
+    'G: „PAL“ 40 px breiter gezogen – alle anderen Spalten behalten ihre Breite und rücken nach rechts');
 
   // ---- H: dunkles Design – P im Detailplan rot (Kopf und PAL-Zeile)
   await p.evaluate(() => { setTheme('dark'); UI.view = 'plaene'; UI.planSel = 'm4'; renderNow(); }); await p.waitForTimeout(300);

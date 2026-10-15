@@ -115,7 +115,7 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   const hb = await (await p.$('.sp-ueb thead th:nth-child(2) .col-rs')).boundingBox();
   await p.mouse.move(hb.x + 3, hb.y + hb.height / 2); await p.mouse.down(); await p.mouse.move(hb.x - 80, hb.y + hb.height / 2, { steps: 5 }); await p.mouse.up(); await p.waitForTimeout(250);
   const w2 = await ths();
-  ok(Math.abs(w0[1] - w2[1] - 80) <= 5 && Math.abs(w2[2] - w1[2] - (w0[1] - w2[1])) <= 1 && w2[0] === w1[0] && w2[9] === w1[9], 'G: „Hinweis“ ist jetzt auch eine feste Spalte – 80 px schmaler, „PAL“ daneben breiter');
+  ok(Math.abs(w0[1] - w2[1] - 80) <= 5 && w2[0] === w1[0] && w2.slice(2, 10).every((w, k) => Math.abs(w - w1[k + 2]) <= 1), 'G: „Hinweis“ ist jetzt auch eine feste Spalte – 80 px schmaler, die anderen behalten ihre Breite (wie in Excel), der leere Rest rechts gleicht aus');
   const g3 = await p.evaluate(() => { const t = document.querySelector('.sp-ueb'), box = t.parentElement; return [Math.round(t.getBoundingClientRect().width), Math.round(box.getBoundingClientRect().width), box.scrollWidth <= box.clientWidth + 1]; });
   ok(g3[0] >= g3[1] - 2 && g3[2], 'G: Tabelle füllt die Breite (' + g3[0] + ' / ' + g3[1] + ' px), kein Querscrollen nötig');
   await finish(b, pages);
