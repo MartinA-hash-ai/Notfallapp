@@ -2,3 +2,5 @@
 upd_*.zip
 upd_inner.html
 auswertung.pdf
+jahr[0-9]*.pdf
+r[0-9]*_*.png
