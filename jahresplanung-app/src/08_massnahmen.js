@@ -163,10 +163,10 @@ function tagPop(anchor, id) {
 /* ---------- Tabelle: je Bereich eine Spalte „Start …“ (als Datum oder als Werktage bis zum PAL), dann das PAL */
 const wtView = () => UI.startView === 'wt';
 const mcols = () => [
-  { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 180, t: 'Maßnahme' }, { k: 'resp', w: 150, t: 'Hauptverantwortlich' },
-  { k: 'tags', w: 130, t: 'Schlagworte', tip: 'zum Ein- und Ausblenden in Zeitleiste und Kalender (Knopf „Schlagworte“ dort)' }, { k: 'auflage', w: 68, t: 'Auflage' },
+  { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 170, t: 'Maßnahme' }, { k: 'resp', w: 150, t: 'Hauptverantwortlich' },
+  { k: 'tags', w: 96, t: 'Schlagworte', tip: 'zum Ein- und Ausblenden in Zeitleiste und Kalender (Knopf „Schlagworte“ dort)' }, { k: 'auflage', w: 68, t: 'Auflage' },
   ...PH().map(p => UI.phMini ? { k: 'ph_' + p.key, w: 34, fixed: true, t: p.name, tip: 'Start ' + p.name + ' – Häkchen: Datum eingetragen', chip: p.key, phase: p.key, mini: true }
-    : { k: 'ph_' + p.key, w: wtView() ? 112 : 136, t: p.name, tip: 'Start ' + p.name + (wtView() ? ' – Werktage bis zum PAL' : ''), chip: p.key, phase: p.key }),
+    : { k: 'ph_' + p.key, w: wtView() ? 112 : 122, t: p.name, tip: 'Start ' + p.name + (wtView() ? ' – Werktage bis zum PAL' : ''), chip: p.key, phase: p.key }),
   { k: 'pal', w: 136, t: 'PAL', chip: 'P' },
   { k: 'status', w: 84, t: 'PAL-Status' }, { k: 'bitte', w: 96, t: 'Spendenbitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
   { k: 'warns', w: 34, fixed: true }, { k: 'acts', w: 34, fixed: true }];

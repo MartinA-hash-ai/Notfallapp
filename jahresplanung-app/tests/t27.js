@@ -49,7 +49,7 @@ const path = require('path');
     c0 = c1; await drag(p, 'bitte', 30); c1 = await cols(p);
     ok(Math.abs(d('bitte') - 30) <= 2 && Math.abs(d('hinweis') + 30) <= 2 && same(c0, c1, ['bitte', 'hinweis']), 'B: „Spendenbitte“ +' + d('bitte') + ' → „Hinweis“ ' + d('hinweis') + ', Rest unverändert');
     c0 = c1; await drag(p, 'resp', -500); c1 = await cols(p);
-    ok(c1.find(q => q.k === 'resp').w >= 39 && same(c0, c1, ['resp', 'auflage']), 'B: sehr schmal ziehen stoppt bei ' + c1.find(q => q.k === 'resp').w + ' px');
+    ok(c1.find(q => q.k === 'resp').w >= 39 && same(c0, c1, ['resp', 'tags']), 'B: sehr schmal ziehen stoppt bei ' + c1.find(q => q.k === 'resp').w + ' px');
     await drag(p, "resp", 0);                                              // Klick ohne Ziehen ändert nichts
     const c2 = await cols(p);
     ok(same(c1, c2, []), 'B: Klick ohne Ziehen ändert nichts');
