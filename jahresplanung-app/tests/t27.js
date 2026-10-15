@@ -38,18 +38,22 @@ const path = require('path');
     await p.click('.vswitch .vs-lab:has-text("Datum")'); await p.waitForTimeout(150);
     await p.screenshot({ path: 'r81_tabelle.png', clip: { x: 0, y: 150, width: 1600, height: 330 } });
 
-    // ---- B: Spaltenbreite – nur die rechte Nachbarspalte ändert sich
+    // ---- B: Spaltenbreite wie in Excel – nur die gezogene Spalte ändert sich, die rechts davon rücken mit; „Hinweis“ (Rest) gleicht aus, sonst wird die Tabelle breiter
+    const exc = (a, b, k, dx) => { const ia = a.findIndex(q => q.k === k), ih = a.findIndex(q => q.k === 'hinweis'), w = q => b.find(z => z.k === q.k);
+      const dk = w(a[ia]).w - a[ia].w, others = a.filter(q => q.k !== k && q.k !== 'hinweis').every(q => Math.abs(w(q).w - q.w) <= 1);
+      const shift = a.slice(ia + 1, ih).every(q => Math.abs(w(q).x - q.x - dk) <= 2), hin = w(a[ih]).w;
+      return [Math.abs(dk - dx) <= 2, others, shift, hin >= 139, dk, hin]; };
     let c0 = await cols(p);
     await drag(p, 'name', 40);
-    let c1 = await cols(p);
-    const d = k => c1.find(q => q.k === k).w - c0.find(q => q.k === k).w;
-    ok(Math.abs(d('name') - 40) <= 2 && Math.abs(d('resp') + 40) <= 2 && same(c0, c1, ['name', 'resp']), 'B: „Maßnahme“ +' + d('name') + ' → „Hauptverantwortlich“ ' + d('resp') + ', alle anderen Spalten bleiben stehen');
-    c0 = c1; await drag(p, 'ph_S', 24); c1 = await cols(p);
-    ok(Math.abs(d('ph_S') - 24) <= 2 && Math.abs(d('ph_I') + 24) <= 2 && same(c0, c1, ['ph_S', 'ph_I']), 'B: Start Selektion +' + d('ph_S') + ' → Start Inhalt ' + d('ph_I') + ', Rest unverändert');
-    c0 = c1; await drag(p, 'bitte', 30); c1 = await cols(p);
-    ok(Math.abs(d('bitte') - 30) <= 2 && Math.abs(d('hinweis') + 30) <= 2 && same(c0, c1, ['bitte', 'hinweis']), 'B: „Spendenbitte“ +' + d('bitte') + ' → „Hinweis“ ' + d('hinweis') + ', Rest unverändert');
-    c0 = c1; await drag(p, 'resp', -500); c1 = await cols(p);
-    ok(c1.find(q => q.k === 'resp').w >= 39 && same(c0, c1, ['resp', 'tags']), 'B: sehr schmal ziehen stoppt bei ' + c1.find(q => q.k === 'resp').w + ' px');
+    let c1 = await cols(p), e = exc(c0, c1, 'name', 40);
+    ok(e.slice(0, 4).every(Boolean), 'B: „Maßnahme“ +' + e[4] + ' – alle anderen Spalten behalten ihre Breite und rücken nach rechts, „Hinweis“ gleicht aus (' + e[5] + ' px)');
+    c0 = c1; await drag(p, 'ph_S', 24); c1 = await cols(p); e = exc(c0, c1, 'ph_S', 24);
+    ok(e.slice(0, 4).every(Boolean), 'B: Start Selektion +' + e[4] + ' – Start Inhalt und Druck behalten ihre Breite, rücken mit');
+    c0 = c1; await drag(p, 'bitte', 30); c1 = await cols(p); e = exc(c0, c1, 'bitte', 30);
+    ok(e.slice(0, 4).every(Boolean) && await p.evaluate(() => document.querySelector('.mtable').getBoundingClientRect().width > document.querySelector('.mtable').closest('.tablewrap').clientWidth),
+      'B: „Spendenbitte“ +' + e[4] + ' – ist „Hinweis“ am Minimum, wird die Tabelle breiter (waagerecht scrollen)');
+    c0 = c1; await drag(p, 'resp', -500); c1 = await cols(p); e = exc(c0, c1, 'resp', c1.find(q => q.k === 'resp').w - c0.find(q => q.k === 'resp').w);
+    ok(c1.find(q => q.k === 'resp').w >= 39 && c1.find(q => q.k === 'resp').w <= 42 && e[1], 'B: sehr schmal ziehen stoppt bei ' + c1.find(q => q.k === 'resp').w + ' px, die anderen Spalten bleiben, wie sie sind');
     await drag(p, "resp", 0);                                              // Klick ohne Ziehen ändert nichts
     const c2 = await cols(p);
     ok(same(c1, c2, []), 'B: Klick ohne Ziehen ändert nichts');

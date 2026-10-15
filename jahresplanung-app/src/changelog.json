@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.36.0",
+    "version": "0.37.0",
     "date": "",
+    "items": [
+      "Jahresplanung: Filterleiste ganz oben mit „Schlagworte“ und neu „Verantwortlich“ (nach Hauptverantwortlich) – sie bleibt beim Scrollen oben stehen und filtert Maßnahmen-Tabelle, Zeitleiste, Kalender und „Was steht an?“; „Filter aufheben“ setzt alles zurück",
+      "Maßnahmen-Tabelle: herausgefilterte Maßnahmen sind ausgeblendet, darunter ein Hinweis, wie viele",
+      "Schlagwort hinzufügen (tippen + Enter oder Vorschlag anklicken): das Fenster schließt danach",
+      "Spaltenbreite ziehen wie in Excel (Jahresplanung und Auswertung): nur die gezogene Spalte ändert sich, die Spalten rechts davon rücken mit und behalten ihre Breite; „Hinweis“ bzw. der freie Rest gleicht aus, danach wird die Tabelle breiter"
+    ]
+  },
+  {
+    "version": "0.36.0",
+    "date": "2026-10-15T12:09",
     "items": [
       "Schlagworte je Maßnahme: neue Spalte „Schlagworte“ in der Tabelle (Klick öffnet die Eingabe – tippen und Enter, vorhandene per Klick, × entfernt), auch im Bearbeiten-Dialog",
       "Zeitleiste und Kalender: Knopf „Schlagworte ▾“ – Maßnahmen nach Schlagwort ein- und ausblenden, „nur“ zeigt nur ein Schlagwort; gilt auch für „Was steht an?“. Die Häkchen in der Tabelle bleiben, ausgeblendete Zeilen sind blass",

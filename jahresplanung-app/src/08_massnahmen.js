@@ -128,9 +128,9 @@ async function copyToNextYear() {
 
 /* ---------- Schlagworte je Maßnahme: zum Ein- und Ausblenden in Zeitleiste und Kalender */
 // Eingabe mit Chips: Enter oder Komma fügt hinzu, × entfernt, vorhandene Schlagworte per Klick; baut sich bei jeder Änderung neu
-function tagEditor(cur, onChange) {
+function tagEditor(cur, onChange, opts = {}) {
   const box = h('div', { class: 'tagedit' });
-  const set = v => { cur = v; onChange(v); draw().focus(); };
+  const set = v => { const added = v.length > cur.length; cur = v; onChange(v); if (added && opts.closeOnAdd) { closeMenu(); return; } draw().focus(); };   // im Fenster der Tabelle: nach dem Hinzufügen zu
   const draw = () => {
     const add = v => { const t = normTags([v], new Map(allTags().concat(cur).map(s => [s.toLowerCase(), s])))[0]; inp.value = ''; if (t && !cur.includes(t)) set(cur.concat(t)); };
     const inp = h('input', { class: 'tag-in', placeholder: cur.length ? '' : 'Schlagwort eingeben …', 'aria-label': 'neues Schlagwort', maxlength: 40,
@@ -156,7 +156,7 @@ function tagPop(anchor, id) {
   const x = C.byId.get(id); if (!x) return;
   hideTip();
   popover(anchor, h('div', { class: 'tagpop' }, h('div', { class: 'small muted' }, 'Schlagworte für „' + (x.m.name || '(ohne Namen)') + '“'),
-    tagEditor((x.m.tags || []).slice(), v => setM(id, 'tags', v, (x.m.name || 'Maßnahme') + ': Schlagworte ' + (v.length ? v.join(', ') : 'entfernt')))));
+    tagEditor((x.m.tags || []).slice(), v => setM(id, 'tags', v, (x.m.name || 'Maßnahme') + ': Schlagworte ' + (v.length ? v.join(', ') : 'entfernt')), { closeOnAdd: true })));
   setTimeout(() => { const i = $('.tagpop .tag-in'); if (i) i.focus(); }, 0);
 }
 
@@ -187,36 +187,31 @@ function viewSwitch() {
     h('button', { class: 'vs-track', role: 'switch', 'aria-checked': String(on), 'aria-label': 'zwischen Datum und Werktagen umschalten', onclick: () => set(on ? 'date' : 'wt') }, h('span', { class: 'vs-knob' })),
     h('button', { class: 'vs-lab' + (on ? ' act' : ''), onclick: () => set('wt') }, 'Werktage'));
 }
-// Spaltenbreite ziehen: nur diese Spalte und ihre rechte Nachbarin ändern sich, alle anderen bleiben stehen.
+// Spaltenbreite ziehen wie in Excel: nur diese Spalte ändert sich, alle rechts davon rücken mit und behalten ihre Breite.
+// Den Platz gibt bzw. nimmt die Spalte „Hinweis“ (füllt den Rest); reicht er nicht, wird die Tabelle breiter (waagerecht scrollen).
 // Die Breiten werden im Browser gespeichert und gelten auch nach Neustart und Programm-Update.
-function colResize(ev, c) {
+function excelResize(ev, { i, min = 40, flexMin = 0, flexIdx = -1, done }) {
   ev.preventDefault(); ev.stopPropagation();
-  const COLS = mcols(), table = ev.currentTarget.closest('table'), cols = $$('col', table), i = COLS.findIndex(q => q.k === c.k);
-  const ths = $$('thead tr:last-child th', table), widths = ths.map(t => Math.round(t.getBoundingClientRect().width));
-  let j = i + 1; while (j < COLS.length && COLS[j].fixed) j++;
-  if (j >= COLS.length) j = -1;
-  const minOf = k => COLS[k].flex || 40;
-  const keep = JSON.parse(JSON.stringify(UI.colW || {})), x0 = ev.clientX, w0 = widths[i], wn0 = j >= 0 ? widths[j] : 0, total = widths.reduce((a, b) => a + b, 0);
-  widths.forEach((w, k) => { cols[k].style.width = w + 'px'; });   // Stand einfrieren – so verrutscht beim Ziehen nichts
-  table.style.width = total + 'px';
+  const table = ev.currentTarget.closest('table'), cols = $$('col', table), ths = $$('thead tr:last-child th', table);
+  const widths = ths.map(t => t.getBoundingClientRect().width), x0 = ev.clientX, w0 = widths[i], keepT = table.style.width, keepC = cols.map(c => c.style.width);
+  const fixedSum = w => widths.reduce((t, v, k) => t + (k === flexIdx ? 0 : k === i ? w : v), 0);
+  widths.forEach((w, k) => { cols[k].style.width = k === flexIdx ? '' : w + 'px'; });   // Stand einfrieren – nur die Rest-Spalte bleibt frei
   document.body.classList.add('dragging', 'resizing');
   let dx = 0;
-  const move = e => {
-    dx = Math.round(e.clientX - x0);
-    dx = Math.max(minOf(i) - w0, j >= 0 ? Math.min(dx, Math.max(0, wn0 - minOf(j))) : dx);
+  dragSession(ev, ev.currentTarget, e => {
+    dx = Math.round(Math.max(min - w0, e.clientX - x0));
     cols[i].style.width = (w0 + dx) + 'px';
-    if (j >= 0) cols[j].style.width = (wn0 - dx) + 'px'; else table.style.width = (total + dx) + 'px';
-  };
-  dragSession(ev, ev.currentTarget, move, okay => {
+    table.style.width = 'max(100%, ' + Math.round(fixedSum(w0 + dx) + flexMin) + 'px)';
+  }, okay => {
     document.body.classList.remove('dragging', 'resizing');
-    if (!okay || !dx) {                                                 // abgebrochen oder nur geklickt: alte Breiten zurück
-      UI.colW = keep; COLS.forEach((q, k) => { cols[k].style.width = colW(q) ? colW(q) + 'px' : ''; });
-      table.style.width = 'max(100%, ' + tableWidth() + 'px)'; return;
-    }
-    const nw = Object.assign({}, UI.colW);
-    COLS.forEach((q, k) => { if (q.flex) delete nw[colKey(q)]; else if (!q.fixed) nw[colKey(q)] = Math.round(parseFloat(cols[k].style.width)); });
-    UI.colW = nw; saveUI(); renderNow();
+    if (!okay || !dx) { cols.forEach((c, k) => { c.style.width = keepC[k]; }); table.style.width = keepT; return; }   // abgebrochen oder nur geklickt: alter Stand (ohne Neuzeichnen – sonst geht ein Doppelklick verloren)
+    done(Math.round(w0 + dx));
   });
+}
+function colResize(ev, c) {
+  const COLS = mcols();
+  excelResize(ev, { i: COLS.findIndex(q => q.k === c.k), min: 40, flexIdx: COLS.findIndex(q => q.flex), flexMin: (COLS.find(q => q.flex) || {}).flex || 0,
+    done: w => { UI.colW = Object.assign({}, UI.colW, { [colKey(c)]: w }); saveUI(); renderNow(); } });
 }
 function setStartDate(id, key, v) {
   const x = C.byId.get(id); if (!x || x.pal == null) return;
@@ -236,7 +231,7 @@ function setStartWT(id, key, v) {
 }
 function massnahmenSection() {
   const y = UI.year;
-  const rows = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === y);
+  const rowsY = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === y), rows = rowsY.filter(fltOk), nFlt = rowsY.length - rows.length;   // Filterleiste oben
   const warnBy = new Map();
   C.warnings.forEach(w => { if (w.mid) warnBy.set(w.mid, (warnBy.get(w.mid) || []).concat(w)); });
   const tb = h('tbody');
@@ -303,7 +298,8 @@ function massnahmenSection() {
         h('thead', null,
           phs.length ? h('tr', { class: 'grouprow' }, nBefore ? h('th', { colspan: nBefore }) : null, h('th', { class: 'gr-ph' + (UI.phMini ? ' mini' : ''), colspan: phs.length }, UI.phMini ? phToggle() : h('div', { class: 'gr-phin' }, viewSwitch(), phToggle())), nAfter ? h('th', { colspan: nAfter }) : null) : null,
           h('tr', null, ths)), tb)),
-      !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
+      nFlt ? h('div', { class: 'flt-note muted small' }, (nFlt === 1 ? '1 Maßnahme' : nFlt + ' Maßnahmen') + ' durch den Filter ausgeblendet – ', h('button', { class: 'link small', onclick: () => { UI.tagHide = []; UI.respHide = []; saveUI(); renderNow(); } }, 'Filter aufheben')) : null,
+      !rowsY.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
         C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null],
   };
 }

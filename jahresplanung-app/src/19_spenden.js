@@ -829,35 +829,15 @@ function spOverview(ms, cmp, mid, by) {
         h('div', { class: 'sp-chart', style: { height: '230px' }, dataset: { chart: 'cmp', ids: ids.filter(id => !(UI.spCmpOff || []).includes(id)).join(',') } })] : null) : null];
 }
 // Spalten der Übersicht; ganz rechts ein leerer Rest, damit sich jede Spalte (auch ROI) verstellen lässt.
-// Breite ziehen wie in der Jahresplanung: nur diese Spalte und ihre rechte Nachbarin ändern sich
+// Breite ziehen wie in der Jahresplanung (wie in Excel): nur diese Spalte ändert sich, die rechts davon rücken mit
 const SP_UCOLS = [{ k: 'name', w: 220, t: 'Maßnahme' }, { k: 'hin', w: 220, t: 'Hinweis' }, { k: 'pal', w: 100, t: 'PAL' }, { k: 'auf', w: 118, t: 'Auflage' }, { k: 'kos', w: 124, t: 'Kosten' },
   { k: 'sum', w: 126, t: 'Spendensumme' }, { k: 'n', w: 80, t: 'Anzahl' }, { k: 'avg', w: 108, t: 'Ø-Spende' }, { k: 'resp', w: 120, t: 'Responsequote' }, { k: 'roi', w: 76, t: 'ROI' },
   { k: 'rest', w: 0, flex: 0, rest: true, t: '' }];
 const spColW = c => c.rest ? 0 : (UI.spColW && UI.spColW[c.k]) || c.w;
 const spTableW = () => SP_UCOLS.reduce((t, c) => t + spColW(c), 0);
-function spColResize(ev, i) {
-  ev.preventDefault(); ev.stopPropagation();
-  const COLS = SP_UCOLS, table = ev.currentTarget.closest('table'), cols = $$('col', table);
-  const widths = $$('thead th', table).map(t => Math.round(t.getBoundingClientRect().width)), j = i + 1 < COLS.length ? i + 1 : -1, minOf = k => COLS[k].rest ? 0 : 50;
-  const keep = JSON.parse(JSON.stringify(UI.spColW || {})), x0 = ev.clientX, w0 = widths[i], wn0 = j >= 0 ? widths[j] : 0, total = widths.reduce((a, b) => a + b, 0);
-  widths.forEach((w, k) => { cols[k].style.width = w + 'px'; });   // Stand einfrieren – so verrutscht beim Ziehen nichts
-  table.style.width = total + 'px';
-  document.body.classList.add('dragging', 'resizing');
-  let dx = 0;
-  dragSession(ev, ev.currentTarget, e => {
-    dx = Math.round(e.clientX - x0);
-    dx = Math.max(minOf(i) - w0, j >= 0 ? Math.min(dx, Math.max(0, wn0 - minOf(j))) : dx);
-    cols[i].style.width = (w0 + dx) + 'px';
-    if (j >= 0) cols[j].style.width = (wn0 - dx) + 'px'; else table.style.width = (total + dx) + 'px';
-  }, okay => {
-    document.body.classList.remove('dragging', 'resizing');
-    if (!okay || !dx) {                                           // abgebrochen oder nur geklickt: alte Breiten zurück (ohne Neuzeichnen – sonst geht ein Doppelklick verloren)
-      UI.spColW = keep; COLS.forEach((c, k) => { cols[k].style.width = spColW(c) ? spColW(c) + 'px' : ''; }); table.style.width = 'max(100%, ' + spTableW() + 'px)'; return;
-    }
-    const nw = Object.assign({}, UI.spColW);
-    COLS.forEach((c, k) => { if (!c.rest) nw[c.k] = Math.round(parseFloat(cols[k].style.width)); });
-    UI.spColW = nw; saveUI(); renderNow();
-  });
+function spColResize(ev, i) {                                       // wie in Excel (siehe excelResize): nur diese Spalte, der leere Rest rechts gleicht aus
+  const c = SP_UCOLS[i];
+  excelResize(ev, { i, min: 50, flexIdx: SP_UCOLS.findIndex(q => q.rest), flexMin: 0, done: w => { UI.spColW = Object.assign({}, UI.spColW, { [c.k]: w }); saveUI(); renderNow(); } });
 }
 function spSetKosten(mid, v) {
   commit(d => { const m = findM(d, mid); if (!m) return; if (v == null || v === '' || !isNum(v)) delete m.kosten; else m.kosten = Math.round(+v * 100) / 100; }, 'Kosten geändert');

@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV', 'jvMv', 'jvBindY', 'jvSegFull', 'jvPiFull', 'tagHide', 'phMini'];
+const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV', 'jvMv', 'jvBindY', 'jvSegFull', 'jvPiFull', 'tagHide', 'phMini', 'respHide'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -525,8 +525,12 @@ const vacOn = n => C.vac.filter(v => v.von <= n && n <= v.bis);
 // Anzeige in Kalender, Zeitleiste, „Was steht an?“: Häkchen in der Tabelle und Schlagwort-Filter (UI.tagHide: ausgeblendete Schlagworte, '' = ohne Schlagwort)
 const allTags = () => { const m = new Map(); for (const x of D.massnahmen) for (const t of x.tags || []) if (!m.has(t.toLowerCase())) m.set(t.toLowerCase(), t); return [...m.values()].sort((a, b) => a.localeCompare(b, 'de')); };
 const tagOk = x => { const hd = UI.tagHide; if (!Array.isArray(hd) || !hd.length) return true; const t = x.m.tags || []; return t.length ? t.some(s => !hd.includes(s)) : !hd.includes(''); };
+const respOf = x => str(x.m.verantwortlich).trim();
+const allResp = () => [...new Set(D.massnahmen.map(m => str(m.verantwortlich).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+const respOk = x => { const hd = UI.respHide; return !Array.isArray(hd) || !hd.length || !hd.includes(respOf(x)); };   // UI.respHide: ausgeblendete Hauptverantwortliche, '' = ohne
+const fltOk = x => tagOk(x) && respOk(x);                                     // Filterleiste (Schlagworte, Verantwortlich)
 const checkedM = x => !UI.hiddenM.has(x.id);
-const visibleM = x => checkedM(x) && tagOk(x);
+const visibleM = x => checkedM(x) && fltOk(x);
 // Häkchen „anzeigen“: sind alle angehakt, bleibt nach dem Klick nur diese Maßnahme angehakt; sind alle aus, wird nur diese angehakt;
 // sonst wird sie umgeschaltet. Strg+Klick schaltet immer nur diese eine um.
 // Wird so die letzte abgewählt, sind wieder alle angehakt. Ist im Kalender gerade eine Maßnahme angeklickt (nur diese ausgewählt),

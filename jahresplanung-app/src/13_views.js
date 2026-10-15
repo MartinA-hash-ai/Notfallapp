@@ -30,22 +30,37 @@ function typePills() {
     onclick: () => { UI.show[t] = !showType(t); renderNow(); } }, demoChip(t), label);
   return evKeys().map(t => typeBtn(t, phName(t)));
 }
-// Schlagworte: Maßnahmen in Zeitleiste und Kalender ein-/ausblenden – gilt für beide (und „Was steht an?“), wird in diesem Browser gemerkt.
-// Sichtbar bleibt eine Maßnahme, solange eins ihrer Schlagworte angehakt ist; „nur“ zeigt nur Maßnahmen mit diesem Schlagwort.
-function tagDropdown() {
-  const tags = allTags(); if (!tags.length) return null;
-  const keys = [...tags, ''], hid = () => new Set(Array.isArray(UI.tagHide) ? UI.tagHide.filter(k => keys.includes(k)) : []), nOn = keys.length - hid().size;
+// Filter nach Schlagwort oder Hauptverantwortlichen: gilt für Maßnahmen-Tabelle, Zeitleiste, Kalender und „Was steht an?“, wird in diesem Browser gemerkt.
+// Schlagworte: sichtbar bleibt eine Maßnahme, solange eins ihrer Schlagworte angehakt ist. „nur“ zeigt nur diesen Eintrag.
+const FLT = {
+  tag: { ui: 'tagHide', label: 'Schlagworte', none: 'ohne Schlagwort', keys: () => allTags(), has: (x, k) => k ? (x.m.tags || []).includes(k) : !(x.m.tags || []).length,
+    item: k => h('span', { class: 'tagchip' }, k), note: 'Sichtbar bleibt eine Maßnahme, solange eins ihrer Schlagworte angehakt ist.' },
+  resp: { ui: 'respHide', label: 'Verantwortlich', none: 'ohne Verantwortliche:n', keys: () => allResp(), has: (x, k) => respOf(x) === k,
+    item: k => [h('span', { class: 'vdot', style: { background: personColor(k) } }), h('span', { class: 'nm' }, k)], note: 'nach „Hauptverantwortlich“ in der Tabelle' },
+};
+function fltDropdown(kind) {
+  const F = FLT[kind], ks = F.keys(); if (!ks.length) return null;
+  const keys = [...ks, ''], hid = () => new Set(Array.isArray(UI[F.ui]) ? UI[F.ui].filter(k => keys.includes(k)) : []), nOn = keys.length - hid().size;
+  const inY = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === UI.year);
   const pane = h('div', { class: 'tagflt' });
-  const setHide = a => { UI.tagHide = a; saveUI(); renderNow(); fill(); };
+  const setHide = a => { UI[F.ui] = a; saveUI(); renderNow(); fill(); };
   const fill = () => { const hd = hid();
-    pane.replaceChildren(...[h('div', { class: 'tagflt-h' }, h('b', null, 'Schlagworte'), h('span', { class: 'sp' }), h('button', { class: 'link small', onclick: () => setHide([]) }, 'alle'), h('button', { class: 'link small', onclick: () => setHide(keys.slice()) }, 'keine')),
+    pane.replaceChildren(...[h('div', { class: 'tagflt-h' }, h('b', null, F.label), h('span', { class: 'sp' }), h('button', { class: 'link small', onclick: () => setHide([]) }, 'alle'), h('button', { class: 'link small', onclick: () => setHide(keys.slice()) }, 'keine')),
       keys.map(k => h('div', { class: 'tagrow' }, h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: !hd.has(k), onchange: ev => { const n = hid(); ev.target.checked ? n.delete(k) : n.add(k); setHide([...n]); } }),
-          k ? h('span', { class: 'tagchip' }, k) : h('i', { class: 'muted' }, 'ohne Schlagwort'), h('span', { class: 'muted small tag-n' }, String(C.ms.filter(x => k ? (x.m.tags || []).includes(k) : !(x.m.tags || []).length).length))),
-        h('button', { class: 'link small tag-only', tip: 'nur Maßnahmen ' + (k ? 'mit „' + k + '“' : 'ohne Schlagwort') + ' zeigen', onclick: () => setHide(keys.filter(q => q !== k)) }, 'nur'))),
-      h('p', { class: 'muted small tagflt-n' }, 'Sichtbar bleibt eine Maßnahme, solange eins ihrer Schlagworte angehakt ist. Gilt für Zeitleiste, Kalender und „Was steht an?“.')].flat()); };
-  const b = h('button', { class: 'fbtn tagfbtn' + (nOn < keys.length ? ' act' : ''), tip: 'Maßnahmen nach Schlagwort ein- und ausblenden', onclick: e => { e.stopPropagation(); fill(); popover(b, pane); } },
-    'Schlagworte: ', h('b', null, nOn === keys.length ? 'alle' : !nOn ? 'keine' : nOn + ' von ' + keys.length), ' ▾');
+          k ? F.item(k) : h('i', { class: 'muted' }, F.none), h('span', { class: 'muted small tag-n' }, String(inY.filter(x => F.has(x, k)).length))),
+        h('button', { class: 'link small tag-only', tip: 'nur ' + (k ? '„' + k + '“' : F.none) + ' zeigen', onclick: () => setHide(keys.filter(q => q !== k)) }, 'nur'))),
+      h('p', { class: 'muted small tagflt-n' }, F.note)].flat()); };
+  const b = h('button', { class: 'fbtn ' + kind + 'fbtn' + (nOn < keys.length ? ' act' : ''), tip: F.label + ': Maßnahmen ein- und ausblenden', onclick: e => { e.stopPropagation(); fill(); popover(b, pane); } },
+    F.label + ': ', h('b', null, nOn === keys.length ? 'alle' : !nOn ? 'keine' : nOn + ' von ' + keys.length), ' ▾');
   return b;
+}
+// Leiste über der Jahresplanung: bleibt beim Scrollen oben stehen
+function filterBar() {
+  const t = fltDropdown('tag'), r = fltDropdown('resp'); if (!t && !r) return null;
+  const all = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === UI.year), n = all.filter(fltOk).length, on = n < all.length;
+  return h('div', { class: 'fbar' + (on ? ' on' : '') }, h('span', { class: 'fbar-l' }, 'Filter'), t, r,
+    h('span', { class: 'fbar-n muted small' }, on ? n + ' von ' + all.length + ' Maßnahmen' : 'alle ' + all.length + ' Maßnahmen'),
+    on ? h('button', { class: 'link small fbar-x', onclick: () => { UI.tagHide = []; UI.respHide = []; saveUI(); renderNow(); } }, 'Filter aufheben') : null);
 }
 function vacDropdown() {
   const persons = [...new Set([...D.personen.map(p => p.name), ...C.vac.map(v => v.u.wer).filter(Boolean)])];
@@ -65,7 +80,7 @@ function vacPill() {
 const legendInline = () => h('span', { class: 'legend-inline' }, h('span', { class: 'lg we' }), 'Wochenende', h('span', { class: 'lg hol' }), 'Feiertag', h('span', { class: 'lg vac' }), 'Urlaub', h('span', { class: 'lg today' }), 'heute');
 /* ---------- Reiter „Jahresplanung“: Maßnahmen, Zeitleiste, Kalender, Was steht an? */
 VIEW_FN.jahr = main => {
-  put(main,
+  put(main, filterBar(),
     section('mass', 'Maßnahmen ' + (UI.allYears ? '(alle Jahre)' : UI.year), massnahmenSection, {
       info: 'Sortiert automatisch nach PAL. Je Bereich (' + PH().map(p => sym(p.key) + ' ' + p.name).join(', ') + ') steht der Start – als Datum oder als Werktage bis zum PAL (Schalter „Datum – Werktage“ über den Spalten der Bereiche). Die Starts wandern mit, wenn sich der PAL verschiebt; bei Maßnahmen mit Detailplan ergeben sie sich aus den Abschnitten. 🏖 = jemand, der im Detailplan in diesem Bereich eingetragen ist, hat Urlaub. Häkchen links = im Kalender und in der Zeitleiste anzeigen; sind alle angehakt, zeigt ein Klick nur noch diese Maßnahme; wird die letzte abgewählt, sind wieder alle da (Strg+Klick: nur diese eine umschalten); das Häkchen im Kopf schaltet alle. Ein Klick auf eine Maßnahme im Kalender wählt vorübergehend nur diese aus – wieder gelöst gilt die vorherige Auswahl. Spaltenbreite am rechten Rand der Überschrift ziehen – dabei ändert sich nur die Nachbarspalte rechts; die Breiten bleiben auch nach Neustart und Update erhalten (Doppelklick = Standard).',
     }),
@@ -73,7 +88,7 @@ VIEW_FN.jahr = main => {
       open: false,
       info: 'Mausrad zoomt (beim Blättern der Seite erst, wenn sie kurz stillsteht; Strg+Mausrad zoomt immer), Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Je Bereich ein Balken (hell → kräftig bis zum PAL); überlappen Bereiche, liegen sie übereinander. Balken ziehen verschiebt den PAL (alle Bereiche wandern mit), die Griffe mit Buchstaben verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
     section('kal', 'Kalender ' + UI.year, () => ({
-      lead: [typePills(), vacPill(), tagDropdown(), h('span', { class: 'sep' }),
+      lead: [typePills(), vacPill(), h('span', { class: 'sep' }),
         h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten'),
         h('label', { class: 'check small', tip: 'verbindet die Starts der Bereiche und das PAL jeder Maßnahme dauerhaft mit einer Linie in ihrer Farbe' },
           h('input', { type: 'checkbox', checked: !!UI.verbund, onchange: e => { UI.verbund = e.target.checked; renderNow(); } }), 'Verbund-Darstellung')],
