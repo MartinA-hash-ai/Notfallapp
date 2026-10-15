@@ -527,8 +527,8 @@ const allTags = () => { const m = new Map(); for (const x of D.massnahmen) for (
 const tagOk = x => { const hd = UI.tagHide; if (!Array.isArray(hd) || !hd.length) return true; const t = x.m.tags || []; return t.length ? t.some(s => !hd.includes(s)) : !hd.includes(''); };
 const respOf = x => str(x.m.verantwortlich).trim();
 const allResp = () => [...new Set(D.massnahmen.map(m => str(m.verantwortlich).trim()).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
-const respOk = x => { const hd = UI.respHide; return !Array.isArray(hd) || !hd.length || !hd.includes(respOf(x)); };   // UI.respHide: ausgeblendete Hauptverantwortliche, '' = ohne
-const fltOk = x => tagOk(x) && respOk(x);                                     // Filterleiste (Schlagworte, Verantwortlich)
+const respOk = x => { const hd = UI.respHide; return !Array.isArray(hd) || !hd.length || !hd.includes(respOf(x)); };   // UI.respHide: ausgeblendete Verantwortliche, '' = ohne
+const fltOk = x => tagOk(x) && respOk(x);                                     // Filterleiste (Verantwortlich, Schlagworte)
 const checkedM = x => !UI.hiddenM.has(x.id);
 const visibleM = x => checkedM(x) && fltOk(x);
 // Häkchen „anzeigen“: sind alle angehakt, bleibt nach dem Klick nur diese Maßnahme angehakt; sind alle aus, wird nur diese angehakt;

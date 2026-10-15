@@ -130,7 +130,7 @@ function viewWorkbookLight(opts = {}) {
   // 1. Übersicht
   {
     const rows = [[{ v: 'Jahresplanung Außenkommunikation ' + y, st: XS.title }], [{ v: hint, st: XS.note }], [],
-      ['', 'Maßnahme', ...PH().map(p => 'Start ' + p.name), ...PH().map(p => 'WT bis PAL (' + sym(p.key) + ')'), 'PAL', 'PAL-Status', 'Hauptverantwortlich', 'Spendenbitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
+      ['', 'Maßnahme', ...PH().map(p => 'Start ' + p.name), ...PH().map(p => 'WT bis PAL (' + sym(p.key) + ')'), 'PAL', 'PAL-Status', 'Verantwortlich', 'Spendenbitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
     for (const x of ms) {
       const bd = { border: 'thin', v: 'top' };
       rows.push([{ v: '', st: { fill: x.color, border: 'thin' } }, { v: x.m.name, st: { ...bd, b: true, color: darker(x.color) } },
@@ -272,7 +272,7 @@ function viewWorkbookLight(opts = {}) {
   // 4. Termine (chronologisch)
   {
     const ev = eventsIn(a, b, true);
-    const rows = [['Datum', 'KW', 'Maßnahme', 'Termin', 'Hauptverantwortlich', 'Hinweis'].map(t => ({ v: t, st: XS.head })),
+    const rows = [['Datum', 'KW', 'Maßnahme', 'Termin', 'Verantwortlich', 'Hinweis'].map(t => ({ v: t, st: XS.head })),
       ...ev.map(e => {
         const notes = [];
         const hn = holName(e.n); if (hn) notes.push('Feiertag: ' + hn); else if (wd(e.n) >= 5) notes.push(WDL[wd(e.n)]);

@@ -418,7 +418,7 @@ function warnPanel() {
         warn.filter(w => w.fix).length > 1 ? h('button', { class: 'fixall', onclick: () => fixAll(warn.filter(w => w.fix)) }, 'Alle ' + warn.filter(w => w.fix).length + ' Termine am Wochenende/Feiertag auf den Arbeitstag davor legen') : null,
         warn.map(item)] : h('p', { class: 'ok' }, '✓ Keine Konflikte gefunden.'),
       info.length ? [h('h3', null, 'Hinweise (' + info.length + ')'), info.map(item)] : null,
-      h('p', { class: 'muted small' }, 'Geprüft werden: Starts am Wochenende oder Feiertag, PAL an Sonn-/Feiertagen, Termine im Urlaub der hauptverantwortlichen Person, ' +
+      h('p', { class: 'muted small' }, 'Geprüft werden: Starts am Wochenende oder Feiertag, PAL an Sonn-/Feiertagen, Termine im Urlaub der verantwortlichen Person, ' +
         'Arbeitsschritte im Urlaub der zugeordneten Person.')));
 }
 
@@ -514,7 +514,7 @@ function settingsParts() {
   const usage = n => {
     const u = D.urlaube.filter(v => v.wer === n).length, m = D.massnahmen.filter(q => q.verantwortlich === n).length,
       st = D.massnahmen.reduce((a, q) => a + (q.plan?.steps || []).filter(s => s.wer === n && s.typ !== 'gruppe').length, 0);
-    return [u ? u + ' Urlaub' + (u > 1 ? 'e' : '') : '', m ? m + '× hauptverantwortlich' : '', st ? st + ' Schritt' + (st > 1 ? 'e' : '') : ''].filter(Boolean).join(' · ');
+    return [u ? u + ' Urlaub' + (u > 1 ? 'e' : '') : '', m ? m + '× verantwortlich' : '', st ? st + ' Schritt' + (st > 1 ? 'e' : '') : ''].filter(Boolean).join(' · ');
   };
   const out = {};
   {
@@ -574,7 +574,7 @@ function settingsParts() {
         h('input', { placeholder: 'Name, z. B. Versand', value: newBName, oninput: e => { newBName = e.target.value; }, onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addB(); } } }),
         h('button', { class: 'addbtn', onclick: e => { e.preventDefault(); addB(); } }, '+ Bereich hinzufügen')),
       h('h3', null, 'Personen'),
-      h('p', { class: 'muted small' }, 'Die Farbe gilt für Urlaube und Arbeitsschritte. Umbenennen ändert den Namen überall (Urlaube, Hauptverantwortliche, Arbeitsschritte).'),
+      h('p', { class: 'muted small' }, 'Die Farbe gilt für Urlaube und Arbeitsschritte. Umbenennen ändert den Namen überall (Urlaube, Verantwortliche, Arbeitsschritte).'),
       h('table', { class: 'grid ptable' }, h('tbody', null, D.personen.map(p => {
         const used = usage(p.name);
         return h('tr', null,

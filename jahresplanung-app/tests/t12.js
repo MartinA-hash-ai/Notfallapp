@@ -19,7 +19,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
 
   // ---------- Jahresplanung: Tabelle
   const heads = await p.evaluate(() => [...document.querySelectorAll('.mtable thead th')].map(t => t.textContent.trim()));
-  ok(heads.includes('Hauptverantwortlich') && !heads.some(t => /Vorlauf/.test(t)), 'Spalten: ' + heads.filter(Boolean).join(' | '));
+  ok(heads.includes('Verantwortlich') && !heads.some(t => /Vorlauf/.test(t)), 'Spalten: ' + heads.filter(Boolean).join(' | '));
   const chipHeads = await p.evaluate(() => [...document.querySelectorAll('.mtable thead th .chip')].map(c => c.textContent));
   ok(chipHeads.join('') === 'SIDP', 'S/I/D/P-Kästchen in Spaltenköpfen ' + chipHeads.join(''));
   // Spaltenbreite ziehen

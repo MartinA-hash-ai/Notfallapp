@@ -163,7 +163,7 @@ function tagPop(anchor, id) {
 /* ---------- Tabelle: je Bereich eine Spalte „Start …“ (als Datum oder als Werktage bis zum PAL), dann das PAL */
 const wtView = () => UI.startView === 'wt';
 const mcols = () => [
-  { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 170, t: 'Maßnahme' }, { k: 'resp', w: 150, t: 'Hauptverantwortlich' },
+  { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 170, t: 'Maßnahme' }, { k: 'resp', w: 150, t: 'Verantwortlich' },
   { k: 'tags', w: 96, t: 'Schlagworte', tip: 'zum Ein- und Ausblenden in Zeitleiste und Kalender (Knopf „Schlagworte“ dort)' }, { k: 'auflage', w: 68, t: 'Auflage' },
   ...PH().map(p => UI.phMini ? { k: 'ph_' + p.key, w: 34, fixed: true, t: p.name, tip: 'Start ' + p.name + ' – Häkchen: Datum eingetragen', chip: p.key, phase: p.key, mini: true }
     : { k: 'ph_' + p.key, w: wtView() ? 112 : 122, t: p.name, tip: 'Start ' + p.name + (wtView() ? ' – Werktage bis zum PAL' : ''), chip: p.key, phase: p.key }),
@@ -353,7 +353,7 @@ async function editMassnahme(id) {
       h('select', { onchange: e => { m.palStatus = e.target.value; } }, ['vorläufig', 'fest'].map(v => h('option', { value: v, selected: m.palStatus === v }, 'PAL ' + v))))),
     phaseRows,
     calc,
-    row('Hauptverantwortlich', personInput({ value: m.verantwortlich || '', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
+    row('Verantwortlich', personInput({ value: m.verantwortlich || '', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
     h('div', { class: 'frow' }, h('span', null, 'Schlagworte'), tagEditor((m.tags || []).slice(), v => { m.tags = v; }), h('small', null, 'zum Ein- und Ausblenden in Zeitleiste und Kalender')),
     row('Auflage', numField(m.auflage, 0, v => { m.auflage = v; })),
     row('Kosten (€)', numField(m.kosten, 2, v => { if (v == null) delete m.kosten; else m.kosten = v; }), 'für den Reiter „Auswertung“ (ROI)'),

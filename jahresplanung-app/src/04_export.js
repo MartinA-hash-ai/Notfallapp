@@ -63,7 +63,7 @@ function icsItems(o) {
       if (!o.kinds[t] || n == null || n < a || n > b || !match(x.m.verantwortlich)) continue;
       out.push({ kind: t, mid: x.id, uid: x.id + '-' + t + '-' + ds(n), a: n, b: n, lab, summary: lab + ' · ' + x.m.name,
         desc: [x.m.name, TYPE_LABEL[t] + ': ' + fmtW(n), x.pal != null && t !== 'P' ? 'PAL: ' + fmtW(x.pal) + ' (' + workdaysBefore(n, x.pal) + ' Werktage davor)' : '', t === 'P' && x.m.palStatus !== 'fest' ? 'PAL noch vorläufig' : '',
-          x.m.verantwortlich ? 'Hauptverantwortlich: ' + x.m.verantwortlich : '', x.m.hinweis].filter(Boolean).join('\n') });
+          x.m.verantwortlich ? 'Verantwortlich: ' + x.m.verantwortlich : '', x.m.hinweis].filter(Boolean).join('\n') });
     }
     if (x.pc) for (const s of x.m.plan.steps) {
       const r = x.pc.map.get(s.id), isPoint = s.typ !== 'aufgabe', kind = isPoint ? 'ms' : 'steps';
@@ -139,7 +139,7 @@ async function exportICS() {
           h('h3', null, 'Termine'), h('div', { class: 'checks' }, icsKinds().map(([k]) => cb(k))),
           h('h3', null, 'Person'), h('select', { onchange: e => { o.person = e.target.value; upd(); } }, h('option', { value: '' }, 'alle Personen'),
             persons.map(n => h('option', { value: n, selected: o.person === n }, n))),
-          h('div', { class: 'muted small' }, 'Starts/PAL: hauptverantwortliche Person · Schritte: zugeordnete Person'),
+          h('div', { class: 'muted small' }, 'Starts/PAL: verantwortliche Person · Schritte: zugeordnete Person'),
           h('h3', null, 'Zeitraum'), h('div', { class: 'checks' }, radio('rng', 'year', 'alle Termine der Maßnahmen ' + y + (firstDates.some(n => n < mkdn(y, 1, 1)) ? ' (inkl. Vorlauf aus ' + (y - 1) + ')' : ''), 'range'), radio('rng', 'rest', 'ab heute bis Jahresende', 'range'), radio('rng', 'free', 'eigener Zeitraum', 'range'),
             o.range === 'free' ? h('div', { class: 'inl' }, h('input', { type: 'date', value: ds(o.from), onchange: e => { o.from = dn(e.target.value) ?? o.from; upd(); } }), '–',
               h('input', { type: 'date', value: ds(o.to), onchange: e => { o.to = dn(e.target.value) ?? o.to; upd(); } })) : null),

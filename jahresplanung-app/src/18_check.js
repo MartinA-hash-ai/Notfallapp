@@ -7,7 +7,7 @@ function checkData(d = D) {
   for (const m of d.massnahmen) {
     const nm = '„' + (m.name || '(ohne Namen)') + '“', mid = m.id, M = dd => findM(dd, mid);
     if (m.pal && dn(m.pal) == null) add(nm + ': PAL „' + m.pal + '“ ist kein gültiges Datum', 'PAL leeren (danach neu eintragen)', dd => { M(dd).pal = null; });
-    if (str(m.verantwortlich) !== str(m.verantwortlich).trim()) add(nm + ': Hauptverantwortlich „' + m.verantwortlich + '“ mit Leerzeichen am Rand', 'Leerzeichen entfernen', dd => { M(dd).verantwortlich = str(M(dd).verantwortlich).trim(); });
+    if (str(m.verantwortlich) !== str(m.verantwortlich).trim()) add(nm + ': Verantwortlich „' + m.verantwortlich + '“ mit Leerzeichen am Rand', 'Leerzeichen entfernen', dd => { M(dd).verantwortlich = str(M(dd).verantwortlich).trim(); });
     for (const k of Object.keys(m.vorlauf || {})) {
       if (!keys.includes(k)) add(nm + ': Start für den nicht mehr vorhandenen Bereich „' + k + '“', 'entfernen', dd => { delete M(dd).vorlauf[k]; });
       else if (m.vorlauf[k] < 0) add(nm + ': ' + startLabel(k) + ' liegt nach dem PAL', startLabel(k) + ' entfernen', dd => { delete M(dd).vorlauf[k]; });

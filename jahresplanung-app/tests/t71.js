@@ -19,9 +19,9 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(a0[0] === 'Mailing | newsletter | Mailing | Print+newsletter | ' && a0[1] === 'Mailing,newsletter,Print' && a0[2] === '#E30714,#00AA00' && a0[3],
     'A: Schlagworte bereinigt, Groß/Klein wie zuerst geschrieben, eigene Farben als #RRGGBB ohne Doppelte: ' + a0.join(' / '));
 
-  // ---- B: Spalte „Schlagworte“ nach „Hauptverantwortlich“; Schlagwort über die Oberfläche vergeben, vorhandenes per Klick, entfernen mit ×
+  // ---- B: Spalte „Schlagworte“ nach „Verantwortlich“; Schlagwort über die Oberfläche vergeben, vorhandenes per Klick, entfernen mit ×
   const b0 = await p.evaluate(() => [...document.querySelectorAll('.mtable thead tr:last-child th')].map(t => t.textContent.trim()).slice(2, 5).join('|'));
-  ok(b0 === 'Maßnahme|Hauptverantwortlich|Schlagworte', 'B: Spalte „Schlagworte“ zwischen Hauptverantwortlich und Auflage (' + b0 + ')');
+  ok(b0 === 'Maßnahme|Verantwortlich|Schlagworte', 'B: Spalte „Schlagworte“ zwischen Verantwortlich und Auflage (' + b0 + ')');
   const pop = () => p.evaluate(() => !!document.querySelector('.tagpop'));
   await p.click('tr[data-m="t4"] .tagbtn'); await p.waitForTimeout(200);
   await p.fill('.tagpop .tag-in', '  Dank  '); await p.press('.tagpop .tag-in', 'Enter'); await p.waitForTimeout(250);
@@ -50,7 +50,7 @@ const { chromium, ok, open, finish } = require('./lib');
   const c0 = await p.evaluate(() => { const f = document.querySelector('.fbar-in').getBoundingClientRect(), hd = document.querySelector('[data-sec="mass"] .sec-h').getBoundingClientRect(), m = document.querySelector('#main').getBoundingClientRect();
     return [[...document.querySelectorAll('.fbar .fbtn')].map(e => e.textContent).join(' | '), document.querySelectorAll('[data-sec="tl"] .tagfbtn, [data-sec="kal"] .tagfbtn').length,
       Math.round((f.top + f.bottom) / 2 - (hd.top + hd.bottom) / 2), Math.round((f.left + f.right) / 2 - (m.left + m.right) / 2)]; });
-  ok(c0[0] === 'Schlagworte: alle ▾ | Verantwortlich: alle ▾' && c0[1] === 0 && Math.abs(c0[2]) <= 4 && Math.abs(c0[3]) <= 4, 'C: Filter „Schlagworte“ und „Verantwortlich“ auf Höhe der Überschrift „Maßnahmen“, mittig: ' + c0.join(' / '));
+  ok(c0[0] === 'Verantwortlich: alle ▾ | Schlagworte: alle ▾' && c0[1] === 0 && Math.abs(c0[2]) <= 4 && Math.abs(c0[3]) <= 4, 'C: Filter „Verantwortlich“ (links) und „Schlagworte“ auf Höhe der Überschrift „Maßnahmen“, mittig: ' + c0.join(' / '));
   const row = t => '.tagflt .tagrow:has-text("' + t + '")', isOpen = () => p.evaluate(() => !!document.querySelector('.menu.pop .tagflt'));
   await p.click('.fbar .tagfbtn'); await p.waitForTimeout(200);
   const c1 = await p.evaluate(() => [...document.querySelectorAll('.tagflt .tagrow')].map(r => r.textContent).join(' | '));
@@ -68,7 +68,7 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(await p.evaluate(() => !UI.tagHide.length) && (await vis())[0] === 't0,t1,t2,t3,t4', 'C: wird der letzte abgewählt, ist wieder alles gewählt');
   await p.click(row('newsletter'), { modifiers: ['Control'] }); await p.waitForTimeout(250);
   const c2 = await vis();
-  ok(c2[0] === 't0,t2,t3,t4' && c2[1] === 't0,t2,t3,t4' && c2[2] === '1 Maßnahme durch den Filter ausgeblendet – Filter aufheben' && c2[3] === 'Schlagworte: 4 von 5 ▾ | Verantwortlich: alle ▾' && c2[4] === '4 von 5' && c2[5] === 0,
+  ok(c2[0] === 't0,t2,t3,t4' && c2[1] === 't0,t2,t3,t4' && c2[2] === '1 Maßnahme durch den Filter ausgeblendet – Filter aufheben' && c2[3] === 'Verantwortlich: alle ▾ | Schlagworte: 4 von 5 ▾' && c2[4] === '4 von 5' && c2[5] === 0,
     'C: Strg+Klick auf „newsletter“ – nur das abgewählt: Newsletter März fehlt in Tabelle, Zeitleiste und Kalender, Projektbericht bleibt (hat noch „Print“); Häkchen bleiben: ' + c2.join(' / '));
   const c4 = await p.evaluate(() => { const ev = eventsIn(mkdn(2027, 1, 1), mkdn(2027, 12, 31)); return [...new Set(ev.map(e => e.x.id))].join(','); });
   ok(c4 === 't0,t2,t3,t4', 'C: Kalender-Termine nur der gefilterten Maßnahmen (' + c4 + ')');
@@ -85,16 +85,21 @@ const { chromium, ok, open, finish } = require('./lib');
   // Verantwortlich
   await p.click('.fbar .respfbtn'); await p.waitForTimeout(200);
   const r0 = await p.evaluate(() => [...document.querySelectorAll('.tagflt .tagrow')].map(r => r.textContent).join(' | '));
-  ok(r0 === 'Team A2 | Team B2 | ohne Verantwortliche:n1', 'C: „Verantwortlich“ – je Hauptverantwortliche:r eine Zeile mit Anzahl, dazu „ohne“: ' + r0);
+  ok(r0 === 'Team A2 | Team B2 | ohne Verantwortliche:n1', 'C: „Verantwortlich“ – je Verantwortliche:r eine Zeile mit Anzahl, dazu „ohne“: ' + r0);
   await p.click(row('Team B'), { modifiers: ['Control'] }); await p.waitForTimeout(250);
   const r1 = await vis();
-  ok(r1[0] === 't0,t2,t4' && r1[1] === 't0,t2,t4' && r1[3] === 'Schlagworte: alle ▾ | Verantwortlich: 2 von 3 ▾' && await p.evaluate(() => UI_KEYS.includes('respHide')), 'C: Strg+Klick auf Team B – deren Maßnahmen fehlen überall: ' + r1.slice(0, 2).join(' / '));
+  ok(r1[0] === 't0,t2,t4' && r1[1] === 't0,t2,t4' && r1[3] === 'Verantwortlich: 2 von 3 ▾ | Schlagworte: alle ▾' && await p.evaluate(() => UI_KEYS.includes('respHide')), 'C: Strg+Klick auf Team B – deren Maßnahmen fehlen überall: ' + r1.slice(0, 2).join(' / '));
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   await p.click('.fbar .tagfbtn'); await p.waitForTimeout(200); await p.click(row('Print'), { modifiers: ['Control'] }); await p.waitForTimeout(250);
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   ok((await vis())[0] === 't0,t2', 'C: Schlagwort- und Verantwortlich-Filter wirken zusammen – Team B aus, „Print“ aus: Danke-Karte (nur Print) fällt auch weg');
+  const bdS = () => p.evaluate(() => { const cs = s => getComputedStyle(document.querySelector(s)), pr = document.createElement('i'); pr.style.color = 'var(--focus)'; document.body.append(pr); const foc = getComputedStyle(pr).color; pr.remove();
+    return [cs('.fbar-in').borderTopColor, cs('.fbar .respfbtn').borderTopColor, cs('.fbar .respfbtn').color === foc, foc]; });
+  const bd = await bdS();
   await p.click('.fbar .fbar-x'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !UI.tagHide.length && !UI.respHide.length && C.ms.filter(visibleM).length === 5 && !document.querySelector('.fbar-x')), 'C: „aufheben“ setzt beide zurück');
+  const bd2 = await bdS();
+  ok(bd[2] && !bd2[2] && bd[0] === bd2[0] && bd[1] === bd2[1] && bd[0] !== bd[3], 'C: aktiver Filter – nur die Schrift des Feldes farbig, weder Feld noch Filterleiste blau umrandet: ' + bd.join(' / ') + ' | ohne Filter: ' + bd2.join(' / '));
   // Filter bleibt beim Scrollen oben stehen
   await p.evaluate(() => { document.querySelector('[data-sec="kal"]').scrollIntoView({ block: 'start' }); scrollBy(0, 300); }); await p.waitForTimeout(250);
   const c5 = await p.evaluate(() => [Math.round(document.querySelector('.fbar-in').getBoundingClientRect().top), Math.round(document.querySelector('header.top').getBoundingClientRect().bottom), Math.round(scrollY)]);

@@ -30,14 +30,14 @@ function typePills() {
     onclick: () => { UI.show[t] = !showType(t); renderNow(); } }, demoChip(t), label);
   return evKeys().map(t => typeBtn(t, phName(t)));
 }
-// Filter nach Schlagwort oder Hauptverantwortlichen: gilt für Maßnahmen-Tabelle, Zeitleiste, Kalender und „Was steht an?“, wird in diesem Browser gemerkt.
+// Filter nach Verantwortlichen oder Schlagwort: gilt für Maßnahmen-Tabelle, Zeitleiste, Kalender und „Was steht an?“, wird in diesem Browser gemerkt.
 // Klick: ist alles gewählt, nur diesen Eintrag – sonst diesen dazunehmen bzw. wieder abwählen. Strg+Klick: einzeln an-/abwählen (aus „alle“ heraus also abwählen).
 // Wird so der letzte abgewählt, ist wieder alles gewählt (wie bei den Häkchen der Tabelle). Das Fenster schließt nur per Klick daneben oder Esc.
 const FLT = {
   tag: { ui: 'tagHide', label: 'Schlagworte', none: 'ohne Schlagwort', keys: () => allTags(), has: (x, k) => k ? (x.m.tags || []).includes(k) : !(x.m.tags || []).length,
     item: k => h('span', { class: 'tagchip' }, k), note: 'Eine Maßnahme bleibt sichtbar, solange eins ihrer Schlagworte gewählt ist.' },
   resp: { ui: 'respHide', label: 'Verantwortlich', none: 'ohne Verantwortliche:n', keys: () => allResp(), has: (x, k) => respOf(x) === k,
-    item: k => [h('span', { class: 'vdot', style: { background: personColor(k) } }), h('span', { class: 'nm' }, k)], note: 'Grundlage ist „Hauptverantwortlich“ in der Tabelle.' },
+    item: k => [h('span', { class: 'vdot', style: { background: personColor(k) } }), h('span', { class: 'nm' }, k)], note: 'Grundlage ist die Spalte „Verantwortlich“ in der Tabelle.' },
 };
 function fltPick(kind, k, ctrl) {
   const F = FLT[kind], keys = [...F.keys(), ''], hd = new Set(Array.isArray(UI[F.ui]) ? UI[F.ui].filter(q => keys.includes(q)) : []);
@@ -62,9 +62,9 @@ function fltDropdown(kind) {
 }
 // Filter auf Höhe der Überschrift „Maßnahmen“ (mittig im Kasten); beim Scrollen bleibt er oben stehen
 function filterBar() {
-  const t = fltDropdown('tag'), r = fltDropdown('resp'); if (!t && !r) return null;
+  const r = fltDropdown('resp'), t = fltDropdown('tag'); if (!t && !r) return null;   // links immer „Verantwortlich“, rechts „Schlagworte“
   const all = C.ms.filter(x => UI.allYears || x.pal == null || ymd(x.pal)[0] === UI.year), n = all.filter(fltOk).length, on = n < all.length;
-  return h('div', { class: 'fbar' + (on ? ' on' : '') }, h('div', { class: 'fbar-in' }, h('span', { class: 'fbar-l' }, 'Filter'), t, r,
+  return h('div', { class: 'fbar' + (on ? ' on' : '') }, h('div', { class: 'fbar-in' }, h('span', { class: 'fbar-l' }, 'Filter'), r, t,
     h('span', { class: 'fbar-n muted small' }, on ? n + ' von ' + all.length : 'alle ' + all.length),
     on ? h('button', { class: 'link small fbar-x', tip: 'alle Filter zurücksetzen', onclick: () => { UI.tagHide = []; UI.respHide = []; saveUI(); renderNow(); } }, 'aufheben') : null));
 }
