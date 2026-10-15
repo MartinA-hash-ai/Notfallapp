@@ -18,8 +18,8 @@ s = await st(); ok(s.pin === 'Projekt-Update 1' && s.btn >= 1, 'Klick auf I: ebe
 await p.click('.mline .mline-edit >> nth=0'); await p.waitForTimeout(150);
 ok((await st()).modal, '„Bearbeiten“ öffnet den Dialog'); await p.click('.modal footer button:has-text("Abbrechen")'); await p.waitForTimeout(100);
 await p.evaluate(() => { const hd = document.querySelector('.sec[data-sec="kal"] .sec-t'); hd.closest('.sec').querySelector('.legend-inline').click(); });
-await p.mouse.click(1550, 110); await p.waitForTimeout(150);
-s = await st(); ok(!s.pin && s.btn === 0, 'Klick woanders hebt auf ' + JSON.stringify(s));
+{ const lg = await pos('.sec[data-sec="kal"] .legend-inline'); await p.mouse.click(lg[0], lg[1]); } await p.waitForTimeout(150);   // freie Stelle (Legende) – feste Koordinaten trafen seit 0.36 die Tabelle
+s = await st(); ok(!s.pin && s.btn === 0 && !s.modal, 'Klick woanders hebt auf ' + JSON.stringify(s));
 const pp = await pos(`.cal .chip.P[data-m="${id}"]`);
 await p.mouse.click(pp[0], pp[1]); await p.waitForTimeout(150);
 s = await st(); ok(s.pin === 'Projekt-Update 1' && s.hl && s.btn >= 1 && !s.modal, 'Klick auf P hält ebenfalls fest, kein Dialog ' + JSON.stringify(s));
