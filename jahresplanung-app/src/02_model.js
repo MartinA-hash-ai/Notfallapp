@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV', 'jvMv', 'jvBindY', 'jvSegFull', 'jvPiFull'];
+const UI_KEYS = ['colW', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV', 'jvMv', 'jvBindY', 'jvSegFull', 'jvPiFull', 'tagHide', 'phMini'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -204,6 +204,15 @@ function jvArtenAusWorten(w) {
   return o;
 }
 const str = v => typeof v === 'string' ? v : typeof v === 'number' || typeof v === 'boolean' ? String(v) : '';
+// Schlagworte einer Maßnahme: getrimmt, ohne Doppelte – Groß/Klein egal, es gilt die zuerst gesehene Schreibweise (über alle Maßnahmen)
+function normTags(a, seen = new Map()) {
+  const out = [];
+  for (const t of Array.isArray(a) ? a : []) { const s = str(t).trim().replace(/\s+/g, ' ').slice(0, 40); if (!s) continue;
+    const k = s.toLowerCase(); if (!seen.has(k)) seen.set(k, s); const c = seen.get(k); if (!out.includes(c)) out.push(c); }
+  return out.slice(0, 20);
+}
+// eigene Farben der Palette (Planungsdatei): #RRGGBB, ohne Doppelte
+const normFarben = a => [...new Set((Array.isArray(a) ? a : []).map(c => str(c).trim().toUpperCase()).filter(c => /^#[0-9A-F]{6}$/.test(c)))].slice(0, 48);
 const dateStr = v => typeof v === 'string' && v ? v : null;
 // Plan einer Maßnahme oder Vorlage prüfen und auf den aktuellen Stand bringen (Abschnitte, PAL-Zeile, Werktage, Verknüpfungen vorwärts)
 function normPlan(m, keys) {
@@ -247,14 +256,15 @@ function normalizeData(d) {
   delete d.settings.vorlaufS; delete d.settings.vorlaufI;
   const keys = d.settings.bereiche.map(p => p.key);
   d.log = Array.isArray(d.log) ? d.log.filter(isObj).slice(-LOG_MAX) : [];
+  d.farben = normFarben(d.farben);
   ['personen', 'massnahmen', 'urlaube', 'sondertage', 'ferien', 'zwecke'].forEach(k => { d[k] = Array.isArray(d[k]) ? d[k].filter(isObj) : []; });
   if (!isObj(d.feiertage)) d.feiertage = {};
   HOLSRC = d;
   d.personen = d.personen.filter(p => str(p.name).trim());
   d.personen.forEach(p => { p.name = str(p.name).trim(); if (typeof p.farbe !== 'string') p.farbe = '#888888'; });
-  const ids = new Set(), freshId = v => { let id = str(v); if (!id || ids.has(id)) id = uid(); ids.add(id); return id; };
+  const ids = new Set(), freshId = v => { let id = str(v); if (!id || ids.has(id)) id = uid(); ids.add(id); return id; }, tagCase = new Map();
   d.massnahmen.forEach(m => {
-    m.id = freshId(m.id); m.name = str(m.name); m.farbe = typeof m.farbe === 'string' && m.farbe ? m.farbe : '#7F7F7F';
+    m.id = freshId(m.id); m.tags = normTags(m.tags, tagCase); m.name = str(m.name); m.farbe = typeof m.farbe === 'string' && m.farbe ? m.farbe : '#7F7F7F';
     m.verantwortlich = str(m.verantwortlich); m.hinweis = str(m.hinweis); m.pal = dateStr(m.pal);
     if (!('palStatus' in m)) m.palStatus = 'vorläufig';
     // Starts (und optionale Enden) der Bereiche: Kalendertage vor dem PAL
@@ -512,7 +522,11 @@ function derive() {
   return C;
 }
 const vacOn = n => C.vac.filter(v => v.von <= n && n <= v.bis);
-const visibleM = x => !UI.hiddenM.has(x.id);
+// Anzeige in Kalender, Zeitleiste, „Was steht an?“: Häkchen in der Tabelle und Schlagwort-Filter (UI.tagHide: ausgeblendete Schlagworte, '' = ohne Schlagwort)
+const allTags = () => { const m = new Map(); for (const x of D.massnahmen) for (const t of x.tags || []) if (!m.has(t.toLowerCase())) m.set(t.toLowerCase(), t); return [...m.values()].sort((a, b) => a.localeCompare(b, 'de')); };
+const tagOk = x => { const hd = UI.tagHide; if (!Array.isArray(hd) || !hd.length) return true; const t = x.m.tags || []; return t.length ? t.some(s => !hd.includes(s)) : !hd.includes(''); };
+const checkedM = x => !UI.hiddenM.has(x.id);
+const visibleM = x => checkedM(x) && tagOk(x);
 // Häkchen „anzeigen“: sind alle angehakt, bleibt nach dem Klick nur diese Maßnahme angehakt; sind alle aus, wird nur diese angehakt;
 // sonst wird sie umgeschaltet. Strg+Klick schaltet immer nur diese eine um.
 // Wird so die letzte abgewählt, sind wieder alle angehakt. Ist im Kalender gerade eine Maßnahme angeklickt (nur diese ausgewählt),
@@ -520,12 +534,13 @@ const visibleM = x => !UI.hiddenM.has(x.id);
 function toggleVisible(id, list, ev) {
   const plain = !(ev && (ev.ctrlKey || ev.metaKey));
   if (UI.pin && list.some(x => x.id === UI.pin)) { const p = UI.pin; list.forEach(x => { if (x.id === p) UI.hiddenM.delete(x.id); else UI.hiddenM.add(x.id); }); unpin(); }
-  if (plain && list.length > 1 && list.every(visibleM)) list.forEach(x => { if (x.id === id) UI.hiddenM.delete(x.id); else UI.hiddenM.add(x.id); });
+  if (plain && list.length > 1 && list.every(checkedM)) list.forEach(x => { if (x.id === id) UI.hiddenM.delete(x.id); else UI.hiddenM.add(x.id); });
   else if (UI.hiddenM.has(id)) UI.hiddenM.delete(id); else UI.hiddenM.add(id);
-  if (!list.some(visibleM)) list.forEach(x => UI.hiddenM.delete(x.id));
+  if (!list.some(checkedM)) list.forEach(x => UI.hiddenM.delete(x.id));
 }
 // Auswahl, wie sie die Häkchen der Maßnahmen-Tabelle zeigen: im Kalender angeklickt = vorübergehend nur diese
 const selM = x => UI.pin && UI.view === 'jahr' && C.byId && C.byId.has(UI.pin) ? x.id === UI.pin : visibleM(x);
+const selChk = x => UI.pin && UI.view === 'jahr' && C.byId && C.byId.has(UI.pin) ? x.id === UI.pin : checkedM(x);   // Häkchen (ohne Schlagwort-Filter)
 const TYPE_LABEL = new Proxy({}, { get: (o, t) => t === 'P' ? 'PAL (Briefkasten)' : typeof t === 'string' ? startLabel(t) : undefined });
 const showType = t => !UI.show || UI.show[t] !== false;             // neue Bereiche sind automatisch sichtbar
 

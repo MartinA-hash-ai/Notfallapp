@@ -59,6 +59,8 @@ function merge3(base, mine, theirs) {
     const v = mergeObj((base.spenden || {})[sub], (mine.spenden || {})[sub], (theirs.spenden || {})[sub], { coll: 'spenden', key: sub }, [], cnt);
     if (Object.keys(v).length) out.spenden[sub] = v;
   }
+  const fb = new Set(base.farben || []), fm = new Set(mine.farben || []);             // eigene Farben: von beiden ergänzt, von einer Seite entfernt = weg
+  out.farben = [...new Set([...(theirs.farben || []).filter(c => fm.has(c) || !fb.has(c)), ...(mine.farben || []).filter(c => !fb.has(c))])];
   out.meta = clone(theirs.meta);
   return { data: clone(out), conflicts, cnt };
 }
@@ -73,7 +75,7 @@ function applyPick(data, c) {
 
 /* ---------- Anzeige */
 const FIELD_LABEL = { name: 'Name', pal: 'PAL', palStatus: 'PAL-Status', vorlauf: 'Starts der Bereiche', ende: 'Enden der Bereiche', bereiche: 'Bereiche', verantwortlich: 'Hauptverantwortlich',
-  auflage: 'Auflage', kosten: 'Kosten', regel: 'Spendenregel', worte: 'Schlagworte', konten: 'Konten (Gliederungen)', massnahmen: 'Maßnahmen', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
+  auflage: 'Auflage', kosten: 'Kosten', regel: 'Spendenregel', worte: 'Schlagworte', tags: 'Schlagworte der Maßnahme', konten: 'Konten (Gliederungen)', massnahmen: 'Maßnahmen', art: 'Spendenbitte', hinweis: 'Hinweis', farbe: 'Farbe', plan: 'Detailplan', wer: 'Person', von: 'von', bis: 'bis', notiz: 'Notiz', datum: 'Datum', year: 'Planungsjahr' };
 function recLabel(coll, rec, key) {
   rec = rec || {};
   if (coll === 'massnahmen') return 'Maßnahme „' + (rec.name || '(ohne Namen)') + '“';
@@ -103,7 +105,7 @@ function valText(coll, field, v, rec) {
   if (field === 'plan') return v && v.steps ? v.steps.length + ' Schritte' : 'kein Detailplan';
   if (field === 'kosten') return eur(Math.round(+v * 100));
   if (field === 'regel') { const r = v || {}, p = dn(rec && rec.pal); return ((r.worte || []).map(w => '„' + w + '“').join(', ') || 'ohne Schlagwort') + (p != null && (isNum(r.ab) || isNum(r.bis)) ? ' (' + (isNum(r.ab) ? fmtS(p + r.ab) : '…') + '–' + (isNum(r.bis) ? fmtS(p + r.bis) : '…') + ')' : '') + (r.ohneDA ? ', ohne Daueraufträge' : ''); }
-  if ((field === 'worte' || field === 'konten') && Array.isArray(v)) return v.length ? v.map(w => '„' + (field === 'konten' ? spGlied(w) : w) + '“').join(', ') : '–';
+  if ((field === 'worte' || field === 'konten' || field === 'tags') && Array.isArray(v)) return v.length ? v.map(w => '„' + (field === 'konten' ? spGlied(w) : w) + '“').join(', ') : '–';
   if (field === 'massnahmen' && Array.isArray(v)) return v.length ? v.map(id => '„' + ((C.byId.get(id) || { m: {} }).m.name || '?') + '“').join(', ') : '–';
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);
   return String(v).slice(0, 80);

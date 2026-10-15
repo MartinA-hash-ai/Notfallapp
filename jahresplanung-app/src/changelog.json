@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.35.0",
+    "version": "0.36.0",
     "date": "",
+    "items": [
+      "Schlagworte je Maßnahme: neue Spalte „Schlagworte“ in der Tabelle (Klick öffnet die Eingabe – tippen und Enter, vorhandene per Klick, × entfernt), auch im Bearbeiten-Dialog",
+      "Zeitleiste und Kalender: Knopf „Schlagworte ▾“ – Maßnahmen nach Schlagwort ein- und ausblenden, „nur“ zeigt nur ein Schlagwort; gilt auch für „Was steht an?“. Die Häkchen in der Tabelle bleiben, ausgeblendete Zeilen sind blass",
+      "Maßnahmen-Tabelle: Spalten der Bereiche (Selektion, Inhalt, Druck) lassen sich einklappen – dann nur die Buchstaben und ein Häkchen, wo ein Start eingetragen ist",
+      "Farbwahl: eigene Farben – neue Farbe per Farbcode (z. B. #E30714) übernehmen, sie bleibt in der Palette und lässt sich für andere Maßnahmen genau übernehmen; dazu die Farben anderer Maßnahmen zum Übernehmen; × entfernt eine eigene Farbe aus der Palette"
+    ]
+  },
+  {
+    "version": "0.35.0",
+    "date": "2026-10-14T22:39",
     "items": [
       "Spendenbrücke und Spendersegmente wieder halb und halb",
       "Spendenbrücke: links je Stufe Personen und Betrag (z. B. „245 Personen (+35.190 €)“), die Jahre mit ihrer Summe; rechts nur die Balken; Zeigen auf einen Balken nennt die Stufe",

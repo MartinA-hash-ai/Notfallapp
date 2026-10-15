@@ -2075,3 +2075,37 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .jv-pdhalf { width: calc(50% - 10px); }
 .jv-mset .jv-mtab { margin-top: 4px; }
 @media print { .jv-print .jv-pdb > .jv-blick, .jv-print .jv-mset { break-inside: avoid; } }
+
+/* ---------- 0.36: Schlagworte je Maßnahme, Filter in Zeitleiste und Kalender, einklappbare Bereichsspalten, eigene Farben */
+.tagchip { display: inline-flex; align-items: center; gap: 2px; padding: 0 7px; border-radius: 10px; font-size: 11.5px; line-height: 18px; background: var(--soft); border: 1px solid var(--line); color: var(--ink2); white-space: nowrap; }
+.tagchip.add { cursor: pointer; color: var(--muted); border-style: dashed; background: none; }
+.tagchip.add:hover { color: var(--ink); border-color: var(--line2); }
+.mtable td.tags { padding: 0 4px; }
+.tagbtn { display: flex; gap: 3px; align-items: center; width: 100%; min-height: 26px; border: 0; background: none; padding: 0 2px; overflow: hidden; cursor: pointer; text-align: left; }
+.tagbtn:hover { background: var(--soft); }
+.mtable td.tags.off .tagchip { text-decoration: line-through; opacity: .7; }
+.tagpop { width: 300px; display: grid; gap: 6px; }
+.tag-cur { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; border: 1px solid var(--line2); border-radius: 6px; padding: 4px 6px; background: var(--card); min-height: 32px; cursor: text; }
+.tag-in { border: 0; outline: none; background: none; flex: 1; min-width: 90px; padding: 2px 0; font: inherit; color: var(--ink); }
+.tag-x { border: 0; background: none; padding: 0 0 0 3px; min-width: 0; color: var(--muted); cursor: pointer; font-size: 13px; line-height: 1; }
+.tag-x:hover { color: var(--red); }
+.tag-sug { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; margin-top: 6px; }
+.tagedit { min-width: 0; }
+.tagflt { min-width: 240px; }
+.tagflt-h { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; } .tagflt-h .sp { flex: 1; }
+.tagrow { display: flex; align-items: center; gap: 8px; } .tagrow .mchk { flex: 1; display: flex; align-items: center; gap: 6px; }
+.tag-n { margin-left: auto; } .tag-only { visibility: hidden; } .tagrow:hover .tag-only, .tag-only:focus-visible { visibility: visible; }
+.tagflt-n { margin: 8px 0 0; max-width: 260px; }
+.fbtn.act { border-color: var(--focus); color: var(--focus); }
+.mtable th.gr-ph.mini { text-align: center; } .gr-phin { display: flex; align-items: center; justify-content: center; gap: 10px; }
+.mtable .gr-ph .ph-tog { font-size: 11px; font-weight: 500; color: var(--muted); text-decoration: none; } .mtable .gr-ph .ph-tog:hover { color: var(--ink); text-decoration: underline; }
+.mtable th.h-ph.mini, .mtable td.ph.mini { text-align: center; padding-left: 0; padding-right: 0; }
+.ph-ok { color: var(--ink2); font-weight: 700; }
+.swwrap { position: relative; display: inline-block; width: 26px; height: 26px; }
+.sw-del { position: absolute; top: -6px; right: -6px; width: 16px; height: 16px; min-width: 0; border-radius: 50%; padding: 0; font-size: 11px; line-height: 14px; display: none; background: var(--card); border: 1px solid var(--line2); color: var(--ink2); }
+.swwrap:hover .sw-del, .sw-del:focus-visible { display: block; }
+.sw-h { font-size: 11px; color: var(--muted); margin: 10px 0 5px; }
+.sw-new { display: flex; align-items: center; gap: 6px; }
+.sw-ci { width: 34px; height: 28px; padding: 0 2px; }
+.sw-hex { width: 86px; font-family: ui-monospace, Consolas, monospace; text-transform: uppercase; }
+.sw-note { margin: 8px 0 0; max-width: 220px; }

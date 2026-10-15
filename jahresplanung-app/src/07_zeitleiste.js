@@ -152,6 +152,7 @@ function timelineSection(opts = {}) {
   return {
     lead: typePills(),
     tools: [
+      tagDropdown(),
       vacDropdown(),
       h('span', { class: 'segs' },
         h('button', { class: 'seg-btn' + (!zoomed ? ' on' : ''), onclick: () => { UI.tlPxd = 0; renderNow(); } }, 'Jahr'),

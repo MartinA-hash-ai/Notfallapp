@@ -5,12 +5,33 @@ function nextColor(y) {
   const used = new Set(C.ms.filter(x => inYear(x, y)).map(x => String(x.color).toLowerCase()));
   return (PALETTE.find(p => !used.has(p[1].toLowerCase())) || PALETTE[C.ms.length % PALETTE.length])[1];
 }
+// Farbwahl: feste Palette, eigene Farben (in der Planungsdatei, für alle gleich), Farben anderer Maßnahmen; neue Farbe per Farbcode – sie wird in der Palette gemerkt
+const HEX6 = /^#[0-9A-F]{6}$/;
+function addFarbe(c) { c = String(c).toUpperCase(); if (!HEX6.test(c) || PALETTE.some(p => p[1].toUpperCase() === c) || (D.farben || []).includes(c)) return; commit(d => { d.farben = normFarben((d.farben || []).concat(c)); }, 'Farbe ' + c + ' in die Palette aufgenommen'); }
+function delFarbe(c) { commit(d => { d.farben = (d.farben || []).filter(x => x !== c); }, 'Farbe ' + c + ' aus der Palette entfernt'); }
 function colorPicker(anchor, current, onPick) {
   closeMenu();
-  const m = h('div', { class: 'menu colors', role: 'dialog', onclick: e => e.stopPropagation() },
-    h('div', { class: 'sw-grid' }, PALETTE.map(([name, c]) => h('button', { class: 'sw' + (c.toLowerCase() === String(current).toLowerCase() ? ' on' : ''), style: { background: c }, tip: name, 'aria-label': name,
-      onclick: () => { closeMenu(); onPick(c); } }))),
-    h('label', { class: 'custom' }, 'Eigene Farbe: ', h('input', { type: 'color', value: current || '#1F77B4', onchange: e => { closeMenu(); onPick(e.target.value); } })));
+  const cur = String(current || '').toUpperCase(), std = new Set(PALETTE.map(p => p[1].toUpperCase()));
+  const own = () => (D.farben || []).filter(c => !std.has(c));
+  const used = () => [...new Set(C.ms.map(x => String(x.color || '').toUpperCase()))].filter(c => HEX6.test(c) && !std.has(c) && !own().includes(c)).slice(0, 12);
+  const pick = (c, keep) => { closeMenu(); if (keep) addFarbe(c); onPick(c); };
+  const sw = (c, name, o = {}) => h('span', { class: 'swwrap' }, h('button', { class: 'sw' + (c.toUpperCase() === cur ? ' on' : ''), style: { background: c }, tip: name ? name + ' · ' + c : c, 'aria-label': name || c, onclick: () => pick(c, o.keep) }),
+    o.del ? h('button', { class: 'sw-del', 'aria-label': c + ' aus der Palette entfernen', tip: 'aus der Palette entfernen – Maßnahmen behalten die Farbe', onclick: e => { e.stopPropagation(); delFarbe(c); fill(); } }, '×') : null);
+  const hex = h('input', { class: 'sw-hex', value: HEX6.test(cur) ? cur : '#1F77B4', maxlength: 7, 'aria-label': 'Farbcode', placeholder: '#RRGGBB' });
+  const ci = h('input', { type: 'color', class: 'sw-ci', value: hex.value.toLowerCase(), 'aria-label': 'Farbe wählen', oninput: e => { hex.value = e.target.value.toUpperCase(); } });
+  const apply = () => { let v = hex.value.trim().toUpperCase(); if (/^[0-9A-F]{6}$/.test(v)) v = '#' + v; if (!HEX6.test(v)) { toast('Bitte einen Farbcode wie #1F77B4 eingeben.', 'warn'); return; } pick(v, true); };
+  hex.oninput = () => { const v = hex.value.trim().toUpperCase(); if (HEX6.test(v)) ci.value = v.toLowerCase(); };
+  hex.onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); apply(); } };
+  const pane = h('div');
+  const fill = () => pane.replaceChildren(...[
+    h('div', { class: 'sw-grid' }, PALETTE.map(([n, c]) => sw(c, n))),
+    own().length ? [h('div', { class: 'sw-h' }, 'Eigene Farben'), h('div', { class: 'sw-grid sw-own' }, own().map(c => sw(c, null, { del: true })))] : null,
+    used().length ? [h('div', { class: 'sw-h' }, 'aus anderen Maßnahmen'), h('div', { class: 'sw-grid sw-used' }, used().map(c => sw(c, null, { keep: true })))] : null,
+    h('div', { class: 'sw-h' }, 'Neue Farbe'),
+    h('div', { class: 'sw-new' }, ci, hex, h('button', { class: 'small primary sw-ok', onclick: apply }, 'Übernehmen')),
+    h('p', { class: 'muted small sw-note' }, 'Neue Farben kommen unter „Eigene Farben“ – so lassen sie sich für andere Maßnahmen genau übernehmen.')].flat().filter(Boolean));
+  fill();
+  const m = h('div', { class: 'menu colors', role: 'dialog', onclick: e => e.stopPropagation() }, pane);
   document.body.append(m);
   placeMenu(m, anchor.getBoundingClientRect());
   _openMenu = { m, btn: anchor, at: performance.now() };
@@ -105,22 +126,60 @@ async function copyToNextYear() {
   renderNow();
 }
 
+/* ---------- Schlagworte je Maßnahme: zum Ein- und Ausblenden in Zeitleiste und Kalender */
+// Eingabe mit Chips: Enter oder Komma fügt hinzu, × entfernt, vorhandene Schlagworte per Klick; baut sich bei jeder Änderung neu
+function tagEditor(cur, onChange) {
+  const box = h('div', { class: 'tagedit' });
+  const set = v => { cur = v; onChange(v); draw().focus(); };
+  const draw = () => {
+    const add = v => { const t = normTags([v], new Map(allTags().concat(cur).map(s => [s.toLowerCase(), s])))[0]; inp.value = ''; if (t && !cur.includes(t)) set(cur.concat(t)); };
+    const inp = h('input', { class: 'tag-in', placeholder: cur.length ? '' : 'Schlagwort eingeben …', 'aria-label': 'neues Schlagwort', maxlength: 40,
+      onkeydown: e => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); e.stopPropagation(); add(inp.value); } else if (e.key === 'Backspace' && !inp.value && cur.length) set(cur.slice(0, -1)); },
+      onblur: () => { if (inp.value.trim()) add(inp.value); } });
+    const rest = allTags().filter(t => !cur.some(c => c.toLowerCase() === t.toLowerCase()));
+    box.replaceChildren(...[
+      h('div', { class: 'tag-cur', onclick: e => { if (e.target === e.currentTarget) inp.focus(); } }, cur.map(t => h('span', { class: 'tagchip' }, t,
+        h('button', { class: 'tag-x', 'aria-label': t + ' entfernen', tip: 'entfernen', onclick: e => { e.preventDefault(); e.stopPropagation(); set(cur.filter(s => s !== t)); } }, '×'))), inp),
+      rest.length ? h('div', { class: 'tag-sug' }, h('span', { class: 'muted small' }, 'vorhanden:'), rest.map(t => h('button', { class: 'tagchip add', onclick: e => { e.preventDefault(); e.stopPropagation(); set(cur.concat(t)); } }, '+ ' + t))) : null].filter(Boolean));
+    return inp;
+  };
+  draw();
+  return box;
+}
+function tagCell(x) {
+  const off = checkedM(x) && !tagOk(x), tags = x.m.tags || [];
+  return h('td', { class: 'tags' + (off ? ' off' : '') }, h('button', { class: 'tagbtn', 'data-fk': 'm:' + x.id + ':tags', 'aria-label': 'Schlagworte bearbeiten',
+    tip: (off ? 'per Schlagwort in Zeitleiste und Kalender ausgeblendet\n' : '') + (tags.length ? tags.join(', ') + ' – bearbeiten' : 'Schlagwort vergeben – damit lässt sich die Maßnahme in Zeitleiste und Kalender schnell ein- und ausblenden'),
+    onclick: e => { e.stopPropagation(); tagPop(e.currentTarget, x.id); } }, tags.length ? tags.map(t => h('span', { class: 'tagchip' }, t)) : h('span', { class: 'muted' }, '–')));
+}
+function tagPop(anchor, id) {
+  const x = C.byId.get(id); if (!x) return;
+  hideTip();
+  popover(anchor, h('div', { class: 'tagpop' }, h('div', { class: 'small muted' }, 'Schlagworte für „' + (x.m.name || '(ohne Namen)') + '“'),
+    tagEditor((x.m.tags || []).slice(), v => setM(id, 'tags', v, (x.m.name || 'Maßnahme') + ': Schlagworte ' + (v.length ? v.join(', ') : 'entfernt')))));
+  setTimeout(() => { const i = $('.tagpop .tag-in'); if (i) i.focus(); }, 0);
+}
+
 /* ---------- Tabelle: je Bereich eine Spalte „Start …“ (als Datum oder als Werktage bis zum PAL), dann das PAL */
 const wtView = () => UI.startView === 'wt';
 const mcols = () => [
   { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 180, t: 'Maßnahme' }, { k: 'resp', w: 150, t: 'Hauptverantwortlich' },
-  { k: 'auflage', w: 68, t: 'Auflage' },
-  ...PH().map(p => ({ k: 'ph_' + p.key, w: wtView() ? 112 : 136, t: p.name, tip: 'Start ' + p.name + (wtView() ? ' – Werktage bis zum PAL' : ''), chip: p.key, phase: p.key })),
+  { k: 'tags', w: 130, t: 'Schlagworte', tip: 'zum Ein- und Ausblenden in Zeitleiste und Kalender (Knopf „Schlagworte“ dort)' }, { k: 'auflage', w: 68, t: 'Auflage' },
+  ...PH().map(p => UI.phMini ? { k: 'ph_' + p.key, w: 34, fixed: true, t: p.name, tip: 'Start ' + p.name + ' – Häkchen: Datum eingetragen', chip: p.key, phase: p.key, mini: true }
+    : { k: 'ph_' + p.key, w: wtView() ? 112 : 136, t: p.name, tip: 'Start ' + p.name + (wtView() ? ' – Werktage bis zum PAL' : ''), chip: p.key, phase: p.key }),
   { k: 'pal', w: 136, t: 'PAL', chip: 'P' },
   { k: 'status', w: 84, t: 'PAL-Status' }, { k: 'bitte', w: 96, t: 'Spendenbitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
   { k: 'warns', w: 34, fixed: true }, { k: 'acts', w: 34, fixed: true }];
-const colKey = c => c.phase ? c.k + (wtView() ? ':wt' : '') : c.k;
+const colKey = c => c.mini ? c.k + ':mini' : c.phase ? c.k + (wtView() ? ':wt' : '') : c.k;
 const colW = c => c.flex ? 0 : (UI.colW && UI.colW[colKey(c)]) || c.w;   // Hinweis nimmt immer den Rest
 function tableWidth() { return mcols().reduce((s, c) => s + (colW(c) || c.flex || 0), 0); }
 // Kopfzeile der Bereiche: „Start der“ / „Selektion“ in zwei Zeilen (eigene Bereiche: „Start“ / Name)
 const PH_HEAD = { Selektion: ['Start der', 'Selektion'], Inhalt: ['Start des', 'Inhalts'], Produktion: ['Start der', 'Produktion'] };
 const phHead = p => wtView() ? ['Zeit bis PAL für', p.name] : PH_HEAD[p.name] || ['Start', p.name];   // Werktage-Ansicht: „Zeit bis PAL für“ / „Selektion“
 // Schalter über den Spalten der Bereiche: links Datum, rechts Werktage bis zum PAL
+// Bereichsspalten ein-/ausklappen: eingeklappt nur Buchstaben und ein Häkchen, wo ein Start eingetragen ist
+const phToggle = () => h('button', { class: 'link small ph-tog', tip: UI.phMini ? 'Starts der Bereiche wieder mit Datum zeigen' : 'einklappen – nur Buchstaben und ein Häkchen, wo ein Start eingetragen ist',
+  onclick: () => { UI.phMini = !UI.phMini; saveUI(); renderNow(); } }, UI.phMini ? 'aufklappen' : 'einklappen');
 function viewSwitch() {
   const on = wtView(), set = v => { UI.startView = v; saveUI(); renderNow(); };
   return h('div', { class: 'vswitch' + (on ? ' on' : ''), tip: 'Starts der Bereiche als Datum oder als Werktage bis zum PAL anzeigen (das PAL bleibt ein Datum)' },
@@ -191,7 +250,8 @@ function massnahmenSection() {
       const lines = w.concat(pv.map(({ s, v }) => s.wer + ': Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis) + ' („' + s.name + '“)'));
       const warnIcon = lines.length ? h('span', { class: 'wi' + (pv.length ? ' vac' : ''), tip: (pv.length ? 'Urlaub im Bereich ' + phName(key) + ':\n' : '') + lines.join('\n') }, pv.length ? '🏖' : '⚠') : null;
       const tipDate = n != null ? startLabel(key) + ': ' + fmtW(n) + (x.pal != null ? ' · ' + workdaysBefore(n, x.pal) + ' Werktage vor PAL' : '') + (x.enx[key] != null ? ' · bis ' + fmtW(x.en[key]) : '') : null;
-      const pi = PH().findIndex(q => q.key === key), cellCls = 'date ph' + (wtView() ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === PH().length - 1 ? ' ph-last' : '');
+      const pi = PH().findIndex(q => q.key === key), cellCls = 'date ph' + (wtView() && !UI.phMini ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === PH().length - 1 ? ' ph-last' : '');
+      if (UI.phMini) { const has = x.pal != null && n != null && !(m.plan && !startMovable(x, key)); return h('td', { class: cellCls + ' mini', tip: has ? tipDate : null }, has ? h('span', { class: 'ph-ok', 'aria-label': 'eingetragen' }, '✓') : null); }
       if (m.plan && !startMovable(x, key)) return h('td', { class: cellCls + ' derived-date', tip: 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' }, h('span', { class: 'muted' }, '–'));
       if (x.pal == null) return h('td', { class: cellCls }, h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–'), warnIcon);
       const inp = wtView()
@@ -201,11 +261,12 @@ function massnahmenSection() {
       return h('td', { class: cellCls, tip: m.plan ? 'Start ändern – die Arbeitsschritte im Detailplan passen sich an' : null }, inp, warnIcon);
     };
     tb.append(h('tr', { dataset: { m: id, flash: 'm:' + id }, class: selM(x) ? '' : 'hidden-m', onmouseenter: () => highlight(id), onmouseleave: () => highlight(null) },
-      h('td', { class: 'vis' }, h('input', { type: 'checkbox', checked: selM(x), tip: 'im Kalender und in der Zeitleiste anzeigen – sind alle angehakt, zeigt ein Klick nur diese (Strg+Klick: nur diese umschalten)', 'aria-label': 'anzeigen',
+      h('td', { class: 'vis' }, h('input', { type: 'checkbox', checked: selChk(x), tip: 'im Kalender und in der Zeitleiste anzeigen – sind alle angehakt, zeigt ein Klick nur diese (Strg+Klick: nur diese umschalten)', 'aria-label': 'anzeigen',
         onclick: e => { toggleVisible(id, rows, e); renderNow(); } })),
       h('td', { class: 'col' }, h('button', { class: 'swatch', style: { background: x.color }, tip: 'Farbe ändern', 'aria-label': 'Farbe ändern', onclick: e => { e.stopPropagation(); colorPicker(e.currentTarget, x.color, c => setM(id, 'farbe', c)); } })),
       h('td', { class: 'name' }, h('input', { value: m.name, title: m.name, 'data-fk': fk('name'), style: { color: inkC(x.color) }, onchange: e => setM(id, 'name', e.target.value.trim()) })),
       h('td', { class: 'resp' }, personInput({ value: m.verantwortlich || '', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
+      tagCell(x),
       h('td', { class: 'num' }, numField(m.auflage, 0, v => setM(id, 'auflage', v), { 'data-fk': fk('auflage') })),
       PH().map(p => startCell(p.key)),
       h('td', { class: 'date pal' + (m.palStatus !== 'fest' ? ' vorl' : '') }, dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null))),
@@ -221,9 +282,10 @@ function massnahmenSection() {
   const nWarn = C.warnings.filter(w => w.mid && rows.some(x => x.id === w.mid) && w.lvl === 'warn').length;
   const COLS = mcols();
   const phs = PH(), nBefore = COLS.findIndex(c => c.phase), nAfter = COLS.length - nBefore - phs.length;
-  const ths = COLS.map(c => h('th', { class: 'h-' + c.k + (c.phase ? ' h-ph' + (c.phase === phs[0].key ? ' ph-first' : '') + (c.phase === phs[phs.length - 1].key ? ' ph-last' : '') : ''), tip: c.tip || null },
-    c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(selM), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
+  const ths = COLS.map(c => h('th', { class: 'h-' + c.k + (c.mini ? ' mini' : '') + (c.phase ? ' h-ph' + (c.phase === phs[0].key ? ' ph-first' : '') + (c.phase === phs[phs.length - 1].key ? ' ph-last' : '') : ''), tip: c.tip || null },
+    c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(selChk), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
       onclick: e => { const on = e.target.checked; unpin(); rows.forEach(x => on ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) :
+    c.mini ? demoChip(c.chip) :
     c.phase ? [h('span', { class: 'th2' }, h('small', null, phHead(phase(c.phase))[0]), h('span', null, phHead(phase(c.phase))[1], demoChip(c.chip))),
       h('span', { class: 'col-rs', tip: 'Spaltenbreite ziehen (Doppelklick: zurücksetzen)', onpointerdown: e => colResize(e, c), ondblclick: () => { if (UI.colW) delete UI.colW[colKey(c)]; saveUI(); renderNow(); } })] :
     [c.t || '', c.chip ? demoChip(c.chip) : null,
@@ -239,7 +301,7 @@ function massnahmenSection() {
       h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable', style: { width: 'max(100%, ' + tableWidth() + 'px)' } },
         h('colgroup', null, COLS.map(c => h('col', { dataset: { k: c.k }, style: colW(c) ? { width: colW(c) + 'px' } : null }))),
         h('thead', null,
-          phs.length ? h('tr', { class: 'grouprow' }, nBefore ? h('th', { colspan: nBefore }) : null, h('th', { class: 'gr-ph', colspan: phs.length }, viewSwitch()), nAfter ? h('th', { colspan: nAfter }) : null) : null,
+          phs.length ? h('tr', { class: 'grouprow' }, nBefore ? h('th', { colspan: nBefore }) : null, h('th', { class: 'gr-ph' + (UI.phMini ? ' mini' : ''), colspan: phs.length }, UI.phMini ? phToggle() : h('div', { class: 'gr-phin' }, viewSwitch(), phToggle())), nAfter ? h('th', { colspan: nAfter }) : null) : null,
           h('tr', null, ths)), tb)),
       !rows.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
         C.ms.some(x => x.pal != null && ymd(x.pal)[0] === y - 1) ? [' oder ', h('button', { class: 'link', onclick: () => { UI.year = y - 1; copyToNextYear(); } }, 'aus ' + (y - 1) + ' kopieren')] : null) : null],
@@ -252,9 +314,9 @@ function syncVisBoxes() {
   let all = true;
   $$('tbody tr[data-m]', t).forEach(tr => {
     const x = C.byId.get(tr.dataset.m); if (!x) return;
-    const on = selM(x), cb = $('td.vis input', tr); all = all && on;
+    const on = selChk(x), cb = $('td.vis input', tr); all = all && on;
     if (cb) cb.checked = on;
-    tr.classList.toggle('hidden-m', !on);
+    tr.classList.toggle('hidden-m', !selM(x));
   });
   const hc = $('thead th.h-vis input', t); if (hc) hc.checked = all;
 }
@@ -296,6 +358,7 @@ async function editMassnahme(id) {
     phaseRows,
     calc,
     row('Hauptverantwortlich', personInput({ value: m.verantwortlich || '', oninput: e => { m.verantwortlich = e.target.value.trim(); } }), 'Urlaub dieser Person wird bei den Terminen geprüft'),
+    h('div', { class: 'frow' }, h('span', null, 'Schlagworte'), tagEditor((m.tags || []).slice(), v => { m.tags = v; }), h('small', null, 'zum Ein- und Ausblenden in Zeitleiste und Kalender')),
     row('Auflage', numField(m.auflage, 0, v => { m.auflage = v; })),
     row('Kosten (€)', numField(m.kosten, 2, v => { if (v == null) delete m.kosten; else m.kosten = v; }), 'für den Reiter „Auswertung“ (ROI)'),
     row('Spendenbitte', h('select', { onchange: e => { m.art = e.target.value; } }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
