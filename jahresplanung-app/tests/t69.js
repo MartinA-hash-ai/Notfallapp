@@ -42,10 +42,10 @@ const year = y => { const r = [];
     return g && g.children[0].dataset.sec === 'jv-ziel' && g.children[1].dataset.sec === 'jv-kpi' && Math.abs(b.width / a.width - 2) < 0.1; }), 'B: „Hochrechnung“ (ein Drittel) und „Kennzahlen“ (zwei Drittel) nebeneinander');
   ok(await p.evaluate(() => !!document.querySelector('[data-chart="jvcum"] polyline.jv-proj') && [...document.querySelectorAll('[data-chart="jvcum"] .jv-plab')].map(t => t.textContent).join() === '≈ 3.450 €'),
     'B: im Jahresverlauf gestrichelt bis 31.12., am Ende „≈ 3.450 €“');
-  const bl = () => p.evaluate(() => [!document.querySelector('.jv-say'), [...document.querySelectorAll('.jv-gt')].map(t => t.dataset.k + ':' + t.querySelector('.jv-gtv').textContent + ' / ' + t.querySelector('.jv-gts').textContent).join(' ## ')]);
+  const bl = () => p.evaluate(() => [!document.querySelector('.jv-say'), [...document.querySelectorAll('.jv-gt:not(.jv-gtz)')].map(t => t.dataset.k + ':' + t.querySelector('.jv-gtv').textContent + ' / ' + t.querySelector('.jv-gts').textContent).join(' ## ')]);
   const b3 = await bl();
   ok(b3[0] === true && b3[1].startsWith('sum:2.300 € / ▲ +15,0 % 2026: 2.000 € ## proj:≈ 3.450 € / noch kein Jahresziel ## don:3 / '),
-    'B: „Auf einen Blick“ – nur vier Zahlen (kein Satz mehr), die Hochrechnung als zweite');
+    'B: „Auf einen Blick“ – vier Zahlen (kein Satz mehr), die Hochrechnung als zweite');
 
   // ---- C: Jahresziel – unter der Kachel eintragen (kleines Fenster), gilt je Auswahl
   const zr = () => p.evaluate(() => document.querySelector('[data-sec="jv-ziel"] .jv-zrow2')?.textContent);
@@ -94,16 +94,16 @@ const year = y => { const r = [];
   const e1 = await p.evaluate(() => { window.print = () => {}; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => {
     const pg = t => [...document.querySelectorAll('#printdoc .pd-page')].find(x => x.querySelector('h1').textContent === t);
     const z = pg('Auf einen Blick · Hochrechnung · Kennzahlen 2027'), t = pg('Größte Spender:innen 2027'), bk = z && z.querySelector('[data-jvk="blick"]');
-    r([!!z, z && !z.querySelector('input, .jv-zedit'), z && z.querySelector('.jv-zrow2')?.textContent, z && !!z.querySelector('.jv-grid2.r12 .jv-kt'), !!t, t && [...t.querySelectorAll('th')].map(e => e.textContent).join('|'), t && !/Probe/.test(t.textContent), bk && bk.querySelectorAll('.jv-gt').length]); }, 300)); });
-  ok(e1[0] && e1[1] && e1[2] === 'Jahresziel 4.000 €' && e1[3] && e1[4] && e1[5] === '|Gruppe|2027|2026|Veränderung|Anteil' && e1[6] && e1[7] === 4,
-    'E: PDF – „Auf einen Blick“ (vier Zahlen), Hochrechnung und Kennzahlen auf einer Seite (Ziel als Zeile, ohne Knopf), „Größte Spender:innen“ ohne Namen');
+    r([!!z, z && !z.querySelector('input, .jv-zedit'), z && z.querySelector('.jv-zrow2')?.textContent, z && !!z.querySelector('.jv-grid2.r12 .jv-kt'), !!t, t && [...t.querySelectorAll('th')].map(e => e.textContent).join('|'), t && !/Probe/.test(t.textContent), bk && bk.querySelectorAll('.jv-gt').length + ':' + bk.querySelectorAll('.jv-gtz').length]); }, 300)); });
+  ok(e1[0] && e1[1] && e1[2] === 'Jahresziel 4.000 €' && e1[3] && e1[4] && e1[5] === '|Gruppe|2027|2026|Veränderung|Anteil' && e1[6] && e1[7] === '5:1',
+    'E: PDF – „Auf einen Blick“ (vier Zahlen und Zweckbindung), Hochrechnung und Kennzahlen auf einer Seite (Ziel als Zeile, ohne Knopf), „Größte Spender:innen“ ohne Namen');
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
 
   // ---- F: vollständiges Hauptjahr – keine Hochrechnung; Daten überstehen Laden und Zusammenführen
   await p.evaluate(() => { UI.year = 2026; renderNow(); }); await p.waitForTimeout(400);
   const f0 = await p.evaluate(() => [jvProj(jvSetup(), jvData(jvSetup())), [...document.querySelectorAll('[data-sec="jv-ziel"] .jv-kpi .jv-kt')].map(e => e.textContent).join('|'), document.querySelector('[data-sec="jv-ziel"] .jv-zrow2')?.textContent,
     !!document.querySelector('[data-chart="jvcum"] polyline.jv-proj'), [...document.querySelectorAll('.jv-gt')].map(t => t.dataset.k).join()]);
-  ok(f0[0] === null && f0[1] === 'Jahressumme' && f0[2] === '+ Jahresziel eintragen' && !f0[3] && f0[4] === 'sum,ziel,don,avg', 'F: 2026 vollständig – keine Hochrechnung, nur die Jahressumme; oben statt der Hochrechnung das Jahresziel');
+  ok(f0[0] === null && f0[1] === 'Jahressumme' && f0[2] === '+ Jahresziel eintragen' && !f0[3] && f0[4] === 'sum,ziel,don,avg,zweck', 'F: 2026 vollständig – keine Hochrechnung, nur die Jahressumme; oben statt der Hochrechnung das Jahresziel');
   const f1 = await p.evaluate(() => { const base = clone(D), mine = clone(D), theirs = clone(D);
     mine.spenden.ziel = { 2027: 400000, 2026: 300000 }; theirs.spenden.ziel = { 2027: 400000, '2027p': 250000 };
     const m = merge3(base, mine, theirs).data, n = normalize(clone(m)), bad = normalize(Object.assign(clone(D), { spenden: { ziel: { x: 5, '2027q': 5, 2028: -1, 2029: 'a', 2030: 99.6 } } }));

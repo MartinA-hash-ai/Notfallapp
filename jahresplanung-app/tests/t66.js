@@ -166,10 +166,12 @@ const year = y => { const r = [];
   await p.evaluate(() => { UI.jvMv = { sets: [{ id: 'v1', name: 'Weihnachtsmailings', ms: [{ id: 'wm25', c: 1 }, { id: 'wm24', c: 2 }] }], on: ['v1'], cur: 'v1' }; renderNow(); }); await p.waitForTimeout(300);
 
   // ---- F: Bausteine ein- und ausblenden
-  await p.click('[data-sec="jv-mail"] .jv-hide'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => !document.querySelector('.jv .sec-h .jv-hide, .jv .sec-h .jv-drag, .jv [draggable="true"]')), 'F: in den Kästen weder „ausblenden“ noch Griff zum Verschieben');
+  await p.click('.jv-bbtn'); await p.waitForTimeout(150);
+  await p.click('.menu.pop label.mchk:has-text("Maßnahmen vergleichen") input'); await p.waitForTimeout(300); await p.keyboard.press('Escape'); await p.waitForTimeout(100);
   const f0 = await p.evaluate(() => [!document.querySelector('[data-sec="jv-mail"]'), !/Ausgeblendet/.test(document.querySelector('.jv').textContent)]);
   await p.click('.jv-bbtn'); await p.waitForTimeout(150);
   await p.click('.menu.pop label.mchk:has-text("Maßnahmen vergleichen") input'); await p.waitForTimeout(300);
-  ok(f0[0] && f0[1] && await p.evaluate(() => !!document.querySelector('[data-sec="jv-mail"]') && !UI.jvHide.mail), 'F: „ausblenden“ nimmt einen Baustein heraus (ohne Hinweistext), „Bausteine“ blendet ihn wieder ein');
+  ok(f0[0] && f0[1] && await p.evaluate(() => !!document.querySelector('[data-sec="jv-mail"]') && !UI.jvHide.mail), 'F: „Bausteine“ nimmt einen Baustein heraus (ohne Hinweistext) und blendet ihn wieder ein');
   await finish(b, pages);
 })();

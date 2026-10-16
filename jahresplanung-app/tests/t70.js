@@ -155,7 +155,7 @@ const year = y => { const r = [];
   await p.click('.jv-bar .jv-grp button[data-g="alle"]'); await p.waitForTimeout(300);
 
   // ---- E: „Auf einen Blick“ – Satz und vier Zahlen; Farben erst ab ±5 % (Anteile ±2 Pkt.)
-  const e0 = await p.evaluate(() => [!document.querySelector('.jv-say'), [...document.querySelectorAll('.jv-gt')].map(t => t.dataset.k + ':' + t.querySelector('.jv-gtt').textContent + '=' + t.querySelector('.jv-gtv').textContent).join(' | ')]);
+  const e0 = await p.evaluate(() => [!document.querySelector('.jv-say'), [...document.querySelectorAll('.jv-gt:not(.jv-gtz)')].map(t => t.dataset.k + ':' + t.querySelector('.jv-gtt').textContent + '=' + t.querySelector('.jv-gtv').textContent).join(' | ')]);
   ok(e0[0] && e0[1] === 'sum:Spendensumme bis 10.10.=5.730 € | proj:Hochrechnung 31.12.=≈ 5.964 € | don:Spender:innen=9 | avg:Ø je Spende=318,33 €',
     'E: „Auf einen Blick“ – vier Kacheln Spendensumme, Hochrechnung, Spender:innen, Ø je Spende, kein Satz');
   const e1 = await p.evaluate(() => [jvDEl(100, 104).className, jvDEl(100, 105).className, jvDEl(100, 96).className, jvDEl(100, 94).className, jvDEl(0.5, 0.515, { pp: true }).className, jvDEl(0.5, 0.53, { pp: true }).className, jvDEl(10, 5, { inv: true }).className, jvDEl(100, 1200).textContent]);

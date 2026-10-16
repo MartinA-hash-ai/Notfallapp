@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.39.0",
+    "version": "0.40.0",
     "date": "",
+    "items": [
+      "Jahresvergleich – „Auf einen Blick“: neue Kachel „Zweckbindung“ – zweckgebunden und zweckungebunden mit Betrag und als geteilter Balken in Prozent, darunter der Anteil im Vergleichsjahr (Veränderung in Prozentpunkten)",
+      "Jahresverlauf: heißt nur noch „Jahresverlauf“; zwischen Linie und Quartalen neu „Spenden pro Woche“ (wie unter „Spenden JJJJ“, Hauptjahr, Einzelspenden und Daueraufträge)",
+      "Jahresverlauf: oben rechts je Teil ein Häkchen – Linie, Spenden pro Woche, Quartale, Quartalszahlen; gilt auch fürs PDF",
+      "Jahresverlauf: Häkchen „Maßnahmen“ zeigt die schon verschickten Maßnahmen des Hauptjahres als Punkte in ihrer Farbe am PAL (Zeigen nennt Name, PAL und zugeordnete Spenden)",
+      "Jahresvergleich: in den Kästen kein „ausblenden“ und kein Griff zum Verschieben mehr – zeigen und ordnen weiterhin unter „Bausteine“",
+      "PDF für die Präsentation: passt der Jahresverlauf nicht auf eine Seite, kommen die Quartale auf die nächste"
+    ]
+  },
+  {
+    "version": "0.39.0",
+    "date": "2026-10-15T15:21",
     "items": [
       "Maßnahmen-Tabelle: Spalte heißt jetzt „Verantwortlich“ statt „Hauptverantwortlich“ (auch im Bearbeiten-Dialog, in PDF, Excel und Outlook-Export)",
       "Filter: links immer „Verantwortlich“, rechts „Schlagworte“",

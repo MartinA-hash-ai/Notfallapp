@@ -1708,7 +1708,6 @@ button.chip.jv-pk { cursor: pointer; } .chip.jv-pk.off { border-style: dashed; c
 .jv-bpop { min-width: 240px; } .jv-bsub { margin: 0 0 4px 22px; }
 /* 0.22: eigener Reiter „Jahresvergleich“ – Abschnitte, Sondereffekte im Quartalsvergleich, Quartale in Zahlen */
 .view-vergleich .jv > .sec { margin-top: 0; }
-.sec-h .jv-hide { color: var(--muted); text-decoration: none; font-size: 12px; }
 .jv-sxtog { margin-left: 4px; }
 .jv span.jv-up { color: var(--jvup); } .jv span.jv-dn { color: var(--jvdn); } .jv span.jv-eq { color: var(--faint); }
 .jv-qh .jv-qsxtog { margin-left: auto; display: inline-flex; align-items: center; gap: 5px; }
@@ -1792,17 +1791,12 @@ main.view-vergleich { overflow: visible; }
 .jv-lad .jv-lg { font-size: 10px; fill: var(--muted); }
 .jv-qd .jv-qg { font-weight: 500; color: var(--muted); font-size: 10.5px; }
 .jv-legsx { margin-left: auto; display: inline-flex; align-items: center; gap: 6px; color: var(--jvsx); font-weight: 600; }
-.jv-drag { cursor: grab; color: var(--faint); font-size: 16px; line-height: 1; padding: 2px 4px; border-radius: 4px; user-select: none; }
-.jv-drag:hover { color: var(--ink); background: var(--head); } .jv-drag:active { cursor: grabbing; }
-body.jv-dragging .jv .sec { transition: box-shadow .1s; }
-.jv .sec.jv-drop-b { box-shadow: 0 -3px 0 0 var(--focus); } .jv .sec.jv-drop-a { box-shadow: 0 3px 0 0 var(--focus); }
-.jv-grid2 > .sec.jv-drop-b { box-shadow: -3px 0 0 0 var(--focus); } .jv-grid2 > .sec.jv-drop-a { box-shadow: 3px 0 0 0 var(--focus); }
 .jv-brow { display: flex; align-items: center; gap: 2px; } .jv-brow .mchk { flex: 1; }
 .jv-mv { border: 0; background: transparent; padding: 2px 6px; border-radius: 4px; color: var(--muted); cursor: pointer; } .jv-mv:hover:not(:disabled) { background: var(--head); color: var(--ink); } .jv-mv:disabled { opacity: .3; cursor: default; }
 .jv-bhint { margin: 6px 4px 0; }
 .jv-ph { font-size: 13px; margin: 0 0 6px; text-transform: none; letter-spacing: 0; color: var(--ink); }
 @media print {
-  .jv-print .jv-kx, .jv-print .sp-x, .jv-print .jv-madd, .jv-print .jv-kadd, .jv-print .jv-ktop, .jv-print .jv-qx, .jv-print .jv-drag, .jv-print .jv-hide { display: none !important; }
+  .jv-print .jv-kx, .jv-print .sp-x, .jv-print .jv-madd, .jv-print .jv-kadd, .jv-print .jv-ktop, .jv-print .jv-qx { display: none !important; }
   .jv-print select { appearance: none; -webkit-appearance: none; border: 0; background: none; padding: 0; font-weight: 600; }
   .jv-print .jv-qp { padding: 0; border: 0; background: none; margin-top: 6px; }
   .jv-print .jv-qcmp { margin-top: 10px; }
@@ -2122,3 +2116,28 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .tagrow input { pointer-events: none; margin: 0 2px 0 0; }
 @media print { .fbar { display: none !important; } }
 main.view-jahr { overflow: visible; }                                  /* sonst klebt die Filterleiste nicht (main wäre der Scroll-Container) */
+
+/* ---------- 0.40: „Auf einen Blick“ mit Zweckbindung; Jahresverlauf mit Spenden pro Woche, Teile einzeln ein-/ausblendbar, Maßnahmen als Punkte */
+.jv-glance { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr); }
+@media (max-width: 1100px) { .jv-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); } .jv-gtz { grid-column: 1 / -1; } }
+:root { --jvzg: var(--jvH); --jvzf: #d3d2cb; --jvzgt: #fff; --jvzft: #1d1d1b; }
+@media screen { html[data-theme=dark] { --jvzf: #53524e; --jvzgt: #10151c; --jvzft: #f2f1ec; } }
+.jv-zbn { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 10px; row-gap: 2px; margin: 3px 0 5px; }   /* zu schmal: rechter Teil rutscht in die nächste Zeile statt zu überlappen */
+.jv-zbn > div { display: grid; gap: 1px; } .jv-zbn > .r { justify-items: end; text-align: right; margin-left: auto; }
+.jv-zbn span { font-size: 11.5px; color: var(--muted); white-space: nowrap; }
+.jv-zbn b { font-size: 18px; line-height: 1.2; white-space: nowrap; }
+.jv-zbn i { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: 0; }
+.jv-zbn i.zg, .jv-zbp.zg { background: var(--jvzg); } .jv-zbn i.zf, .jv-zbp.zf { background: var(--jvzf); }
+.jv-zb { display: flex; gap: 2px; height: 22px; margin: 0 0 6px; }
+.jv-zbp { display: flex; align-items: center; justify-content: center; min-width: 3px; border-radius: 4px; font-size: 12px; font-weight: 700; overflow: hidden; white-space: nowrap; cursor: default; }
+.jv-zbp.zg { color: var(--jvzgt); } .jv-zbp.zf { color: var(--jvzft); }
+.jv-vp { display: inline-flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.jv-vp label.check { gap: 4px; white-space: nowrap; }
+.jv-vp .jv-vpms { padding-left: 12px; border-left: 1px solid var(--line); }
+.jv-wk { margin: 6px 0 10px; }
+.jv-wk .sp-cht { margin: 0 0 2px; padding-left: 96px; }
+.jv-qal { height: 0; }
+.jv-vp0 { margin: 4px 0; }
+@media print { .jv-print .jv-wk .sp-cht { padding-left: 96px; }
+  .jv-print .jv-glance { gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); } .jv-print .jv-gt { padding: 9px 10px; }   /* fünf Kacheln auf der A4-Breite: etwas kleiner, damit nichts umbricht */
+  .jv-print .jv-gtt, .jv-print .jv-gts { font-size: 11.5px; } .jv-print .jv-gtv { font-size: 22px; } .jv-print .jv-zbn b { font-size: 16px; } .jv-print .jv-zbn span { font-size: 11px; } .jv-print .jv-zbn i { width: 8px; height: 8px; margin-right: 4px; } }

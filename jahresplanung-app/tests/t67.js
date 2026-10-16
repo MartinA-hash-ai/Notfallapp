@@ -32,7 +32,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     'A: Mini-Verlauf – Hauptjahr kräftig blau, Vergleichsjahr mittelblau; kein × in der Tabelle');
   await p.click('.jv-bbtn'); await p.waitForTimeout(150);
   const a2 = await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bpop .jv-brow label.mchk')].map(l => l.textContent).join('|') + ' / ' + [...document.querySelectorAll('.menu.pop .jv-bsub label')].map(l => l.textContent + (l.querySelector('input').checked ? '+' : '-')).join('|'));
-  ok(a2 === 'Auf einen Blick|Hochrechnung|Kennzahlen|Jahresverlauf & Quartale|Privat & Institutionen|Spendenbrücke|Spendersegmente|Spenderbindung|Dauerspender:innen|Maßnahmen vergleichen|Zwecke über die Jahre|Konten über die Jahre|Größte Spender:innen / Spendensumme+|Spender:innen+|Ø je Spende+|Spenden+|Dauerspender:innen+|Anteil der größten 10 %+|Erstmals gespendet-',
+  ok(a2 === 'Auf einen Blick|Hochrechnung|Kennzahlen|Jahresverlauf|Privat & Institutionen|Spendenbrücke|Spendersegmente|Spenderbindung|Dauerspender:innen|Maßnahmen vergleichen|Zwecke über die Jahre|Konten über die Jahre|Größte Spender:innen / Spendensumme+|Spender:innen+|Ø je Spende+|Spenden+|Dauerspender:innen+|Anteil der größten 10 %+|Erstmals gespendet-',
     'A: „Bausteine“ – alle Bausteine, unter „Kennzahlen“ jede Kennzahl einzeln (ohne Median; „Erstmals“ anfangs aus)');
   await p.evaluate(() => [...document.querySelectorAll('.menu.pop .jv-bsub label')].find(l => l.textContent === 'Spenden').querySelector('input').click()); await p.waitForTimeout(250);
   const a3 = await p.evaluate(() => [[...document.querySelectorAll('.jv-kt tbody tr')].map(t => t.dataset.k).join(), JSON.stringify(UI.jvKHide), UI_KEYS.includes('jvKHide'), !!document.querySelector('.menu.pop .jv-bpop')]);
@@ -141,23 +141,17 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     'I: „↓“ bei Kennzahlen – steht jetzt unter dem Jahresverlauf (nicht mehr neben der Hochrechnung), gemerkt; „Bausteine“ bleibt offen');
   await p.keyboard.press('Escape');
   await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
-  await p.setViewportSize({ width: 1400, height: 6600 }); await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(300);   // Griff und Ziel gleichzeitig im Bild
-  const gp = await p.evaluate(() => { const g = document.querySelector('[data-sec="jv-top"] .sec-h .jv-drag').getBoundingClientRect(), t = document.querySelector('[data-sec="jv-mail"] .sec-h').getBoundingClientRect();
-    return [g.x + g.width / 2, g.y + g.height / 2, t.x + 200, t.y + 6]; });
-  await p.mouse.move(gp[0], gp[1]); await p.mouse.down(); await p.mouse.move(gp[0] + 4, gp[1] - 20, { steps: 4 }); await p.mouse.move(gp[2], gp[3], { steps: 12 }); await p.mouse.up(); await p.waitForTimeout(400);
-  await p.setViewportSize({ width: 1400, height: 1000 });
-  const i1 = await p.evaluate(() => [...document.querySelectorAll('#main .sec')].map(e => e.dataset.sec.replace('jv-', '')).join());
-  ok(i1 === 'blick,ziel,kpi,verlauf,herkunft,bruecke,seg,bindung,dauer,top,mail,zweck,konto', 'I: „Größte Spender:innen“ am Griff über „Maßnahmen vergleichen“ gezogen – steht jetzt davor (' + i1 + ')');
+  ok(await p.evaluate(() => !document.querySelector('.jv .sec-h .jv-drag, .jv .sec-h .jv-hide, .jv [draggable="true"]')), 'I: Verschieben nur noch unter „Bausteine“ (↑/↓) – kein Griff und kein „ausblenden“ in den Kästen');
   await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
   const i2 = await p.evaluate(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => r([window.__printed,
     [...document.querySelectorAll('#printdoc .pd-page .pd-head h1')].map(e => e.textContent).join(' | '), document.body.classList.contains('printdoc-mode'), document.querySelectorAll('#printdoc [data-chart] svg').length,
     /Sondereffekte herausgerechnet · Vergleich mit 2025/.test(document.querySelector('#printdoc .pd-head span').textContent), document.querySelectorAll('#printdoc input, #printdoc select, #printdoc .jv-hide').length,
     (() => { const pg = t => [...document.querySelectorAll('#printdoc .pd-page')].find(x => x.querySelector('h1').textContent.startsWith(t)), v = pg('Jahresverlauf'), sg = pg('Spendersegmente'), hk = pg('Privat & Institutionen');
-      return [!!v.querySelector('[data-chart="jvcum"]') && !!v.querySelector('.jv-qnum'), sg.querySelector('[data-chart="jvseg"]').dataset.w, !!sg.querySelector('[data-chart="jvseg"] svg.jv-full'), sg.querySelector('.jv-pdhalf [data-chart="jvbr"]')?.dataset.w,
+      return [!!v.querySelector('[data-chart="jvcum"]') && !!v.querySelector('[data-chart="jvwk"]') && !v.querySelector('.jv-qnum') && !!pg('Jahresverlauf 2026 – Quartale').querySelector('[data-chart="jvqa"]') && !!pg('Jahresverlauf 2026 – Quartale').querySelector('.jv-qnum'), sg.querySelector('[data-chart="jvseg"]').dataset.w, !!sg.querySelector('[data-chart="jvseg"] svg.jv-full'), sg.querySelector('.jv-pdhalf [data-chart="jvbr"]')?.dataset.w,
         !!sg.querySelector('[data-chart="jvbr"] .jv-brst'), !!hk.querySelector('.jv-pis.jv-full'), document.querySelectorAll('#printdoc .jv-mset').length === jvMv().sets.filter(x => jvMvLines(Object.assign({}, jvMv(), { on: [x.id] })).some(o => o.sr)).length, [...document.querySelectorAll('#printdoc [data-chart]')].every(e => +e.dataset.w <= 1040)].join(); })()]), 300)); });
-  ok(i2[0] === 1 && i2[1] === 'Auf einen Blick · Hochrechnung · Kennzahlen 2026 | Jahresverlauf & Quartale 2026 | Privat & Institutionen 2026 | Spendersegmente · Spendenbrücke 2025 → 2026 | Spenderbindung · Dauerspender:innen · Zwecke · Konten 2026 | Maßnahmen vergleichen | Größte Spender:innen 2026' && i2[2] && i2[3] >= 4 && i2[4],
+  ok(i2[0] === 1 && i2[1] === 'Auf einen Blick · Hochrechnung · Kennzahlen 2026 | Jahresverlauf 2026 | Jahresverlauf 2026 – Quartale | Privat & Institutionen 2026 | Spendersegmente · Spendenbrücke 2025 → 2026 | Spenderbindung · Dauerspender:innen · Zwecke · Konten 2026 | Maßnahmen vergleichen | Größte Spender:innen 2026' && i2[2] && i2[3] >= 4 && i2[4],
     'I: „PDF für die Präsentation“ – zusammengehörige Abschnitte auf einer Seite, Reihenfolge wie am Bildschirm, Einstellungen im Kopf: ' + i2[1]);
-  ok(i2[6] === 'true,1040,true,510,true,true,true,true', 'I: PDF – Verlauf mit „Quartale in Zahlen“ auf einer Seite, Segmente volle Breite und ausführlich, Brücke halbe Breite mit Stufen, Privat & Institutionen ausführlich, je Vergleich ein Block, nichts breiter als die Seite: ' + i2[6]);
+  ok(i2[6] === 'true,1040,true,510,true,true,true,true', 'I: PDF – Jahresverlauf mit Spenden pro Woche, die Quartale (Säulen und Zahlen) auf der nächsten Seite, Segmente volle Breite und ausführlich, Brücke halbe Breite mit Stufen, Privat & Institutionen ausführlich, je Vergleich ein Block, nichts breiter als die Seite: ' + i2[6]);
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('#printdoc') && !document.body.classList.contains('printdoc-mode')), 'I: nach dem Drucken ist die Druckansicht wieder weg');
   // ein Abschnitt mit Fehler: das PDF entsteht trotzdem, die Seite nennt den Fehler, oben ein Hinweis
@@ -168,7 +162,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
   ok(i3[0] === 1 && i3[1] && i3[2] >= 6 && i3[3], 'I: PDF auch dann, wenn ein Abschnitt einen Fehler hat – die Seite nennt ihn, oben ein Hinweis (' + JSON.stringify(i3) + ')');
   // ---- H: Bausteine ausblenden – Zwecke weg, Konten über die ganze Breite
-  await p.click('[data-sec="jv-zweck"] .jv-hide'); await p.waitForTimeout(250);
+  await p.click('.jv-bbtn'); await p.waitForTimeout(150); await p.click('.menu.pop label.mchk:has-text("Zwecke über die Jahre") input'); await p.waitForTimeout(300); await p.keyboard.press('Escape'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => !document.querySelector('[data-sec="jv-zweck"]') && [...document.querySelectorAll('.jv-grid2')].length === 3 && !!document.querySelector('.jv > [data-sec="jv-konto"]')), 'H: „Zwecke“ ausgeblendet – „Konten“ allein über die ganze Breite');
   await finish(b, pages);
 })();
