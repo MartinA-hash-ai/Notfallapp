@@ -1,0 +1,12 @@
+const { chromium } = require('./pw');
+const T = require('./common');
+(async () => { const b = await chromium.launch(); const p = await (await b.newContext({ viewport: { width: 1600, height: 1000 } })).newPage();
+const errs = []; p.on('pageerror', e => errs.push(e.message));
+await p.goto(T.URL); await p.waitForTimeout(300);
+const r = await p.evaluate(() => { const l = document.querySelector('.mlist .mline'); l.scrollIntoView({ block: 'center' }); const a = l.getBoundingClientRect(), box = l.parentElement.getBoundingClientRect(); return { tx: a.x + a.width / 2, ty: a.y + a.height / 2, ex: Math.min(box.right - 8, a.right + 40), w: Math.round(a.width), bw: Math.round(box.width) }; });
+await p.mouse.move(r.ex, r.ty); await p.waitForTimeout(150);
+const off = await p.evaluate(() => document.querySelector('#main').classList.contains('hl'));
+await p.mouse.move(r.tx, r.ty); await p.waitForTimeout(150);
+const on = await p.evaluate(() => document.querySelector('#main').classList.contains('hl'));
+console.log((!off && on ? 'OK   ' : 'FAIL ') + 'Hervorheben nur über der Schrift (Zeile ' + r.w + ' von ' + r.bw + ' px breit; daneben: ' + off + ', auf der Schrift: ' + on + ')');
+console.log('ERR', errs.join('|') || 'keine'); await b.close(); })();
