@@ -1,5 +1,6 @@
 // 0.42 Zusammenfassung „Buchungen hinzugefügt“: oben das Ergebnis (grün / orange), „Was kam hinzu“ als Zeitstrahl je Datei, je Punkt eine Zeile
 // (Auffälligkeiten, schon da mit Liste, lückenlos, per Regel → Prüfen); Liste der neuen Spenden eingeklappt; Bericht kopieren
+// 0.43: je eine Zeile „automatisch einer Maßnahme / einem Spendenzweck zugeordnet“ mit Anzahl, Feldern samt Anzahl und eigenem „Prüfen“
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 const p2 = x => String(x).padStart(2, '0');
@@ -23,7 +24,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
     res: m.querySelector('.sp-ar-res').textContent, warn: m.querySelector('.sp-ar-res').classList.contains('warn'),
     lanes: [...m.querySelectorAll('.sp-ar-lane')].filter(l => l.querySelector('.sp-ar-nm')).map(l => l.querySelector('.sp-ar-nm').textContent + ':' + [...l.querySelectorAll('.sp-ar-seg')].map(g => g.className.replace('sp-ar-seg ', '')).join('+') + ':' + l.querySelector('.sp-ar-rt').textContent),
     axis: [...m.querySelectorAll('.sp-ar-axis .ax span')].map(e => e.textContent).join('|'), key: [...m.querySelectorAll('.sp-ar-key > span')].map(e => e.textContent).join('|'),
-    rows: [...m.querySelectorAll('.sp-ar-row')].map(r => (r.classList.contains('warn') ? '!' : r.classList.contains('todo') ? '●' : '✓') + ' ' + r.querySelector('.sp-ar-tx').textContent),
+    rows: [...m.querySelectorAll('.sp-ar-row')].map(r => (r.classList.contains('warn') ? '!' : r.classList.contains('todo') ? '●' : r.classList.contains('none') ? '–' : '✓') + ' ' + r.querySelector('.sp-ar-tx').textContent),
     list: !!m.querySelector('.sp-addlist') }; });
 
   // ---- A: Ergebnis grün, Zeitstrahl je Datei (neu / schon da), Achse, Legende nur mit dem, was vorkommt
@@ -31,8 +32,8 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   ok(a0.res === '✓59 neue Spenden · 1.492,00 €01.02.–31.03.2023 · aus 3 Dateien' && !a0.warn, 'A: oben das Ergebnis, grün: ' + a0.res);
   ok(a0.lanes.join(' | ') === 'bisher eingelesen:old:02.01.–31.01.2023 | jan_nochmal.csv:dup:alle 12 schon da | feb.csv:new:28 neu | mrz.csv:new+dup:31 neu · 4 schon da',
     'A: „Was kam hinzu“ – bisher eingelesen, je Datei neu (blau) und schon da (schraffiert): ' + a0.lanes.join(' | '));
-  ok(a0.axis === 'Jan|Feb|Mär' && a0.key === 'neu übernommen|schon da – zählt einmal|bisher eingelesen', 'A: Achse ' + a0.axis + ', Legende nur mit dem, was vorkommt: ' + a0.key);
-  ok(a0.rows.join(' | ') === '✓ 16 Buchungen waren schon da – nicht doppelt gezählt | ✓ Eingelesen jetzt lückenlos vom 01.01. bis 31.03.2023 | ● 19 neue Spenden per Regel bei Rikscha – bitte einmal prüfen' && !a0.list,
+  ok(a0.axis === 'Jan|Feb|Mär' && a0.key === 'bisher eingelesen|schon da – zählt einmal|neu übernommen', 'A: Achse ' + a0.axis + ', Legende nur mit dem, was vorkommt: ' + a0.key);
+  ok(a0.rows.join(' | ') === '✓ 16 Buchungen waren schon da – nicht doppelt gezählt | ✓ Eingelesen jetzt lückenlos vom 01.01. bis 31.03.2023 | – Keine neue Spende passt zu einer Maßnahme | ● 19 neue Spenden automatisch einem Spendenzweck zugeordnetRikscha19' && !a0.list,
     'A: je Punkt eine Zeile; die Liste der neuen Spenden ist eingeklappt: ' + a0.rows.join(' | '));
 
   // ---- B: „Liste“ bei schon da – Datum, Betrag, Verwendungszweck, aus welcher Datei; neue Spenden aufklappen
@@ -70,5 +71,32 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.click('.sp-ar-row.warn .sp-ar-tog'); await p.waitForTimeout(200);
   const e1 = await p.evaluate(() => [...document.querySelectorAll('.sp-ar-sub .sp-ar-t tr')].map(r => r.lastElementChild.textContent));
   ok(e1.length === 10 && e1.filter(t => t === 'in „mrz_bank2.csv“').length === 5 && e1.filter(t => t === 'in „mrz.csv“').length === 5, 'E: „Buchungen ansehen“ – die Buchungen beider Dateien in diesen Tagen (' + e1.length + ')');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
+
+  // ---- F: Maßnahme und Zweck zugleich – zwei Zeilen mit eigener Anzahl, „zu klären“, Überschneidung, je ein „Prüfen“
+  await p.evaluate(() => commit(d => { for (const [id, nm, w] of [['hm', 'Hospizmailing 2023', 'Hospiz'], ['tm', 'Trauermailing 2023', 'Trauer']]) {
+    const c = JSON.parse(JSON.stringify(d.massnahmen[0])); Object.assign(c, { id, name: nm, pal: '2023-06-01', regel: { worte: [w], ab: 0, bis: 60 } }); d.massnahmen.push(c); } }));
+  const mkF = () => { const r = []; for (let t = 1; t <= 24; t++) r.push(L(p2(t) + '.06.2023', 20 + t, 60000 + t, t % 4 === 0 ? 'Hospiz Trauer' : t % 3 === 0 ? 'Spende Hospiz' : t % 3 === 1 ? 'Spende Rikscha' : 'Hospiz und Rikscha')); return r; };
+  await p.evaluate(t => spAddFiles([new File([t], 'jun.csv')]), csv(mkF()));
+  await p.waitForSelector('.modal .sp-ar'); await p.waitForTimeout(400);
+  const f0 = await p.evaluate(() => [...document.querySelectorAll('.modal .sp-ar-row.sp-ar-rule')].map(r => [r.querySelector('.sp-ar-tx').firstChild.textContent + r.querySelector('.sp-ar-tx').childNodes[1].textContent,
+    [...r.querySelectorAll('.sp-rchip')].map(c => c.textContent).join('|'), (r.querySelector('.sp-ar-tx small:not(.sp-rchip small)') || {}).textContent || '', r.querySelectorAll('.sp-ar-go').length,
+    [...r.querySelectorAll('.sp-rchip')].every(c => c.getBoundingClientRect().height < 24)]));
+  // 24 Spenden: 6× „Hospiz Trauer“ (zu klären), 6× „Hospiz“, 6× „Rikscha“, 6× „Hospiz und Rikscha“
+  ok(JSON.stringify(f0) === JSON.stringify([['12 neue Spenden automatisch einer Maßnahme zugeordnet', 'Hospizmailing 202312|⚠ zu klären6', '6 weitere passen zu mehreren Maßnahmen – bitte zuordnen', 1, true],
+    ['12 neue Spenden automatisch einem Spendenzweck zugeordnet', 'Rikscha12', '6 davon auch bei einer Maßnahme', 1, true]]),
+    'F: je eine Zeile für Maßnahme und Zweck mit Anzahl, Felder samt Anzahl in einer Zeile, „zu klären“ und Überschneidung erklärt: ' + JSON.stringify(f0));
+  await p.click('.sp-ar-row.sp-ar-rule >> nth=1 >> .sp-ar-go'); await p.waitForTimeout(500);
+  const f1 = await p.evaluate(() => [!!document.querySelector('.modal'), UI.spMid, SPJ.z, SPJ.lv, SPJ.onlyNew]);
+  ok(f1.join() === 'false,allg:2023,zr,zweck,true', 'F: „Prüfen“ in der Zweck-Zeile → Zweck „Rikscha“, nur die neuen ' + JSON.stringify(f1));
+  await p.evaluate(() => { for (const e of spjCompute(2023).list) if (e.neu) spUnflag(D, e.rec.k, 'z'); });
+  const jul = []; for (let t = 1; t <= 4; t++) jul.push(L(p2(t) + '.07.2023', 30 + t, 70000 + t, 'Spende Hospiz'));
+  await p.evaluate(t => spAddFiles([new File([t], 'jul.csv')]), csv(jul));
+  await p.waitForSelector('.modal .sp-ar'); await p.waitForTimeout(400);
+  const f2 = await st();
+  ok(f2.rows.slice(-2).join(' | ') === '● 4 neue Spenden automatisch einer Maßnahme zugeordnetHospizmailing 20234 | – Keine neue Spende passt zu einem Spendenzweck', 'F: nur Maßnahme – die Zweck-Zeile sagt „keine“: ' + f2.rows.slice(-2).join(' | '));
+  await p.click('.sp-ar-row.sp-ar-rule .sp-ar-go'); await p.waitForTimeout(500);
+  const f3 = await p.evaluate(() => [!!document.querySelector('.modal'), UI.spMid, SPUI.tab, SPUI.onlyNew]);
+  ok(f3.join() === 'false,hm,zu,true', 'F: „Prüfen“ in der Maßnahmen-Zeile → Hospizmailing, „zugeordnet“, nur die neuen ' + JSON.stringify(f3));
   await finish(b, pages);
 })();

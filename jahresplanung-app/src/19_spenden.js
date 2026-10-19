@@ -300,10 +300,11 @@ function spAddReport(report, known, oldFiles) {
     if (e && e.z !== SPJ_FREI && !e.hand) { const z = D.zwecke.find(q => q.id === e.z); out.push(z ? { key: 'z' + z.id, kind: 'z', id: z.id, label: z.name, c: z.farbe, tip: 'Spendenzweck „' + z.name + '“' } : { key: 'zk', kind: 'zk', label: '⚠ Zweck zu klären', c: '#b45309', tip: 'passt zu mehreren Spendenzwecken' }); }
     return out; };
   const chip = (g, extra, props) => h('span', Object.assign({ class: 'sp-rchip', style: { background: pastel(g.c), borderColor: g.c, color: inkC(g.c) }, tip: g.tip }, props || {}), g.label, extra || null);
-  const rules = new Map(); let nRule = 0;                      // Ziel → Anzahl und Jahre
-  for (const r of fresh) { const cs = catsOf(r); if (cs.length) nRule++;
-    for (const g of cs) { const o = rules.get(g.key) || Object.assign({}, g, { n: 0, ys: new Map() }); o.n++; const y = ymd(r.d)[0]; o.ys.set(y, (o.ys.get(y) || 0) + 1); rules.set(g.key, o); } }
-  const rulesList = [...rules.values()].sort((p, q) => q.n - p.n);
+  const rules = new Map(), nr = { m: 0, k: 0, z: 0, zk: 0, both: 0 };   // Ziel → Anzahl und Jahre; Anzahl je Art (Maßnahme / zu klären / Zweck / Zweck zu klären)
+  for (const r of fresh) { const cs = catsOf(r);
+    if (cs.some(g => g.kind === 'm' || g.kind === 'k') && cs.some(g => g.kind === 'z' || g.kind === 'zk')) nr.both++;
+    for (const g of cs) { nr[g.kind]++; const o = rules.get(g.key) || Object.assign({}, g, { n: 0, ys: new Map() }); o.n++; const y = ymd(r.d)[0]; o.ys.set(y, (o.ys.get(y) || 0) + 1); rules.set(g.key, o); } }
+  const rulesList = [...rules.values()].sort((p, q) => (p.kind === 'k' || p.kind === 'zk') - (q.kind === 'k' || q.kind === 'zk') || q.n - p.n);   // „zu klären“ jeweils zuletzt
   const goal = g => ({ kind: g.kind, id: g.id, y: [...g.ys].sort((a, b) => b[1] - a[1])[0][0] });
   const span2 = (a, b) => a === b ? fmtD(a) : fmtS(a) + '–' + fmtD(b);
   // Lücken in den Jahren der neuen Dateien (wie der Zeitstrahl der Auswertung; „seit der letzten Buchung“ zählt nicht)
@@ -319,7 +320,8 @@ function spAddReport(report, known, oldFiles) {
     'Neu: ' + n + ' Spenden' + (fs ? ', ' + span2(fs[0], fs[1]) : '') + ' · schon da: ' + dup,
     ...files.map(f => f.err ? 'Datei „' + f.name + '“: nicht lesbar (' + f.err + ')' : 'Datei „' + f.name + '“: ' + f.n + ' Buchungen' + (f.span ? ', ' + span2(f.span[0], f.span[1]) : '') + ' · neu ' + f.neu + ' · schon da ' + f.da + (f.same ? ' – identisch mit „' + f.same + '“' : '')),
     ...pairs.concat(inner).map(q => 'Gleicher Zeitraum: „' + q.a + '“ und „' + q.b + '“: ' + span2(q.from, q.to) + ' · ' + q.n + ' gleiche Buchungen' + (q.warn ? ' – bitte prüfen' : '')),
-    ...gaps.map(g => 'Lücke: ' + span2(g.s, g.e))].join('\n');
+    ...gaps.map(g => 'Lücke: ' + span2(g.s, g.e)),
+    ...(n ? ['Automatisch zugeordnet: ' + nr.m + ' einer Maßnahme' + (nr.k ? ' (+' + nr.k + ' zu klären)' : '') + ' · ' + nr.z + ' einem Spendenzweck' + (nr.zk ? ' (+' + nr.zk + ' zu klären)' : '') + (nr.both ? ' · ' + nr.both + ' bei beidem' : '')] : [])].join('\n');
   // ---- Zeitstrahl „Was kam hinzu“
   const timeline = () => {
     const sp = files.filter(f => f.span); if (!sp.length) return null;
@@ -357,7 +359,7 @@ function spAddReport(report, known, oldFiles) {
     const key = (k, t) => used.has(k) ? h('span', null, h('i', { class: 'sp-ar-k ' + k }), t) : null;
     return h('div', { class: 'sp-ar-card' }, h('div', { class: 'sp-ar-h' }, 'Was kam hinzu'), lanes,
       h('div', { class: 'sp-ar-axis' }, h('span'), h('span', { class: 'ax' }, ticks), h('span')),
-      h('div', { class: 'sp-ar-key' }, key('new', 'neu übernommen'), key('dup', 'schon da – zählt einmal'), key('warn', 'zu prüfen'), key('old', 'bisher eingelesen')));
+      h('div', { class: 'sp-ar-key' }, key('old', 'bisher eingelesen'), key('dup', 'schon da – zählt einmal'), key('warn', 'zu prüfen'), key('new', 'neu übernommen')));
   };
   // ---- Zeilen: Auffälligkeiten, schon da, lückenlos, per Regel
   const st = { dup: false, list: false, allF: false, wq: new Set() };
@@ -378,9 +380,24 @@ function spAddReport(report, known, oldFiles) {
     if (st.dup) out.push(h('div', { class: 'sp-ar-sub' }, h('table', { class: 'grid sp-ar-t' }, h('tbody', null, dupList.slice(0, 1000).map(x => recRow(x.rec, 'auch in ' + (x.where.map(w => '„' + w + '“').join(', ') || '?'))))),
       dupList.length > 1000 ? h('p', { class: 'muted small' }, '… und ' + (dupList.length - 1000) + ' weitere') : null));
     if (!gaps.length && cov.length) out.push(row('', '✓', 'Eingelesen jetzt lückenlos vom ' + fmtS(Math.min(...cov.map(c => c.s))) + ' bis ' + fmtD(Math.max(...cov.map(c => c.e)))));
-    if (rulesList.length) out.push(row('todo', '●', [spCount(nRule).replace('Spende', 'neue Spende') + ' per Regel bei ', rulesList.map(g => chip(g, rulesList.length > 1 ? h('small', null, ' (' + g.n + ')') : null,
-        { role: 'button', tabindex: 0, onclick: () => { if (close) close(true); spGoCheck(goal(g)); } })), ' – bitte einmal prüfen'], null,
-      h('button', { class: 'primary sp-ar-go', tip: rulesList.length > 1 ? 'zu „' + rulesList[0].label + '“ – die anderen über ihr Feld' : null, onclick: () => { if (close) close(true); spGoCheck(goal(rulesList[0])); } }, 'Prüfen')));
+    // automatisch zugeordnet: eine Zeile für Maßnahmen, eine für Spendenzwecke – jede mit eigener Anzahl, ihren Feldern (anklickbar) und „Prüfen“
+    const go = g => { if (close) close(true); spGoCheck(goal(g)); };
+    const nNew = x => spCount(x).replace('Spende', 'neue Spende');
+    const ruleRow = (kinds, nAuto, nKl, what, many, sub) => {
+      const G = rulesList.filter(g => kinds.includes(g.kind));
+      const kl = (nKl === 1 ? 'passt' : 'passen') + ' zu mehreren ' + many + ' – bitte zuordnen';
+      return row('todo sp-ar-rule', '●', [nAuto ? [h('b', null, nNew(nAuto)), ' automatisch ' + what + ' zugeordnet'] : [h('b', null, nNew(nKl)), ' ' + kl],
+          h('span', { class: 'sp-ar-chips' }, G.map(g => chip(g, h('small', null, g.n.toLocaleString('de-DE')), { role: 'button', tabindex: 0, onclick: () => go(g) })))],
+        [nAuto && nKl ? nKl.toLocaleString('de-DE') + ' weitere ' + kl : '', sub || ''].filter(Boolean).join(' · ') || null,
+        h('button', { class: 'primary sp-ar-go', tip: G.length > 1 ? 'zu „' + G[0].label + '“ – die anderen über ihr Feld' : null, onclick: () => go(G[0]) }, 'Prüfen'));
+    };
+    const hasM = nr.m + nr.k > 0, hasZ = nr.z + nr.zk > 0;
+    if (n && !hasM && !hasZ) out.push(row('none', '–', 'Keine neue Spende passt zu einer Maßnahme oder einem Spendenzweck'));
+    else if (n) {
+      out.push(hasM ? ruleRow(['m', 'k'], nr.m, nr.k, 'einer Maßnahme', 'Maßnahmen') : row('none', '–', 'Keine neue Spende passt zu einer Maßnahme'));
+      out.push(hasZ ? ruleRow(['z', 'zk'], nr.z, nr.zk, 'einem Spendenzweck', 'Spendenzwecken', hasM && nr.both ? nr.both.toLocaleString('de-DE') + ' davon auch bei einer Maßnahme' : null)
+        : row('none', '–', 'Keine neue Spende passt zu einem Spendenzweck'));
+    }
     return h('div', { class: 'sp-ar-rows' }, out);
   };
   const ok = !nWarn;

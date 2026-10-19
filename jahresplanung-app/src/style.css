@@ -2133,6 +2133,9 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .sp-ar-row.todo { background: color-mix(in srgb, var(--focus) 7%, var(--card)); } .sp-ar-row.todo .sp-ar-ic { color: var(--focus); }
 .sp-ar-tx { flex: 1; min-width: 0; } .sp-ar-tx small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 1px; }
 .sp-ar-tx .sp-rchip { margin: 0 2px; cursor: pointer; } .sp-ar-tx .sp-rchip:hover { filter: brightness(.94); }
+.sp-ar-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; margin-top: 4px; } .sp-ar-chips .sp-rchip { margin: 0; font-size: 12px; line-height: 18px; padding: 0 8px; }
+.sp-ar-tx .sp-rchip small { display: inline; margin: 0 0 0 6px; font-size: 11.5px; font-weight: 700; color: inherit; opacity: .7; }
+.sp-ar-row.none .sp-ar-ic, .sp-ar-row.none .sp-ar-tx { color: var(--muted); }
 .sp-ar .link.sp-ar-tog, .sp-ar .link.sp-ar-copy, .sp-ar .link.sp-ar-allf { text-decoration: none; white-space: nowrap; }
 .sp-ar-go { flex: none; padding: 4px 14px; }
 .sp-ar-sub { padding: 0 14px 8px 44px; max-height: 240px; overflow: auto; border-top: 0; }

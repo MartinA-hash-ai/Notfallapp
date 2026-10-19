@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.42.0",
+    "version": "0.43.0",
     "date": "",
+    "items": [
+      "„Buchungen hinzugefügt“: getrennte Zeilen – wie viele neue Spenden automatisch einer Maßnahme und wie viele einem Spendenzweck zugeordnet wurden, jede mit ihren Feldern samt Anzahl und eigenem „Prüfen“",
+      "Passt eine Spende zu mehreren Maßnahmen oder Zwecken, steht das als „zu klären“ mit Anzahl dabei; zählt eine Spende bei beidem, steht „… davon auch bei einer Maßnahme“ darunter",
+      "Passt keine neue Spende, sagt das eine graue Zeile; die Anzahl im Feld bricht nicht mehr um",
+      "Legende „Was kam hinzu“: „bisher eingelesen“ links, „neu übernommen“ rechts"
+    ]
+  },
+  {
+    "version": "0.42.0",
+    "date": "2026-10-19T17:05",
     "items": [
       "„Buchungen hinzugefügt“ neu: oben das Ergebnis (neue Spenden, Summe, Zeitraum) – grün, bei Auffälligkeiten orange mit „bitte … prüfen“",
       "Darunter „Was kam hinzu“: je Datei eine Zeile im Zeitstrahl – blau neu, schraffiert schon da, orange zu prüfen; dazu, was bisher eingelesen war",
