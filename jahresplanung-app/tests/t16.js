@@ -12,6 +12,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
 
   // 1) falscher Ordner verbunden → Warnung
   const ctx = await b.newContext({ viewport: { width: 1400, height: 900 }, acceptDownloads: true });
+  await ctx.clock.install();   // Uhr steuerbar: aufs automatische Speichern nicht echt warten
   await ctx.addInitScript({ path: T.FAKEFS });
   const p = await ctx.newPage(); p.setDefaultTimeout(6000); p.on('pageerror', e => errs.push(e.message));
   await p.goto('file://' + NEW); await p.waitForTimeout(400);
@@ -41,7 +42,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(!/gespeichert wird aber/.test(ban2), 'nach „Speicherort neu wählen“ keine Warnung mehr');
   await p.evaluate(() => openSettings('allgemein')); await p.click('.sett-backup .sett-bload'); await p.waitForTimeout(100);   // ab 0.15.1: Einstellungen → „Sicherung hochladen …“
   const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('.modal footer button.primary')]);
-  await fc.setFiles('sicherung.json'); await p.waitForTimeout(3500);   // automatisches Speichern
+  await fc.setFiles('sicherung.json'); await p.waitForTimeout(300); await p.clock.fastForward(3500); await p.waitForTimeout(250);   // automatisches Speichern
   const saved = await p.evaluate(() => new TextDecoder().decode(__fs.files['/jahresplanung-app/Jahresplanung_Aussenkommunikation.html'].data));
   ok(saved.includes('AUS DER SICHERUNG') && saved.includes('"version": "0.5.2"'), 'Sicherung übernommen und im richtigen Ordner gespeichert (Version 0.5.2)');
   console.log('Knopf:', await p.textContent('#savebox'));

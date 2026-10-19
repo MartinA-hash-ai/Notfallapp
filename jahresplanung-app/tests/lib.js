@@ -7,14 +7,17 @@ const MAIN = 'Jahresplanung_Aussenkommunikation.html';
 let failures = 0;
 const ok = (c, m) => { if (!c) failures++; console.log((c ? 'OK   ' : 'FAIL ') + m); };
 
-async function open(b, { file = T.HTML, fakefs = true, width = 1600 } = {}) {
+// clock: Uhr der Seite steuerbar – die Zeit läuft normal, mit skip(p, ms) springt sie vor (statt echt auf Speichern/Überwachung zu warten)
+async function open(b, { file = T.HTML, fakefs = true, width = 1600, clock = false } = {}) {
   const ctx = await b.newContext({ viewport: { width, height: 1000 }, locale: 'de-DE', timezoneId: 'Europe/Berlin', acceptDownloads: true });
+  if (clock) await ctx.clock.install();
   if (fakefs) await ctx.addInitScript({ path: T.FAKEFS });
   const p = await ctx.newPage(); p.setDefaultTimeout(8000); p.errs = [];
   p.on('pageerror', e => p.errs.push(e.message));
   await p.goto('file://' + file); await p.waitForTimeout(300);
   return p;
 }
+const skip = async (p, ms) => { await p.clock.fastForward(ms); await p.waitForTimeout(250); };   // Zeit vorspulen, dann kurz echt warten (Dateien schreiben)
 const readF = (p, n = MAIN) => p.evaluate(n => { const f = __fs.files['/Mailing/' + n]; return f ? new TextDecoder().decode(f.data) : null; }, n);
 const writeF = (p, text, n = MAIN, lm) => p.evaluate(([t, n, lm]) => { __fs.files['/Mailing/' + n] = { data: new TextEncoder().encode(t), lm: lm || (90000 + (++__fs.n)) }; }, [text, n, lm]);
 // Mailing-Ordner mit der Programmdatei anlegen und verbinden (wie „Speicherort wählen“)
@@ -35,4 +38,4 @@ const finish = async (b, pages) => {
   await b.close();
   if (failures) process.exitCode = 1;
 };
-module.exports = { chromium, T, ORIG, MAIN, ok, open, readF, writeF, connect, dataOf, withData, verOf, banners, finish, fs };
+module.exports = { chromium, T, ORIG, MAIN, ok, open, skip, readF, writeF, connect, dataOf, withData, verOf, banners, finish, fs };

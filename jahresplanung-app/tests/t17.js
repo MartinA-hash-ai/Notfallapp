@@ -15,7 +15,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const l2 = await p.evaluate(() => { const i = document.querySelector('.brand .logo'); return [i.src.slice(0, 26), i.complete && i.naturalWidth > 0, Math.round(i.getBoundingClientRect().width)]; });
   ok(l1.startsWith('data:image/png') && l2[0].startsWith('data:image/svg+xml') && l2[1], 'Logo hell PNG, dunkel weißes SVG ' + JSON.stringify(l2));
   await p.screenshot({ path: 'r10_dark_head.png', clip: { x: 0, y: 0, width: 700, height: 60 } });
-  await p.evaluate(() => { window.__splashTest = true; showSplash(); }); await p.waitForTimeout(2000);
+  await p.evaluate(() => { window.__splashTest = true; showSplash(); }); await p.waitForTimeout(process.env.SHOTS ? 2000 : 300);   // Animation abwarten nur fürs Bild
   await p.screenshot({ path: 'r10_dark_splash.png' });
   await p.mouse.click(800, 500); await p.waitForTimeout(500);
   // ---------- Monate

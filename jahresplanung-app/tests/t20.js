@@ -55,5 +55,5 @@ await p.screenshot({ path: 'r12_hover_line.png' });
 await p.evaluate(() => { highlight(null); window.__splashTest = true; showSplash(); }); await p.waitForTimeout(300);
 const lh = await p.evaluate(() => Math.round(document.querySelector('.splash-logo').getBoundingClientRect().height));
 ok(lh === 51, 'Logo auf dem Startbildschirm ' + lh + ' px hoch (vorher 34)');
-await p.waitForTimeout(1800); await p.screenshot({ path: 'r12_splash.png' });
+if (process.env.SHOTS) { await p.waitForTimeout(1800); await p.screenshot({ path: 'r12_splash.png' }); }   // Startbildschirm nach der Animation
 console.log('ERR', errs.join('|') || 'keine'); await b.close(); })();

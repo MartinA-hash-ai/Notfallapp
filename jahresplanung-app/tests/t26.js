@@ -1,5 +1,5 @@
 // 0.8 Sollte-Punkte und Ideen: Doppelklicks, Farbwahl im Dialog, Warnliste/Menüs am Rand, PDF-Zeitleiste, Anwesenheit, Protokoll, Datenprüfung
-const { chromium, T, ORIG, ok, open, readF, writeF, connect, dataOf, withData, banners, finish, fs } = require('./lib');
+const { chromium, skip, T, ORIG, ok, open, readF, writeF, connect, dataOf, withData, banners, finish, fs } = require('./lib');
 const path = require('path');
 (async () => {
   const b = await chromium.launch(), pages = [];
@@ -55,7 +55,7 @@ const path = require('path');
     await p.context().close(); }
 
   // ---- D: Anwesenheit, Änderungsprotokoll, Datenprüfung
-  { const p = await open(b); pages.push(p); await connect(p);
+  { const p = await open(b, { clock: true }); pages.push(p); await connect(p);
     await p.evaluate(() => presenceTick()); await p.waitForTimeout(300);
     const files = await p.evaluate(() => Object.keys(__fs.files).filter(k => /Anwesenheit|automatisch/.test(k) || /anwesend-/.test(k)));
     ok(files.length === 1 && /Jahresplanung \(automatisch\)\/anwesend-/.test(files[0]), 'D: eigene Anwesenheitsdatei angelegt: ' + files[0]);
@@ -65,7 +65,7 @@ const path = require('path');
     ok(/Eva/.test(pr[0] || '') && pr[1], 'D: Anzeige „' + pr[0] + '“ und Hinweis „Eva arbeitet gerade ebenfalls …“');
     // Protokoll
     await p.evaluate(() => { const x = C.ms.find(q => q.m.name === 'Jahresbericht'); commit(d => { findM(d, x.id).pal = '2027-09-03'; }); });
-    await p.waitForTimeout(3500);
+    await skip(p, 3500);
     const lg = await p.evaluate(() => { const e = D.log[D.log.length - 1]; return e ? [e.by, e.items.join(' | ')] : null; });
     ok(lg && lg[0] === 'Martin' && /Jahresbericht.*PAL.*03\.09\.2027/.test(lg[1]), 'D: Protokoll: ' + JSON.stringify(lg));
     ok(dataOf(await readF(p)).log.length >= 1, 'D: Protokoll steht in der gespeicherten Datei');

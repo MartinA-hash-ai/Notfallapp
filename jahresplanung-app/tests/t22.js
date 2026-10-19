@@ -1,5 +1,5 @@
 // 0.7 Gleichzeitiges Arbeiten: Konflikt zusammenführen, OneDrive-Konfliktkopie, Arbeiten in einer Kopie, Entwurf mit anderem Ausgangsstand
-const { chromium, T, ORIG, MAIN, ok, open, readF, writeF, connect, dataOf, withData, banners, finish, fs } = require('./lib');
+const { chromium, skip, T, ORIG, MAIN, ok, open, readF, writeF, connect, dataOf, withData, banners, finish, fs } = require('./lib');
 const path = require('path');
 (async () => {
   const b = await chromium.launch(), pages = [];
@@ -36,7 +36,7 @@ const path = require('path');
     await p.context().close(); }
 
   // ---- C: OneDrive-Konfliktkopie im Ordner → Vergleichen, übernehmen, wegräumen
-  { const p = await open(b); pages.push(p); await connect(p);
+  { const p = await open(b, { clock: true }); pages.push(p); await connect(p);
     const copy = evaSaves(await readF(p), d => { d.massnahmen.push({ id: 'ausKopie', name: 'Maßnahme aus der Kopie', farbe: '#2CA02C', pal: '2027-09-10', palStatus: 'vorläufig', vorlauf: { S: 70, I: 50 } }); d.massnahmen[5].hinweis = 'anders in der Kopie'; });
     await writeF(p, copy, 'Jahresplanung_Aussenkommunikation-LAPTOP-EVA.html');
     await p.evaluate(() => scanCopies()); await p.waitForTimeout(300); await p.evaluate(() => renderNow());
@@ -46,7 +46,7 @@ const path = require('path');
     ok(/Nur dort vorhanden \(1\)/i.test(q) && /Unterschiedlich \(1\)/i.test(q), 'C: Vergleich zeigt 1 neue und 1 abweichende Maßnahme' + (/Unterschiedlich \(1\)/i.test(q) ? '' : ': ' + q.slice(0, 600)));
     await p.click('.modal footer button.primary'); await p.waitForTimeout(300);            // Standard: nur das Neue übernehmen
     ok(/wegräumen/i.test(await p.evaluate(() => document.querySelector('.modal h2').textContent)), 'C: danach Frage „Kopie wegräumen?“');
-    await p.click('.modal footer button.primary'); await p.waitForTimeout(3500);
+    await p.click('.modal footer button.primary'); await skip(p, 3500);
     const files = await p.evaluate(() => Object.keys(__fs.files));
     const d = dataOf(await readF(p));
     ok(d.massnahmen.some(m => m.id === 'ausKopie') && d.massnahmen[5].hinweis !== 'anders in der Kopie', 'C: neue Maßnahme übernommen und gespeichert, abweichende (nicht angehakt) nicht');
