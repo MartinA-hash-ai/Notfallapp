@@ -144,10 +144,10 @@ const year = y => { const r = [];
     'D: Leiste „Privat“ – Größte nur Privatleute, ohne Spalte „Gruppe“');
   // PDF: Auswahl im Kopf jeder Seite, „Privat & Institutionen“ ohne Namen und Knöpfe
   await p.click('[data-sec="jv-herkunft"] tr.jv-art[data-art="bank"]'); await p.waitForTimeout(300);
-  const d3 = await p.evaluate(() => { window.print = () => {}; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => {
+  const d3 = await p.evaluate(() => { window.print = () => {}; jvPrintPDF(); return new Promise(r => setTimeout(() => {
     const pgs = [...document.querySelectorAll('#printdoc .pd-page')], h = pgs.find(x => x.querySelector('h1').textContent === 'Privat & Institutionen 2027');
     r([pgs.map(x => x.querySelector('h1').textContent).filter(t => /bindung|Größte/.test(t)).join(' | '), !!h && !h.querySelector('.jv-topriv, .jv-chev, tr.jv-artm, button') && !/Sparkasse|Stiftung der|Probe/.test(h.textContent) && h.querySelectorAll('tr.jv-art').length === 6,
-      pgs.every(x => !x.querySelector('input, select, .jv-gctl, .jv-hide, .jv-drag')), !/Probe|Muster|Lions/.test(document.querySelector('#printdoc').textContent.replace(/Spendenbrücke|Probe Bau/g, '')),
+      pgs.every(x => !x.querySelector('input, select, .jv-gctl, .jv-hide, .jv-drag')), pgs.filter(x => !/^Größte/.test(x.querySelector('h1').textContent)).every(x => !/Probe|Muster|Lions/.test(x.textContent.replace(/Spendenbrücke|Probe Bau/g, ''))),
       pgs.every(x => /· nur Privat$/.test(x.querySelector('.pd-head span').textContent))]); }, 300)); });
   ok(d3[0] === 'Spenderbindung · Dauerspender:innen · Zwecke · Konten 2027 | Größte Spender:innen 2027' && d3[4], 'D: PDF – Titel ohne eigene Auswahl, die Auswahl der Leiste steht im Kopf jeder Seite („nur Privat“)');
   ok(d3[1] && d3[2] && d3[3], 'D: PDF – „Privat & Institutionen“ nur mit den Arten (nicht aufgeklappt, keine Knöpfe), nirgends Namen oder Eingabefelder');

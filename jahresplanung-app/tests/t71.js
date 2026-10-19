@@ -102,8 +102,10 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(bd[2] && !bd2[2] && bd[0] === bd2[0] && bd[1] === bd2[1] && bd[0] !== bd[3], 'C: aktiver Filter – nur die Schrift des Feldes farbig, weder Feld noch Filterleiste blau umrandet: ' + bd.join(' / ') + ' | ohne Filter: ' + bd2.join(' / '));
   // Filter bleibt beim Scrollen oben stehen
   await p.evaluate(() => { document.querySelector('[data-sec="kal"]').scrollIntoView({ block: 'start' }); scrollBy(0, 300); }); await p.waitForTimeout(250);
-  const c5 = await p.evaluate(() => [Math.round(document.querySelector('.fbar-in').getBoundingClientRect().top), Math.round(document.querySelector('header.top').getBoundingClientRect().bottom), Math.round(scrollY)]);
-  ok(c5[0] - c5[1] >= 4 && c5[0] - c5[1] <= 12 && c5[2] > 500, 'C: beim Scrollen bleibt der Filter oben stehen (unter dem Kopf): ' + c5.join(' / '));
+  const c5 = await p.evaluate(() => [document.querySelector('.fbar-in').getBoundingClientRect().top, document.querySelector('header.top').getBoundingClientRect().bottom, Math.round(scrollY), document.querySelector('.fbar').classList.contains('stuck'), getComputedStyle(document.querySelector('.fbar-in')).borderTopLeftRadius]);
+  ok(Math.abs(c5[0] - c5[1]) <= 1 && c5[2] > 500 && c5[3] && c5[4] === '0px', 'C: beim Scrollen haftet der Filter direkt am Kopf – keine Lücke, oben gerade Kante: ' + c5.join(' / '));
+  await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !document.querySelector('.fbar').classList.contains('stuck') && document.querySelector('.fbar-in').getBoundingClientRect().top - document.querySelector('header.top').getBoundingClientRect().bottom > 10), 'C: ganz oben steht der Filter wieder frei auf Höhe der Überschrift');
   await p.evaluate(() => scrollTo(0, 0)); await p.waitForTimeout(150);
 
   // ---- D: Bereichsspalten einklappen – nur Buchstaben, Häkchen bei eingetragenem Start, sonst leer (kein „–“)

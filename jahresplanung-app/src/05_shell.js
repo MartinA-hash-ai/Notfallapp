@@ -66,6 +66,7 @@ function renderInner() {
   syncTopHeight();
   if (scrollX !== win[0] || scrollY !== win[1]) scrollTo(win[0], win[1]);   // erst nach dem Kopf (layoutHeader), sonst ist die Seite kurz zu kurz
   (VIEW_FN[UI.view + ':after'] || (() => {}))(main);
+  fbarStuck();
   flashTarget();
   saveUI();
 }
@@ -282,6 +283,9 @@ function closeMenu() { if (_openMenu) { _openMenu.m.remove(); _openMenu = null; 
 document.addEventListener('click', () => closeMenu());
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && _openMenu && !$('.modal')) closeMenu(); });
 // Menüs stehen fest am Bildschirm: beim Scrollen der Seite (nicht im Menü selbst) schließen
+// Filter der Jahresplanung: liegt er angedockt direkt unter dem Kopf, bekommt er oben eine gerade Kante
+function fbarStuck() { const f = $('.fbar-in'), t = $('header.top'); if (f && t) f.parentElement.classList.toggle('stuck', f.getBoundingClientRect().top <= t.getBoundingClientRect().bottom + 0.5); }
+document.addEventListener('scroll', fbarStuck, { passive: true });
 document.addEventListener('scroll', e => { if (!_openMenu || (e.target instanceof Node && _openMenu.m.contains(e.target))) return;
   if (_openMenu.keep) { const a = _openMenu.reanchor && _openMenu.reanchor(); if (a) placeMenu(_openMenu.m, a.getBoundingClientRect()); return; }   // Filter-Fenster: bleibt offen und wandert mit seinem Knopf
   if (performance.now() - (_openMenu.at || 0) > 300) closeMenu(); }, true);

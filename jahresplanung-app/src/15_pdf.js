@@ -1,12 +1,13 @@
-/* ===================================================================== PDF-Export: Bereiche wie die Reiter (Jahresplanung, Detailpläne, Auswertung), Maßnahmen wählbar, jede Seite ohne Browser-Kopf-/Fußzeile */
+/* ===================================================================== PDF-Export: Bereiche wie die Reiter (Jahresplanung, Detailpläne, Auswertung, Jahresvergleich), Maßnahmen wählbar, jede Seite ohne Browser-Kopf-/Fußzeile */
 
 // je Reiter die Teile, die ins PDF können (Schlüssel = Ansicht, damit der offene Reiter vorgewählt ist)
 const PDF_AREAS = [
   { k: 'jahr', t: 'Jahresplanung', secs: [['mass', 'Maßnahmen (Tabelle)'], ['kal', 'Kalender'], ['tl', 'Zeitleiste'], ['ag', 'Was steht an?']] },
   { k: 'plaene', t: 'Detailpläne', secs: [['plaene', 'Detailpläne']] },
   { k: 'spenden', t: 'Auswertung', secs: [['sp', 'Übersicht: Kennzahlen aller Maßnahmen'], ['spcmp', 'Rücklauf im Vergleich (Grafik)'], ['spm', 'Kennzahlen und Grafiken']] },
+  { k: 'vergleich', t: 'Jahresvergleich', secs: [['jv', 'Jahresvergleich']] },
 ];
-const PDF_SUB0 = { mass: true, tl: true, kal: true, ag: false, plaene: true, sp: true, spcmp: true, spm: true };
+const PDF_SUB0 = { mass: true, tl: true, kal: true, ag: false, plaene: true, sp: true, spcmp: true, spm: true, jv: true };
 const SEC_CLOSED0 = new Set(['tl']);                 // anfangs eingeklappte Bereiche (wie in section(..., { open: false }))
 
 // Auswahlliste der Maßnahmen (für PDF- und Kalender-Export)
@@ -47,7 +48,8 @@ async function pdfDialog() {
   const estimate = () => {
     const s = secsNow(), n = sel().length;
     return (s.mass ? Math.max(1, Math.ceil(n / 20)) : 0) + (s.tl ? Math.max(1, Math.ceil(n / TL_PER_PAGE)) : 0) + (s.kal ? 1 : 0) + (s.ag ? 1 : 0) +
-      (s.plaene ? plans().length : 0) + (s.sp ? 1 : 0) + (s.spcmp && cmpIds().length >= 2 ? 1 : 0) + (s.spm ? spPages().reduce((t, id) => t + (isAllg(id) ? 2 : 1), 0) : 0);   // „Spenden JJJJ“: zwei Seiten
+      (s.plaene ? plans().length : 0) + (s.sp ? 1 : 0) + (s.spcmp && cmpIds().length >= 2 ? 1 : 0) + (s.spm ? spPages().reduce((t, id) => t + (isAllg(id) ? 2 : 1), 0) : 0) +   // „Spenden JJJJ“: zwei Seiten
+      (s.jv ? jvPdfPages() : 0);
   };
   const areasBox = h('div', { class: 'pdf-areas' }), countEl = h('p', { class: 'pdf-count small' });
   const drawAreas = () => {
@@ -76,6 +78,12 @@ async function pdfDialog() {
             h('option', { value: '', selected: !f.spOne }, 'alle gewählten mit Spenden'),
             opts.map(x => h('option', { value: x.id, selected: f.spOne === x.id }, spDispName(x)))))),
           !opts.length ? h('p', { class: 'pdf-note' }, 'Noch keine Spenden zugeordnet – die Übersicht zeigt dann nur Auflage und Kosten.') : null];
+      },
+      vergleich: () => {                                                 // so wie im Reiter eingestellt (Bausteine, Jahre, Zeitraum, Spender:innen, Sondereffekte)
+        if (!SP.rows.length) return [h('p', { class: 'pdf-note' }, SP.busy ? 'Spendendateien werden eingelesen …' : 'Noch keine Buchungen eingelesen – der Jahresvergleich rechnet mit den Spendendateien.')];
+        const S = jvSetup(), n = jvOrder().filter(jvShown).length;
+        return [h('p', { class: 'pdf-info' }, 'Wie im Reiter eingestellt: ' + n + (n === 1 ? ' Baustein' : ' Bausteine') + ', Jahre ' + S.sel.join(', ') + ', ' + (S.mode === 'stich' ? 'bis Stichtag (' + jvStich(S) + ')' : 'ganze Jahre') +
+          (S.grp !== 'alle' ? ', ' + jvGrpName(S.grp) : '') + ', Sondereffekte ' + (S.sx ? 'eingerechnet' : 'entfernt') + '.'), h('p', { class: 'pdf-note' }, 'Die Auswahl der Maßnahmen unten gilt hier nicht.')];
       },
     };
     setKids(areasBox, PDF_AREAS.map(a => h('div', { class: 'pdf-area' + (f.area[a.k] ? ' on' : ''), dataset: { area: a.k } },
@@ -109,7 +117,7 @@ async function pdfDialog() {
   const secs = secsNow();
   if (!Object.values(secs).some(Boolean)) { toast('Kein Bereich gewählt.', 'warn'); return; }
   if (!f.ms.size && ['mass', 'kal', 'tl', 'plaene', 'sp', 'spcmp'].some(k => secs[k]) && !(secs.spm && f.spOne)) { toast('Keine Maßnahme gewählt.', 'warn'); return; }
-  if (!estimate()) { toast(secs.plaene ? 'Keine der gewählten Maßnahmen hat einen Detailplan.' : 'Für diese Auswahl gibt es nichts zu drucken.', 'warn'); return; }
+  if (!estimate()) { toast(secs.plaene ? 'Keine der gewählten Maßnahmen hat einen Detailplan.' : secs.jv && !SP.rows.length ? 'Für den Jahresvergleich sind noch keine Buchungen eingelesen.' : 'Für diese Auswahl gibt es nichts zu drucken.', 'warn'); return; }
   UI.pdfOpts = { secs: f.sub, show: f.show, vac: f.vac }; saveUI();
   printPDF({ secs, show: f.show, vac: f.vac, verbund: f.verbund, ms: f.ms, planCompact: f.planCompact, planColl: f.planColl, spOne: f.spOne });
 }
@@ -130,7 +138,8 @@ function printPDF(f) {
   document.body.append(doc);
   document.body.classList.add('printdoc-mode');
   const title = document.title;
-  document.title = 'Jahresplanung_' + UI.year + '_' + ds(todayDn());       // Vorschlag für den Dateinamen
+  document.title = (Object.entries(f.secs).every(([k, v]) => !v || k === 'jv') ? 'Jahresvergleich_' : 'Jahresplanung_') + UI.year + '_' + ds(todayDn());       // Vorschlag für den Dateinamen
+  if (f.secs.jv && jvPdfErr.length) toast('Im PDF fehlt etwas: ' + jvPdfErr.join(' · '), 'warn');
   PRINT_TITLE = title;
   setTimeout(() => window.print(), 80);
 }
@@ -201,9 +210,12 @@ function buildPrintDoc(f) {
     pages.push(page('Detailplan ' + x.m.name, box));
   }
   if (f.secs.sp || f.secs.spcmp || f.secs.spm) pages.push(...spPrintPages(f, ms, page));
-  if (pages.length) pages[pages.length - 1].classList.add('last');
   const doc = h('div', { id: 'printdoc' }, pages);
   for (const el of $$('[data-chart]', doc)) { el.dataset.w = el.dataset.w || String(PD_CHART_W); try { spDraw(el); } catch (e) { console.error(e); } }   // Grafiken der Auswertung in Druckbreite
+  if (f.secs.jv) { jvPdfErr = []; let jd = null;                       // Jahresvergleich zum Schluss – Seiten samt Grafiken baut 21_jahresvergleich.js
+    try { jd = SP.rows.length ? jvPrintDoc() : null; } catch (e) { console.error(e); jvPdfErr.push('Jahresvergleich: ' + e.message); }
+    if (jd) doc.append(...jd.children); }
+  $$('.pd-page.last', doc).forEach(e => e.classList.remove('last')); if (doc.lastElementChild) doc.lastElementChild.classList.add('last');
   return doc;
 }
 

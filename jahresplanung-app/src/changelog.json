@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.40.0",
+    "version": "0.41.0",
     "date": "",
+    "items": [
+      "Jahresvergleich – Leiste: Zeitraum „bis Stichtag (16.10.)“, die drei Knöpfe Alle / Privat / Institutionen ohne Wort davor, Sondereffekte „entfernt“ statt „herausgerechnet“",
+      "Jahresvergleich – „So wird gerechnet“ steckt jetzt hinter dem ⓘ in der Leiste; neu der rote Knopf „+ Buchung hinzufügen“ (wie in der Auswertung, Dateien lassen sich auch hineinziehen)",
+      "Jahresvergleich – PDF jetzt oben unter „Export → PDF exportieren …“ (eigener Kasten „Jahresvergleich“, die vier Bereiche 2 × 2); der Knopf „PDF für die Präsentation“ entfällt",
+      "Zweckbindung: ohne Vergleichszeile unter dem Balken; im PDF steht die Kachel in der ersten Zeile neben den vier Zahlen – auch wenn beim Drucken ein Seitenrand eingestellt ist",
+      "PDF: „Größte Spender:innen“ mit Namen",
+      "Jahresplanung: der Filter haftet beim Scrollen direkt am Kopf – keine Lücke mehr dazwischen"
+    ]
+  },
+  {
+    "version": "0.40.0",
+    "date": "2026-10-16T22:27",
     "items": [
       "Jahresvergleich – „Auf einen Blick“: neue Kachel „Zweckbindung“ – zweckgebunden und zweckungebunden mit Betrag und als geteilter Balken in Prozent, darunter der Anteil im Vergleichsjahr (Veränderung in Prozentpunkten)",
       "Jahresverlauf: heißt nur noch „Jahresverlauf“; zwischen Linie und Quartalen neu „Spenden pro Woche“ (wie unter „Spenden JJJJ“, Hauptjahr, Einzelspenden und Daueraufträge)",

@@ -28,11 +28,11 @@ const year = y => { const r = [];
   await p.evaluate(() => { commit(d => { d.zwecke = [{ id: 'zh', name: 'Hospizarbeit', farbe: '#2e7d32', worte: ['Hospizarbeit'], konten: [], massnahmen: [] }, { id: 'zr', name: 'Rikscha', farbe: '#1565c0', worte: ['Rikscha'], konten: [], massnahmen: [] }]; }); }); await p.waitForTimeout(400);
   const z1 = await p.evaluate(() => { const t = document.querySelector('[data-sec="jv-blick"] .jv-gtz'), cs = e => getComputedStyle(e);
     return [[...t.querySelectorAll('.jv-zbn > div')].map(e => e.textContent).join(' | '), [...t.querySelectorAll('.jv-zbp')].map(e => e.className.replace('jv-zbp ', '') + ':' + e.textContent + ':' + Math.round(e.getBoundingClientRect().width)).join(' | '),
-      t.querySelector('.jv-gts').textContent, t.querySelector('.jv-zb').getAttribute('aria-label'), cs(t.querySelector('.jv-zbp.zg')).backgroundColor !== cs(t.querySelector('.jv-zbp.zf')).backgroundColor]; });
+      !t.querySelector('.jv-gts'), t.querySelector('.jv-zb').getAttribute('aria-label'), cs(t.querySelector('.jv-zbp.zg')).backgroundColor !== cs(t.querySelector('.jv-zbp.zf')).backgroundColor]; });
   const w = z1[1].split(' | ').map(s => +s.split(':')[2]);
   ok(z1[0] === 'zweckgebunden1.000 € | zweckungebunden1.200 €' && /^zg:45 %:\d+ \| zf:55 %:\d+$/.test(z1[1]) && Math.abs(w[0] / (w[0] + w[1]) - 1000 / 2200) < 0.02 && z1[4],
     'A: zweckgebunden 1.000 € (Hospiz 600 + Rikscha 300 + „zu klären“ 100), zweckungebunden 1.200 € – Balken 45 % | 55 %, Breite anteilig: ' + z1.slice(0, 2).join(' / '));
-  ok(z1[2] === '▲ +20,5 Pkt. 2026: 25 % zweckgebunden' && z1[3] === 'zweckgebunden 45 %, zweckungebunden 55 %', 'A: darunter das Vergleichsjahr in Prozentpunkten: ' + z1[2]);
+  ok(z1[2] === true && z1[3] === 'zweckgebunden 45 %, zweckungebunden 55 %', 'A: unter dem Balken keine Vergleichszeile mehr');
   const z2 = await p.evaluate(() => { const f = TIPS.get(document.querySelector('.jv-gtz .jv-zbp.zg')); const v = typeof f === 'function' ? f() : f; return v && (v.textContent || v); });
   ok(z2 === 'zweckgebunden 20271.000 € · 45 %', 'A: Zeigen auf den Balken nennt Betrag und Anteil: ' + z2);
 
@@ -81,6 +81,36 @@ const year = y => { const r = [];
   const e2 = await pdf();
   ok(e0 === 'Jahresverlauf 2027:jvcum+jvwk:2 | Jahresverlauf 2027 – Quartale:jvqa+qnum:0', 'E: PDF – alles an: Linie und Wochen (mit Maßnahmen-Punkten), Quartale auf der nächsten Seite: ' + e0);
   ok(e1 === 'Jahresverlauf 2027:jvcum+jvqa+qnum:1' && e2 === 'Jahresverlauf 2027:jvcum+jvwk:0', 'E: PDF – ohne Wochen bzw. ohne Quartale alles auf einer Seite, ausgeblendete Teile fehlen auch im PDF: ' + e1 + ' / ' + e2);
-  await p.evaluate(() => { UI.jvVp = {}; renderNow(); });
+  await p.evaluate(() => { UI.jvVp = {}; renderNow(); }); await p.waitForTimeout(300);
+
+  // ---- F (0.41): Leiste – „bis Stichtag (10.10.)“, ohne „Spender:innen“, „entfernt“, ⓘ statt „So wird gerechnet“, „+ Buchung hinzufügen“, kein eigener PDF-Knopf
+  await p.evaluate(() => { commit(d => { d.spenden.grenze = { 2027: 50000 }; }); }); await p.waitForTimeout(400);
+  const f0 = await p.evaluate(() => { const bar = document.querySelector('.jv-bar');
+    return [document.querySelector('.jv-zeit').selectedOptions[0].textContent, [...bar.querySelectorAll('.spj-lbl')].map(e => e.textContent).join('|'), document.querySelector('.jv-sxbtn').textContent, bar.querySelector('.jv-howto').textContent,
+      !!bar.querySelector('.jv-pdf') || /PDF|So wird gerechnet/.test(bar.textContent), bar.querySelector('.jv-add.primary')?.textContent]; });
+  ok(f0[0] === 'bis Stichtag (10.10.)' && f0[1] === 'Jahre|Hauptjahr|Zeitraum' && f0[2] === 'Sondereffekte 1 entfernt ▾' && f0[3] === 'ⓘ' && !f0[4] && f0[5] === '+ Buchung hinzufügen',
+    'F: Leiste – Zeitraum „bis Stichtag (10.10.)“, kein Wort „Spender:innen“ vor den drei Knöpfen, „1 entfernt“, ⓘ, roter Knopf „+ Buchung hinzufügen“, kein PDF-Knopf: ' + JSON.stringify(f0));
+  await p.click('.jv-bar .jv-howto'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => /So wird gerechnet/.test(document.querySelector('.modal').textContent)), 'F: ⓘ öffnet „So wird gerechnet“');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
+  const [fc] = await Promise.all([p.waitForEvent('filechooser', { timeout: 3000 }).catch(() => null), p.click('.jv-bar .jv-add')]);
+  ok(!!fc && fc.isMultiple(), 'F: „+ Buchung hinzufügen“ öffnet die Dateiauswahl (wie in der Auswertung)');
+  await p.evaluate(() => { commit(d => { d.spenden.grenze = {}; }); }); await p.waitForTimeout(300);
+
+  // ---- G (0.41): Export → PDF exportieren mit Jahresvergleich (2 × 2 Kästen); Zweckbindung im PDF in der ersten Zeile, auch bei schmalerer Seite; Größte Spender:innen mit Namen
+  await p.evaluate(() => { pdfDialog(); }); await p.waitForTimeout(400);
+  const g0 = await p.evaluate(() => { const a = document.querySelector('.pdf-areas'); return [[...a.querySelectorAll('.pdf-ah')].map(e => e.textContent).join('|'), getComputedStyle(a).gridTemplateColumns.split(' ').length,
+    [...a.querySelectorAll('.pdf-area')].filter(e => e.classList.contains('on')).map(e => e.dataset.area).join(), document.querySelector('.pdf-area[data-area="vergleich"]').textContent, document.querySelector('.pdf-count').textContent]; });
+  ok(g0[0] === 'Jahresplanung|Detailpläne|Auswertung|Jahresvergleich' && g0[1] === 2 && g0[2] === 'vergleich' && /Wie im Reiter eingestellt: \d+ Bausteine, Jahre 2026, 2027, bis Stichtag \(10\.10\.\)/.test(g0[3]) && /etwa \d+ Seiten/.test(g0[4]),
+    'G: PDF-Fenster – vier Kästen (2 × 2), im Reiter Jahresvergleich ist er vorgewählt: ' + g0.slice(2).join(' / '));
+  await p.evaluate(() => { window.print = () => { window.__pr = (window.__pr || 0) + 1; }; }); await p.click('.modal button.primary'); await p.waitForTimeout(900);
+  await p.emulateMedia({ media: 'print' }); await p.setViewportSize({ width: 1047, height: 740 }); await p.waitForTimeout(400);
+  const g1 = await p.evaluate(() => { const pgs = [...document.querySelectorAll('#printdoc .pd-page')], t = pgs.find(x => /^Größte/.test(x.querySelector('h1').textContent)), tl = [...document.querySelectorAll('#printdoc .jv-gt')].map(e => Math.round(e.getBoundingClientRect().top));
+    return [window.__pr, pgs[0].querySelector('h1').textContent, document.title, new Set(tl).size, tl.length, t && [...t.querySelectorAll('th')].map(e => e.textContent).join('|'), t && /Probe C/.test(t.textContent), pgs.every(x => x.classList.contains('jv-print'))]; });
+  ok(g1[0] === 1 && g1[1] === 'Auf einen Blick · Hochrechnung · Kennzahlen 2027' && /^Jahresvergleich_2027_/.test(g1[2]) && g1[7], 'G: „PDF erstellen“ druckt den Jahresvergleich (Dateiname „Jahresvergleich_…“): ' + g1.slice(1, 3).join(' / '));
+  ok(g1[3] === 1 && g1[4] === 5, 'G: PDF bei schmalerer Seite (mit Rand) – alle fünf Kacheln in einer Zeile, die Zweckbindung rechts daneben');
+  ok(g1[5] === '|Name|2027|2026|Veränderung|Anteil' || g1[5] === '|Name|Gruppe|2027|2026|Veränderung|Anteil', 'G: Größte Spender:innen im PDF mit Namen: ' + g1[5]);
+  ok(g1[6], 'G: Name „Probe C“ steht im PDF');
+  await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.emulateMedia({ media: 'screen' }); await p.setViewportSize({ width: 1400, height: 1000 });
   await finish(b, pages);
 })();

@@ -1028,7 +1028,7 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .pdf-top { display: flex; align-items: flex-start; gap: 10px; justify-content: space-between; }
 .pdf-top p { margin: 0; }
 .modal.pdfmodal { max-width: 900px; }
-.pdf-areas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 10px 0 12px; }
+.pdf-areas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; margin: 10px 0 12px; }   /* 2 × 2: Jahresplanung, Detailpläne / Auswertung, Jahresvergleich */
 .pdf-area { border: 1px solid var(--line); border-radius: var(--radius); padding: 0 10px 10px; background: var(--soft); }
 .pdf-area.on { border-color: var(--red); background: var(--card); box-shadow: inset 0 3px 0 var(--red); }
 .pdf-ah { display: flex; align-items: center; gap: 8px; font-size: 14.5px; font-weight: 700; cursor: pointer; padding: 10px 0 8px; border-bottom: 1px solid var(--line); margin-bottom: 8px; }
@@ -1607,7 +1607,7 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .jv-zbar span.proj { background: repeating-linear-gradient(45deg, var(--jvH) 0 6px, var(--jvV) 6px 12px); opacity: .75; }
 .jv-ztxt { margin: 0; }
 .jv-topsum { margin: 0 0 8px; }
-@media (max-width: 1100px) { .jv-kpis.c3, .jv-kpis.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media screen and (max-width: 1100px) { .jv-kpis.c3, .jv-kpis.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .jv-kpi { position: relative; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); min-width: 0; overflow: hidden; }
 .jv-kh { background: var(--soft); border-bottom: 1px solid var(--line); padding: 10px 14px 10px; }
 .jv-kt { font-size: 15.5px; font-weight: 700; color: var(--muted); }
@@ -1635,14 +1635,14 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .jv-qp { margin-top: 10px; border: 1px solid color-mix(in srgb, var(--focus) 35%, var(--line)); background: color-mix(in srgb, var(--focus) 4%, var(--card)); border-radius: var(--radius); padding: 10px 12px; }
 .jv-qh { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; } .jv-qh .jv-qx { margin-left: auto; text-decoration: none; color: var(--muted); }
 .jv-qg { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr) minmax(300px, 0.9fr); gap: 16px; align-items: start; }
-@media (max-width: 1100px) { .jv-qg { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .jv-qc { grid-column: 1 / -1; } }
+@media screen and (max-width: 1100px) { .jv-qg { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .jv-qc { grid-column: 1 / -1; } }
 .jv-st { font-size: 12.5px; font-weight: 600; color: var(--ink2); margin-bottom: 2px; }
 .jv-qt { display: grid; gap: 8px; }
 .jv-tile { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; }
 .jv-tv { font-size: 18px; font-weight: 700; }
 .jv-meter { height: 8px; border-radius: 4px; background: var(--head2); overflow: hidden; margin-top: 4px; } .jv-meter span { display: block; height: 100%; }
 .jv-mail { display: grid; grid-template-columns: 330px minmax(0, 1fr); gap: 16px; }
-@media (max-width: 1100px) { .jv-mail { grid-template-columns: minmax(0, 1fr); } }
+@media screen and (max-width: 1100px) { .jv-mail { grid-template-columns: minmax(0, 1fr); } }
 .jv-mrow { display: grid; grid-template-columns: 12px minmax(0, 1fr) auto; gap: 8px; align-items: center; padding: 4px 6px 4px 8px; border: 1px solid var(--line); border-radius: 8px; background: var(--soft); margin-bottom: 6px; }
 .jv-mrow .dot { width: 12px; height: 12px; }
 .jv-msel { width: 100%; min-width: 0; font-size: 13px; }
@@ -1696,7 +1696,7 @@ button.chip.jv-pk { cursor: pointer; } .chip.jv-pk.off { border-style: dashed; c
 .jv-elv { font-size: 11.5px; font-weight: 600; fill: var(--ink2); } .jv-eln { font-weight: 700; fill: var(--ink); }
 .jv-grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; margin-bottom: 14px; }
 .jv-grid2 > .jv-blk { margin-bottom: 0; min-width: 0; }
-@media (max-width: 1100px) { .jv-grid2 { grid-template-columns: minmax(0, 1fr); } }
+@media screen and (max-width: 1100px) { .jv-grid2 { grid-template-columns: minmax(0, 1fr); } }
 .jv-h4 { margin: 16px 0 8px; font-size: 14px; font-weight: 700; color: var(--ink); text-transform: none; letter-spacing: 0; }
 .jv-brs { display: grid; gap: 12px; }
 .jv-brg { border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 10px 2px; background: var(--card); min-width: 0; }
@@ -1732,7 +1732,7 @@ button.chip.jv-pk { cursor: pointer; } .chip.jv-pk.off { border-style: dashed; c
 .jv-qd { font-size: 11.5px; font-weight: 600; color: var(--ink2); } .jv-qd span { font-size: 10px; margin-right: 2px; }
 .jv-qo { font-size: 11px; color: var(--warn); }
 .view-vergleich .jv-qg { grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.75fr) minmax(400px, 1.15fr); }
-@media (max-width: 1250px) { .view-vergleich .jv-qg { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .view-vergleich .jv-qc { grid-column: 1 / -1; } }
+@media screen and (max-width: 1250px) { .view-vergleich .jv-qg { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .view-vergleich .jv-qc { grid-column: 1 / -1; } }
 .jv-qtab th, .jv-qtab td { padding: 5px 8px; }
 .jv-qnum { table-layout: fixed; } .jv-qnum th:first-child { width: 90px; }
 .jv-qo { white-space: normal; }
@@ -1755,7 +1755,7 @@ button.chip.jv-pk { cursor: pointer; } .chip.jv-pk.off { border-style: dashed; c
 .jv-qcmp { margin-top: 14px; }
 .jv-qcmp .jv-qch { gap: 10px; }
 .jv-qct { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
-@media (max-width: 1000px) { .jv-qct { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media screen and (max-width: 1000px) { .jv-qct { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .jv-qcti { background: var(--card); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; min-width: 0; }
 .jv-qctb { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 12.5px; margin-top: 2px; }
 .jv-lad .jv-zu { fill: var(--jvup); font-size: 11.5px; font-weight: 700; } .jv-lad .jv-ab { fill: var(--jvdn); font-size: 11.5px; font-weight: 700; }
@@ -1863,7 +1863,7 @@ main.view-vergleich { overflow: visible; }
 .jv-gtt { font-size: 13px; font-weight: 600; color: var(--muted); }
 .jv-gtv { font-size: 28px; font-weight: 700; line-height: 1.2; margin: 2px 0 4px; }
 .jv-gts { font-size: 13px; color: var(--ink2); }
-@media (max-width: 1100px) { .jv-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media screen and (max-width: 1100px) { .jv-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .jv-it.jv-kt, .jv-it.jv-vt, .jv-it.jv-arts, .jv-it.jv-mtab { width: 100%; }
 .jv-kt { max-width: 980px; }
 .jv-it td.jv-spc, .jv-it th.jv-spc { width: 140px; padding-top: 2px; padding-bottom: 2px; }
@@ -1896,7 +1896,7 @@ main.view-vergleich { overflow: visible; }
 .jv-conc > div { display: flex; align-items: center; padding: 0 10px; font-size: 13px; font-weight: 700; white-space: nowrap; }
 .jv-conc .a { background: var(--jvH); color: #fff; } .jv-conc .b { flex: 1; color: var(--ink); justify-content: flex-end; }
 .jv-pi2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); gap: 22px; align-items: start; }
-@media (max-width: 1100px) { .jv-pi2 { grid-template-columns: minmax(0, 1fr); } }
+@media screen and (max-width: 1100px) { .jv-pi2 { grid-template-columns: minmax(0, 1fr); } }
 .jv-pikey { display: flex; gap: 16px; font-size: 13px; margin-bottom: 6px; }
 .jv-pikey i { display: inline-block; width: 12px; height: 12px; border-radius: 3px; vertical-align: -1px; margin-right: 6px; }
 .jv-pikey i.p, .jv-pp { background: var(--jvm1); fill: var(--jvm1); } .jv-pikey i.i, .jv-pi { background: var(--jvm2); fill: var(--jvm2); }
@@ -1939,7 +1939,7 @@ main.view-vergleich { overflow: visible; }
 /* ---------- Jahresvergleich 0.29: Hochrechnung (⅓) neben Kennzahlen (⅔), Jahresziel im kleinen Fenster, Quartalszahlen mittig */
 .jv-grid2.r12 { grid-template-columns: minmax(0, 1fr) minmax(0, 2fr); }
 .jv-grid2.r21 { grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); }
-@media (max-width: 1100px) { .jv-grid2.r12, .jv-grid2.r21 { grid-template-columns: minmax(0, 1fr); } }
+@media screen and (max-width: 1100px) { .jv-grid2.r12, .jv-grid2.r21 { grid-template-columns: minmax(0, 1fr); } }
 .jv-grid2 > .sec > .sec-b > .jv-kpi { margin: 0; }
 .jv-zrow2 { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; font-size: 12.5px; color: var(--ink2); padding: 8px 2px 0; border-top: 1px solid var(--line); margin-top: 6px; }
 .jv-zrow2 .jv-zedit { margin-left: auto; }
@@ -2056,7 +2056,7 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 
 /* ---------- 0.34: Brücke ein Viertel, Segmente drei Viertel; Legende unter den Segmenten; Brücke mit Beschriftung über dem Balken */
 .jv-grid2.r13 { grid-template-columns: minmax(0, 1fr) minmax(0, 3fr); } .jv-grid2.r31 { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
-@media (max-width: 1100px) { .jv-grid2.r13, .jv-grid2.r31 { grid-template-columns: minmax(0, 1fr); } }
+@media screen and (max-width: 1100px) { .jv-grid2.r13, .jv-grid2.r31 { grid-template-columns: minmax(0, 1fr); } }
 @media print { .jv-print .jv-grid2.r21 { grid-template-columns: 2fr 1fr; } .jv-print .jv-grid2.r13 { grid-template-columns: 1fr 3fr; } .jv-print .jv-grid2.r31 { grid-template-columns: 3fr 1fr; } }
 .jv-seglg { margin: 8px 0 0; }
 .jv-brh { paint-order: stroke; stroke: var(--card); stroke-width: 4px; stroke-linejoin: round; }
@@ -2105,7 +2105,7 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .sw-note { margin: 8px 0 0; max-width: 220px; }
 
 /* ---------- 0.37/0.38: Filter auf Höhe der Überschrift „Maßnahmen“, mittig; beim Scrollen bleibt er oben stehen */
-.fbar { position: sticky; top: var(--toph, 51px); z-index: 22; height: 0; display: flex; justify-content: center; align-items: flex-start; pointer-events: none; }
+.fbar { position: sticky; top: calc(var(--toph, 51px) - 8px); z-index: 22; height: 0; display: flex; justify-content: center; align-items: flex-start; pointer-events: none; }
 .fbar-in { pointer-events: auto; display: flex; align-items: center; gap: 8px; margin-top: 8px; padding: 3px 8px 3px 12px; background: var(--card); border: 1px solid var(--line); border-radius: 20px; box-shadow: 0 4px 12px -6px rgba(0,0,0,.28); white-space: nowrap; }
 .fbar-l { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .fbar .fbtn { padding: 3px 10px; }
@@ -2119,7 +2119,7 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 
 /* ---------- 0.40: „Auf einen Blick“ mit Zweckbindung; Jahresverlauf mit Spenden pro Woche, Teile einzeln ein-/ausblendbar, Maßnahmen als Punkte */
 .jv-glance { grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.5fr); }
-@media (max-width: 1100px) { .jv-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); } .jv-gtz { grid-column: 1 / -1; } }
+@media screen and (max-width: 1100px) { .jv-glance { grid-template-columns: repeat(2, minmax(0, 1fr)); } .jv-gtz { grid-column: 1 / -1; } }
 :root { --jvzg: var(--jvH); --jvzf: #d3d2cb; --jvzgt: #fff; --jvzft: #1d1d1b; }
 @media screen { html[data-theme=dark] { --jvzf: #53524e; --jvzgt: #10151c; --jvzft: #f2f1ec; } }
 .jv-zbn { display: flex; flex-wrap: wrap; justify-content: space-between; column-gap: 10px; row-gap: 2px; margin: 3px 0 5px; }   /* zu schmal: rechter Teil rutscht in die nächste Zeile statt zu überlappen */
@@ -2140,4 +2140,12 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .jv-vp0 { margin: 4px 0; }
 @media print { .jv-print .jv-wk .sp-cht { padding-left: 96px; }
   .jv-print .jv-glance { gap: 8px; grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(0, 1.6fr); } .jv-print .jv-gt { padding: 9px 10px; }   /* fünf Kacheln auf der A4-Breite: etwas kleiner, damit nichts umbricht */
-  .jv-print .jv-gtt, .jv-print .jv-gts { font-size: 11.5px; } .jv-print .jv-gtv { font-size: 22px; } .jv-print .jv-zbn b { font-size: 16px; } .jv-print .jv-zbn span { font-size: 11px; } .jv-print .jv-zbn i { width: 8px; height: 8px; margin-right: 4px; } }
+  .jv-print .jv-gtt, .jv-print .jv-gts { font-size: 11.5px; } .jv-print .jv-gtv { font-size: 21px; white-space: nowrap; } .jv-print .jv-zbn b { font-size: 16px; } .jv-print .jv-zbn span { font-size: 11px; } .jv-print .jv-zbn i { width: 8px; height: 8px; margin-right: 4px; } }
+
+/* ---------- 0.41: Leiste des Jahresvergleichs – ⓘ statt „So wird gerechnet“, „+ Buchung hinzufügen“ */
+.jv-howto { border: 0; background: none; padding: 0 2px; min-width: 0; color: var(--faint); font-size: 17px; line-height: 1; cursor: pointer; }
+.jv-howto:hover, .jv-howto:focus-visible { color: var(--ink); }
+.jv-bar .jv-add { font-weight: 600; }
+
+/* 0.41: Filter der Jahresplanung angedockt – direkt am Kopf, oben gerade Kante (keine Lücke zum Durchschauen) */
+.fbar.stuck .fbar-in { border-top-color: transparent; border-top-left-radius: 0; border-top-right-radius: 0; }

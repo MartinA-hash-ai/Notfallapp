@@ -43,7 +43,7 @@ const year = y => { const r = [];
   // ---- B: Leiste – Jahre, Hauptjahr, Zeitraum (Stichtag = letzte Buchung im Hauptjahr), Spender:innen (Alle | Privat | Institutionen), Sondereffekte als Knopf
   const b0 = await p.evaluate(() => [[...document.querySelectorAll('.jv-y')].map(c => c.textContent + (c.classList.contains('off') ? '-' : '+')).join(','), document.querySelector('.jv-zeit').value, document.querySelector('.jv-zeit').selectedOptions[0].textContent,
     document.querySelector('.jv-sxbtn').textContent, !document.querySelector('.jv-sxp'), [...document.querySelectorAll('.jv-bar .jv-grp button')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join('|')]);
-  ok(b0[0] === '2024+,2025+,2026+,2027+' && b0[1] === 'stich' && b0[2] === 'bis Stichtag 10.10. (letzte Buchung 2027)' && b0[3] === 'Sondereffekte keine ▾' && b0[4] && b0[5] === 'Alle*|Privat|Institutionen',
+  ok(b0[0] === '2024+,2025+,2026+,2027+' && b0[1] === 'stich' && b0[2] === 'bis Stichtag (10.10.)' && b0[3] === 'Sondereffekte keine ▾' && b0[4] && b0[5] === 'Alle*|Privat|Institutionen',
     'B: Jahre 2024–2027, Zeitraum „' + b0[2] + '“, „Alle | Privat | Institutionen“, „Sondereffekte keine“ zugeklappt');
   await p.click('.jv-howto'); await p.waitForTimeout(250);
   const b1 = await p.evaluate(() => [document.querySelector('.modal .modal-h, .modal h2, .modal h3')?.textContent, [...document.querySelectorAll('.jv-howto-m .jv-h4')].length]);
@@ -61,8 +61,8 @@ const year = y => { const r = [];
   await p.click('.jv-sxbtn'); await p.waitForTimeout(300);
   await p.fill('.jv-gr[data-fk="jv-gr:2026"]', '10.000'); await p.press('.jv-gr[data-fk="jv-gr:2026"]', 'Enter'); await p.waitForTimeout(400);
   const c1 = await kt(), c1b = await p.evaluate(() => [document.querySelector('.jv-sxbtn').textContent, document.querySelector('.jv-sxt')?.textContent, D.spenden.grenze['2026'], UI.jvSx]);
-  ok(/^Spendensumme\|530 €\|530 €\|■ ±0,0 %/.test(c1.sum) && c1b[0] === 'Sondereffekte 1 herausgerechnet ▴' && /2026.*25\.000 €.*Probe 009999.*Nachlass Probe/.test(c1b[1] || '') && c1b[2] === 1000000 && c1b[3] === true,
-    'C: Sondereffekt 2026 (Erbschaft 25.000 €) herausgerechnet – 2026 wieder 530 €, Knopf „1 herausgerechnet“, Liste darunter');
+  ok(/^Spendensumme\|530 €\|530 €\|■ ±0,0 %/.test(c1.sum) && c1b[0] === 'Sondereffekte 1 entfernt ▴' && /2026.*25\.000 €.*Probe 009999.*Nachlass Probe/.test(c1b[1] || '') && c1b[2] === 1000000 && c1b[3] === true,
+    'C: Sondereffekt 2026 (Erbschaft 25.000 €) herausgerechnet – 2026 wieder 530 €, Knopf „1 entfernt“, Liste darunter');
   // Zeitraum ganzes Jahr
   await p.selectOption('.jv-zeit', 'jahr'); await p.waitForTimeout(300);
   const c2 = await kt();

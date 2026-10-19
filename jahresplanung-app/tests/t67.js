@@ -43,7 +43,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.keyboard.press('Escape');
 
   // ---- B: Sondereffekte – Knopf in der Leiste klappt Grenzen und Liste auf; die Liste steht unter der festen Leiste
-  ok(await p.evaluate(() => !document.querySelector('.jv-sxt') && document.querySelector('.jv-sxbtn').textContent === 'Sondereffekte 1 herausgerechnet ▾' && !document.querySelector('.jv-sxmode')), 'B: Sondereffekte anfangs zu – Knopf „1 herausgerechnet“');
+  ok(await p.evaluate(() => !document.querySelector('.jv-sxt') && document.querySelector('.jv-sxbtn').textContent === 'Sondereffekte 1 entfernt ▾' && !document.querySelector('.jv-sxmode')), 'B: Sondereffekte anfangs zu – Knopf „1 entfernt“');
   await p.click('.jv-sxbtn'); await p.waitForTimeout(250);
   const b0 = await p.evaluate(() => [...document.querySelectorAll('.jv-sxt tr')].map(r => [...r.children].map(c => c.textContent).join('|')));
   ok(b0.length === 1 && b0[0] === '2026|15.06.2026|30.000 €|Probe 7|Nachlass Probe|Lage|', 'B: „Herausgerechnet“ – 2026: 15.06.2026, 30.000 €, Name, Verwendungszweck, Gliederung');
@@ -143,9 +143,9 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
   ok(await p.evaluate(() => !document.querySelector('.jv .sec-h .jv-drag, .jv .sec-h .jv-hide, .jv [draggable="true"]')), 'I: Verschieben nur noch unter „Bausteine“ (↑/↓) – kein Griff und kein „ausblenden“ in den Kästen');
   await p.evaluate(() => { UI.jvOrder = undefined; renderNow(); }); await p.waitForTimeout(300);
-  const i2 = await p.evaluate(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; document.querySelector('.jv-pdf').click(); return new Promise(r => setTimeout(() => r([window.__printed,
+  const i2 = await p.evaluate(() => { window.print = () => { window.__printed = (window.__printed || 0) + 1; }; jvPrintPDF(); return new Promise(r => setTimeout(() => r([window.__printed,
     [...document.querySelectorAll('#printdoc .pd-page .pd-head h1')].map(e => e.textContent).join(' | '), document.body.classList.contains('printdoc-mode'), document.querySelectorAll('#printdoc [data-chart] svg').length,
-    /Sondereffekte herausgerechnet · Vergleich mit 2025/.test(document.querySelector('#printdoc .pd-head span').textContent), document.querySelectorAll('#printdoc input, #printdoc select, #printdoc .jv-hide').length,
+    /Sondereffekte entfernt · Vergleich mit 2025/.test(document.querySelector('#printdoc .pd-head span').textContent), document.querySelectorAll('#printdoc input, #printdoc select, #printdoc .jv-hide').length,
     (() => { const pg = t => [...document.querySelectorAll('#printdoc .pd-page')].find(x => x.querySelector('h1').textContent.startsWith(t)), v = pg('Jahresverlauf'), sg = pg('Spendersegmente'), hk = pg('Privat & Institutionen');
       return [!!v.querySelector('[data-chart="jvcum"]') && !!v.querySelector('[data-chart="jvwk"]') && !v.querySelector('.jv-qnum') && !!pg('Jahresverlauf 2026 – Quartale').querySelector('[data-chart="jvqa"]') && !!pg('Jahresverlauf 2026 – Quartale').querySelector('.jv-qnum'), sg.querySelector('[data-chart="jvseg"]').dataset.w, !!sg.querySelector('[data-chart="jvseg"] svg.jv-full'), sg.querySelector('.jv-pdhalf [data-chart="jvbr"]')?.dataset.w,
         !!sg.querySelector('[data-chart="jvbr"] .jv-brst'), !!hk.querySelector('.jv-pis.jv-full'), document.querySelectorAll('#printdoc .jv-mset').length === jvMv().sets.filter(x => jvMvLines(Object.assign({}, jvMv(), { on: [x.id] })).some(o => o.sr)).length, [...document.querySelectorAll('#printdoc [data-chart]')].every(e => +e.dataset.w <= 1040)].join(); })()]), 300)); });
@@ -156,7 +156,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   ok(await p.evaluate(() => !document.querySelector('#printdoc') && !document.body.classList.contains('printdoc-mode')), 'I: nach dem Drucken ist die Druckansicht wieder weg');
   // ein Abschnitt mit Fehler: das PDF entsteht trotzdem, die Seite nennt den Fehler, oben ein Hinweis
   const i3 = await p.evaluate(() => { const keep = jvBindung; window.jvBindung = () => { throw new Error('Testfehler'); };
-    window.print = () => { window.__printed = (window.__printed || 0) + 1; }; window.__printed = 0; document.querySelector('.jv-pdf').click();
+    window.print = () => { window.__printed = (window.__printed || 0) + 1; }; window.__printed = 0; jvPrintPDF();
     return new Promise(r => setTimeout(() => { window.jvBindung = keep;
       r([window.__printed, /Dieser Abschnitt konnte nicht erstellt werden \(Testfehler\)/.test(document.querySelector('#printdoc').textContent), document.querySelectorAll('#printdoc .pd-page').length, /Im PDF fehlt etwas: Spenderbindung: Testfehler/.test(document.body.textContent)]); }, 300)); });
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);

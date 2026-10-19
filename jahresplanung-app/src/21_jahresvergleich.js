@@ -182,15 +182,15 @@ function jvBar(S, Y) {
   let bb = null;
   bb = h('button', { class: 'jv-bbtn', onclick: e => { e.stopPropagation(); popover(bb, blocks()); } }, 'Bausteine ▾');
   const zeit = h('select', { class: 'jv-zeit', 'aria-label': 'Zeitraum', onchange: e => { UI.jvZeit = e.target.value; renderNow(); } },
-    S.md ? h('option', { value: 'stich', selected: S.mode === 'stich' }, 'bis Stichtag ' + jvStich(S) + ' (letzte Buchung ' + S.H + ')') : null,
+    S.md ? h('option', { value: 'stich', selected: S.mode === 'stich', title: 'jedes Jahr bis zum Tag der letzten Buchung ' + S.H }, 'bis Stichtag (' + jvStich(S) + ')') : null,
     h('option', { value: 'jahr', selected: S.mode === 'jahr' }, 'ganzes Jahr'));
   const hj = h('select', { class: 'jv-hj', 'aria-label': 'Hauptjahr', onchange: e => { UI.year = +e.target.value; renderNow(); } },
     [...new Set([...S.all].concat(S.H))].sort((a, b) => b - a).map(y => h('option', { value: y, selected: y === S.H }, y)));
   const sxMode = h('select', { class: 'jv-sxmode', 'aria-label': 'Sondereffekte', onchange: e => { UI.jvSxIn = e.target.value === 'in'; renderNow(); } },
-    h('option', { value: 'out', selected: !S.sx }, 'herausrechnen'), h('option', { value: 'in', selected: S.sx }, 'einrechnen'));
+    h('option', { value: 'out', selected: !S.sx }, 'entfernen'), h('option', { value: 'in', selected: S.sx }, 'einrechnen'));
   const grp = jvSegc(S.grp, v => { UI.jvGrp = v; hideTip(); renderNow(); }, 'jv-grp');
-  const pdf = h('button', { class: 'jv-pdf', tip: 'je Abschnitt eine Seite – so wie hier eingestellt', onclick: () => jvPrintPDF() }, 'PDF für die Präsentation');
-  const how = h('button', { class: 'link small jv-howto', onclick: () => jvHowto() }, 'So wird gerechnet');
+  const how = h('button', { class: 'jv-howto', 'aria-label': 'So wird gerechnet', tip: 'So wird gerechnet', onclick: () => jvHowto() }, 'ⓘ');   // PDF: oben unter „Export → PDF exportieren …“
+  const add = h('button', { class: 'primary jv-add', tip: 'Export der Spendeneingänge (CSV oder Excel) wählen – die App legt ihn im Ordner „Spendeneingänge …“ ab, liest ihn ein und zeigt, was neu ist', onclick: spPickFiles }, '+ Buchung hinzufügen');
   const outs = S.sel.slice().reverse().map(y => ({ y, aus: spjOut(spjCompute(y)) }));
   const grenze = ({ y, aus }) => { const g = spjGrenze(y);
     const inp = h('input', { class: 'jv-gr', value: g ? (g / 100).toLocaleString('de-DE') : '', placeholder: '–', inputmode: 'decimal', 'aria-label': 'Sondereffekte ' + y + ': Spenden über diesem Betrag', 'data-fk': 'jv-gr:' + y,
@@ -204,14 +204,14 @@ function jvBar(S, Y) {
     h('td', { class: 'jv-sxy' }, i ? null : [h('span', { class: 'dot', style: { background: S.col(y) } }), h('b', null, y)]),
     h('td', null, fmtD(e.rec.d)), h('td', { class: 'num' }, h('b', null, eur0(e.rec.b))), h('td', { class: 'jv-sxn' }, e.rec.name || '–'),
     h('td', { class: 'jv-sxz', tip: e.rec.zweck || null }, e.rec.zweck || '–'), h('td', { class: 'muted' }, spGlied(e.rec.konto)), h('td', { class: 'muted small' }, after(e.rec) ? 'nach dem Stichtag' : null))));
-  const sxBtn = h('button', { class: 'jv-sxbtn' + (UI.jvSx ? ' on' : ''), 'aria-expanded': String(!!UI.jvSx), tip: 'Große Einzelfälle wie Erbschaften: Grenze je Jahr, herausrechnen oder einrechnen', onclick: () => { UI.jvSx = !UI.jvSx; renderNow(); } },
-    'Sondereffekte ', h('b', { class: tot ? 'jv-aus' : 'muted' }, tot ? tot + ' ' + (S.sx ? 'eingerechnet' : 'herausgerechnet') : 'keine'), UI.jvSx ? ' ▴' : ' ▾');
+  const sxBtn = h('button', { class: 'jv-sxbtn' + (UI.jvSx ? ' on' : ''), 'aria-expanded': String(!!UI.jvSx), tip: 'Große Einzelfälle wie Erbschaften: Grenze je Jahr, entfernen oder einrechnen', onclick: () => { UI.jvSx = !UI.jvSx; renderNow(); } },
+    'Sondereffekte ', h('b', { class: tot ? 'jv-aus' : 'muted' }, tot ? tot + ' ' + (S.sx ? 'eingerechnet' : 'entfernt') : 'keine'), UI.jvSx ? ' ▴' : ' ▾');
   return [h('div', { class: 'jv-bar' },
     h('div', { class: 'jv-row' }, h('span', { class: 'spj-lbl' }, 'Jahre'), S.cand.map(chip),
       h('span', { class: 'spj-lbl jv-gap' }, 'Hauptjahr'), hj, h('span', { class: 'spj-lbl jv-gap' }, 'Zeitraum'), zeit,
-      h('span', { class: 'jv-grpw' }, h('span', { class: 'spj-lbl jv-gap' }, 'Spender:innen'), grp), sxBtn, h('span', { class: 'jv-right' }, how, bb, pdf)),
+      h('span', { class: 'jv-grpw', role: 'group', 'aria-label': 'Spender:innen' }, grp), sxBtn, h('span', { class: 'jv-right' }, how, bb, add)),
     UI.jvSx ? h('div', { class: 'jv-row jv-sxp' }, h('span', { class: 'spj-lbl' }, 'Grenze je Jahr'), outs.map(grenze), h('span', { class: 'jv-sxmw' }, sxMode)) : null),
-    UI.jvSx && tot ? h('div', { class: 'jv-row jv-sxl' }, h('span', { class: 'spj-lbl' }, S.sx ? 'Eingerechnet' : 'Herausgerechnet'),
+    UI.jvSx && tot ? h('div', { class: 'jv-row jv-sxl' }, h('span', { class: 'spj-lbl' }, S.sx ? 'Eingerechnet' : 'Entfernt'),
       h('div', { class: 'jv-sxw' }, h('table', { class: 'jv-sxt' }, h('tbody', null, rows)),
         outs.some(o => o.aus.length > MAXR) ? h('button', { class: 'link small jv-sxm', onclick: () => { JV.sxAll = !JV.sxAll; renderNow(); } }, JV.sxAll ? 'weniger anzeigen' : 'alle ' + tot + ' anzeigen') : null)) : null];
 }
@@ -223,17 +223,16 @@ function jvHowto() {
 /* ---------- Auf einen Blick: vier Zahlen und die Zweckbindung */
 // Zweckbindung je Jahr: zweckgebunden = alles, was zu einem Zweck gehört (auch „zu klären“ – passt zu mehreren Zwecken), zweckungebunden = passt zu keinem
 const jvZb = (Z, y) => { const m = Z.get(y); if (!m) return null; let tot = 0; for (const v of m.values()) tot += v; const frei = m.get(SPJ_FREI) || 0; return tot > 0 ? { tot, frei, zg: tot - frei, p: (tot - frei) / tot } : null; };
-function jvZbTile(S, Y, A, bis) {
+function jvZbTile(S, Y, bis) {
   const head = h('div', { class: 'jv-gtt' }, 'Zweckbindung' + bis);
   if (!D.zwecke.length) return h('div', { class: 'jv-gt jv-gtz', dataset: { k: 'zweck' } }, head, h('div', { class: 'jv-gts muted' }, 'Noch keine Zwecke angelegt – unter „' + spjName(S.H) + '“ festlegen.'));
-  const Z = jvZwecke(S, Y), z = jvZb(Z, S.H), za = A ? jvZb(Z, A.y) : null;
+  const z = jvZb(jvZwecke(S, Y), S.H);
   if (!z) return h('div', { class: 'jv-gt jv-gtz', dataset: { k: 'zweck' } }, head, h('div', { class: 'jv-gtv' }, '–'));
-  const pc = v => v > 0 && v < 0.01 ? '< 1 %' : de0(v * 100) + ' %', pZ = Math.round(z.p * 100), pcs = [z.p > 0 && z.p < 0.01 ? '< 1 %' : pZ + ' %', z.p < 1 && z.p > 0.99 ? '< 1 %' : (100 - pZ) + ' %'];   // die beiden Anteile ergeben 100 %
+  const pZ = Math.round(z.p * 100), pcs = [z.p > 0 && z.p < 0.01 ? '< 1 %' : pZ + ' %', z.p < 1 && z.p > 0.99 ? '< 1 %' : (100 - pZ) + ' %'];   // die beiden Anteile ergeben 100 %
   const part = (cls, t, v, p, lab) => h('span', { class: 'jv-zbp ' + cls, style: { flexGrow: String(p), flexBasis: '0' }, tip: () => h('div', null, h('b', null, t + ' ' + S.H), h('div', null, eur0(v) + ' · ' + lab)) }, p >= 0.12 ? lab : '');
   return h('div', { class: 'jv-gt jv-gtz', dataset: { k: 'zweck' } }, head,
     h('div', { class: 'jv-zbn' }, h('div', null, h('span', null, h('i', { class: 'zg' }), 'zweckgebunden'), h('b', null, eur0(z.zg))), h('div', { class: 'r' }, h('span', null, h('i', { class: 'zf' }), 'zweckungebunden'), h('b', null, eur0(z.frei)))),
-    h('div', { class: 'jv-zb', role: 'img', 'aria-label': 'zweckgebunden ' + pcs[0] + ', zweckungebunden ' + pcs[1] }, z.zg ? part('zg', 'zweckgebunden', z.zg, z.p, pcs[0]) : null, z.frei ? part('zf', 'zweckungebunden', z.frei, 1 - z.p, pcs[1]) : null),
-    h('div', { class: 'jv-gts' }, za ? [jvDEl(za.p, z.p, { pp: true }), h('span', { class: 'muted' }, ' ' + A.y + ': ' + pc(za.p) + ' zweckgebunden')] : null));
+    h('div', { class: 'jv-zb', role: 'img', 'aria-label': 'zweckgebunden ' + pcs[0] + ', zweckungebunden ' + pcs[1] }, z.zg ? part('zg', 'zweckgebunden', z.zg, z.p, pcs[0]) : null, z.frei ? part('zf', 'zweckungebunden', z.frei, 1 - z.p, pcs[1]) : null));
 }
 function jvBlick(S, Y) {
   const H = Y.get(S.H) || {}, A0 = S.cmp != null ? Y.get(S.cmp) : null, A = A0 && A0.has ? A0 : null, P = jvProj(S, Y), z = jvZielV(S), bis = S.mode === 'stich' ? ' bis ' + jvStich(S) : '', r100 = v => v >= 1e6 ? Math.round(v / 10000) * 10000 : v;   // ab 10.000 € auf 100 € gerundet
@@ -244,7 +243,7 @@ function jvBlick(S, Y) {
     P ? tile('proj', 'Hochrechnung 31.12.', '≈ ' + eur0(r100(P.main)), z ? de0(P.main / z * 100) + ' % vom Ziel ' + eur0(z) : 'noch kein Jahresziel')
       : tile('ziel', 'Jahresziel ' + S.H, z ? de0((H.fullSum || 0) / z * 100) + ' %' : '–', z ? eur0(H.fullSum || 0) + ' von ' + eur0(z) : 'noch kein Jahresziel'),
     tile('don', 'Spender:innen', de0(H.don || 0), vs(A && A.don, H.don, de0)),
-    tile('avg', 'Ø je Spende', H.avg == null ? '–' : eur(H.avg), vs(A && A.avg, H.avg, eur)), jvZbTile(S, Y, A, bis))];
+    tile('avg', 'Ø je Spende', H.avg == null ? '–' : eur(H.avg), vs(A && A.avg, H.avg, eur)), jvZbTile(S, Y, bis))];
 }
 
 /* ---------- Kennzahlen als Tabelle: Vergleichsjahr, Hauptjahr, Veränderung, Verlauf über die gewählten Jahre */
@@ -603,12 +602,12 @@ function jvTop(S, Y, pdf) {
   const conc = h('div', { class: 'jv-conc' }, h('div', { class: 'a', style: { width: (o.top10 * 100).toFixed(1) + '%' } }, 'größte 10 % · ' + spjWho(o.topK) + ' · ' + pct(o.top10)),
     h('div', { class: 'b' }, 'übrige ' + de0(o.don - o.topK) + ' · ' + pct(1 - o.top10)));
   const rows = L.slice(0, N).map(([k, d], i) => { const a = A && A.donors.get(k);
-    return h('tr', null, h('td', { class: 'num muted' }, (i + 1) + '.'), pdf ? null : h('td', { class: 'jv-in' }, d.last.name || '(ohne Namen)'),
+    return h('tr', null, h('td', { class: 'num muted' }, (i + 1) + '.'), h('td', { class: 'jv-in' }, d.last.name || '(ohne Namen)'),
       grp ? h('td', null, jvTypOf(d.last) === 'i' ? h('span', { class: 'sp-tag' }, 'Institution') : h('span', { class: 'muted small' }, 'privat')) : null,
       h('td', { class: 'num' }, h('b', null, eur0(d.sum))), A ? h('td', { class: 'num muted' }, a ? eur0(a.sum) : '–') : null,
       A ? h('td', { class: 'num' }, a ? jvDEl(a.sum, d.sum) : h('span', { class: 'muted' }, 'neu')) : null, h('td', { class: 'num' }, pct(d.sum / o.sum))); });
   return [conc, A && A.top10 != null ? h('p', { class: 'jv-topsum' }, A.y + ': die größten 10 % gaben ' + pct(A.top10) + '.') : null,
-    h('table', { class: 'jv-it jv-top' }, h('thead', null, h('tr', null, h('th'), pdf ? null : h('th', null, 'Name'), grp ? h('th', null, 'Gruppe') : null, h('th', { class: 'num' }, String(S.H)),
+    h('table', { class: 'jv-it jv-top' }, h('thead', null, h('tr', null, h('th'), h('th', null, 'Name'), grp ? h('th', null, 'Gruppe') : null, h('th', { class: 'num' }, String(S.H)),
       A ? h('th', { class: 'num' }, String(A.y)) : null, A ? h('th', { class: 'num' }, 'Veränderung') : null, h('th', { class: 'num' }, 'Anteil'))), h('tbody', null, rows)),
     !pdf && L.length > 10 ? h('button', { class: 'link small jv-tall', onclick: () => { JV.topAll = !JV.topAll; renderNow(); } }, JV.topAll ? 'nur die größten 10' : 'die größten 25 zeigen') : null];
 }
@@ -684,7 +683,7 @@ const JV_TIP = {
   top: 'Wie stark das Ergebnis an wenigen hängt.',
 };
 const JV_INFO = {
-  blick: 'Spendensumme, Spender:innen und Ø je Spende im gewählten Zeitraum, Veränderung gegenüber dem Vergleichsjahr oben. Hochrechnung und Jahresziel wie unter „Hochrechnung“, hier ab 10.000 € auf 100 € gerundet. Farbig sind Veränderungen erst ab 5 %. Zweckbindung: zweckgebunden ist, was zu einem Zweck gehört (Zuordnung wie unter „Spenden JJJJ“, auch „zu klären“ – passt zu mehreren Zwecken), zweckungebunden der Rest; darunter der Anteil im Vergleichsjahr, Veränderung in Prozentpunkten.',
+  blick: 'Spendensumme, Spender:innen und Ø je Spende im gewählten Zeitraum, Veränderung gegenüber dem Vergleichsjahr oben. Hochrechnung und Jahresziel wie unter „Hochrechnung“, hier ab 10.000 € auf 100 € gerundet. Farbig sind Veränderungen erst ab 5 %. Zweckbindung: zweckgebunden ist, was zu einem Zweck gehört (Zuordnung wie unter „Spenden JJJJ“, auch „zu klären“ – passt zu mehreren Zwecken), zweckungebunden der Rest.',
   ziel: 'Hochrechnung bis 31.12. – prozentual, nicht als fester Betrag: Stand im Hauptjahr × Faktor. Der Faktor kommt aus dem Vergleichsjahr: Jahressumme ÷ Summe bis zum gleichen Tag. Beispiel: Im Vergleichsjahr waren bis 12.10. 80.000 € da, im ganzen Jahr 128.000 € – Faktor 1,6. Steht das Hauptjahr am 12.10. bei 75.000 €, ergibt das ≈ 120.000 € (und nicht 75.000 € + 48.000 € = 123.000 €). Läuft das Jahr bisher schwächer, wird also auch der Rest (z. B. Weihnachten) entsprechend kleiner angenommen. Die Spanne rechnet dasselbe mit jedem gewählten vollständigen Jahr (Buchungen bis Mitte Dezember eingelesen). Jahresziel: unter der Kachel eintragen – je Jahr und Auswahl oben (Alle / Privat / Institutionen), steht in der Planungsdatei und gilt für alle. Sondereffekte je nach Schalter oben.',
   verlauf: 'Linie: Spendensumme seit 1. Januar aufaddiert, je Jahr eine Linie; Klick auf ein Jahr hebt es hervor. Bei „bis Stichtag“ zählen in Säulen und Tabelle nur die Spenden bis zu dem Tag, bis zu dem im Hauptjahr Buchungen eingelesen sind – die Linien früherer Jahre laufen zur Orientierung weiter. Gestrichelt: Hochrechnung bis 31.12., waagerecht gestrichelt: das Jahresziel. Quartale: Q1 Jan–März usw., das laufende heißt „Qx (bis …)“; Klick auf ein Quartal hebt es hervor, noch ein Klick hebt die Auswahl auf. In der Tabelle die Veränderung zum Jahr davor. Sondereffekte (Raute) nur, wenn oben eingerechnet. Spenden pro Woche: nur das Hauptjahr, Einzelspenden und Daueraufträge übereinander. Maßnahmen: Punkte in der Farbe der Maßnahme am PAL, nur Maßnahmen des Hauptjahres, die schon verschickt sind; Zeigen nennt Name, PAL und zugeordnete Spenden. Linie, Spenden pro Woche, Quartale, Quartalszahlen und Maßnahmen lassen sich oben rechts einzeln ein- und ausblenden – das gilt auch fürs PDF.',
   herkunft: 'Balken: Anteil privat und Institutionen je Jahr – das Hauptjahr breit, die Vorjahre schmal (beim Zeigen mit Zahlen), „ausführlich“ zeigt alle breit. Jede Zahler:in (IBAN, sonst Name) ist privat oder eine Institution. Institution heißt: ein Stichwort einer Art (Banken & Gewinnsparen, Stiftungen, Kommunen & Städte …) steht im Namen des Kontoinhabers oder im Verwendungszweck; passen mehrere, zählt das längste Wort („Stadtsparkasse“ → Banken). Lange Wörter greifen auch mitten im Wort (Bürgerstiftung), kurze Abkürzungen nur einzeln (AG, e.V.). Unter „Regeln ansehen und ändern“ lassen sich Stichwörter und Arten ändern und einzelne Zahler:innen von Hand einstufen; ein Klick auf eine Art zeigt ihre Institutionen. Das gilt für alle, die die Planung öffnen; in der Planungsdatei steht dafür nur ein Kürzel – kein Name, keine IBAN.',
@@ -696,7 +695,7 @@ const JV_INFO = {
   zweck: 'Zuordnung wie unter „Spenden JJJJ“: Schlagworte im Verwendungszweck, Konten, Maßnahmen. „zweckungebunden“ = passt zu keinem Zweck, „zu klären“ = passt zu mehreren und ist noch nicht entschieden. Rechts der Verlauf über die gewählten Jahre.',
   konto: 'Konto bzw. Gliederung aus der Spalte „Personenname“ der Bankdatei (der gemeinsame Anfang wie „Paderborn -“ wird weggelassen). Anfangs die fünf größten Konten der gewählten Jahre; „+ Konto“ nimmt weitere dazu, × nimmt eines heraus.',
   dauer: 'Dauerspender:innen: Buchung mit „Dauerauftrag“ im Buchungstext – oder (Schalter) regelmäßig erkannt: gleicher Betrag (Erhöhungen erlaubt) am etwa gleichen Tag im Monat, mindestens dreimal monatlich, vierteljährlich, halb- oder jährlich (halb- und jährlich mit gleichem Verwendungszweck), nur Privat; „erkannte prüfen“ zeigt die Liste. Unter der Anzahl: Dauerspender:innen des Vorjahres → neu dazu, beendet → dieses Jahr (gleicher Zeitraum). Summe: alle diese Buchungen. Ø Monatsbeitrag: je Dauerspender:in der letzte Betrag, auf einen Monat umgerechnet.',
-  top: 'Je Spender:in (IBAN, sonst Name) die Summe im Zeitraum, größte zuerst. Die größten 10 %: bei 500 Spender:innen die 50 mit der höchsten Summe – je höher ihr Anteil, desto mehr hängt das Ergebnis an wenigen. Daneben die Summe im Vergleichsjahr (gleicher Zeitraum). Im PDF für die Präsentation ohne Namen.',
+  top: 'Je Spender:in (IBAN, sonst Name) die Summe im Zeitraum, größte zuerst. Die größten 10 %: bei 500 Spender:innen die 50 mit der höchsten Summe – je höher ihr Anteil, desto mehr hängt das Ergebnis an wenigen. Daneben die Summe im Vergleichsjahr (gleicher Zeitraum). Auch im PDF mit Namen.',
 };
 function jvOrder() {
   if (!Array.isArray(UI.jvOrder)) UI.jvOrdV = 31;                                    // ohne eigene Reihenfolge nichts umzustellen
@@ -712,7 +711,10 @@ function jvOrder() {
 VIEW_FN.vergleich = main => {
   if ((SP.at == null || _spLastView !== 'vergleich') && !SP.busy && ST.conn === 'ok') spScan();   // beim Öffnen des Reiters neu einlesen (unveränderte Dateien kommen aus dem Speicher)
   _spLastView = 'vergleich';
-  if (!SP.rows.length) { put(main, spNotice(), h('div', { class: 'spj-empty muted' }, ST.conn !== 'ok' ? 'Der Jahresvergleich rechnet mit den eingelesenen Spendendateien – dafür den Mailing-Ordner verbinden.' : SP.busy ? 'Spendendateien werden eingelesen …' : 'Noch keine Buchungen eingelesen.')); return; }
+  main.addEventListener('dragover', e => { if ([...(e.dataTransfer.types || [])].includes('Files')) { e.preventDefault(); main.classList.add('sp-drop'); } });   // Exporte hineinziehen wie in der Auswertung
+  main.addEventListener('dragleave', e => { if (e.target === main) main.classList.remove('sp-drop'); });
+  main.addEventListener('drop', e => { main.classList.remove('sp-drop'); const fl = [...e.dataTransfer.files].filter(f => !/\.zip$/i.test(f.name)); if (!fl.length) return; e.preventDefault(); e.spHandled = true; spAddFiles(fl); });
+  if (!SP.rows.length) { put(main, spNotice(), h('div', { class: 'spj-empty muted' }, ST.conn !== 'ok' ? 'Der Jahresvergleich rechnet mit den eingelesenen Spendendateien – dafür den Mailing-Ordner verbinden.' : SP.busy ? 'Spendendateien werden eingelesen …' : ['Noch keine Buchungen eingelesen. ', h('button', { class: 'primary jv-add', onclick: spPickFiles }, '+ Buchung hinzufügen')])); return; }
   const S = jvSetup(), Y = jvData(S);
   if (JV.focus != null && !S.sel.includes(JV.focus)) JV.focus = null;
   const sec = k => { const Sk = jvSS(S, k), d = jvSecDefs(Sk, jvData(Sk))[k], t = jvTitle(Sk, k);   // ein- und ausblenden, Reihenfolge: unter „Bausteine“
@@ -766,12 +768,12 @@ function jvPrintDoc() {
   jvPdfErr = [];
   const S = jvSetup(), title = k => JV_BLOCKS.find(b => b[0] === k)[1];
   const stand = 'Stand ' + fmtD(todayDn()) + (D.meta.savedAt ? ' · gespeichert ' + fmtStamp(D.meta.savedAt) : '');
-  const sub = 'Jahre ' + S.sel.join(', ') + ' · ' + (S.mode === 'stich' ? 'jedes Jahr bis ' + jvStich(S) : 'ganze Jahre') + ' · Sondereffekte ' + (S.sx ? 'eingerechnet' : 'herausgerechnet') + (S.cmp != null ? ' · Vergleich mit ' + S.cmp : '') + (S.grp !== 'alle' ? ' · ' + jvGrpName(S.grp) : '');
+  const sub = 'Jahre ' + S.sel.join(', ') + ' · ' + (S.mode === 'stich' ? 'jedes Jahr bis ' + jvStich(S) : 'ganze Jahre') + ' · Sondereffekte ' + (S.sx ? 'eingerechnet' : 'entfernt') + (S.cmp != null ? ' · Vergleich mit ' + S.cmp : '') + (S.grp !== 'alle' ? ' · ' + jvGrpName(S.grp) : '');
   const page = (k, t, ...content) => h('section', { class: 'pd-page jv jv-print', dataset: { jvk: k } }, h('table', { class: 'pd-frame' },
     h('thead', null, h('tr', null, h('td', null, h('div', { class: 'pd-sp' })))),
     h('tbody', null, h('tr', null, h('td', null, h('header', { class: 'pd-head' }, h('img', { src: LOGO, alt: 'Malteser' }), h('div', null, h('h1', null, t), h('span', null, sub)), h('span', { class: 'pd-stand' }, stand)), content))),
     h('tfoot', null, h('tr', null, h('td', null, h('div', { class: 'pd-sp' }))))));
-  // je Abschnitt: Inhalt fürs PDF (ohne Namen, ohne Eingabefelder) und Titel (mit eigener Auswahl, falls abweichend)
+  // je Abschnitt: Inhalt fürs PDF (ohne Eingabefelder; Namen nur bei „Größte Spender:innen“) und Titel (mit eigener Auswahl, falls abweichend)
   const part = k => { try { return part0(k); } catch (e) { console.error(e); jvPdfErr.push(jvTitle(S, k) + ': ' + e.message);
     return { body: h('p', { class: 'muted' }, 'Dieser Abschnitt konnte nicht erstellt werden (' + e.message + ').'), t: jvTitle(S, k) }; } };
   const part0 = k => { const Sk = jvSS(S, k), Yk = jvData(Sk);
@@ -785,7 +787,7 @@ function jvPrintDoc() {
     return A && B ? h('div', { class: 'jv-grid2' + (cls ? ' ' + cls : '') }, A.el, B.el) : (A || B) ? (A || B).el : null; };
   const name = k => JV_BLOCKS.find(b => b[0] === k)[1].replace(' über die Jahre', '');
   const ttl = (ks, yr) => ks.filter(has).map(name).join(' · ') + (yr ? ' ' + S.H : '');
-  const GROUP = { blick: 'ueb', ziel: 'ueb', kpi: 'ueb', seg: 'seg', bruecke: 'seg', bindung: 'bind', dauer: 'bind', zweck: 'bind', konto: 'bind' };
+  const GROUP = JV_PGRP;
   for (const k of order) {
     if (done.has(k)) continue;
     const gk = GROUP[k], mem = gk ? order.filter(x => GROUP[x] === gk) : [k]; mem.forEach(x => done.add(x));
@@ -799,8 +801,8 @@ function jvPrintDoc() {
       const r1 = duo('bindung', 'dauer'), r2 = duo('zweck', 'konto');
       pages.push(page(k, ttl(['bindung', 'dauer', 'zweck', 'konto'], has('bindung') || has('dauer')), r1, r1 && r2 ? h('div', { class: 'jv-pdgap' }) : null, r2));
     } else if (k === 'verlauf') {                                      // Linie, Wochen und Quartale – passt nicht alles auf eine Seite, kommen die Quartale auf die nächste
-      const Yv = jvData(S), hTop = (jvVp('cum') ? 280 : 0) + (jvVp('wk') ? 176 : 0), hQ = (jvVp('qa') ? 140 : 0) + (jvVp('qn') ? 40 + S.sel.length * 46 : 0) + (jvVp('qa') || jvVp('qn') ? 30 : 0);
-      if (!hTop || !hQ || hTop + hQ <= 640) pages.push(page(k, 'Jahresverlauf ' + S.H, jvVerlauf(S, Yv)));
+      const Yv = jvData(S);
+      if (!jvVerlaufSplit(S)) pages.push(page(k, 'Jahresverlauf ' + S.H, jvVerlauf(S, Yv)));
       else pages.push(page(k, 'Jahresverlauf ' + S.H, jvVerlauf(S, Yv, 'top')), page(k, 'Jahresverlauf ' + S.H + ' – Quartale', jvVerlauf(S, Yv, 'q')));
     } else if (k === 'mail') {                                         // je Vergleich Grafik und Tabelle – zwei Vergleiche auf einer Seite, wenn sie hinpassen
       let blocks = []; try { blocks = jvMailPdf(jvSS(S, k)); } catch (e) { console.error(e); jvPdfErr.push(jvTitle(S, k) + ': ' + e.message); }
@@ -815,19 +817,28 @@ function jvPrintDoc() {
     el.dataset.w = String(g ? Math.floor((JV_PD_W - 20) * (g.firstElementChild.contains(el) ? a : b) / (a + b)) : el.closest('.jv-pdhalf') ? Math.floor((JV_PD_W - 20) / 2) : JV_PD_W); try { spDraw(el); } catch (e) { console.error(e); } }
   return doc;
 }
+// nur der Jahresvergleich – derselbe Weg wie „Export → PDF exportieren …“ mit nur diesem Bereich
 function jvPrintPDF() {
   if (!jvOrder().some(jvShown)) { toast('Kein Abschnitt eingeblendet.', 'warn'); return; }
   hideTip(); closeMenu();
-  let doc;
-  try { doc = jvPrintDoc(); }
-  catch (e) { console.error(e); $$('#printdoc').forEach(x => x.remove()); document.body.classList.remove('printdoc-mode'); toast('PDF konnte nicht erstellt werden: ' + e.message, 'warn'); return; }
-  $$('#printdoc').forEach(e => e.remove());
-  document.body.append(doc);
-  document.body.classList.add('printdoc-mode');
-  PRINT_TITLE = document.title;
-  document.title = 'Jahresvergleich_' + UI.year + '_' + ds(todayDn());   // Vorschlag für den Dateinamen
-  if (jvPdfErr.length) toast('Im PDF fehlt etwas: ' + jvPdfErr.join(' · '), 'warn');
-  setTimeout(() => { try { window.print(); } catch (e) { toast('Drucken nicht möglich: ' + e.message, 'warn'); window.dispatchEvent(new Event('afterprint')); } }, 80);
+  printPDF({ secs: { jv: true }, show: Object.assign({}, UI.show), vac: UI.showVac, verbund: !!UI.verbund, ms: new Set() });
+}
+// Seiten: zusammengehörige Abschnitte auf einer Seite; der Jahresverlauf auf zwei, wenn nicht alles auf eine passt
+const JV_PGRP = { blick: 'ueb', ziel: 'ueb', kpi: 'ueb', seg: 'seg', bruecke: 'seg', bindung: 'bind', dauer: 'bind', zweck: 'bind', konto: 'bind' };
+function jvVerlaufSplit(S) {
+  const hTop = (jvVp('cum') ? 280 : 0) + (jvVp('wk') ? 176 : 0), hQ = (jvVp('qa') ? 140 : 0) + (jvVp('qn') ? 40 + S.sel.length * 46 : 0) + (jvVp('qa') || jvVp('qn') ? 30 : 0);
+  return !!hTop && !!hQ && hTop + hQ > 640;
+}
+// ungefähre Seitenzahl fürs PDF-Fenster
+function jvPdfPages() {
+  if (!SP.rows.length) return 0;
+  const S = jvSetup(), seen = new Set(); let n = 0;
+  for (const k of jvOrder().filter(jvShown)) { const g = JV_PGRP[k];
+    if (g) { if (!seen.has(g)) { seen.add(g); n++; } }
+    else if (k === 'verlauf') n += jvVerlaufSplit(S) ? 2 : 1;
+    else if (k === 'mail') { const M = jvMv(); n += Math.max(1, Math.ceil(M.sets.filter(x => jvMvLines(Object.assign({}, M, { on: [x.id] })).some(o => o.sr)).length / 2)); }
+    else n++; }
+  return n;
 }
 
 /* ---------- Grafiken (Abschnitt mit eigener Auswahl: data-jvk am Abschnitt bzw. an der PDF-Seite) */
