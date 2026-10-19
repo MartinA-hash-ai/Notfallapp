@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.41.0",
+    "version": "0.42.0",
     "date": "",
+    "items": [
+      "„Buchungen hinzugefügt“ neu: oben das Ergebnis (neue Spenden, Summe, Zeitraum) – grün, bei Auffälligkeiten orange mit „bitte … prüfen“",
+      "Darunter „Was kam hinzu“: je Datei eine Zeile im Zeitstrahl – blau neu, schraffiert schon da, orange zu prüfen; dazu, was bisher eingelesen war",
+      "Je Punkt eine Zeile: schon da (Liste aufklappbar), lückenlos eingelesen, per Regel zugeordnet mit Knopf „Prüfen“; die Liste der neuen Spenden ist eingeklappt",
+      "Neu als Warnung: zwei Dateien haben denselben Zeitraum desselben Kontos, aber keine gleiche Buchung (vielleicht anderer Export der Bank – könnte doppelt zählen); nicht lesbare Dateien; Lücken zwischen den eingelesenen Zeiträumen"
+    ]
+  },
+  {
+    "version": "0.41.0",
+    "date": "2026-10-19T15:09",
     "items": [
       "Jahresvergleich – Leiste: Zeitraum „bis Stichtag (16.10.)“, die drei Knöpfe Alle / Privat / Institutionen ohne Wort davor, Sondereffekte „entfernt“ statt „herausgerechnet“",
       "Jahresvergleich – „So wird gerechnet“ steckt jetzt hinter dem ⓘ in der Leiste; neu der rote Knopf „+ Buchung hinzufügen“ (wie in der Auswertung, Dateien lassen sich auch hineinziehen)",

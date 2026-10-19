@@ -865,11 +865,6 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .sp-tile .sp-tl { text-align: center; }
 
 /* 0.13.4: Zusammenfassung nach „+ Buchung hinzufügen“ */
-.sp-addsum { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 12px; }
-.sp-addsum > div { background: var(--soft); border: 1px solid var(--line); border-radius: var(--radius); padding: 8px 12px; text-align: center; display: flex; flex-direction: column; }
-.sp-addsum b { font-size: 22px; }
-.sp-addsum span { font-weight: 600; color: var(--ink2); }
-.sp-addsum small { color: var(--muted); }
 .sp-ov { color: var(--warn); }
 .sp-addrep h3 { font-size: 14px; margin: 10px 0 6px; }
 .sp-addlist { max-height: 272px; overflow-y: auto; border: 1px solid var(--line); border-radius: var(--radius); }
@@ -937,12 +932,6 @@ html[data-theme=dark] .chip.demo.P.palred, html[data-theme=dark] .pl-row .paldat
 .phead .tpl-name { font-size: 18px; font-weight: 700; min-width: 260px; }
 .tpl-hint { margin: 0 0 8px; }
 @media (max-width: 900px) { .sett-page { grid-template-columns: 1fr; } .sett-nav { position: static; flex-direction: row; flex-wrap: wrap; } }
-.sp-addsum2 { grid-template-columns: 1fr 1fr 1.4fr; align-items: stretch; }
-.sp-addsum2 > div { justify-content: center; gap: 2px; }
-.sp-addsum2 > div > span { font-weight: 600; }
-.sp-addsum2 .warn > span { color: var(--warn); }
-.sp-addsum .sp-as-span b { font-size: 17px; line-height: 27px; }
-.sp-rchips { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; margin-top: 4px; }
 .sp-rchip { display: inline-block; font-size: 11px; font-weight: 600; padding: 0 6px; border-radius: 8px; border: 1px solid; white-space: nowrap; line-height: 16px; }
 .sp-rchip small { font-weight: 400; color: var(--muted); }
 .sp-addlist td.sp-rc { text-align: right; white-space: nowrap; }
@@ -1531,44 +1520,6 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .spj-tabs .spj-gscroll { flex: 1 1 auto; max-height: none; min-height: calc(31px + 4 * 26px); contain: size; }
 @media (max-width: 1100px) { .spj-tabs .spj-gscroll { contain: none; max-height: calc(31px + 7 * 26px); } }
 /* 0.19.1: Zusammenfassung „Buchungen hinzugefügt“ – Felder anklickbar, Details im Feld (auf Wunsch über die ganze Breite) */
-.sp-addsum2 > div.click { cursor: pointer; transition: background .12s; }
-.sp-addsum2 > div.click:hover, .sp-addsum2 > div.click:focus-visible { background: color-mix(in srgb, var(--ink) 8%, var(--soft)); }
-.sp-addsum2 .sp-rchip[role=button] { cursor: pointer; }
-.sp-addsum2 .sp-rchip[role=button]:hover { filter: brightness(.94); }
-.sp-addsum2 > .sp-as-det { justify-content: flex-start; text-align: left; background: var(--card); border-color: var(--line2); padding: 8px 10px; min-width: 0; gap: 0; }
-.sp-addsum2 > .sp-as-det.wide { grid-column: 1 / -1; order: -1; }
-.sp-det-h { display: flex; align-items: center; gap: 12px; }
-.sp-det-h b { margin-right: auto; font-size: 13.5px; }
-.sp-det-h .link { white-space: nowrap; text-decoration: none; }
-.sp-det-body { max-height: 240px; overflow: auto; margin-top: 6px; }
-.sp-ovl-r { display: grid; grid-template-columns: minmax(70px, 32%) minmax(60px, 1fr) auto; gap: 8px; align-items: center; font-size: 12px; padding: 2px 0; }
-.sp-ovl-n { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
-.sp-ovl-t { position: relative; height: 10px; background: var(--head); border-radius: 3px; }
-.sp-ovl-b { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--focus) 45%, var(--card)); border-radius: 3px; }
-.sp-ovl-x { position: absolute; top: -2px; bottom: -2px; min-width: 3px; background: color-mix(in srgb, var(--warn) 75%, transparent); border-radius: 2px; }
-.sp-ovl-d { white-space: nowrap; font-size: 11.5px; }
-.sp-ovl-l { margin: 8px 0 2px; padding-left: 18px; font-size: 12.5px; }
-.sp-ovl-l li + li { margin-top: 4px; }
-.sp-dup-t { width: 100%; margin: 0; table-layout: auto; }
-.sp-dup-t td { padding: 3px 6px; white-space: nowrap; font-size: 12.5px; }
-.sp-dup-t td.sp-z { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 100%; }
-.sp-as-det.wide .sp-dup-t td.sp-z { white-space: normal; }
-.sp-as-det:not(.wide) .sp-dup-w { display: none; }
-.sp-as-ask { gap: 6px !important; }
-.sp-ask-b { display: flex; gap: 8px; justify-content: center; margin-top: 4px; }
-.sp-addsum2 > .sp-as-det b { font-size: inherit; }
-.sp-addsum2 > .sp-as-det .sp-det-h b { font-size: 13.5px; }
-.sp-addsum2 > .sp-as-det span { font-weight: inherit; color: inherit; }
-.sp-addsum2 > .sp-as-det .sp-ovl-n { font-weight: 600; }
-.sp-addsum2 > .sp-as-det .sp-ovl-d { color: var(--muted); }
-.sp-addsum2 > div { min-width: 0; }
-.sp-det-h { flex-wrap: wrap; gap: 2px 12px; }
-.sp-as-det:not(.wide) .sp-det-h b { flex-basis: 100%; }
-.sp-as-det:not(.wide) .sp-ovl-d { display: none; }
-.sp-as-det:not(.wide) .sp-ovl-r { grid-template-columns: minmax(60px, 45%) 1fr; }
-.sp-ovl-r.old .sp-ovl-n { color: var(--muted); font-weight: 600; }
-.sp-ovl-o { position: absolute; top: 0; bottom: 0; background: color-mix(in srgb, var(--ink) 22%, var(--card)); border-radius: 3px; }
-.sp-ovl-l li > .muted { margin-left: 2px; }
 /* 0.20: Jahresvergleich (Teil 1) – Jahre in einer Farbe, das Hauptjahr am kräftigsten; Mailings in festen Farben */
 :root { --jv1: #86b6ef; --jv2: #5598e7; --jv3: #1c5cab; --jv4: #0b2a52; --jvm1: #2a78d6; --jvm2: #eb6834; --jvm3: #1baf7a; --jvm4: #6250d6; --jvup: #0a8a0a; --jvdn: #c62828;
   --jvk1: #2a78d6; --jvk2: #eb6834; --jvk3: #1baf7a; --jvk4: #eda100; --jvk5: #e87ba4; --jvk6: #008300; --jvk7: #6250d6; --jvk8: #e34948; --jvbase: #b9b8b1; }
@@ -2149,3 +2100,44 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 
 /* 0.41: Filter der Jahresplanung angedockt – direkt am Kopf, oben gerade Kante (keine Lücke zum Durchschauen) */
 .fbar.stuck .fbar-in { border-top-color: transparent; border-top-left-radius: 0; border-top-right-radius: 0; }
+
+/* ---------- 0.42: Zusammenfassung „Buchungen hinzugefügt“ – Ergebnis, Zeitstrahl „Was kam hinzu“, je Punkt eine Zeile */
+.sp-ar { font-size: 14px; }
+.sp-ar-res { display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 10px; background: var(--okbg); border: 1px solid var(--okline); }
+.sp-ar-res.warn { background: var(--warnbg); border-color: var(--warnline); color: var(--ink); }
+.sp-ar-big { width: 34px; height: 34px; border-radius: 50%; background: var(--ok); color: var(--card); display: grid; place-items: center; font-size: 19px; font-weight: 700; flex: none; }
+.sp-ar-res.warn .sp-ar-big { background: var(--warn); }
+.sp-ar-res b { font-size: 20px; } .sp-ar-s { color: var(--ink2); font-size: 13px; margin-top: 2px; } .sp-ar-s b { font-size: inherit; }
+.sp-ar-card { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px; }
+.sp-ar-h { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 6px; }
+.sp-ar-lane { display: grid; grid-template-columns: 140px minmax(0, 1fr) 160px; align-items: center; gap: 10px; min-height: 26px; font-size: 13px; }
+.sp-ar-nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-ar-lane.old .sp-ar-nm { color: var(--muted); } .sp-ar-lane.bad .sp-ar-nm { color: var(--warn); text-decoration: line-through; }
+.sp-ar-track { position: relative; height: 14px; background: var(--line3); border-radius: 4px; }
+.sp-ar-seg { position: absolute; top: 0; bottom: 0; min-width: 3px; border-radius: 4px; }
+.sp-ar-seg.old, .sp-ar-k.old { background: var(--spcov); } .sp-ar-seg.new, .sp-ar-k.new { background: var(--focus); }
+.sp-ar-seg.dup, .sp-ar-k.dup { background: repeating-linear-gradient(135deg, var(--line2) 0 3px, transparent 3px 6px), var(--line3); box-shadow: inset 0 0 0 1px var(--line2); }
+.sp-ar-seg.warn, .sp-ar-k.warn { background: repeating-linear-gradient(135deg, var(--warn) 0 3px, transparent 3px 6px), var(--warnbg); box-shadow: inset 0 0 0 1px var(--warn); }
+.sp-ar-na { position: absolute; left: 8px; top: -2px; font-size: 12.5px; color: var(--warn); white-space: nowrap; }
+.sp-ar-rt { font-size: 12.5px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; } .sp-ar-w { color: var(--warn); font-weight: 700; }
+.sp-ar-axis { display: grid; grid-template-columns: 140px minmax(0, 1fr) 160px; gap: 10px; font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.sp-ar-axis .ax { position: relative; height: 14px; } .sp-ar-axis .ax span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.sp-ar-key { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--muted); margin: 6px 0 0 150px; }
+.sp-ar-key span { white-space: nowrap; } .sp-ar-k { display: inline-block; width: 18px; height: 9px; border-radius: 2px; margin-right: 5px; vertical-align: 0; }
+.sp-ar-allf { text-decoration: none; justify-self: start; }
+.sp-ar-rows { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.sp-ar-row { display: flex; align-items: center; gap: 10px; padding: 9px 14px; border-top: 1px solid var(--line); }
+.sp-ar-row:first-child { border-top: 0; }
+.sp-ar-ic { width: 20px; text-align: center; font-weight: 700; flex: none; color: var(--ok); }
+.sp-ar-row.warn { background: var(--warnbg); } .sp-ar-row.warn .sp-ar-ic, .sp-ar-row.warn .sp-ar-tx { color: var(--warn); }
+.sp-ar-row.todo { background: color-mix(in srgb, var(--focus) 7%, var(--card)); } .sp-ar-row.todo .sp-ar-ic { color: var(--focus); }
+.sp-ar-tx { flex: 1; min-width: 0; } .sp-ar-tx small { display: block; color: var(--muted); font-size: 12.5px; margin-top: 1px; }
+.sp-ar-tx .sp-rchip { margin: 0 2px; cursor: pointer; } .sp-ar-tx .sp-rchip:hover { filter: brightness(.94); }
+.sp-ar .link.sp-ar-tog, .sp-ar .link.sp-ar-copy, .sp-ar .link.sp-ar-allf { text-decoration: none; white-space: nowrap; }
+.sp-ar-go { flex: none; padding: 4px 14px; }
+.sp-ar-sub { padding: 0 14px 8px 44px; max-height: 240px; overflow: auto; border-top: 0; }
+.sp-ar-t { width: 100%; margin: 0; table-layout: auto; } .sp-ar-t td { padding: 3px 6px; white-space: nowrap; font-size: 12.5px; }
+.sp-ar-t td.sp-z { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 100%; } .sp-ar-from { font-size: 12px; }
+.sp-ar-foot { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px; }
+.sp-ar-foot .sp-ar-tog { font-size: 13.5px; font-weight: 600; } .sp-ar-copy { text-decoration: none; color: var(--muted); }
+.sp-ar-skip { margin: 6px 0 0; }

@@ -1,9 +1,9 @@
-// 0.19.1/0.19.2 Zusammenfassung „Buchungen hinzugefügt“: Felder anklickbar – Überschneidung mit den vorhandenen Daten (mit Dateinamen; neue Dateien untereinander als Hinweis),
-// doppelte Spenden (Datum, Betrag, Verwendungszweck, „auch in“), ganze Breite / schmaler, zurück; „Per Regel neu …“ fragt und führt zur Prüfung
+// 0.42 Zusammenfassung „Buchungen hinzugefügt“: oben das Ergebnis (grün / orange), „Was kam hinzu“ als Zeitstrahl je Datei, je Punkt eine Zeile
+// (Auffälligkeiten, schon da mit Liste, lückenlos, per Regel → Prüfen); Liste der neuen Spenden eingeklappt; Bericht kopieren
 const { chromium, ok, open, connect, finish } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 const p2 = x => String(x).padStart(2, '0');
-const L = (d, b, i, zw) => [d, d, String(b), "'TESTDE11XXX", 'DE00100000000000' + String(i).padStart(6, '0'), 'Probe ' + i, "'Zugang/Gutschrift", zw, "'Spendengutschrift", "'Paderborn - Lage"].join(';');
+const L = (d, b, i, zw, k = 'Paderborn - Lage') => [d, d, String(b), "'TESTDE11XXX", 'DE00100000000000' + String(i).padStart(6, '0'), 'Probe ' + i, "'Zugang/Gutschrift", zw, "'Spendengutschrift", "'" + k].join(';');
 const mk = (m, from, to) => { const r = []; for (let t = from; t <= to; t++) r.push(L(p2(t) + '.' + p2(m) + '.2023', 10 + t, m * 100 + t, t % 3 ? 'Spende für die Hospizarbeit in Lage, herzlichen Dank und viele Grüße an das ganze Team' : 'Spende Rikscha')); return r; };
 const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
 
@@ -18,54 +18,57 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   // neu: Januar ab dem 20. noch einmal (überschneidet die vorhandene Datei), Februar, März mit Ende Februar (überschneidet Februar – beide neu)
   const files = { 'jan_nochmal.csv': csv(mk(1, 20, 31)), 'feb.csv': csv(mk(2, 1, 28)), 'mrz.csv': csv([...mk(2, 25, 28), ...mk(3, 1, 31)]) };
   await p.evaluate(fs => spAddFiles(Object.entries(fs).map(([n, t]) => new File([t], n))), files);
-  await p.waitForSelector('.modal .sp-addsum2'); await p.waitForTimeout(400);
-  const tiles = () => p.evaluate(() => [...document.querySelectorAll('.sp-addsum2 > div')].map(d => d.className.replace('sp-as-', '') + ':' + d.textContent));
+  await p.waitForSelector('.modal .sp-ar'); await p.waitForTimeout(400);
+  const st = () => p.evaluate(() => { const m = document.querySelector('.modal'); return m && {
+    res: m.querySelector('.sp-ar-res').textContent, warn: m.querySelector('.sp-ar-res').classList.contains('warn'),
+    lanes: [...m.querySelectorAll('.sp-ar-lane')].filter(l => l.querySelector('.sp-ar-nm')).map(l => l.querySelector('.sp-ar-nm').textContent + ':' + [...l.querySelectorAll('.sp-ar-seg')].map(g => g.className.replace('sp-ar-seg ', '')).join('+') + ':' + l.querySelector('.sp-ar-rt').textContent),
+    axis: [...m.querySelectorAll('.sp-ar-axis .ax span')].map(e => e.textContent).join('|'), key: [...m.querySelectorAll('.sp-ar-key > span')].map(e => e.textContent).join('|'),
+    rows: [...m.querySelectorAll('.sp-ar-row')].map(r => (r.classList.contains('warn') ? '!' : r.classList.contains('todo') ? '●' : '✓') + ' ' + r.querySelector('.sp-ar-tx').textContent),
+    list: !!m.querySelector('.sp-addlist') }; });
 
-  // ---- A: drei Felder, anklickbar (Hover dunkler)
-  const a0 = await tiles();
-  ok(a0[0] === 'ov warn click:Überschneidet sich mit vorhandenen Datenschon vorhandene Buchungen zählen nur einmal' && a0[1] === 'dup click:16 doppelte Spenden erkanntnicht noch einmal gezählt' && /^rules click:Per Regel neu zugeordnet.*Rikscha \(19\)$/.test(a0[2]),
-    'A: Überschneidung, 16 doppelte, Regel „Rikscha“ (19) – alle drei anklickbar');
-  const bg0 = await p.evaluate(() => getComputedStyle(document.querySelector('.sp-as-dup')).backgroundColor);
-  await p.hover('.sp-as-dup'); await p.waitForTimeout(250);
-  ok(await p.evaluate(b0 => getComputedStyle(document.querySelector('.sp-as-dup')).backgroundColor !== b0, bg0), 'A: beim Zeigen wird das Feld dunkler');
+  // ---- A: Ergebnis grün, Zeitstrahl je Datei (neu / schon da), Achse, Legende nur mit dem, was vorkommt
+  const a0 = await st();
+  ok(a0.res === '✓59 neue Spenden · 1.492,00 €01.02.–31.03.2023 · aus 3 Dateien' && !a0.warn, 'A: oben das Ergebnis, grün: ' + a0.res);
+  ok(a0.lanes.join(' | ') === 'bisher eingelesen:old:02.01.–31.01.2023 | jan_nochmal.csv:dup:alle 12 schon da | feb.csv:new:28 neu | mrz.csv:new+dup:31 neu · 4 schon da',
+    'A: „Was kam hinzu“ – bisher eingelesen, je Datei neu (blau) und schon da (schraffiert): ' + a0.lanes.join(' | '));
+  ok(a0.axis === 'Jan|Feb|Mär' && a0.key === 'neu übernommen|schon da – zählt einmal|bisher eingelesen', 'A: Achse ' + a0.axis + ', Legende nur mit dem, was vorkommt: ' + a0.key);
+  ok(a0.rows.join(' | ') === '✓ 16 Buchungen waren schon da – nicht doppelt gezählt | ✓ Eingelesen jetzt lückenlos vom 01.01. bis 31.03.2023 | ● 19 neue Spenden per Regel bei Rikscha – bitte einmal prüfen' && !a0.list,
+    'A: je Punkt eine Zeile; die Liste der neuen Spenden ist eingeklappt: ' + a0.rows.join(' | '));
 
-  // ---- B: Überschneidungen – Dateien als Balken, Paare mit gemeinsamem Zeitraum und gleichen Buchungen (auch zwischen zwei neuen Dateien)
-  await p.click('.sp-as-ov'); await p.waitForTimeout(200);
-  const b0 = await p.evaluate(() => { const d = document.querySelector('.sp-as-det'); return [[...d.querySelectorAll('.sp-ovl-n')].map(e => e.textContent).join(','), d.querySelectorAll('.sp-ovl-x').length,
-    [...d.querySelectorAll('.sp-ovl-l li')].map(e => e.textContent), d.classList.contains('wide'), [...d.querySelectorAll('p.muted')].map(e => e.textContent).join(' ')]; });
-  ok(b0[0] === 'schon vorhanden,jan_nochmal.csv' && b0[1] === 1 && !b0[3], 'B: Klick – die vorhandenen Daten und die neue Datei, die sich damit überschneidet, als Balken (' + b0[0] + ')');
-  ok(b0[2].length === 1 && b0[2][0] === '„jan_nochmal.csv“ (20.01.–31.01.2023) überschneidet sich mit vorhandenen Daten:20.01.–31.01.2023 aus „jan.csv“ · 12 Buchungen waren schon da (zählen einmal)',
-    'B: aufgeschlüsselt – Datei, Zeitraum, aus welcher vorhandenen Datei, wie viele Buchungen schon da waren');
-  ok(/Außerdem überschneiden sich neue Dateien untereinander: „mrz\.csv“ und „feb\.csv“ \(25\.02\.–28\.02\.2023, 4 gleiche\)/.test(b0[4]), 'B: dass sich zwei neue Dateien untereinander überschneiden, steht nur als Hinweis darunter');
-  await p.click('.sp-det-wide'); await p.waitForTimeout(150);
-  const b1 = await p.evaluate(() => { const d = document.querySelector('.sp-as-det'), m = document.querySelector('.sp-addsum2').getBoundingClientRect(), r = d.getBoundingClientRect(); return [d.classList.contains('wide'), Math.round(r.width) === Math.round(m.width), getComputedStyle(d.querySelector('.sp-ovl-d')).display, document.querySelectorAll('.sp-addsum2 > div').length]; });
-  ok(b1[0] && b1[1] && b1[2] !== 'none' && b1[3] === 3, 'B: „ganze Breite“ – Details über die ganze Breite (mit Zeiträumen), die anderen Felder bleiben darunter sichtbar');
-  await p.click('.sp-det-copy'); await p.waitForTimeout(200);
+  // ---- B: „Liste“ bei schon da – Datum, Betrag, Verwendungszweck, aus welcher Datei; neue Spenden aufklappen
+  await p.click('.sp-ar-row .sp-ar-tog'); await p.waitForTimeout(200);
+  const b0 = await p.evaluate(() => { const rows = [...document.querySelectorAll('.sp-ar-sub .sp-ar-t tr')]; return [rows.length, [...rows[0].children].map(c => c.textContent).join(' | ')]; });
+  ok(b0[0] === 16 && /^20\.01\.2023 \| 30,00 € \| Spende für die Hospizarbeit.* \| auch in „jan\.csv“$/.test(b0[1]), 'B: „Liste“ – 16 Buchungen, die schon da waren: ' + b0[1].slice(0, 60) + ' …');
+  await p.click('.sp-ar-row .sp-ar-tog'); await p.click('.sp-ar-foot .sp-ar-tog'); await p.waitForTimeout(200);
+  const b1 = await p.evaluate(() => [document.querySelectorAll('.sp-ar-sub').length, document.querySelectorAll('.sp-addlist tr').length, document.querySelectorAll('.sp-addlist .sp-rchip').length, document.querySelector('.sp-ar-foot .sp-ar-tog').textContent]);
+  ok(b1[0] === 0 && b1[1] === 59 && b1[2] === 19 && b1[3] === 'Die 59 neuen Spenden ansehen ▴', 'B: „Die 59 neuen Spenden ansehen“ klappt die Liste auf, 19 mit „Rikscha“ am Zeilenende');
+
+  // ---- C: Bericht kopieren – Dateien, Zeiträume, Anzahl; ohne Namen, IBAN, Verwendungszweck
+  await p.click('.sp-ar-copy'); await p.waitForTimeout(200);
   const rep = await p.evaluate(() => navigator.clipboard.readText().catch(() => '')).catch(() => '');
-  ok(await p.evaluate(() => /Bericht kopiert – ohne Namen, IBAN und Verwendungszweck/.test(document.querySelector('#toasts').textContent)) && (!rep || (/Überschneidung mit vorhandenen Daten: „jan_nochmal\.csv“ \(20\.01\.–31\.01\.2023\) und „jan\.csv“/.test(rep) && !/Hospizarbeit|Probe|DE00/.test(rep))),
-    'B: „Bericht kopieren“ – Dateien, Zeiträume, Anzahl; ohne Namen, IBAN und Verwendungszweck');
-  await p.click('.sp-det-wide'); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => !document.querySelector('.sp-as-det').classList.contains('wide')), 'B: „schmaler“ – wieder im Feld');
-  await p.click('.sp-det-back'); await p.waitForTimeout(150);
-  ok(JSON.stringify(await tiles()) === JSON.stringify(a0), 'B: „← zurück“ – die drei Felder wie vorher');
+  ok(await p.evaluate(() => /Bericht kopiert – ohne Namen, IBAN und Verwendungszweck/.test(document.querySelector('#toasts').textContent)) && (!rep || (/Gleicher Zeitraum: „jan_nochmal\.csv“ und „jan\.csv“: 20\.01\.–31\.01\.2023 · 12 gleiche Buchungen/.test(rep) && !/Hospizarbeit|Probe|DE00/.test(rep))),
+    'C: „Bericht kopieren“ – Dateien, Zeiträume, Anzahl; ohne Namen, IBAN und Verwendungszweck');
 
-  // ---- C: doppelte Spenden – Datum, Betrag, Verwendungszweck; „auch in“ auf ganzer Breite
-  await p.click('.sp-as-dup'); await p.waitForTimeout(200);
-  const c0 = await p.evaluate(() => { const rows = [...document.querySelectorAll('.sp-as-det .sp-dup-t tr')]; return [rows.length, rows[0].children[0].textContent, rows[0].children[1].textContent, getComputedStyle(rows[0].querySelector('.sp-dup-w')).display, rows[0].querySelector('.sp-z').textContent]; });
-  ok(c0[0] === 16 && c0[1] === '20.01.2023' && c0[2] === '30,00 €' && c0[3] === 'none' && /Hospizarbeit/.test(c0[4]), 'B: 16 doppelte – Datum, Betrag, Verwendungszweck (gekürzt, schmal)');
-  await p.click('.sp-det-wide'); await p.waitForTimeout(150);
-  const c1 = await p.evaluate(() => { const r = document.querySelector('.sp-as-det .sp-dup-t tr'); return [getComputedStyle(r.querySelector('.sp-dup-w')).display, r.querySelector('.sp-dup-w').textContent, getComputedStyle(r.querySelector('.sp-z')).whiteSpace]; });
-  ok(c1[0] !== 'none' && c1[1] === 'auch in jan.csv' && c1[2] === 'normal', 'C: ganze Breite – Verwendungszweck vollständig, „auch in jan.csv“');
-  await p.click('.sp-det-back'); await p.waitForTimeout(150);
-
-  // ---- D: „Per Regel neu zugeordnet“ – Rückfrage im Feld; Abbrechen; „Ja, prüfen“ schließt und führt zum Zweck (nur neue)
-  await p.click('.sp-addsum2 .sp-rchip'); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => /„Rikscha“: 19 Spenden jetzt prüfen\?Das Fenster schließt sich, und es geht zu dem Spendenzweck\./.test(document.querySelector('.sp-as-ask').textContent)), 'D: Klick auf „Rikscha“ – Rückfrage „jetzt prüfen?“');
-  await p.click('.sp-ask-no'); await p.waitForTimeout(150);
-  ok(JSON.stringify(await tiles()) === JSON.stringify(a0), 'D: „Abbrechen“ – Feld wieder wie vorher');
-  await p.click('.sp-as-rules'); await p.waitForTimeout(150); await p.click('.sp-ask-go'); await p.waitForTimeout(600);
+  // ---- D: „Prüfen“ – Fenster zu, „Spenden 2023“, Zweck „Rikscha“, nur die neuen
+  await p.click('.sp-ar-row.todo .sp-ar-go'); await p.waitForTimeout(600);
   const d0 = await p.evaluate(() => [!!document.querySelector('.modal'), UI.view, UI.year, UI.spMid, SPJ.z, SPJ.lv, SPJ.onlyNew, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length,
     [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].every(r => r.querySelector('.sp-tag.neu')), (t => t > -5 && t < innerHeight / 2)(document.querySelector('[data-sec="sp-zu"]').getBoundingClientRect().top)]);
-  ok(d0.slice(0, 7).join() === 'false,spenden,2023,allg:2023,zr,zweck,true' && d0[7] === 19 && d0[8] && d0[9], 'D: „Ja, prüfen“ – Fenster zu, „Spenden 2023“, Zweck „Rikscha“, nur die 19 neuen, Bereich im Bild ' + JSON.stringify(d0));
+  ok(d0.slice(0, 7).join() === 'false,spenden,2023,allg:2023,zr,zweck,true' && d0[7] === 19 && d0[8] && d0[9], 'D: „Prüfen“ – Fenster zu, „Spenden 2023“, Zweck „Rikscha“, nur die 19 neuen, Bereich im Bild ' + JSON.stringify(d0));
+
+  // ---- E: Problemfall – gleicher Zeitraum desselben Kontos ohne gleiche Buchung, Datei nicht lesbar, Lücke; anderes Konto im selben Zeitraum ist normal
+  const mkB = (m, from, to, k) => { const r = []; for (let t = from; t <= to; t++) r.push(L(p2(t) + '.' + p2(m) + '.2023', 50 + t, 9000 + m * 100 + t, 'Spende Wärmebus', k)); return r; };
+  const files2 = { 'mrz_bank2.csv': csv(mkB(3, 27, 31)), 'konto_b.csv': csv(mkB(3, 20, 24, 'Paderborn - Brakel')), 'kaputt.xlsx': 'kein Excel', 'mai.csv': csv(mk(5, 2, 31)) };
+  await p.evaluate(fs => spAddFiles(Object.entries(fs).map(([n, t]) => new File([t], n))), files2);
+  await p.waitForSelector('.modal .sp-ar'); await p.waitForTimeout(400);
+  const e0 = await st();
+  ok(e0.warn && /^!\d+ neue Spenden · [\d.,]+ €20\.03\.–31\.05\.2023 · aus 3 von 4 Dateien – bitte 3 Punkte prüfen$/.test(e0.res), 'E: orange, „aus 3 von 4 Dateien – bitte 3 Punkte prüfen“: ' + e0.res);
+  ok(e0.rows.slice(0, 3).join(' | ') === '! „mrz_bank2.csv“ und „mrz.csv“ haben beide den 27.03.–31.03.2023 – aber keine Buchung ist gleichvielleicht ein anderer Export der Bank – bitte prüfen, ob diese Tage jetzt doppelt zählen | ! „kaputt.xlsx“ ließ sich nicht lesenkeine gültige Excel-Datei – nichts davon übernommen | ! Lücke: vom 03.04. bis 01.05.2023 ist nichts eingelesen18 Werktage – fehlt eine Datei?'
+    || /^! „mrz_bank2\.csv“ und „mrz\.csv“ haben beide den 27\.03\.–31\.03\.2023 – aber keine Buchung ist gleich.* \| ! „kaputt\.xlsx“ ließ sich nicht lesen.* \| ! Lücke: vom \d\d\.04\. bis \d\d\.05\.2023 ist nichts eingelesen/.test(e0.rows.slice(0, 3).join(' | ')),
+    'E: die Auffälligkeiten stehen oben: ' + e0.rows.slice(0, 3).join(' | '));
+  ok(!e0.rows.some(r => /konto_b/.test(r)) && e0.lanes.some(l => /^konto_b\.csv:new:5 neu$/.test(l)) && e0.lanes.some(l => /^mrz_bank2\.csv:new\+warn:5 neu · 5 Tage prüfen$/.test(l)) && e0.lanes.some(l => /^kaputt\.xlsx::–$/.test(l)) && /zu prüfen/.test(e0.key),
+    'E: Zeitstrahl – „zu prüfen“ orange, die nicht lesbare Datei durchgestrichen; ein anderes Konto im selben Zeitraum ist keine Auffälligkeit: ' + e0.lanes.join(' | '));
+  await p.click('.sp-ar-row.warn .sp-ar-tog'); await p.waitForTimeout(200);
+  const e1 = await p.evaluate(() => [...document.querySelectorAll('.sp-ar-sub .sp-ar-t tr')].map(r => r.lastElementChild.textContent));
+  ok(e1.length === 10 && e1.filter(t => t === 'in „mrz_bank2.csv“').length === 5 && e1.filter(t => t === 'in „mrz.csv“').length === 5, 'E: „Buchungen ansehen“ – die Buchungen beider Dateien in diesen Tagen (' + e1.length + ')');
   await finish(b, pages);
 })();

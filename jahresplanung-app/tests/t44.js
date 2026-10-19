@@ -255,16 +255,19 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(kb && kb[0] === '+ Buchung hinzufügen' && kb[1], 'K: Knopf „+ Buchung hinzufügen“ (rot)');
   const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-sec="sp-ueb"] .tools button:has-text("Buchung hinzufügen")')]);
   await fc.setFiles(tmp); await p.waitForTimeout(700);
-  const repOf = () => p.evaluate(() => { const m = document.querySelector('.modal'), l = m && m.querySelector('.sp-addlist'), r = l && l.querySelector('tr');
-    return m ? { h2: m.querySelector('h2').textContent, top: [...m.querySelectorAll('.sp-addsum:not(.sp-addsum2) > div')].map(d => d.textContent).join(' | '),
-      low: [...m.querySelectorAll('.sp-addsum2 > div')].map(d => d.textContent).join(' | '), rows: l ? [...l.querySelectorAll('tr')].map(q => q.textContent).join(' / ') : '', n: l ? l.querySelectorAll('tr').length : 0,
-      old: !!m.querySelector('.sp-addfiles, h3'), scroll: l ? [l.scrollHeight > l.clientHeight, Math.round(l.clientHeight / r.getBoundingClientRect().height)] : null,
-      chips: [...m.querySelectorAll('.sp-addlist .sp-rc .sp-rchip')].map(c => c.textContent + '@' + c.style.borderColor), rchips: [...m.querySelectorAll('.sp-as-rules .sp-rchip')].map(c => c.textContent) } : null; });
+  const repOf = () => p.evaluate(() => { const m = document.querySelector('.modal'); if (!m || !m.querySelector('.sp-ar')) return null;
+    const t = m.querySelector('.sp-ar-foot .sp-ar-tog'); if (t && t.getAttribute('aria-expanded') !== 'true') t.click();   // Liste der neuen Spenden aufklappen
+    const l = m.querySelector('.sp-addlist'), r = l && l.querySelector('tr');
+    return { h2: m.querySelector('h2').textContent, res: m.querySelector('.sp-ar-res').textContent, warn: m.querySelector('.sp-ar-res').classList.contains('warn'),
+      low: [...m.querySelectorAll('.sp-ar-row .sp-ar-tx')].map(d => d.textContent).join(' | '), rows: l ? [...l.querySelectorAll('tr')].map(q => q.textContent).join(' / ') : '', n: l ? l.querySelectorAll('tr').length : 0,
+      lanes: [...m.querySelectorAll('.sp-ar-lane')].map(d => d.querySelector('.sp-ar-nm').textContent + ':' + d.querySelector('.sp-ar-rt').textContent).join(' | '),
+      scroll: l ? [l.scrollHeight > l.clientHeight, Math.round(l.clientHeight / r.getBoundingClientRect().height)] : null,
+      chips: [...m.querySelectorAll('.sp-addlist .sp-rc .sp-rchip')].map(c => c.textContent + '@' + c.style.borderColor), rchips: [...m.querySelectorAll('.sp-ar-row.todo .sp-rchip')].map(c => c.textContent) }; });
   const rep = await repOf();
-  ok(rep && rep.h2 === 'Buchungen hinzugefügt' && rep.top === '26.09.2027Spenden hinzugefügt | 1neue Spende | 60,00 €Gesamtsumme' && /^(Überschneidet sich mit vorhandenen Daten|Keine Überschneidung mit vorhandenen Daten)[^|]* \| Keine doppelten Spenden erkannt \| /.test(rep.low) && /26\.09\.2027.*60,00 €.*JB Upload/.test(rep.rows) && !rep.old,
-    'K: Zusammenfassung in sechs Feldern – ' + (rep ? rep.top + ' || ' + rep.low + ' · ' + rep.rows : 'fehlt'));
+  ok(rep && rep.h2 === 'Buchungen hinzugefügt' && rep.res === '✓1 neue Spende · 60,00 €26.09.2027 · aus 1 Datei' && !rep.warn && /^Keine Buchung war schon da – nichts doppelt \| /.test(rep.low) && /26\.09\.2027.*60,00 €.*JB Upload/.test(rep.rows) && /^(bisher eingelesen:[^|]+ \| )?export1 \(2\)\.csv:1 neu$/.test(rep.lanes),
+    'K: Zusammenfassung – Ergebnis, „Was kam hinzu“, je Punkt eine Zeile: ' + (rep ? rep.res + ' || ' + rep.lanes + ' || ' + rep.low + ' · ' + rep.rows : 'fehlt'));
   const mc = await p.evaluate(() => { const c = C.byId.get('m5').color, t = document.createElement('i'); t.style.borderColor = c; return t.style.borderColor; });
-  ok(rep && rep.rchips.join() === 'Jahresbericht (1)' && rep.chips.length === 1 && rep.chips[0] === 'Jahresbericht@' + mc && /Per Regel neu zugeordnet/.test(rep.low),
+  ok(rep && rep.rchips.join() === 'Jahresbericht' && rep.chips.length === 1 && rep.chips[0] === 'Jahresbericht@' + mc && /1 neue Spende per Regel bei Jahresbericht – bitte einmal prüfen/.test(rep.low),
     'K: von der Regel zugeordnet – Feld „' + (rep && rep.rchips.join()) + '“, Zeilenende mit der Maßnahme in ihrer Farbe (' + (rep && rep.chips.join()) + ')');
   ok(await p.evaluate(() => { const r = SP.rows.find(r => r.name === 'Upload Test'); return D.spenden.zu[r.k]?.m === 'm5' && D.spenden.neu[r.k] === 'm'; }), 'K: und als „neu“ markiert');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
@@ -278,10 +281,12 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   const [fc2] = await Promise.all([p.waitForEvent('filechooser'), p.click('[data-sec="sp-ueb"] .tools button:has-text("Buchung hinzufügen")')]);
   await fc2.setFiles([tmp, big]); await p.waitForTimeout(900);
   const rep2 = await repOf();
-  ok(rep2 && rep2.top === '10.09.2027 – 27.09.2027Spenden hinzugefügt | 24neue Spenden | 396,00 €Gesamtsumme' && /^Überschneidet sich mit vorhandenen Datenschon vorhandene Buchungen zählen nur einmal \| 2 doppelte Spenden erkannt/.test(rep2.low) && !rep2.old,
-    'K: zweimal dieselbe Buchung + 24 neue: ' + (rep2 ? rep2.top + ' || ' + rep2.low : 'fehlt'));
+  // die Testdaten haben im September schon andere Dateien mit anderen Buchungen desselben Kontos – das soll auffallen
+  ok(rep2 && rep2.res === '!24 neue Spenden · 396,00 €10.09.–27.09.2027 · aus 2 Dateien – bitte 3 Punkte prüfen' && rep2.warn && /\| 2 Buchungen waren schon da – nicht doppelt gezählt/.test(rep2.low) && /„export_sept\.csv“ und „export2\.csv“ haben beide den .* – aber keine Buchung ist gleich/.test(rep2.low)
+    && /export1\.csv:identisch mit „export1 \(2\)\.csv“/.test(rep2.lanes) && /export_sept\.csv:24 neu · 1 schon da · \d+ Tage prüfen/.test(rep2.lanes),
+    'K: zweimal dieselbe Buchung + 24 neue: ' + (rep2 ? rep2.res + ' || ' + rep2.lanes + ' || ' + rep2.low : 'fehlt'));
   ok(rep2 && rep2.n === 24 && rep2.scroll[0] && rep2.scroll[1] >= 9 && rep2.scroll[1] <= 11, 'K: Liste der neuen Spenden zeigt etwa ' + (rep2 && rep2.scroll[1]) + ' Zeilen, der Rest ist rollbar');
-  ok(rep2 && /Keine neue Spende fällt unter eine Regel$/.test(rep2.low) && !rep2.chips.length, 'K: keine Regel passt → „Keine neue Spende fällt unter eine Regel“');
+  ok(rep2 && !/per Regel/.test(rep2.low) && !rep2.chips.length, 'K: keine Regel passt → keine Zeile „per Regel“');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.modal')), 'K: auch mit Esc wegklickbar');
 
