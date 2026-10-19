@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.43.0",
+    "version": "0.44.0",
     "date": "",
+    "items": [
+      "Jahresvergleich › Größte Spender:innen: neue Spalte „Verwendungszweck“ (der Text mit der größten Summe; bei mehreren Texten „+1“ usw., alle im Hinweisfenster) – auch im PDF",
+      "Auswertung einer Maßnahme: Klick auf einen Balken („Spenden pro Tag“) oder in die Linie („Zeitspanne“) sucht die Spenden unten unter „Zugeordnet“ heraus – sie leuchten gelb auf, sobald die Liste im Bild ist",
+      "Jahresvergleich › Spenden pro Woche: Klick auf eine Woche springt in die Auswertung des Jahres und zeigt dort alle Spenden dieser Woche (ohne Zweck-, Maßnahmen- oder Suchfilter)",
+      "Wo ein Klick Spenden heraussucht, wird der Mauszeiger zur Lupe; das Hinweisfenster sagt, was der Klick tut"
+    ]
+  },
+  {
+    "version": "0.43.0",
+    "date": "2026-10-19T21:09",
     "items": [
       "„Buchungen hinzugefügt“: getrennte Zeilen – wie viele neue Spenden automatisch einer Maßnahme und wie viele einem Spendenzweck zugeordnet wurden, jede mit ihren Feldern samt Anzahl und eigenem „Prüfen“",
       "Passt eine Spende zu mehreren Maßnahmen oder Zwecken, steht das als „zu klären“ mit Anzahl dabei; zählt eine Spende bei beidem, steht „… davon auch bei einer Maßnahme“ darunter",

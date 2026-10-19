@@ -69,7 +69,7 @@ function jvData(S) {
   for (const y of S.sel) {
     const all = byY.get(y) || [], rows = yRows(y), g = spjGrenze(y), noOut = all.filter(r => g == null || r.b <= g), outAll = g == null ? [] : all.filter(r => r.b > g).sort((a, b) => a.d - b.d), out = outAll.filter(inZ);   // out: Sondereffekte im Zeitraum
     const don = new Map(), da = new Map(), daTxt = new Set(), kt = new Map(); let sum = 0, daSum = 0;
-    for (const r of rows) { sum += r.b; const k = jvDonor(r), o = don.get(k); if (o) { o.sum += r.b; o.n++; if (r.d >= o.last.d) o.last = r; } else don.set(k, { sum: r.b, n: 1, last: r }); kt.set(r.konto || '', (kt.get(r.konto || '') || 0) + r.b);
+    for (const r of rows) { sum += r.b; const k = jvDonor(r), o = don.get(k); const zk = (r.zweck || '').trim(); if (o) { o.sum += r.b; o.n++; if (r.d >= o.last.d) o.last = r; o.zw.set(zk, (o.zw.get(zk) || 0) + r.b); } else don.set(k, { sum: r.b, n: 1, last: r, zw: new Map([[zk, r.b]]) }); kt.set(r.konto || '', (kt.get(r.konto || '') || 0) + r.b);
       if (isDA(r)) { daSum += r.b; if (spIsDA(r)) daTxt.add(k); const o = da.get(k); if (!o || r.d >= o.d) da.set(k, { d: r.d, b: r.b }); } }
     let neu = null, bind = null;                                     // neu = vorher (in allen früheren Jahren mit Daten) nicht dabei – nur, wenn es das Vorjahr gibt
     if (byY.has(y - 1)) { const old = new Set(); for (const yy of ys) if (yy < y) for (const r of byY.get(yy)) old.add(jvDonor(r)); neu = 0; for (const k of don.keys()) if (!old.has(k)) neu++;
@@ -601,13 +601,19 @@ function jvTop(S, Y, pdf) {
   const pct = v => num1(v * 100) + ' %', L = [...o.donors.entries()].sort((a, b) => b[1].sum - a[1].sum), N = Math.min(L.length, JV.topAll ? 25 : 10), grp = S.grp === 'alle';
   const conc = h('div', { class: 'jv-conc' }, h('div', { class: 'a', style: { width: (o.top10 * 100).toFixed(1) + '%' } }, 'größte 10 % · ' + spjWho(o.topK) + ' · ' + pct(o.top10)),
     h('div', { class: 'b' }, 'übrige ' + de0(o.don - o.topK) + ' · ' + pct(1 - o.top10)));
+  // Verwendungszweck: der mit der größten Summe; gab jemand mit verschiedenen Texten, stehen alle im Hinweisfenster
+  const zwCell = d => { const Z = [...d.zw].filter(([t]) => t).sort((p, q) => q[1] - p[1]);
+    if (!Z.length) return h('td', { class: 'jv-zw muted' }, '–');
+    return h('td', { class: 'jv-zw', tip: pdf ? null : () => h('div', null, Z.length > 1 ? h('b', null, Z.length + ' verschiedene Verwendungszwecke') : null,
+        Z.slice(0, 8).map(([t, b]) => h('div', null, Z.length > 1 ? eur0(b) + ' · ' : '', t)), Z.length > 8 ? h('div', { class: 'muted small' }, '… und ' + (Z.length - 8) + ' weitere') : null) },
+      h('div', { class: 'jv-zwb' }, h('span', { class: 'jv-zwt' }, Z[0][0]), Z.length > 1 ? h('span', { class: 'muted small jv-zwn' }, '+' + (Z.length - 1)) : null)); };
   const rows = L.slice(0, N).map(([k, d], i) => { const a = A && A.donors.get(k);
-    return h('tr', null, h('td', { class: 'num muted' }, (i + 1) + '.'), h('td', { class: 'jv-in' }, d.last.name || '(ohne Namen)'),
+    return h('tr', null, h('td', { class: 'num muted' }, (i + 1) + '.'), h('td', { class: 'jv-in' }, d.last.name || '(ohne Namen)'), zwCell(d),
       grp ? h('td', null, jvTypOf(d.last) === 'i' ? h('span', { class: 'sp-tag' }, 'Institution') : h('span', { class: 'muted small' }, 'privat')) : null,
       h('td', { class: 'num' }, h('b', null, eur0(d.sum))), A ? h('td', { class: 'num muted' }, a ? eur0(a.sum) : '–') : null,
       A ? h('td', { class: 'num' }, a ? jvDEl(a.sum, d.sum) : h('span', { class: 'muted' }, 'neu')) : null, h('td', { class: 'num' }, pct(d.sum / o.sum))); });
   return [conc, A && A.top10 != null ? h('p', { class: 'jv-topsum' }, A.y + ': die größten 10 % gaben ' + pct(A.top10) + '.') : null,
-    h('table', { class: 'jv-it jv-top' }, h('thead', null, h('tr', null, h('th'), h('th', null, 'Name'), grp ? h('th', null, 'Gruppe') : null, h('th', { class: 'num' }, String(S.H)),
+    h('table', { class: 'jv-it jv-top' }, h('thead', null, h('tr', null, h('th'), h('th', null, 'Name'), h('th', null, 'Verwendungszweck'), grp ? h('th', null, 'Gruppe') : null, h('th', { class: 'num' }, String(S.H)),
       A ? h('th', { class: 'num' }, String(A.y)) : null, A ? h('th', { class: 'num' }, 'Veränderung') : null, h('th', { class: 'num' }, 'Anteil'))), h('tbody', null, rows)),
     !pdf && L.length > 10 ? h('button', { class: 'link small jv-tall', onclick: () => { JV.topAll = !JV.topAll; renderNow(); } }, JV.topAll ? 'nur die größten 10' : 'die größten 25 zeigen') : null];
 }
@@ -917,6 +923,7 @@ function jvDrawWk(el, S, Y) {
   if (!rows.length) { el.replaceChildren(h('div', { class: 'muted small spj-none' }, 'Keine Spenden ' + S.H + '.')); return; }
   const J = { y: S.H, a: mkdn(S.H, 1, 1), b: mkdn(S.H, 12, 31) }, days = J.b - J.a + 1, nb = Math.ceil(days / 7), one = new Array(nb).fill(0), da = new Array(nb).fill(0), n1 = new Array(nb).fill(0), n2 = new Array(nb).fill(0), sxv = new Array(nb).fill(0);
   for (const r of rows) { const i = Math.floor((r.d - J.a) / 7); if (i < 0 || i >= nb) continue; if (spIsDA(r)) { da[i] += r.b; n2[i]++; } else { one[i] += r.b; n1[i]++; } if (sxK.has(r.k)) sxv[i] += r.b; }
+  const any = new Array(nb).fill(false); for (const e of spjCompute(S.H).list) { const i = Math.floor((e.rec.d - J.a) / 7); if (i >= 0 && i < nb) any[i] = true; }   // Woche mit irgendeiner Spende (ohne Filter)
   const { svg, g } = spFrame(el, 150, 96); g.mr = 150; g.pw = g.W - g.ml - g.mr;   // wie der Jahresverlauf: links 96, rechts 150
   const X0 = i => g.ml + i / days * g.pw, y0 = g.mt + g.ph, pw = g.pw / nb, bw = Math.max(2, pw - 3);
   const Yv = spYAxis(svg, g, Math.max(1, ...one.map((v, i) => v + da[i])) / 100);
@@ -927,11 +934,21 @@ function jvDrawWk(el, S, Y) {
     if (one[i]) grp.append(sv('rect', { class: 'spj-b1', x: bx, y: yt, width: bw, height: yd - yt }));
     const hit = sv('rect', { class: 'sp-hit', x: g.ml + i * pw, y: g.mt, width: pw, height: g.ph }), a = J.a + i * 7, b = Math.min(J.b, a + 6);
     setTip(hit, () => h('div', null, h('b', null, eur(one[i] + da[i])), h('div', { class: 'muted small' }, fmtS(a) + ' – ' + fmtS(b)),
-      h('div', null, 'Einzelspenden: ' + eur(one[i]) + ' (' + n1[i] + ')'), h('div', null, 'Daueraufträge: ' + eur(da[i]) + ' (' + n2[i] + ')'), sxv[i] ? h('div', { class: 'jv-qo' }, 'darin ' + eur0(sxv[i]) + ' Sondereffekte') : null));
+      h('div', null, 'Einzelspenden: ' + eur(one[i]) + ' (' + n1[i] + ')'), h('div', null, 'Daueraufträge: ' + eur(da[i]) + ' (' + n2[i] + ')'), sxv[i] ? h('div', { class: 'jv-qo' }, 'darin ' + eur0(sxv[i]) + ' Sondereffekte') : null,
+      any[i] ? h('div', { class: 'jv-wkgo' }, 'Klick: alle Spenden dieser Woche in der Auswertung ansehen') : null));
+    if (any[i] && !el.closest('.jv-print')) { hit.classList.add('click'); hit.addEventListener('click', () => jvWeekJump(S.H, a, b)); }
     grp.append(hit); svg.append(grp);
   }
   svg.append(sv('line', { class: 'sp-base', x1: g.ml, x2: g.ml + g.pw, y1: y0, y2: y0 }));
   if (jvVp('ms')) jvPalMarks(svg, g, S, i => g.ml + (i + 0.5) / days * g.pw);
+}
+// Klick auf eine Woche: in die Auswertung des Jahres – unten unter „Spendenzwecke zuordnen“ alle Spenden dieser Woche (kein Zweck, keine Maßnahme, kein Filter)
+function jvWeekJump(y, a, b) {
+  hideTip();
+  UI.view = 'spenden'; UI.year = y; UI.spMid = SP_ALLG + y;
+  SPJ.z = null; SPJ.g = null; SPJ.typed = ''; SPJ.onlyNew = false; SPJ.more = 0;
+  spjJump(y, a, b);
+  setTimeout(() => { const s = $('[data-sec="sp-zu"]'); if (s) s.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
 }
 // Quartale: je Quartal die Jahre nebeneinander, genau unter dem Quartal des Jahresverlaufs; Sondereffekte (wenn gezeigt) obenauf
 function jvDrawQ(el, S, Y) {

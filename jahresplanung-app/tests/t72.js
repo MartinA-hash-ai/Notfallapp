@@ -47,7 +47,7 @@ const year = y => { const r = [];
     const t = i => { const f = TIPS.get(hits[i]); const v = typeof f === 'function' ? f() : f; return v.textContent; };
     const cum = document.querySelector('[data-chart="jvcum"] svg .sp-base'), wk = el.querySelector('svg .sp-base');
     return [b1, b2, hits.length, t(9), Math.round(+cum.getAttribute('x1') - +wk.getAttribute('x1')), Math.round(+cum.getAttribute('x2') - +wk.getAttribute('x2'))]; });
-  ok(b1[0] === 11 && b1[1] === 10 && b1[2] === 53 && b1[3] === '720,00 €05.03. – 11.03.Einzelspenden: 700,00 € (2)Daueraufträge: 20,00 € (1)' && !b1[4] && !b1[5],
+  ok(b1[0] === 11 && b1[1] === 10 && b1[2] === 53 && b1[3] === '720,00 €05.03. – 11.03.Einzelspenden: 700,00 € (2)Daueraufträge: 20,00 € (1)Klick: alle Spenden dieser Woche in der Auswertung ansehen' && !b1[4] && !b1[5],
     'B: Spenden pro Woche – Einzelspenden und Daueraufträge übereinander, 53 Wochen, Zeigen nennt beides; gleiche Breite wie der Jahresverlauf: ' + JSON.stringify(b1));
 
   // ---- C: Maßnahmen als Punkte in ihrer Farbe – nur Hauptjahr und schon verschickt; abschaltbar
@@ -109,7 +109,7 @@ const year = y => { const r = [];
     return [window.__pr, pgs[0].querySelector('h1').textContent, document.title, new Set(tl).size, tl.length, t && [...t.querySelectorAll('th')].map(e => e.textContent).join('|'), t && /Probe C/.test(t.textContent), pgs.every(x => x.classList.contains('jv-print'))]; });
   ok(g1[0] === 1 && g1[1] === 'Auf einen Blick · Hochrechnung · Kennzahlen 2027' && /^Jahresvergleich_2027_/.test(g1[2]) && g1[7], 'G: „PDF erstellen“ druckt den Jahresvergleich (Dateiname „Jahresvergleich_…“): ' + g1.slice(1, 3).join(' / '));
   ok(g1[3] === 1 && g1[4] === 5, 'G: PDF bei schmalerer Seite (mit Rand) – alle fünf Kacheln in einer Zeile, die Zweckbindung rechts daneben');
-  ok(g1[5] === '|Name|2027|2026|Veränderung|Anteil' || g1[5] === '|Name|Gruppe|2027|2026|Veränderung|Anteil', 'G: Größte Spender:innen im PDF mit Namen: ' + g1[5]);
+  ok(g1[5] === '|Name|Verwendungszweck|2027|2026|Veränderung|Anteil' || g1[5] === '|Name|Verwendungszweck|Gruppe|2027|2026|Veränderung|Anteil', 'G: Größte Spender:innen im PDF mit Namen und Verwendungszweck: ' + g1[5]);
   ok(g1[6], 'G: Name „Probe C“ steht im PDF');
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.emulateMedia({ media: 'screen' }); await p.setViewportSize({ width: 1400, height: 1000 });
   await finish(b, pages);

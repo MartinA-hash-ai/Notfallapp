@@ -431,6 +431,25 @@ function spGoCheck(t) {
   renderNow();
   setTimeout(() => { const s = $('[data-sec="sp-zu"]'); if (s) s.scrollIntoView({ block: 'start', behavior: 'smooth' }); }, 30);
 }
+// Klick in die Grafik einer Maßnahme: die zugeordneten Spenden dieses Tages unten unter „Zugeordnet“ heraussuchen – wie in der Jahresansicht
+// (spjJump): die Liste rollt in sich zum Tag, die Zeilen leuchten kurz auf, sobald die Liste im Bild ist
+function spmJump(mid, a, b) {
+  const L = spPart(mid, spCompute()).R.filter(r => !r.gone).sort((p, q) => q.d - p.d || q.b - p.b);
+  let hit = L.filter(r => r.d >= a && r.d <= b);
+  if (!hit.length && a === b && L.length) {                           // Tag ohne Spende: der nächste Tag mit Spenden
+    const d0 = L.reduce((best, r) => Math.abs(r.d - a) < Math.abs(best - a) ? r.d : best, L[0].d);
+    a = b = d0; hit = L.filter(r => r.d === d0);
+  }
+  const when = a === b ? 'vom ' + fmtD(a) : 'vom ' + fmtS(a) + ' bis ' + fmtD(b);
+  if (!hit.length) { toast('Keine zugeordneten Spenden ' + when + '.'); return; }
+  SPUI.typed = ''; SPUI.klaeren = false; SPUI.tab = 'zu'; SPUI.onlyNew = false;
+  const last = L.indexOf(hit[hit.length - 1]);
+  if (last >= SP_MAX + SPUI.more) SPUI.more = last - SP_MAX + 50;
+  SPJ.flash = { keys: new Set(hit.map(r => r.k)), first: hit[0].k, scrolled: false };
+  UI.secOpen['sp-zu'] = true;
+  toast(spCount(hit.length) + ' ' + when + ' unten unter „Spenden zuordnen“ (Zugeordnet) herausgesucht', 'ok');
+  renderNow();
+}
 function spPickFiles() {
   const inp = h('input', { type: 'file', multiple: true, accept: '.csv,.txt,.xlsx', style: 'display:none', onchange: () => { spAddFiles(inp.files); inp.remove(); } });
   document.body.append(inp); inp.click();
@@ -1082,7 +1101,7 @@ function spmList(x, cmp) {
   const wordsOf = id => ((spMObj(D, id) || {}).regel || {}).worte || [];
   const hlW = (rec, z) => tab === 'zu' && z && z.r ? wordsOf(mid) : tab === 'klaeren' ? (cmp.hits.get(rec.k) || []).flatMap(g => wordsOf(g.id)) : [];
   const row = (rec, i) => { const on = SPUI.sel.has(rec.k), z = S.zu[rec.k];
-    return h('div', { class: 'spj-row' + (tab === 'klaeren' ? ' offen' : '') + (on ? ' sel' : ''), dataset: { k: rec.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(rec),
+    return h('div', { class: 'spj-row' + (tab === 'klaeren' ? ' offen' : '') + (on ? ' sel' : '') + (SPJ.flash && SPJ.flash.keys.has(rec.k) ? ' jump' : ''), dataset: { k: rec.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(rec),
       onmousedown: ev => { if (ev.shiftKey) ev.preventDefault(); }, onclick: ev => pick(ev, i) },
       h('span', { class: 'spj-cb', 'aria-hidden': 'true' }),
       h('span', { class: 'sp-d' }, fmtD(rec.d)), h('span', { class: 'sp-b' }, eur(rec.b)), h('span', { class: 'spj-g' }, spGlied(rec.konto)),
@@ -1264,7 +1283,9 @@ function spDrawSpan(svg, g, x, sr, X) {
     at: px => clamp(Math.round((px - g.ml) / g.pw * sr.days - 0.5), 0, L), x: X,
     dots: i => [sv('circle', { class: 'sp-dot', cx: X(i), cy: Y(sr.cum[i] / 100), r: 4.5, fill: x.color })],
     tip: i => h('div', null, h('b', null, eur(sr.cum[i])), h('div', { class: 'muted small' }, 'bis ' + spDayLab(sr, sr.d0 + i)),
-      sr.cnt[i] ? h('div', null, 'an diesem Tag: ' + eur(sr.day[i]) + ' (' + spCount(sr.cnt[i]) + ')') : null) });
+      sr.cnt[i] ? h('div', null, 'an diesem Tag: ' + eur(sr.day[i]) + ' (' + spCount(sr.cnt[i]) + ')') : null,
+      h('div', { class: 'muted small' }, 'Klick: Spenden dieses Tages unten in der Liste heraussuchen')),
+    click: i => spmJump(x.id, sr.d0 + i, sr.d0 + i) });
 }
 // Spenden pro Tag: eine Säule je Tag – zeigt, wann viel hereinkommt und wann es abebbt
 function spDrawDay(svg, g, x, sr, X) {
@@ -1277,7 +1298,9 @@ function spDrawDay(svg, g, x, sr, X) {
       grp.append(sv('path', { class: 'sp-bar', fill: x.color, d: `M${bx},${y0}V${top + r}Q${bx},${top} ${bx + r},${top}H${bx + bw - r}Q${bx + bw},${top} ${bx + bw},${top + r}V${y0}Z` }));
     }
     const hit = sv('rect', { class: 'sp-hit', x: g.ml + i * pxd, y: g.mt, width: pxd, height: g.ph });
-    setTip(hit, () => h('div', null, h('b', null, sr.day[i] ? eur(sr.day[i]) : 'keine Spenden'), sr.cnt[i] ? h('div', null, spCount(sr.cnt[i])) : null, h('div', { class: 'muted small' }, spDayLab(sr, sr.d0 + i))));
+    setTip(hit, () => h('div', null, h('b', null, sr.day[i] ? eur(sr.day[i]) : 'keine Spenden'), sr.cnt[i] ? h('div', null, spCount(sr.cnt[i])) : null, h('div', { class: 'muted small' }, spDayLab(sr, sr.d0 + i)),
+      sr.cnt[i] ? h('div', { class: 'muted small' }, 'Klick: diese Spenden unten in der Liste heraussuchen') : null));
+    if (sr.cnt[i]) { hit.classList.add('click'); hit.addEventListener('click', () => spmJump(x.id, sr.d0 + i, sr.d0 + i)); }
     grp.append(hit); svg.append(grp);
   }
 }

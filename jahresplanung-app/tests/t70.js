@@ -140,7 +140,7 @@ const year = y => { const r = [];
   ok(d1[0] === 'rate:80,0 %|keep:4|react:0|lost:1' && d1[1] === '1 Spender:in · 250 €', 'D: Leiste „Institutionen“ – Bindung 80,0 % (4 von 5), es fehlt die Gemeinde');
   await p.click('.jv-bar .jv-grp button[data-g="privat"]'); await p.waitForTimeout(300);
   const d2 = await p.evaluate(() => [...document.querySelectorAll('.jv-top tr')].map(t => [...t.children].map(c => c.textContent).join(';')).join(' / '));
-  ok(d2 === ';Name;2027;2026;Veränderung;Anteil / 1.;Probe Eins;500 €;500 €;■ ±0,0 %;42,4 % / 2.;Hofgut Probe;300 €;300 €;■ ±0,0 %;25,4 % / 3.;Max Muster;300 €;–;neu;25,4 % / 4.;Probe Vier;80 €;–;neu;6,8 %',
+  ok(d2 === ';Name;Verwendungszweck;2027;2026;Veränderung;Anteil / 1.;Probe Eins;Spende;500 €;500 €;■ ±0,0 %;42,4 % / 2.;Hofgut Probe;Spende;300 €;300 €;■ ±0,0 %;25,4 % / 3.;Max Muster;Geldauflage 12 Ds 34/27;300 €;–;neu;25,4 % / 4.;Probe Vier;Spende;80 €;–;neu;6,8 %',
     'D: Leiste „Privat“ – Größte nur Privatleute, ohne Spalte „Gruppe“');
   // PDF: Auswahl im Kopf jeder Seite, „Privat & Institutionen“ ohne Namen und Knöpfe
   await p.click('[data-sec="jv-herkunft"] tr.jv-art[data-art="bank"]'); await p.waitForTimeout(300);

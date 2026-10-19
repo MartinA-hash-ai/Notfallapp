@@ -78,8 +78,8 @@ const year = y => { const r = [];
   const d0 = await p.evaluate(() => [[...document.querySelectorAll('.jv-conc > div')].map(d => d.textContent + ' @' + d.style.width).join(' | '), document.querySelector('.jv-topsum').textContent,
     [...document.querySelectorAll('.jv-top tr')].map(t => [...t.children].map(c => c.textContent).join(';')).join(' / ')]);
   ok(d0[0] === 'größte 10 % · 1 Spender:in · 43,5 % @43.5% | übrige 2 · 56,5 % @' && d0[1] === '2026: die größten 10 % gaben 50,0 %.', 'D: Balken „größte 10 % · 1 Spender:in · 43,5 %“, darunter „' + d0[1] + '“');
-  ok(d0[2] === ';Name;Gruppe;2027;2026;Veränderung;Anteil / 1.;Probe A;privat;1.000 €;1.000 €;■ ±0,0 %;43,5 % / 2.;Probe B;privat;1.000 €;1.000 €;■ ±0,0 %;43,5 % / 3.;Probe C;privat;300 €;–;neu;13,0 %',
-    'D: Tabelle mit Rang, Name, Gruppe, Summe, Vergleichsjahr, Veränderung, Anteil – ohne „kumuliert“');
+  ok(d0[2] === ';Name;Verwendungszweck;Gruppe;2027;2026;Veränderung;Anteil / 1.;Probe A;Spende;privat;1.000 €;1.000 €;■ ±0,0 %;43,5 % / 2.;Probe B;Spende;privat;1.000 €;1.000 €;■ ±0,0 %;43,5 % / 3.;Probe C;Spende;privat;300 €;–;neu;13,0 %',
+    'D: Tabelle mit Rang, Name, Verwendungszweck, Gruppe, Summe, Vergleichsjahr, Veränderung, Anteil – ohne „kumuliert“');
 
   // ---- E: Reihenfolge – neue Bausteine hinter ihrem Vorgänger; eigene Reihenfolge aus 0.28 bekommt die Kennzahlen einmalig neben die Hochrechnung; PDF
   const e0 = await p.evaluate(() => { UI.jvOrder = ['verlauf', 'kpi', 'mail', 'seg', 'zweck', 'konto', 'dauer', 'bruecke', 'bindung']; return jvOrder().join(); });
@@ -95,7 +95,7 @@ const year = y => { const r = [];
     const pg = t => [...document.querySelectorAll('#printdoc .pd-page')].find(x => x.querySelector('h1').textContent === t);
     const z = pg('Auf einen Blick · Hochrechnung · Kennzahlen 2027'), t = pg('Größte Spender:innen 2027'), bk = z && z.querySelector('[data-jvk="blick"]');
     r([!!z, z && !z.querySelector('input, .jv-zedit'), z && z.querySelector('.jv-zrow2')?.textContent, z && !!z.querySelector('.jv-grid2.r12 .jv-kt'), !!t, t && [...t.querySelectorAll('th')].map(e => e.textContent).join('|'), t && /Probe B/.test(t.textContent), bk && bk.querySelectorAll('.jv-gt').length + ':' + bk.querySelectorAll('.jv-gtz').length]); }, 300)); });
-  ok(e1[0] && e1[1] && e1[2] === 'Jahresziel 4.000 €' && e1[3] && e1[4] && e1[5] === '|Name|Gruppe|2027|2026|Veränderung|Anteil' && e1[6] && e1[7] === '5:1',
+  ok(e1[0] && e1[1] && e1[2] === 'Jahresziel 4.000 €' && e1[3] && e1[4] && e1[5] === '|Name|Verwendungszweck|Gruppe|2027|2026|Veränderung|Anteil' && e1[6] && e1[7] === '5:1',
     'E: PDF – „Auf einen Blick“ (vier Zahlen und Zweckbindung), Hochrechnung und Kennzahlen auf einer Seite (Ziel als Zeile, ohne Knopf), „Größte Spender:innen“ mit Namen');
   await p.evaluate(() => window.dispatchEvent(new Event('afterprint'))); await p.waitForTimeout(150);
 

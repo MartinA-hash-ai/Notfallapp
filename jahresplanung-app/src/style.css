@@ -1498,8 +1498,9 @@ html, body { overflow-anchor: none; }   /* die App zeichnet ganze Bereiche neu â
 .menu.infopop { max-width: 380px; min-width: 0; font-size: 12.5px; line-height: 1.45; color: var(--ink2); }
 mark.sp-hl { background: color-mix(in srgb, #f5c400 38%, transparent); color: var(--ink); border-radius: 3px; padding: 0 1px; box-shadow: 0 0 0 1px color-mix(in srgb, #d9a400 35%, transparent); }
 html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, transparent); }
-.sp-ov.click { cursor: pointer; }
-.sp-hit.click { cursor: pointer; }
+.sp-ov.click { cursor: zoom-in; }
+.sp-hit.click { cursor: zoom-in; }   /* Lupe: Klick sucht die Spenden heraus */
+.jv-wkgo { margin-top: 4px; font-size: 12px; font-weight: 600; color: var(--focus); }
 .spj-row.flash { animation: spj-flash 2.6s ease-out; }
 @keyframes spj-flash { 0%, 30% { background: color-mix(in srgb, #f5c400 45%, var(--card)); } 45% { background: color-mix(in srgb, #f5c400 18%, var(--card)); } 60% { background: color-mix(in srgb, #f5c400 45%, var(--card)); } 100% { background: transparent; } }
 .menu.spj-sugpop { min-width: 300px; padding: 10px 12px 12px; }
@@ -1558,6 +1559,9 @@ html[data-theme=dark] mark.sp-hl { background: color-mix(in srgb, #f5c400 30%, t
 .jv-zbar span.proj { background: repeating-linear-gradient(45deg, var(--jvH) 0 6px, var(--jvV) 6px 12px); opacity: .75; }
 .jv-ztxt { margin: 0; }
 .jv-topsum { margin: 0 0 8px; }
+.jv-top td.jv-zw { width: 42%; max-width: 0; font-size: 12.5px; }
+.jv-zwb { display: flex; gap: 6px; align-items: baseline; min-width: 0; } .jv-zwt { flex: 0 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.jv-zwn { flex: none; font-weight: 600; }
 @media screen and (max-width: 1100px) { .jv-kpis.c3, .jv-kpis.c4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 .jv-kpi { position: relative; border: 1px solid var(--line); border-radius: var(--radius); background: var(--card); min-width: 0; overflow: hidden; }
 .jv-kh { background: var(--soft); border-bottom: 1px solid var(--line); padding: 10px 14px 10px; }
