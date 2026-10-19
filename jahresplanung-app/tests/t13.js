@@ -167,7 +167,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.screenshot({ path: 'r7_pdf_dialog.png' });
   await p.click('.modal button:has-text("Wie aktuelle Ansicht")'); await p.waitForTimeout(100);
   const pv = await p.evaluate(() => [$$('.modal .pdf-area').map(a => a.classList.contains('on') ? 1 : 0).join(''), $$('.modal .mspick input:checked').length]);
-  ok(pv[0] === '010' && pv[1] === 1, 'Wie aktuelle Ansicht (Detailpläne): ' + JSON.stringify(pv));
+  ok(pv[0] === '0100' && pv[1] === 1, 'Wie aktuelle Ansicht (Detailpläne): ' + JSON.stringify(pv));
   // alle Bereiche mit allen Teilen, alle Maßnahmen
   await p.evaluate(() => {         // jedes Häkchen zeichnet die Bereiche neu – deshalb immer frisch suchen
     const next = () => [...$$('.modal .pdf-ah input'), ...$$('.modal .pdf-ab label.check input')].find(i => !i.checked && !/Verbund|nur Arbeitsschritte/.test(i.parentNode.textContent));

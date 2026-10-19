@@ -23,17 +23,17 @@ const { chromium, ok, open, finish, fs } = require('./lib');
   // ---- A: Vorauswahl = Reiter, der gerade offen ist; „Urlaub & Feiertage“ ist raus
   const pre = {};
   for (const v of ['jahr', 'plaene', 'spenden', 'einstellungen']) { await dlg(v); pre[v] = await areas(); await close(); }
-  ok(pre.jahr === '100' && pre.plaene === '010' && pre.spenden === '001' && pre.einstellungen === '100', 'A: Vorauswahl nach Reiter ' + JSON.stringify(pre));
+  ok(pre.jahr === '1000' && pre.plaene === '0100' && pre.spenden === '0010' && pre.einstellungen === '1000', 'A: Vorauswahl nach Reiter ' + JSON.stringify(pre));
   await dlg('jahr');
   const heads = await p.evaluate(() => [$$('.modal .pdf-ah').map(e => e.textContent).join('|'), /Urlaub & Feiertage/.test(document.querySelector('.modal').textContent)]);
-  ok(heads[0] === 'Jahresplanung|Detailpläne|Auswertung' && !heads[1], 'A: drei Bereiche wie die Reiter, kein veralteter Bereich „Urlaub & Feiertage“ (' + heads[0] + ')');
+  ok(heads[0] === 'Jahresplanung|Detailpläne|Auswertung|Jahresvergleich' && !heads[1], 'A: vier Bereiche wie die Reiter, kein veralteter Bereich „Urlaub & Feiertage“ (' + heads[0] + ')');
 
   // ---- B: Häkchen in einem abgewählten Bereich schaltet ihn ein; Seitenzahl wird mitgerechnet
   const c0 = await p.evaluate(() => document.querySelector('.pdf-count').textContent);
   await p.evaluate(() => [...document.querySelectorAll('.modal .pdf-area[data-area="spenden"] label.check')].find(l => /Übersicht/.test(l.textContent)).querySelector('input').click());
   await p.evaluate(() => { const i = [...document.querySelectorAll('.modal .pdf-area[data-area="spenden"] label.check')].find(l => /Übersicht/.test(l.textContent)).querySelector('input'); if (!i.checked) i.click(); });
   const c1 = await p.evaluate(() => document.querySelector('.pdf-count').textContent);
-  ok(await areas() === '101' && c0 !== c1, 'B: Häkchen bei „Auswertung“ schaltet den Bereich ein (' + c0 + ' → ' + c1 + ')');
+  ok(await areas() === '1010' && c0 !== c1, 'B: Häkchen bei „Auswertung“ schaltet den Bereich ein (' + c0 + ' → ' + c1 + ')');
   const t1 = await make();
   ok(t1[0] === 'Maßnahmen ' + 2027 && t1.includes('Auswertung 2027') && t1.includes('Rücklauf im Vergleich 2027') && t1.some(t => /^Auswertung · /.test(t)),
     'B: PDF mit Jahresplanung und Auswertung: ' + t1.join(' | '));
