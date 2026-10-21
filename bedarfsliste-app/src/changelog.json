@@ -1,0 +1,14 @@
+[
+  {
+    "version": "0.1.0",
+    "date": "",
+    "items": [
+      "Erste Version: Liste aller Bedarfe mit Phase (Freigabe, Förderung, Nacharbeit, Abgeschlossen), Priorität, Freigabe, Unterlagen, Finanzierung und nächster Frist",
+      "Liste nach Phase gruppiert; Priorität (hoch, mittel, niedrig) als kleiner Balken am Namen, per Klick änderbar",
+      "Seite je Bedarf mit Eckdaten, Freigabe und Unterlagen, Förderplan und Nacharbeit; Ordner-Link (OneDrive/SharePoint) und Explorer-Pfad zum Kopieren",
+      "Förder-Kartei: die Excel „Banken- und Stiftungsübersicht“ im selben Ordner wird gelesen – Kontakte, Antragsweg und Förderhistorie stehen beim Förderer",
+      "Förderplan-Excel: Vorlage je Bedarf (auch für eine KI-Recherche) und Übernahme einer ausgefüllten Excel in den Förderplan",
+      "Speichert sich selbst im Ordner (Edge oder Chrome), automatisch nach jeder Änderung; Programm-Update per ZIP-Paket"
+    ]
+  }
+]
