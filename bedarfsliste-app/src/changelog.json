@@ -1,7 +1,19 @@
 [
   {
+    "version": "0.5.0",
+    "date": "2026-10-21T20:15",
+    "items": [
+      "Darstellung hell oder dunkel (oder wie Windows) über das Zahnrad oben rechts – hell ist voreingestellt",
+      "Bedarfsseite: Phase und Stand hängen direkt unter der Kopfzeile und bleiben beim Scrollen stehen, die Sprungmarken sind weg",
+      "„Schätzung / laut Angebot“ rechtsbündig unter Summe und Löschen; Freigaben und Unterlagen stehen gleich neben Zuständig, Deadline, Stichwort und Beschreibung",
+      "Förderplan oben als Übersicht: Balken und Tabelle mit Gesamtbedarf, den Förderern (farbig nach Stand, mit Anteil) und dem Eigenanteil; Excel-Vorlage und Übernahme als kleine Symbole oben rechts",
+      "Jeder Förderer in einer eigenen Karte: Löschen neben dem Stift (mit Rückfrage), kein Art-Feld mehr, Anteil ohne Balken, Bezeichnung über Summe und Frist, kleinere Einschätzungspunkte mit dem Wort darunter",
+      "Pro und Contra ohne farbigen Rahmen, nur die Überschrift in Grün bzw. Rot"
+    ]
+  },
+  {
     "version": "0.4.0",
-    "date": "",
+    "date": "2026-10-21T18:46",
     "items": [
       "Liste: über der Tabelle nur noch Suche und Stichwort",
       "Bedarfsseite: Name und Gliederung oben direkt änderbar (anklicken und schreiben), daneben hinter einem Strich die Summe mit „Schätzung / laut Angebot“; rechts nur „⋯“ (zurückstellen, verwerfen, archivieren) und ein roter Löschen-Knopf",

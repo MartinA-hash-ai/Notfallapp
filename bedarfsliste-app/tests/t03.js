@@ -39,7 +39,7 @@ async function writeKartei(p, kontakt) {
   await p.fill('input[data-p="gliederung"]', 'Iserlohn-Menden');
   await p.click('button[data-act="add-foe"]'); await p.keyboard.type('Märkische Bank eG');
   ok(!(await p.$('.det-panel')) && (await p.$eval('.fp [id^="ds-"]', e => e.textContent)) === 'Silke S · Antrag direkt', 'Kontakt zunächst eingeklappt, kurze Zusammenfassung sichtbar');
-  ok(await p.evaluate(() => cur().foerderer[0].art === 'Volksbank / Bank' && document.querySelector('select.art').value === 'Volksbank / Bank'), 'Art aus der Kartei übernommen');
+  ok(await p.evaluate(() => cur().foerderer[0].art === 'Volksbank / Bank' && !document.querySelector('select.art')), 'Art aus der Kartei übernommen (nur in den Daten, kein Auswahlfeld mehr)');
   await p.click('button[data-act="det"]');
   let t = await p.$eval('.det-panel', e => e.textContent);
   ok(t.includes('Aus der Förder-Kartei') && t.includes('Silke S') && t.includes('silke@mb.example') && t.includes('Antragswegdirekt') && t.includes('Hagen, Iserlohn-Menden'), 'aufgeklappt: Kartei-Angaben geordnet: ' + t.replace(/\s+/g, ' ').slice(0, 140));

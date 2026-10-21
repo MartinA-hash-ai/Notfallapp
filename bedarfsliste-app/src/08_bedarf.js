@@ -1,6 +1,6 @@
 /* ===================================================================== Seite eines Bedarfs
-   Kopf: Name und Gliederung direkt änderbar, Summe hinter einem Strich, rechts „⋯“ (zurückstellen, archivieren) und Löschen.
-   Darunter Zuständig, Deadline, Stichwort und Beschreibung. Links der Förderplan und die Nacharbeit, rechts Freigaben, Unterlagen und Ordner.
+   Kopf: Name und Gliederung direkt änderbar, rechts die Summe mit „⋯“ (zurückstellen, archivieren) und Löschen; Phase und Stand hängen an der Kopfzeile.
+   Links Zuständig/Deadline/Stichwort/Beschreibung, der Förderplan (Übersicht, dann je Förderer eine Karte) und die Nacharbeit; rechts Freigaben, Unterlagen und Ordner.
    Eingabefelder tragen data-p (Pfad im Bedarf), bei Förderern zusätzlich data-fid, bei Unterlagen data-uid.
    Tippen ändert nur die Daten und zeichnet abgeleitete Teile neu (refresh); Knöpfe und Auswahlfelder zeichnen die Seite neu. */
 
@@ -27,6 +27,8 @@ const copyBtn = b => `<button data-act="copy-path" ${b.pfad ? '' : 'disabled'}>K
 const zustChips = b => b.zust.map((n, i) => `<span class="pchip">${esc(n)}<button class="x" data-act="rm-zust" data-i="${i}" aria-label="${esc(n)} entfernen">×</button></span>`).join('');
 const metaRest = b => (b.stichwort ? `<span class="chip sw">${esc(b.stichwort)}</span> · ` : '') + (b.angelegt ? 'angelegt ' + fmtDate(b.angelegt) : '');
 const ICON_TRASH = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zM6 9h12l-.9 11.1A2 2 0 0 1 15.1 22H8.9a2 2 0 0 1-2-1.9L6 9zm4 2v8h1.6v-8H10zm2.4 0v8H14v-8h-1.6z"/></svg>';
+const ICON_DOWN = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M11 4h2v9.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V4zM5 18h14v2H5v-2z"/></svg>';
+const ICON_UP = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M11 20h2v-9.2l3.6 3.6 1.4-1.4-6-6-6 6 1.4 1.4 3.6-3.6V20zM5 4h14v2H5V4z"/></svg>';
 const ICON_PEN = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M4 17.2V20h2.8L17.3 9.5l-2.8-2.8L4 17.2zm15.7-10.1a1 1 0 0 0 0-1.4l-1.4-1.4a1 1 0 0 0-1.4 0l-1.2 1.2 2.8 2.8 1.2-1.2z"/></svg>';
 
 function steps(b) {
@@ -41,34 +43,25 @@ function statusBlock(b) {
 }
 
 function bedarfView(b) {
-  const nav = [['sec-foe', 'Förderplan'], ['sec-frei', 'Freigaben und Unterlagen'], ['sec-nach', 'Nacharbeit']];
   return `<main class="bedarf">
-    <div class="d-top">
-      <button class="back" data-act="back">‹ Alle Bedarfe</button>
-      <div class="d-head">
-        ${prioMark(b)}
-        <div class="d-name">
-          <textarea class="inline title" id="f-titel" data-p="titel" rows="1" placeholder="Bedarf" aria-label="Bedarf">${esc(b.titel)}</textarea>
-          <div class="d-sub"><input type="text" class="inline gl" data-p="gliederung" list="dl-gl" value="${esc(b.gliederung)}" placeholder="Gliederung (Ort oder Diözese)" aria-label="Gliederung"><span class="muted" id="d-meta">${metaRest(b)}</span></div>
-        </div>
-        <div class="d-sum">
-          <div class="sum-line"><input type="text" inputmode="decimal" class="inline num sum" data-num data-p="summe" value="${esc(fmtNum(b.summe))}" placeholder="Summe" aria-label="Summe in Euro"><span class="unit">€</span></div>
-          ${seg([['Schätzung', 'Schätzung'], ['Angebot', 'laut Angebot']], b.summeArt, 'data-p="summeArt"', 'small')}
-        </div>
+    <div class="d-head">
+      ${prioMark(b)}
+      <div class="d-name">
+        <textarea class="inline title" id="f-titel" data-p="titel" rows="1" placeholder="Bedarf" aria-label="Bedarf">${esc(b.titel)}</textarea>
+        <div class="d-sub"><input type="text" class="inline gl" data-p="gliederung" list="dl-gl" value="${esc(b.gliederung)}" placeholder="Gliederung (Ort oder Diözese)" aria-label="Gliederung"><span class="muted" id="d-meta">${metaRest(b)}</span></div>
+      </div>
+      <div class="d-right-head">
+        <div class="sum-line"><input type="text" inputmode="decimal" class="inline num sum" data-num data-p="summe" value="${esc(fmtNum(b.summe))}" placeholder="Summe" aria-label="Summe in Euro"><span class="unit">€</span></div>
         <div class="d-actions">
           <button class="icon-btn" data-act="more" aria-label="Weitere Aktionen: zurückstellen, archivieren" title="Zurückstellen, verwerfen, archivieren">⋯</button>
           <button class="icon-btn trash" data-act="del" aria-label="Bedarf löschen" title="Bedarf löschen">${ICON_TRASH}</button>
         </div>
-      </div>
-      ${b.archiv ? '<div class="d-flag">Dieser Bedarf liegt im Archiv. <button class="link" data-act="unarchive">Zurück in die Liste holen</button></div>' : ''}
-      <div class="d-status">
-        <div class="d-statusrow"><div id="d-steps">${steps(b)}</div><div id="d-status">${statusBlock(b)}</div></div>
-        <nav class="jump" aria-label="Bereiche">${nav.map(([id, l]) => `<button class="link" data-act="jump" data-v="${id}">${l}</button>`).join('')}</nav>
+        <div class="sum-art">${seg([['Schätzung', 'Schätzung'], ['Angebot', 'laut Angebot']], b.summeArt, 'data-p="summeArt"', 'small')}</div>
       </div>
     </div>
-    ${secInfo(b)}
+    ${b.archiv ? '<div class="d-flag">Dieser Bedarf liegt im Archiv. <button class="link" data-act="unarchive">Zurück in die Liste holen</button></div>' : ''}
     <div class="d-grid">
-      <div class="d-left">${secFoe(b)}${secNach(b)}</div>
+      <div class="d-left">${secInfo(b)}${secFoe(b)}${secNach(b)}</div>
       <aside class="d-right">${sidePanel(b)}</aside>
     </div>
     ${dl('dl-gl', [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)])}
@@ -200,48 +193,49 @@ function detPanel(b, f) {
     <div class="det-o"><h4>Eigene Angaben und Recherche</h4><div class="grid own-grid">${OWN_FIELDS.map(([k, l]) => fld(l, area(k) ? tarea(f, k, a + ` aria-label="${l}"`) : tin(f, k, a + ` aria-label="${l}"`), area(k) ? 'wide' : '')).join('')}</div></div></div>`;
 }
 const AMT_LAB = { geplant: 'Erwartete Summe', vorb: 'Erwartete Summe', beantragt: 'Beantragte Summe', zugesagt: 'Zugesagte Summe', abgelehnt: 'Beantragt (abgelehnt)' };
+const pct = (v, S) => S ? Math.round(v / S * 100) + ' %' : '';
 function foeShare(b, f) {
   const S = +b.summe || 0, v = f.status === 'abgelehnt' ? 0 : foeAmt(f);
-  return segBar(b, { hl: f.id }) + `<div class="share-t">${S ? `${Math.round(v / S * 100)} % des Bedarfs` : 'Summe des Bedarfs fehlt'}</div>`;
+  return S ? `${pct(v, S)} des Bedarfs` : 'Summe des Bedarfs fehlt';
 }
 function geldBlock(f) {
   const a = `data-fid="${f.id}"`;
   if (UI.geld === f.id) return `<div class="geld form"><label>Betrag<span class="row"><input id="geld-betrag" type="text" inputmode="decimal" class="num" value="${esc(fmtNum(f.eingegangen ?? f.zugesagt ?? f.betrag))}"><span class="unit">€</span></span></label>
       <label>eingegangen am<input id="geld-datum" type="date" value="${esc(f.eingangAm || today())}"></label><div class="row"><button class="primary" data-act="geld-ok" ${a}>Bestätigen</button><button data-act="geld-no">Abbrechen</button></div>
       ${f.eingegangen > 0 ? `<button class="link small" data-act="geld-undo" ${a}>Eingang zurücknehmen</button>` : ''}</div>`;
-  if (f.eingegangen > 0) return `<div class="geld ok">✓ ${eur(f.eingegangen)} eingegangen am ${fmtDate(f.eingangAm) || '–'} <button class="link small" data-act="geld" ${a}>ändern</button></div>`;
+  if (f.eingegangen > 0) return `<div class="geld ok">✓ ${eur(f.eingegangen)} eingegangen<br>am ${fmtDate(f.eingangAm) || '–'} <button class="link small" data-act="geld" ${a}>ändern</button></div>`;
   return `<div class="geld"><button class="primary small" data-act="geld" ${a}>Geldeingang bestätigen</button></div>`;
 }
+// Fristen je Stand, jeweils Bezeichnung über dem Datum
 function fpDates(f) {
-  const a = `data-fid="${f.id}"`, d = (lab, p) => `<label class="fp-d">${lab} <input type="date" class="inline date" data-p="${p}" ${a} value="${esc(f[p] || '')}" aria-label="${lab}"></label>`;
+  const a = `data-fid="${f.id}"`, d = (lab, p) => `<label class="fp-d"><span>${lab}:</span><input type="date" class="inline date" data-p="${p}" ${a} value="${esc(f[p] || '')}" aria-label="${lab}"></label>`;
   return ({ geplant: d('Antragsfrist', 'frist'), vorb: d('Antragsfrist', 'frist'), beantragt: d('beantragt am', 'beantragtAm') + d('Antwort erwartet', 'erwartet'),
     zugesagt: d('zugesagt am', 'entscheidungAm'), abgelehnt: d('abgelehnt am', 'entscheidungAm') })[f.status];
 }
+// Einschätzung: fünf kleine Punkte, darunter das Wort – beides rechtsbündig
 function dots(f) {
-  const lv = LVL.indexOf(f.einsch) + 1, lab = lv ? EINSCH.find(e => e[0] === f.einsch)[1] : 'Einschätzung';
-  return `<div class="dots lv${lv}" role="group" aria-label="Einschätzung: ${esc(lab)}">`
+  const lv = LVL.indexOf(f.einsch) + 1, lab = lv ? EINSCH.find(e => e[0] === f.einsch)[1] : 'noch keine Einschätzung';
+  return `<div class="dots-box"><div class="dots lv${lv}" role="group" aria-label="Einschätzung: ${esc(lab)}">`
     + LVL.map((k, i) => { const l = EINSCH.find(e => e[0] === k)[1]; return `<button class="dot${i < lv ? ' on' : ''}" data-act="set" data-p="einsch" data-v="${k}" data-toggle="" data-fid="${f.id}" title="${l}" aria-label="${l}" aria-pressed="${i + 1 === lv}"></button>`; }).join('')
-    + `<span class="dots-t">${esc(lab)}</span></div>`;
+    + `</div><span class="dots-t">${esc(lab)}</span></div>`;
 }
 function fpCard(b, f) {
   const a = `data-fid="${f.id}"`, st = f.status, open = !!UI.open['det-' + f.id];
-  const arts = uniq([...ART, f.art]);
-  return `<article class="fp st-${st}" id="foe-${f.id}">
+  return `<article class="card fp st-${st}" id="foe-${f.id}">
     <div class="fp-top">
       <div class="fp-name">
-        <div class="fp-title"><input type="text" class="inline fp-h" data-p="name" ${a} list="dl-kartei" value="${esc(f.name)}" placeholder="Förderer" aria-label="Förderer"><button class="pen" data-act="pen" ${a} aria-label="Namen bearbeiten" title="Namen bearbeiten">${ICON_PEN}</button></div>
-        <div class="fp-meta"><select data-p="art" ${a} id="art-${f.id}" class="inline art${f.art ? '' : ' empty'}" aria-label="Art des Förderers"><option value="">Art wählen …</option>${arts.map(x => `<option ${x === f.art ? 'selected' : ''}>${esc(x)}</option>`).join('')}</select>
-          <button class="rm" data-act="rm-foe" ${a} title="Förderer entfernen" aria-label="Förderer entfernen">${ICON_TRASH}</button></div>
+        <div class="fp-title"><input type="text" class="inline fp-h" data-p="name" ${a} list="dl-kartei" value="${esc(f.name)}" placeholder="Förderer" aria-label="Förderer">
+          <button class="pen" data-act="pen" ${a} aria-label="Namen bearbeiten" title="Namen bearbeiten">${ICON_PEN}</button><button class="rm" data-act="rm-foe" ${a} title="Förderer entfernen" aria-label="Förderer entfernen">${ICON_TRASH}</button></div>
         <div id="fw-${f.id}">${foeWarn(b, f)}</div>
       </div>
       <div class="fp-fig">
         ${dots(f)}
         <div class="fp-grid">
-          <span class="amt-lab">${AMT_LAB[st]}</span><span></span>
-          <div class="amt-big"><input type="text" inputmode="decimal" class="inline num amt" data-num data-p="${st === 'zugesagt' ? 'zugesagt' : 'betrag'}" ${a} id="amt-${f.id}" value="${esc(fmtNum(st === 'zugesagt' ? f.zugesagt : f.betrag))}" placeholder="0" aria-label="${AMT_LAB[st]}"><span class="unit">€</span></div>
-          <button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button>
-          <div id="sh-${f.id}" class="share">${foeShare(b, f)}</div>
-          <div class="fp-dates">${fpDates(f)}${st === 'zugesagt' ? geldBlock(f) : ''}</div>
+        <span class="amt-lab">${AMT_LAB[st]}</span><span></span>
+        <div class="amt-big"><input type="text" inputmode="decimal" class="inline num amt" data-num data-p="${st === 'zugesagt' ? 'zugesagt' : 'betrag'}" ${a} id="amt-${f.id}" value="${esc(fmtNum(st === 'zugesagt' ? f.zugesagt : f.betrag))}" placeholder="0" aria-label="${AMT_LAB[st]}"><span class="unit">€</span></div>
+        <button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button>
+        <div id="sh-${f.id}" class="share-t">${foeShare(b, f)}</div>
+        <div class="fp-dates">${fpDates(f)}${st === 'zugesagt' ? geldBlock(f) : ''}</div>
         </div>
       </div>
     </div>
@@ -264,30 +258,28 @@ function stMenu(btn) {
   placePop(m, btn);
   (m.querySelector('button.on') || m.querySelector('button')).focus();
 }
-function finSummary(b) {
-  const F = fin(b), S = F.S;
-  if (!S) return '<div class="fin muted">Trag oben neben dem Namen die Summe ein, dann rechnet die Liste die Deckung aus.</div>';
-  const line = (lab, v, cls = '') => { const gap = S - v; return `<tr class="${cls}"><th>${lab}</th><td class="num">${eur(v)}</td><td class="num">${Math.round(v / S * 100)} %</td>
-    <td class="num ${gap > 0 ? 'gap' : gap < 0 ? 'over' : 'okc'}">${gap > 0 ? 'Lücke ' + eur(gap) : gap < 0 ? 'überdeckt um ' + eur(-gap) : 'gedeckt'}</td></tr>`; };
-  return `<div class="fin"><div class="fin-l">${segBar(b, { big: true })}<div class="legend">${LEGEND_FIN}</div>
-    ${F.mitGe > S ? '<div class="small hint-warn">Geplant ist mehr als der Bedarf. Kommt am Ende mehr Geld zusammen als nötig, fällt das spätestens im Verwendungsnachweis auf.</div>' : ''}</div>
-    <table class="fintab"><tbody>
-      <tr><th>Bedarf</th><td class="num">${eur(S)}</td><td></td><td></td></tr>
-      ${line('Zugesagt und Eigenanteil', F.gedeckt, 'main')}${line('… wenn alles Beantragte kommt', F.mitBe)}${line('… wenn auch alles Geplante kommt', F.mitGe)}
-      <tr><th>Eingegangen</th><td class="num">${eur(F.eingegangen)}</td><td></td><td class="num muted">${F.zugesagt > F.eingegangen ? 'noch offen: ' + eur(F.zugesagt - F.eingegangen) : ''}</td></tr>
-    </tbody></table></div>`;
+/* ---------- Übersicht oben im Förderplan: Balken je Förderer, darunter die Tabelle (Gesamtbedarf, Förderer farbig nach Stand, Eigenanteil) */
+const ROW_CLS = { zugesagt: 'r-zu', beantragt: 'r-be', vorb: 'r-ge', geplant: 'r-ge', abgelehnt: 'r-ab' };
+function finBarBlock(b) { return segBar(b, { big: true }) + `<div class="legend">${LEGEND_FIN}</div>`; }
+function finRows(b) {
+  const S = +b.summe || 0;
+  return `<tr class="r-sum"><th>Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`
+    + b.foerderer.filter(f => f.name.trim() || f.betrag).map(f => { const v = foeAmt(f);
+      return `<tr class="${ROW_CLS[f.status]}"><th>${esc(f.name || '(ohne Namen)')} <span class="r-st">${F_ST_L[f.status]}${f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : ''}</span></th><td class="num">${eur(v)}</td><td class="num">${f.status === 'abgelehnt' ? '' : pct(v, S)}</td></tr>`; }).join('');
 }
+const finEigPct = b => pct(+b.eigenanteil || 0, +b.summe || 0);
 function secFoe(b) {
-  return `<section class="card" id="sec-foe">
-    <div class="sec-head"><h2>Förderplan</h2></div>
-    <div class="research"><span class="r-lab">Recherche ${infoBtn('recherche')}</span>
-      <button data-act="vorlage">⤓ Excel-Vorlage für die KI-Recherche</button><button data-act="import">Ausgefüllte Excel übernehmen …</button></div>
-    <div class="fp-list">${b.foerderer.map(f => fpCard(b, f)).join('') || '<div class="empty">Noch kein Förderer eingetragen – einzeln mit „+ Förderer“ oder viele auf einmal aus einer ausgefüllten Recherche-Excel.</div>'}</div>
-    <div class="foe-add"><button data-act="add-foe">+ Förderer</button><span class="muted small">${KR.list.length ? 'Namen aus der Förder-Kartei werden beim Tippen vorgeschlagen.' : ''}</span></div>
-    <div class="eigen"><span class="lab">Eigenanteil</span>${nin(b, 'eigenanteil', 'aria-label="Eigenanteil in Euro"')}<span class="unit">€</span><span class="muted small">aus Mitteln der Gliederung oder der Diözese</span></div>
-    <div id="fin-sum">${finSummary(b)}</div>
+  return `<section class="card fp-head" id="sec-foe">
+    <div class="sec-head"><h2>Förderplan</h2>
+      <div class="sec-tools"><button class="icon-btn" data-act="vorlage" aria-label="Excel-Vorlage für die KI-Recherche herunterladen" title="Excel-Vorlage für die KI-Recherche herunterladen – mit Bedarf, bisherigem Förderplan und Anleitung">${ICON_DOWN}</button>
+        <button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – neue Förderer kommen dazu, vorhandene werden ergänzt">${ICON_UP}</button></div></div>
+    <div id="fin-bar" class="fin-bar">${finBarBlock(b)}</div>
+    <table class="fsum"><tbody id="fin-rows">${finRows(b)}</tbody>
+      <tbody><tr class="r-eig"><th>Eigenanteil <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenanteil in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
     ${dl('dl-kartei', KR.list.map(k => k.name))}
-  </section>`;
+  </section>
+  ${b.foerderer.map(f => fpCard(b, f)).join('') || '<div class="empty fp-empty">Noch kein Förderer eingetragen – einzeln mit „+ Förderer“ oder viele auf einmal aus einer ausgefüllten Recherche-Excel (Symbol oben rechts im Förderplan).</div>'}
+  <div class="foe-add"><button data-act="add-foe">+ Förderer</button><span class="muted small">${KR.list.length ? 'Namen aus der Förder-Kartei werden beim Tippen vorgeschlagen.' : ''}</span></div>`;
 }
 
 /* ---------- Nacharbeit: Übergabe und Pressemitteilung einmal je Bedarf, Berichte je Förderer */

@@ -1,4 +1,4 @@
-// Vorschau (Artifact): zeichnet ohne Fehler, Liste schlank, Bedarfsseite mit Kopf, rechter Spalte (Kreise) und Förderplan ohne Kästen, hell/dunkel, schmal ohne Querscrollen
+// Vorschau (Artifact): zeichnet ohne Fehler, Liste schlank, Bedarfsseite mit Phase an der Kopfzeile, rechter Spalte (Kreise), Förderplan mit Übersicht und Karten je Förderer, hell als Standard, dunkel per Einstellung, schmal ohne Querscrollen
 const { chromium, ok, open, finish, fs, T } = require('./lib');
 (async () => {
   const b = await chromium.launch();
@@ -13,8 +13,16 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r === '68.000 €', 'Summe fett gleich neben dem Bedarf');
   await p.screenshot({ path: 'vorschau_liste.png', fullPage: true });
   await p.click('tr[data-id="b-mtw"]');
-  r = await p.evaluate(() => [document.querySelector('#f-titel').value, document.querySelector('.d-head input[data-p="gliederung"]').value, document.querySelector('.d-sum input[data-p="summe"]').value, document.querySelectorAll('[data-p="summe"]').length, document.querySelector('#d-steps .cur').textContent]);
+  r = await p.evaluate(() => [document.querySelector('#f-titel').value, document.querySelector('.d-head input[data-p="gliederung"]').value, document.querySelector('.d-right-head input[data-p="summe"]').value, document.querySelectorAll('[data-p="summe"]').length, document.querySelector('#d-steps .cur').textContent]);
   ok(r.join('|') === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst|Paderborn|68.000|1|Förderung', 'Kopf: Name, Gliederung und Summe oben (einmalig), Phase Förderung');
+  r = await p.evaluate(() => [!!document.querySelector('header.top .subbar #d-steps'), !!document.querySelector('header.top .subbar #d-status'), !!document.querySelector('.jump'), document.documentElement.dataset.blTheme,
+    !!document.querySelector('.d-right-head .sum-art .seg'), document.querySelector('.d-grid > .d-left > .info-card') === document.querySelector('.d-left').firstElementChild]);
+  ok(r.join() === 'true,true,false,light,true,true', 'Phase und Stand an der Kopfzeile, keine Sprungmarken, hell als Standard, Schätzung unter der Summe, Infos links neben Freigaben: ' + r.join());
+  r = await p.evaluate(() => [...document.querySelectorAll('#fin-rows tr')].map(t => t.className + ':' + t.querySelector('th').firstChild.textContent.trim() + ':' + t.querySelector('td:last-child').textContent));
+  ok(r.join('|') === 'r-sum:Gesamtbedarf:100 %|r-zu:Sparkasse Musterstadt:15 %|r-be:Bürgerstiftung Musterstadt:22 %|r-ge:Beispiel-Soziallotterie:44 %', 'Förderplan-Tabelle: Gesamtbedarf, Förderer farbig nach Stand mit Anteil: ' + r.join('|'));
+  r = await p.evaluate(() => [document.querySelector('#fin-eig').textContent, document.querySelectorAll('#sec-foe .sec-tools .icon-btn').length, document.querySelectorAll('.card.fp').length, document.querySelectorAll('.fp .fbar, .fp select').length,
+    getComputedStyle(document.querySelector('.fp .pro')).borderTopStyle, getComputedStyle(document.querySelector('.fp .pro')).backgroundColor]);
+  ok(r.join() === '19 %,2,3,0,none,rgba(0, 0, 0, 0)', 'Eigenanteil mit Anteil, Excel als zwei Symbole, je Förderer eine Karte ohne Balken und Art-Feld, Pro ohne Rahmen: ' + r.join());
   r = await p.evaluate(() => [...document.querySelectorAll('.d-right .circ')].map(c => c.className.replace('circ c-', '')).join());
   ok(r === 'ok,ok,ok,ok,ok,ok,ok,run,add', 'rechts: Freigaben und Unterlagen als Kreise: ' + r);
   ok(!!(await p.$('.d-right input[data-p="link"]')) && !!(await p.$('.d-right input[data-p="pfad"]')), 'Ordner rechts unter den Unterlagen');
@@ -23,7 +31,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r === '✓vorhanden,…in Arbeit,✗fehlt', 'Klick auf den Kreis bietet die Stände an: ' + r);
   await p.keyboard.press('Escape');
   r = await p.evaluate(() => [document.querySelectorAll('.fp').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), document.querySelector('#sh-f-mtw-spk').textContent, document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(), [...document.querySelectorAll('#foe-f-mtw-spk .pc-lab')].map(e => e.textContent).join()]);
-  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3].includes('15 %') && r[4] === 'beantragt am Antwort erwartet' && r[5] === 'Pro,Contra', 'Förderplan: Einschätzung als Punkte, Stand-Knopf, Anteil, Fristen, Pro und Contra');
+  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3].includes('15 %') && r[4] === 'beantragt am:Antwort erwartet:' && r[5] === 'Pro,Contra', 'Förderplan: Einschätzung als Punkte, Stand-Knopf, Anteil, Fristen, Pro und Contra: ' + JSON.stringify(r));
   await p.click('button[data-act="info"][data-v="ordner"]');
   ok((await p.$eval('.info-pop', e => e.textContent)).includes('Link kopieren'), 'Hinweis zum Ordner hinter dem „i“');
   await p.mouse.click(5, 300);
@@ -36,8 +44,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
   ok(r[0] <= r[1], 'schmal (390 px): kein Querscrollen der Seite (' + r.join(' / ') + ')');
   await q.click('tr[data-id="b-mtw"]');
-  r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth, getComputedStyle(document.body).backgroundColor]);
-  ok(r[0] <= r[1] && r[2] === 'rgb(20, 21, 22)', 'schmal und dunkel: Bedarfsseite passt (' + r[0] + '), dunkler Hintergrund');
+  r = await q.evaluate(() => getComputedStyle(document.body).backgroundColor);
+  ok(r !== 'rgb(20, 21, 22)', 'System dunkel, Programm bleibt hell (Standard): ' + r);
+  await q.click('button[data-act="menu"]'); await q.click('#mmenu button[data-act="theme"][data-v="dark"]');
+  r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth, getComputedStyle(document.body).backgroundColor, localStorage.getItem('bl-theme')]);
+  ok(r[0] <= r[1] && r[2] === 'rgb(20, 21, 22)' && r[3] === 'dark', 'schmal und dunkel (Einstellung): Bedarfsseite passt (' + r[0] + '), dunkler Hintergrund');
+  await q.click('#mmenu button[data-act="theme"][data-v="system"]');
+  ok(await q.evaluate(() => !document.documentElement.dataset.blTheme && getComputedStyle(document.body).backgroundColor === 'rgb(20, 21, 22)'), '„wie Windows“ folgt dem System (hier dunkel)');
+  await q.click('#mmenu button[data-act="theme"][data-v="dark"]'); await q.keyboard.press('Escape');
   await q.screenshot({ path: 'vorschau_handy_dunkel.png', fullPage: true });
   await finish(b, [p, q]);
 })();

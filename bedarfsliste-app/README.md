@@ -17,9 +17,11 @@ Es werden keine Daten ins Internet gesendet und nichts nachgeladen.
 **Förder-Kartei:** Erkannt wird je Blatt die Kopfzeile mit „Gliederung“. Ist die Excel bis zur letzten Zeile
 durchformatiert, liest die Liste nur den vorderen Teil – die leeren Zeilen unter der Tabelle in Excel löschen.
 
-**Förderplan-Excel:** Auf der Seite eines Bedarfs gibt „Excel-Vorlage für die Recherche“ eine Excel mit dem Bedarf
+**Förderplan-Excel:** Auf der Seite eines Bedarfs gibt das Download-Symbol oben rechts im Förderplan eine Excel mit dem Bedarf
 und dem bisherigen Förderplan aus (Blatt „Anleitung“ erklärt jede Spalte – auch für eine KI-Recherche).
-„Aus Excel übernehmen …“ liest die ausgefüllte Datei wieder ein (neue Förderer kommen dazu, vorhandene werden ergänzt).
+Das Upload-Symbol daneben liest die ausgefüllte Datei wieder ein (neue Förderer kommen dazu, vorhandene werden ergänzt).
+
+**Darstellung:** hell (voreingestellt), dunkel oder wie Windows – über das Zahnrad oben rechts.
 `Foerderplan_Vorlage.xlsx` ist dieselbe Vorlage ohne Bedarf.
 
 **Programm-Update:** Eine Datei, in der schon gearbeitet wurde, nie durch eine neue `Bedarfsliste.html` ersetzen.

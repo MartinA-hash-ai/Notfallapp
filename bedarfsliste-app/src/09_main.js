@@ -8,11 +8,10 @@ function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || 
 function saveUI() { try { localStorage.setItem(uiKey(), JSON.stringify(Object.fromEntries(UI_KEEP.map(k => [k, UI[k]])))); } catch (e) { /* */ } }
 const cur = () => D.bedarfe.find(b => b.id === UI.id) || null;
 
-/* ---------- Darstellung: wie das System, hell oder dunkel (in der Vorschau bestimmt das der Viewer) */
-const themeGet = () => { try { return localStorage.getItem('bl-theme') || 'system'; } catch (e) { return 'system'; } };
+/* ---------- Darstellung: hell (Standard), dunkel oder wie Windows – eigenes Merkmal data-bl-theme, damit die Wahl auch in der Vorschau gilt */
+const themeGet = () => { try { return localStorage.getItem('bl-theme') || 'light'; } catch (e) { return 'light'; } };
 function applyTheme(t = themeGet()) {
-  if (DEMO) return;
-  if (t === 'system') delete document.documentElement.dataset.theme; else document.documentElement.dataset.theme = t;
+  if (t === 'system') delete document.documentElement.dataset.blTheme; else document.documentElement.dataset.blTheme = t;
   try { localStorage.setItem('bl-theme', t); } catch (e) { /* */ }
 }
 
@@ -45,14 +44,18 @@ function karteiChip() {
   if (ST.conn !== 'ok') return '<button class="kchip" data-act="kartei" title="Die Kartei wird aus dem Ordner der Bedarfsliste gelesen">Förder-Kartei: Ordner verbinden</button>';
   return '<button class="kchip warn" data-act="kartei" title="Keine passende Excel im Ordner gefunden – klicken zum Wählen">Förder-Kartei wählen</button>';
 }
+const ICON_GEAR = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>';
+// in der Ansicht eines Bedarfs hängt unter der Kopfzeile die Leiste mit Phase und Stand
 function headerHtml() {
+  const b = UI.view === 'detail' ? cur() : null;
   const nA = D.bedarfe.filter(b => !b.archiv).length, nR = D.bedarfe.length - nA;
   const brand = DEMO ? '<div class="mark"></div>' : `<img class="logo light" src="${LOGO}" alt="Malteser"><img class="logo dark" src="${LOGO_DARK}" alt="Malteser">`;
   const tab = (k, l, n) => `<button class="tab ${UI.tab === k && UI.view === 'list' ? 'on' : ''}" data-act="tab" data-v="${k}">${l}<span class="cnt">${n}</span></button>`;
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}</nav>
-    <div class="actions">${karteiChip()}${saveBox()}<button class="primary" data-act="new">+ Bedarf</button><button class="icon" data-act="menu" aria-label="Weitere Funktionen" title="Weitere Funktionen">⋯</button></div>
+    <div class="actions">${karteiChip()}${saveBox()}<button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
+    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div><div id="d-status">${statusBlock(b)}</div></div>` : ''}
   </header>`;
 }
 function bannersHtml() {
@@ -102,7 +105,7 @@ function refresh() {
   const b = cur();
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-status', statusBlock(b)); swap('d-steps', steps(b));
-  swap('fr-body', freigabeList(b)); swap('fin-sum', finSummary(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
+  swap('fr-body', freigabeList(b)); swap('fin-bar', finBarBlock(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b));
 }
@@ -153,15 +156,16 @@ function mainMenu(btn) {
   const item = (act, label, v) => h('button', { role: 'menuitem', 'data-act': act, 'data-v': v || '' }, label);
   const th = themeGet();
   const m = h('div', { class: 'menu', id: 'mmenu', role: 'menu' },
+    h('div', { class: 'menu-row' }, h('span', null, 'Darstellung'), ...[['light', 'hell'], ['dark', 'dunkel'], ['system', 'wie Windows']].map(([v, l]) =>
+      h('button', { class: 'mini-btn' + (th === v ? ' on' : ''), 'data-act': 'theme', 'data-v': v }, l))),
+    h('hr'),
     item('vorlage-leer', 'Leere Förderplan-Vorlage (Excel)'),
     DEMO ? null : item('kartei', 'Förder-Kartei wählen oder neu einlesen …'),
     h('hr'),
     DEMO ? null : item('backup', 'Datensicherung herunterladen (.json)'),
     DEMO ? null : item('restore', 'Datensicherung laden …'),
     DEMO ? null : item('update', 'Programm-Update einspielen …'),
-    DEMO ? null : h('hr'),
-    DEMO ? null : h('div', { class: 'menu-row' }, h('span', null, 'Darstellung'), ...[['system', 'wie Windows'], ['light', 'hell'], ['dark', 'dunkel']].map(([v, l]) =>
-      h('button', { class: 'mini-btn' + (th === v ? ' on' : ''), 'data-act': 'theme', 'data-v': v }, l))),
+    h('hr'),
     item('about', 'Über die Bedarfsliste (Version ' + APP_INFO.version + ')'));
   document.body.append(m);
   const r = btn.getBoundingClientRect();
@@ -195,7 +199,7 @@ async function act(k, a, e) {
     case 'prio-menu': e.stopPropagation(); prioMenu(a); return;
     case 'prio-set': { const x = D.bedarfe.find(y => y.id === a.dataset.id); if (x) { x.prio = a.dataset.v; changed(); } closeMenus(); keep(renderNow); return; }
     case 'menu': if ($('#mmenu')) closeMenus(); else mainMenu(a); return;
-    case 'theme': applyTheme(a.dataset.v); closeMenus(); return;
+    case 'theme': applyTheme(a.dataset.v); $$('#mmenu .mini-btn').forEach(x => x.classList.toggle('on', x === a)); return;
     case 'about': closeMenus(); about(); return;
     case 'save': closeMenus(); if (FSA && ST.conn === 'none') await connectFolder(); else saveAll({}); renderNow(); return;
     case 'connect': await connectFolder(); renderNow(); return;
@@ -213,7 +217,6 @@ async function act(k, a, e) {
     case 'draft-restore': restoreDraft(); return;
     case 'draft-drop': clearDraft(); renderNow(); return;
     case 'demo-reset': { const before = JSON.stringify(D); D = normalize({ bedarfe: demoBedarfe() }); changed(); UI.view = 'list'; renderNow(); toast('Beispieldaten wiederhergestellt', 'ok', undoTo(before)); return; }
-    case 'jump': { const s = document.getElementById(a.dataset.v); if (s) s.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); return; }
     case 'link': {
       let host = ''; try { host = new URL(a.getAttribute('href')).hostname; } catch (er) { /* ungültiger Link */ }
       if (DEMO && host.endsWith('.example')) { e.preventDefault(); toast('Beispiel-Link: In der Programmdatei öffnet sich hier der Ordner bzw. die Seite im Browser.'); }
@@ -241,7 +244,10 @@ async function act(k, a, e) {
       const el = $(`#foe-${f.id} input[data-p="name"]`); if (el) { el.focus(); el.scrollIntoView({ block: 'center' }); }
       return;
     }
-    case 'rm-foe': { const before = JSON.stringify(D); b.foerderer = b.foerderer.filter(f => f.id !== a.dataset.fid); b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== a.dataset.fid); changed(); keep(renderNow); toast('Förderer entfernt', 'ok', undoTo(before)); return; }
+    case 'rm-foe': {
+      const f0 = b.foerderer.find(f => f.id === a.dataset.fid);
+      if (!await confirmBox('Förderer entfernen?', '„' + ((f0 && f0.name) || 'Ohne Namen') + '“ wird mit Summe, Stand, Pro und Contra aus dem Förderplan entfernt. Direkt danach lässt sich das noch rückgängig machen.', 'Entfernen')) return;
+      const before = JSON.stringify(D); b.foerderer = b.foerderer.filter(f => f.id !== a.dataset.fid); b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== a.dataset.fid); changed(); keep(renderNow); toast('Förderer entfernt', 'ok', undoTo(before)); return; }
     case 'det': UI.open['det-' + a.dataset.v] = !UI.open['det-' + a.dataset.v]; break;
     case 'geld': UI.geld = a.dataset.fid; keep(renderNow); { const el = $('#geld-betrag'); if (el) el.focus(); } return;
     case 'geld-no': UI.geld = null; break;
