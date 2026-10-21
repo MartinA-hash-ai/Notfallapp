@@ -34,16 +34,12 @@ function cmp(x, y, k) { const a = CMP[k](x), c = CMP[k](y); return typeof a === 
 function filtered() {
   const arch = UI.tab === 'archiv', q = norm(UI.q);
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
-  if (UI.fGl) L = L.filter(b => glName(b) === UI.fGl);
-  if (UI.fZu) L = L.filter(b => b.zust.includes(UI.fZu));
-  if (UI.fPh) L = L.filter(b => phaseName(phase(b)) === UI.fPh);
-  if (UI.fPr) L = L.filter(b => b.prio === UI.fPr);
   if (UI.fSw) L = L.filter(b => b.stichwort === UI.fSw);
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, b.stichwort, ...b.zust, ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
   const chain = [UI.sort, ...['prio', 'frist', 'titel'].filter(k => k !== UI.sort)];
   return L.sort((x, y) => { for (let i = 0; i < chain.length; i++) { const r = cmp(x, y, chain[i]) * (i === 0 ? UI.dir : 1); if (r) return r; } return 0; });
 }
-const anyFilter = () => !!(UI.q || UI.fGl || UI.fZu || UI.fPh || UI.fPr || UI.fSw);
+const anyFilter = () => !!(UI.q || UI.fSw);
 
 function row(b) {
   const p = phase(b), nf = nextFrist(b), dash = '<span class="faint">–</span>';
@@ -68,14 +64,12 @@ function listView() {
     + (labels || uniq(vals).sort((a, c) => a.localeCompare(c, 'de')).map(v => [v, v])).map(([v, l]) => `<option value="${esc(v)}" ${UI[key] === v ? 'selected' : ''}>${esc(l)}</option>`).join('') + '</select>';
   const th = (k, lab, cls = '') => `<button class="th ${UI.sort === k ? 'on' : ''} ${cls}" data-act="sort" data-v="${k}">${lab}${UI.sort === k ? (UI.dir > 0 ? ' ▲' : ' ▼') : ''}</button>`;
   const body = listBody();
-  const phs = [...PHASES.map(p => p.t), 'Zurückgestellt', 'Verworfen'].filter(t => all.some(b => phaseName(phase(b)) === t));
   return `<main><section class="card">
     <div class="list-head">
       <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span>
       <div class="tools">
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
-        ${sel('fPh', 'Phase', null, phs.map(t => [t, t]))}${sel('fPr', 'Priorität', null, PRIO.filter(([v]) => all.some(b => b.prio === v)))}
-        ${sel('fGl', 'Gliederung', all.map(glName))}${sel('fZu', 'Zuständig', all.flatMap(b => b.zust))}${sel('fSw', 'Stichwort', all.map(b => b.stichwort))}
+        ${sel('fSw', 'Stichwort', all.map(b => b.stichwort))}
         ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
       </div>
     </div>
@@ -103,13 +97,13 @@ function infoPop(btn, text) {
   closeMenus();
   placePop(h('div', { class: 'menu info-pop', role: 'tooltip' }, text), btn);
 }
-function placePop(m, btn) {
+function placePop(m, btn, align) {
   document.body.append(m);
   const r = btn.getBoundingClientRect();
-  m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+  m.style.left = Math.max(8, Math.min(align === 'right' ? r.right - m.offsetWidth : r.left, innerWidth - m.offsetWidth - 8)) + 'px';
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="prio-menu"], [data-act="menu"], [data-act="info"]')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="prio-menu"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"]')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', closeMenus, true);

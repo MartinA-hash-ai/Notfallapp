@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-3';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fGl: '', fZu: '', fPh: '', fPr: '', fSw: '', sort: 'prio', dir: 1, open: {}, delAsk: false, geld: null };
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', sort: 'prio', dir: 1, open: {}, geld: null };
 const UI_KEEP = ['view', 'id', 'tab', 'sort', 'dir'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } if (!(UI.sort in CMP)) UI.sort = 'prio'; }
@@ -101,9 +101,8 @@ function swap(id, html, force) { const el = document.getElementById(id); if (!el
 function refresh() {
   const b = cur();
   if (UI.view !== 'detail' || !b) return;
-  const t = $('#d-title'); if (t) t.textContent = b.titel || 'Neuer Bedarf';
-  swap('d-meta', metaLine(b)); swap('d-status', statusBlock(b)); swap('d-steps', steps(b));
-  swap('fr-body', freigabeBody(b)); swap('fin-sum', finSummary(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
+  swap('d-meta', metaRest(b)); swap('d-status', statusBlock(b)); swap('d-steps', steps(b));
+  swap('fr-body', freigabeList(b)); swap('fin-sum', finSummary(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b));
 }
@@ -136,11 +135,11 @@ function addZust() {
   if (!b.zust.includes(v)) b.zust.push(v);
   el.value = ''; changed(); swap('zust-chips', zustChips(b), true);
 }
-function addUl() {
+function addUl(refocus) {
   const b = cur(), el = $('#ul-new'), v = el ? el.value.trim() : '';
   if (!b || !v) return;
-  b.unterlagen.push(UL(v, 'fehlt')); changed(); keep(renderNow);
-  const n = $('#ul-new'); if (n) n.focus();
+  b.unterlagen.push(UL(v, 'fehlt')); el.value = ''; changed(); swap('ul-body', unterlagenList(b), true);
+  if (refocus) { const n = $('#ul-new'); if (n) n.focus(); }
 }
 function copyPath(b) {
   const p = (b.pfad || '').trim(); if (!p) return;
@@ -179,16 +178,20 @@ async function act(k, a, e) {
   const b = cur();
   switch (k) {
     case 'tab': UI.tab = a.dataset.v; UI.view = 'list'; renderNow(); scrollTo(0, 0); return;
-    case 'open': UI.view = 'detail'; UI.id = a.dataset.id; UI.delAsk = false; UI.geld = null; renderNow(); scrollTo(0, 0); return;
-    case 'back': UI.view = 'list'; UI.delAsk = false; UI.geld = null; renderNow(); scrollTo(0, 0); return;
+    case 'open': UI.view = 'detail'; UI.id = a.dataset.id; UI.geld = null; renderNow(); scrollTo(0, 0); return;
+    case 'back': UI.view = 'list'; UI.geld = null; renderNow(); scrollTo(0, 0); return;
     case 'new': {
       const nb = blank(); D.bedarfe.unshift(nb); changed();
       UI.tab = 'aktiv'; UI.view = 'detail'; UI.id = nb.id; renderNow(); scrollTo(0, 0);
       const t = $('#f-titel'); if (t) t.focus(); return;
     }
     case 'sort': { const v = a.dataset.v; if (UI.sort === v) UI.dir *= -1; else { UI.sort = v; UI.dir = 1; } keep(renderNow); return; }
-    case 'clear': Object.assign(UI, { q: '', fGl: '', fZu: '', fPh: '', fPr: '', fSw: '' }); keep(renderNow); return;
+    case 'clear': Object.assign(UI, { q: '', fSw: '' }); keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
+    case 'circ': circMenu(a); return;
+    case 'st-menu': stMenu(a); return;
+    case 'more': if ($('#mmenu')) closeMenus(); else moreMenu(a); return;
+    case 'pen': { const el = $(`#foe-${a.dataset.fid} .fp-h`); if (el) { el.focus(); el.select(); } return; }
     case 'prio-menu': e.stopPropagation(); prioMenu(a); return;
     case 'prio-set': { const x = D.bedarfe.find(y => y.id === a.dataset.id); if (x) { x.prio = a.dataset.v; changed(); } closeMenus(); keep(renderNow); return; }
     case 'menu': if ($('#mmenu')) closeMenus(); else mainMenu(a); return;
@@ -227,11 +230,11 @@ async function act(k, a, e) {
     }
     case 'archive': { const before = JSON.stringify(D); b.archiv = true; changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); toast(`„${b.titel || 'Bedarf'}“ liegt jetzt im Archiv`, 'ok', undoTo(before)); return; }
     case 'unarchive': b.archiv = false; changed(); toast('Wieder in der Liste der Bedarfe', 'ok'); break;
-    case 'del': UI.delAsk = true; break;
-    case 'del-no': UI.delAsk = false; break;
-    case 'del-ok': { const before = JSON.stringify(D); D.bedarfe = D.bedarfe.filter(x => x !== b); changed(); UI.view = 'list'; UI.delAsk = false; renderNow(); scrollTo(0, 0); toast('Bedarf gelöscht', 'ok', undoTo(before)); return; }
+    case 'del': {
+      if (!await confirmBox('Bedarf löschen?', '„' + (b.titel || 'Neuer Bedarf') + '“ wird mit Förderplan und Nacharbeit gelöscht. Direkt danach lässt sich das noch rückgängig machen.', 'Löschen')) return;
+      const before = JSON.stringify(D); D.bedarfe = D.bedarfe.filter(x => x !== b); changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); toast('Bedarf gelöscht', 'ok', undoTo(before)); return;
+    }
     case 'rm-zust': b.zust.splice(+a.dataset.i, 1); changed(); swap('zust-chips', zustChips(b), true); return;
-    case 'add-ul': addUl(); return;
     case 'rm-ul': b.unterlagen = b.unterlagen.filter(u => u.id !== a.dataset.uid); changed(); break;
     case 'add-foe': {
       const f = ff({}); b.foerderer.push(f); changed(); keep(renderNow);
@@ -268,7 +271,9 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (!DEMO) saveAll({}); return; }
   if (e.key === 'Enter' && el.matches && el.matches('tr[data-act="open"]')) { e.preventDefault(); act('open', el, e); }
   if (e.key === 'Enter' && el.id === 'zust-new') { e.preventDefault(); addZust(); }
-  if (e.key === 'Enter' && el.id === 'ul-new') { e.preventDefault(); addUl(); }
+  if (e.key === 'Enter' && el.id === 'ul-new') { e.preventDefault(); addUl(true); }
+  if (e.key === 'Enter' && el.id === 'f-titel') { e.preventDefault(); el.blur(); }
+  if (e.key === 'Enter' && el.classList && el.classList.contains('inline') && el.tagName === 'INPUT' && el.type !== 'date') { e.preventDefault(); el.blur(); }
 });
 document.addEventListener('input', e => {
   const el = e.target;
@@ -293,6 +298,7 @@ document.addEventListener('change', e => {
   const el = e.target;
   if (!el.closest || !el.closest('#app')) return;
   if (el.id === 'zust-new') { addZust(); return; }
+  if (el.id === 'ul-new') { addUl(false); return; }
   if (el.dataset.ui && el.dataset.ui !== 'q') { UI[el.dataset.ui] = el.type === 'checkbox' ? el.checked : el.value; keep(renderNow); return; }
   if (!el.dataset.p || !(el.type === 'checkbox' || el.tagName === 'SELECT')) return;
   const b = cur(); if (!b) return;

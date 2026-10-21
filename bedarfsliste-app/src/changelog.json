@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.3.0",
+    "version": "0.4.0",
     "date": "",
+    "items": [
+      "Liste: über der Tabelle nur noch Suche und Stichwort",
+      "Bedarfsseite: Name und Gliederung oben direkt änderbar (anklicken und schreiben), daneben hinter einem Strich die Summe mit „Schätzung / laut Angebot“; rechts nur „⋯“ (zurückstellen, verwerfen, archivieren) und ein roter Löschen-Knopf",
+      "Rechts Freigaben, Unterlagen und Ordner: je Punkt ein Kreis – grün mit Haken, gelb mit drei Punkten, rot mit Kreuz; ein Klick auf den Kreis bietet die anderen Stände an",
+      "Förderplan ohne Kästen: Name als Überschrift (mit Stift zum Ändern), rechts groß die Summe mit Anteil am Bedarf, daneben der Stand als farbiger Knopf mit den passenden Fristen darunter, oben rechts die Einschätzung in fünf Punkten (rot bis grün)",
+      "„Warum passt das?“ und „Knackpunkte“ heißen jetzt Pro und Contra (farbig eingerahmt), auch in der Excel-Vorlage"
+    ]
+  },
+  {
+    "version": "0.3.0",
+    "date": "2026-10-21T16:10",
     "items": [
       "Liste schlanker: Zuständige, Freigabe und Unterlagen stehen erst auf der Seite des Bedarfs",
       "Bedarfsseite oben ohne Überschriften: Bedarf, Gliederung und Summe als Schreiblinien (leer steht der Feldname darin), die Summe groß oben rechts mit „Schätzung / laut Angebot“ darunter",
