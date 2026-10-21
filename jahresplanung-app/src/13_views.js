@@ -97,7 +97,8 @@ VIEW_FN.jahr = main => {
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),
         h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten'),
         h('label', { class: 'check small', tip: 'verbindet die Starts der Bereiche und das PAL jeder Maßnahme dauerhaft mit einer Linie in ihrer Farbe' },
-          h('input', { type: 'checkbox', checked: !!UI.verbund, onchange: e => { UI.verbund = e.target.checked; renderNow(); } }), 'Verbund-Darstellung')],
+          h('input', { type: 'checkbox', checked: !!UI.verbund, onchange: e => { UI.verbund = e.target.checked; renderNow(); } }), 'Verbund-Darstellung'),
+        h('span', { class: 'sep' }), calMonthBtn()],
       tools: [legendInline()],
       body: [calendarBody()] }), {
       info: 'Maus über Tag oder Markierung zeigt Details. Klick auf eine Markierung (' + evKeys().join(', ') + ') oder eine Zeile der Terminliste hält die Maßnahme hervorgehoben – „Bearbeiten“ steht dann hinter ihren Zeilen in der Terminliste. Klick woanders oder Esc hebt das auf. Markierung ziehen: P verschiebt das ganze Projekt (alle Bereiche wandern mit), ein Start verschiebt nur diesen Bereich. Die Linie wird vom ersten Bereich bis zum PAL kräftiger. Strg+Z macht es rückgängig.' }),

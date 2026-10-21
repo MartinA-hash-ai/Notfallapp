@@ -139,13 +139,53 @@ function monthCard(y, mo, byDay, vacs, today, vb) {
   }
   return card;
 }
-function calendarBody() {
-  const y = UI.year, today = todayDn();
+// all: alle zwölf Monate (PDF) – sonst ohne die unter „Monate ausblenden“ abgewählten
+function calendarBody(all) {
+  const y = UI.year, today = todayDn(), hid = all ? new Set() : calHidden(y);
+  if (hid.size >= 12) return h('div', { class: 'cal-none muted' }, 'Alle Monate sind ausgeblendet. ', h('button', { class: 'link', onclick: () => calSetHidden(y, new Set()) }, 'Alle zeigen'));
   const ev = eventsIn(mkdn(y, 1, 1), mkdn(y, 12, 31));
   const byDay = new Map();
   ev.forEach(e => { if (!byDay.has(e.n)) byDay.set(e.n, []); byDay.get(e.n).push(e); });
   const vacs = C.vac.filter(vacVisible), vb = UI.verbund ? verbundLanes() : null;
-  return h('div', { class: 'cal' + (vb ? ' verbund' : '') }, Array.from({ length: 12 }, (_, i) => monthCard(y, i + 1, byDay, vacs, today, vb)));
+  return h('div', { class: 'cal' + (vb ? ' verbund' : '') }, Array.from({ length: 12 }, (_, i) => hid.has(i) ? null : monthCard(y, i + 1, byDay, vacs, today, vb)));
+}
+
+/* ---------- Monate ausblenden: je Jahr, nur in diesem Browser (UI.calHide = { Jahr: [0 … 11] }); die übrigen Monate rücken nach, jeder behält seine Breite */
+const MON_S3 = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
+const calHidden = y => new Set(((UI.calHide || {})[y] || []).filter(m => Number.isInteger(m) && m >= 0 && m < 12));
+function calSetHidden(y, set) {
+  const o = Object.assign({}, UI.calHide);
+  if (set.size) o[y] = [...set].sort((a, b) => a - b); else delete o[y];
+  UI.calHide = o; saveUI(); renderNow();
+}
+// Monate vor dem laufenden (der laufende bleibt) – im Planungsjahr; liegt das Jahr ganz in der Zukunft, gibt es nichts; liegt es ganz zurück, alle
+function calPastMonths(y) {
+  const [ty, tm] = ymd(todayDn());
+  return y < ty ? 12 : y > ty ? 0 : tm - 1;
+}
+let _calLast = null;                                                  // zuletzt angeklickter Monat (für Umschalt+Klick)
+function calMonthBtn() {
+  const y = UI.year, hid = calHidden(y), n = hid.size, past = calPastMonths(y);
+  const pane = h('div', { class: 'calm-pop' });
+  const fill = () => { const hd = calHidden(y);
+    pane.replaceChildren(
+      h('div', { class: 'tagflt-h' }, h('b', null, 'Monate ausblenden'), h('span', { class: 'sp' }),
+        h('button', { class: 'link small calm-all', disabled: !hd.size, onclick: () => { calSetHidden(y, new Set()); fill(); } }, 'alle zeigen')),
+      h('div', { class: 'calm-grid' }, MON_S3.map((m, i) => h('button', { class: 'calm' + (hd.has(i) ? ' off' : ''), 'aria-pressed': String(hd.has(i)), dataset: { m: i },
+        tip: (hd.has(i) ? 'einblenden: ' : 'ausblenden: ') + MON[i] + ' ' + y + ' (Umschalt+Klick: bis hierher genauso)',
+        onclick: e => { const on = !hd.has(i), set = new Set(hd), a = e.shiftKey && _calLast != null ? Math.min(_calLast, i) : i, b = e.shiftKey && _calLast != null ? Math.max(_calLast, i) : i;
+          for (let k = a; k <= b; k++) on ? set.add(k) : set.delete(k);
+          _calLast = i; calSetHidden(y, set); fill(); } }, m))),
+      h('div', { class: 'calm-foot' },
+        h('button', { class: 'calm-bis', disabled: !past || past >= 12, tip: past >= 12 ? y + ' liegt ganz zurück' : !past ? y + ' liegt noch vor uns – es gibt keine vergangenen Monate' : 'blendet ' + (past === 1 ? 'den Januar' : 'Januar bis ' + MON[past - 1]) + ' aus; der laufende Monat bleibt',
+          onclick: () => { const set = new Set(calHidden(y)); for (let k = 0; k < past; k++) set.add(k); calSetHidden(y, set); fill(); } }, 'bis heute'),
+        h('span', { class: 'muted small' }, 'oder einzelne Monate anklicken')),
+      h('p', { class: 'muted small calm-n' }, 'Die übrigen Monate rücken nach. Gilt nur für ' + y + ' und nur auf diesem Rechner; das PDF zeigt immer das ganze Jahr.'));
+  };
+  const b = h('button', { class: 'fbtn calmbtn' + (n ? ' act' : ''), tip: 'Monate im Kalender aus- und wieder einblenden',
+    onclick: e => { e.stopPropagation(); _calLast = null; fill(); popover(b, pane, { keep: true, reanchor: () => $('.calmbtn') }); } },
+    n ? ['Monate: ', h('b', null, n + ' ausgeblendet')] : 'Monate ausblenden', ' ▾');
+  return b;
 }
 
 /* ---------- Markierung im Kalender ziehen: P verschiebt das ganze Projekt, S/I nur dieses Datum */

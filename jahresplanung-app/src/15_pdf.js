@@ -192,7 +192,7 @@ function buildPrintDoc(f) {
         h('td', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : '') }, fmtW(x.pal)),
         h('td', null, x.m.palStatus), h('td', null, x.m.art || ''), h('td', { class: 'hinweis' }, x.m.hinweis || '')))))));
   }
-  if (f.secs.kal) { const cal = h('div', { class: 'pd-kal' }, calendarBody()); fitCalendar(cal); pages.push(frame(slimHead('Kalender ' + y), cal)); }
+  if (f.secs.kal) { const cal = h('div', { class: 'pd-kal' }, calendarBody(true)); fitCalendar(cal); pages.push(frame(slimHead('Kalender ' + y), cal)); }
   // Zeitleiste seitenweise: je Seite höchstens TL_PER_PAGE Maßnahmen, jede Seite mit eigener Monatsleiste, Urlaube auf der letzten
   if (f.secs.tl) {
     const all = C.ms.filter(x => visibleM(x) && inYear(x, y)), n = Math.max(1, Math.ceil(all.length / TL_PER_PAGE));

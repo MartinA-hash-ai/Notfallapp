@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.45.0",
+    "version": "0.46.0",
     "date": "",
+    "items": [
+      "Kalender: neuer Knopf „Monate ausblenden“ – im Fenster die zwölf Monate zum An- und Abwählen (Umschalt+Klick für einen Bereich) und „bis heute“ (blendet die vergangenen Monate aus, der laufende bleibt); „alle zeigen“ holt alles zurück",
+      "Die übrigen Monate rücken nach und behalten ihre Breite – der Kalender wird entsprechend niedriger; der Knopf zeigt, wie viele Monate ausgeblendet sind",
+      "Gilt je Jahr und wird auf diesem Rechner gemerkt; das PDF zeigt weiterhin das ganze Jahr"
+    ]
+  },
+  {
+    "version": "0.45.0",
+    "date": "2026-10-21T09:00",
     "items": [
       "Zeitleiste und Detailplan-Gantt: gezoomt wird nur noch mit Strg+Mausrad – ohne Strg blättert das Mausrad die Seite wie überall sonst (Umschalt+Mausrad schiebt seitlich)"
     ]
