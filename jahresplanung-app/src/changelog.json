@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.44.0",
+    "version": "0.45.0",
     "date": "",
+    "items": [
+      "Zeitleiste und Detailplan-Gantt: gezoomt wird nur noch mit Strg+Mausrad – ohne Strg blättert das Mausrad die Seite wie überall sonst (Umschalt+Mausrad schiebt seitlich)"
+    ]
+  },
+  {
+    "version": "0.44.0",
+    "date": "2026-10-19T21:23",
     "items": [
       "Jahresvergleich › Größte Spender:innen: neue Spalte „Verwendungszweck“ (der Text mit der größten Summe; bei mehreren Texten „+1“ usw., alle im Hinweisfenster) – auch im PDF",
       "Auswertung einer Maßnahme: Klick auf einen Balken („Spenden pro Tag“) oder in die Linie („Zeitspanne“) sucht die Spenden unten unter „Zugeordnet“ heraus – sie leuchten gelb auf, sobald die Liste im Bild ist",

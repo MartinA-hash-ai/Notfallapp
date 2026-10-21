@@ -70,10 +70,14 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const px0 = await p.evaluate(() => UI._tl.pxd);
   const tlb = await p.evaluate(() => { const r = document.querySelector('.tl').getBoundingClientRect(); return [r.x + r.width * 0.6, r.y + 120]; });
   await p.mouse.move(tlb[0], tlb[1]);
+  await p.mouse.wheel(0, -300); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => UI._tl.pxd) === px0, 'Mausrad ohne Strg zoomt die Zeitleiste nicht (die Seite blättert)');
+  const tlb2 = await p.evaluate(() => { const r = document.querySelector('.tl').getBoundingClientRect(); return [r.x + r.width * 0.6, r.y + 120]; });
+  await p.mouse.move(tlb2[0], tlb2[1]); await p.keyboard.down('Control');
   await p.mouse.wheel(0, -300); await p.waitForTimeout(250); await p.mouse.wheel(0, -300); await p.waitForTimeout(250);
   const px1 = await p.evaluate(() => UI._tl.pxd);
-  ok(px1 > px0 * 1.2, 'Mausrad zoomt Zeitleiste ' + px0.toFixed(2) + ' → ' + px1.toFixed(2));
-  await p.mouse.wheel(0, 600); await p.waitForTimeout(250);
+  ok(px1 > px0 * 1.2, 'Strg+Mausrad zoomt Zeitleiste ' + px0.toFixed(2) + ' → ' + px1.toFixed(2));
+  await p.mouse.wheel(0, 600); await p.waitForTimeout(250); await p.keyboard.up('Control');
   // Klick auf Namen
   await p.evaluate(() => { UI.tlPxd = 0; renderNow(); });
   const lab = await p.evaluate(() => { const l = [...document.querySelectorAll('.tl-lab.clickable')][1]; l.click(); return l.textContent.trim(); });
@@ -147,12 +151,17 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   // Mausrad + Zurücksetzen
   const pp0 = await p.evaluate(() => UI._pl.pxd);
   const gb = await p.evaluate(() => { const r = document.querySelector('.pl-gantt').getBoundingClientRect(); return [r.x + r.width / 2, r.y + 200]; });
-  await p.mouse.move(gb[0], gb[1]); await p.mouse.wheel(0, -300); await p.waitForTimeout(250); await p.mouse.wheel(0, -300); await p.waitForTimeout(250);
+  await p.mouse.move(gb[0], gb[1]); await p.mouse.wheel(0, -300); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => UI._pl.pxd) === pp0, 'Mausrad ohne Strg zoomt den Detailplan-Gantt nicht');
+  const gb2 = await p.evaluate(() => { const r = document.querySelector('.pl-gantt').getBoundingClientRect(); return [r.x + r.width / 2, r.y + 200]; });
+  await p.mouse.move(gb2[0], gb2[1]); await p.keyboard.down('Control');
+  await p.mouse.wheel(0, -300); await p.waitForTimeout(250); await p.mouse.wheel(0, -300); await p.waitForTimeout(250);
   const pp1 = await p.evaluate(() => UI._pl.pxd);
-  ok(pp1 > pp0 * 1.3, 'Mausrad zoomt Gantt ' + pp0.toFixed(2) + ' → ' + pp1.toFixed(2));
+  ok(pp1 > pp0 * 1.3, 'Strg+Mausrad zoomt Gantt ' + pp0.toFixed(2) + ' → ' + pp1.toFixed(2));
   for (let i = 0; i < 6; i++) { await p.mouse.wheel(0, 300); await p.waitForTimeout(120); }
+  await p.keyboard.up('Control');
   const pp2 = await p.evaluate(() => [UI._pl.pxd, UI.planPxd, !!document.querySelector('.phead .segs')]);
-  ok(Math.abs(pp2[0] - pp0) < 0.01 && pp2[1] === 0 && !pp2[2], 'Mausrad zurück zeigt wieder den ganzen Plan ' + pp2[0].toFixed(2) + ' (ohne −/+/Zurücksetzen)');
+  ok(Math.abs(pp2[0] - pp0) < 0.01 && pp2[1] === 0 && !pp2[2], 'Strg+Mausrad zurück zeigt wieder den ganzen Plan ' + pp2[0].toFixed(2) + ' (ohne −/+/Zurücksetzen)');
   // Tabelle einklappen
   const gw0 = await p.evaluate(() => document.querySelector('.pl-gantt').clientWidth);
   await p.click('.divbtn'); await p.waitForTimeout(200);

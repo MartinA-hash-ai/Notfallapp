@@ -92,7 +92,7 @@ VIEW_FN.jahr = main => {
     }),
     section('tl', 'Zeitleiste ' + UI.year, timelineSection, {
       open: false,
-      info: 'Mausrad zoomt (beim Blättern der Seite erst, wenn sie kurz stillsteht; Strg+Mausrad zoomt immer), Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Je Bereich ein Balken (hell → kräftig bis zum PAL); überlappen Bereiche, liegen sie übereinander. Balken ziehen verschiebt den PAL (alle Bereiche wandern mit), die Griffe mit Buchstaben verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
+      info: 'Strg+Mausrad zoomt (ohne Strg blättert die Seite), Klick auf einen Monat zoomt hinein, Klick auf den Namen zeigt die ganze Maßnahme; mit gedrückter Maus auf freier Fläche nach links/rechts schieben. Je Bereich ein Balken (hell → kräftig bis zum PAL); überlappen Bereiche, liegen sie übereinander. Balken ziehen verschiebt den PAL (alle Bereiche wandern mit), die Griffe mit Buchstaben verschieben nur diesen Start. Doppelklick auf den Balken öffnet die Maßnahme.' }),
     section('kal', 'Kalender ' + UI.year, () => ({
       lead: [typePills(), vacPill(), h('span', { class: 'sep' }),
         h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: UI.monthLists, onchange: e => { UI.monthLists = e.target.checked; renderNow(); } }), 'Terminliste unter den Monaten'),

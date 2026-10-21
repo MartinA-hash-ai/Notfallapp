@@ -522,7 +522,7 @@ VIEW_FN.plaene = main => {
     cand.length ? h('span', { class: 'pnew' }, h('select', { onchange: e => { newFor = e.target.value; } }, cand.map(x => h('option', { value: x.id }, x.m.name))),
       h('button', { class: 'primary', onclick: () => newFor && createPlan(newFor) }, '+ Detailplan anlegen')) : null);
   put(main, h('div', { class: 'view-head' }, h('h1', null, 'Detailpläne'),
-    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; verknüpfte Termine haben immer dasselbe Datum (verschiebt man einen, wandert der andere mit). Urlaub/Abwesenheit der zugeordneten Person verlängert eine Aufgabe („+2“ an der Person). Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
+    h('span', { class: 'info', tip: 'Jeder Schritt hängt am PAL oder beginnt nach anderen Schritten (auch aus anderen Abschnitten). Verknüpfen: Strg gedrückt halten und vom Ende eines Schritts auf den Beginn eines anderen ziehen – in der Tabelle oder im Gantt; verknüpfte Termine haben immer dasselbe Datum (verschiebt man einen, wandert der andere mit). Urlaub/Abwesenheit der zugeordneten Person verlängert eine Aufgabe („+2“ an der Person). Strg+Klick auf einen Punkt im Gantt oder ein farbiges Datum löst eine Verknüpfung (bei mehreren: Auswahl). Balken im Gantt ziehen verschiebt ihn, die Enden ziehen ändert die Dauer. Strg+Mausrad zoomt, gedrückte Maus auf freier Fläche verschiebt die Ansicht. Zeilen am ⋮⋮-Griff hoch/runter ziehen.' }, 'ⓘ')), tabs);
   const x = C.byId.get(UI.planSel);
   if (!x) { put(main, h('div', { class: 'empty' }, 'Noch kein Detailplan mit PAL in ' + UI.year + '. Oben eine Maßnahme wählen und „Detailplan anlegen“' + (C.ms.some(q => q.m.plan) ? ' – oder mit ‹ › oben das Jahr wechseln.' : '.'))); return; }
   planEditor(main, x);
@@ -741,7 +741,7 @@ VIEW_FN['plaene:after'] = () => {
 let _planWheel = null;
 function planWheel(box, a0, fit) {
   box.addEventListener('wheel', ev => {
-    if (Math.abs(ev.deltaX) > Math.abs(ev.deltaY) || ev.shiftKey) return;
+    if (!ev.ctrlKey || Math.abs(ev.deltaX) > Math.abs(ev.deltaY)) return;   // nur Strg+Mausrad zoomt, sonst blättert die Seite
     ev.preventDefault();
     const r = box.getBoundingClientRect(), off = ev.clientX - r.left, cur = UI._pl ? UI._pl.pxd : fit;
     const base = _planWheel ? _planWheel.pxd : cur;

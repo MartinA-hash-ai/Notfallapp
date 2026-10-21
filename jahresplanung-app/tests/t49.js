@@ -1,5 +1,5 @@
 // 0.13: drei Reiter (Jahresplanung mit Zeitleiste und „Was steht an?“, Detailpläne, Auswertung); Urlaub & Feiertage über ⋯ und Einstellungen;
-// Mausrad blättert weiter, Zeitleiste ohne eigene Filter, Detailpläne nur mit PAL im gewählten Jahr, wenn das Blättern außerhalb der Zeitleiste begann; Spenden markieren und zuordnen; Alle markieren; Update direkt aus dem ZIP-Paket
+// Mausrad blättert (nur Strg+Mausrad zoomt), Zeitleiste ohne eigene Filter, Detailpläne nur mit PAL im gewählten Jahr, wenn das Blättern außerhalb der Zeitleiste begann; Spenden markieren und zuordnen; Alle markieren; Update direkt aus dem ZIP-Paket
 const { chromium, ok, open, connect, finish, fs, T, ORIG } = require('./lib');
 const { execSync } = require('child_process');
 const DIR = 'Spendeneingänge 2027/';
@@ -42,7 +42,7 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   ok(await p.evaluate(() => !document.querySelector('[data-sec="tl"] .sec-sum')), 'A: eingeklappte Zeitleiste ohne Zusatztext');
   await p.click('[data-sec="tl"] .sec-tog'); await p.waitForTimeout(200);
 
-  // ---- B: Mausrad – Blättern, das außerhalb begann, läuft über die Zeitleiste weiter; nach kurzer Pause zoomt es
+  // ---- B: Mausrad – über der Zeitleiste blättert die Seite (auch nach einer Pause); nur Strg+Mausrad zoomt
   await p.evaluate(() => document.querySelector('.tl').scrollIntoView({ block: 'center' })); await p.waitForTimeout(150);
   const px0 = await p.evaluate(() => UI._tl.pxd), y0 = await p.evaluate(() => scrollY);
   const hb = await (await p.$('[data-sec="tl"] .sec-h')).boundingBox();
@@ -50,12 +50,16 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   const tb = await p.evaluate(() => { const r = document.querySelector('.tl-bodywrap').getBoundingClientRect(); return { x: r.x + 600, y: r.y + 60 }; });
   await p.mouse.move(tb.x, tb.y); await p.mouse.wheel(0, 120); await p.waitForTimeout(250);
   const b1 = await p.evaluate(() => [UI._tl.pxd, scrollY]);
-  ok(b1[0] === px0 && b1[1] > y0, 'B: Seite geblättert, Maus läuft über die Zeitleiste – kein Zoom, die Seite blättert weiter (' + y0 + ' → ' + b1[1] + ')');
+  ok(b1[0] === px0 && b1[1] > y0, 'B: Mausrad über der Zeitleiste – kein Zoom, die Seite blättert weiter (' + y0 + ' → ' + b1[1] + ')');
   await p.waitForTimeout(500);
   const tb2 = await p.evaluate(() => { const r = document.querySelector('.tl-bodywrap').getBoundingClientRect(); return { x: r.x + 600, y: r.y + 60 }; });
   await p.mouse.move(tb2.x, tb2.y); await p.mouse.wheel(0, -120); await p.waitForTimeout(300);
-  const b2 = await p.evaluate(() => UI._tl.pxd);
-  ok(b2 > px0 * 1.1, 'B: nach kurzer Pause zoomt das Mausrad über der Zeitleiste (' + px0.toFixed(2) + ' → ' + b2.toFixed(2) + ')');
+  const b1b = await p.evaluate(() => [UI._tl.pxd, scrollY]);
+  ok(b1b[0] === px0 && b1b[1] < b1[1], 'B: auch nach einer Pause zoomt das Mausrad nicht, die Seite blättert (' + b1[1] + ' → ' + b1b[1] + ')');
+  const tb3 = await p.evaluate(() => { const r = document.querySelector('.tl-bodywrap').getBoundingClientRect(); return { x: r.x + 600, y: r.y + 60 }; });
+  await p.mouse.move(tb3.x, tb3.y); await p.keyboard.down('Control'); await p.mouse.wheel(0, -120); await p.waitForTimeout(300); await p.keyboard.up('Control');
+  const b2 = await p.evaluate(() => [UI._tl.pxd, scrollY]);
+  ok(b2[0] > px0 * 1.1 && b2[1] === b1b[1], 'B: Strg+Mausrad zoomt die Zeitleiste, die Seite bleibt stehen (' + px0.toFixed(2) + ' → ' + b2[0].toFixed(2) + ')');
   await p.mouse.move(5, 500);
 
   // ---- C: Urlaub & Feiertage – ab 0.14 als Rubrik der Einstellungen (eigene Seite ohne Reiter, „← zurück“); ab 0.15 nicht mehr im ⋯-Menü
