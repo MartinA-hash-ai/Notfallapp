@@ -37,7 +37,7 @@ function statusBlock(b) {
 }
 
 function bedarfView(b) {
-  const nav = [['sec-eck', 'Eckdaten'], ['sec-frei', 'Freigabe und Unterlagen'], ['sec-foe', 'Förderplan'], ['sec-nach', 'Nacharbeit']];
+  const nav = [['sec-eck', 'Bedarf'], ['sec-frei', 'Freigabe und Unterlagen'], ['sec-foe', 'Förderplan'], ['sec-nach', 'Nacharbeit']];
   return `<main class="bedarf">
     <div class="d-top">
       <button class="back" data-act="back">‹ Alle Bedarfe</button>
@@ -58,18 +58,18 @@ function bedarfView(b) {
   </main>`;
 }
 
-/* ---------- Eckdaten: Beschreibung und Ordner nebeneinander, gleich hoch */
+/* ---------- Kopf des Bedarfs: Name, Gliederung und Summe als Schreiblinien (ohne Überschriften), darunter Zuständig, Deadline, Stichwort;
+   Beschreibung und Ordner nebeneinander, gleich hoch */
 function secEck(b) {
-  return `<section class="card" id="sec-eck">
-    <div class="sec-head"><h2>Eckdaten</h2></div>
+  return `<section class="card eck" id="sec-eck">
     <div class="grid g12">
-      ${fld('Bedarf', tin(b, 'titel', 'id="f-titel" aria-label="Bedarf"', 'z. B. Mannschaftstransportwagen für den Sanitätsdienst'), 's6')}
-      ${fld('Gliederung', tin(b, 'gliederung', 'list="dl-gl" aria-label="Gliederung"', 'Ort, oder „Diözese“'), 's3')}
-      ${fld('Priorität', seg(PRIO.map(([v, l]) => [v, l, 't-p-' + v]), b.prio, 'data-p="prio"', 'small'), 's3')}
+      <div class="s6 lf">${tin(b, 'titel', 'id="f-titel" class="line big" aria-label="Bedarf"', 'Bedarf')}</div>
+      <div class="s3 lf">${tin(b, 'gliederung', 'list="dl-gl" class="line" aria-label="Gliederung"', 'Gliederung (Ort oder Diözese)')}</div>
+      <div class="s3 lf sum-f"><div class="sum-line"><input type="text" inputmode="decimal" class="num line sum" data-num data-p="summe" aria-label="Summe in Euro" value="${esc(fmtNum(b.summe))}" placeholder="Summe"><span class="unit">€</span></div>
+        ${seg([['Schätzung', 'Schätzung'], ['Angebot', 'laut Angebot']], b.summeArt, 'data-p="summeArt"', 'small')}</div>
       ${fld('Zuständig', `<div class="chips"><span id="zust-chips">${zustChips(b)}</span><input id="zust-new" class="chip-in" list="dl-zust" placeholder="+ Name, Enter" aria-label="Zuständige Person hinzufügen"></div>`, 's4')}
-      ${fld('Summe', `<div class="row">${nin(b, 'summe', 'aria-label="Summe in Euro"')}<span class="unit">€</span>${seg([['Schätzung', 'Schätzung'], ['Angebot', 'laut Angebot']], b.summeArt, 'data-p="summeArt"', 'small')}</div>`, 's3')}
-      ${fld('Deadline', din(b, 'deadline', 'aria-label="Deadline"'), 's2', 'deadline')}
-      ${fld('Stichwort oder Fördertopf', tin(b, 'stichwort', 'list="dl-sw" aria-label="Stichwort oder Fördertopf"', 'z. B. Landesprogramm Digitalisierung'), 's3', 'stichwort')}
+      ${fld('Deadline', din(b, 'deadline', 'aria-label="Deadline"'), 's3', 'deadline')}
+      ${fld('Stichwort oder Fördertopf', tin(b, 'stichwort', 'list="dl-sw" aria-label="Stichwort oder Fördertopf"', 'z. B. Landesprogramm Digitalisierung'), 's5', 'stichwort')}
       <div class="fld s12"><span class="lab">Beschreibung</span>
         <div class="desc-row">
           ${tarea(b, 'beschreibung', 'aria-label="Beschreibung" class="desc"', 'Kurzbeschreibung aus der UPL oder in eigenen Worten', 6)}
@@ -202,7 +202,7 @@ function foeCard(b, f) {
 }
 function finSummary(b) {
   const F = fin(b), S = F.S;
-  if (!S) return '<div class="fin muted">Trag oben in den Eckdaten eine Summe ein, dann rechnet die Liste die Deckung aus.</div>';
+  if (!S) return '<div class="fin muted">Trag oben rechts die Summe ein, dann rechnet die Liste die Deckung aus.</div>';
   const line = (lab, v, cls = '') => { const gap = S - v; return `<tr class="${cls}"><th>${lab}</th><td class="num">${eur(v)}</td><td class="num">${Math.round(v / S * 100)} %</td>
     <td class="num ${gap > 0 ? 'gap' : gap < 0 ? 'over' : 'okc'}">${gap > 0 ? 'Lücke ' + eur(gap) : gap < 0 ? 'überdeckt um ' + eur(-gap) : 'gedeckt'}</td></tr>`; };
   return `<div class="fin"><div class="fin-l">${segBar(b, { big: true })}<div class="legend">${LEGEND_FIN}</div>

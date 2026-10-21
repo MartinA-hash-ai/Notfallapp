@@ -1,25 +1,12 @@
-/* ===================================================================== Liste aller Bedarfe: Priorität am Namen, Summe gleich daneben, Phase als farbiges Feld,
-   Freigabe und Unterlagen untereinander, Finanzierung mit den Förderern */
+/* ===================================================================== Liste aller Bedarfe: Priorität am Namen, Summe gleich daneben, Deadline, Phase als farbiges Feld,
+   Finanzierung mit den Förderern. Zuständige, Freigabe und Unterlagen stehen erst auf der Seite des Bedarfs. */
 
-const IC = { ok: '✓', run: '…', no: '✗', off: '○', na: '–', mid: '◐' };
 const prioMark = b => `<button class="prio p-${b.prio}" data-act="prio-menu" data-id="${b.id}" title="Priorität: ${b.prio} – klicken zum Ändern" aria-label="Priorität ${b.prio}, ändern"><i></i><i></i><i></i></button>`;
 function phaseChip(p) {
   const dots = p.step < 0 ? '' : '<span class="dots" aria-hidden="true">' + [0, 1, 2, 3].map(i => `<i class="${i < p.step || p.step === 3 ? 'd' : i === p.step ? 'c' : ''}"></i>`).join('') + '</span>';
   return `<span class="phase ${phCls(p)}">${dots}${esc(phaseName(p))}</span>`;
 }
 const stLine = p => p.t && p.step >= 0 ? `<div class="st-line${p.bad ? ' bad' : ''}"><b>${esc(p.t)}</b>${p.sub ? ': ' + esc(p.sub) : ''}</div>` : '';
-function frMini(b) {
-  return '<div class="mini">' + frItems(b).map(i => {
-    const c = i.na || (i.opt && i.st === 'offen') ? 'na' : ({ ok: 'ok', nein: 'no', angefragt: 'run', offen: 'off' })[i.st];
-    return `<div class="mi ${c}" title="${esc(frName(i) + ': ' + (i.na || frText(i)))}"><span class="ic">${IC[c]}</span>${esc(i.short)}</div>`;
-  }).join('') + '</div>';
-}
-function ulMini(b) {
-  return '<div class="mini">' + b.unterlagen.map(u => {
-    const c = ({ da: 'ok', arbeit: 'mid', fehlt: 'off' })[u.st] || 'off';
-    return `<div class="mi ${c}" title="${esc(u.name + ': ' + ulText(u))}"><span class="ic">${IC[c]}</span>${esc(u.name || '(ohne Namen)')}</div>`;
-  }).join('') + '</div>';
-}
 // Balken der Finanzierung: je Förderer ein Stück (Farbe nach Stand); hl = Förderer, der hervorgehoben wird (die anderen blass)
 function segBar(b, opts = {}) {
   const F = fin(b), segs = finSegs(b), tot = segs.reduce((a, s) => a + s.v, 0), max = Math.max(F.S, tot, 1);
@@ -63,16 +50,13 @@ function row(b) {
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">
     <td class="c-titel"><div class="tline">${prioMark(b)}<span class="t">${esc(b.titel || '(ohne Namen)')}</span></div><div class="sub">${esc(glName(b))}${b.stichwort ? ` <span class="chip sw">${esc(b.stichwort)}</span>` : ''}</div></td>
     <td class="num c-sum">${b.summe ? '<b>' + eur(b.summe) + '</b>' + `<div class="sub">${esc(b.summeArt)}</div>` : dash}</td>
-    <td>${b.zust.map(esc).join('<br>') || dash}</td>
     <td>${b.deadline ? fmtDate(b.deadline) : dash}</td>
     <td class="c-st">${phaseChip(p)}${p.warn.length ? ` <span class="wicon" title="${esc(p.warn.join(' · '))}" aria-label="${esc(p.warn.join(' · '))}">⚠</span>` : ''}${stLine(p)}</td>
-    <td>${frMini(b)}</td>
-    <td class="c-ul">${ulMini(b)}</td>
     <td class="c-fin">${finCell(b)}</td>
     <td class="c-fr">${nf ? `<div class="${urg(nf.d)}">${fmtDate(nf.d)}</div><div class="sub">${esc(nf.t)} · ${rel(nf.d)}</div>` : dash}</td>
   </tr>`;
 }
-const NCOL = 9;
+const NCOL = 6;
 function listBody() {
   const L = filtered();
   if (!L.length) return { html: `<tr><td colspan="${NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
@@ -96,13 +80,11 @@ function listView() {
       </div>
     </div>
     <div class="tablewrap"><table class="list"><thead><tr>
-      <th class="c-titel">${th('prio', 'Prio')} · ${th('titel', 'Bedarf')}</th><th class="r">${th('summe', 'Summe')}</th><th>${th('zust', 'Zuständig')}</th><th>${th('deadline', 'Deadline')}</th>
-      <th>${th('stand', 'Phase und Stand')}</th><th>Freigabe</th><th>Unterlagen</th><th>${th('fin', 'Finanzierung')}</th><th>${th('frist', 'Nächste Frist')}</th>
+      <th class="c-titel">${th('prio', 'Prio')} · ${th('titel', 'Bedarf')}</th><th class="r">${th('summe', 'Summe')}</th><th>${th('deadline', 'Deadline')}</th>
+      <th>${th('stand', 'Phase und Stand')}</th><th>${th('fin', 'Finanzierung')}</th><th>${th('frist', 'Nächste Frist')}</th>
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
     <div class="legend">
       <span class="lg"><span class="prio p-hoch"><i></i><i></i><i></i></span>hoch</span><span class="lg"><span class="prio p-mittel"><i></i><i></i><i></i></span>mittel</span><span class="lg"><span class="prio p-niedrig"><i></i><i></i><i></i></span>niedrig</span>
-      <span class="sep"></span>
-      <span class="lg mi ok"><span class="ic">✓</span>erledigt</span><span class="lg mi run"><span class="ic">…</span>angefragt</span><span class="lg mi mid"><span class="ic">◐</span>in Arbeit</span><span class="lg mi no"><span class="ic">✗</span>abgelehnt</span><span class="lg mi off"><span class="ic">○</span>offen</span><span class="lg mi na"><span class="ic">–</span>nicht nötig</span>
       <span class="sep"></span>${LEGEND_FIN}
     </div>
   </section></main>`;

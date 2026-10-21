@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.2.0",
+    "version": "0.3.0",
     "date": "",
+    "items": [
+      "Liste schlanker: Zuständige, Freigabe und Unterlagen stehen erst auf der Seite des Bedarfs",
+      "Bedarfsseite oben ohne Überschriften: Bedarf, Gliederung und Summe als Schreiblinien (leer steht der Feldname darin), die Summe groß oben rechts mit „Schätzung / laut Angebot“ darunter",
+      "Darunter Zuständig, Deadline und Stichwort, dann Beschreibung und Ordner; die Priorität steht an den Balken neben dem Titel"
+    ]
+  },
+  {
+    "version": "0.2.0",
+    "date": "2026-10-21T15:20",
     "items": [
       "Liste: Summe fett gleich neben dem Bedarf, danach Zuständig und Deadline (ohne Deadline ein Strich); keine Phasen-Gruppen mehr – die Phase steht als farbiges Feld in jeder Zeile",
       "Ruhigere Farben: Priorität gedämpft, Phasen gelb (Freigabe), orange (Förderung), lila (Nacharbeit), grau (abgeschlossen)",
