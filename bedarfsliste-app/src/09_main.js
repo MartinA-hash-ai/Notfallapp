@@ -1,10 +1,10 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
-const DEMO_KEY = 'bedarfsliste-vorschau-2';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fGl: '', fZu: '', fPh: '', fPr: '', fSw: '', sort: 'prio', dir: 1, group: true, closed: {}, open: {}, delAsk: false, geld: null };
-const UI_KEEP = ['view', 'id', 'tab', 'sort', 'dir', 'group', 'closed'];
+const DEMO_KEY = 'bedarfsliste-vorschau-3';
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fGl: '', fZu: '', fPh: '', fPr: '', fSw: '', sort: 'prio', dir: 1, open: {}, delAsk: false, geld: null };
+const UI_KEEP = ['view', 'id', 'tab', 'sort', 'dir'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
-function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } if (!isObj(UI.closed)) UI.closed = {}; }
+function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } if (!(UI.sort in CMP)) UI.sort = 'prio'; }
 function saveUI() { try { localStorage.setItem(uiKey(), JSON.stringify(Object.fromEntries(UI_KEEP.map(k => [k, UI[k]])))); } catch (e) { /* */ } }
 const cur = () => D.bedarfe.find(b => b.id === UI.id) || null;
 
@@ -104,7 +104,7 @@ function refresh() {
   const t = $('#d-title'); if (t) t.textContent = b.titel || 'Neuer Bedarf';
   swap('d-meta', metaLine(b)); swap('d-status', statusBlock(b)); swap('d-steps', steps(b));
   swap('fr-body', freigabeBody(b)); swap('fin-sum', finSummary(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
-  b.foerderer.forEach(f => { swap('fk-' + f.id, karteiBlock(b, f)); swap('rs-' + f.id, resSummary(f)); });
+  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b));
 }
 
@@ -188,7 +188,7 @@ async function act(k, a, e) {
     }
     case 'sort': { const v = a.dataset.v; if (UI.sort === v) UI.dir *= -1; else { UI.sort = v; UI.dir = 1; } keep(renderNow); return; }
     case 'clear': Object.assign(UI, { q: '', fGl: '', fZu: '', fPh: '', fPr: '', fSw: '' }); keep(renderNow); return;
-    case 'grp': UI.closed[a.dataset.v] = !UI.closed[a.dataset.v]; keep(renderNow); return;
+    case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
     case 'prio-menu': e.stopPropagation(); prioMenu(a); return;
     case 'prio-set': { const x = D.bedarfe.find(y => y.id === a.dataset.id); if (x) { x.prio = a.dataset.v; changed(); } closeMenus(); keep(renderNow); return; }
     case 'menu': if ($('#mmenu')) closeMenus(); else mainMenu(a); return;
@@ -222,6 +222,7 @@ async function act(k, a, e) {
     case 'set': {
       const base = baseOf(a, b), p = a.dataset.p; let v = a.dataset.v;
       if (v === 'true') v = true; else if (v === 'false') v = false;
+      if (a.dataset.toggle != null && getPath(base, p) === v) v = a.dataset.toggle;   // zweiter Klick auf den gewählten Stand nimmt ihn zurück
       setPath(base, p, v); effects(b, base, p, v); changed(); break;
     }
     case 'archive': { const before = JSON.stringify(D); b.archiv = true; changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); toast(`„${b.titel || 'Bedarf'}“ liegt jetzt im Archiv`, 'ok', undoTo(before)); return; }
@@ -238,7 +239,7 @@ async function act(k, a, e) {
       return;
     }
     case 'rm-foe': { const before = JSON.stringify(D); b.foerderer = b.foerderer.filter(f => f.id !== a.dataset.fid); b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== a.dataset.fid); changed(); keep(renderNow); toast('Förderer entfernt', 'ok', undoTo(before)); return; }
-    case 'res': UI.open['res-' + a.dataset.v] = !UI.open['res-' + a.dataset.v]; break;
+    case 'det': UI.open['det-' + a.dataset.v] = !UI.open['det-' + a.dataset.v]; break;
     case 'geld': UI.geld = a.dataset.fid; keep(renderNow); { const el = $('#geld-betrag'); if (el) el.focus(); } return;
     case 'geld-no': UI.geld = null; break;
     case 'geld-ok': {
@@ -279,8 +280,13 @@ document.addEventListener('input', e => {
   }
   if (!el.dataset.p || el.type === 'checkbox' || el.tagName === 'SELECT') return;
   const b = cur(); if (!b) return;
-  if ('num' in el.dataset) { const v = deNum(el.value); if (v === null) return; setPath(baseOf(el, b), el.dataset.p, v === '' ? null : v); }
-  else setPath(baseOf(el, b), el.dataset.p, el.value);
+  const base = baseOf(el, b);
+  if ('num' in el.dataset) { const v = deNum(el.value); if (v === null) return; setPath(base, el.dataset.p, v === '' ? null : v); }
+  else setPath(base, el.dataset.p, el.value);
+  if (el.dataset.p === 'name' && el.dataset.fid && !base.art) {               // Förderer aus der Kartei: Art gleich mit eintragen
+    const k = kartei(base.name), art = k ? artFromKartei(k, base.name) : '';
+    if (art) { base.art = art; const s = $('#art-' + base.id); if (s) { s.value = art; s.classList.remove('empty'); } }
+  }
   changed(); refresh();
 });
 document.addEventListener('change', e => {

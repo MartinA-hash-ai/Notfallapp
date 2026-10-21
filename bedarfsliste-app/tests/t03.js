@@ -38,11 +38,15 @@ async function writeKartei(p, kontakt) {
   await p.click('button[data-act="new"]'); await p.keyboard.type('Rucksäcke');
   await p.fill('input[data-p="gliederung"]', 'Iserlohn-Menden');
   await p.click('button[data-act="add-foe"]'); await p.keyboard.type('Märkische Bank eG');
-  let t = await p.$eval('.foe [id^="fk-"]', e => e.textContent);
-  ok(t.includes('aus der Kartei · Banken') && t.includes('Silke S') && t.includes('Antrag direkt') && !t.includes('Laut Kartei zuständig'), 'Förderer zeigt Kartei-Angaben: ' + t.replace(/\s+/g, ' ').slice(0, 120));
+  ok(!(await p.$('.det-panel')) && (await p.$eval('.foe [id^="ds-"]', e => e.textContent)) === 'Silke S · Antrag direkt', 'Kontakt zunächst eingeklappt, kurze Zusammenfassung sichtbar');
+  ok(await p.evaluate(() => cur().foerderer[0].art === 'Volksbank / Bank' && document.querySelector('select.art').value === 'Volksbank / Bank'), 'Art aus der Kartei übernommen');
+  await p.click('button[data-act="det"]');
+  let t = await p.$eval('.det-panel', e => e.textContent);
+  ok(t.includes('Aus der Förder-Kartei') && t.includes('Silke S') && t.includes('silke@mb.example') && t.includes('Antragswegdirekt') && t.includes('Hagen, Iserlohn-Menden'), 'aufgeklappt: Kartei-Angaben geordnet: ' + t.replace(/\s+/g, ' ').slice(0, 140));
+  ok(!(await p.$eval('.foe [id^="fw-"]', e => e.textContent)).includes('Laut Kartei'), 'passende Region: kein Hinweis');
   await p.fill('.foe input[data-p="name"]', 'Herner Sparkasse');
-  t = await p.$eval('.foe [id^="fk-"]', e => e.textContent);
-  ok(t.includes('Laut Kartei zuständig für Herne') && t.includes('(nicht direkt anschreiben)'), 'andere Region wird angemerkt');
+  t = await p.$eval('.foe [id^="fw-"]', e => e.textContent);
+  ok(t.includes('Laut Kartei zuständig für Herne') && (await p.$eval('.det-panel', e => e.textContent)).includes('nicht direkt anschreiben'), 'andere Region wird angemerkt, Kartei-Angaben wechseln mit');
   // Kartei in Excel geändert → nach etwa einer Minute neu gelesen
   await writeKartei(p, 'Silke Neu');
   await skip(p, 15000); await skip(p, 15000); await skip(p, 15000); await skip(p, 15000); await p.waitForTimeout(400);

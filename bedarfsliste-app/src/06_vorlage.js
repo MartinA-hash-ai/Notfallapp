@@ -3,10 +3,9 @@
    Eingelesen wird die Zeile mit „Förderer“ in Spalte A als Kopfzeile; die Spalten werden über ihre Überschrift erkannt. */
 
 const FP_SHEET = 'Förderplan', FP_HEAD_ROW = 10;
-const EINSCH = [['gut', 'klappt wahrscheinlich', 't-ok'], ['unsicher', 'unsicher', 't-warn'], ['schwierig', 'eher nicht', 't-err']];
 const FP_COLS = [
   { k: 'name', t: 'Förderer', w: 30, help: 'Name der Stiftung, Bank, Firma oder des Förderprogramms – genau so, wie er in der Förder-Kartei steht, falls er dort schon vorkommt.' },
-  { k: 'art', t: 'Art', w: 18, items: ['Stiftung', 'Sparkasse', 'Volksbank / Bank', 'Unternehmen', 'Soziallotterie', 'Öffentliche Förderung', 'Kirchliche Stelle', 'Sonstiges'], help: 'Aus der Auswahlliste.' },
+  { k: 'art', t: 'Art', w: 18, items: ART, help: 'Aus der Auswahlliste.' },
   { k: 'weg', t: 'Antragsweg', w: 16, items: ['Portal', 'E-Mail', 'Brief', 'Persönlich', 'Telefon', 'Sonstiges'], help: 'Wie der Antrag gestellt wird – aus der Auswahlliste.' },
   { k: 'kontakt', t: 'Ansprechperson oder Portal', w: 26, help: 'Name und Funktion der zuständigen Person oder Name des Antragsportals.' },
   { k: 'mail', t: 'E-Mail', w: 28, help: 'E-Mail-Adresse der Ansprechperson oder der Förderstelle.' },
@@ -14,12 +13,12 @@ const FP_COLS = [
   { k: 'web', t: 'Website oder Portal-Link', w: 32, help: 'Link zur Förderseite oder zum Antragsportal.' },
   { k: 'frist', t: 'Antragsfrist', w: 14, date: true, help: 'Nächster Einsendeschluss als Datum (TT.MM.JJJJ). Laufende Antragstellung: leer lassen und unter „Weitere Fristen und Termine“ notieren.' },
   { k: 'fristInfo', t: 'Weitere Fristen und Termine', w: 30, wrap: true, help: 'Vergabesitzungen, Stichtage, Bearbeitungszeit, „laufend“ usw.' },
-  { k: 'betrag', t: 'Betrag beantragen (€)', w: 15, num: true, help: 'Vorschlag, wie viel bei diesem Förderer beantragt wird – nur die Zahl in Euro.' },
+  { k: 'betrag', t: 'Erwartete Summe (€)', alias: ['Betrag beantragen (€)'], w: 15, num: true, help: 'Wie viel von diesem Förderer zu erwarten ist bzw. beantragt werden sollte – eine feste Summe, nur die Zahl in Euro.' },
   { k: 'hoehe', t: 'Übliche Fördersumme', w: 22, wrap: true, help: 'Typische oder maximale Förderhöhe laut Richtlinien oder Förderhistorie.' },
   { k: 'eigenInfo', t: 'Eigenanteil gefordert', w: 20, wrap: true, help: 'Ob und wie viel Eigenanteil verlangt wird.' },
   { k: 'warum', t: 'Warum passt das?', w: 48, wrap: true, help: 'Begründung: Satzungszweck, Förderschwerpunkt, Regionalbezug, frühere Förderungen.' },
   { k: 'knackpunkte', t: 'Knackpunkte', w: 48, wrap: true, help: 'Wo es haken kann und worauf der Antrag den Fokus legen sollte.' },
-  { k: 'einsch', t: 'Einschätzung', w: 20, items: EINSCH.map(e => e[1]), help: 'Nur: klappt wahrscheinlich · unsicher · eher nicht.' },
+  { k: 'einsch', t: 'Einschätzung', w: 22, items: EINSCH.map(e => e[1]), help: 'Wie wahrscheinlich eine Förderung ist – nur: ' + EINSCH.map(e => e[1]).join(' · ') + '.' },
   { k: 'quellen', t: 'Quellen', w: 36, wrap: true, help: 'Links zu Satzung, Förderrichtlinien und weiteren Belegen.' },
   { k: 'notiz', t: 'Notizen', w: 30, wrap: true, help: 'Alles Weitere.' },
 ];
@@ -86,7 +85,8 @@ async function readFoerderplan(buf) {
     const hi = sh.rows.findIndex(r => fpHeadKey(r[0]) === 'förderer');
     if (hi < 0) continue;
     const map = {};
-    sh.rows[hi].forEach((t, i) => { const k = fpHeadKey(t); const c = FP_COLS.find(c => fpHeadKey(c.t) === k) || FP_COLS.find(c => k && k.startsWith(fpHeadKey(c.t).slice(0, 8))); if (c && map[c.k] == null) map[c.k] = i; });
+    const heads = c => [c.t, ...(c.alias || [])].map(fpHeadKey);
+    sh.rows[hi].forEach((t, i) => { const k = fpHeadKey(t); const c = FP_COLS.find(c => heads(c).includes(k)) || FP_COLS.find(c => k && heads(c).some(x => k.startsWith(x.slice(0, 8)))); if (c && map[c.k] == null) map[c.k] = i; });
     const kenn = sh.rows.find(r => norm(r[0]) === 'kennung');
     const items = [];
     for (const r of sh.rows.slice(hi + 1)) {
@@ -106,12 +106,15 @@ async function readFoerderplan(buf) {
   }
   return null;
 }
+// Einschätzung aus freiem Text (auch ältere Wörter wie „eher nicht“ oder „klappt“)
 function einschKey(v) {
   const s = norm(v);
   if (!s) return '';
-  if (/eher nicht|unwahrscheinlich|schwierig|schlecht|gering|niedrig/.test(s)) return 'schwierig';
-  if (/unsicher|mittel|vielleicht|offen|möglich/.test(s)) return 'unsicher';
-  if (/klappt|wahrscheinlich|gut|hoch|sehr/.test(s)) return 'gut';
+  if (/sehr\s*unwahrscheinlich|unmöglich|keine chance|sehr gering|sehr schlecht/.test(s)) return 'suw';
+  if (/unwahrscheinlich|eher nicht|schwierig|schlecht|gering|niedrig/.test(s)) return 'uw';
+  if (/unsicher|mittel|vielleicht|offen|möglich/.test(s)) return 'u';
+  if (/sehr\s*wahrscheinlich|sehr gut|sehr hoch/.test(s)) return 'sw';
+  if (/wahrscheinlich|klappt|gut|hoch/.test(s)) return 'w';
   return '';
 }
 // Felder eines Förderers aus der Recherche übernehmen: 'fill' = nur leere Felder füllen, 'all' = überschreiben
@@ -134,7 +137,7 @@ async function importFoerderplan(b, file) {
   const sel = got.items.map(() => true);
   let mode = 'fill';
   const tbl = h('table', { class: 'imp' },
-    h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'Förderer'), h('th', { class: 'num' }, 'Betrag'), h('th', null, 'Antragsfrist'), h('th', null, 'Einschätzung'), h('th', null, ''))),
+    h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'Förderer'), h('th', { class: 'num' }, 'Summe'), h('th', null, 'Antragsfrist'), h('th', null, 'Einschätzung'), h('th', null, ''))),
     h('tbody', null, got.items.map((it, i) => h('tr', null,
       h('td', null, h('input', { type: 'checkbox', checked: true, 'aria-label': it.name + ' übernehmen', onchange: e => { sel[i] = e.target.checked; } })),
       h('td', null, h('b', null, it.name), kartei(it.name) ? h('span', { class: 'badge k' }, 'in der Kartei') : null),
@@ -150,7 +153,7 @@ async function importFoerderplan(b, file) {
     dup ? h('div', { class: 'radios' }, h('p', { class: 'small' }, h('b', null, 'Förderer, die schon im Förderplan stehen:')),
       ...[['fill', 'nur leere Felder ergänzen'], ['all', 'Angaben aus der Excel übernehmen (überschreibt)'], ['skip', 'nicht anfassen']].map(([v, l]) =>
         h('label', { class: 'check' }, h('input', { type: 'radio', name: 'impmode', value: v, checked: v === mode, onchange: () => { mode = v; } }), l))) : null);
-  if (!await modal('Förderplan aus Excel übernehmen', body, [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
+  if (!await modal('Ausgefüllte Förderplan-Excel übernehmen', body, [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
   const before = JSON.stringify(D);
   let neu = 0, erg = 0;
   got.items.forEach((it, i) => {

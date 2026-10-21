@@ -1,7 +1,22 @@
 [
   {
-    "version": "0.1.0",
+    "version": "0.2.0",
     "date": "",
+    "items": [
+      "Liste: Summe fett gleich neben dem Bedarf, danach Zuständig und Deadline (ohne Deadline ein Strich); keine Phasen-Gruppen mehr – die Phase steht als farbiges Feld in jeder Zeile",
+      "Ruhigere Farben: Priorität gedämpft, Phasen gelb (Freigabe), orange (Förderung), lila (Nacharbeit), grau (abgeschlossen)",
+      "Finanzierung in der Liste: wie viel von der Summe gedeckt ist, Balken je Förderer und darunter die Förderer mit ihren Beträgen",
+      "Angebot steht jetzt bei den Unterlagen (fehlt, angefragt, liegt vor) und ist weiter Voraussetzung für eine vollständige Freigabe",
+      "Freigabe ohne „offen“ und ohne Erledigt-Datum: ein Stand beginnt mit „angefragt“, ein zweiter Klick nimmt ihn zurück; Fachreferat und Verwaltung immer sichtbar (unter 1.000 € nur nötig, wenn angefragt)",
+      "Bedarfsseite: Beschreibung so hoch wie der Ordner-Bereich, Hinweise hinter einem kleinen „i“ statt Erklärtext",
+      "Förderplan: je Förderer links Art, Stand, Einschätzung (fünf Stufen von sehr wahrscheinlich bis sehr unwahrscheinlich), Warum passt das, Knackpunkte; rechts die erwartete Summe mit ihrem Anteil am Bedarf",
+      "Kontakt und Kartei-Angaben je Förderer erst auf Wunsch (aufklappen), übersichtlich als Tabelle",
+      "Recherche-Leiste im Förderplan: Excel-Vorlage für die KI-Recherche herunterladen und ausgefüllte Excel übernehmen"
+    ]
+  },
+  {
+    "version": "0.1.0",
+    "date": "2026-10-21T13:49",
     "items": [
       "Erste Version: Liste aller Bedarfe mit Phase (Freigabe, Förderung, Nacharbeit, Abgeschlossen), Priorität, Freigabe, Unterlagen, Finanzierung und nächster Frist",
       "Liste nach Phase gruppiert; Priorität (hoch, mittel, niedrig) als kleiner Balken am Namen, per Klick änderbar",

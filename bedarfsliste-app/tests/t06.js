@@ -1,25 +1,37 @@
-// Vorschau (Artifact): zeichnet ohne Fehler, Phasen und Priorität sichtbar, Bedarfsseite mit Kartei, hell/dunkel, schmal ohne Querscrollen
+// Vorschau (Artifact): zeichnet ohne Fehler, Priorität und Phase sichtbar, Finanzierung mit Förderern, Bedarfsseite aufgeräumt, hell/dunkel, schmal ohne Querscrollen
 const { chromium, ok, open, finish, fs, T } = require('./lib');
 (async () => {
   const b = await chromium.launch();
   fs.writeFileSync('vorschau.html', '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>[hidden]{display:none!important}</style></head><body>' + fs.readFileSync(T.PREVIEW, 'utf8') + '</body></html>');
   const file = process.cwd() + '/vorschau.html';
   const p = await open(b, { file, fakefs: false });
-  let r = await p.evaluate(() => [...document.querySelectorAll('tr.grp')].map(e => e.textContent.replace(/\s+/g, ' ').trim()));
-  ok(r.join(' / ') === '▾Phase 1 · Freigabe3 / ▾Phase 2 · Förderung3 / ▾Phase 3 · Nacharbeit1', 'nach Phase gruppiert: ' + r.join(' / '));
-  r = await p.evaluate(() => [...document.querySelectorAll('#list-body tr[data-id]')].map(e => e.dataset.id));
-  ok(r[0] === 'b-aed' && r.indexOf('b-mtw') === 3, 'innerhalb der Phase: hohe Priorität zuerst');
+  let r = await p.evaluate(() => [document.querySelectorAll('tr.grp').length, ...[...document.querySelectorAll('#list-body tr[data-id]')].map(e => e.dataset.id)]);
+  ok(r[0] === 0 && r[1] === 'b-mtw' && r[2] === 'b-aed', 'keine Phasen-Gruppen; hohe Priorität zuerst, dann nach Frist');
+  r = await p.$eval('tr[data-id="b-mtw"] td.c-fin', e => e.innerText.replace(/\s+/g, ' '));
+  ok(r.includes('23.000 € von 68.000 € gedeckt') && r.includes('Sparkasse Musterstadt') && r.includes('Beispiel-Soziallotterie 30.000 €') && r.includes('Eigenanteil 13.000 €'), 'Finanzierung: Deckung und Förderer mit Beträgen: ' + r);
+  r = await p.$$eval('tr[data-id="b-mtw"] td.c-fin .fb', s => s.map(x => x.className.replace('fb ', '')).join());
+  ok(r === 'in,eig,be,ge', 'Balken je Förderer, nach Stand geordnet: ' + r);
+  r = await p.$eval('tr[data-id="b-mtw"] td:nth-child(2) b', e => e.textContent.replace(/\u00a0/g, ' '));
+  ok(r === '68.000 €', 'Summe fett gleich neben dem Bedarf');
   await p.screenshot({ path: 'vorschau_liste.png', fullPage: true });
   await p.click('tr[data-id="b-mtw"]');
-  r = await p.evaluate(() => [document.querySelector('#d-steps .cur').textContent, document.querySelectorAll('.foe').length, document.querySelector('#fk-f-mtw-spk').textContent.includes('Erika Beispiel')]);
-  ok(r.join('|') === 'Förderung|3|true', 'Bedarfsseite: Phase Förderung, 3 Förderer, Kartei-Kontakt');
-  await p.click('button[data-act="res"][data-v="f-mtw-lot"]');
-  ok(await p.$eval('#foe-f-mtw-lot .res-grid', e => e.querySelector('[data-p="hoehe"]').value === 'bis 50 % der Kosten'), 'Recherche-Details aufklappbar');
+  r = await p.evaluate(() => [document.querySelector('#d-steps .cur').textContent, document.querySelectorAll('.foe').length, !document.querySelector('.det-panel'), document.querySelector('#sh-f-mtw-spk').textContent]);
+  ok(r[0] === 'Förderung' && r[1] === 3 && r[2] && r[3].includes('15 %'), 'Bedarfsseite: Phase Förderung, 3 Förderer, Kontakt eingeklappt, Anteil je Förderer: ' + r[3]);
+  r = await p.evaluate(() => { const a = document.querySelector('textarea.desc').getBoundingClientRect(), o = document.querySelector('.ordner').getBoundingClientRect(); return [Math.round(a.top - o.top), Math.round(a.height - o.height)]; });
+  ok(Math.abs(r[0]) <= 1 && Math.abs(r[1]) <= 2, 'Beschreibung so hoch wie der Ordner-Bereich (' + r.join(' / ') + ')');
+  await p.click('button[data-act="info"][data-v="ordner"]');
+  ok((await p.$eval('.info-pop', e => e.textContent)).includes('Link kopieren'), 'Hinweis zum Ordner hinter dem „i“');
+  await p.mouse.click(5, 300);
+  await p.click('button[data-act="det"][data-v="f-mtw-spk"]');
+  ok((await p.$eval('#foe-f-mtw-spk .det-panel table.kt', e => e.textContent)).includes('Erika Beispiel'), 'Kontakt aufgeklappt: Kartei-Kontakte als Tabelle');
+  await p.click('button[data-act="det"][data-v="f-mtw-lot"]');
+  ok(await p.$eval('#foe-f-mtw-lot [data-p="hoehe"]', e => e.value === 'bis 50 % der Kosten'), 'Recherche-Angaben in den Details');
+  ok((await p.$eval('.research', e => e.textContent)).includes('Excel-Vorlage für die KI-Recherche'), 'Recherche-Leiste mit Excel-Vorlage');
   await p.screenshot({ path: 'vorschau_bedarf.png', fullPage: true });
   const q = await open(b, { file, fakefs: false, dark: true, width: 390 });
   r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
   ok(r[0] <= r[1], 'schmal (390 px): kein Querscrollen der Seite (' + r.join(' / ') + ')');
-  await q.click('tr[data-id="b-waerme"]');
+  await q.click('tr[data-id="b-mtw"]');
   r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth, getComputedStyle(document.body).backgroundColor]);
   ok(r[0] <= r[1] && r[2] === 'rgb(20, 21, 22)', 'schmal und dunkel: Bedarfsseite passt, dunkler Hintergrund');
   await q.screenshot({ path: 'vorschau_handy_dunkel.png', fullPage: true });

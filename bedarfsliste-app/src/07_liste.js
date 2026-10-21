@@ -1,4 +1,5 @@
-/* ===================================================================== Liste aller Bedarfe: nach Phase gruppiert, Priorität am Namen, Freigabe und Unterlagen untereinander */
+/* ===================================================================== Liste aller Bedarfe: Priorität am Namen, Summe gleich daneben, Phase als farbiges Feld,
+   Freigabe und Unterlagen untereinander, Finanzierung mit den Förderern */
 
 const IC = { ok: '✓', run: '…', no: '✗', off: '○', na: '–', mid: '◐' };
 const prioMark = b => `<button class="prio p-${b.prio}" data-act="prio-menu" data-id="${b.id}" title="Priorität: ${b.prio} – klicken zum Ändern" aria-label="Priorität ${b.prio}, ändern"><i></i><i></i><i></i></button>`;
@@ -9,25 +10,31 @@ function phaseChip(p) {
 const stLine = p => p.t && p.step >= 0 ? `<div class="st-line${p.bad ? ' bad' : ''}"><b>${esc(p.t)}</b>${p.sub ? ': ' + esc(p.sub) : ''}</div>` : '';
 function frMini(b) {
   return '<div class="mini">' + frItems(b).map(i => {
-    const c = i.na ? 'na' : ({ ok: 'ok', nein: 'no', angefragt: 'run', offen: 'off' })[i.st];
-    return `<div class="mi ${c}" title="${esc(frName(i) + ': ' + frText(i))}"><span class="ic">${IC[c]}</span>${esc(i.short)}</div>`;
+    const c = i.na || (i.opt && i.st === 'offen') ? 'na' : ({ ok: 'ok', nein: 'no', angefragt: 'run', offen: 'off' })[i.st];
+    return `<div class="mi ${c}" title="${esc(frName(i) + ': ' + (i.na || frText(i)))}"><span class="ic">${IC[c]}</span>${esc(i.short)}</div>`;
   }).join('') + '</div>';
 }
 function ulMini(b) {
   return '<div class="mini">' + b.unterlagen.map(u => {
     const c = ({ da: 'ok', arbeit: 'mid', fehlt: 'off' })[u.st] || 'off';
-    return `<div class="mi ${c}" title="${esc(u.name + ': ' + UL_ST[u.st])}"><span class="ic">${IC[c]}</span>${esc(u.name || '(ohne Namen)')}</div>`;
+    return `<div class="mi ${c}" title="${esc(u.name + ': ' + ulText(u))}"><span class="ic">${IC[c]}</span>${esc(u.name || '(ohne Namen)')}</div>`;
   }).join('') + '</div>';
 }
-function finBar(b, big) {
-  const F = fin(b), tot = F.zugesagt + F.eig + F.beantragt + F.geplant, max = Math.max(F.S, tot, 1);
-  const s = (v, c, t) => v > 0 ? `<span class="fb ${c}" style="width:${(v / max * 100).toFixed(2)}%" title="${t}: ${eur(v)}"></span>` : '';
-  return `<div class="fbar${big ? ' big' : ''}" role="img" aria-label="${esc(finText(b))}">${s(F.eingegangen, 'in', 'eingegangen')}${s(Math.max(0, F.zugesagt - F.eingegangen), 'zu', 'zugesagt')}${s(F.eig, 'eig', 'Eigenanteil')}${s(F.beantragt, 'be', 'beantragt')}${s(F.geplant, 'ge', 'geplant')}`
+// Balken der Finanzierung: je Förderer ein Stück (Farbe nach Stand); hl = Förderer, der hervorgehoben wird (die anderen blass)
+function segBar(b, opts = {}) {
+  const F = fin(b), segs = finSegs(b), tot = segs.reduce((a, s) => a + s.v, 0), max = Math.max(F.S, tot, 1);
+  return `<div class="fbar${opts.big ? ' big' : ''}${opts.hl ? ' hl' : ''}" role="img" aria-label="${esc(finText(b))}">`
+    + segs.map(s => `<span class="fb ${s.k}${opts.hl && s.id === opts.hl ? ' on' : ''}" style="width:${(s.v / max * 100).toFixed(2)}%" title="${esc(s.name + ': ' + eur(s.v) + ' (' + KIND_L[s.k] + ')')}"></span>`).join('')
     + (tot > F.S && F.S > 0 ? `<span class="fmark" style="left:${(F.S / max * 100).toFixed(2)}%" title="Bedarf ${eur(F.S)}"></span>` : '') + '</div>';
 }
-const LEGEND_FIN = `<span class="lg"><i style="background:var(--f-in)"></i>eingegangen</span><span class="lg"><i style="background:var(--f-zu)"></i>zugesagt</span>`
-  + `<span class="lg"><i style="background:var(--f-eig)"></i>Eigenanteil</span><span class="lg"><i style="background:var(--f-be)"></i>beantragt</span>`
-  + `<span class="lg"><i class="hatch"></i>geplant</span>`;
+function finCell(b) {
+  const F = fin(b), segs = finSegs(b);
+  const top = F.S ? `<div class="fc-top"><b>${eur(F.gedeckt)}</b> von ${eur(F.S)} gedeckt <span class="muted">· ${Math.round(F.gedeckt / F.S * 100)} %</span></div>` : '<div class="fc-top faint">Summe fehlt</div>';
+  const list = segs.length ? '<div class="fc-list">' + segs.map(s => `<div class="fc-i" title="${esc(s.name + ': ' + KIND_L[s.k])}"><i class="swa ${s.k}"></i><span class="n">${esc(short(s.name))}</span><span class="v">${eur(s.v)}</span></div>`).join('') + '</div>'
+    : '<div class="sub">noch kein Förderer</div>';
+  return top + segBar(b) + list;
+}
+const LEGEND_FIN = Object.entries(KIND_L).map(([k, l]) => `<span class="lg"><i class="swa ${k}"></i>${l}</span>`).join('');
 const glName = b => b.gliederung === DIO ? 'Diözese (ohne Gliederung)' : (b.gliederung || 'Gliederung fehlt');
 
 /* ---------- Filtern und Sortieren */
@@ -55,13 +62,13 @@ function row(b) {
   const p = phase(b), nf = nextFrist(b), dash = '<span class="faint">–</span>';
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">
     <td class="c-titel"><div class="tline">${prioMark(b)}<span class="t">${esc(b.titel || '(ohne Namen)')}</span></div><div class="sub">${esc(glName(b))}${b.stichwort ? ` <span class="chip sw">${esc(b.stichwort)}</span>` : ''}</div></td>
+    <td class="num c-sum">${b.summe ? '<b>' + eur(b.summe) + '</b>' + `<div class="sub">${esc(b.summeArt)}</div>` : dash}</td>
     <td>${b.zust.map(esc).join('<br>') || dash}</td>
-    <td class="num">${b.summe ? eur(b.summe) + `<div class="sub">${esc(b.summeArt)}</div>` : dash}</td>
     <td>${b.deadline ? fmtDate(b.deadline) : dash}</td>
     <td class="c-st">${phaseChip(p)}${p.warn.length ? ` <span class="wicon" title="${esc(p.warn.join(' · '))}" aria-label="${esc(p.warn.join(' · '))}">⚠</span>` : ''}${stLine(p)}</td>
     <td>${frMini(b)}</td>
     <td class="c-ul">${ulMini(b)}</td>
-    <td class="c-fin">${finBar(b)}<div class="sub">${esc(finText(b))}</div></td>
+    <td class="c-fin">${finCell(b)}</td>
     <td class="c-fr">${nf ? `<div class="${urg(nf.d)}">${fmtDate(nf.d)}</div><div class="sub">${esc(nf.t)} · ${rel(nf.d)}</div>` : dash}</td>
   </tr>`;
 }
@@ -69,15 +76,7 @@ const NCOL = 9;
 function listBody() {
   const L = filtered();
   if (!L.length) return { html: `<tr><td colspan="${NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
-  if (!UI.group || UI.tab === 'archiv') return { html: L.map(row).join(''), n: L.length };
-  const groups = [...PHASES.map((ph, i) => ({ k: String(i), t: 'Phase ' + (i + 1) + ' · ' + ph.t, cls: PH_CLS[i], L: L.filter(b => phase(b).step === i) })),
-    { k: 'pause', t: 'Zurückgestellt oder verworfen', cls: 'ph-pause', L: L.filter(b => phase(b).step < 0) }];
-  const html = groups.filter(g => g.L.length).map(g => {
-    const closed = !!UI.closed[g.k];
-    return `<tr class="grp ${g.cls}"><td colspan="${NCOL}"><button class="grp-btn" data-act="grp" data-v="${g.k}" aria-expanded="${!closed}"><span class="tw">${closed ? '▸' : '▾'}</span>${esc(g.t)}<span class="cnt">${g.L.length}</span></button></td></tr>`
-      + (closed ? '' : g.L.map(row).join(''));
-  }).join('');
-  return { html, n: L.length };
+  return { html: L.map(row).join(''), n: L.length };
 }
 function listView() {
   const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch);
@@ -93,18 +92,17 @@ function listView() {
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         ${sel('fPh', 'Phase', null, phs.map(t => [t, t]))}${sel('fPr', 'Priorität', null, PRIO.filter(([v]) => all.some(b => b.prio === v)))}
         ${sel('fGl', 'Gliederung', all.map(glName))}${sel('fZu', 'Zuständig', all.flatMap(b => b.zust))}${sel('fSw', 'Stichwort', all.map(b => b.stichwort))}
-        ${arch ? '' : `<label class="check small"><input type="checkbox" id="grp" data-ui="group" ${UI.group ? 'checked' : ''}> nach Phase gruppieren</label>`}
         ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
       </div>
     </div>
     <div class="tablewrap"><table class="list"><thead><tr>
-      <th class="c-titel">${th('prio', 'Prio')} · ${th('titel', 'Bedarf')}</th><th>${th('zust', 'Zuständig')}</th><th class="r">${th('summe', 'Summe')}</th><th>${th('deadline', 'Deadline')}</th>
+      <th class="c-titel">${th('prio', 'Prio')} · ${th('titel', 'Bedarf')}</th><th class="r">${th('summe', 'Summe')}</th><th>${th('zust', 'Zuständig')}</th><th>${th('deadline', 'Deadline')}</th>
       <th>${th('stand', 'Phase und Stand')}</th><th>Freigabe</th><th>Unterlagen</th><th>${th('fin', 'Finanzierung')}</th><th>${th('frist', 'Nächste Frist')}</th>
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
     <div class="legend">
       <span class="lg"><span class="prio p-hoch"><i></i><i></i><i></i></span>hoch</span><span class="lg"><span class="prio p-mittel"><i></i><i></i><i></i></span>mittel</span><span class="lg"><span class="prio p-niedrig"><i></i><i></i><i></i></span>niedrig</span>
       <span class="sep"></span>
-      <span class="lg mi ok"><span class="ic">✓</span>erledigt</span><span class="lg mi run"><span class="ic">…</span>angefragt</span><span class="lg mi mid"><span class="ic">◐</span>in Arbeit</span><span class="lg mi no"><span class="ic">✗</span>abgelehnt</span><span class="lg mi off"><span class="ic">○</span>offen</span><span class="lg mi na"><span class="ic">–</span>entfällt</span>
+      <span class="lg mi ok"><span class="ic">✓</span>erledigt</span><span class="lg mi run"><span class="ic">…</span>angefragt</span><span class="lg mi mid"><span class="ic">◐</span>in Arbeit</span><span class="lg mi no"><span class="ic">✗</span>abgelehnt</span><span class="lg mi off"><span class="ic">○</span>offen</span><span class="lg mi na"><span class="ic">–</span>nicht nötig</span>
       <span class="sep"></span>${LEGEND_FIN}
     </div>
   </section></main>`;
@@ -115,13 +113,21 @@ function prioMenu(btn) {
   const b = D.bedarfe.find(x => x.id === btn.dataset.id); if (!b) return;
   const m = h('div', { class: 'menu', id: 'pmenu', role: 'menu' }, PRIO.map(([v, l]) =>
     h('button', { role: 'menuitem', class: v === b.prio ? 'on' : '', 'data-act': 'prio-set', 'data-id': b.id, 'data-v': v, html: `<span class="prio p-${v}"><i></i><i></i><i></i></span> ${l}` })));
-  document.body.append(m);
-  const r = btn.getBoundingClientRect();
-  m.style.left = Math.min(r.left, innerWidth - m.offsetWidth - 8) + 'px';
-  m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? r.top - m.offsetHeight - 4 : r.bottom + 4) + 'px';
+  placePop(m, btn);
   m.querySelector('button.on, button').focus();
 }
+// kleines Fenster mit einem Hinweis (statt Hilfetext unter dem Feld)
+function infoPop(btn, text) {
+  closeMenus();
+  placePop(h('div', { class: 'menu info-pop', role: 'tooltip' }, text), btn);
+}
+function placePop(m, btn) {
+  document.body.append(m);
+  const r = btn.getBoundingClientRect();
+  m.style.left = Math.max(8, Math.min(r.left, innerWidth - m.offsetWidth - 8)) + 'px';
+  m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
+}
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="prio-menu"], [data-act="menu"]')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="prio-menu"], [data-act="menu"], [data-act="info"]')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', closeMenus, true);
