@@ -290,3 +290,14 @@ function uebForm(b, el) {
   ok.addEventListener('click', () => finish(true));
   form.addEventListener('focusout', () => setTimeout(() => { if (!fertig && !form.contains(document.activeElement)) finish(true); }, 0));
 }
+
+// Namensfeld der Förderer-Kachel: eigene Vorschläge (Förder-Kartei und Förderpläne) statt der Auswahlliste des Browsers
+document.addEventListener('focusin', e => {
+  const el = e.target;
+  if (!el.matches || !el.matches('input.fp-h[data-p="name"]') || el.dataset.sug) return;
+  el.dataset.sug = '1';
+  const k = suggest(el, SRC.foe, () => { el.dispatchEvent(new Event('input', { bubbles: true })); el.blur(); });
+  el.addEventListener('keydown', ev => { if (k(ev)) ev.preventDefault(); });
+});
+// Beträge in den Feldern der Liste ebenfalls gleich mit Tausenderpunkt
+document.addEventListener('input', e => { if (e.target.matches && e.target.matches('input.le-edit.num')) liveNum(e.target); }, true);

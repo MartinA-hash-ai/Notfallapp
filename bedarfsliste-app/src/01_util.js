@@ -29,6 +29,18 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
 const eur = n => Math.round(n || 0).toLocaleString('de-DE') + ' €';
 const fmtNum = n => (n == null || n === '' || isNaN(n)) ? '' : Number(n).toLocaleString('de-DE', { maximumFractionDigits: 2 });
 // Zahlen deutsch eingeben: „1.500“ = 1500, „1.234,50“ = 1234,5; Ergebnis: Zahl, '' (leer) oder null (keine Zahl)
+// Zahl schon beim Tippen gliedern (15000 → 15.000); der Cursor bleibt hinter derselben Ziffer
+function liveNum(el) {
+  const v = el.value, pos = el.selectionStart ?? v.length, vor = v.slice(0, pos).replace(/[^\d,]/g, '').length;
+  if (/[^\d.,\s€]/.test(v)) return;                                            // Buchstaben: so lassen, beim Verlassen gibt es den Hinweis
+  const [ganz, ...rest] = v.replace(/[^\d,]/g, '').split(',');
+  const out = ganz.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (rest.length ? ',' + rest.join('').slice(0, 2) : '');
+  if (out === v) return;
+  el.value = out;
+  let n = 0, i = 0;
+  while (i < out.length && n < vor) { if (/[\d,]/.test(out[i])) n++; i++; }
+  try { el.setSelectionRange(i, i); } catch (e) { /* */ }
+}
 function deNum(t) {
   if (typeof t === 'number') return t;
   let s = String(t ?? '').replace(/\s|€|EUR/gi, '');

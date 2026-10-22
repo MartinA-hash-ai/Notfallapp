@@ -30,6 +30,11 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-name')).verticalAlign, getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-meta .ort')).fontWeight,
     getComputedStyle(document.querySelector('tr[data-id="b-klausur"] .fr.sum .fn')).color === getComputedStyle(document.querySelectorAll('tr[data-id="b-klausur"] .fr.sum .fn')[1]).color]);
   ok(r.join() === 'middle,700,true', 'Kerninfo mittig, Ort fett, Delta im selben Schwarz wie die Eigenmittel: ' + r.join());
+  // Zeilen von Freigabe und Finanzierungsplan auf einer Höhe
+  r = await p.evaluate(() => { const tr = document.querySelector('tr[data-id="b-mtw"]'), mid = e => { const r = e.getBoundingClientRect(); return Math.round(r.top + r.height / 2); };
+    const fr = [...tr.querySelectorAll('.l-fr .ml')].map(mid), fin = [...tr.querySelectorAll('.l-fin .fr > .fn')].map(mid);
+    const dots = [...tr.querySelectorAll('.l-fr .ml .mi')].map(mid); return [fr, fin, dots]; });
+  ok(r[0].every((y, i) => Math.abs(y - r[1][i]) <= 1) && r[2].every((y, i) => Math.abs(y - r[0][i]) <= 1), 'Freigabe und Förderer stehen Zeile für Zeile auf einer Höhe, Punkte mittig zur Schrift: ' + JSON.stringify(r));
   await p.screenshot({ path: 'vorschau_liste.png', fullPage: true });
   await p.click('tr[data-id="b-mtw"]');
   r = await p.evaluate(() => [document.querySelector('#f-titel').value, document.querySelector('.d-head input[data-p="gliederung"]').value, document.querySelector('.d-right-head input[data-p="summe"]').value, document.querySelectorAll('[data-p="summe"]').length, document.querySelector('#d-steps .cur').textContent]);
@@ -45,16 +50,22 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [document.querySelectorAll('#fin-pie svg.pie .ps').length, [...document.querySelectorAll('#fin-pie .ps')].map(x => x.getAttribute('class').replace('ps ', '')).join(),
     [...document.querySelectorAll('#sec-foe .fsum .swa')].map(x => x.className.replace('swa ', '')).join(), !!document.querySelector('#sec-foe .fbar'), !!document.querySelector('.ci-foot.ok'),
     Math.round(document.querySelector('#sec-foe .fsum').getBoundingClientRect().width) <= 580, document.querySelector('#fin-pie').getBoundingClientRect().left > document.querySelector('#sec-foe .fsum').getBoundingClientRect().right]);
-  ok(r.join('|') === '4|in,eig,be,ge|none,in,be,ge,eig|false|false|true|true', 'Förderplan: Kreisdiagramm neben der schmaleren Tabelle, Farbfelder als Legende; kein Balken, kein grüner Kasten „Freigabe vollständig“: ' + r.join('|'));
+  ok(r.join('|') === '4|zu,eig,be,ge|none,zu,be,ge,eig|false|false|true|true', 'Förderplan: Kreisdiagramm neben der schmaleren Tabelle, Farbfelder als Legende; kein Balken, kein grüner Kasten „Freigabe vollständig“: ' + r.join('|'));
   r = await p.evaluate(() => [...document.querySelectorAll('.d-right .circ')].map(c => c.className.replace('circ c-', '')).join());
   ok(r === 'ok,ok,ok,ok,ok,ok,ok,run,add', 'rechts: Freigaben und Unterlagen als Kreise: ' + r);
   ok(!!(await p.$('.d-right input[data-p="link"]')) && !!(await p.$('.d-right input[data-p="pfad"]')), 'Ordner rechts unter den Unterlagen');
-  await p.click('.d-right .circ[data-kind="ul"]');
-  r = await p.$$eval('.circ-pop button', bs => bs.map(x => x.textContent).join(','));
-  ok(r === 'vorhanden,in Arbeit,fehlt' && await p.$$eval('.circ-pop .circ', c => c.map(x => x.querySelector('svg') ? 'svg' : x.textContent).join()) === 'svg,svg,svg', 'Klick auf den Kreis bietet die Stände an, Zeichen als Grafik: ' + r);
-  await p.keyboard.press('Escape');
-  r = await p.evaluate(() => [document.querySelectorAll('.fp').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), document.querySelector('#sh-f-mtw-spk').textContent, document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(), [...document.querySelectorAll('#foe-f-mtw-spk .pc-lab')].map(e => e.textContent).join()]);
-  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3].includes('15 %') && r[4] === 'beantragt am:Antwort erwartet:' && r[5] === 'Pro,Contra', 'Förderplan: Einschätzung als Punkte, Stand-Knopf, Anteil, Fristen, Pro und Contra: ' + JSON.stringify(r));
+  // Klick auf einen Kreis: gleich der nächste Stand, kein Menü
+  const ulSt = () => p.evaluate(() => cur().unterlagen.find(u => u.name === 'Kostenplan').st);
+  const kp = '.d-right .ci-row:has(input[value="Kostenplan"]) .circ';
+  r = [await ulSt()];
+  for (let i = 0; i < 3; i++) { await p.click(kp); r.push(await ulSt()); }
+  ok(r.join() === 'arbeit,da,fehlt,arbeit' && !(await p.$('.circ-pop')) && await p.$eval(kp, e => !!e.querySelector('svg')), 'Kreis: Klick schaltet weiter (in Arbeit → vorhanden → fehlt → in Arbeit), ohne Menü, Zeichen als Grafik: ' + r.join());
+  r = await p.evaluate(() => [document.querySelectorAll('.fk-grid > .card.fp.fk').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), document.querySelector('#sh-f-mtw-spk').textContent, document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(),
+    [...document.querySelectorAll('#foe-f-mtw-spk .pc textarea')].map(e => e.placeholder.split(':')[0]).join(), getComputedStyle(document.querySelector('.fk-grid')).gridTemplateColumns.split(' ').length, document.querySelector('.fk-head').textContent.replace(/\s+/g, ' ').trim()]);
+  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3] === '15 %' && r[4] === 'beantragt am:Antwort erwartet:' && r[5] === 'Pro,Contra' && r[6] === 2 && r[7].replace(/\s/g, '') === 'Förderer·3+Förderer', 'Förderer als Kacheln (zwei nebeneinander): Einschätzung, Stand-Knopf, Anteil, Fristen, Pro und Contra: ' + JSON.stringify(r));
+  // Einschätzung füllt sich von rechts: der rechte Punkt allein = sehr unwahrscheinlich
+  r = await p.evaluate(() => [...document.querySelectorAll('#foe-f-mtw-bst .dots .dot')].map(d => d.classList.contains('on') ? 'x' : '-').join(''));
+  ok(r === '--xxx', 'Einschätzung „unsicher“: die drei rechten Punkte gefüllt: ' + r);
   await p.click('button[data-act="info"][data-v="ordner"]');
   ok((await p.$eval('.info-pop', e => e.textContent)).includes('Link kopieren'), 'Hinweis zum Ordner hinter dem „i“');
   await p.mouse.click(5, 300);
@@ -62,6 +73,16 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await p.$eval('#foe-f-mtw-spk .det-panel table.kt', e => e.textContent)).includes('Erika Beispiel'), 'Kontakt aufgeklappt: Kartei-Kontakte als Tabelle');
   await p.click('button[data-act="det"][data-v="f-mtw-lot"]');
   ok(await p.$eval('#foe-f-mtw-lot [data-p="hoehe"]', e => e.value === 'bis 50 % der Kosten'), 'Recherche-Angaben in den Details');
+  // Betrag beim Tippen gleich mit Tausenderpunkt
+  await p.click('#amt-f-mtw-lot', { clickCount: 3 }); await p.keyboard.type('45000');
+  r = await p.evaluate(() => [document.querySelector('#amt-f-mtw-lot').value, cur().foerderer.find(f => f.id === 'f-mtw-lot').betrag]);
+  ok(r.join() === '45.000,45000', 'Summe beim Tippen: 45000 → 45.000: ' + r.join());
+  // neuer Förderer: kein Auswahlpfeil des Browsers, eigene Vorschläge
+  await p.click('.fk-head button[data-act="add-foe"]'); await p.keyboard.type('Bürger');
+  r = await p.evaluate(() => [document.activeElement.hasAttribute('list'), [...document.querySelectorAll('.le-sug .le-opt')].map(o => o.textContent).join()]);
+  ok(r[0] === false && r[1].includes('Bürgerstiftung Musterstadt'), 'Namensfeld ohne Pfeil, Vorschläge beim Tippen: ' + r[1]);
+  await p.click('.le-opt:text-is("Bürgerstiftung Musterstadt")');
+  ok(await p.evaluate(() => cur().foerderer.at(-1).name === 'Bürgerstiftung Musterstadt'), 'Vorschlag übernommen');
   await p.screenshot({ path: 'vorschau_bedarf.png', fullPage: true });
   const q = await open(b, { file, fakefs: false, dark: true, width: 390 });
   r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);

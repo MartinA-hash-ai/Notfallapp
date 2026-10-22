@@ -1,8 +1,9 @@
 // Grundtest: leere Datei startet, ein Bedarf läuft per Bedienung durch alle Phasen, nichts wird aus dem Internet geladen
 const { chromium, ok, open, finish } = require('./lib');
 const status = p => p.$eval('#d-status', e => e.textContent);
-// Kreis anklicken, im kleinen Fenster den Stand wählen
-const setCirc = async (p, sel, v) => { await p.click(sel); await p.click(`.circ-pop button[data-v="${v}"]`); };
+// Kreis so oft anklicken, bis der gewünschte Stand erreicht ist (jeder Klick schaltet einen Stand weiter)
+const KREIS = { angefragt: 'run', ok: 'ok', nein: 'no', offen: 'off', da: 'ok', arbeit: 'run', fehlt: 'no' };
+const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(sel, e => e.className)) !== 'circ c-' + KREIS[v]; i++) await p.click(sel); };
 (async () => {
   const b = await chromium.launch();
   const p = await open(b, { fakefs: false });
@@ -27,7 +28,7 @@ const setCirc = async (p, sel, v) => { await p.click(sel); await p.click(`.circ-
   ok((await status(p)) === 'Es fehlt: Ortsführungskreis, Angebot', 'unter 1.000 €: es fehlen nur Ortsführungskreis und Angebot');
   await setCirc(p, '#fr-ofk .circ', 'angefragt');
   r = await p.evaluate(() => [D.bedarfe[0].freigabe.ofk.angefragt === today(), document.querySelector('#fr-ofk .circ').className, !!document.querySelector('#fr-ofk input[type=date]')]);
-  ok(r.join() === 'true,circ c-run,true', 'angefragt: gelber Kreis, Datum gesetzt und sichtbar');
+  ok(r.join() === 'true,circ c-run,true', 'angefragt: gelber Kreis, Datum gesetzt und sichtbar: ' + r.join());
   await setCirc(p, '#fr-ofk .circ', 'offen');
   ok(await p.evaluate(() => D.bedarfe[0].freigabe.ofk.st === 'offen'), 'zurück auf „noch nicht angefragt“');
   await setCirc(p, '#fr-fach .circ', 'angefragt');
@@ -50,9 +51,9 @@ const setCirc = async (p, sel, v) => { await p.click(sel); await p.click(`.circ-
   await p.fill('.fp input[data-p="betrag"]', '800');
   ok((await status(p)).includes('Anträge stellen') && (await p.$eval('.share-t', e => e.textContent)).includes('100 %'), 'Förderer geplant → Anträge stellen; Anteil 100 %');
   await p.click('.fp .st-btn'); await p.click('.st-pop button[data-v="zugesagt"]');
-  r = await p.evaluate(() => { const f = D.bedarfe[0].foerderer[0]; return [f.zugesagt, f.beantragtAm === today(), D.bedarfe[0].nach.ueb.mit.includes(f.id), document.querySelector('.fp input.amt').dataset.p, document.querySelector('.fp .st-btn').textContent.trim(), document.querySelector('.fp .amt-lab').textContent]; });
+  r = await p.evaluate(() => { const f = D.bedarfe[0].foerderer[0]; return [f.zugesagt, f.beantragtAm === today(), D.bedarfe[0].nach.ueb.mit.includes(f.id), document.querySelector('.fp input.amt').dataset.p, document.querySelector('.fp .st-btn').textContent.trim(), document.querySelector('.fp input.amt').getAttribute('aria-label')]; });
   ok(r.join() === '800,true,true,zugesagt,zugesagt ▾,Zugesagte Summe', 'Stand über den Knopf: zugesagt, Summe und Datum vorbelegt');
-  await p.click('.fp .dot:nth-child(4)');
+  await p.click('.fp .dot:nth-child(2)');   // die Punkte füllen sich von rechts: der zweite von links ist Stufe 4
   ok(await p.evaluate(() => D.bedarfe[0].foerderer[0].einsch === 'w' && document.querySelectorAll('.fp .dots.lv4 .dot.on').length === 4), 'Einschätzung: vier Punkte = wahrscheinlich');
   ok((await status(p)).includes('Geldeingang offen'), 'Stand: Geldeingang offen');
   await p.click('button[data-act="geld"]'); await p.click('button[data-act="geld-ok"]');

@@ -97,7 +97,7 @@ function secInfo(b) {
 
 /* ---------- Rechts: Freigaben, Unterlagen, Ordner – je Punkt ein Kreis (grün ✓, gelb …, rot ✗); ein Klick darauf bietet die anderen Stände an */
 const CIRC_SYM = { ok: ICO.ok, run: ICO.run, no: ICO.no, off: '', na: ICO.na };
-const circ = (kind, attrs, label) => `<button class="circ c-${kind}" data-act="circ" ${attrs} aria-label="${esc(label)} – Stand ändern" title="Stand ändern">${CIRC_SYM[kind]}</button>`;
+const circ = (kind, attrs, label) => `<button class="circ c-${kind}" data-act="circ" ${attrs} aria-label="${esc(label)} – nächster Stand" title="Klicken: nächster Stand">${CIRC_SYM[kind]}</button>`;
 const frKind = i => i.na ? 'na' : ({ ok: 'ok', angefragt: 'run', nein: 'no', offen: 'off' })[i.st];
 const ulKind = u => ({ da: 'ok', arbeit: 'run', fehlt: 'no' })[u.st] || 'no';
 function freigabeList(b) {
@@ -131,24 +131,12 @@ function sidePanel(b) {
     <div class="o-row"><span class="o-lab">Pfad im Explorer</span><div class="row">${tin(b, 'pfad', 'class="grow mono" aria-label="Ordnerpfad"', 'C:\\Users\\…\\OneDrive - Malteser\\…')}<span id="copy-btn">${copyBtn(b)}</span></div></div>
   </section>`;
 }
-// kleines Fenster mit den möglichen Ständen, am angeklickten Kreis
-function circMenu(btn) {
-  closeMenus();
+// Klick auf den Kreis: ein Stand weiter (Freigabe: offen → angefragt → zugestimmt → abgelehnt; Unterlage: fehlt → in Arbeit → vorhanden)
+function circNext(btn) {
   const b = cur(); if (!b) return;
-  let opts, cur0, attrs = {};
-  if (btn.dataset.kind === 'fr') {
-    const i = frItems(b).find(x => x.k === btn.dataset.k);
-    opts = [['angefragt', 'run', 'angefragt'], ['ok', 'ok', i.ok], ['nein', 'no', i.nein], ['offen', 'off', 'noch nicht angefragt']];
-    cur0 = i.st; attrs = { 'data-p': 'freigabe.' + i.k + '.st' };
-  } else {
-    const u = b.unterlagen.find(x => x.id === btn.dataset.uid);
-    opts = ulOpts(u).map(([v, l]) => [v, ({ da: 'ok', arbeit: 'run', fehlt: 'no' })[v], l]).reverse();
-    cur0 = u.st; attrs = { 'data-p': 'st', 'data-uid': u.id };
-  }
-  const m = h('div', { class: 'menu circ-pop', role: 'menu' }, opts.map(([v, k, l]) =>
-    h('button', Object.assign({ role: 'menuitem', class: v === cur0 ? 'on' : '', 'data-act': 'set', 'data-v': v, html: `<span class="circ c-${k}">${CIRC_SYM[k]}</span>${esc(l)}` }, attrs))));
-  placePop(m, btn);
-  (m.querySelector('button.on') || m.querySelector('button')).focus();
+  if (btn.dataset.kind === 'fr') { const k = btn.dataset.k, it = b.freigabe[k], v = nextOf(ROT_FR, it.st); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v); }
+  else { const u = b.unterlagen.find(x => x.id === btn.dataset.uid); if (!u) return; u.st = nextOf(ROT_ANG, u.st); }
+  changed();
 }
 
 /* ---------- Förderplan: je Förderer eine Überschrift (Name), rechts groß die Summe mit Anteil, daneben der Stand mit Fristen, oben rechts die Einschätzung;
@@ -196,7 +184,7 @@ const AMT_LAB = { geplant: 'Erwartete Summe', vorb: 'Erwartete Summe', beantragt
 const pct = (v, S) => S ? Math.round(v / S * 100) + ' %' : '';
 function foeShare(b, f) {
   const S = +b.summe || 0, v = f.status === 'abgelehnt' ? 0 : foeAmt(f);
-  return S ? `${pct(v, S)} des Bedarfs` : 'Summe des Bedarfs fehlt';
+  return S ? pct(v, S) : '';
 }
 function geldBlock(f) {
   const a = `data-fid="${f.id}"`;
@@ -212,39 +200,32 @@ function fpDates(f) {
   return ({ geplant: d('Antragsfrist', 'frist'), vorb: d('Antragsfrist', 'frist'), beantragt: d('beantragt am', 'beantragtAm') + d('Antwort erwartet', 'erwartet'),
     zugesagt: d('zugesagt am', 'entscheidungAm'), abgelehnt: d('abgelehnt am', 'entscheidungAm') })[f.status];
 }
-// Einschätzung: fünf kleine Punkte, darunter das Wort – beides rechtsbündig
+// Einschätzung: fünf kleine Punkte, die sich von rechts füllen – der rechte allein ist „sehr unwahrscheinlich“, alle fünf „sehr wahrscheinlich“
 function dots(f) {
   const lv = LVL.indexOf(f.einsch) + 1, lab = lv ? EINSCH.find(e => e[0] === f.einsch)[1] : 'noch keine Einschätzung';
   return `<div class="dots-box"><div class="dots lv${lv}" role="group" aria-label="Einschätzung: ${esc(lab)}">`
-    + LVL.map((k, i) => { const l = EINSCH.find(e => e[0] === k)[1]; return `<button class="dot${i < lv ? ' on' : ''}" data-act="set" data-p="einsch" data-v="${k}" data-toggle="" data-fid="${f.id}" title="${l}" aria-label="${l}" aria-pressed="${i + 1 === lv}"></button>`; }).join('')
+    + [5, 4, 3, 2, 1].map(n => { const k = LVL[n - 1], l = EINSCH.find(e => e[0] === k)[1]; return `<button class="dot${n <= lv ? ' on' : ''}" data-act="set" data-p="einsch" data-v="${k}" data-toggle="" data-fid="${f.id}" title="${l}" aria-label="${l}" aria-pressed="${n === lv}"></button>`; }).join('')
     + `</div><span class="dots-t">${esc(lab)}</span></div>`;
 }
+// je Förderer eine kompakte Kachel: Name mit Stift und Löschen, Einschätzung; groß die Summe mit Anteil; Stand mit Datum; Pro und Contra je eine Zeile; unten Kontakt
 function fpCard(b, f) {
-  const a = `data-fid="${f.id}"`, st = f.status, open = !!UI.open['det-' + f.id];
-  return `<article class="card fp st-${st}" id="foe-${f.id}">
-    <div class="fp-top">
-      <div class="fp-name">
-        <div class="fp-title"><input type="text" class="inline fp-h" data-p="name" ${a} list="dl-kartei" value="${esc(f.name)}" placeholder="Förderer" aria-label="Förderer">
-          <button class="pen" data-act="pen" ${a} aria-label="Namen bearbeiten" title="Namen bearbeiten">${ICON_PEN}</button><button class="rm" data-act="rm-foe" ${a} title="Förderer entfernen" aria-label="Förderer entfernen">${ICON_TRASH}</button></div>
-        <div id="fw-${f.id}">${foeWarn(b, f)}</div>
-      </div>
-      <div class="fp-fig">
-        ${dots(f)}
-        <div class="fp-grid">
-        <span class="amt-lab">${AMT_LAB[st]}</span><span></span>
-        <div class="amt-big"><input type="text" inputmode="decimal" class="inline num amt" data-num data-p="${st === 'zugesagt' ? 'zugesagt' : 'betrag'}" ${a} id="amt-${f.id}" value="${esc(fmtNum(st === 'zugesagt' ? f.zugesagt : f.betrag))}" placeholder="0" aria-label="${AMT_LAB[st]}"><span class="unit">€</span></div>
-        <button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button>
-        <div id="sh-${f.id}" class="share-t">${foeShare(b, f)}</div>
-        <div class="fp-dates">${fpDates(f)}${st === 'zugesagt' ? geldBlock(f) : ''}</div>
-        </div>
-      </div>
+  const a = `data-fid="${f.id}"`, st = f.status, open = !!UI.open['det-' + f.id], amtP = st === 'zugesagt' ? 'zugesagt' : 'betrag';
+  return `<article class="card fp fk st-${st}${open ? ' open' : ''}" id="foe-${f.id}">
+    <div class="fk-top">
+      <div class="fp-title"><input type="text" class="inline fp-h" data-p="name" ${a} value="${esc(f.name)}" placeholder="Förderer" aria-label="Förderer" autocomplete="off">
+        <button class="pen" data-act="pen" ${a} aria-label="Namen bearbeiten" title="Namen bearbeiten">${ICON_PEN}</button><button class="rm" data-act="rm-foe" ${a} title="Förderer entfernen" aria-label="Förderer entfernen">${ICON_TRASH}</button></div>
+      ${dots(f)}
     </div>
+    <div id="fw-${f.id}">${foeWarn(b, f)}</div>
+    <div class="fk-amt"><input type="text" inputmode="decimal" class="inline num amt" data-num data-p="${amtP}" ${a} id="amt-${f.id}" value="${esc(fmtNum(st === 'zugesagt' ? f.zugesagt : f.betrag))}" placeholder="0" aria-label="${AMT_LAB[st]}" title="${AMT_LAB[st]}"><span class="unit">€</span><span id="sh-${f.id}" class="share-t" title="Anteil am Bedarf">${foeShare(b, f)}</span></div>
+    <div class="fk-st"><button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div></div>
+    ${st === 'zugesagt' ? `<div class="fk-geld">${geldBlock(f)}</div>` : ''}
     <div class="pc">
-      <div class="pro"><span class="pc-lab">Pro</span>${tarea(f, 'warum', a + ' aria-label="Pro – warum passt das"', 'Warum passt das? Satzungszweck, Förderschwerpunkt, Regionalbezug …')}</div>
-      <div class="contra"><span class="pc-lab">Contra</span>${tarea(f, 'knackpunkte', a + ' aria-label="Contra – Knackpunkte"', 'Wo hakt es? Worauf muss der Antrag den Fokus legen?')}</div>
+      <label class="pro" title="Pro: warum passt das?"><i></i>${tarea(f, 'warum', a + ' rows="1" aria-label="Pro – warum passt das"', 'Pro: Warum passt das? Satzungszweck, Förderschwerpunkt, Regionalbezug …')}</label>
+      <label class="contra" title="Contra: wo hakt es?"><i></i>${tarea(f, 'knackpunkte', a + ' rows="1" aria-label="Contra – Knackpunkte"', 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?')}</label>
     </div>
     <div class="det">
-      <button class="det-btn" data-act="det" data-v="${f.id}" aria-expanded="${open}"><span class="tw">${open ? '▾' : '▸'}</span>Kontakt und Details <span class="muted" id="ds-${f.id}">${detSummary(f)}</span></button>
+      <button class="det-btn" data-act="det" data-v="${f.id}" aria-expanded="${open}"><span class="tw">${open ? '▾' : '▸'}</span><span class="ds" id="ds-${f.id}">${detSummary(f)}</span></button>
       ${open ? detPanel(b, f) : ''}
     </div>
   </article>`;
@@ -261,18 +242,27 @@ function stMenu(btn) {
 /* ---------- Übersicht oben im Förderplan: Tabelle (Gesamtbedarf, Förderer nach Stand, Delta, Eigenmittel) und daneben ein Kreisdiagramm.
    Die Tabelle ist zugleich die Legende: jede Zeile trägt das Farbfeld ihres Kreisstücks. */
 const ROW_CLS = { zugesagt: 'r-zu', beantragt: 'r-be', vorb: 'r-ge', geplant: 'r-ge', abgelehnt: 'r-ab' };
-const segKind = f => f.status === 'zugesagt' ? (f.eingegangen > 0 ? 'in' : 'zu') : f.status === 'beantragt' ? 'be' : f.status === 'abgelehnt' ? 'none' : 'ge';
+const segKind = f => f.status === 'zugesagt' ? 'zu' : f.status === 'beantragt' ? 'be' : f.status === 'abgelehnt' ? 'none' : 'ge';
 const swa = k => `<i class="swa ${k}" aria-hidden="true"></i>`;
+const PIE = [['zu', 'zugesagt'], ['eig', 'Eigenmittel'], ['be', 'beantragt'], ['ge', 'nicht beantragt'], ['off', 'Delta, noch ohne Förderer']];
 function finPie(b) {
-  const S = +b.summe || 0, segs = finSegs(b), tot = segs.reduce((a, s) => a + s.v, 0), max = Math.max(S, tot);
-  const parts = [...segs.map(s => ({ k: s.k, v: s.v, t: s.name + ': ' + eur(s.v) + ' · ' + KIND_L[s.k] })), ...(S > tot ? [{ k: 'off', v: S - tot, t: 'noch ohne Förderer: ' + eur(S - tot) }] : [])];
+  const F = finState(b), sum = {}, wer = {};
+  for (const f of F.fs) {
+    const k = segKind(f), v = foeAmt(f);
+    if (k === 'none' || !(v > 0) || (F.done && k !== 'zu')) continue;               // steht die Finanzierung, zählen nur noch Zusagen
+    sum[k] = (sum[k] || 0) + v; (wer[k] = wer[k] || []).push(f.name || '(ohne Namen)');
+  }
+  if (F.eig > 0) sum.eig = F.eig;
+  const tot = Object.values(sum).reduce((x, y) => x + y, 0), max = Math.max(F.S, tot);
+  if (F.S > tot) sum.off = F.S - tot;
   if (!max) return '<svg class="pie" viewBox="0 0 100 100" aria-hidden="true"><circle class="ps off" cx="50" cy="50" r="48"/></svg>';
-  let a = -Math.PI / 2;
-  const pt = w => (50 + 48 * Math.cos(w)).toFixed(2) + ' ' + (50 + 48 * Math.sin(w)).toFixed(2);
-  const slices = parts.filter(p => p.v > 0).map(p => {
-    const da = p.v / max * 2 * Math.PI, d = da > 2 * Math.PI - 1e-6 ? null : `M50 50L${pt(a)}A48 48 0 ${da > Math.PI ? 1 : 0} 1 ${pt(a + da)}Z`;
-    a += da;
-    return (d ? `<path class="ps ${p.k}" d="${d}">` : `<circle class="ps ${p.k}" cx="50" cy="50" r="48">`) + `<title>${esc(p.t)} (${pct(p.v, max)})</title>` + (d ? '</path>' : '</circle>');
+  let w = -Math.PI / 2;
+  const pt = x => (50 + 48 * Math.cos(x)).toFixed(2) + ' ' + (50 + 48 * Math.sin(x)).toFixed(2);
+  const slices = PIE.filter(([k]) => sum[k] > 0).map(([k, l]) => {
+    const da = sum[k] / max * 2 * Math.PI, d = da > 2 * Math.PI - 1e-6 ? null : `M50 50L${pt(w)}A48 48 0 ${da > Math.PI ? 1 : 0} 1 ${pt(w + da)}Z`;
+    w += da;
+    const t = `<title>${esc(l + ': ' + eur(sum[k]) + ' (' + pct(sum[k], max) + ')' + (wer[k] ? ' – ' + wer[k].join(', ') : ''))}</title>`;
+    return d ? `<path class="ps ${k}" d="${d}">${t}</path>` : `<circle class="ps ${k}" cx="50" cy="50" r="48">${t}</circle>`;
   });
   return `<svg class="pie" viewBox="0 0 100 100" role="img" aria-label="${esc(finText(b))}"><defs><pattern id="pie-ge" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
     + `<rect width="5" height="5" style="fill:var(--card)"/><rect width="2.6" height="5" style="fill:var(--f-ge)"/></pattern></defs>${slices.join('')}</svg>`;
@@ -294,10 +284,9 @@ function secFoe(b) {
     <table class="fsum"><tbody id="fin-rows">${finRows(b)}</tbody>
       <tbody><tr class="r-eig"><th>${swa('eig')}Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
     <div id="fin-pie" class="fin-pie">${finPie(b)}</div></div>
-    ${dl('dl-kartei', KR.list.map(k => k.name))}
   </section>
-  ${b.foerderer.map(f => fpCard(b, f)).join('') || '<div class="empty fp-empty">Noch kein Förderer eingetragen – einzeln mit „+ Förderer“ oder viele auf einmal aus einer ausgefüllten Recherche-Excel (Symbol oben rechts im Förderplan).</div>'}
-  <div class="foe-add"><button data-act="add-foe">+ Förderer</button><span class="muted small">${KR.list.length ? 'Namen aus der Förder-Kartei werden beim Tippen vorgeschlagen.' : ''}</span></div>`;
+  <div class="fk-head"><h2>Förderer <span class="muted">· ${b.foerderer.length}</span></h2><button data-act="add-foe">+ Förderer</button></div>
+  ${b.foerderer.length ? `<div class="fk-grid">${b.foerderer.map(f => fpCard(b, f)).join('')}</div>` : '<div class="empty fp-empty">Noch kein Förderer eingetragen – mit „+ Förderer“ oder viele auf einmal aus einer ausgefüllten Recherche-Excel (Symbol oben rechts im Förderplan).</div>'}`;
 }
 
 /* ---------- Nacharbeit: Übergabe und Pressemitteilung einmal je Bedarf, Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */

@@ -192,7 +192,6 @@ async function act(k, a, e) {
     }
     case 'clear': Object.assign(UI, { q: '', fSw: '' }); keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
-    case 'circ': circMenu(a); return;
     case 'st-menu': stMenu(a); return;
     case 'more': if ($('#mmenu')) closeMenus(); else moreMenu(a); return;
     case 'pen': { const el = $(`#foe-${a.dataset.fid} .fp-h`); if (el) { el.focus(); el.select(); } return; }
@@ -226,6 +225,7 @@ async function act(k, a, e) {
   }
   if (!b || UI.view !== 'detail') return;
   switch (k) {
+    case 'circ': circNext(a); break;
     case 'set': {
       const base = baseOf(a, b), p = a.dataset.p; let v = a.dataset.v;
       if (v === 'true') v = true; else if (v === 'false') v = false;
@@ -293,7 +293,7 @@ document.addEventListener('input', e => {
   if (!el.dataset.p || el.type === 'checkbox' || el.tagName === 'SELECT') return;
   const b = cur(); if (!b) return;
   const base = baseOf(el, b);
-  if ('num' in el.dataset) { const v = deNum(el.value); if (v === null) return; setPath(base, el.dataset.p, v === '' ? null : v); }
+  if ('num' in el.dataset) { liveNum(el); const v = deNum(el.value); if (v === null) return; setPath(base, el.dataset.p, v === '' ? null : v); }
   else setPath(base, el.dataset.p, el.value);
   if (el.dataset.p === 'name' && el.dataset.fid && !base.art) {               // Förderer aus der Kartei: Art gleich mit eintragen
     const k = kartei(base.name), art = k ? artFromKartei(k, base.name) : '';

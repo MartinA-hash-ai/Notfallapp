@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.11.0",
+    "date": "2026-10-22T12:58",
+    "items": [
+      "Förderer auf der Seite des Bedarfs als kompakte Kacheln, zwei nebeneinander: Name mit Stift und Löschen, Einschätzung, groß die Summe mit Anteil, Stand mit Datum, Pro und Contra je mit grünem bzw. rotem Punkt, unten der Kontakt (Klick klappt die Details über die ganze Breite auf); „+ Förderer“ steht oben rechts über den Kacheln",
+      "Einschätzung füllt sich von rechts: der rechte Punkt allein ist „sehr unwahrscheinlich“, alle fünf „sehr wahrscheinlich“",
+      "Kreise bei Freigaben und Unterlagen schalten per Klick einen Stand weiter – kein Menü mehr",
+      "Namensfeld des Förderers ohne Auswahlpfeil des Browsers, mit eigenen Vorschlägen beim Tippen",
+      "Beträge bekommen schon beim Tippen den Tausenderpunkt (15000 → 15.000)",
+      "Kreisdiagramm mit mehr Abstand zur Tabelle und nur noch: zugesagt, Eigenmittel, beantragt, nicht beantragt, Delta",
+      "Liste: Freigabe und Förderer stehen Zeile für Zeile auf einer Höhe, die Punkte mittig zur Schrift"
+    ]
+  },
+  {
     "version": "0.10.0",
     "date": "2026-10-22T12:27",
     "items": [
