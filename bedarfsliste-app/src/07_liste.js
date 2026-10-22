@@ -1,34 +1,69 @@
-/* ===================================================================== Liste aller Bedarfe: Priorität am Namen, Summe gleich daneben, Deadline, Phase als farbiges Feld,
-   Finanzierung mit den Förderern. Zuständige, Freigabe und Unterlagen stehen erst auf der Seite des Bedarfs. */
+/* ===================================================================== Liste aller Bedarfe, von links nach rechts so schnell wie möglich erfassbar:
+   Name, Summe, Ort · Zuständig · bis wann – Freigabe – Finanzierungsplan mit Verwendungsnachweis je Förderer – Spendenübergabe. */
 
 const prioMark = b => `<button class="prio p-${b.prio}" data-act="prio-menu" data-id="${b.id}" title="Priorität: ${b.prio} – klicken zum Ändern" aria-label="Priorität ${b.prio}, ändern"><i></i><i></i><i></i></button>`;
-function phaseChip(p) {
-  const dots = p.step < 0 ? '' : '<span class="dots" aria-hidden="true">' + [0, 1, 2, 3].map(i => `<i class="${i < p.step || p.step === 3 ? 'd' : i === p.step ? 'c' : ''}"></i>`).join('') + '</span>';
-  return `<span class="phase ${phCls(p)}">${dots}${esc(phaseName(p))}</span>`;
-}
-const stLine = p => p.t && p.step >= 0 ? `<div class="st-line${p.bad ? ' bad' : ''}"><b>${esc(p.t)}</b>${p.sub ? ': ' + esc(p.sub) : ''}</div>` : '';
-// Balken der Finanzierung: je Förderer ein Stück (Farbe nach Stand); hl = Förderer, der hervorgehoben wird (die anderen blass)
+// Balken der Finanzierung (Seite des Bedarfs): je Förderer ein Stück (Farbe nach Stand)
 function segBar(b, opts = {}) {
   const F = fin(b), segs = finSegs(b), tot = segs.reduce((a, s) => a + s.v, 0), max = Math.max(F.S, tot, 1);
-  return `<div class="fbar${opts.big ? ' big' : ''}${opts.hl ? ' hl' : ''}" role="img" aria-label="${esc(finText(b))}">`
-    + segs.map(s => `<span class="fb ${s.k}${opts.hl && s.id === opts.hl ? ' on' : ''}" style="width:${(s.v / max * 100).toFixed(2)}%" title="${esc(s.name + ': ' + eur(s.v) + ' (' + KIND_L[s.k] + ')')}"></span>`).join('')
+  return `<div class="fbar${opts.big ? ' big' : ''}" role="img" aria-label="${esc(finText(b))}">`
+    + segs.map(s => `<span class="fb ${s.k}" style="width:${(s.v / max * 100).toFixed(2)}%" title="${esc(s.name + ': ' + eur(s.v) + ' (' + KIND_L[s.k] + ')')}"></span>`).join('')
     + (tot > F.S && F.S > 0 ? `<span class="fmark" style="left:${(F.S / max * 100).toFixed(2)}%" title="Bedarf ${eur(F.S)}"></span>` : '') + '</div>';
 }
-function finCell(b) {
-  const F = fin(b), segs = finSegs(b);
-  const top = F.S ? `<div class="fc-top"><b>${eur(F.gedeckt)}</b> von ${eur(F.S)} gedeckt <span class="muted">· ${Math.round(F.gedeckt / F.S * 100)} %</span></div>` : '<div class="fc-top faint">Summe fehlt</div>';
-  const list = segs.length ? '<div class="fc-list">' + segs.map(s => `<div class="fc-i" title="${esc(s.name + ': ' + KIND_L[s.k])}"><i class="swa ${s.k}"></i><span class="n">${esc(short(s.name))}</span><span class="v">${eur(s.v)}</span></div>`).join('') + '</div>'
-    : '<div class="sub">noch kein Förderer</div>';
-  return top + segBar(b) + list;
-}
 const LEGEND_FIN = Object.entries(KIND_L).map(([k, l]) => `<span class="lg"><i class="swa ${k}"></i>${l}</span>`).join('');
-const glName = b => b.gliederung === DIO ? 'Diözese (ohne Gliederung)' : (b.gliederung || 'Gliederung fehlt');
 
-/* ---------- Filtern und Sortieren */
+/* ---------- kleine Kreise: grün mit Haken, gelb mit drei Punkten, rot mit Kreuz, leer; m-dot = vereinfacht (Thema durch) */
+const DOTS3 = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4.6" cy="8" r="1.15"/><circle cx="8" cy="8" r="1.15"/><circle cx="11.4" cy="8" r="1.15"/></svg>';
+const MI = { ok: ['m-ok', '✓'], run: ['m-run', DOTS3], no: ['m-no', '✕'], off: ['m-off', ''], dot: ['m-dot', ''], none: ['m-none', ''] };
+const mi = (s, t) => `<span class="mi ${MI[s][0]}"${t ? ` title="${esc(t)}"` : ''}>${MI[s][1]}</span>`;
+const ICON_TRI = '<svg class="tri" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="currentColor"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12" r=".9" fill="#fff"/></svg>';
+
+// Freigabe: Ortsführungskreis, Verwaltung, Fachreferat, Angebot – ist alles durch, wird der Block blass grün
+function lFreigabe(b) {
+  const it = Object.fromEntries(frItems(b).map(i => [i.k, i]));
+  const L = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => {
+    const i = it[k];
+    if (!frNeeded(i)) return `<div class="ml nn" title="${esc(frText(i))}">${mi('none')}<span>${lab}</span></div>`;
+    return `<div class="ml">${mi(({ ok: 'ok', angefragt: 'run', nein: 'no' })[i.st] || 'off', frText(i))}<span>${lab}</span></div>`;
+  });
+  const a = angebotUL(b);
+  L.push(`<div class="ml">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`);
+  return frOffen(b).names.length ? L.join('') : `<div class="done" title="Freigabe vollständig">${L.join('')}</div>`;
+}
+// Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
+const F_SYM = { zugesagt: 'ok', beantragt: 'run', vorb: 'run', geplant: 'off', abgelehnt: 'no' };
+const EMPTY3 = '<span></span><span></span><span></span>';
+function lNachweis(f, fertig) {
+  const v = f.vn;
+  if (!v.noetig) return '<span></span><span></span><span class="vt nn">nicht nötig</span>';
+  if (fertig) return `<span class="lead"></span>${mi('dot', 'erledigt')}<span class="vt">erledigt</span>`;
+  return `<span class="lead"></span>${mi(({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st], (VN_ST.find(o => o[0] === v.st) || [])[1])}<span class="vt">${v.st === 'erledigt' ? 'erledigt' : v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt'}</span>`;
+}
+function lFinanz(b) {
+  const F = finState(b), R = [];
+  for (const f of F.fs) {
+    const t = esc((f.name || '(ohne Namen)') + ': ' + F_ST_L[f.status]), nm = `<span class="fn">${esc(f.name || '(ohne Namen)')}</span><span class="fa">${eur(foeAmt(f))}</span>`, ab = f.status === 'abgelehnt' ? ' ab' : '';
+    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${mi(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false) : EMPTY3}</div>`);
+    else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${mi('dot')}${nm}${EMPTY3}</div>`);
+    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${mi('dot')}${nm}${lNachweis(f, fertig)}</div>`); }
+  }
+  R.push('<div class="fline"></div>');
+  if (F.d) R.push(`<div class="fr sum"><span></span><span class="fn">${F.d > 0 ? 'Delta' : 'Überfinanzierung'}</span><span class="fa">${eur(Math.abs(F.d))}</span>${EMPTY3}</div><div class="fline"></div>`);
+  R.push(`<div class="fr sum"><span></span><span class="fn">Eigenmittel</span><span class="fa">${eur(F.eig)}</span>${EMPTY3}</div>`);
+  return `<div class="fg">${R.join('')}</div>`;
+}
+// Spendenübergabe: steht die Finanzierung und ist noch nichts vereinbart, ein oranges Dreieck; darunter die Info dazu
+function lUebergabe(b) {
+  const u = b.nach.ueb, F = finState(b), ort = u.ort ? `<div class="ml-sub">${esc(u.ort)}</div>` : '';
+  const top = !u.noetig ? '<div class="ml nn">nicht nötig</div>'
+    : u.st === 'erledigt' ? `<div class="ml">${mi('ok', 'erledigt')}<span>erledigt${u.termin ? ' am ' + fmtDate(u.termin) : ''}</span></div>${ort}`
+    : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${u.termin ? fmtDate(u.termin) : 'terminiert'}</span></div>${ort}`
+    : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '';
+  return top + (u.noetig && u.info.trim() ? `<div class="note">${esc(u.info)}</div>` : '');
+}
+
+/* ---------- Filtern und Sortieren: hohe Priorität zuerst, dann nach der nächsten Frist */
 const CMP = {
-  prio: b => PRIO_ORD[b.prio], titel: b => (b.titel || '').toLowerCase(), zust: b => (b.zust[0] || '~').toLowerCase(), summe: b => -(+b.summe || 0),
-  deadline: b => b.deadline || '9999', stand: b => { const p = phase(b); return p.step < 0 ? 9 : p.step; }, fin: b => { const F = fin(b); return F.S ? F.gedeckt / F.S : 9; },
-  frist: b => (nextFrist(b) || {}).d || '9999',
+  prio: b => PRIO_ORD[b.prio], titel: b => (b.titel || '').toLowerCase(), frist: b => (nextFrist(b) || {}).d || '9999',
 };
 function cmp(x, y, k) { const a = CMP[k](x), c = CMP[k](y); return typeof a === 'number' ? a - c : String(a).localeCompare(String(c), 'de'); }
 function filtered() {
@@ -36,20 +71,19 @@ function filtered() {
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
   if (UI.fSw) L = L.filter(b => b.stichwort === UI.fSw);
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, b.stichwort, ...b.zust, ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
-  const chain = [UI.sort, ...['prio', 'frist', 'titel'].filter(k => k !== UI.sort)];
-  return L.sort((x, y) => { for (let i = 0; i < chain.length; i++) { const r = cmp(x, y, chain[i]) * (i === 0 ? UI.dir : 1); if (r) return r; } return 0; });
+  return L.sort((x, y) => cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
 }
 const anyFilter = () => !!(UI.q || UI.fSw);
 
 function row(b) {
-  const p = phase(b), nf = nextFrist(b), dash = '<span class="faint">–</span>';
+  const tag = b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : b.prio === 'hoch' ? ' <span class="prio-t">(Prio)</span>' : '';
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">
-    <td class="c-titel"><div class="tline">${prioMark(b)}<span class="t">${esc(b.titel || '(ohne Namen)')}</span></div><div class="sub">${esc(glName(b))}${b.stichwort ? ` <span class="chip sw">${esc(b.stichwort)}</span>` : ''}</div></td>
-    <td class="num c-sum">${b.summe ? '<b>' + eur(b.summe) + '</b>' + `<div class="sub">${esc(b.summeArt)}</div>` : dash}</td>
-    <td>${b.deadline ? fmtDate(b.deadline) : dash}</td>
-    <td class="c-st">${phaseChip(p)}${p.warn.length ? ` <span class="wicon" title="${esc(p.warn.join(' · '))}" aria-label="${esc(p.warn.join(' · '))}">⚠</span>` : ''}${stLine(p)}</td>
-    <td class="c-fin">${finCell(b)}</td>
-    <td class="c-fr">${nf ? `<div class="${urg(nf.d)}">${fmtDate(nf.d)}</div><div class="sub">${esc(nf.t)} · ${rel(nf.d)}</div>` : dash}</td>
+    <td class="l-name">${esc(b.titel || '(ohne Namen)')}${tag}</td>
+    <td class="l-sum">${b.summe ? eur(b.summe) : '<span class="faint">–</span>'}</td>
+    <td class="l-meta"><div class="ort">${esc(b.gliederung === DIO ? 'Diözese' : b.gliederung || '–')}</div><div>${esc(b.zust[0] || '–')}</div><div>${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
+    <td class="l-fr">${lFreigabe(b)}</td>
+    <td class="l-fin">${lFinanz(b)}</td>
+    <td class="l-ueb">${lUebergabe(b)}</td>
   </tr>`;
 }
 const NCOL = 6;
@@ -59,31 +93,24 @@ function listBody() {
   return { html: L.map(row).join(''), n: L.length };
 }
 function listView() {
-  const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch);
-  const sel = (key, lab, vals, labels) => `<select data-ui="${key}" class="${UI[key] ? 'on' : ''}" aria-label="${lab}"><option value="">${lab}: alle</option>`
-    + (labels || uniq(vals).sort((a, c) => a.localeCompare(c, 'de')).map(v => [v, v])).map(([v, l]) => `<option value="${esc(v)}" ${UI[key] === v ? 'selected' : ''}>${esc(l)}</option>`).join('') + '</select>';
-  const th = (k, lab, cls = '') => `<button class="th ${UI.sort === k ? 'on' : ''} ${cls}" data-act="sort" data-v="${k}">${lab}${UI.sort === k ? (UI.dir > 0 ? ' ▲' : ' ▼') : ''}</button>`;
-  const body = listBody();
+  const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), body = listBody();
+  const sws = uniq(all.map(b => b.stichwort)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<main><section class="card">
     <div class="list-head">
       <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span>
       <div class="tools">
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
-        ${sel('fSw', 'Stichwort', all.map(b => b.stichwort))}
+        <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
         ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
       </div>
     </div>
     <div class="tablewrap"><table class="list"><thead><tr>
-      <th class="c-titel">${th('prio', 'Prio')} · ${th('titel', 'Bedarf')}</th><th class="r">${th('summe', 'Summe')}</th><th>${th('deadline', 'Deadline')}</th>
-      <th>${th('stand', 'Phase und Stand')}</th><th>${th('fin', 'Finanzierung')}</th><th>${th('frist', 'Nächste Frist')}</th>
+      <th>Bedarf</th><th class="r">Summe</th><th></th><th class="l-fr">Freigabe</th>
+      <th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div></th><th class="l-ueb">Spendenübergabe</th>
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
-    <div class="legend">
-      <span class="lg"><span class="prio p-hoch"><i></i><i></i><i></i></span>hoch</span><span class="lg"><span class="prio p-mittel"><i></i><i></i><i></i></span>mittel</span><span class="lg"><span class="prio p-niedrig"><i></i><i></i><i></i></span>niedrig</span>
-      <span class="sep"></span>${LEGEND_FIN}
-    </div>
   </section></main>`;
 }
-// Priorität direkt in der Liste ändern: kleines Menü am Balken
+// Priorität ändern: kleines Menü am Balken (Seite des Bedarfs)
 function prioMenu(btn) {
   closeMenus();
   const b = D.bedarfe.find(x => x.id === btn.dataset.id); if (!b) return;

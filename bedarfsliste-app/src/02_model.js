@@ -15,6 +15,8 @@ const ART = ['Stiftung', 'Sparkasse', 'Volksbank / Bank', 'Unternehmen', 'Sozial
 // Einschätzung in fünf Stufen; Ton = Farbe im Auswahlfeld (alte Werte bis 0.1: gut → wahrscheinlich, schwierig → unwahrscheinlich)
 const EINSCH = [['sw', 'sehr wahrscheinlich', 't-e5'], ['w', 'wahrscheinlich', 't-e4'], ['u', 'unsicher', 't-e3'], ['uw', 'unwahrscheinlich', 't-e2'], ['suw', 'sehr unwahrscheinlich', 't-e1']];
 const EINSCH_ALT = { gut: 'w', unsicher: 'u', schwierig: 'uw' };
+// Verwendungsnachweis (Sach- und Finanzbericht in einem Abwasch)
+const VN_ST = [['offen', 'steht aus'], ['arbeit', 'in Arbeit', 't-warn'], ['erledigt', 'erledigt', 't-ok']];
 const FEST_UL = ['Konzept', 'Projektsteckbrief', 'Angebot'];
 
 function emptyData() { return { meta: { savedAt: null, rev: 0 }, settings: { kartei: '' }, bedarfe: [] }; }
@@ -27,7 +29,7 @@ function blank() {
     },
     unterlagen: FEST_UL.map(n => UL(n, 'fehlt', true)),
     foerderer: [], eigenanteil: null,
-    nach: { ueb: { noetig: true, st: 'offen', termin: '', ort: '', mit: [] }, pm: { noetig: true, st: 'offen', datum: '' } },
+    nach: { ueb: { noetig: true, st: 'offen', termin: '', ort: '', mit: [], info: '' }, pm: { noetig: true, st: 'offen', datum: '' } },
     manuell: '', archiv: false, angelegt: today(),
   };
 }
@@ -38,7 +40,7 @@ function ff(o) {
     id: uid('f'), name: '', durch: 'ich', betrag: null, zugesagt: null, eingegangen: null, eingangAm: '', status: 'geplant', beantragtAm: '', entscheidungAm: '',
     frist: '', erwartet: '', warum: '', knackpunkte: '', einsch: '',
     art: '', weg: '', kontakt: '', mail: '', tel: '', web: '', fristInfo: '', hoehe: '', eigenInfo: '', quellen: '', notiz: '',
-    sb: { noetig: false, frist: '', erledigt: false }, vn: { noetig: false, frist: '', erledigt: false },
+    vn: { noetig: false, frist: '', st: 'offen' },
   }, o);
 }
 // Daten aus der Datei auf den aktuellen Aufbau bringen (fehlende Felder ergänzen, Unbrauchbares verwerfen)
@@ -57,9 +59,23 @@ function normalize(d) {
       n.unterlagen.splice(Math.min(i, n.unterlagen.length), 0, UL(name, name === 'Angebot' && alt ? ({ ok: 'da', angefragt: 'arbeit' })[alt] || 'fehlt' : 'fehlt', true));
     });
     delete n.freigabe.angebot; delete n.freigabe.trotzdem;
-    n.foerderer = (Array.isArray(b.foerderer) ? b.foerderer : []).filter(isObj).map(f => merge(ff({}), f));
+    n.foerderer = (Array.isArray(b.foerderer) ? b.foerderer : []).filter(isObj).map(f0 => {
+      const f = merge(ff({}), f0), v = f.vn, v0 = isObj(f0.vn) ? f0.vn : {}, sb = isObj(f0.sb) ? f0.sb : null;
+      // ab 0.6 hat der Verwendungsnachweis drei Stände, und der Sachbericht gehört zu ihm (ein Abwasch)
+      if (!VN_ST.some(o => o[0] === v0.st)) v.st = v0.erledigt === true ? 'erledigt' : 'offen';
+      if (sb && sb.noetig) {
+        if (!v.noetig) Object.assign(v, { noetig: true, frist: sb.frist || v.frist, st: sb.erledigt ? 'erledigt' : 'offen' });
+        else {
+          if (sb.frist && (!v.frist || sb.frist < v.frist)) v.frist = sb.frist;
+          if ((v.st === 'erledigt') !== !!sb.erledigt) v.st = 'arbeit';
+        }
+      }
+      delete f.sb; delete v.erledigt;
+      return f;
+    });
     n.foerderer.forEach(f => { if (f.einsch in EINSCH_ALT) f.einsch = EINSCH_ALT[f.einsch]; if (!EINSCH.some(e => e[0] === f.einsch)) f.einsch = ''; });
     if (!Array.isArray(n.nach.ueb.mit)) n.nach.ueb.mit = [];
+    if (typeof n.nach.ueb.info !== 'string') n.nach.ueb.info = '';
     if (!(n.prio in PRIO_ORD)) n.prio = 'mittel';
     for (const k of ['titel', 'gliederung', 'beschreibung', 'stichwort', 'link', 'pfad']) if (typeof n[k] !== 'string') n[k] = n[k] == null ? '' : String(n[k]);
     return n;
@@ -103,14 +119,23 @@ function fin(b) {
   const eig = +b.eigenanteil || 0, S = +b.summe || 0;
   return { geplant: ge, beantragt: be, zugesagt: zu, eingegangen: ein, eig, S, gedeckt: zu + eig, mitBe: zu + eig + be, mitGe: zu + eig + be + ge };
 }
-// Wer deckt was: zugesagt (eingegangen zuerst), Eigenanteil, beantragt, geplant – in dieser Reihenfolge im Balken; abgelehnte fehlen
-const KIND_L = { in: 'eingegangen', zu: 'zugesagt', eig: 'Eigenanteil', be: 'beantragt', ge: 'geplant' };
+// Finanzierung steht, wenn Zusagen und Eigenmittel den Bedarf decken und kein Antrag mehr läuft; nie angegangene Förderer zählen dann nicht mehr.
+// d: was noch fehlt (> 0) oder zu viel ist (< 0) – solange die Finanzierung nicht steht, zählen auch geplante und beantragte Förderer mit
+function finState(b) {
+  const S = +b.summe || 0, eig = +b.eigenanteil || 0, fs = b.foerderer.filter(f => f.name.trim() || f.betrag);
+  const sum = L => L.reduce((a, f) => a + foeAmt(f), 0);
+  const zu = sum(fs.filter(f => f.status === 'zugesagt')), plan = sum(fs.filter(f => f.status !== 'abgelehnt'));
+  const done = (S ? zu + eig >= S : zu > 0) && !fs.some(f => f.status === 'beantragt');
+  return { S, eig, fs, zu, done, d: S ? S - (done ? zu : plan) - eig : 0 };
+}
+// Wer deckt was: zugesagt (eingegangen zuerst), Eigenmittel, beantragt, geplant – in dieser Reihenfolge im Balken; abgelehnte fehlen
+const KIND_L = { in: 'eingegangen', zu: 'zugesagt', eig: 'Eigenmittel', be: 'beantragt', ge: 'geplant' };
 const foeAmt = f => f.status === 'zugesagt' ? (f.zugesagt != null ? +f.zugesagt : +f.betrag || 0) : +f.betrag || 0;
 function finSegs(b) {
   const ord = { in: 0, zu: 1, eig: 2, be: 3, ge: 4 };
   const segs = b.foerderer.filter(f => f.status !== 'abgelehnt' && foeAmt(f) > 0).map(f => ({ id: f.id, v: foeAmt(f), name: f.name.trim() || '(ohne Namen)',
     k: f.status === 'zugesagt' ? (f.eingegangen > 0 ? 'in' : 'zu') : f.status === 'beantragt' ? 'be' : 'ge' }));
-  if (+b.eigenanteil > 0) segs.push({ id: null, v: +b.eigenanteil, k: 'eig', name: 'Eigenanteil' });
+  if (+b.eigenanteil > 0) segs.push({ id: null, v: +b.eigenanteil, k: 'eig', name: 'Eigenmittel' });
   return segs.sort((x, y) => ord[x.k] - ord[y.k]);
 }
 function finText(b) {
@@ -128,12 +153,9 @@ const names = l => l.map(f => short(f.name)).join(', ');
 function nachOffen(b) {
   const L = [];
   for (const f of b.foerderer) if (f.status === 'zugesagt') {
-    const x = [];
-    if (f.sb.noetig && !f.sb.erledigt) x.push('Sachbericht');
-    if (f.vn.noetig && !f.vn.erledigt) x.push('Verwendungsnachweis');
-    if (x.length) L.push(x.join(' und ') + ' ' + short(f.name));
+    if (f.vn.noetig && f.vn.st !== 'erledigt') L.push('Verwendungsnachweis ' + short(f.name));
   }
-  if (b.nach.ueb.noetig && b.nach.ueb.st !== 'erledigt') L.push('Spendenübergabe');
+  if (b.nach.ueb.noetig && b.nach.ueb.st !== 'erledigt' && b.foerderer.some(f => f.status === 'zugesagt')) L.push('Spendenübergabe');
   if (b.nach.pm.noetig && b.nach.pm.st !== 'veroeff') L.push('Pressemitteilung');
   return L;
 }
@@ -150,10 +172,12 @@ function phase(b) {
   if (fo.names.length) return { k: 'frei', step: 0, t: 'Es fehlt', sub: fo.names.join(', '), bad: false, warn };
   if (!fs.length) return { k: 'plan', step: 1, t: 'Förderplan aufstellen', sub: 'noch kein Förderer eingetragen', bad: false, warn };
   const vor = fs.filter(f => f.status === 'geplant' || f.status === 'vorb'), wart = fs.filter(f => f.status === 'beantragt');
-  if (vor.length) return { k: 'antrag', step: 1, t: 'Anträge stellen', sub: names(vor) + (wart.length ? ' · wartet auf ' + names(wart) : ''), bad: false, warn };
-  if (wart.length) return { k: 'warten', step: 1, t: 'Warten auf Antwort', sub: names(wart), bad: false, warn };
-  const F = fin(b), zu = fs.filter(f => f.status === 'zugesagt');
-  if (!zu.length || (F.S && F.gedeckt < F.S)) return { k: 'luecke', step: 1, t: 'Finanzierungslücke', sub: (F.S ? eur(F.S - F.gedeckt) + ' offen' : 'keine Zusage') + ', weiteren Förderer suchen', bad: true, warn };
+  const FS = finState(b), zu = fs.filter(f => f.status === 'zugesagt');
+  if (!FS.done) {
+    if (vor.length) return { k: 'antrag', step: 1, t: 'Anträge stellen', sub: names(vor) + (wart.length ? ' · wartet auf ' + names(wart) : ''), bad: false, warn };
+    if (wart.length) return { k: 'warten', step: 1, t: 'Warten auf Antwort', sub: names(wart), bad: false, warn };
+    return { k: 'luecke', step: 1, t: 'Finanzierungslücke', sub: (FS.S ? eur(FS.S - FS.zu - FS.eig) + ' offen' : 'keine Zusage') + ', weiteren Förderer suchen', bad: true, warn };
+  }
   const geld = zu.filter(f => !(f.eingegangen > 0));
   if (geld.length) return { k: 'geld', step: 1, t: 'Geldeingang offen', sub: names(geld), bad: false, warn };
   const na = nachOffen(b);
@@ -171,7 +195,7 @@ function fristen(b) {
   for (const f of b.foerderer) {
     if ((f.status === 'geplant' || f.status === 'vorb') && f.frist) L.push({ d: f.frist, t: 'Antragsfrist ' + short(f.name) });
     if (f.status === 'beantragt' && f.erwartet) L.push({ d: f.erwartet, t: 'Antwort ' + short(f.name) });
-    if (f.status === 'zugesagt') for (const [k, l] of [['sb', 'Sachbericht'], ['vn', 'Verwendungsnachweis']]) if (f[k].noetig && !f[k].erledigt && f[k].frist) L.push({ d: f[k].frist, t: l + ' ' + short(f.name) });
+    if (f.status === 'zugesagt' && f.vn.noetig && f.vn.st !== 'erledigt' && f.vn.frist) L.push({ d: f.vn.frist, t: 'Verwendungsnachweis ' + short(f.name) });
   }
   const u = b.nach.ueb;
   if (u.noetig && u.st !== 'erledigt' && u.termin) L.push({ d: u.termin, t: 'Spendenübergabe' });

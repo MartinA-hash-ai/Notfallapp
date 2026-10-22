@@ -258,14 +258,15 @@ function stMenu(btn) {
   placePop(m, btn);
   (m.querySelector('button.on') || m.querySelector('button')).focus();
 }
-/* ---------- Übersicht oben im Förderplan: Balken je Förderer, darunter die Tabelle (Gesamtbedarf, Förderer farbig nach Stand, Eigenanteil) */
+/* ---------- Übersicht oben im Förderplan: Balken je Förderer, darunter die Tabelle (Gesamtbedarf, Förderer farbig nach Stand, Delta, Eigenmittel) */
 const ROW_CLS = { zugesagt: 'r-zu', beantragt: 'r-be', vorb: 'r-ge', geplant: 'r-ge', abgelehnt: 'r-ab' };
 function finBarBlock(b) { return segBar(b, { big: true }) + `<div class="legend">${LEGEND_FIN}</div>`; }
 function finRows(b) {
-  const S = +b.summe || 0;
+  const S = +b.summe || 0, F = finState(b);
   return `<tr class="r-sum"><th>Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`
     + b.foerderer.filter(f => f.name.trim() || f.betrag).map(f => { const v = foeAmt(f);
-      return `<tr class="${ROW_CLS[f.status]}"><th>${esc(f.name || '(ohne Namen)')} <span class="r-st">${F_ST_L[f.status]}${f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : ''}</span></th><td class="num">${eur(v)}</td><td class="num">${f.status === 'abgelehnt' ? '' : pct(v, S)}</td></tr>`; }).join('');
+      return `<tr class="${ROW_CLS[f.status]}"><th>${esc(f.name || '(ohne Namen)')} <span class="r-st">${F_ST_L[f.status]}${f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : ''}</span></th><td class="num">${eur(v)}</td><td class="num">${f.status === 'abgelehnt' ? '' : pct(v, S)}</td></tr>`; }).join('')
+    + (F.d ? `<tr class="r-delta"><th>${F.d > 0 ? 'Delta <span class="r-st">noch ohne Förderer</span>' : 'Überfinanzierung'}</th><td class="num">${eur(Math.abs(F.d))}</td><td class="num">${pct(Math.abs(F.d), S)}</td></tr>` : '');
 }
 const finEigPct = b => pct(+b.eigenanteil || 0, +b.summe || 0);
 function secFoe(b) {
@@ -275,17 +276,17 @@ function secFoe(b) {
         <button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – neue Förderer kommen dazu, vorhandene werden ergänzt">${ICON_UP}</button></div></div>
     <div id="fin-bar" class="fin-bar">${finBarBlock(b)}</div>
     <table class="fsum"><tbody id="fin-rows">${finRows(b)}</tbody>
-      <tbody><tr class="r-eig"><th>Eigenanteil <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenanteil in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
+      <tbody><tr class="r-eig"><th>Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
     ${dl('dl-kartei', KR.list.map(k => k.name))}
   </section>
   ${b.foerderer.map(f => fpCard(b, f)).join('') || '<div class="empty fp-empty">Noch kein Förderer eingetragen – einzeln mit „+ Förderer“ oder viele auf einmal aus einer ausgefüllten Recherche-Excel (Symbol oben rechts im Förderplan).</div>'}
   <div class="foe-add"><button data-act="add-foe">+ Förderer</button><span class="muted small">${KR.list.length ? 'Namen aus der Förder-Kartei werden beim Tippen vorgeschlagen.' : ''}</span></div>`;
 }
 
-/* ---------- Nacharbeit: Übergabe und Pressemitteilung einmal je Bedarf, Berichte je Förderer */
-function nachLine(f, k, lab) {
-  const a = `data-fid="${f.id}"`, x = f[k];
-  return `<div class="nl ${x.noetig && !x.erledigt ? 'open' : ''}">${cbx(f, k + '.noetig', lab, a)}${x.noetig ? `<label class="inl">Frist ${din(f, k + '.frist', a + ' aria-label="Frist ' + lab + '"')}</label>${cbx(f, k + '.erledigt', 'erledigt', a)}` : '<span class="muted small">nicht nötig</span>'}</div>`;
+/* ---------- Nacharbeit: Übergabe und Pressemitteilung einmal je Bedarf, Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */
+function nachLine(f) {
+  const a = `data-fid="${f.id}"`, x = f.vn;
+  return `<div class="nl ${x.noetig && x.st !== 'erledigt' ? 'open' : ''}">${cbx(f, 'vn.noetig', 'Verwendungsnachweis', a)}${x.noetig ? `<label class="inl">Frist ${din(f, 'vn.frist', a + ' aria-label="Frist Verwendungsnachweis"')}</label>${seg(VN_ST, x.st, `data-p="vn.st" ${a}`, 'small')}` : '<span class="muted small">nicht nötig</span>'}</div>`;
 }
 function nachBody(b) {
   const zu = b.foerderer.filter(f => f.status === 'zugesagt'), cand = b.foerderer.filter(f => f.status !== 'abgelehnt' && f.name.trim()), n = b.nach;
@@ -293,6 +294,7 @@ function nachBody(b) {
     <div><h3>Gemeinsam für den Bedarf</h3>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.ueb.noetig', 'Spendenübergabe')}${n.ueb.noetig ? seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], n.ueb.st, 'data-p="nach.ueb.st"', 'small') : ''}</div>
         ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', din(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"'))}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus'))}</div>
+          ${fld('Info', tarea(b, 'nach.ueb.info', 'aria-label="Info zur Spendenübergabe"', 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos'))}
           ${fld('Wer ist dabei?', `<div class="mit">${cand.length ? cand.map(f => `<label class="check"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${n.ueb.mit.includes(f.id) ? 'checked' : ''}> ${esc(f.name)} <span class="muted small">${F_ST_L[f.status]}</span></label>`).join('') : '<span class="muted small">Noch keine Förderer im Förderplan</span>'}</div>`)}` : ''}
       </div>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.pm.noetig', 'Pressemitteilung')}${n.pm.noetig ? seg([['offen', 'offen'], ['arbeit', 'in Arbeit', 't-warn'], ['veroeff', 'veröffentlicht', 't-ok']], n.pm.st, 'data-p="nach.pm.st"', 'small') : ''}</div>
@@ -300,11 +302,11 @@ function nachBody(b) {
       </div>
     </div>
     <div><h3>Je Förderer</h3>
-      ${zu.length ? zu.map(f => `<div class="na-block"><div class="na-title">${esc(f.name || '(ohne Namen)')}</div>${nachLine(f, 'sb', 'Sachbericht')}${nachLine(f, 'vn', 'Verwendungsnachweis')}</div>`).join('') : '<div class="empty small">Erscheint, sobald eine Förderung zugesagt ist.</div>'}
+      ${zu.length ? zu.map(f => `<div class="na-block"><div class="na-title">${esc(f.name || '(ohne Namen)')}</div>${nachLine(f)}</div>`).join('') : '<div class="empty small">Erscheint, sobald eine Förderung zugesagt ist.</div>'}
     </div>
   </div>`;
 }
 function secNach(b) {
-  return `<section class="card" id="sec-nach"><div class="sec-head"><h2>Nacharbeit</h2><p>Spendenübergabe und Pressemitteilung einmal für den ganzen Bedarf, Sachbericht und Verwendungsnachweis je Förderer.</p></div>
+  return `<section class="card" id="sec-nach"><div class="sec-head"><h2>Nacharbeit</h2><p>Spendenübergabe und Pressemitteilung einmal für den ganzen Bedarf, der Verwendungsnachweis (Sach- und Finanzbericht) je Förderer.</p></div>
     <div id="nach-body">${nachBody(b)}</div></section>`;
 }

@@ -26,7 +26,7 @@ function demoBedarfe() {
       foerderer: [
         ff({ id: 'f-mtw-spk', name: 'Sparkasse Musterstadt', art: 'Sparkasse', betrag: 10000, status: 'zugesagt', zugesagt: 10000, eingegangen: 10000, eingangAm: '2026-10-02', beantragtAm: '2026-08-25', entscheidungAm: '2026-09-18', einsch: 'sw',
           warum: 'Starker Regionalbezug Paderborn. Das Fahrzeug ist bei Großveranstaltungen zu sehen, ein Förderhinweis auf dem Fahrzeug ist möglich.', knackpunkte: 'Höchstens 10.000 € je Vorhaben.',
-          vn: { noetig: true, frist: '2027-09-30', erledigt: false } }),
+          vn: { noetig: true, frist: '2027-09-30', st: 'offen' } }),
         ff({ id: 'f-mtw-bst', name: 'Bürgerstiftung Musterstadt', art: 'Stiftung', betrag: 15000, status: 'beantragt', beantragtAm: '2026-09-15', erwartet: '2026-11-30', einsch: 'u',
           warum: 'Satzungszweck Bevölkerungsschutz und bürgerschaftliches Engagement.', knackpunkte: 'Fördert ungern ganze Fahrzeuge. Im Antrag die Ausstattung (Sanitätsmaterial, Funk) in den Vordergrund stellen.' }),
         ff({ id: 'f-mtw-lot', name: 'Beispiel-Soziallotterie', betrag: 30000, status: 'vorb', frist: '2027-01-15', einsch: 'w', art: 'Soziallotterie', weg: 'Portal', web: 'https://antrag.beispiel-lotterie.example',
@@ -63,9 +63,23 @@ function demoBedarfe() {
       freigabe: { ofk: { st: 'ok', erledigt: '2026-05-20' }, angebot: { st: 'ok', erledigt: '2026-05-22' }, fach: { name: 'Soziales Ehrenamt', st: 'ok', erledigt: '2026-05-28' }, verw: { st: 'ok', erledigt: '2026-06-02' } },
       unterlagen: [UL('Konzept', 'da', true), UL('Projektsteckbrief', 'da', true), UL('Bilder', 'da'), UL('Presseartikel', 'da')],
       foerderer: [ff({ id: 'f-wb-lot', name: 'Beispiel-Soziallotterie', art: 'Soziallotterie', betrag: 12000, status: 'zugesagt', zugesagt: 12000, eingegangen: 12000, eingangAm: '2026-09-20', beantragtAm: '2026-06-10', entscheidungAm: '2026-08-29', einsch: 'w',
-        warum: 'Hat den Wärmebus schon 2025 gefördert.', sb: { noetig: true, frist: '2027-04-30', erledigt: false }, vn: { noetig: true, frist: '2027-04-30', erledigt: false } })],
+        warum: 'Hat den Wärmebus schon 2025 gefördert.', vn: { noetig: true, frist: '2027-04-30', st: 'arbeit' } }),
+        ff({ name: 'Volksbank Beispielland eG', art: 'Volksbank / Bank', betrag: 2000, status: 'abgelehnt', beantragtAm: '2026-06-10', entscheidungAm: '2026-07-15', knackpunkte: 'Absage: Budget für 2026 schon vergeben.' }),
+        ff({ name: 'Stadtwerke Hagen (Beispiel)', art: 'Unternehmen', betrag: 1500, status: 'geplant', warum: 'Reserve, falls die Lotterie weniger gibt – nicht mehr nötig.' })],
       eigenanteil: 2000,
       nach: { ueb: { noetig: true, st: 'erledigt', termin: '2026-10-05', ort: 'Hauptbahnhof Hagen', mit: ['f-wb-lot'] }, pm: { noetig: true, st: 'veroeff', datum: '2026-10-06' } } }),
+
+    B({ id: 'b-kueche', titel: 'Küche für den Gruppenraum der Malteser Jugend', gliederung: 'Warburg', zust: ['Julia Exempel'], prio: 'mittel', summe: 9500, summeArt: 'Angebot',
+      beschreibung: 'Einbauküche für den Gruppenraum, damit die Jugendgruppe gemeinsam kochen kann.',
+      freigabe: { ofk: { st: 'ok', erledigt: '2026-04-14' }, fach: { name: 'Jugend', st: 'ok', erledigt: '2026-04-28' }, verw: { st: 'ok', erledigt: '2026-05-04' } },
+      unterlagen: [UL('Konzept', 'da', true), UL('Projektsteckbrief', 'da', true), UL('Angebot', 'da', true)],
+      foerderer: [
+        ff({ name: 'Bürgerstiftung Musterstadt', art: 'Stiftung', betrag: 5000, status: 'zugesagt', zugesagt: 5000, eingegangen: 5000, eingangAm: '2026-08-20', beantragtAm: '2026-05-20', entscheidungAm: '2026-07-02', einsch: 'sw',
+          vn: { noetig: true, frist: '2027-03-31', st: 'erledigt' } }),
+        ff({ name: 'Sparkasse Musterstadt', art: 'Sparkasse', betrag: 3000, status: 'zugesagt', zugesagt: 3000, eingegangen: 3000, eingangAm: '2026-08-28', beantragtAm: '2026-05-20', entscheidungAm: '2026-07-10', einsch: 'sw' }),
+      ],
+      eigenanteil: 2000,
+      nach: { ueb: { noetig: true, st: 'offen', info: 'Küche wird erst Ende November eingebaut – Übergabe danach, damit es Fotos von der fertigen Küche gibt.' }, pm: { noetig: true, st: 'offen' } } }),
 
     B({ id: 'b-klausur', titel: 'Klausurtagung der Ehrenamtskoordination 2027', gliederung: DIO, zust: ['Julia Exempel'], prio: 'niedrig', summe: 2500, summeArt: 'Angebot', deadline: '2027-02-28',
       beschreibung: 'Zwei Tage für die Ehrenamtskoordination aller Gliederungen, mit Tagungshaus und Referentin.',
@@ -77,7 +91,7 @@ function demoBedarfe() {
 
     B({ id: 'b-rucksack', titel: 'Sanitätsrucksäcke für die Helfergruppe', gliederung: 'Iserlohn-Menden', zust: ['Peter Beispiel'], prio: 'mittel', summe: 3200, summeArt: 'Angebot', deadline: '2027-04-30',
       beschreibung: 'Sechs Rucksäcke nach aktueller Bestückungsliste. Die alten sind über zehn Jahre alt.',
-      freigabe: { ofk: { st: 'ok', erledigt: '2026-09-15' }, angebot: { st: 'ok', erledigt: '2026-09-18' }, fach: { name: 'Notfallvorsorge' } },
+      freigabe: { ofk: { st: 'ok', erledigt: '2026-09-15' }, angebot: { st: 'ok', erledigt: '2026-09-18' }, fach: { name: 'Notfallvorsorge' }, verw: { st: 'nein', angefragt: '2026-10-01', erledigt: '2026-10-08', notiz: 'Nicht budgetiert – erst 2028 möglich.' } },
       unterlagen: [UL('Konzept', 'fehlt', true), UL('Projektsteckbrief', 'fehlt', true)],
       foerderer: [ff({ name: 'Volksbank Beispielland eG', art: 'Volksbank / Bank', durch: 'gl', betrag: 3200, status: 'beantragt', beantragtAm: '2026-10-05', erwartet: '2026-10-15', einsch: 'suw',
         warum: 'Von der Gliederung selbst beantragt, ohne Absprache.', knackpunkte: 'Der AED-Bedarf aus Lippstadt soll an dieselbe Bank gehen.' })] }),
@@ -87,7 +101,7 @@ function demoBedarfe() {
       freigabe: { ofk: { st: 'ok', erledigt: '2026-01-20' }, angebot: { st: 'ok', erledigt: '2026-01-22' }, fach: { name: 'Notfallvorsorge', st: 'ok', erledigt: '2026-02-02' }, verw: { st: 'ok', erledigt: '2026-02-05' } },
       unterlagen: [UL('Konzept', 'da', true), UL('Projektsteckbrief', 'da', true)],
       foerderer: [ff({ id: 'f-pav-spk', name: 'Sparkasse Musterstadt', art: 'Sparkasse', betrag: 2000, status: 'zugesagt', zugesagt: 2000, eingegangen: 2000, eingangAm: '2026-04-12', beantragtAm: '2026-02-10', entscheidungAm: '2026-03-20', einsch: 'sw',
-        vn: { noetig: true, frist: '2026-09-30', erledigt: true } })],
+        vn: { noetig: true, frist: '2026-09-30', st: 'erledigt' } })],
       nach: { ueb: { noetig: true, st: 'erledigt', termin: '2026-05-09', ort: 'Schützenfest Geseke', mit: ['f-pav-spk'] }, pm: { noetig: true, st: 'veroeff', datum: '2026-05-11' } } }),
   ];
 }

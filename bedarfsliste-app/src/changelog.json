@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.6.0",
+    "date": "2026-10-22T08:05",
+    "items": [
+      "Neue Liste, von links nach rechts mit einem Blick erfassbar: Name (bei hoher Priorität „(Prio)“), Summe, Ort, zuständige Person und „bis“-Datum – dann Freigabe, Finanzierungsplan mit Verwendungsnachweis und Spendenübergabe",
+      "Freigabe in der Liste: Ortsführungskreis, Verwaltung, Fachreferat und Angebot als Kreise; ist alles durch, wird der Block blass grün",
+      "Finanzierungsplan in der Liste: Kreis je Förderer nach Stand, darunter Delta (oder Überfinanzierung) und die Eigenmittel als fester Betrag; von jeder Zusage führt eine gepunktete Linie zum Verwendungsnachweis",
+      "Steht die Finanzierung (Zusagen und Eigenmittel decken den Bedarf, kein Antrag läuft mehr), bleiben nur Zusagen mit offenem Nachweis kräftig; Erledigtes wird blass grün, Absagen und nie Angegangenes blass grau",
+      "Spendenübergabe: steht die Finanzierung und ist noch nichts vereinbart, erscheint ein oranges Dreieck; darunter die neue Info aus der Nacharbeit",
+      "Verwendungsnachweis mit drei Ständen (steht aus, in Arbeit, erledigt); der Sachbericht gehört jetzt dazu und wird aus älteren Daten übernommen",
+      "Förderplan auf der Seite des Bedarfs: Delta-Zeile und „Eigenmittel“ statt „Eigenanteil“"
+    ]
+  },
+  {
     "version": "0.5.0",
     "date": "2026-10-21T20:15",
     "items": [

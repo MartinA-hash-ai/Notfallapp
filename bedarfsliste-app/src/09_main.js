@@ -1,10 +1,10 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
-const DEMO_KEY = 'bedarfsliste-vorschau-3';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', sort: 'prio', dir: 1, open: {}, geld: null };
-const UI_KEEP = ['view', 'id', 'tab', 'sort', 'dir'];
+const DEMO_KEY = 'bedarfsliste-vorschau-4';
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', open: {}, geld: null };
+const UI_KEEP = ['view', 'id', 'tab'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
-function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } if (!(UI.sort in CMP)) UI.sort = 'prio'; }
+function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
 function saveUI() { try { localStorage.setItem(uiKey(), JSON.stringify(Object.fromEntries(UI_KEEP.map(k => [k, UI[k]])))); } catch (e) { /* */ } }
 const cur = () => D.bedarfe.find(b => b.id === UI.id) || null;
 
@@ -189,7 +189,6 @@ async function act(k, a, e) {
       UI.tab = 'aktiv'; UI.view = 'detail'; UI.id = nb.id; renderNow(); scrollTo(0, 0);
       const t = $('#f-titel'); if (t) t.focus(); return;
     }
-    case 'sort': { const v = a.dataset.v; if (UI.sort === v) UI.dir *= -1; else { UI.sort = v; UI.dir = 1; } keep(renderNow); return; }
     case 'clear': Object.assign(UI, { q: '', fSw: '' }); keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
     case 'circ': circMenu(a); return;

@@ -61,14 +61,19 @@ const setCirc = async (p, sel, v) => { await p.click(sel); await p.click(`.circ-
   await p.click('[data-p="nach.ueb.st"][data-v="erledigt"]'); await p.click('[data-p="nach.pm.st"][data-v="veroeff"]');
   ok((await status(p)).includes('Alles erledigt'), 'Nacharbeit erledigt → abgeschlossen');
   await p.click('button[data-act="back"]');
-  r = await p.evaluate(() => { const td = [...document.querySelectorAll('#list-body tr[data-id] td')].map(e => e.innerText.replace(/\s+/g, ' ').trim()); return [td.length, td[1], td[2], document.querySelector('#list-body .phase').textContent, td[4]]; });
-  ok(r[0] === 6 && r[1].startsWith('800 €') && r[2] === '–' && r[3] === 'Abgeschlossen' && r[4].includes('Sparkasse X'), 'Liste: Summe, Strich ohne Deadline, Phase, Finanzierung mit Förderer');
-  await p.click('#list-body tr[data-id] button.prio');
-  await p.click('#pmenu button[data-v="hoch"]');
-  ok(await p.evaluate(() => D.bedarfe[0].prio === 'hoch' && UI.view === 'list'), 'Priorität in der Liste geändert, Liste bleibt offen');
+  r = await p.evaluate(() => { const tr = document.querySelector('#list-body tr[data-id]'), td = [...tr.querySelectorAll('td')].map(e => e.innerText.replace(/\s+/g, ' ').trim());
+    return [td.length, td[0], td[1], td[2], !!tr.querySelector('.l-fr .done'), tr.querySelector('.l-fin .fr.z .fn').textContent, tr.querySelector('.l-fin .vt.nn').textContent, !tr.querySelector('.l-fin .lead'), td[5], !tr.querySelector('.phase, button.prio')]; });
+  ok(r.join('|') === '6|Defibrillator Test|800 €|Paderborn – ohne Deadline|true|Sparkasse X|nicht nötig|true|✓ erledigt|true', 'Liste: Name, Summe, Ort; Freigabe blass grün; Förderer blass grün ohne Nachweis; Übergabe erledigt: ' + r.join('|'));
+  await p.click('#list-body tr[data-id]');
+  await p.click('.d-head button.prio'); await p.click('#pmenu button[data-v="hoch"]');
+  await p.click('button[data-act="back"]');
+  ok(await p.evaluate(() => D.bedarfe[0].prio === 'hoch' && document.querySelector('#list-body tr[data-id] .prio-t').textContent === '(Prio)'), 'Priorität hoch (auf der Seite des Bedarfs) → „(Prio)“ hinter dem Namen');
   await p.click('#list-body tr[data-id]');
   await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-v="zurückgestellt"]');
   ok(await p.evaluate(() => D.bedarfe[0].manuell === 'zurückgestellt'), '„⋯“: zurückgestellt');
+  await p.click('button[data-act="back"]');
+  ok(await p.evaluate(() => document.querySelector('#list-body tr.paused .pause-t').textContent === '(zurückgestellt)'), 'Liste: zurückgestellt steht hinter dem Namen');
+  await p.click('#list-body tr[data-id]');
   await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-v=""]');
   ok(await p.evaluate(() => D.bedarfe[0].manuell === ''), '„⋯“: wieder aufgenommen');
   await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-act="archive"]');
@@ -84,6 +89,12 @@ const setCirc = async (p, sel, v) => { await p.click(sel); await p.click(`.circ-
   r = await p.evaluate(() => { const n = normalize({ bedarfe: [{ id: 'alt', titel: 'alt', freigabe: { angebot: { st: 'ok' }, trotzdem: true }, unterlagen: [{ name: 'Konzept', st: 'da', fest: true }, { name: 'Bilder', st: 'da' }], foerderer: [{ name: 'A', einsch: 'gut' }, { name: 'B', einsch: 'schwierig' }] }] }).bedarfe[0];
     return [n.unterlagen.map(u => u.name + ':' + u.st).join(), 'angebot' in n.freigabe, 'trotzdem' in n.freigabe, n.foerderer.map(f => f.einsch).join()]; });
   ok(r.join('|') === 'Konzept:da,Projektsteckbrief:fehlt,Angebot:da,Bilder:da|false|false|w,uw', 'Daten aus 0.1 werden übernommen: ' + r.join('|'));
+  // Daten bis 0.5: Sachbericht getrennt, Verwendungsnachweis nur erledigt ja/nein
+  r = await p.evaluate(() => normalize({ bedarfe: [{ id: 'alt5', foerderer: [
+    { name: 'A', sb: { noetig: true, frist: '2027-01-31', erledigt: true }, vn: { noetig: true, frist: '2027-03-31', erledigt: false } },
+    { name: 'B', sb: { noetig: true, frist: '2027-05-31', erledigt: false }, vn: { noetig: false, frist: '', erledigt: false } },
+    { name: 'C', vn: { noetig: true, frist: '2026-12-31', erledigt: true } }] }] }).bedarfe[0].foerderer.map(f => [f.vn.noetig, f.vn.frist, f.vn.st, 'sb' in f, 'erledigt' in f.vn].join()));
+  ok(r.join('|') === 'true,2027-01-31,arbeit,false,false|true,2027-05-31,offen,false,false|true,2026-12-31,erledigt,false,false', 'Sachbericht geht im Verwendungsnachweis auf, drei Stände: ' + r.join('|'));
   ok(!p.reqs.length, 'keine Anfragen ins Internet' + (p.reqs.length ? ': ' + p.reqs.join(', ') : ''));
   await finish(b, [p]);
 })();

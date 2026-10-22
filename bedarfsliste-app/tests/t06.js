@@ -1,4 +1,4 @@
-// Vorschau (Artifact): zeichnet ohne Fehler, Liste schlank, Bedarfsseite mit Phase an der Kopfzeile, rechter Spalte (Kreise), Förderplan mit Übersicht und Karten je Förderer, hell als Standard, dunkel per Einstellung, schmal ohne Querscrollen
+// Vorschau (Artifact): zeichnet ohne Fehler, Liste von links nach rechts (Kerninfo, Freigabe, Finanzierung mit Nachweis, Übergabe), Bedarfsseite mit Phase an der Kopfzeile, rechter Spalte (Kreise), Förderplan mit Übersicht und Karten je Förderer, hell als Standard, dunkel per Einstellung, schmal ohne Querscrollen
 const { chromium, ok, open, finish, fs, T } = require('./lib');
 (async () => {
   const b = await chromium.launch();
@@ -7,10 +7,29 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   const p = await open(b, { file, fakefs: false });
   let r = await p.evaluate(() => [...document.querySelectorAll('#list-body tr[data-id]')].map(e => e.dataset.id));
   ok(r[0] === 'b-mtw' && r[1] === 'b-aed', 'hohe Priorität zuerst, dann nach Frist');
-  r = await p.$eval('tr[data-id="b-mtw"] td.c-fin', e => e.innerText.replace(/\s+/g, ' '));
-  ok(r.includes('23.000 € von 68.000 € gedeckt') && r.includes('Beispiel-Soziallotterie 30.000 €') && r.includes('Eigenanteil 13.000 €'), 'Finanzierung: Deckung und Förderer mit Beträgen');
-  r = await p.$eval('tr[data-id="b-mtw"] td:nth-child(2) b', e => e.textContent.replace(/ /g, ' '));
-  ok(r === '68.000 €', 'Summe fett gleich neben dem Bedarf');
+  // je Zeile: Name, Summe, Ort · Zuständig · bis; Freigabe; Finanzierungsplan mit Nachweis; Spendenübergabe
+  const L = id => p.evaluate(id => { const tr = document.querySelector(`tr[data-id="${id}"]`), t = e => e ? e.innerText.replace(/[✓✕]/g, '').replace(/\s+/g, ' ').trim() : '';
+    return { name: t(tr.querySelector('.l-name')), sum: t(tr.querySelector('.l-sum')), meta: t(tr.querySelector('.l-meta')), frDone: !!tr.querySelector('.l-fr .done'),
+      fr: [...tr.querySelectorAll('.l-fr .mi')].map(m => m.className.replace('mi m-', '')).join(), fin: [...tr.querySelectorAll('.l-fin .fr')].map(r => r.className.replace('fr', '').trim() + ':' + [...r.children].map(t).filter(Boolean).join(' ')).join(' | '),
+      sym: [...tr.querySelectorAll('.l-fin .fr > .mi:first-child')].map(m => m.className.replace('mi m-', '')).join(), leads: tr.querySelectorAll('.l-fin .lead').length, ueb: t(tr.querySelector('.l-ueb')) }; }, id);
+  r = await L('b-mtw');
+  ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst (Prio)' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone, 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig blass: ' + JSON.stringify(r));
+  ok(r.sym === 'ok,run,run' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Bürgerstiftung Musterstadt 15.000 € | :Beispiel-Soziallotterie 30.000 € | sum:Eigenmittel 13.000 €' && r.ueb === '',
+    'Finanzierung läuft: Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe noch leer: ' + r.fin);
+  r = await L('b-aed');
+  ok(!r.frDone && r.fr === 'ok,off,run,ok' && r.fin.includes('sum:Delta 2.400 €') && r.sym === 'off', 'AED: Freigabe offen (Kreise), Delta 2.400 €: ' + r.fr + ' / ' + r.fin);
+  ok((await L('b-rucksack')).fr === 'ok,no,off,ok', 'Rucksäcke: Verwaltung abgelehnt als roter Kreis');
+  r = await L('b-waerme');
+  ok(r.fin === 'strong:Beispiel-Soziallotterie 12.000 € bis 30.04.2027 | x ab:Volksbank Beispielland eG 2.000 € | x:Stadtwerke Hagen (Beispiel) 1.500 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.ueb === 'erledigt am 05.10.2026 Hauptbahnhof Hagen',
+    'Finanzierung steht: Zusage kräftig mit Nachweis, Absage und nie Angegangene blass, kein Delta: ' + r.fin);
+  r = await L('b-kueche');
+  ok(r.fin === 'z:Bürgerstiftung Musterstadt 5.000 € erledigt | z:Sparkasse Musterstadt 3.000 € nicht nötig | sum:Überfinanzierung 500 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.meta.endsWith('ohne Deadline')
+    && r.ueb.startsWith('Spendenübergabe einleiten Küche wird erst Ende November eingebaut'), 'Küche: erledigte Nachweise blass grün, „nicht nötig“ ohne Linie, Überfinanzierung, Dreieck mit Info: ' + r.fin + ' / ' + r.ueb);
+  r = await L('b-klausur');
+  ok(r.sym === 'no' && r.fin.includes('ab:Musterstiftung Ehrenamt NRW 2.000 €') && r.fin.includes('sum:Delta 2.000 € | sum:Eigenmittel 500 €') && r.ueb === 'nicht nötig' && r.meta.startsWith('Diözese'), 'Klausur: Absage durchgestrichen, Delta, Übergabe nicht nötig: ' + r.fin);
+  r = await p.evaluate(() => [getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-name')).verticalAlign, getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-meta .ort')).fontWeight,
+    getComputedStyle(document.querySelector('tr[data-id="b-klausur"] .fr.sum .fn')).color === getComputedStyle(document.querySelectorAll('tr[data-id="b-klausur"] .fr.sum .fn')[1]).color]);
+  ok(r.join() === 'middle,700,true', 'Kerninfo mittig, Ort fett, Delta im selben Schwarz wie die Eigenmittel: ' + r.join());
   await p.screenshot({ path: 'vorschau_liste.png', fullPage: true });
   await p.click('tr[data-id="b-mtw"]');
   r = await p.evaluate(() => [document.querySelector('#f-titel').value, document.querySelector('.d-head input[data-p="gliederung"]').value, document.querySelector('.d-right-head input[data-p="summe"]').value, document.querySelectorAll('[data-p="summe"]').length, document.querySelector('#d-steps .cur').textContent]);
@@ -22,7 +41,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join('|') === 'r-sum:Gesamtbedarf:100 %|r-zu:Sparkasse Musterstadt:15 %|r-be:Bürgerstiftung Musterstadt:22 %|r-ge:Beispiel-Soziallotterie:44 %', 'Förderplan-Tabelle: Gesamtbedarf, Förderer farbig nach Stand mit Anteil: ' + r.join('|'));
   r = await p.evaluate(() => [document.querySelector('#fin-eig').textContent, document.querySelectorAll('#sec-foe .sec-tools .icon-btn').length, document.querySelectorAll('.card.fp').length, document.querySelectorAll('.fp .fbar, .fp select').length,
     getComputedStyle(document.querySelector('.fp .pro')).borderTopStyle, getComputedStyle(document.querySelector('.fp .pro')).backgroundColor]);
-  ok(r.join() === '19 %,2,3,0,none,rgba(0, 0, 0, 0)', 'Eigenanteil mit Anteil, Excel als zwei Symbole, je Förderer eine Karte ohne Balken und Art-Feld, Pro ohne Rahmen: ' + r.join());
+  ok(r.join() === '19 %,2,3,0,none,rgba(0, 0, 0, 0)', 'Eigenmittel mit Anteil, Excel als zwei Symbole, je Förderer eine Karte ohne Balken und Art-Feld, Pro ohne Rahmen: ' + r.join());
   r = await p.evaluate(() => [...document.querySelectorAll('.d-right .circ')].map(c => c.className.replace('circ c-', '')).join());
   ok(r === 'ok,ok,ok,ok,ok,ok,ok,run,add', 'rechts: Freigaben und Unterlagen als Kreise: ' + r);
   ok(!!(await p.$('.d-right input[data-p="link"]')) && !!(await p.$('.d-right input[data-p="pfad"]')), 'Ordner rechts unter den Unterlagen');
