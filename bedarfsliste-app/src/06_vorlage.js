@@ -1,10 +1,12 @@
-/* ===================================================================== Förderplan-Excel: Vorlage für die Recherche (von Hand oder per KI) und Übernahme in den Förderplan
-   Die Vorlage hat zwei Blätter: „Förderplan“ (oben der Bedarf, darunter je Förderer eine Zeile) und „Anleitung“ (was in jede Spalte gehört).
+/* ===================================================================== Förderplan-Excel: Vorlage für die Recherche (von Hand oder mit Copilot) und Übernahme in den Förderplan
+   Die Vorlage hat bis zu drei Blätter: „Förderplan“ (oben der Bedarf mit Finanzierung, darunter je Förderer eine Zeile), „Anleitung“ (Auftrag, Umfang,
+   Regeln, was in jede Spalte gehört) und „Förder-Kartei“ (Auszug ohne Kontaktdaten: wer für die Gliederung zuständig ist und was er schon gegeben hat).
    Eingelesen wird die Zeile mit „Förderer“ in Spalte A als Kopfzeile; die Spalten werden über ihre Überschrift erkannt. */
 
-const FP_SHEET = 'Förderplan', FP_HEAD_ROW = 10;
+const FP_SHEET = 'Förderplan', FP_HEAD_ROW = 15;
 const FP_COLS = [
   { k: 'name', t: 'Förderer', w: 30, help: 'Name der Stiftung, Bank, Firma oder des Förderprogramms – genau so, wie er in der Förder-Kartei steht, falls er dort schon vorkommt.' },
+  { k: 'stand', t: 'Stand in der Bedarfsliste', w: 16, info: true, help: 'Nur zur Information: wie weit der Förderer schon ist. Wird nicht eingelesen. Bei neuen Förderern leer lassen.' },
   { k: 'art', t: 'Art', w: 18, items: ART, help: 'Aus der Auswahlliste.' },
   { k: 'weg', t: 'Antragsweg', w: 16, items: ['Portal', 'E-Mail', 'Brief', 'Persönlich', 'Telefon', 'Sonstiges'], help: 'Wie der Antrag gestellt wird – aus der Auswahlliste.' },
   { k: 'kontakt', t: 'Ansprechperson oder Portal', w: 26, help: 'Name und Funktion der zuständigen Person oder Name des Antragsportals.' },
@@ -24,15 +26,47 @@ const FP_COLS = [
 ];
 const fpHeadKey = t => norm(t).replace(/[^a-zäöüß0-9]/g, '');
 
+/* ---------- Auftrag an die Recherche: dieselben Sätze stehen im Blatt „Anleitung“ und im Prompt für Copilot */
+const rechGl = b => b && b.gliederung && b.gliederung !== DIO ? b.gliederung : '';
+const rechOffen = b => { if (!b) return 0; const F = finState(b); return Math.max(0, F.S - F.eig - F.zu); };
+// Kartei-Auszug: zuständig für die Gliederung (oder für alle), die eigene Gliederung zuerst; ohne Gliederung die ganze Kartei
+function karteiFuer(b) {
+  if (!b || typeof KR === 'undefined') return [];
+  const gl = rechGl(b), reg = k => gl && k.gl.includes(gl) ? 1 : 0;
+  return KR.list.filter(k => !gl || !k.gl.length || k.gl.some(g => /^alle$/i.test(g)) || k.gl.includes(gl))
+    .sort((a, c) => reg(c) - reg(a) || a.name.localeCompare(c.name, 'de'));
+}
+function rechAuftrag(b) {
+  const gl = rechGl(b);
+  return [
+    'Finde Förderer, die zu diesem Bedarf passen: Stiftungen, Sparkassen und Volksbanken, Unternehmen, Soziallotterien sowie öffentliche und kirchliche Förderprogramme. '
+      + (gl ? 'Förderer mit Bezug zu ' + gl + ' und Umgebung zuerst, danach Erzbistum Paderborn und NRW, zuletzt bundesweit.' : 'Förderer mit Bezug zum Erzbistum Paderborn und zu NRW zuerst, danach bundesweit.'),
+    'Prüfe jeden Förderer auf seinen eigenen Seiten: Satzungszweck, Förderrichtlinien, Antragsfristen, übliche Förderhöhe, geforderter Eigenanteil und Antragsweg. Nenne die Links als Quellen.',
+    karteiFuer(b).length ? 'Das Blatt „Förder-Kartei“ enthält Förderer, mit denen wir schon arbeiten, mit ihrer Förderhistorie. Prüfe sie zuerst – sie sind meist die besten Kandidaten.' : '',
+    'Förderer, die im Blatt „Förderplan“ schon stehen, nicht doppelt anlegen. Steht dort „zugesagt“ oder „abgelehnt“, die Zeile nicht ändern; sonst nur leere Zellen ergänzen.',
+  ].filter(Boolean);
+}
+function rechUmfang(b) {
+  const o = rechOffen(b);
+  return '8 bis 12 Förderer, sortiert nach Erfolgsaussicht.'
+    + (o > 0 ? ' Die erwarteten Summen sollen zusammen etwa das Doppelte der noch offenen Summe ergeben (' + eur(o) + ' offen, also rund ' + eur(2 * o) + '), weil nicht jeder Antrag klappt.' : '')
+    + ' Lieber weniger Förderer mit Beleg als viele unsichere.';
+}
+const RECH_REGELN = ['Je Förderer genau eine Zeile im Blatt „Förderplan“, ab der Zeile unter den Überschriften.', 'Spaltenüberschriften, Blattnamen und die Angaben oben (Bedarf, Kennung) nicht ändern.',
+  'Datum immer als TT.MM.JJJJ, Beträge nur als Zahl in Euro (ohne Text).', 'Art, Antragsweg und Einschätzung aus der Auswahlliste der Zelle wählen.',
+  'Unsicheres als solches kennzeichnen (z. B. „laut Website 2025, nicht bestätigt“). Nichts erfinden: lieber eine Zelle leer lassen.'];
+
 /* ---------- Vorlage schreiben (leer oder mit Bedarf und bisherigem Förderplan) */
 function vorlageBlob(b) {
   const W = FP_COLS.length, last = colName(W - 1), head = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' };
   const lab = { b: true, color: '#404040' }, note = { i: true, sz: 9, color: '#6B6B6B' }, val = { border: 'thin', fill: '#FAFAF8', v: 'top', wrap: true };
   const rows = [], heights = { 0: 24, [FP_HEAD_ROW - 1]: 32 }, merges = ['A1:' + last + '1', 'A2:' + last + '2'];
   rows[0] = [{ v: 'Förderplan' + (b && b.titel ? ': ' + b.titel : ''), st: { b: true, sz: 15 } }];
-  rows[1] = [{ v: 'Je möglichem Förderer eine Zeile ausfüllen. Spaltenüberschriften und Blattnamen nicht ändern. Was in jede Spalte gehört, steht im Blatt „Anleitung“. Danach in der Bedarfsliste „Aus Excel übernehmen“ wählen.', st: note }];
-  const info = [['Bedarf', b ? b.titel : ''], ['Gliederung', b ? (b.gliederung === DIO ? 'Diözese (ohne Gliederung)' : b.gliederung) : ''], ['Summe (€)', b && b.summe ? +b.summe : ''],
-    ['Deadline', b && b.deadline ? { v: b.deadline, t: 'd' } : ''], ['Beschreibung', b ? b.beschreibung : ''], ['Kennung', b ? b.id : '']];
+  rows[1] = [{ v: 'Je möglichem Förderer eine Zeile ausfüllen. Spaltenüberschriften und Blattnamen nicht ändern. Auftrag, Umfang und was in jede Spalte gehört, stehen im Blatt „Anleitung“. Danach in der Bedarfsliste „Excel übernehmen“ wählen.', st: note }];
+  const F = b ? finState(b) : null, num = v => v ? { v, t: 'n' } : '';
+  const info = [['Bedarf', b ? b.titel : ''], ['Gliederung', b ? (b.gliederung === DIO ? 'Diözese (ohne Gliederung)' : b.gliederung) : ''], ['Summe (€)', num(F && F.S)],
+    ['Eigenmittel (€)', num(F && F.eig)], ['Schon zugesagt (€)', num(F && F.zu)], ['Noch offen (€)', num(rechOffen(b))],
+    ['Deadline', b && b.deadline ? { v: b.deadline, t: 'd' } : ''], ['Stichwort oder Fördertopf', b ? b.stichwort : ''], ['Beschreibung', b ? b.beschreibung : ''], ['Kennung', b ? b.id : '']];
   info.forEach(([k, v], i) => {
     const r = 3 + i;
     rows[r] = [{ v: k, st: lab }, typeof v === 'object' && v ? Object.assign(v, { st: val }) : { v, st: k === 'Kennung' ? { sz: 8, color: '#9A9A9A' } : val }];
@@ -46,6 +80,7 @@ function vorlageBlob(b) {
       let v = f[c.k];
       if (c.k === 'einsch') v = (EINSCH.find(e => e[0] === v) || [])[1] || '';
       if (c.k === 'betrag') v = f.betrag != null && f.betrag !== '' ? +f.betrag : '';
+      if (c.k === 'stand') v = F_ST_L[f.status] + (f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : '');
       return cell(c, v);
     });
   });
@@ -57,26 +92,112 @@ function vorlageBlob(b) {
   const A = [], ah = {};
   A.push([{ v: 'Anleitung zur Förderrecherche', st: { b: true, sz: 15 } }]); ah[0] = 24;
   const para = t => A.push([{ v: t, st: { wrap: true, v: 'top' } }]);
-  para('Diese Datei ist die Vorlage für den Förderplan eines Bedarfs aus der Bedarfsliste (Fundraising, Malteser Hilfsdienst e. V., Diözese Paderborn). Sie wird von Hand oder von einer KI ausgefüllt und danach in der Bedarfsliste über „Aus Excel übernehmen“ eingelesen.');
-  para('Auftrag: Finde Förderer, die zum Bedarf oben im Blatt „Förderplan“ passen – Stiftungen, Sparkassen und Volksbanken, Unternehmen, Soziallotterien, öffentliche und kirchliche Förderprogramme. Förderer mit Bezug zur Region der Gliederung zuerst. Prüfe Satzungszweck, Förderrichtlinien, Fristen und Förderhöhe auf den Seiten der Förderer und nenne die Quellen.');
-  A.push([]);
-  A.push([{ v: 'Regeln', st: { b: true, sz: 12 } }]);
-  for (const t of ['Je Förderer genau eine Zeile im Blatt „Förderplan“, ab der Zeile unter den Überschriften.', 'Spaltenüberschriften, Blattnamen und die Angaben oben (Bedarf, Kennung) nicht ändern.',
-    'Schon eingetragene Förderer ergänzen, nicht löschen oder doppelt anlegen.', 'Datum immer als TT.MM.JJJJ, Beträge nur als Zahl in Euro (ohne Text).',
-    'Art, Antragsweg und Einschätzung aus der Auswahlliste der Zelle wählen.', 'Unsicheres als solches kennzeichnen (z. B. „laut Website 2025, nicht bestätigt“). Nichts erfinden: lieber eine Zelle leer lassen.'])
-    A.push([{ v: '• ' + t, st: { wrap: true, v: 'top' } }]);
+  para('Diese Datei ist die Vorlage für den Förderplan eines Bedarfs aus der Bedarfsliste (Fundraising, Malteser Hilfsdienst e. V., Diözese Paderborn). Sie wird von Hand oder von Copilot ausgefüllt und danach in der Bedarfsliste über „Excel übernehmen“ eingelesen. Der Bedarf mit Summe und noch offenem Betrag steht oben im Blatt „Förderplan“.');
+  const block = (t, L) => { A.push([]); A.push([{ v: t, st: { b: true, sz: 12 } }]); for (const x of L) A.push([{ v: x, st: { wrap: true, v: 'top' } }]); };
+  block('Auftrag', rechAuftrag(b).map((t, i) => (i + 1) + '. ' + t));
+  block('Umfang', [rechUmfang(b)]);
+  block('Regeln', RECH_REGELN.map(t => '• ' + t));
   A.push([]);
   A.push([{ v: 'Spalte', st: head }, { v: 'Was gehört hinein', st: head }]);
   for (const c of FP_COLS) A.push([{ v: c.t, st: { b: true, border: 'thin', v: 'top' } }, { v: c.help + (c.items ? ' Auswahl: ' + c.items.join(' · ') : ''), st: { wrap: true, border: 'thin', v: 'top' } }]);
-  const amerge = []; A.forEach((r, i) => { if (r.length === 1) amerge.push('A' + (i + 1) + ':B' + (i + 1)); });
-  [1, 2].forEach(i => { ah[i] = 48; });
+  // verbundene Zellen wachsen in Excel nicht mit: lange Absätze bekommen die Höhe für ihre Zeilenzahl (etwa 125 Zeichen je Zeile)
+  const amerge = []; A.forEach((r, i) => { if (r.length !== 1) return; amerge.push('A' + (i + 1) + ':B' + (i + 1)); const n = String(r[0].v || '').length; if (n > 125 && ah[i] == null) ah[i] = Math.ceil(n / 125) * 15 + 4; });
   const anl = { name: 'Anleitung', cols: [30, 110], rows: A, merges: amerge, heights: ah, grid: false };
-  return xlsxBlob([plan, anl]);
+  const KL = karteiFuer(b);
+  if (!KL.length) return xlsxBlob([plan, anl]);
+  const kh = ['Förderer', 'Bereich', 'Zuständig für', 'Antragsweg', 'Förderschwerpunkte', 'Website', 'Förderhistorie', 'Notizen'], kc = { border: 'thin', v: 'top', wrap: true };
+  const K = [[{ v: 'Förder-Kartei' + (rechGl(b) ? ': zuständig für ' + rechGl(b) + ' oder für alle' : ''), st: { b: true, sz: 15 } }],
+    [{ v: 'Auszug aus der Förder-Kartei, ohne Kontaktdaten. Diese Förderer zuerst prüfen; die Förderhistorie zeigt, was sie uns schon gegeben haben. Nur lesen, nichts ändern.', st: note }], [],
+    kh.map(v => ({ v, st: head })),
+    ...KL.map(k => [k.name, k.blatt, k.gl.join(', '), k.weg.join(', '), k.schwer, k.web, Object.entries(k.hist).sort((x, y) => y[0].localeCompare(x[0])).map(([y, v]) => y + ': ' + v).join('\n'), k.notiz]
+      .map(v => ({ v: v || '', st: kc })))];
+  const kart = { name: 'Förder-Kartei', cols: [32, 14, 22, 16, 36, 30, 40, 36], rows: K, merges: ['A1:H1', 'A2:H2'], heights: { 0: 24, 1: 32, 3: 24 }, freeze: 'B5', grid: false };
+  return xlsxBlob([plan, anl, kart]);
 }
 // Dateiname ohne Umlaute und Sonderzeichen (manche Browser verwerfen sonst den Namen beim Herunterladen)
 const asciiName = t => String(t).replace(/[äÄöÖüÜß]/g, c => ({ ä: 'ae', Ä: 'Ae', ö: 'oe', Ö: 'Oe', ü: 'ue', Ü: 'Ue', ß: 'ss' }[c])).normalize('NFD').replace(/[^\w.\- ]+/g, ' ').trim().replace(/\s+/g, '_');
-const vorlageName = b => 'Foerderplan_' + (b && b.titel ? asciiName(b.titel).slice(0, 50) : 'Vorlage') + '.xlsx';
+const kurzName = t => asciiName(t).split('_').reduce((a, w) => !a ? w.slice(0, 40) : (a + '_' + w).length <= 40 ? a + '_' + w : a, '');
+const vorlageName = b => b && b.titel ? 'Foerderrecherche_' + kurzName(b.titel) + '.xlsx' : 'Foerderplan_Vorlage.xlsx';
 function vorlageDownload(b) { download(vorlageName(b), vorlageBlob(b)); }
+
+/* ---------- Förderrecherche mit Copilot: Excel in den Unterordner „Förderrecherche“ legen (dort kommt Copilot Cowork über OneDrive heran),
+   Auftrag als Prompt zum Kopieren, ausgefüllte Excel von dort wieder übernehmen. Ohne verbundenen Ordner: herunterladen und hochladen. */
+const RECH_DIR = 'Förderrecherche';
+const rechOrdnerOk = () => !DEMO && FSA && ST.conn === 'ok' && !!ST.htmlDir;
+async function rechDir(create) { if (!rechOrdnerOk()) return null; try { return await ST.htmlDir.getDirectoryHandle(RECH_DIR, { create: !!create }); } catch (e) { return null; } }
+async function rechFile(b) {
+  const d = await rechDir(); if (!d) return null;
+  try { const fh = await d.getFileHandle(vorlageName(b)); return await fh.getFile(); } catch (e) { return null; }
+}
+async function rechWrite(b) {
+  const d = await rechDir(true); if (!d) return false;
+  try { const fh = await d.getFileHandle(vorlageName(b), { create: true }), w = await fh.createWritable(); await w.write(vorlageBlob(b)); await w.close(); return true; }
+  catch (e) { console.warn(e); return false; }
+}
+// Pfad zum Unterordner, wie ihn der Explorer zeigt (nur wenn die Liste als Datei geöffnet ist), und der Teil hinter „OneDrive …\“ für den Prompt
+function rechPfad() {
+  const p = localPath(); if (!p) return { lokal: '', od: '' };
+  const dir = p.replace(/[\\/][^\\/]*$/, '') + '\\' + RECH_DIR, m = dir.match(/\\OneDrive[^\\]*\\(.+)$/i);
+  return { lokal: dir, od: m ? m[1].replace(/\\/g, '/') : '' };
+}
+function rechPrompt(b) {
+  const F = finState(b), o = rechOffen(b), gl = rechGl(b), name = vorlageName(b), P = rechPfad(), L = [];
+  L.push('Du unterstützt mich im Fundraising des Malteser Hilfsdienst e. V. in der Diözese Paderborn bei einer Förderrecherche.', '');
+  L.push('Bedarf: ' + (b.titel || '(ohne Namen)'), 'Gliederung: ' + (gl || 'Diözese Paderborn (ohne Gliederung)'));
+  if (F.S) L.push('Summe: ' + eur(F.S) + (F.eig ? ' · Eigenmittel ' + eur(F.eig) : '') + (F.zu ? ' · schon zugesagt ' + eur(F.zu) : '') + ' · noch offen ' + eur(o));
+  if (b.deadline) L.push('Deadline: ' + fmtDate(b.deadline));
+  if (b.stichwort.trim()) L.push('Stichwort oder Fördertopf: ' + b.stichwort.trim());
+  if (b.beschreibung.trim()) L.push('Beschreibung: ' + b.beschreibung.trim().replace(/\s*\n+\s*/g, ' '));
+  L.push('', 'Datei: „' + name + '“' + (rechOrdnerOk() ? (P.od ? ' in meinem OneDrive im Ordner „' + P.od + '“' : ' in meinem OneDrive im Ordner „' + RECH_DIR + '“ neben der Bedarfsliste') : ' (im Anhang)')
+    + '. Oben im Blatt „Förderplan“ stehen der Bedarf und die Finanzierung, darunter die Förderer, die schon im Plan sind.', '');
+  L.push('Auftrag:', ...rechAuftrag(b).map((t, i) => (i + 1) + '. ' + t), '');
+  L.push('Umfang: ' + rechUmfang(b), '');
+  L.push('Format: Trage die Ergebnisse in das Blatt „Förderplan“ dieser Datei ein, je Förderer eine Zeile. Was in jede Spalte gehört, steht im Blatt „Anleitung“. '
+    + RECH_REGELN.slice(1).join(' ') + ' Speichere die Datei unter demselben Namen am selben Ort. Falls du sie nicht direkt bearbeiten kannst, gib mir eine Excel-Datei mit genau diesem Aufbau zurück.', '');
+  L.push('Zum Schluss im Chat: die drei aussichtsreichsten Förderer mit je einem Satz Begründung, welcher Teil der offenen Summe realistisch erscheint und was du nicht klären konntest.');
+  return L.join('\n');
+}
+const lmText = f => new Date(f.lastModified).toLocaleString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+async function rechDialog(b) {
+  let close = null, datei = await rechFile(b);
+  const ordner = rechOrdnerOk(), P = rechPfad();
+  const st = h('div', { class: 'rech-st muted small' }), btn1 = h('button', { onclick: () => schritt1() }), btn2 = h('button', { onclick: () => kopieren() }, 'Prompt kopieren');
+  const zeig = () => {
+    st.replaceChildren(ordner ? (datei ? 'Liegt im Ordner, zuletzt geändert am ' + lmText(datei) + ' Uhr' : 'Wird im Unterordner „' + RECH_DIR + '“ neben der Bedarfsliste abgelegt – dort findet Copilot Cowork sie im OneDrive.')
+      : 'Die Datei landet in „Downloads“. Für Copilot Cowork in den OneDrive legen oder im Chat anhängen.',
+      ordner && P.lokal ? h('div', { class: 'rech-pfad', title: 'Pfad zum Ordner – zum Kopieren markieren' }, P.lokal) : null);
+    btn1.textContent = ordner ? (datei ? 'Neu anlegen' : 'Excel anlegen') : 'Excel herunterladen';
+    btn1.className = datei ? '' : 'primary'; btn2.className = datei ? 'primary' : '';
+  };
+  async function schritt1() {
+    if (!ordner) { vorlageDownload(b); return; }
+    if (datei && !await confirmBox('Excel neu anlegen?', 'Die vorhandene „' + vorlageName(b) + '“ wird ersetzt – auch Einträge von Copilot, die noch nicht übernommen sind.', 'Ersetzen')) return;
+    if (!await rechWrite(b)) { toast('Die Excel konnte nicht im Ordner abgelegt werden. Sie wird stattdessen heruntergeladen.', 'warn'); vorlageDownload(b); return; }
+    datei = await rechFile(b); zeig(); toast('Excel für die Recherche angelegt', 'ok');
+  }
+  const ta = h('textarea', { class: 'rech-prompt', rows: 12, spellcheck: false, 'aria-label': 'Auftrag für Copilot' });
+  ta.value = rechPrompt(b);
+  const kopieren = () => {
+    const fail = () => { ta.focus(); ta.select(); toast('Text markiert – jetzt mit Strg+C kopieren'); };
+    try { navigator.clipboard.writeText(ta.value).then(() => toast('Auftrag kopiert – in Copilot einfügen', 'ok'), fail); } catch (e) { fail(); }
+  };
+  const schritt3 = async () => {
+    if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; }
+    const f = ordner ? await rechFile(b) : null;
+    if (close) close(null);
+    importFoerderplan(b, f || undefined);
+  };
+  zeig();
+  const body = h('div', { class: 'help rech' },
+    h('p', null, 'Copilot sucht passende Förderer und trägt sie in eine Excel zu diesem Bedarf ein. Danach zeigt dir die Liste, was sie übernehmen würde – du wählst aus.'),
+    h('ol', { class: 'rech-steps' },
+      h('li', null, h('div', { class: 'rech-row' }, h('b', null, 'Excel für diesen Bedarf'), btn1), st),
+      h('li', null, h('div', { class: 'rech-row' }, h('b', null, 'Auftrag an Copilot'), btn2),
+        h('div', { class: 'muted small' }, 'In Copilot Cowork einfügen' + (ordner ? '' : ' und die Excel anhängen') + '. Der Text lässt sich hier vorher anpassen, etwa beim Umfang.'), ta),
+      h('li', null, h('div', { class: 'rech-row' }, h('b', null, 'Ergebnis übernehmen'), h('button', { onclick: schritt3 }, ordner ? 'Excel übernehmen' : 'Excel auswählen …')),
+        h('div', { class: 'muted small' }, 'Wenn Copilot fertig ist. Du siehst zuerst die Vorschläge mit Summen und wählst aus. Eine Excel lässt sich auch einfach auf die Seite ziehen.'))));
+  await modal('Förderrecherche mit Copilot', body, [['Schließen', null]], { wide: true, expose: c => { close = c; } });
+}
 
 /* ---------- Förderplan aus einer Excel lesen */
 async function readFoerderplan(buf) {
@@ -120,7 +241,7 @@ function einschKey(v) {
 // Felder eines Förderers aus der Recherche übernehmen: 'fill' = nur leere Felder füllen, 'all' = überschreiben
 function applyResearch(f, it, mode) {
   for (const c of FP_COLS) {
-    if (c.k === 'name') continue;
+    if (c.k === 'name' || c.info) continue;
     const v = it[c.k]; if (v == null || v === '') continue;
     const empty = f[c.k] == null || f[c.k] === '';
     if (mode === 'all' || empty) f[c.k] = v;
@@ -136,24 +257,32 @@ async function importFoerderplan(b, file) {
   const byName = n => b.foerderer.find(f => kkey(f.name) === kkey(n));
   const sel = got.items.map(() => true);
   let mode = 'fill';
+  const kurz = t => t.length > 150 ? t.slice(0, 147).replace(/\s+\S*$/, '') + ' …' : t;
+  const sumEl = h('p', { class: 'imp-sum' }), offen = rechOffen(b);
+  const upd = () => {
+    const neu = got.items.filter((it, i) => sel[i] && !byName(it.name)), v = neu.reduce((s, it) => s + (+it.betrag || 0), 0);
+    sumEl.replaceChildren('Neu ausgewählt: ', h('b', null, neu.length + ' Förderer'), v ? ', erwartet zusammen ' : '', v ? h('b', null, eur(v)) : '', offen ? ' – noch offen sind ' + eur(offen) + '.' : '.');
+  };
   const tbl = h('table', { class: 'imp' },
     h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'Förderer'), h('th', { class: 'num' }, 'Summe'), h('th', null, 'Antragsfrist'), h('th', null, 'Einschätzung'), h('th', null, ''))),
-    h('tbody', null, got.items.map((it, i) => h('tr', null,
-      h('td', null, h('input', { type: 'checkbox', checked: true, 'aria-label': it.name + ' übernehmen', onchange: e => { sel[i] = e.target.checked; } })),
-      h('td', null, h('b', null, it.name), kartei(it.name) ? h('span', { class: 'badge k' }, 'in der Kartei') : null),
+    h('tbody', null, got.items.map((it, i) => { const f = byName(it.name); return h('tr', null,
+      h('td', null, h('input', { type: 'checkbox', checked: true, 'aria-label': it.name + ' übernehmen', onchange: e => { sel[i] = e.target.checked; upd(); } })),
+      h('td', null, h('b', null, it.name), kartei(it.name) ? h('span', { class: 'badge k' }, 'in der Kartei') : null,
+        it.warum || (!f && !it.quellen) ? h('div', { class: 'imp-why' }, kurz(it.warum || ''), f || it.quellen ? null : h('span', { class: 'imp-nq' }, 'ohne Quelle')) : null),
       h('td', { class: 'num' }, it.betrag ? eur(it.betrag) : '–'),
       h('td', null, fmtDate(it.frist) || '–'),
       h('td', null, (EINSCH.find(e => e[0] === it.einsch) || [, '–'])[1]),
-      h('td', { class: 'muted small' }, byName(it.name) ? 'schon im Förderplan' : 'neu')))));
+      h('td', { class: 'muted small nowrap' }, f ? 'im Plan: ' + F_ST_L[f.status] : 'neu')); })));
+  upd();
   const dup = got.items.some(it => byName(it.name));
   const body = h('div', { class: 'help' },
     other ? h('p', { class: 'hint-warn' }, 'Achtung: Diese Excel wurde für den Bedarf „' + (other.titel || 'ohne Namen') + '“ erstellt.') : null,
     h('p', null, got.items.length + (got.items.length === 1 ? ' Förderer' : ' Förderer') + ' in „' + file.name + '“. Neue Förderer kommen mit dem Stand „geplant“ in den Förderplan.'),
-    h('div', { class: 'tablewrap' }, tbl),
+    h('div', { class: 'tablewrap' }, tbl), sumEl,
     dup ? h('div', { class: 'radios' }, h('p', { class: 'small' }, h('b', null, 'Förderer, die schon im Förderplan stehen:')),
       ...[['fill', 'nur leere Felder ergänzen'], ['all', 'Angaben aus der Excel übernehmen (überschreibt)'], ['skip', 'nicht anfassen']].map(([v, l]) =>
         h('label', { class: 'check' }, h('input', { type: 'radio', name: 'impmode', value: v, checked: v === mode, onchange: () => { mode = v; } }), l))) : null);
-  if (!await modal('Ausgefüllte Förderplan-Excel übernehmen', body, [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
+  if (!await modal('Vorschläge aus der Recherche', body, [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
   const before = JSON.stringify(D);
   let neu = 0, erg = 0;
   got.items.forEach((it, i) => {

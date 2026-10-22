@@ -27,7 +27,6 @@ const copyBtn = b => `<button data-act="copy-path" ${b.pfad ? '' : 'disabled'}>K
 const zustChips = b => b.zust.map((n, i) => `<span class="pchip">${esc(n)}<button class="x" data-act="rm-zust" data-i="${i}" aria-label="${esc(n)} entfernen">×</button></span>`).join('');
 const metaRest = b => (b.stichwort ? `<span class="chip sw">${esc(b.stichwort)}</span> · ` : '') + (b.angelegt ? 'angelegt ' + fmtDate(b.angelegt) : '');
 const ICON_TRASH = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zM6 9h12l-.9 11.1A2 2 0 0 1 15.1 22H8.9a2 2 0 0 1-2-1.9L6 9zm4 2v8h1.6v-8H10zm2.4 0v8H14v-8h-1.6z"/></svg>';
-const ICON_DOWN = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M11 4h2v9.2l3.6-3.6 1.4 1.4-6 6-6-6 1.4-1.4 3.6 3.6V4zM5 18h14v2H5v-2z"/></svg>';
 const ICON_UP = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M11 20h2v-9.2l3.6 3.6 1.4-1.4-6-6-6 6 1.4 1.4 3.6-3.6V20zM5 4h14v2H5V4z"/></svg>';
 const ICON_PEN = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M4 17.2V20h2.8L17.3 9.5l-2.8-2.8L4 17.2zm15.7-10.1a1 1 0 0 0 0-1.4l-1.4-1.4a1 1 0 0 0-1.4 0l-1.2 1.2 2.8 2.8 1.2-1.2z"/></svg>';
 
@@ -295,8 +294,8 @@ const finEigPct = b => pct(+b.eigenanteil || 0, +b.summe || 0);
 function secFoe(b) {
   return `<section class="card fp-head" id="sec-foe">
     <div class="sec-head"><h2>Förderplan</h2>
-      <div class="sec-tools"><button class="icon-btn" data-act="vorlage" aria-label="Excel-Vorlage für die KI-Recherche herunterladen" title="Excel-Vorlage für die KI-Recherche herunterladen – mit Bedarf, bisherigem Förderplan und Anleitung">${ICON_DOWN}</button>
-        <button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – neue Förderer kommen dazu, vorhandene werden ergänzt">${ICON_UP}</button></div></div>
+      <div class="sec-tools"><button class="rech-btn" data-act="vorlage" title="Förderrecherche mit Copilot: Excel zu diesem Bedarf, Auftrag zum Kopieren, Ergebnis übernehmen">Recherche mit Copilot</button>
+        <button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – du siehst zuerst die Vorschläge">${ICON_UP}</button></div></div>
     <div class="fin-wrap">
     <table class="fsum"><tbody id="fin-rows">${finRows(b)}</tbody>
       <tbody><tr class="r-eig"><th>${swa('eig')}Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>

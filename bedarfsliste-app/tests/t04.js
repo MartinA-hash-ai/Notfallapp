@@ -10,8 +10,19 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   });
   let r = await p.evaluate(async () => { const g = await readFoerderplan(await vorlageBlob(cur()).arrayBuffer()); const i = g.items[0]; return [g.items.length, i.name, i.frist, i.betrag, i.einsch, i.warum, g.kennung === cur().id, g.sheet]; });
   ok(r.join('|') === '1|Stiftung A|2027-01-15|5000|w|passt|true|Förderplan', 'Vorlage je Bedarf: Förderplan und Kennung lassen sich zurücklesen: ' + r.join('|'));
-  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('button[data-act="vorlage"]')]);
-  ok(dl.suggestedFilename() === 'Foerderplan_Testbedarf_MTW.xlsx', 'Download der Vorlage: ' + dl.suggestedFilename());
+  r = await p.evaluate(async () => { const bk = await xlsxBook(await vorlageBlob(cur()).arrayBuffer()), rows = bk.sheets[0].rows, val = k => (rows.find(x => x[0] === k) || [])[1];
+    return [bk.sheets.map(x => x.name).join('+'), val('Summe (€)'), val('Noch offen (€)'), val('Stichwort oder Fördertopf') ?? '', rows.findIndex(x => x[0] === 'Förderer') + 1, rows[FP_HEAD_ROW - 1][1], rows[FP_HEAD_ROW][1],
+      bk.sheets[1].rows.map(x => x[0]).join(' ').includes('8 bis 12 Förderer')]; });
+  ok(r.join('|') === 'Förderplan+Anleitung|20000|20000||15|Stand in der Bedarfsliste|geplant|true', 'Excel beschreibt den Bedarf mit Finanzierung, Förderer mit Stand, Anleitung mit Umfang: ' + r.join('|'));
+  ok(await p.evaluate(() => { const f = ff({ name: 'X' }); applyResearch(f, { stand: 'zugesagt', warum: 'w' }, 'all'); return f.stand === undefined && f.warum === 'w'; }), 'Spalte „Stand“ wird nicht eingelesen');
+  // Recherche mit Copilot: Dialog mit drei Schritten, Prompt mit Bedarf und Umfang; ohne Ordner wird die Excel heruntergeladen
+  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
+  r = await p.evaluate(() => [document.querySelectorAll('.rech-steps > li').length, document.querySelector('.rech-steps li button').textContent, document.querySelector('.rech-prompt').value.replace(/\u00a0/g, ' ')]);
+  ok(r[0] === 3 && r[1] === 'Excel herunterladen' && r[2].includes('Bedarf: Testbedarf / MTW') && r[2].includes('noch offen 20.000 €') && r[2].includes('Deadline: 30.06.2027')
+    && r[2].includes('8 bis 12 Förderer') && r[2].includes('rund 40.000 €') && r[2].includes('(im Anhang)') && !r[2].includes('Förder-Kartei') && r[2].includes('Zum Schluss im Chat'), 'Dialog: drei Schritte, Prompt mit Bedarf, offener Summe, Umfang und Format');
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.rech-steps li button')]);
+  ok(dl.suggestedFilename() === 'Foerderrecherche_Testbedarf_MTW.xlsx', 'Download der Excel: ' + dl.suggestedFilename());
+  await p.click('.modal footer button');
   r = await p.evaluate(() => ['sehr wahrscheinlich', 'Wahrscheinlich', 'klappt', 'unsicher', 'eher nicht', 'unwahrscheinlich', 'sehr unwahrscheinlich', 'unmöglich', ''].map(einschKey).join());
   ok(r === 'sw,w,w,u,uw,uw,suw,suw,', 'Einschätzung aus Text in fünf Stufen: ' + r);
   // leere Vorlage aus dem Build
@@ -29,7 +40,12 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   });
   await p.waitForSelector('.modal');
   let t = await p.$eval('.modal', e => e.textContent);
-  ok(t.includes('2 Förderer') && t.includes('schon im Förderplan') && t.includes('neu') && t.includes('nur leere Felder ergänzen'), 'Vorschau: 2 Förderer, einer schon da, einer neu');
+  ok(t.includes('2 Förderer') && t.includes('im Plan: geplant') && t.includes('neu') && t.includes('nur leere Felder ergänzen'), 'Vorschau: 2 Förderer, einer schon da, einer neu');
+  r = await p.evaluate(() => [document.querySelector('.imp-sum').textContent.replace(/\u00a0/g, ' '), [...document.querySelectorAll('.imp tbody tr')].map(tr => tr.querySelector('.imp-why') ? tr.querySelector('.imp-why').textContent : '').join('|')]);
+  ok(r[0] === 'Neu ausgewählt: 1 Förderer, erwartet zusammen 2.500 € – noch offen sind 20.000 €.' && r[1] === 'neue Begründung|Regionalbezugohne Quelle', 'Vorschau mit Begründung, Hinweis „ohne Quelle“ und Summe der neuen Förderer: ' + r.join(' / '));
+  await p.click('.imp tbody tr:nth-child(2) input'); 
+  ok(await p.$eval('.imp-sum', e => e.textContent.replace(/\u00a0/g, ' ')) === 'Neu ausgewählt: 0 Förderer – noch offen sind 20.000 €.', 'Abwählen aktualisiert die Summe');
+  await p.click('.imp tbody tr:nth-child(2) input');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(200);
   r = await p.evaluate(() => cur().foerderer.map(f => [f.name, f.status, f.betrag, f.frist, f.einsch, f.warum, f.art, f.weg, f.kontakt, f.mail, f.fristInfo, f.quellen].join('|')));
   ok(r[0] === 'Stiftung A|geplant|5000|2027-01-15|w|passt|Stiftung|Portal|Portal A||Vergabe im März|https://a.example/satzung', 'ergänzen: leere Felder gefüllt, vorhandene bleiben: ' + r[0]);

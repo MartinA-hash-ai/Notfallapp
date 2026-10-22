@@ -17,9 +17,14 @@ Es werden keine Daten ins Internet gesendet und nichts nachgeladen.
 **Förder-Kartei:** Erkannt wird je Blatt die Kopfzeile mit „Gliederung“. Ist die Excel bis zur letzten Zeile
 durchformatiert, liest die Liste nur den vorderen Teil – die leeren Zeilen unter der Tabelle in Excel löschen.
 
-**Förderplan-Excel:** Auf der Seite eines Bedarfs gibt das Download-Symbol oben rechts im Förderplan eine Excel mit dem Bedarf
-und dem bisherigen Förderplan aus (Blatt „Anleitung“ erklärt jede Spalte – auch für eine KI-Recherche).
-Das Upload-Symbol daneben liest die ausgefüllte Datei wieder ein (neue Förderer kommen dazu, vorhandene werden ergänzt).
+**Förderrecherche mit Copilot:** Auf der Seite eines Bedarfs öffnet „Recherche mit Copilot“ oben rechts im Förderplan drei Schritte:
+1. Excel zu diesem Bedarf anlegen – mit verbundenem Ordner im Unterordner `Förderrecherche` (dort findet Copilot Cowork sie im OneDrive),
+   sonst als Download. Blätter: „Förderplan“ (Bedarf mit Summe, Eigenmitteln, Zusagen und offenem Betrag, darunter die Förderer mit Stand),
+   „Anleitung“ (Auftrag, Umfang, Regeln, jede Spalte) und „Förder-Kartei“ (Zuständige für die Gliederung mit Historie, ohne Kontaktdaten).
+2. Prompt kopieren (vorher anpassbar) und in Copilot Cowork einfügen.
+3. Ausgefüllte Excel übernehmen: die Liste zeigt die Vorschläge mit Summe, Frist, Einschätzung, Begründung und „ohne Quelle“-Hinweis;
+   du wählst aus. Neue Förderer kommen als „geplant“ dazu, vorhandene werden ergänzt. Eine Excel lässt sich auch auf die Seite ziehen;
+   das Upload-Symbol neben dem Knopf öffnet die Dateiauswahl.
 
 **In der Liste bearbeiten:** Strg gedrückt halten, dann Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
 und ändern; Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; das + unten links im

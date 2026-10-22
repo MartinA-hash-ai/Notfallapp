@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.15.0",
+    "date": "2026-10-22T16:40",
+    "items": [
+      "Förderrecherche mit Copilot: der Knopf „Recherche mit Copilot“ im Förderplan führt in drei Schritten durch Excel anlegen, Auftrag an Copilot und Ergebnis übernehmen",
+      "Die Excel liegt mit verbundenem Ordner im Unterordner „Förderrecherche“ neben der Bedarfsliste (dort findet Copilot Cowork sie im OneDrive); der Pfad wird angezeigt",
+      "Die Excel beschreibt den Bedarf vollständig: Summe, Eigenmittel, schon zugesagt, noch offen, Deadline, Stichwort, Beschreibung; die Förderer im Plan mit ihrem Stand; dazu ein Blatt mit den für die Gliederung zuständigen Förderern aus der Kartei samt Förderhistorie (ohne Kontaktdaten)",
+      "Fertiger Prompt zum Kopieren (vorher anpassbar): Auftrag, Region, Umfang (8 bis 12 Förderer, zusammen etwa das Doppelte der offenen Summe), Format und eine kurze Zusammenfassung im Chat",
+      "Vorschläge aus der Recherche: je Förderer Summe, Frist, Einschätzung und Begründung, Hinweis „ohne Quelle“, darunter die Summe der neu ausgewählten Förderer neben dem noch offenen Betrag"
+    ]
+  },
+  {
     "version": "0.14.0",
     "date": "2026-10-22T15:30",
     "items": [

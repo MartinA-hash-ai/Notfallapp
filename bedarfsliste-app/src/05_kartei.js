@@ -22,7 +22,7 @@ async function karteiScan(force) {
     for await (const [n, e] of ST.htmlDir.entries()) if (e.kind === 'file' && /\.xlsx$/i.test(n) && !/^~\$/.test(n)) cands.push([n, e]);
     KR.cands = cands.map(c => c[0]).sort((a, b) => a.localeCompare(b, 'de'));
     const want = D.settings.kartei;
-    let hit = want ? cands.find(([n]) => n === want) : cands.find(([n]) => KARTEI_RE.test(n) && !/vorlage|f(ö|oe)rderplan/i.test(n));
+    let hit = want ? cands.find(([n]) => n === want) : cands.find(([n]) => KARTEI_RE.test(n) && !/vorlage|f(ö|oe)rderplan|recherche/i.test(n));
     if (!hit) {
       const err = want ? '„' + want + '“ liegt nicht mehr im Ordner' : null;
       if (KR.list.length || KR.err !== err) { karteiSet([]); KR.name = ''; KR.stamp = null; KR.err = err; safeRender(); }

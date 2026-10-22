@@ -58,5 +58,29 @@ async function writeKartei(p, kontakt) {
   // sehr großes Blatt: nur der Anfang wird gelesen
   r = await p.evaluate(async () => { const f = __fs.files['/Ordner/Banken- und Stiftungsübersicht.xlsx']; const bk = await xlsxBook(f.data.buffer.slice(0), { max: 5000 }); return [bk.sheets[0].cut, bk.sheets[0].rows.length > 3, parseKartei(bk).length]; });
   ok(r[0] && r[1] && r[2] >= 1, 'großes Blatt: Anfang gelesen, Rest übersprungen (' + r[2] + ' Förderer)');
+  // Recherche mit Copilot: Excel im Unterordner „Förderrecherche“, mit Kartei-Auszug für die Gliederung (ohne Kontaktdaten); ausgefüllt wieder übernehmen
+  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
+  r = await p.evaluate(() => [document.querySelector('.rech-steps li button').textContent, document.querySelector('.rech-prompt').value]);
+  ok(r[0] === 'Excel anlegen' && r[1].includes('Gliederung: Iserlohn-Menden') && r[1].includes('Bezug zu Iserlohn-Menden') && r[1].includes('Blatt „Förder-Kartei“') && r[1].includes('im Ordner „Förderrecherche“'), 'mit Ordner: „Excel anlegen“, Prompt nennt Gliederung, Kartei-Blatt und Ordner');
+  await p.click('.rech-steps li button'); await p.waitForTimeout(200);
+  const RP = '/Ordner/Förderrecherche/Foerderrecherche_Rucksaecke.xlsx';
+  r = await p.evaluate(async rp => { const f = __fs.files[rp]; if (!f) return null; const bk = await xlsxBook(f.data.buffer.slice(0)); const k = bk.sheets[2];
+    return [bk.sheets.map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], document.querySelector('.rech-st').textContent.startsWith('Liegt im Ordner'), document.querySelector('.rech-steps li button').textContent]; }, RP);
+  ok(r && r[0] === 'Förderplan+Anleitung+Förder-Kartei' && r[1] === 'Märkische Bank eG,Aktion Beispiel' && !r[2] && r[3] === '2025: 1.000 € Folierung' && r[4] && r[5] === 'Neu anlegen',
+    'Excel im Ordner angelegt; Kartei-Blatt nur mit den Zuständigen, eigene Gliederung zuerst, Historie, ohne Kontaktdaten: ' + JSON.stringify(r));
+  await p.click('.modal footer button');
+  // Copilot hat die Datei ausgefüllt
+  await p.evaluate(async rp => {
+    const cols = ['Förderer', 'Stand in der Bedarfsliste', 'Erwartete Summe (€)', 'Pro – warum passt das?', 'Quellen'];
+    const rows = [['Förderplan'], [], ['Kennung', cur().id], [], cols, ['Herner Sparkasse', 'geplant', '', '', ''], ['Stiftung Neu', '', '3000', 'Fördert Ausstattung im Ehrenamt', 'https://neu.example'], ['Lotterie Neu', '', '2.000', 'Regionalbezug', '']];
+    __fs.files[rp] = { data: new Uint8Array(await xlsxBlob([{ name: 'Förderplan', cols: cols.map(() => 12), rows }]).arrayBuffer()), lm: 90000 };
+  }, RP);
+  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
+  await p.click('.rech-steps li:nth-child(3) button'); await p.waitForSelector('.modal .imp');
+  t = await p.$eval('.modal', e => e.textContent.replace(/\u00a0/g, ' '));
+  ok(t.includes('3 Förderer') && t.includes('Neu ausgewählt: 2 Förderer, erwartet zusammen 5.000 €') && t.includes('im Plan: geplant'), '„Excel übernehmen“ liest die Datei aus dem Ordner und zeigt die Vorschläge: ' + t.replace(/\s+/g, ' ').slice(0, 160));
+  await p.click('.modal footer button.primary'); await p.waitForTimeout(200);
+  r = await p.evaluate(() => cur().foerderer.map(f => f.name + ':' + f.status + ':' + (f.betrag ?? '')).join(','));
+  ok(r === 'Herner Sparkasse:geplant:,Stiftung Neu:geplant:3000,Lotterie Neu:geplant:2000', 'neue Förderer mit Summe im Förderplan, vorhandener nicht doppelt: ' + r);
   await finish(b, [p]);
 })();

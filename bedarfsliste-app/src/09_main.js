@@ -254,7 +254,7 @@ async function act(k, a, e) {
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
     case 'copy-path': copyPath(b); return;
-    case 'vorlage': vorlageDownload(b); return;
+    case 'vorlage': rechDialog(b); return;
     case 'import': if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; } importFoerderplan(b); return;
     default: return;
   }
