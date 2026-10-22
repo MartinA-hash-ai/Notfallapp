@@ -63,7 +63,7 @@ const setCirc = async (p, sel, v) => { await p.click(sel); await p.click(`.circ-
   await p.click('button[data-act="back"]');
   r = await p.evaluate(() => { const tr = document.querySelector('#list-body tr[data-id]'), td = [...tr.querySelectorAll('td')].map(e => e.innerText.replace(/\s+/g, ' ').trim());
     return [td.length, td[0], td[1], td[2], !!tr.querySelector('.l-fr .done'), tr.querySelector('.l-fin .fr.z .fn').textContent, tr.querySelector('.l-fin .vt.nn').textContent, !tr.querySelector('.l-fin .lead'), td[5], !tr.querySelector('.phase, button.prio')]; });
-  ok(r.join('|') === '6|Defibrillator Test|800 €|Paderborn – ohne Deadline|true|Sparkasse X|nicht nötig|true|✓ erledigt|true', 'Liste: Name, Summe, Ort; Freigabe blass grün; Förderer blass grün ohne Nachweis; Übergabe erledigt: ' + r.join('|'));
+  ok(r.join('|') === '6|Defibrillator Test|800 €|Paderborn – ohne Deadline|true|Sparkasse X|nicht nötig|true|erledigt|true', 'Liste: Name, Summe, Ort; Freigabe blass grün; Förderer blass grün ohne Nachweis; Übergabe erledigt: ' + r.join('|'));
   await p.click('#list-body tr[data-id]');
   await p.click('.d-head button.prio'); await p.click('#pmenu button[data-v="hoch"]');
   await p.click('button[data-act="back"]');

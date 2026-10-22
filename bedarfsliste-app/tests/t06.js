@@ -37,17 +37,21 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [!!document.querySelector('header.top .subbar #d-steps'), !!document.querySelector('header.top .subbar #d-status'), !!document.querySelector('.jump'), document.documentElement.dataset.blTheme,
     !!document.querySelector('.d-right-head .sum-art .seg'), document.querySelector('.d-grid > .d-left > .info-card') === document.querySelector('.d-left').firstElementChild]);
   ok(r.join() === 'true,true,false,light,true,true', 'Phase und Stand an der Kopfzeile, keine Sprungmarken, hell als Standard, Schätzung unter der Summe, Infos links neben Freigaben: ' + r.join());
-  r = await p.evaluate(() => [...document.querySelectorAll('#fin-rows tr')].map(t => t.className + ':' + t.querySelector('th').firstChild.textContent.trim() + ':' + t.querySelector('td:last-child').textContent));
+  r = await p.evaluate(() => [...document.querySelectorAll('#fin-rows tr')].map(t => t.className + ':' + [...t.querySelector('th').childNodes].find(n => n.nodeType === 3 && n.textContent.trim()).textContent.trim() + ':' + t.querySelector('td:last-child').textContent));
   ok(r.join('|') === 'r-sum:Gesamtbedarf:100 %|r-zu:Sparkasse Musterstadt:15 %|r-be:Bürgerstiftung Musterstadt:22 %|r-ge:Beispiel-Soziallotterie:44 %', 'Förderplan-Tabelle: Gesamtbedarf, Förderer farbig nach Stand mit Anteil: ' + r.join('|'));
   r = await p.evaluate(() => [document.querySelector('#fin-eig').textContent, document.querySelectorAll('#sec-foe .sec-tools .icon-btn').length, document.querySelectorAll('.card.fp').length, document.querySelectorAll('.fp .fbar, .fp select').length,
     getComputedStyle(document.querySelector('.fp .pro')).borderTopStyle, getComputedStyle(document.querySelector('.fp .pro')).backgroundColor]);
   ok(r.join() === '19 %,2,3,0,none,rgba(0, 0, 0, 0)', 'Eigenmittel mit Anteil, Excel als zwei Symbole, je Förderer eine Karte ohne Balken und Art-Feld, Pro ohne Rahmen: ' + r.join());
+  r = await p.evaluate(() => [document.querySelectorAll('#fin-pie svg.pie .ps').length, [...document.querySelectorAll('#fin-pie .ps')].map(x => x.getAttribute('class').replace('ps ', '')).join(),
+    [...document.querySelectorAll('#sec-foe .fsum .swa')].map(x => x.className.replace('swa ', '')).join(), !!document.querySelector('#sec-foe .fbar'), !!document.querySelector('.ci-foot.ok'),
+    Math.round(document.querySelector('#sec-foe .fsum').getBoundingClientRect().width) <= 580, document.querySelector('#fin-pie').getBoundingClientRect().left > document.querySelector('#sec-foe .fsum').getBoundingClientRect().right]);
+  ok(r.join('|') === '4|in,eig,be,ge|none,in,be,ge,eig|false|false|true|true', 'Förderplan: Kreisdiagramm neben der schmaleren Tabelle, Farbfelder als Legende; kein Balken, kein grüner Kasten „Freigabe vollständig“: ' + r.join('|'));
   r = await p.evaluate(() => [...document.querySelectorAll('.d-right .circ')].map(c => c.className.replace('circ c-', '')).join());
   ok(r === 'ok,ok,ok,ok,ok,ok,ok,run,add', 'rechts: Freigaben und Unterlagen als Kreise: ' + r);
   ok(!!(await p.$('.d-right input[data-p="link"]')) && !!(await p.$('.d-right input[data-p="pfad"]')), 'Ordner rechts unter den Unterlagen');
   await p.click('.d-right .circ[data-kind="ul"]');
   r = await p.$$eval('.circ-pop button', bs => bs.map(x => x.textContent).join(','));
-  ok(r === '✓vorhanden,…in Arbeit,✗fehlt', 'Klick auf den Kreis bietet die Stände an: ' + r);
+  ok(r === 'vorhanden,in Arbeit,fehlt' && await p.$$eval('.circ-pop .circ', c => c.map(x => x.querySelector('svg') ? 'svg' : x.textContent).join()) === 'svg,svg,svg', 'Klick auf den Kreis bietet die Stände an, Zeichen als Grafik: ' + r);
   await p.keyboard.press('Escape');
   r = await p.evaluate(() => [document.querySelectorAll('.fp').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), document.querySelector('#sh-f-mtw-spk').textContent, document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(), [...document.querySelectorAll('#foe-f-mtw-spk .pc-lab')].map(e => e.textContent).join()]);
   ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3].includes('15 %') && r[4] === 'beantragt am:Antwort erwartet:' && r[5] === 'Pro,Contra', 'Förderplan: Einschätzung als Punkte, Stand-Knopf, Anteil, Fristen, Pro und Contra: ' + JSON.stringify(r));

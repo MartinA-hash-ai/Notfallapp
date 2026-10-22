@@ -2,18 +2,16 @@
    Name, Summe, Ort · Zuständig · bis wann – Freigabe – Finanzierungsplan mit Verwendungsnachweis je Förderer – Spendenübergabe. */
 
 const prioMark = b => `<button class="prio p-${b.prio}" data-act="prio-menu" data-id="${b.id}" title="Priorität: ${b.prio} – klicken zum Ändern" aria-label="Priorität ${b.prio}, ändern"><i></i><i></i><i></i></button>`;
-// Balken der Finanzierung (Seite des Bedarfs): je Förderer ein Stück (Farbe nach Stand)
-function segBar(b, opts = {}) {
-  const F = fin(b), segs = finSegs(b), tot = segs.reduce((a, s) => a + s.v, 0), max = Math.max(F.S, tot, 1);
-  return `<div class="fbar${opts.big ? ' big' : ''}" role="img" aria-label="${esc(finText(b))}">`
-    + segs.map(s => `<span class="fb ${s.k}" style="width:${(s.v / max * 100).toFixed(2)}%" title="${esc(s.name + ': ' + eur(s.v) + ' (' + KIND_L[s.k] + ')')}"></span>`).join('')
-    + (tot > F.S && F.S > 0 ? `<span class="fmark" style="left:${(F.S / max * 100).toFixed(2)}%" title="Bedarf ${eur(F.S)}"></span>` : '') + '</div>';
-}
-const LEGEND_FIN = Object.entries(KIND_L).map(([k, l]) => `<span class="lg"><i class="swa ${k}"></i>${l}</span>`).join('');
 
 /* ---------- kleine Kreise: grün mit Haken, gelb mit drei Punkten, rot mit Kreuz, leer; m-dot = vereinfacht (Thema durch) */
-const DOTS3 = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4.6" cy="8" r="1.15"/><circle cx="8" cy="8" r="1.15"/><circle cx="11.4" cy="8" r="1.15"/></svg>';
-const MI = { ok: ['m-ok', '✓'], run: ['m-run', DOTS3], no: ['m-no', '✕'], off: ['m-off', ''], dot: ['m-dot', ''], none: ['m-none', ''] };
+// Zeichen in den Kreisen als klare Grafik (keine Schriftzeichen – die sahen je nach Schrift handgemalt aus)
+const ICO = {
+  ok: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 8.4l2.6 2.6L12 5.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  no: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5.3 5.3l5.4 5.4M10.7 5.3l-5.4 5.4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"/></svg>',
+  run: '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4.6" cy="8" r="1.2"/><circle cx="8" cy="8" r="1.2"/><circle cx="11.4" cy="8" r="1.2"/></svg>',
+  na: '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M5 8h6" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>',
+};
+const MI = { ok: ['m-ok', ICO.ok], run: ['m-run', ICO.run], no: ['m-no', ICO.no], off: ['m-off', ''], dot: ['m-dot', ''], none: ['m-none', ''] };
 const mi = (s, t) => `<span class="mi ${MI[s][0]}"${t ? ` title="${esc(t)}"` : ''}>${MI[s][1]}</span>`;
 const ICON_CAL = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3.5" width="12" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 7h12M5.5 2v3M10.5 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
 const ICON_TRI = '<svg class="tri" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="currentColor"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12" r=".9" fill="#fff"/></svg>';

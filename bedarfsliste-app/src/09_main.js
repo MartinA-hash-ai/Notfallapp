@@ -105,7 +105,7 @@ function refresh() {
   const b = cur();
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-status', statusBlock(b)); swap('d-steps', steps(b));
-  swap('fr-body', freigabeList(b)); swap('fin-bar', finBarBlock(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
+  swap('fr-body', freigabeList(b)); swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b));
 }

@@ -96,7 +96,7 @@ function secInfo(b) {
 }
 
 /* ---------- Rechts: Freigaben, Unterlagen, Ordner – je Punkt ein Kreis (grün ✓, gelb …, rot ✗); ein Klick darauf bietet die anderen Stände an */
-const CIRC_SYM = { ok: '✓', run: '…', no: '✗', off: '', na: '–' };
+const CIRC_SYM = { ok: ICO.ok, run: ICO.run, no: ICO.no, off: '', na: ICO.na };
 const circ = (kind, attrs, label) => `<button class="circ c-${kind}" data-act="circ" ${attrs} aria-label="${esc(label)} – Stand ändern" title="Stand ändern">${CIRC_SYM[kind]}</button>`;
 const frKind = i => i.na ? 'na' : ({ ok: 'ok', angefragt: 'run', nein: 'no', offen: 'off' })[i.st];
 const ulKind = u => ({ da: 'ok', arbeit: 'run', fehlt: 'no' })[u.st] || 'no';
@@ -108,11 +108,11 @@ function freigabeList(b) {
     const hint = i.na ? 'entfällt' : i.opt && i.st === 'offen' ? 'nicht nötig' : i.st === 'offen' ? 'noch nicht angefragt' : '';
     const since = i.st === 'angefragt' && validIso(i.item.angefragt) ? 'angefragt am ' + fmtDate(i.item.angefragt) + ', seit ' + days(i.item.angefragt, today()) + ' Tagen' : 'angefragt am';
     const date = !i.na && (i.st === 'angefragt' || i.st === 'nein') ? `<input type="date" class="inline date" data-p="${p}.angefragt" value="${esc(i.item.angefragt || '')}" aria-label="angefragt am" title="${esc(since)}">` : '';
-    return `<div class="ci-row" id="fr-${i.k}">${i.na ? '<span class="circ c-na" aria-hidden="true">–</span>' : circ(frKind(i), `data-kind="fr" data-k="${i.k}"`, i.label)}
+    return `<div class="ci-row" id="fr-${i.k}">${i.na ? `<span class="circ c-na" aria-hidden="true">${ICO.na}</span>` : circ(frKind(i), `data-kind="fr" data-k="${i.k}"`, i.label)}
       <div class="ci-t">${name}${hint ? `<span class="ci-hint">${hint}</span>` : ''}</div>${date}</div>`;
   }).join('');
   const fo = frOffen(b);
-  return rows + (fo.names.length ? `<div class="ci-foot warn">Es fehlt noch: ${esc(fo.names.join(', '))}</div>` : '<div class="ci-foot ok">✓ Freigabe vollständig</div>')
+  return rows + (fo.names.length ? `<div class="ci-foot warn">Es fehlt noch: ${esc(fo.names.join(', '))}</div>` : '')
     + dl('dl-fach', [...FACH_LIST, ...D.bedarfe.map(x => x.freigabe.fach.name)]);
 }
 function unterlagenList(b) {
@@ -258,15 +258,31 @@ function stMenu(btn) {
   placePop(m, btn);
   (m.querySelector('button.on') || m.querySelector('button')).focus();
 }
-/* ---------- Übersicht oben im Förderplan: Balken je Förderer, darunter die Tabelle (Gesamtbedarf, Förderer farbig nach Stand, Delta, Eigenmittel) */
+/* ---------- Übersicht oben im Förderplan: Tabelle (Gesamtbedarf, Förderer nach Stand, Delta, Eigenmittel) und daneben ein Kreisdiagramm.
+   Die Tabelle ist zugleich die Legende: jede Zeile trägt das Farbfeld ihres Kreisstücks. */
 const ROW_CLS = { zugesagt: 'r-zu', beantragt: 'r-be', vorb: 'r-ge', geplant: 'r-ge', abgelehnt: 'r-ab' };
-function finBarBlock(b) { return segBar(b, { big: true }) + `<div class="legend">${LEGEND_FIN}</div>`; }
+const segKind = f => f.status === 'zugesagt' ? (f.eingegangen > 0 ? 'in' : 'zu') : f.status === 'beantragt' ? 'be' : f.status === 'abgelehnt' ? 'none' : 'ge';
+const swa = k => `<i class="swa ${k}" aria-hidden="true"></i>`;
+function finPie(b) {
+  const S = +b.summe || 0, segs = finSegs(b), tot = segs.reduce((a, s) => a + s.v, 0), max = Math.max(S, tot);
+  const parts = [...segs.map(s => ({ k: s.k, v: s.v, t: s.name + ': ' + eur(s.v) + ' · ' + KIND_L[s.k] })), ...(S > tot ? [{ k: 'off', v: S - tot, t: 'noch ohne Förderer: ' + eur(S - tot) }] : [])];
+  if (!max) return '<svg class="pie" viewBox="0 0 100 100" aria-hidden="true"><circle class="ps off" cx="50" cy="50" r="48"/></svg>';
+  let a = -Math.PI / 2;
+  const pt = w => (50 + 48 * Math.cos(w)).toFixed(2) + ' ' + (50 + 48 * Math.sin(w)).toFixed(2);
+  const slices = parts.filter(p => p.v > 0).map(p => {
+    const da = p.v / max * 2 * Math.PI, d = da > 2 * Math.PI - 1e-6 ? null : `M50 50L${pt(a)}A48 48 0 ${da > Math.PI ? 1 : 0} 1 ${pt(a + da)}Z`;
+    a += da;
+    return (d ? `<path class="ps ${p.k}" d="${d}">` : `<circle class="ps ${p.k}" cx="50" cy="50" r="48">`) + `<title>${esc(p.t)} (${pct(p.v, max)})</title>` + (d ? '</path>' : '</circle>');
+  });
+  return `<svg class="pie" viewBox="0 0 100 100" role="img" aria-label="${esc(finText(b))}"><defs><pattern id="pie-ge" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<rect width="5" height="5" style="fill:var(--card)"/><rect width="2.6" height="5" style="fill:var(--f-ge)"/></pattern></defs>${slices.join('')}</svg>`;
+}
 function finRows(b) {
   const S = +b.summe || 0, F = finState(b);
-  return `<tr class="r-sum"><th>Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`
+  return `<tr class="r-sum"><th>${swa('none')}Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`
     + b.foerderer.filter(f => f.name.trim() || f.betrag).map(f => { const v = foeAmt(f);
-      return `<tr class="${ROW_CLS[f.status]}"><th>${esc(f.name || '(ohne Namen)')} <span class="r-st">${F_ST_L[f.status]}${f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : ''}</span></th><td class="num">${eur(v)}</td><td class="num">${f.status === 'abgelehnt' ? '' : pct(v, S)}</td></tr>`; }).join('')
-    + (F.d ? `<tr class="r-delta"><th>${F.d > 0 ? 'Delta <span class="r-st">noch ohne Förderer</span>' : 'Überfinanzierung'}</th><td class="num">${eur(Math.abs(F.d))}</td><td class="num">${pct(Math.abs(F.d), S)}</td></tr>` : '');
+      return `<tr class="${ROW_CLS[f.status]}"><th>${swa(segKind(f))}${esc(f.name || '(ohne Namen)')} <span class="r-st">${F_ST_L[f.status]}${f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : ''}</span></th><td class="num">${eur(v)}</td><td class="num">${f.status === 'abgelehnt' ? '' : pct(v, S)}</td></tr>`; }).join('')
+    + (F.d ? `<tr class="r-delta"><th>${swa(F.d > 0 ? 'off' : 'none')}${F.d > 0 ? 'Delta <span class="r-st">noch ohne Förderer</span>' : 'Überfinanzierung'}</th><td class="num">${eur(Math.abs(F.d))}</td><td class="num">${pct(Math.abs(F.d), S)}</td></tr>` : '');
 }
 const finEigPct = b => pct(+b.eigenanteil || 0, +b.summe || 0);
 function secFoe(b) {
@@ -274,9 +290,10 @@ function secFoe(b) {
     <div class="sec-head"><h2>Förderplan</h2>
       <div class="sec-tools"><button class="icon-btn" data-act="vorlage" aria-label="Excel-Vorlage für die KI-Recherche herunterladen" title="Excel-Vorlage für die KI-Recherche herunterladen – mit Bedarf, bisherigem Förderplan und Anleitung">${ICON_DOWN}</button>
         <button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – neue Förderer kommen dazu, vorhandene werden ergänzt">${ICON_UP}</button></div></div>
-    <div id="fin-bar" class="fin-bar">${finBarBlock(b)}</div>
+    <div class="fin-wrap">
     <table class="fsum"><tbody id="fin-rows">${finRows(b)}</tbody>
-      <tbody><tr class="r-eig"><th>Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
+      <tbody><tr class="r-eig"><th>${swa('eig')}Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
+    <div id="fin-pie" class="fin-pie">${finPie(b)}</div></div>
     ${dl('dl-kartei', KR.list.map(k => k.name))}
   </section>
   ${b.foerderer.map(f => fpCard(b, f)).join('') || '<div class="empty fp-empty">Noch kein Förderer eingetragen – einzeln mit „+ Förderer“ oder viele auf einmal aus einer ausgefüllten Recherche-Excel (Symbol oben rechts im Förderplan).</div>'}
