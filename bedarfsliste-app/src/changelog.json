@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.13.0",
+    "date": "2026-10-22T14:40",
+    "items": [
+      "Kreisdiagramm im Förderplan: jeder zugesagte Förderer ist ein eigenes grünes Stück, getrennt durch feine weiße Linien; ein noch fehlender Betrag (Delta) erscheint dezent schraffiert",
+      "Beim Überfahren eines Stücks erscheint sofort ein kleines weißes Feld mit Name und Betrag – nicht mehr der schwarze Hinweis des Browsers",
+      "Geldeingang: statt des roten Knopfs steht hinter „am Datum“ der blaue Link „→ Geldeingang bestätigen“ (öffnet den Kalender für das Eingangsdatum); danach „✓ eingegangen am …“ mit Stift zum Ändern oder Zurücknehmen",
+      "Kopf der Bedarfsseite ruhiger: keine Angabe zur Finanzierungslücke mehr hinter den Schritten (steht beim Überfahren der Schritte), alle Häkchen sehen gleich aus",
+      "Summe, ⋯ und Papierkorb rechtsbündig mit dem Hauptblock; lange Namen brechen auf zwei Zeilen um; der Umschalter „Schätzung / laut Angebot“ ist entfernt",
+      "Freigaben: sind alle vorhanden, wird der Block hellgrün und die Überschrift zeigt „alle vorhanden“"
+    ]
+  },
+  {
     "version": "0.12.0",
     "date": "2026-10-22T13:38",
     "items": [

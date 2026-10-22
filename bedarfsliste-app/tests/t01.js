@@ -1,6 +1,7 @@
 // Grundtest: leere Datei startet, ein Bedarf läuft per Bedienung durch alle Phasen, nichts wird aus dem Internet geladen
 const { chromium, ok, open, finish } = require('./lib');
-const status = p => p.$eval('#d-status', e => e.textContent);
+// der Stand steht als Hinweis an den Schritten oben (beim Überfahren)
+const status = p => p.$eval('#d-steps [title]', e => e.title);
 // Kreis so oft anklicken, bis der gewünschte Stand erreicht ist (jeder Klick schaltet einen Stand weiter)
 const KREIS = { angefragt: 'run', ok: 'ok', nein: 'no', offen: 'off', da: 'ok', arbeit: 'run', fehlt: 'no' };
 const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(sel, e => e.className)) !== 'circ c-' + KREIS[v]; i++) await p.click(sel); };
@@ -56,8 +57,10 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   await p.click('.fp .dot:nth-child(2)');   // die Punkte füllen sich von rechts: der zweite von links ist Stufe 4
   ok(await p.evaluate(() => D.bedarfe[0].foerderer[0].einsch === 'w' && document.querySelectorAll('.fp .dots.lv4 .dot.on').length === 4), 'Einschätzung: vier Punkte = wahrscheinlich');
   ok((await status(p)).includes('Geldeingang offen'), 'Stand: Geldeingang offen');
-  await p.click('button[data-act="geld"]'); await p.click('button[data-act="geld-ok"]');
-  r = await p.evaluate(() => [D.bedarfe[0].foerderer[0].eingegangen, document.querySelector('#d-status').textContent, document.querySelector('#d-steps .cur').textContent]);
+  ok(await p.$eval('.fk-st .geld-link', e => e.textContent.trim()) === '→ Geldeingang bestätigen' && await p.$eval('.fk-st .fp-d span', e => e.textContent) === 'am', 'Zusage: „am …“ hinter dem Stand, daneben „→ Geldeingang bestätigen“ als Link');
+  await p.click('button[data-act="geld"]'); await p.click('.cal-pop .cal-d.heute');
+  r = await p.evaluate(() => [D.bedarfe[0].foerderer[0].eingegangen, document.querySelector('#d-steps [title]').title, document.querySelector('#d-steps .cur').lastChild.textContent]);
+  ok(await p.$eval('.fk-st .geld.ok', e => e.textContent.trim()) === 'eingegangen am ' + await p.evaluate(() => fmtDate(today())) && !!(await p.$('.fk-st .geld.ok .pen')), 'Geld eingegangen: grüner Haken, „eingegangen am …“ und Stift, ohne Betrag');
   ok(r[0] === 800 && r[1].includes('Spendenübergabe') && r[1].includes('Pressemitteilung') && r[2] === 'Nacharbeit', 'Geld eingegangen → Phase Nacharbeit: ' + r[1]);
   await p.click('[data-p="nach.ueb.st"][data-v="erledigt"]'); await p.click('[data-p="nach.pm.st"][data-v="veroeff"]');
   ok((await status(p)).includes('Alles erledigt'), 'Nacharbeit erledigt → abgeschlossen');

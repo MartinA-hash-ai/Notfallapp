@@ -37,11 +37,13 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0].every((y, i) => Math.abs(y - r[1][i]) <= 1) && r[2].every((y, i) => Math.abs(y - r[0][i]) <= 1), 'Freigabe und Förderer stehen Zeile für Zeile auf einer Höhe, Punkte mittig zur Schrift: ' + JSON.stringify(r));
   await p.screenshot({ path: 'vorschau_liste.png', fullPage: true });
   await p.click('tr[data-id="b-mtw"]');
-  r = await p.evaluate(() => [document.querySelector('#f-titel').value, document.querySelector('.d-head input[data-p="gliederung"]').value, document.querySelector('.d-right-head input[data-p="summe"]').value, document.querySelectorAll('[data-p="summe"]').length, document.querySelector('#d-steps .cur').textContent]);
+  r = await p.evaluate(() => [document.querySelector('#f-titel').value, document.querySelector('.d-head input[data-p="gliederung"]').value, document.querySelector('.d-right-head input[data-p="summe"]').value, document.querySelectorAll('[data-p="summe"]').length, document.querySelector('#d-steps .cur').lastChild.textContent]);
   ok(r.join('|') === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst|Paderborn|68.000|1|Förderung', 'Kopf: Name, Gliederung und Summe oben (einmalig), Phase Förderung');
-  r = await p.evaluate(() => [!!document.querySelector('header.top .subbar #d-steps'), !!document.querySelector('header.top .subbar #d-status'), !!document.querySelector('.jump'), document.documentElement.dataset.blTheme,
-    !!document.querySelector('.d-right-head .sum-art .seg'), document.querySelector('.d-grid > .d-left > .info-card') === document.querySelector('.d-left').firstElementChild]);
-  ok(r.join() === 'true,true,false,light,true,true', 'Phase und Stand an der Kopfzeile, keine Sprungmarken, hell als Standard, Schätzung unter der Summe, Infos links neben Freigaben: ' + r.join());
+  r = await p.evaluate(() => [!!document.querySelector('header.top .subbar #d-steps'), !!document.querySelector('#d-status'), document.querySelector('#d-steps [title]').title.startsWith('Anträge stellen'), !!document.querySelector('.jump'), document.documentElement.dataset.blTheme,
+    !!document.querySelector('.sum-art, [data-p="summeArt"]'), document.querySelector('.d-left').firstElementChild.className,
+    Math.abs(document.querySelector('.d-right-head').getBoundingClientRect().right - document.querySelector('.info-card').getBoundingClientRect().right) <= 2,
+    !!document.querySelector('#d-steps li.done .st-k svg')]);
+  ok(r.join() === 'true,false,true,false,light,false,d-head,true,true', 'Schritte an der Kopfzeile, Stand nur als Hinweis, ohne Schätzung/Angebot; Summe, ⋯ und Löschen bündig mit dem linken Block; Haken als Grafik: ' + r.join());
   r = await p.evaluate(() => [...document.querySelectorAll('#fin-rows tr')].map(t => t.className + ':' + [...t.querySelector('th').childNodes].find(n => n.nodeType === 3 && n.textContent.trim()).textContent.trim() + ':' + t.querySelector('td:last-child').textContent));
   ok(r.join('|') === 'r-sum:Gesamtbedarf:100 %|r-zu:Sparkasse Musterstadt:15 %|r-be:Bürgerstiftung Musterstadt:22 %|r-ge:Beispiel-Soziallotterie:44 %', 'Förderplan-Tabelle: Gesamtbedarf, Förderer farbig nach Stand mit Anteil: ' + r.join('|'));
   r = await p.evaluate(() => [document.querySelector('#fin-eig').textContent, document.querySelectorAll('#sec-foe .sec-tools .icon-btn').length, document.querySelectorAll('.card.fp').length, document.querySelectorAll('.fp .fbar, .fp select').length,
@@ -60,9 +62,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = [await ulSt()];
   for (let i = 0; i < 3; i++) { await p.click(kp); r.push(await ulSt()); }
   ok(r.join() === 'arbeit,da,fehlt,arbeit' && !(await p.$('.circ-pop')) && await p.$eval(kp, e => !!e.querySelector('svg')), 'Kreis: Klick schaltet weiter (in Arbeit → vorhanden → fehlt → in Arbeit), ohne Menü, Zeichen als Grafik: ' + r.join());
-  r = await p.evaluate(() => [document.querySelectorAll('.fk-grid > .card.fp.fk').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), !document.querySelector('.fk .share-t, .fk .pen, .fk-head'), document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(),
+  r = await p.evaluate(() => [document.querySelectorAll('.fk-grid > .card.fp.fk').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), !document.querySelector('.fk .share-t, .fk .fp-title .pen, .fk-head'), document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(),
     [...document.querySelectorAll('#foe-f-mtw-spk .pc textarea')].map(e => e.placeholder.split(':')[0]).join(), getComputedStyle(document.querySelector('.fk-grid')).gridTemplateColumns.split(' ').length, document.querySelector('.fk-grid').lastElementChild.textContent.trim()]);
-  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3] && r[4] === 'beantragt am:Antwort erwartet:' && r[5] === 'Pro,Contra' && r[6] === 2 && r[7] === '+Förderer hinzufügen', 'Förderer als Kacheln: ohne Überschrift, Stift und Prozent; als letzte Kachel „+ Förderer hinzufügen“: ' + JSON.stringify(r));
+  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3] && r[4] === 'amAntwort erwartet:' && r[5] === 'Pro,Contra' && r[6] === 2 && r[7] === '+Förderer hinzufügen', 'Förderer als Kacheln: ohne Überschrift, Stift und Prozent; als letzte Kachel „+ Förderer hinzufügen“: ' + JSON.stringify(r));
   r = await p.evaluate(() => { const k = document.querySelector('#foe-f-mtw-bst'), n = k.querySelector('.fp-h'), a = k.querySelector('input.amt'), d = [...k.querySelectorAll('.fp-d input')], pc = [...k.querySelectorAll('.pc > label')].map(x => x.getBoundingClientRect());
     return [getComputedStyle(n).fontSize === getComputedStyle(a).fontSize, a.getBoundingClientRect().top - n.getBoundingClientRect().bottom <= 3, Math.round(n.getBoundingClientRect().left) === Math.round(a.getBoundingClientRect().left),
       d.map(x => x.type + ':' + x.value).join(), pc[1].top - pc[0].bottom >= 6, !!k.querySelector('.fp-title .fw-tri')]; });
@@ -78,6 +80,16 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // Einschätzung füllt sich von rechts: der rechte Punkt allein = sehr unwahrscheinlich
   r = await p.evaluate(() => [...document.querySelectorAll('#foe-f-mtw-bst .dots .dot')].map(d => d.classList.contains('on') ? 'x' : '-').join(''));
   ok(r === '--xxx', 'Einschätzung „unsicher“: die drei rechten Punkte gefüllt: ' + r);
+  // Freigaben alle da: grünes Kästchen, Überschrift „alle vorhanden“
+  r = await p.evaluate(() => [!!document.querySelector('#fr-blk .fr-blk.ok'), document.querySelector('#fr-blk h3').textContent.replace(/\s+/g, ' ').trim()]);
+  ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
+  // Kreisdiagramm: Infofeld sofort beim Überfahren (wer und wie viel)
+  const sl = await (await p.$('#fin-pie .ps.zu')).boundingBox();
+  await p.mouse.move(sl.x + sl.width / 2, sl.y + sl.height / 3);
+  r = await p.evaluate(() => { const t = document.querySelector('.pie-tip'); return t && [t.querySelector('b').textContent, t.querySelector('span').textContent.replace(/\u00a0/g, ' '), getComputedStyle(t).backgroundColor]; });
+  ok(r && r[0] === 'Sparkasse Musterstadt' && r[1] === '10.000 €' && r[2] === 'rgb(255, 255, 255)', 'Kreisstück überfahren: sofort ein Infofeld mit Förderer und Summe (in den Farben des Programms): ' + r);
+  await p.mouse.move(5, 5);
+  ok(!(await p.$('.pie-tip')), 'Maus weg: Infofeld verschwindet');
   await p.click('button[data-act="info"][data-v="ordner"]');
   ok((await p.$eval('.info-pop', e => e.textContent)).includes('Link kopieren'), 'Hinweis zum Ordner hinter dem „i“');
   await p.mouse.click(5, 300);

@@ -31,19 +31,18 @@ const ICON_DOWN = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="
 const ICON_UP = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M11 20h2v-9.2l3.6 3.6 1.4-1.4-6-6-6 6 1.4 1.4 3.6-3.6V20zM5 4h14v2H5V4z"/></svg>';
 const ICON_PEN = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M4 17.2V20h2.8L17.3 9.5l-2.8-2.8L4 17.2zm15.7-10.1a1 1 0 0 0 0-1.4l-1.4-1.4a1 1 0 0 0-1.4 0l-1.2 1.2 2.8 2.8 1.2-1.2z"/></svg>';
 
+const stText = p => (p.step < 0 ? p.t : p.t + (p.sub ? ': ' + p.sub : '')) + p.warn.map(w => ' · ⚠ ' + w).join('');
 function steps(b) {
   const p = phase(b);
-  if (p.step < 0) return `<div class="steps"><span class="phase ph-pause">${esc(p.t)}</span></div>`;
-  return '<ol class="steps">' + PHASES.map((s, i) => `<li class="${p.step > i || p.step === 3 ? 'done' : p.step === i ? 'cur ' + PH_CLS[i] : ''}">${s.t}</li>`).join('') + '</ol>';
-}
-function statusBlock(b) {
-  const p = phase(b);
-  return (p.step >= 0 ? `<span class="st-main${p.bad ? ' bad' : ''}"><b>${esc(p.t)}</b>${p.sub ? ': ' + esc(p.sub) : ''}</span>` : '<span class="muted">Der Bedarf ruht – über „⋯“ oben rechts wieder aufnehmen.</span>')
-    + p.warn.map(w => `<span class="st-warn">⚠ ${esc(w)}</span>`).join('');
+  if (p.step < 0) return `<div class="steps" title="${esc(stText(p))}"><span class="phase ph-pause">${esc(p.t)}</span></div>`;
+  return `<ol class="steps" title="${esc(stText(p))}">` + PHASES.map((s, i) => { const done = p.step > i || p.step === 3;
+    return `<li class="${done ? 'done' : p.step === i ? 'cur ' + PH_CLS[i] : ''}"><span class="st-k">${done ? ICO.ok : i + 1}</span>${s.t}</li>`; }).join('') + '</ol>';
 }
 
 function bedarfView(b) {
   return `<main class="bedarf">
+    <div class="d-grid"><div class="d-left">
+    ${b.archiv ? '<div class="d-flag">Dieser Bedarf liegt im Archiv. <button class="link" data-act="unarchive">Zurück in die Liste holen</button></div>' : ''}
     <div class="d-head">
       ${prioMark(b)}
       <div class="d-name">
@@ -56,12 +55,9 @@ function bedarfView(b) {
           <button class="icon-btn" data-act="more" aria-label="Weitere Aktionen: zurückstellen, archivieren" title="Zurückstellen, verwerfen, archivieren">⋯</button>
           <button class="icon-btn trash" data-act="del" aria-label="Bedarf löschen" title="Bedarf löschen">${ICON_TRASH}</button>
         </div>
-        <div class="sum-art">${seg([['Schätzung', 'Schätzung'], ['Angebot', 'laut Angebot']], b.summeArt, 'data-p="summeArt"', 'small')}</div>
       </div>
     </div>
-    ${b.archiv ? '<div class="d-flag">Dieser Bedarf liegt im Archiv. <button class="link" data-act="unarchive">Zurück in die Liste holen</button></div>' : ''}
-    <div class="d-grid">
-      <div class="d-left">${secInfo(b)}${secFoe(b)}${secNach(b)}</div>
+    ${secInfo(b)}${secFoe(b)}${secNach(b)}</div>
       <aside class="d-right">${sidePanel(b)}</aside>
     </div>
     ${dl('dl-gl', [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)])}
@@ -122,9 +118,13 @@ function unterlagenList(b) {
     + `<div class="ci-row add"><span class="circ c-add" aria-hidden="true">+</span><input type="text" id="ul-new" class="inline" list="dl-ul" placeholder="weitere Unterlage" aria-label="Weitere Unterlage hinzufügen"></div>`
     + dl('dl-ul', ['Bilder', 'Presseartikel', 'Studien', 'Kostenplan', 'Zeitplan', 'Unterstützerschreiben'].filter(n => !b.unterlagen.some(u => u.name === n)));
 }
+function frBlock(b) {
+  const ok = frItems(b).filter(frNeeded).every(i => i.st === 'ok');
+  return `<div class="fr-blk${ok ? ' ok' : ''}"><h3>Freigaben${ok ? ' <span class="fr-ok">· alle vorhanden</span>' : ''} ${infoBtn('freigabe')}</h3><div id="fr-body" class="ci-list">${freigabeList(b)}</div></div>`;
+}
 function sidePanel(b) {
   return `<section class="card side" id="sec-frei">
-    <h3>Freigaben ${infoBtn('freigabe')}</h3><div id="fr-body" class="ci-list">${freigabeList(b)}</div>
+    <div id="fr-blk">${frBlock(b)}</div>
     <h3>Unterlagen</h3><div id="ul-body" class="ci-list">${unterlagenList(b)}</div>
     <h3>Ordner ${infoBtn('ordner')}</h3>
     <div class="o-row"><span class="o-lab">OneDrive / SharePoint</span><div class="row">${tin(b, 'link', 'class="grow" aria-label="Link zum Ordner"', 'Link einfügen (https://…)')}<span id="link-btn">${linkBtn(b)}</span></div></div>
@@ -195,17 +195,22 @@ function foeShare(b, f) {
 }
 function geldBlock(f) {
   const a = `data-fid="${f.id}"`;
-  if (UI.geld === f.id) return `<div class="geld form"><label>Betrag<span class="row"><input id="geld-betrag" type="text" inputmode="decimal" class="num" value="${esc(fmtNum(f.eingegangen ?? f.zugesagt ?? f.betrag))}"><span class="unit">€</span></span></label>
-      <label>eingegangen am<input id="geld-datum" type="date" value="${esc(f.eingangAm || today())}"></label><div class="row"><button class="primary" data-act="geld-ok" ${a}>Bestätigen</button><button data-act="geld-no">Abbrechen</button></div>
-      ${f.eingegangen > 0 ? `<button class="link small" data-act="geld-undo" ${a}>Eingang zurücknehmen</button>` : ''}</div>`;
-  if (f.eingegangen > 0) return `<div class="geld ok">✓ ${eur(f.eingegangen)} eingegangen<br>am ${fmtDate(f.eingangAm) || '–'} <button class="link small" data-act="geld" ${a}>ändern</button></div>`;
-  return `<div class="geld"><button class="primary small" data-act="geld" ${a}>Geldeingang bestätigen</button></div>`;
+  if (f.eingegangen > 0) return `<span class="geld ok">${ICO.ok}eingegangen am ${fmtDate(f.eingangAm) || '–'}<button class="pen" data-act="geld" ${a} title="Geldeingang ändern" aria-label="Geldeingang ändern">${ICON_PEN}</button></span>`;
+  return `<button class="link geld-link" data-act="geld" ${a}>→ Geldeingang bestätigen</button>`;
+}
+// Geldeingang: Kalender mit dem Tag des Eingangs (der Betrag ist die Zusage); „Eingang zurücknehmen“ leert ihn wieder
+function geldPop(btn) {
+  const b = cur(), f = b && b.foerderer.find(x => x.id === btn.dataset.fid); if (!f) return;
+  calPop(btn, f.eingangAm || today(), v => {
+    if (v) Object.assign(f, { eingegangen: f.zugesagt ?? f.betrag, eingangAm: v }); else Object.assign(f, { eingegangen: null, eingangAm: '' });
+    changed(); keep(renderNow);
+  }, { clear: f.eingegangen > 0 ? 'Eingang zurücknehmen' : '' });
 }
 // Fristen je Stand, jeweils Bezeichnung über dem Datum
 function fpDates(f) {
-  const d = (lab, p) => `<label class="fp-d"><span>${lab}:</span><input type="text" class="inline date dfeld" data-dp="${p}" data-fid="${f.id}" value="${esc(fmtDate(f[p]))}" placeholder="tt.mm.jjjj" aria-label="${lab}" autocomplete="off"></label>`;
-  return ({ geplant: d('Antragsfrist', 'frist'), vorb: d('Antragsfrist', 'frist'), beantragt: d('beantragt am', 'beantragtAm') + d('Antwort erwartet', 'erwartet'),
-    zugesagt: d('zugesagt am', 'entscheidungAm'), abgelehnt: d('abgelehnt am', 'entscheidungAm') })[f.status];
+  const d = (lab, p) => `<label class="fp-d"><span>${lab}${lab === 'am' ? '' : ':'}</span><input type="text" class="inline date dfeld" data-dp="${p}" data-fid="${f.id}" value="${esc(fmtDate(f[p]))}" placeholder="tt.mm.jjjj" aria-label="${lab}" autocomplete="off"></label>`;
+  return ({ geplant: d('Antragsfrist', 'frist'), vorb: d('Antragsfrist', 'frist'), beantragt: d('am', 'beantragtAm') + d('Antwort erwartet', 'erwartet'),
+    zugesagt: d('am', 'entscheidungAm'), abgelehnt: d('am', 'entscheidungAm') })[f.status];
 }
 // Einschätzung: fünf kleine Punkte, die sich von rechts füllen – der rechte allein ist „sehr unwahrscheinlich“, alle fünf „sehr wahrscheinlich“
 function dots(f) {
@@ -226,8 +231,7 @@ function fpCard(b, f) {
       </div>
       ${dots(f)}
     </div>
-    <div class="fk-st"><button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div></div>
-    ${st === 'zugesagt' ? `<div class="fk-geld">${geldBlock(f)}</div>` : ''}
+    <div class="fk-st"><button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div>${st === 'zugesagt' ? geldBlock(f) : ''}</div>
     <div class="pc">
       <label class="pro" title="Pro: warum passt das?"><i></i>${tarea(f, 'warum', a + ' rows="1" aria-label="Pro – warum passt das"', 'Pro: Warum passt das? Satzungszweck, Förderschwerpunkt, Regionalbezug …')}</label>
       <label class="contra" title="Contra: wo hakt es?"><i></i>${tarea(f, 'knackpunkte', a + ' rows="1" aria-label="Contra – Knackpunkte"', 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?')}</label>
@@ -252,29 +256,34 @@ function stMenu(btn) {
 const ROW_CLS = { zugesagt: 'r-zu', beantragt: 'r-be', vorb: 'r-ge', geplant: 'r-ge', abgelehnt: 'r-ab' };
 const segKind = f => f.status === 'zugesagt' ? 'zu' : f.status === 'beantragt' ? 'be' : f.status === 'abgelehnt' ? 'none' : 'ge';
 const swa = k => `<i class="swa ${k}" aria-hidden="true"></i>`;
-const PIE = [['zu', 'zugesagt'], ['eig', 'Eigenmittel'], ['be', 'beantragt'], ['ge', 'nicht beantragt'], ['off', 'Delta, noch ohne Förderer']];
 function finPie(b) {
-  const F = finState(b), sum = {}, wer = {};
-  for (const f of F.fs) {
-    const k = segKind(f), v = foeAmt(f);
-    if (k === 'none' || !(v > 0) || (F.done && k !== 'zu')) continue;               // steht die Finanzierung, zählen nur noch Zusagen
-    sum[k] = (sum[k] || 0) + v; (wer[k] = wer[k] || []).push(f.name || '(ohne Namen)');
-  }
-  if (F.eig > 0) sum.eig = F.eig;
-  const tot = Object.values(sum).reduce((x, y) => x + y, 0), max = Math.max(F.S, tot);
-  if (F.S > tot) sum.off = F.S - tot;
+  const F = finState(b), parts = [], fs = F.fs.filter(f => segKind(f) !== 'none' && !(F.done && segKind(f) !== 'zu'));   // steht die Finanzierung, zählen nur noch Zusagen
+  const add = (k, name, v) => { if (v > 0) parts.push({ k, name, v }); };
+  fs.filter(f => segKind(f) === 'zu').forEach(f => add('zu', f.name || '(ohne Namen)', foeAmt(f)));
+  add('eig', 'Eigenmittel', F.eig);
+  for (const k of ['be', 'ge']) fs.filter(f => segKind(f) === k).forEach(f => add(k, f.name || '(ohne Namen)', foeAmt(f)));
+  const tot = parts.reduce((x, p) => x + p.v, 0), max = Math.max(F.S, tot);
+  add('off', 'Delta, noch ohne Förderer', F.S - tot);
   if (!max) return '<svg class="pie" viewBox="0 0 100 100" aria-hidden="true"><circle class="ps off" cx="50" cy="50" r="48"/></svg>';
   let w = -Math.PI / 2;
   const pt = x => (50 + 48 * Math.cos(x)).toFixed(2) + ' ' + (50 + 48 * Math.sin(x)).toFixed(2);
-  const slices = PIE.filter(([k]) => sum[k] > 0).map(([k, l]) => {
-    const da = sum[k] / max * 2 * Math.PI, d = da > 2 * Math.PI - 1e-6 ? null : `M50 50L${pt(w)}A48 48 0 ${da > Math.PI ? 1 : 0} 1 ${pt(w + da)}Z`;
+  const slices = parts.map(p => {
+    const da = p.v / max * 2 * Math.PI, d = da > 2 * Math.PI - 1e-6 ? null : `M50 50L${pt(w)}A48 48 0 ${da > Math.PI ? 1 : 0} 1 ${pt(w + da)}Z`, tip = `data-tip="${esc(p.name)}" data-tip2="${esc(eur(p.v))}"`;
     w += da;
-    const t = `<title>${esc(l + ': ' + eur(sum[k]) + ' (' + pct(sum[k], max) + ')' + (wer[k] ? ' – ' + wer[k].join(', ') : ''))}</title>`;
-    return d ? `<path class="ps ${k}" d="${d}">${t}</path>` : `<circle class="ps ${k}" cx="50" cy="50" r="48">${t}</circle>`;
+    return d ? `<path class="ps ${p.k}" d="${d}" ${tip}/>` : `<circle class="ps ${p.k}" cx="50" cy="50" r="48" ${tip}/>`;
   });
-  return `<svg class="pie" viewBox="0 0 100 100" role="img" aria-label="${esc(finText(b))}"><defs><pattern id="pie-ge" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
-    + `<rect width="5" height="5" style="fill:var(--card)"/><rect width="2.6" height="5" style="fill:var(--f-ge)"/></pattern></defs>${slices.join('')}</svg>`;
+  return `<svg class="pie" viewBox="0 0 100 100" role="img" aria-label="${esc(finText(b))}"><defs><pattern id="pie-off" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<rect width="4" height="4" style="fill:var(--track)"/><rect width="1.2" height="4" style="fill:var(--off-st)"/></pattern></defs>${slices.join('')}</svg>`;
 }
+// Infofeld am Kreisdiagramm: sofort beim Überfahren, wer und wie viel
+document.addEventListener('mousemove', e => {
+  const s = e.target.closest && e.target.closest('.ps[data-tip]');
+  let t = $('.pie-tip');
+  if (!s) { if (t) t.remove(); return; }
+  if (!t) { t = h('div', { class: 'pie-tip', role: 'tooltip' }); document.body.append(t); }
+  t.innerHTML = `<b>${esc(s.dataset.tip)}</b><span>${esc(s.dataset.tip2)}</span>`;
+  t.style.left = Math.min(e.clientX + 14, innerWidth - t.offsetWidth - 8) + 'px'; t.style.top = (e.clientY + 14) + 'px';
+}, { passive: true });
 function finRows(b) {
   const S = +b.summe || 0, F = finState(b);
   return `<tr class="r-sum"><th>${swa('none')}Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`

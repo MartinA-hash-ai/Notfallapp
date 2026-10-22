@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', open: {}, geld: null };
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', open: {} };
 const UI_KEEP = ['view', 'id', 'tab'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
@@ -55,7 +55,7 @@ function headerHtml() {
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}</nav>
     <div class="actions">${karteiChip()}${saveBox()}<button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
-    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div><div id="d-status">${statusBlock(b)}</div></div>` : ''}
+    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : ''}
   </header>`;
 }
 function bannersHtml() {
@@ -104,8 +104,8 @@ function swap(id, html, force) { const el = document.getElementById(id); if (!el
 function refresh() {
   const b = cur();
   if (UI.view !== 'detail' || !b) return;
-  swap('d-meta', metaRest(b)); swap('d-status', statusBlock(b)); swap('d-steps', steps(b));
-  swap('fr-body', freigabeList(b)); swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
+  swap('d-meta', metaRest(b)); swap('d-steps', steps(b));
+  swap('fr-blk', frBlock(b)); swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b));
 }
@@ -183,8 +183,8 @@ async function act(k, a, e) {
   const b = cur();
   switch (k) {
     case 'tab': UI.tab = a.dataset.v; UI.view = 'list'; renderNow(); scrollTo(0, 0); return;
-    case 'open': UI.view = 'detail'; UI.id = a.dataset.id; UI.geld = null; renderNow(); scrollTo(0, 0); return;
-    case 'back': UI.view = 'list'; UI.geld = null; renderNow(); scrollTo(0, 0); return;
+    case 'open': UI.view = 'detail'; UI.id = a.dataset.id; renderNow(); scrollTo(0, 0); return;
+    case 'back': UI.view = 'list'; renderNow(); scrollTo(0, 0); return;
     case 'new': {
       const nb = blank(); D.bedarfe.unshift(nb); changed();
       UI.tab = 'aktiv'; UI.view = 'detail'; UI.id = nb.id; renderNow(); scrollTo(0, 0);
@@ -251,14 +251,7 @@ async function act(k, a, e) {
       if (!await confirmBox('Förderer entfernen?', '„' + ((f0 && f0.name) || 'Ohne Namen') + '“ wird mit Summe, Stand, Pro und Contra aus dem Förderplan entfernt. Direkt danach lässt sich das noch rückgängig machen.', 'Entfernen')) return;
       const before = JSON.stringify(D); b.foerderer = b.foerderer.filter(f => f.id !== a.dataset.fid); b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== a.dataset.fid); changed(); keep(renderNow); toast('Förderer entfernt', 'ok', undoTo(before)); return; }
     case 'det': UI.open['det-' + a.dataset.v] = !UI.open['det-' + a.dataset.v]; break;
-    case 'geld': UI.geld = a.dataset.fid; keep(renderNow); { const el = $('#geld-betrag'); if (el) el.focus(); } return;
-    case 'geld-no': UI.geld = null; break;
-    case 'geld-ok': {
-      const f = b.foerderer.find(x => x.id === a.dataset.fid), v = deNum($('#geld-betrag').value), d = $('#geld-datum').value;
-      if (!(typeof v === 'number' && v > 0)) { toast('Bitte einen Betrag eintragen (z. B. 5000 oder 5.000)', 'warn'); return; }
-      f.eingegangen = v; f.eingangAm = validIso(d) ? d : today(); UI.geld = null; changed(); toast('Geldeingang bestätigt: ' + eur(v), 'ok'); break;
-    }
-    case 'geld-undo': { const f = b.foerderer.find(x => x.id === a.dataset.fid); f.eingegangen = null; f.eingangAm = ''; UI.geld = null; changed(); break; }
+    case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
     case 'copy-path': copyPath(b); return;
     case 'vorlage': vorlageDownload(b); return;
