@@ -1,6 +1,7 @@
 /* ===================================================================== Strg gedrückt halten: in der Liste direkt bearbeiten.
    Name, Summe, Ort, Ansprechperson, Deadline, Beträge und Eigenmittel werden per Klick zum schlichten Feld an derselben Stelle (Vorschläge beim Tippen);
-   Freigabe, Angebot, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; über dem Finanzierungsplan unten links ein + für weitere Förderer. */
+   Freigabe, Angebot, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; über dem Finanzierungsplan unten links ein + für weitere Förderer,
+   je Förderer ganz rechts ein Stift zum Umbenennen, beim Nachweis ein Kalender für die Frist; bei der Spendenübergabe Ort, Datum und Uhrzeit, Notizen. */
 
 let STRG = false;
 function strgSet(on) {
@@ -16,7 +17,9 @@ function relist(b) {
   const tr = STRG && $(`#list-body tr[data-id="${CSS.escape(b.id)}"]`);
   if (tr) tr.outerHTML = row(b); else keep(renderNow);
 }
-document.addEventListener('keydown', e => { if (e.key === 'Control' || e.key === 'Meta') strgSet(true); });
+// Zustand der Taste auch an jeder anderen Taste und jedem Klick ablesen (ein offener Kalender schluckt das Loslassen)
+document.addEventListener('keydown', e => strgSet(e.key === 'Control' || e.key === 'Meta' || e.ctrlKey || e.metaKey));
+document.addEventListener('pointerdown', e => strgSet(e.ctrlKey || e.metaKey), true);
 document.addEventListener('keyup', e => { if (e.key === 'Control' || e.key === 'Meta') strgSet(false); });
 document.addEventListener('mousemove', e => strgSet(e.ctrlKey || e.metaKey), { passive: true });
 window.addEventListener('blur', () => strgSet(false));
@@ -61,6 +64,15 @@ function strgAct(b, el) {
       else x.st = x.st === 'offen' ? 'arbeit' : 'erledigt';
       return done();
     }
+    case 'foe-name': if (!f) return;                                                    // Stift ganz rechts: Förderer umbenennen
+      return editField(b, el.parentElement.querySelector(`.fn[data-fid="${CSS.escape(f.id)}"]`), { value: f.name, keep: true, fit: true, src: SRC.foe, label: 'Förderer', set: v => { if (v.trim()) f.name = v.trim(); } });
+    case 'vn-frist': if (!f) return;                                                    // Kalender neben „Frist fehlt“ bzw. der Frist
+      return editField(b, el.closest('.vt'), { type: 'date', picker: true, value: f.vn.frist, label: 'Frist', set: v => { f.vn.frist = v; } });
+    case 'ueb-ort': return editField(b, el, { value: b.nach.ueb.ort, src: SRC.uebOrt, label: 'Ort', set: v => { b.nach.ueb.ort = v.trim(); } });
+    case 'ueb-termin': { const u = b.nach.ueb;
+      return editField(b, el, { type: 'datetime-local', picker: true, value: u.termin ? u.termin + 'T' + (u.zeit || '00:00') : '', label: 'Datum und Uhrzeit',
+        set: v => { const [d, t] = v.split('T'); u.termin = d; u.zeit = t && t !== '00:00' ? t.slice(0, 5) : ''; if (u.st === 'offen') u.st = 'terminiert'; } }); }
+    case 'ueb-info': return editField(b, el, { value: b.nach.ueb.info, keep: true, area: true, multi: true, label: 'Notizen', set: v => { b.nach.ueb.info = v.trim(); } });
     case 'add': return addFoeForm(el, b);
   }
 }
@@ -97,6 +109,7 @@ window.addEventListener('scroll', () => $$('.le-sug').forEach(x => x.remove()), 
 const SRC = {
   ort: () => [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)],
   zust: () => D.bedarfe.flatMap(x => x.zust),
+  uebOrt: () => [...D.bedarfe.map(x => x.nach.ueb.ort), ...GL_LIST],
   foe: () => [...KR.list.map(k => k.name), ...D.bedarfe.flatMap(x => x.foerderer.map(f => f.name))],
 };
 
@@ -104,17 +117,18 @@ const SRC = {
 // Leer begonnen (nur der Name des Felds steht blass darin) – wer nichts eingibt, ändert nichts. Enter oder Klick daneben übernimmt, Esc verwirft.
 function editField(b, el, o) {
   const cell = el.closest('td'); if (!cell || cell.querySelector('.le-edit')) return;
-  const inp = o.area ? h('textarea', { class: 'le-edit', rows: 1, value: o.value ?? '', placeholder: o.label, 'aria-label': o.label })     // der Name bleibt zum Korrigieren stehen
-    : h('input', { type: o.type || 'text', value: '', class: 'le-edit' + (o.num ? ' num' : ''), placeholder: o.label, inputmode: o.num ? 'decimal' : null, autocomplete: 'off', 'aria-label': o.label });
+  const inp = o.area ? h('textarea', { class: 'le-edit', rows: 1, value: o.value ?? '', placeholder: o.label, 'aria-label': o.label })     // Name und Notizen bleiben zum Korrigieren stehen
+    : h('input', { type: o.type || 'text', value: o.keep ? o.value ?? '' : '', class: 'le-edit' + (o.num ? ' num' : ''), placeholder: o.label, inputmode: o.num ? 'decimal' : null, autocomplete: 'off', 'aria-label': o.label });
   cell.classList.add('le-cell'); cell.append(inp);
   const cs = getComputedStyle(cell), pl = parseFloat(cs.paddingLeft), pr = parseFloat(cs.paddingRight), c = cell.getBoundingClientRect(), x0 = c.left + cell.clientLeft, y0 = c.top + cell.clientTop, maxR = cell.clientWidth - pr;
   let r = el.getBoundingClientRect();
   if (el === cell) { const rg = document.createRange(); rg.selectNodeContents(el); const t = rg.getBoundingClientRect(); if (t.height) r = t; }
   const left = o.right ? Math.max(pl, r.right - x0 - Math.max(r.width, 90)) : el === cell ? pl : r.left - x0;
-  const width = o.right ? r.right - x0 - left : maxR - left;
+  const width = o.right ? r.right - x0 - left : o.fit ? r.width : maxR - left;
   Object.assign(inp.style, { left: left + 'px', top: (r.top - y0) + 'px', width: width + 'px' });
   el.classList.add('le-hide');
-  inp.focus(); if (o.area) inp.select();
+  inp.focus(); if (o.area || o.keep) inp.select();
+  if (o.picker) try { inp.showPicker(); } catch (e) { /* Kalender nicht direkt zu öffnen: das Feld bleibt zum Tippen */ }
   let fertig = false;
   const finish = ok => {
     if (fertig) return; fertig = true;
@@ -129,9 +143,15 @@ function editField(b, el, o) {
   const sug = o.src ? suggest(inp, o.src, () => finish(true)) : () => false;
   inp.addEventListener('keydown', e => {
     if (sug(e)) { e.preventDefault(); return; }
-    if (e.key === 'Enter') { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
   });
   inp.addEventListener('blur', () => finish(true));
+  // Datum im Kalender gewählt: gleich übernehmen; beim Tippen erst mit Enter oder Klick daneben (sonst zählte schon die halbe Uhrzeit)
+  if (/date/.test(inp.type)) {
+    let tipp = 0;
+    inp.addEventListener('keydown', () => { tipp = Date.now(); });
+    inp.addEventListener('change', () => { if (Date.now() - tipp > 400 && +inp.value.slice(0, 4) >= 2000) finish(true); });
+  }
 }
 
 // + im Finanzierungsplan: neue Zeile unter den Förderern – Name (blass „Förderer“, Vorschläge aus Förder-Kartei und Förderplänen) und Betrag dort, wo die Beträge stehen
@@ -139,7 +159,7 @@ function addFoeForm(el, b) {
   const fg = el.closest('.l-fin') && el.closest('.l-fin').querySelector('.fg'); if (!fg || fg.querySelector('.le-new')) return;
   const nm = h('input', { type: 'text', class: 'le-edit le-in', placeholder: 'Förderer', size: 1, autocomplete: 'off', 'aria-label': 'Neuer Förderer' });
   const am = h('input', { type: 'text', class: 'le-edit le-in num', placeholder: 'Betrag in Euro', size: 1, inputmode: 'decimal', autocomplete: 'off', 'aria-label': 'Betrag in Euro' });
-  const line = h('div', { class: 'fr le-new' }, h('span', { class: 'mi m-off' }), h('span', { class: 'fn' }, nm), h('span', { class: 'fa' }, am), h('span'), h('span'), h('span'));
+  const line = h('div', { class: 'fr le-new' }, h('span', { class: 'mi m-off' }), h('span', { class: 'fn' }, nm), h('span', { class: 'fa' }, am), h('span'), h('span'), h('span'), h('span'));
   fg.insertBefore(line, fg.querySelector('.fline'));
   // Betrag rechtsbündig in der Spalte der Beträge; ist sie schmaler als das Feld, ragt es nach links, und der Name endet davor (keine Spalte verschiebt sich)
   const fa = am.parentElement, fn = nm.parentElement;

@@ -29,7 +29,7 @@ function blank() {
     },
     unterlagen: FEST_UL.map(n => UL(n, 'fehlt', true)),
     foerderer: [], eigenanteil: null,
-    nach: { ueb: { noetig: true, st: 'offen', termin: '', ort: '', mit: [], info: '' }, pm: { noetig: true, st: 'offen', datum: '' } },
+    nach: { ueb: { noetig: true, st: 'offen', termin: '', zeit: '', ort: '', mit: [], info: '' }, pm: { noetig: true, st: 'offen', datum: '' } },
     manuell: '', archiv: false, angelegt: today(),
   };
 }
@@ -75,7 +75,7 @@ function normalize(d) {
     });
     n.foerderer.forEach(f => { if (f.einsch in EINSCH_ALT) f.einsch = EINSCH_ALT[f.einsch]; if (!EINSCH.some(e => e[0] === f.einsch)) f.einsch = ''; });
     if (!Array.isArray(n.nach.ueb.mit)) n.nach.ueb.mit = [];
-    if (typeof n.nach.ueb.info !== 'string') n.nach.ueb.info = '';
+    for (const k of ['info', 'zeit', 'ort', 'termin']) if (typeof n.nach.ueb[k] !== 'string') n.nach.ueb[k] = '';
     if (!(n.prio in PRIO_ORD)) n.prio = 'mittel';
     for (const k of ['titel', 'gliederung', 'beschreibung', 'stichwort', 'link', 'pfad']) if (typeof n[k] !== 'string') n[k] = n[k] == null ? '' : String(n[k]);
     return n;

@@ -15,6 +15,7 @@ const LEGEND_FIN = Object.entries(KIND_L).map(([k, l]) => `<span class="lg"><i c
 const DOTS3 = '<svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="4.6" cy="8" r="1.15"/><circle cx="8" cy="8" r="1.15"/><circle cx="11.4" cy="8" r="1.15"/></svg>';
 const MI = { ok: ['m-ok', '✓'], run: ['m-run', DOTS3], no: ['m-no', '✕'], off: ['m-off', ''], dot: ['m-dot', ''], none: ['m-none', ''] };
 const mi = (s, t) => `<span class="mi ${MI[s][0]}"${t ? ` title="${esc(t)}"` : ''}>${MI[s][1]}</span>`;
+const ICON_CAL = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3.5" width="12" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 7h12M5.5 2v3M10.5 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
 const ICON_TRI = '<svg class="tri" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="currentColor"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12" r=".9" fill="#fff"/></svg>';
 
 // Freigabe: Ortsführungskreis, Verwaltung, Fachreferat, Angebot – ist alles durch, wird der Block blass grün
@@ -36,7 +37,8 @@ function lNachweis(f, fertig) {
   const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`;
   if (!v.noetig) return `<span></span><span></span><span class="vt nn" ${a}>nicht nötig</span>`;
   if (fertig) return `<span class="lead"></span><span class="mi m-dot" ${a} title="erledigt"></span><span class="vt" ${a}>erledigt</span>`;
-  return `<span class="lead"></span><span class="mi ${MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]][0]}" ${a} title="${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]][1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt'}</span>`;
+  const s = MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]], cal = `<button class="le-cal" data-le="vn-frist" data-fid="${f.id}" title="Frist des Verwendungsnachweises" aria-label="Frist des Verwendungsnachweises wählen">${ICON_CAL}</button>`;
+  return `<span class="lead"></span><span class="mi ${s[0]}" ${a} title="${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}</span>`;
 }
 function lFinanz(b) {
   const F = finState(b), R = [];
@@ -44,9 +46,10 @@ function lFinanz(b) {
     const t = esc((f.name || '(ohne Namen)') + ': ' + F_ST_L[f.status]), a = `data-fid="${f.id}"`, ab = f.status === 'abgelehnt' ? ' ab' : '';
     const sym = s => `<span class="mi ${MI[s][0]}" data-le="foe" ${a}>${MI[s][1]}</span>`;
     const nm = `<span class="fn" data-le="foe" ${a}>${esc(f.name || '(ohne Namen)')}</span><span class="fa" data-le="amt" ${a}>${eur(foeAmt(f))}</span>`;
-    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false) : EMPTY3}</div>`);
-    else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${sym('dot')}${nm}${EMPTY3}</div>`);
-    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig)}</div>`); }
+    const pen = `<button class="le-pen" data-le="foe-name" ${a} title="Förderer umbenennen" aria-label="Förderer umbenennen">${ICON_PEN}</button>`;
+    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false) : EMPTY3}${pen}</div>`);
+    else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${sym('dot')}${nm}${EMPTY3}${pen}</div>`);
+    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig)}${pen}</div>`); }
   }
   R.push('<div class="fline"></div>');
   if (F.d) R.push(`<div class="fr sum"><span></span><span class="fn">${F.d > 0 ? 'Delta' : 'Überfinanzierung'}</span><span class="fa">${eur(Math.abs(F.d))}</span>${EMPTY3}</div><div class="fline"></div>`);
@@ -54,13 +57,18 @@ function lFinanz(b) {
   return `<div class="fg">${R.join('')}</div><button class="le-plus" data-le="add" title="Förderer hinzufügen" aria-label="Förderer hinzufügen">+</button>`;
 }
 // Spendenübergabe: steht die Finanzierung und ist noch nichts vereinbart, ein oranges Dreieck; darunter die Info dazu
+const uebWann = u => u.termin ? fmtDate(u.termin) + (u.zeit ? ', ' + u.zeit + ' Uhr' : '') : '';
 function lUebergabe(b) {
   const u = b.nach.ueb, F = finState(b), ort = u.ort ? `<div class="ml-sub">${esc(u.ort)}</div>` : '';
   const top = !u.noetig ? '<div class="ml nn">nicht nötig</div>'
     : u.st === 'erledigt' ? `<div class="ml">${mi('ok', 'erledigt')}<span>erledigt${u.termin ? ' am ' + fmtDate(u.termin) : ''}</span></div>${ort}`
-    : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${u.termin ? fmtDate(u.termin) : 'terminiert'}</span></div>${ort}`
+    : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>${ort}`
     : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '';
-  return top + (u.noetig && u.info.trim() ? `<div class="note">${esc(u.info)}</div>` : '');
+  const view = top + (u.noetig && u.info.trim() ? `<div class="note">${esc(u.info)}</div>` : '');
+  if (!u.noetig || u.st === 'erledigt') return view;
+  // mit Strg: Ort, Datum und Uhrzeit, Notizen zum Eintragen (leer steht der Name blass da)
+  const line = (k, val, lab, extra = '') => `<div class="ue-l${val ? '' : ' ue-leer'}" data-le="${k}">${val ? esc(val) : lab}${extra}</div>`;
+  return `<div class="ue-view">${view}</div><div class="ue-edit">${line('ueb-ort', u.ort, 'Ort')}${line('ueb-termin', uebWann(u), 'Datum und Uhrzeit', `<span class="le-cal">${ICON_CAL}</span>`)}${line('ueb-info', u.info.trim(), 'Notizen')}</div>`;
 }
 
 /* ---------- Filtern und Sortieren: hohe Priorität zuerst, dann nach der nächsten Frist */

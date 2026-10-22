@@ -223,7 +223,7 @@ td.l-meta .ort { color: var(--ink); font-weight: 700; }
 .pause-t { color: var(--muted); font-weight: 600; white-space: nowrap; }
 .l-fr, .l-fin, .l-ueb { border-left: 1px solid var(--line3); }
 table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
-.l-fin { width: 450px; }
+.l-fin { width: 480px; }
 .l-ueb { width: 215px; }
 .nn { color: var(--ghost); }
 .ml { display: flex; align-items: center; gap: 7px; }
@@ -240,7 +240,7 @@ table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
 .done .ml.nn { color: var(--ghost); }
 .done .mi.m-ok { width: 10px; height: 10px; margin: 0 2.5px; border: 0; background: var(--done); color: transparent; }
 /* Finanzierungsplan: Kreis · Förderer · Betrag · gepunktet · Kreis · Verwendungsnachweis */
-.fg { display: grid; grid-template-columns: 15px minmax(0, 1fr) auto 36px 15px 100px; column-gap: 8px; align-items: start; }
+.fg { display: grid; grid-template-columns: 15px minmax(0, 1fr) auto 36px 15px 112px 14px; column-gap: 8px; align-items: start; }
 .fg .fr { display: contents; }
 .fg > .fr > :first-child { grid-column: 1; }
 .fg > .fr > .mi { margin-top: 2.5px; }
@@ -293,6 +293,20 @@ textarea.le-edit { resize: none; field-sizing: content; min-height: 0; overflow:
 input.le-edit[type=date] { color: var(--ink2); }
 input.le-edit[type=date]::-webkit-calendar-picker-indicator { opacity: .45; cursor: pointer; }
 /* neuer Förderer: eigene Zeile unter den anderen, Name bis vor die Beträge, Betrag in der Spalte der Beträge */
+/* Stift je Förderer (ganz rechts) und Kalender beim Nachweis – nur mit Strg */
+.le-pen, .le-cal { border: 0; background: none; padding: 0; color: var(--muted); place-items: center; }
+.le-pen { visibility: hidden; display: grid; width: 14px; height: 18px; }
+body.strg #list-body .fr:hover > .le-pen { visibility: visible; }
+.le-pen:hover, .le-cal:hover { color: var(--ink); }
+.le-cal { display: none; width: 14px; height: 14px; margin-left: 5px; vertical-align: -2px; }
+.le-cal svg { width: 13px; height: 13px; }
+body.strg #list-body .le-cal { display: inline-grid; }
+/* Spendenübergabe mit Strg: Ort, Datum und Uhrzeit, Notizen – leer steht der Name blass da */
+.ue-edit { display: none; }
+body.strg #list-body .ue-edit { display: grid; gap: 2px; }
+body.strg #list-body .ue-view { display: none; }
+.ue-l { color: var(--ink2); white-space: normal; }
+.ue-l.ue-leer { color: var(--faint); }
 .le-new .le-edit.le-in { position: static; width: 100%; }
 .le-new .fa { position: relative; align-self: stretch; }
 .le-new .fa .le-edit.le-in { position: absolute; right: 0; top: 0; width: 92px; }

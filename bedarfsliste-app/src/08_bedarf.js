@@ -293,8 +293,8 @@ function nachBody(b) {
   return `<div class="grid two">
     <div><h3>Gemeinsam für den Bedarf</h3>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.ueb.noetig', 'Spendenübergabe')}${n.ueb.noetig ? seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], n.ueb.st, 'data-p="nach.ueb.st"', 'small') : ''}</div>
-        ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', din(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"'))}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus'))}</div>
-          ${fld('Info', tarea(b, 'nach.ueb.info', 'aria-label="Info zur Spendenübergabe"', 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos'))}
+        ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', `<span class="row nowrap">${din(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}<input type="time" data-p="nach.ueb.zeit" value="${esc(n.ueb.zeit)}" aria-label="Uhrzeit der Spendenübergabe"></span>`)}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus'))}</div>
+          ${fld('Notizen', tarea(b, 'nach.ueb.info', 'aria-label="Notizen zur Spendenübergabe"', 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos'))}
           ${fld('Wer ist dabei?', `<div class="mit">${cand.length ? cand.map(f => `<label class="check"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${n.ueb.mit.includes(f.id) ? 'checked' : ''}> ${esc(f.name)} <span class="muted small">${F_ST_L[f.status]}</span></label>`).join('') : '<span class="muted small">Noch keine Förderer im Förderplan</span>'}</div>`)}` : ''}
       </div>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.pm.noetig', 'Pressemitteilung')}${n.pm.noetig ? seg([['offen', 'offen'], ['arbeit', 'in Arbeit', 't-warn'], ['veroeff', 'veröffentlicht', 't-ok']], n.pm.st, 'data-p="nach.pm.st"', 'small') : ''}</div>

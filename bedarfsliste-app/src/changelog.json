@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.8.0",
+    "date": "2026-10-22T10:50",
+    "items": [
+      "Mit Strg über einem Förderer: ganz rechts ein kleiner Stift – Klick, und der Name lässt sich ändern (mit Vorschlägen)",
+      "Mit Strg beim Verwendungsnachweis: neben „Frist fehlt“ bzw. der Frist ein Kalender – Klick öffnet das Datum; ein gewähltes Datum gilt sofort",
+      "Mit Strg bei der Spendenübergabe: Ort, Datum und Uhrzeit (mit Kalender) und Notizen zum Eintragen, leer blass beschriftet; die Liste zeigt danach z. B. „05.12.2026, 15:00 Uhr“ mit Ort",
+      "Spendenübergabe hat eine Uhrzeit, auch auf der Seite des Bedarfs; „Info“ heißt dort jetzt „Notizen“"
+    ]
+  },
+  {
     "version": "0.7.1",
     "date": "2026-10-22T09:45",
     "items": [
