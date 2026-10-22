@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.8.1",
+    "date": "2026-10-22T11:00",
+    "items": [
+      "Stift zum Umbenennen steht jetzt direkt am Ende des Förderernamens (in seiner Zeile, vor dem Betrag) statt ganz rechts hinter dem Verwendungsnachweis",
+      "Spendenübergabe: mit Strg ein großer Kreis mit Stift; ein Klick öffnet Ort, Datum, Uhrzeit und Notizen zum Eintragen – das bleibt offen, auch ohne Strg. Enter, „fertig“ oder Klick daneben übernimmt, Esc verwirft; Datum und Uhrzeit getrennt (Uhrzeit darf leer bleiben), geleerte Felder werden gelöscht"
+    ]
+  },
+  {
     "version": "0.8.0",
     "date": "2026-10-22T10:50",
     "items": [

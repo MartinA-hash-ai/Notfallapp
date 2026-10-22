@@ -113,6 +113,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.hover(R('b-mtw') + ' .fn[data-le="foe"] >> nth=1');
   r = await p.$$eval(R('b-mtw') + ' .le-pen', b => b.map(x => getComputedStyle(x).visibility).join());
   ok(r === 'hidden,visible,hidden', 'Stift erscheint nur am Förderer unter der Maus: ' + r);
+  r = await p.evaluate(sel => { const pen = document.querySelectorAll(sel + ' .le-pen')[1].getBoundingClientRect(), nm = document.querySelectorAll(sel + ' .fn-t')[1].getBoundingClientRect(),
+    amt = document.querySelectorAll(sel + ' .fa[data-le="amt"]')[1].getBoundingClientRect(); return [Math.abs(pen.top + pen.height / 2 - (nm.top + 10)) < 4, pen.left >= nm.right, pen.right <= amt.left]; }, R('b-mtw'));
+  ok(r.join() === 'true,true,true', 'Stift in der Zeile des Namens, rechts davon und vor dem Betrag: ' + r.join());
   await p.click(R('b-mtw') + ' .le-pen >> nth=1'); await K.up('Control');
   r = await p.evaluate(sel => { const e = document.activeElement, a = document.querySelector(sel + ' .fa[data-le="amt"]').getBoundingClientRect(); return [e.value, e.placeholder, e.getBoundingClientRect().right <= a.left]; }, R('b-mtw'));
   ok(r.join('|') === 'Bürgerstiftung Musterstadt|Förderer|true', 'Stift: Name zum Ändern, Feld endet vor den Beträgen: ' + r.join('|'));
@@ -129,23 +132,27 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.fill('.le-edit', '2027-08-31');
   ok((await F('b-mtw', 'Sparkasse Musterstadt')).vn.frist === '2027-08-31' && (await p.$eval(R('b-mtw') + ' .vt[data-le="vn"]', e => e.textContent)) === 'bis 31.08.2027', 'Frist aus dem Kalender gleich übernommen');
 
-  // Spendenübergabe: Ort, Datum und Uhrzeit, Notizen
+  // Spendenübergabe: mit Strg ein Kreis mit Stift, der Ort, Datum, Uhrzeit und Notizen öffnet – bleibt offen ohne Strg
   const ue = () => p.$eval(R('b-kueche') + ' .l-ueb', e => e.innerText.replace(/\s+/g, ' ').trim());
-  r = await ue(); ok(r.startsWith('Spendenübergabe einleiten'), 'ohne Strg: Dreieck wie bisher: ' + r);
+  r = await ue(); ok(r.startsWith('Spendenübergabe einleiten') && await p.$eval(R('b-kueche') + ' .le-ue', e => getComputedStyle(e).display) === 'none', 'ohne Strg: Dreieck wie bisher, kein Kreis: ' + r);
   await K.down('Control');
-  r = await p.$$eval(R('b-kueche') + ' .ue-l', l => l.map(x => x.textContent.trim() + (x.classList.contains('ue-leer') ? '(blass)' : '')).join(' | '));
-  ok(r === 'Ort(blass) | Datum und Uhrzeit(blass) | Küche wird erst Ende November eingebaut – Übergabe danach, damit es Fotos von der fertigen Küche gibt.', 'mit Strg: Ort, Datum und Uhrzeit (blass), Notizen: ' + r);
-  await p.click(R('b-kueche') + ' [data-le="ueb-ort"]'); await K.up('Control');
-  await K.type('Gruppenraum Warburg'); await K.press('Enter');
-  await K.down('Control'); await p.click(R('b-kueche') + ' [data-le="ueb-termin"]'); await K.up('Control');
-  ok(await p.evaluate(() => document.activeElement.type) === 'datetime-local', 'Datum und Uhrzeit mit Kalender');
-  await p.fill('.le-edit', '2026-12-05T15:00');
-  await K.down('Control'); await p.click(R('b-kueche') + ' [data-le="ueb-info"]'); await K.up('Control');
-  ok((await p.evaluate(() => document.activeElement.value)).startsWith('Küche wird erst'), 'Notizen zum Ändern vorbelegt');
-  await p.fill('.le-edit', 'Mit Bürgermeister und Jugendgruppe'); await p.press('.le-edit', 'Enter');
+  r = await p.$eval(R('b-kueche') + ' .le-ue', e => { const b = e.getBoundingClientRect(), cs = getComputedStyle(e); return [cs.display, cs.borderTopLeftRadius, Math.round(b.width) >= 26]; });
+  ok(r.join() === 'grid,50%,true', 'mit Strg: großer Kreis mit Stift: ' + r.join());
+  await p.click(R('b-kueche') + ' .le-ue'); await K.up('Control'); await p.mouse.move(5, 5);
+  r = await p.evaluate(sel => [...document.querySelectorAll(sel + ' .ue-form .le-edit')].map(e => e.getAttribute('aria-label').split(' ')[0] + '=' + e.value + (e.placeholder ? '(' + e.placeholder + ')' : '')).join(' | '), R('b-kueche'));
+  ok(r === 'Ort=(Ort) | Datum= | Uhrzeit= | Notizen=Küche wird erst Ende November eingebaut – Übergabe danach, damit es Fotos von der fertigen Küche gibt.(Notizen)', 'Felder offen, auch nach dem Loslassen von Strg: ' + r);
+  await p.fill(R('b-kueche') + ' [aria-label="Ort der Spendenübergabe"]', 'Gruppenraum Warburg');
+  await p.fill(R('b-kueche') + ' [aria-label="Datum der Spendenübergabe"]', '2026-12-05');
+  await p.fill(R('b-kueche') + ' [aria-label="Uhrzeit der Spendenübergabe"]', '15:00');
+  await p.fill(R('b-kueche') + ' textarea.le-edit', 'Mit Bürgermeister und Jugendgruppe');
+  ok(!!(await p.$(R('b-kueche') + ' .ue-form')), 'beim Wechsel zwischen den Feldern bleibt das Formular offen');
+  await p.click(R('b-kueche') + ' .ue-ok');
   r = (await B('b-kueche')).nach.ueb;
   ok([r.ort, r.termin, r.zeit, r.st, r.info].join('|') === 'Gruppenraum Warburg|2026-12-05|15:00|terminiert|Mit Bürgermeister und Jugendgruppe', 'Übergabe eingetragen: ' + [r.ort, r.termin, r.zeit, r.st, r.info].join('|'));
-  ok(await ue() === '05.12.2026, 15:00 Uhr Gruppenraum Warburg Mit Bürgermeister und Jugendgruppe', 'Liste zeigt Termin mit Uhrzeit, Ort und Notizen: ' + await ue());
+  ok(await ue() === '05.12.2026, 15:00 Uhr Gruppenraum Warburg Mit Bürgermeister und Jugendgruppe' && await view() === 'list', 'Liste zeigt Termin mit Uhrzeit, Ort und Notizen: ' + await ue());
+  await K.down('Control'); await p.click(R('b-kueche') + ' .le-ue'); await K.up('Control');
+  await p.fill(R('b-kueche') + ' [aria-label="Uhrzeit der Spendenübergabe"]', ''); await p.press(R('b-kueche') + ' [aria-label="Ort der Spendenübergabe"]', 'Enter');
+  ok((await B('b-kueche')).nach.ueb.zeit === '' && (await ue()).startsWith('05.12.2026 Gruppenraum'), 'Uhrzeit geleert: nur das Datum, Enter übernimmt');
 
   ok(!(await p.evaluate(() => document.body.classList.contains('strg'))) && await view() === 'list', 'Strg losgelassen: Bearbeitungsmodus aus, Liste bleibt');
   await p.click(R('b-mtw') + ' .l-sum');

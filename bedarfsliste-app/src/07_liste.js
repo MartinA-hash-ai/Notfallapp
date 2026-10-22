@@ -45,11 +45,11 @@ function lFinanz(b) {
   for (const f of F.fs) {
     const t = esc((f.name || '(ohne Namen)') + ': ' + F_ST_L[f.status]), a = `data-fid="${f.id}"`, ab = f.status === 'abgelehnt' ? ' ab' : '';
     const sym = s => `<span class="mi ${MI[s][0]}" data-le="foe" ${a}>${MI[s][1]}</span>`;
-    const nm = `<span class="fn" data-le="foe" ${a}>${esc(f.name || '(ohne Namen)')}</span><span class="fa" data-le="amt" ${a}>${eur(foeAmt(f))}</span>`;
     const pen = `<button class="le-pen" data-le="foe-name" ${a} title="Förderer umbenennen" aria-label="Förderer umbenennen">${ICON_PEN}</button>`;
-    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false) : EMPTY3}${pen}</div>`);
-    else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${sym('dot')}${nm}${EMPTY3}${pen}</div>`);
-    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig)}${pen}</div>`); }
+    const nm = `<span class="fn" data-le="foe" ${a}><span class="fn-t">${esc(f.name || '(ohne Namen)')}</span>${pen}</span><span class="fa" data-le="amt" ${a}>${eur(foeAmt(f))}</span>`;
+    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false) : EMPTY3}</div>`);
+    else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${sym('dot')}${nm}${EMPTY3}</div>`);
+    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig)}</div>`); }
   }
   R.push('<div class="fline"></div>');
   if (F.d) R.push(`<div class="fr sum"><span></span><span class="fn">${F.d > 0 ? 'Delta' : 'Überfinanzierung'}</span><span class="fa">${eur(Math.abs(F.d))}</span>${EMPTY3}</div><div class="fline"></div>`);
@@ -65,10 +65,9 @@ function lUebergabe(b) {
     : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>${ort}`
     : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '';
   const view = top + (u.noetig && u.info.trim() ? `<div class="note">${esc(u.info)}</div>` : '');
-  if (!u.noetig || u.st === 'erledigt') return view;
-  // mit Strg: Ort, Datum und Uhrzeit, Notizen zum Eintragen (leer steht der Name blass da)
-  const line = (k, val, lab, extra = '') => `<div class="ue-l${val ? '' : ' ue-leer'}" data-le="${k}">${val ? esc(val) : lab}${extra}</div>`;
-  return `<div class="ue-view">${view}</div><div class="ue-edit">${line('ueb-ort', u.ort, 'Ort')}${line('ueb-termin', uebWann(u), 'Datum und Uhrzeit', `<span class="le-cal">${ICON_CAL}</span>`)}${line('ueb-info', u.info.trim(), 'Notizen')}</div>`;
+  if (!u.noetig) return view;
+  // mit Strg: großer Kreis mit Stift – öffnet Ort, Datum, Uhrzeit und Notizen zum Eintragen (bleibt offen, auch ohne Strg)
+  return view + `<button class="le-ue" data-le="ueb" title="Spendenübergabe eintragen: Ort, Datum und Uhrzeit, Notizen" aria-label="Spendenübergabe eintragen">${ICON_PEN}</button>`;
 }
 
 /* ---------- Filtern und Sortieren: hohe Priorität zuerst, dann nach der nächsten Frist */

@@ -1,7 +1,8 @@
 /* ===================================================================== Strg gedrückt halten: in der Liste direkt bearbeiten.
    Name, Summe, Ort, Ansprechperson, Deadline, Beträge und Eigenmittel werden per Klick zum schlichten Feld an derselben Stelle (Vorschläge beim Tippen);
    Freigabe, Angebot, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; über dem Finanzierungsplan unten links ein + für weitere Förderer,
-   je Förderer ganz rechts ein Stift zum Umbenennen, beim Nachweis ein Kalender für die Frist; bei der Spendenübergabe Ort, Datum und Uhrzeit, Notizen. */
+   am Ende des Förderernamens ein Stift zum Umbenennen, beim Nachweis ein Kalender für die Frist; bei der Spendenübergabe ein Kreis mit Stift, der Ort,
+   Datum, Uhrzeit und Notizen zum Eintragen öffnet – das Feld bleibt offen, auch wenn Strg losgelassen wird. */
 
 let STRG = false;
 function strgSet(on) {
@@ -24,6 +25,9 @@ document.addEventListener('keyup', e => { if (e.key === 'Control' || e.key === '
 document.addEventListener('mousemove', e => strgSet(e.ctrlKey || e.metaKey), { passive: true });
 window.addEventListener('blur', () => strgSet(false));
 
+// Klicks in offene Felder öffnen nicht den Bedarf (erst nach Feld und Knöpfen anhalten, damit „fertig“ wirkt)
+const leStop = el => el.addEventListener('click', e => e.stopPropagation());
+
 // je Klick ein Stand weiter
 const ROT_FR = ['offen', 'angefragt', 'ok', 'nein'], ROT_ANG = ['fehlt', 'arbeit', 'da'];
 const ROT_FOE = { geplant: 'beantragt', vorb: 'zugesagt', beantragt: 'zugesagt', zugesagt: 'abgelehnt', abgelehnt: 'geplant' };
@@ -31,7 +35,7 @@ const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 
 document.addEventListener('click', e => {
   if (UI.view !== 'list') return;
-  if (e.target.closest('.le-edit, .le-new')) { e.stopPropagation(); return; }          // Klick ins offene Feld öffnet nicht den Bedarf
+  if (e.target.closest('.le-edit, .le-new, .ue-form')) return;                         // offene Felder halten ihre Klicks selbst zurück (le-stop)
   if (!(e.ctrlKey || e.metaKey)) return;
   const tr = e.target.closest('#list-body tr[data-id]'); if (!tr) return;
   e.preventDefault(); e.stopPropagation();
@@ -64,15 +68,11 @@ function strgAct(b, el) {
       else x.st = x.st === 'offen' ? 'arbeit' : 'erledigt';
       return done();
     }
-    case 'foe-name': if (!f) return;                                                    // Stift ganz rechts: Förderer umbenennen
-      return editField(b, el.parentElement.querySelector(`.fn[data-fid="${CSS.escape(f.id)}"]`), { value: f.name, keep: true, fit: true, src: SRC.foe, label: 'Förderer', set: v => { if (v.trim()) f.name = v.trim(); } });
+    case 'foe-name': if (!f) return;                                                    // Stift am Ende des Namens: Förderer umbenennen
+      return editField(b, el.closest('.fn'), { value: f.name, keep: true, fit: true, src: SRC.foe, label: 'Förderer', set: v => { if (v.trim()) f.name = v.trim(); } });
     case 'vn-frist': if (!f) return;                                                    // Kalender neben „Frist fehlt“ bzw. der Frist
       return editField(b, el.closest('.vt'), { type: 'date', picker: true, value: f.vn.frist, label: 'Frist', set: v => { f.vn.frist = v; } });
-    case 'ueb-ort': return editField(b, el, { value: b.nach.ueb.ort, src: SRC.uebOrt, label: 'Ort', set: v => { b.nach.ueb.ort = v.trim(); } });
-    case 'ueb-termin': { const u = b.nach.ueb;
-      return editField(b, el, { type: 'datetime-local', picker: true, value: u.termin ? u.termin + 'T' + (u.zeit || '00:00') : '', label: 'Datum und Uhrzeit',
-        set: v => { const [d, t] = v.split('T'); u.termin = d; u.zeit = t && t !== '00:00' ? t.slice(0, 5) : ''; if (u.st === 'offen') u.st = 'terminiert'; } }); }
-    case 'ueb-info': return editField(b, el, { value: b.nach.ueb.info, keep: true, area: true, multi: true, label: 'Notizen', set: v => { b.nach.ueb.info = v.trim(); } });
+    case 'ueb': return uebForm(b, el);
     case 'add': return addFoeForm(el, b);
   }
 }
@@ -126,7 +126,7 @@ function editField(b, el, o) {
   const left = o.right ? Math.max(pl, r.right - x0 - Math.max(r.width, 90)) : el === cell ? pl : r.left - x0;
   const width = o.right ? r.right - x0 - left : o.fit ? r.width : maxR - left;
   Object.assign(inp.style, { left: left + 'px', top: (r.top - y0) + 'px', width: width + 'px' });
-  el.classList.add('le-hide');
+  el.classList.add('le-hide'); leStop(inp);
   inp.focus(); if (o.area || o.keep) inp.select();
   if (o.picker) try { inp.showPicker(); } catch (e) { /* Kalender nicht direkt zu öffnen: das Feld bleibt zum Tippen */ }
   let fertig = false;
@@ -159,8 +159,8 @@ function addFoeForm(el, b) {
   const fg = el.closest('.l-fin') && el.closest('.l-fin').querySelector('.fg'); if (!fg || fg.querySelector('.le-new')) return;
   const nm = h('input', { type: 'text', class: 'le-edit le-in', placeholder: 'Förderer', size: 1, autocomplete: 'off', 'aria-label': 'Neuer Förderer' });
   const am = h('input', { type: 'text', class: 'le-edit le-in num', placeholder: 'Betrag in Euro', size: 1, inputmode: 'decimal', autocomplete: 'off', 'aria-label': 'Betrag in Euro' });
-  const line = h('div', { class: 'fr le-new' }, h('span', { class: 'mi m-off' }), h('span', { class: 'fn' }, nm), h('span', { class: 'fa' }, am), h('span'), h('span'), h('span'), h('span'));
-  fg.insertBefore(line, fg.querySelector('.fline'));
+  const line = h('div', { class: 'fr le-new' }, h('span', { class: 'mi m-off' }), h('span', { class: 'fn' }, nm), h('span', { class: 'fa' }, am), h('span'), h('span'), h('span'));
+  fg.insertBefore(line, fg.querySelector('.fline')); leStop(line);
   // Betrag rechtsbündig in der Spalte der Beträge; ist sie schmaler als das Feld, ragt es nach links, und der Name endet davor (keine Spalte verschiebt sich)
   const fa = am.parentElement, fn = nm.parentElement;
   nm.style.width = Math.max(60, fn.clientWidth - Math.max(0, am.offsetWidth - fa.clientWidth) - 8) + 'px';
@@ -187,4 +187,36 @@ function addFoeForm(el, b) {
     if (e.target === nm) next(); else finish(true);
   });
   line.addEventListener('focusout', () => setTimeout(() => { if (!line.contains(document.activeElement)) finish(true); }, 0));
+}
+
+// Spendenübergabe eintragen: Ort (mit Vorschlägen), Datum und Uhrzeit, Notizen – vorbelegt, leeren löscht. Enter, „fertig“ oder Klick daneben übernimmt, Esc verwirft.
+function uebForm(b, el) {
+  const cell = el.closest('td'); if (!cell || cell.querySelector('.ue-form')) return;
+  const u = b.nach.ueb, inp = (o) => h('input', Object.assign({ type: 'text', class: 'le-edit le-in', autocomplete: 'off' }, o));
+  const ort = inp({ value: u.ort, placeholder: 'Ort', 'aria-label': 'Ort der Spendenübergabe' });
+  const dat = inp({ type: 'date', value: u.termin, 'aria-label': 'Datum der Spendenübergabe' });
+  const zeit = inp({ type: 'time', value: u.zeit, 'aria-label': 'Uhrzeit der Spendenübergabe' });
+  const info = h('textarea', { class: 'le-edit le-in', rows: 1, value: u.info, placeholder: 'Notizen', 'aria-label': 'Notizen zur Spendenübergabe' });
+  const ok = h('button', { class: 'link small ue-ok', type: 'button' }, 'fertig');
+  const form = h('div', { class: 'ue-form' }, ort, h('div', { class: 'ue-wann' }, dat, zeit), info, ok);
+  cell.replaceChildren(form); leStop(form); ort.focus();
+  let fertig = false;
+  const finish = save => {
+    if (fertig) return; fertig = true;
+    if (save) {
+      Object.assign(u, { ort: ort.value.trim(), termin: dat.value, zeit: zeit.value, info: info.value.trim() });
+      if (u.termin && u.st === 'offen') u.st = 'terminiert';
+      if (!u.termin && u.st === 'terminiert') u.st = 'offen';
+      changed();
+    }
+    relist(b);
+  };
+  const sug = suggest(ort, SRC.uebOrt, () => dat.focus());
+  form.addEventListener('keydown', e => {
+    if (e.target === ort && sug(e)) { e.preventDefault(); return; }
+    if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    if (e.key === 'Enter' && !(e.target === info && e.shiftKey)) { e.preventDefault(); finish(true); }
+  });
+  ok.addEventListener('click', () => finish(true));
+  form.addEventListener('focusout', () => setTimeout(() => { if (!fertig && !form.contains(document.activeElement)) finish(true); }, 0));
 }

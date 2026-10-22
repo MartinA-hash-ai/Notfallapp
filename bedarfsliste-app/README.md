@@ -23,8 +23,8 @@ Das Upload-Symbol daneben liest die ausgefüllte Datei wieder ein (neue Fördere
 
 **In der Liste bearbeiten:** Strg gedrückt halten, dann Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
 und ändern; Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; das + unten links im
-Finanzierungsplan fügt einen Förderer hinzu, der Stift rechts am Förderer benennt ihn um; der Kalender beim
-Verwendungsnachweis setzt die Frist; bei der Spendenübergabe lassen sich Ort, Datum und Uhrzeit und Notizen eintragen.
+Finanzierungsplan fügt einen Förderer hinzu, der Stift am Ende des Förderernamens benennt ihn um; der Kalender beim
+Verwendungsnachweis setzt die Frist; der Kreis mit Stift bei der Spendenübergabe öffnet Ort, Datum, Uhrzeit und Notizen.
 
 **Darstellung:** hell (voreingestellt), dunkel oder wie Windows – über das Zahnrad oben rechts.
 `Foerderplan_Vorlage.xlsx` ist dieselbe Vorlage ohne Bedarf.
