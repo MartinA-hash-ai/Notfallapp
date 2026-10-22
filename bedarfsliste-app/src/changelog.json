@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.7.1",
+    "date": "2026-10-22T09:45",
+    "items": [
+      "Felder beim Bearbeiten mit Strg schlicht: kein Rahmen, nur eine Linie darunter; Ort, Ansprechperson, Summe und Beträge beginnen leer mit blassem Feldnamen – wer nichts eingibt, ändert nichts",
+      "Beim Tippen ein schlichtes Fenster mit passenden Vorschlägen (Orte und Gliederungen, Personen, Förderer aus Kartei und Förderplänen); Pfeiltasten und Enter oder Klick übernehmen – kein Auswahlpfeil mehr",
+      "Das Feld liegt genau über dem Wert: links daneben verschiebt sich nichts",
+      "+ im Finanzierungsplan: der neue Förderer entsteht als eigene Zeile unter den anderen, über Delta und Eigenmittel – Name blass „Förderer“ bis vor die Beträge, „Betrag in Euro“ in der Spalte der Beträge"
+    ]
+  },
+  {
     "version": "0.7.0",
     "date": "2026-10-22T09:05",
     "items": [

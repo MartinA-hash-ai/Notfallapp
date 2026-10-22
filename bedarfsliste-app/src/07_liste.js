@@ -114,7 +114,6 @@ function listView() {
       <th>Bedarf</th><th class="r">Summe</th><th></th><th class="l-fr">Freigabe</th>
       <th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div></th><th class="l-ueb">Spendenübergabe</th>
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
-    ${dl('dl-gl', [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)])}${dl('dl-zust', D.bedarfe.flatMap(x => x.zust))}${dl('dl-kartei', KR.list.map(k => k.name))}
   </section></main>`;
 }
 // Priorität ändern: kleines Menü am Balken (Seite des Bedarfs)

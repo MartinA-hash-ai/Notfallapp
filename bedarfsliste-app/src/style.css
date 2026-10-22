@@ -281,14 +281,25 @@ td.l-fin { position: relative; }
   font-size: 14px; font-weight: 700; line-height: 1; place-items: center; }
 body.strg #list-body td.l-fin:hover .le-plus { display: grid; }
 body.strg #list-body .le-plus:hover { background: var(--runbg); }
-textarea.le-edit { resize: none; field-sizing: content; min-height: 0; line-height: 1.35; overflow: hidden; }
-input.le-edit, textarea.le-edit { font: inherit; color: var(--ink); padding: 1px 5px; border: 1px solid var(--focus); border-radius: 4px; background: var(--input); width: 100%; min-width: 0; }
-input.le-edit.num { text-align: right; }
-input.le-edit[type=date] { width: auto; }
-td.l-sum input.le-edit { width: 110px; }
-.l-meta input.le-edit { width: 170px; }
-.fa input.le-edit { width: 96px; }
-.le-add { display: grid; grid-template-columns: minmax(0, 1fr) 96px; gap: 6px; margin-top: 6px; padding-left: 23px; }
+/* Feld an Ort und Stelle: kein Rahmen, nur eine Linie darunter; liegt über dem Wert, damit sich keine Spalte verschiebt */
+td.le-cell { position: relative; }
+.le-hide, .le-hide * { visibility: hidden; }
+.le-edit { visibility: visible; position: absolute; z-index: 2; font: inherit; line-height: inherit; color: var(--ink); padding: 0 1px; margin: 0; border: 0; border-bottom: 1px solid var(--faint);
+  border-radius: 0; background: transparent; box-shadow: none; outline: none; min-width: 0; }
+.le-edit:focus { outline: none; border-bottom-color: var(--ink2); }
+.le-edit::placeholder { color: var(--faint); font-weight: 400; opacity: .75; }
+.le-edit.num { text-align: right; }
+textarea.le-edit { resize: none; field-sizing: content; min-height: 0; overflow: hidden; }
+input.le-edit[type=date] { color: var(--ink2); }
+input.le-edit[type=date]::-webkit-calendar-picker-indicator { opacity: .45; cursor: pointer; }
+/* neuer Förderer: eigene Zeile unter den anderen, Name bis vor die Beträge, Betrag in der Spalte der Beträge */
+.le-new .le-edit.le-in { position: static; width: 100%; }
+.le-new .fa { position: relative; align-self: stretch; }
+.le-new .fa .le-edit.le-in { position: absolute; right: 0; top: 0; width: 92px; }
+/* Vorschläge beim Tippen */
+.le-sug { position: fixed; z-index: 90; background: var(--card); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.12); padding: 3px 0; max-width: 340px; font-size: 13px; }
+.le-opt { padding: 4px 10px; cursor: pointer; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.le-opt:hover, .le-opt.on { background: var(--hover); color: var(--ink); }
 
 /* ---------- Seite eines Bedarfs */
 .st-main { color: var(--ink2); }
