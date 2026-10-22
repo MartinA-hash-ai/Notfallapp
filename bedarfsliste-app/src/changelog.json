@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.9.1",
+    "date": "2026-10-22T11:36",
+    "items": [
+      "Uhrzeit der Spendenübergabe mit zwei Rädern: links die Stunden, rechts die Minuten in 5er-Schritten; Stunde wählen, dann Minute – fertig",
+      "Scrollbalken in Listen und Auswahlfenstern in den Farben der gewählten Darstellung (hell oder dunkel)",
+      "Spendenübergabe: der Strich über den Notizen geht über die ganze Breite; ein Ort ohne Termin steht nicht mehr eingerückt",
+      "Spalte Summe linksbündig"
+    ]
+  },
+  {
     "version": "0.9.0",
     "date": "2026-10-22T11:10",
     "items": [

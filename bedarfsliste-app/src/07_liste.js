@@ -64,7 +64,7 @@ function lUebergabe(b) {
     : (u.st === 'erledigt' ? `<div class="ml">${mi('ok', 'erledigt')}<span>erledigt${u.termin ? ' am ' + fmtDate(u.termin) : ''}</span></div>`
       : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>`
       : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '')
-      + (u.ort ? `<div class="ml-sub">${esc(u.ort)}</div>` : '');
+      + (u.ort ? `<div class="ml-sub">${esc(u.ort)}</div>` : '');                      // ohne Zeile darüber nicht eingerückt (CSS)
   const view = top + (u.noetig && u.info.trim() ? (top ? '<div class="ue-sep"></div>' : '') + `<div class="note">${esc(u.info)}</div>` : '');
   if (!u.noetig) return view;
   // mit Strg: großer Kreis mit Stift – öffnet Ort, Datum, Uhrzeit und Notizen zum Eintragen (bleibt offen, auch ohne Strg)
@@ -119,7 +119,7 @@ function listView() {
       </div>
     </div>
     <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
-      ${['<th>Bedarf', '<th class="r">Summe', '<th>', '<th class="l-fr">Freigabe', '<th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div>', '<th class="l-ueb">Spendenübergabe']
+      ${['<th>Bedarf', '<th>Summe', '<th>', '<th class="l-fr">Freigabe', '<th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div>', '<th class="l-ueb">Spendenübergabe']
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
   </section></main>`;

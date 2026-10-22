@@ -111,8 +111,7 @@ function suggest(inp, source, onPick, o = {}) {
 }
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.le-sug'))) $$('.le-sug').forEach(x => x.remove()); }, true);
 
-// Uhrzeit in 5-Minuten-Schritten: Liste 06:00 bis 22:00, Getipptes wird auf 5 Minuten gerundet (1530, 15.30, 15:32 → 15:30)
-const ZEITEN = Array.from({ length: 16 * 12 + 1 }, (_, k) => z2(6 + Math.floor(k / 12)) + ':' + z2(k % 12 * 5));
+// Uhrzeit in 5-Minuten-Schritten: zwei Räder (Stunden, Minuten); Getipptes wird auf 5 Minuten gerundet (1530, 15.30, 15:32 → 15:30)
 function normZeit(s) {
   s = String(s || '').trim().replace(/\s*uhr$/i, '');
   let q = /^(\d{1,2})[:.,h ](\d{1,2})$/.exec(s), hh, mm;
@@ -123,7 +122,28 @@ function normZeit(s) {
   mm = Math.round(mm / 5) * 5; if (mm === 60) { mm = 0; hh++; }
   return hh < 24 && mm < 60 ? z2(hh) + ':' + z2(mm) : '';
 }
-const zeitPasst = (raw, t) => { const d = raw.replace(/\D/g, ''); return !d || t.replace(':', '').startsWith(d.length === 1 ? '0' + d : d) || (d.length === 1 && t.startsWith(d)); };
+function zeitPop(inp, done) {
+  closeMenus();
+  const cur = normZeit(inp.value);
+  let hh = cur.slice(0, 2), mm = cur.slice(3);
+  const col = (k, L, sel) => `<div class="zeit-col" data-k="${k}" aria-label="${k === 'h' ? 'Stunde' : 'Minute'}">${L.map(v => `<button type="button" class="zeit-v${v === sel ? ' on' : ''}" data-v="${v}">${v}</button>`).join('')}</div>`;
+  const box = h('div', { class: 'menu zeit-pop', role: 'dialog', 'aria-label': 'Uhrzeit wählen',
+    html: col('h', Array.from({ length: 24 }, (_, i) => z2(i)), hh) + '<span class="zeit-dp">:</span>' + col('m', Array.from({ length: 12 }, (_, i) => z2(i * 5)), mm) });
+  const mark = (k, v) => box.querySelectorAll(`.zeit-col[data-k="${k}"] .zeit-v`).forEach(x => x.classList.toggle('on', x.dataset.v === v));
+  box.addEventListener('mousedown', e => e.preventDefault());                     // der Fokus bleibt im Feld
+  box.addEventListener('click', e => {
+    const b = e.target.closest('.zeit-v'); if (!b) return;
+    if (b.parentElement.dataset.k === 'h') hh = b.dataset.v; else mm = b.dataset.v;
+    if (!hh) hh = '12'; if (!mm) mm = '00';
+    mark('h', hh); mark('m', mm); inp.value = hh + ':' + mm;
+    if (b.parentElement.dataset.k === 'm') { box.remove(); done(); }               // Minute gewählt: fertig
+  });
+  placePop(box, inp);
+  for (const [k, v] of [['h', hh || '12'], ['m', mm || '00']]) {                  // Räder auf die gewählte Zeit (sonst 12:00) drehen
+    const c = box.querySelector(`.zeit-col[data-k="${k}"]`), x = c.querySelector(`[data-v="${v}"]`);
+    if (x) c.scrollTop = x.offsetTop - c.clientHeight / 2 + x.offsetHeight / 2;
+  }
+}
 
 // eigener Kalender (hell oder dunkel wie das Programm): Monat blättern, Tag anklicken; o.clear: Datum entfernen
 const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
@@ -252,13 +272,14 @@ function uebForm(b, el) {
     relist(b);
   };
   const sug = suggest(ort, SRC.uebOrt, () => dat.focus());
-  const zsug = suggest(zeit, () => ZEITEN, () => info.focus(), { all: true, match: zeitPasst, near: () => '12:00' });
   const kal = () => { if (!$('.cal-pop')) calPop(dat, anyDate(dat.value), v => { dat.value = fmtDate(v); zeit.focus(); }); };
+  const rad = () => { if (!$('.zeit-pop')) zeitPop(zeit, () => info.focus()); };
+  zeit.addEventListener('focus', rad); zeit.addEventListener('click', rad);
+  zeit.addEventListener('input', () => closeMenus()); zeit.addEventListener('blur', () => closeMenus());
   dat.addEventListener('focus', kal); dat.addEventListener('click', kal);
   dat.addEventListener('input', () => closeMenus()); dat.addEventListener('blur', () => closeMenus());
   form.addEventListener('keydown', e => {
     if (e.target === ort && sug(e)) { e.preventDefault(); return; }
-    if (e.target === zeit && zsug(e)) { e.preventDefault(); return; }
     if (e.key === 'Escape') { e.preventDefault(); finish(false); }
     if (e.key === 'Enter' && !(e.target === info && e.shiftKey)) { e.preventDefault(); finish(true); }
   });

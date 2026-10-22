@@ -103,8 +103,9 @@ h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: v
 .pathbox { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--mono); font-size: 12.5px; word-break: break-all; }
 
 /* eingebaute Bedienelemente (Kalender- und Uhrsymbole, Auswahllisten) folgen der Darstellung im Programm, nicht der umgebenden Seite */
-html:root[data-bl-theme="light"], html:root[data-bl-theme="light"] input, html:root[data-bl-theme="light"] select, html:root[data-bl-theme="light"] textarea { color-scheme: light; }
-html:root[data-bl-theme="dark"], html:root[data-bl-theme="dark"] input, html:root[data-bl-theme="dark"] select, html:root[data-bl-theme="dark"] textarea { color-scheme: dark; }
+html:root[data-bl-theme="light"], html:root[data-bl-theme="light"] * { color-scheme: light; }
+html:root[data-bl-theme="dark"], html:root[data-bl-theme="dark"] * { color-scheme: dark; }
+.le-sug, .menu, .zeit-col, .tablewrap { scrollbar-color: var(--line2) transparent; scrollbar-width: thin; }
 
 /* ---------- Kopfzeile und Hinweise */
 header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; display: flex; align-items: stretch; gap: 6px 22px; flex-wrap: wrap;
@@ -229,7 +230,8 @@ table.list th { vertical-align: bottom; background: none; text-transform: upperc
 table.list td { padding: 14px 12px; font-size: 12.5px; line-height: 20px; }
 table.list td.l-name, table.list td.l-sum, table.list td.l-meta { vertical-align: middle; }
 table.list td.l-name { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.35; min-width: 180px; }
-table.list td.l-sum { font-size: 14.5px; font-weight: 700; text-align: right; white-space: nowrap; line-height: 1.35; padding-left: 4px; }
+table.list td.l-sum { font-size: 14.5px; font-weight: 700; text-align: left; white-space: nowrap; line-height: 1.35; }
+td.l-sum .le-edit.num { text-align: left; }
 table.list td.l-meta { color: var(--muted); white-space: nowrap; width: 1%; }
 td.l-meta .ort { color: var(--ink); font-weight: 700; }
 .prio-t { color: var(--prio-t); font-weight: 600; white-space: nowrap; }
@@ -241,6 +243,7 @@ table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
 .nn { color: var(--ghost); }
 .ml { display: flex; align-items: center; gap: 7px; }
 .ml-sub { color: var(--muted); padding-left: 22px; }
+.l-ueb .ml-sub:first-child { padding-left: 0; }
 .mi { width: 15px; height: 15px; border-radius: 50%; flex: none; display: inline-grid; place-items: center; font-size: 9.5px; font-weight: 800; line-height: 1; border: 1.5px solid var(--line2); color: var(--faint); background: var(--card); }
 .mi svg { width: 13px; height: 13px; fill: currentColor; display: block; }
 .mi.m-ok { background: var(--e5); border-color: var(--f-in); color: var(--e5ink); }
@@ -324,7 +327,7 @@ body.strg #list-body .le-ue[data-le] { display: grid; border-radius: 50%; }
 body.strg #list-body .le-ue:hover { background: var(--runbg); }
 .ue-form { display: grid; gap: 6px; }
 table.list td.l-ueb { vertical-align: middle; }
-.ue-sep { width: 36px; border-top: 1px solid var(--line2); margin: 7px 0 5px; }
+.ue-sep { border-top: 1px solid var(--line2); margin: 7px 0 5px; }
 .ue-sep + .note { margin-top: 0; }
 /* eigener Kalender */
 .cal-pop { min-width: 0; width: 236px; padding: 8px; }
@@ -338,6 +341,13 @@ table.list td.l-ueb { vertical-align: middle; }
 .cal-d.heute { box-shadow: inset 0 0 0 1px var(--line2); font-weight: 600; }
 .cal-d.on { background: var(--ink2); color: var(--card); font-weight: 700; }
 .cal-f { margin-top: 6px; text-align: right; font-size: 12px; }
+/* Uhrzeit: zwei Räder, Stunden und Minuten (5er-Schritte) */
+.zeit-pop { min-width: 0; padding: 6px; display: flex; align-items: center; gap: 2px; }
+.zeit-col { height: 196px; overflow-y: auto; display: grid; align-content: start; gap: 1px; padding: 0 2px; overscroll-behavior: contain; }
+.zeit-v { border: 0; background: none; width: 44px; height: 28px; padding: 0; justify-content: center; font-size: 13px; color: var(--ink2); border-radius: 5px; font-variant-numeric: tabular-nums; }
+.zeit-v:hover { background: var(--hover); color: var(--ink); }
+.zeit-v.on { background: var(--ink2); color: var(--card); font-weight: 700; }
+.zeit-dp { color: var(--faint); font-weight: 700; }
 .ue-form .le-edit { position: static; width: 100%; }
 .ue-wann { display: grid; grid-template-columns: minmax(0, 1fr) 76px; gap: 8px; }
 .ue-ok { justify-self: end; font-size: 12px; }
