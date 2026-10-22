@@ -58,9 +58,16 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   ok(await p.evaluate(() => D.bedarfe[0].foerderer[0].einsch === 'w' && document.querySelectorAll('.fp .dots.lv4 .dot.on').length === 4), 'Einschätzung: vier Punkte = wahrscheinlich');
   ok((await status(p)).includes('Geldeingang offen'), 'Stand: Geldeingang offen');
   ok(await p.$eval('.fk-st .geld-link', e => e.textContent.trim()) === '→ Geldeingang bestätigen' && await p.$eval('.fk-st .fp-d span', e => e.textContent) === 'am', 'Zusage: „am …“ hinter dem Stand, daneben „→ Geldeingang bestätigen“ als Link');
+  r = await p.$eval('.fk-st .geld-link', e => { const s = getComputedStyle(e), row = e.parentElement.getBoundingClientRect(); return [s.color === getComputedStyle(document.querySelector('.fk .fp-h')).color, s.textDecorationLine, Math.abs(e.getBoundingClientRect().right - row.right) <= 2]; });
+  ok(r.join() === 'true,underline,true', 'Link „Geldeingang bestätigen“ in normaler Schriftfarbe, unterstrichen, rechtsbündig: ' + r.join());
   await p.click('button[data-act="geld"]'); await p.click('.cal-pop .cal-d.heute');
   r = await p.evaluate(() => [D.bedarfe[0].foerderer[0].eingegangen, document.querySelector('#d-steps [title]').title, document.querySelector('#d-steps .cur').lastChild.textContent]);
   ok(await p.$eval('.fk-st .geld.ok', e => e.textContent.trim()) === 'eingegangen am ' + await p.evaluate(() => fmtDate(today())) && !!(await p.$('.fk-st .geld.ok .pen')), 'Geld eingegangen: grüner Haken, „eingegangen am …“ und Stift, ohne Betrag');
+  const g = await p.$eval('.fk-st', e => [e.querySelectorAll('.st-btn, .fp-dates').length, Math.abs(e.querySelector('.geld.ok').getBoundingClientRect().left - e.getBoundingClientRect().left) <= 1]);
+  ok(g.join() === '0,true', 'nach dem Geldeingang kein Stand-Feld und kein Datum mehr, „eingegangen am …“ ganz links: ' + g.join());
+  await p.click('.fk-st .geld.ok .pen'); await p.click('.cal-pop .cal-f button');
+  ok(!!(await p.$('.fk-st .st-btn')) && !!(await p.$('.fk-st .geld-link')) && await p.evaluate(() => D.bedarfe[0].foerderer[0].eingegangen) == null, 'Stift → „Eingang zurücknehmen“: Stand, Datum und Link sind wieder da');
+  await p.click('button[data-act="geld"]'); await p.click('.cal-pop .cal-d.heute');
   ok(r[0] === 800 && r[1].includes('Spendenübergabe') && r[1].includes('Pressemitteilung') && r[2] === 'Nacharbeit', 'Geld eingegangen → Phase Nacharbeit: ' + r[1]);
   await p.click('[data-p="nach.ueb.st"][data-v="erledigt"]'); await p.click('[data-p="nach.pm.st"][data-v="veroeff"]');
   ok((await status(p)).includes('Alles erledigt'), 'Nacharbeit erledigt → abgeschlossen');

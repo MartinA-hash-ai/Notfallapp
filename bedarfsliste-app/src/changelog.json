@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.14.0",
+    "date": "2026-10-22T15:30",
+    "items": [
+      "Bedarfsseite: der Block mit Freigaben und Unterlagen schließt oben bündig mit dem ersten Abschnitt links ab; ⋯ und Papierkorb stehen ganz rechts darüber, die Summe bleibt, wo sie war",
+      "Förderer-Kachel nach dem Geldeingang: Stand und Datum verschwinden, „✓ eingegangen am …“ steht ganz links; über den Stift lässt sich das Datum ändern oder der Eingang zurücknehmen (dann sind Stand und Datum wieder da)",
+      "„→ Geldeingang bestätigen“ rechtsbündig und in normaler Schriftfarbe, nur mit Pfeil und Unterstreichung"
+    ]
+  },
+  {
     "version": "0.13.0",
     "date": "2026-10-22T14:40",
     "items": [

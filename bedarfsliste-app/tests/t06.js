@@ -40,10 +40,13 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [document.querySelector('#f-titel').value, document.querySelector('.d-head input[data-p="gliederung"]').value, document.querySelector('.d-right-head input[data-p="summe"]').value, document.querySelectorAll('[data-p="summe"]').length, document.querySelector('#d-steps .cur').lastChild.textContent]);
   ok(r.join('|') === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst|Paderborn|68.000|1|Förderung', 'Kopf: Name, Gliederung und Summe oben (einmalig), Phase Förderung');
   r = await p.evaluate(() => [!!document.querySelector('header.top .subbar #d-steps'), !!document.querySelector('#d-status'), document.querySelector('#d-steps [title]').title.startsWith('Anträge stellen'), !!document.querySelector('.jump'), document.documentElement.dataset.blTheme,
-    !!document.querySelector('.sum-art, [data-p="summeArt"]'), document.querySelector('.d-left').firstElementChild.className,
+    !!document.querySelector('.sum-art, [data-p="summeArt"]'), document.querySelector('.d-grid').firstElementChild.className,
     Math.abs(document.querySelector('.d-right-head').getBoundingClientRect().right - document.querySelector('.info-card').getBoundingClientRect().right) <= 2,
+    Math.abs(document.querySelector('.d-right').getBoundingClientRect().top - document.querySelector('.info-card').getBoundingClientRect().top) <= 2,
+    Math.abs(document.querySelector('.d-actions').getBoundingClientRect().right - document.querySelector('.d-right').getBoundingClientRect().right) <= 2,
+    Math.abs((r => r.top + r.height / 2)(document.querySelector('.d-actions').getBoundingClientRect()) - (r => r.top + r.height / 2)(document.querySelector('.sum-line').getBoundingClientRect())) <= 3,
     !!document.querySelector('#d-steps li.done .st-k svg')]);
-  ok(r.join() === 'true,false,true,false,light,false,d-head,true,true', 'Schritte an der Kopfzeile, Stand nur als Hinweis, ohne Schätzung/Angebot; Summe, ⋯ und Löschen bündig mit dem linken Block; Haken als Grafik: ' + r.join());
+  ok(r.join() === 'true,false,true,false,light,false,d-head,true,true,true,true,true', 'Schritte an der Kopfzeile, Stand nur als Hinweis, ohne Schätzung/Angebot; Summe bündig mit dem linken Block, ⋯ und Löschen rechts über dem Freigabe-Block, der oben mit dem ersten Abschnitt abschließt; Haken als Grafik: ' + r.join());
   r = await p.evaluate(() => [...document.querySelectorAll('#fin-rows tr')].map(t => t.className + ':' + [...t.querySelector('th').childNodes].find(n => n.nodeType === 3 && n.textContent.trim()).textContent.trim() + ':' + t.querySelector('td:last-child').textContent));
   ok(r.join('|') === 'r-sum:Gesamtbedarf:100 %|r-zu:Sparkasse Musterstadt:15 %|r-be:Bürgerstiftung Musterstadt:22 %|r-ge:Beispiel-Soziallotterie:44 %', 'Förderplan-Tabelle: Gesamtbedarf, Förderer farbig nach Stand mit Anteil: ' + r.join('|'));
   r = await p.evaluate(() => [document.querySelector('#fin-eig').textContent, document.querySelectorAll('#sec-foe .sec-tools .icon-btn').length, document.querySelectorAll('.card.fp').length, document.querySelectorAll('.fp .fbar, .fp select').length,

@@ -41,8 +41,8 @@ function steps(b) {
 
 function bedarfView(b) {
   return `<main class="bedarf">
-    <div class="d-grid"><div class="d-left">
     ${b.archiv ? '<div class="d-flag">Dieser Bedarf liegt im Archiv. <button class="link" data-act="unarchive">Zurück in die Liste holen</button></div>' : ''}
+    <div class="d-grid">
     <div class="d-head">
       ${prioMark(b)}
       <div class="d-name">
@@ -51,14 +51,14 @@ function bedarfView(b) {
       </div>
       <div class="d-right-head">
         <div class="sum-line"><input type="text" inputmode="decimal" class="inline num sum" data-num data-p="summe" value="${esc(fmtNum(b.summe))}" placeholder="Summe" aria-label="Summe in Euro"><span class="unit">€</span></div>
-        <div class="d-actions">
-          <button class="icon-btn" data-act="more" aria-label="Weitere Aktionen: zurückstellen, archivieren" title="Zurückstellen, verwerfen, archivieren">⋯</button>
-          <button class="icon-btn trash" data-act="del" aria-label="Bedarf löschen" title="Bedarf löschen">${ICON_TRASH}</button>
-        </div>
       </div>
     </div>
-    ${secInfo(b)}${secFoe(b)}${secNach(b)}</div>
-      <aside class="d-right">${sidePanel(b)}</aside>
+    <div class="d-actions">
+      <button class="icon-btn" data-act="more" aria-label="Weitere Aktionen: zurückstellen, archivieren" title="Zurückstellen, verwerfen, archivieren">⋯</button>
+      <button class="icon-btn trash" data-act="del" aria-label="Bedarf löschen" title="Bedarf löschen">${ICON_TRASH}</button>
+    </div>
+    <div class="d-left">${secInfo(b)}${secFoe(b)}${secNach(b)}</div>
+    <aside class="d-right">${sidePanel(b)}</aside>
     </div>
     ${dl('dl-gl', [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)])}
   </main>`;
@@ -219,7 +219,7 @@ function dots(f) {
     + [5, 4, 3, 2, 1].map(n => { const k = LVL[n - 1], l = EINSCH.find(e => e[0] === k)[1]; return `<button class="dot${n <= lv ? ' on' : ''}" data-act="set" data-p="einsch" data-v="${k}" data-toggle="" data-fid="${f.id}" title="${l}" aria-label="${l}" aria-pressed="${n === lv}"></button>`; }).join('')
     + `</div><span class="dots-t">${esc(lab)}</span></div>`;
 }
-// je Förderer eine kompakte Kachel: Name mit Stift und Löschen, Einschätzung; groß die Summe mit Anteil; Stand mit Datum; Pro und Contra je eine Zeile; unten Kontakt
+// je Förderer eine kompakte Kachel: Name mit Löschen, Einschätzung; groß die Summe; Stand mit Datum (nach dem Geldeingang nur noch „eingegangen am …“ mit Stift); Pro und Contra; unten Kontakt
 function fpCard(b, f) {
   const a = `data-fid="${f.id}"`, st = f.status, open = !!UI.open['det-' + f.id], amtP = st === 'zugesagt' ? 'zugesagt' : 'betrag';
   return `<article class="card fp fk st-${st}${open ? ' open' : ''}" id="foe-${f.id}">
@@ -231,7 +231,7 @@ function fpCard(b, f) {
       </div>
       ${dots(f)}
     </div>
-    <div class="fk-st"><button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div>${st === 'zugesagt' ? geldBlock(f) : ''}</div>
+    <div class="fk-st">${st === 'zugesagt' && f.eingegangen > 0 ? geldBlock(f) : `<button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div>${st === 'zugesagt' ? geldBlock(f) : ''}`}</div>
     <div class="pc">
       <label class="pro" title="Pro: warum passt das?"><i></i>${tarea(f, 'warum', a + ' rows="1" aria-label="Pro – warum passt das"', 'Pro: Warum passt das? Satzungszweck, Förderschwerpunkt, Regionalbezug …')}</label>
       <label class="contra" title="Contra: wo hakt es?"><i></i>${tarea(f, 'knackpunkte', a + ' rows="1" aria-label="Contra – Knackpunkte"', 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?')}</label>
