@@ -21,6 +21,10 @@ durchformatiert, liest die Liste nur den vorderen Teil – die leeren Zeilen unt
 und dem bisherigen Förderplan aus (Blatt „Anleitung“ erklärt jede Spalte – auch für eine KI-Recherche).
 Das Upload-Symbol daneben liest die ausgefüllte Datei wieder ein (neue Förderer kommen dazu, vorhandene werden ergänzt).
 
+**In der Liste bearbeiten:** Strg gedrückt halten, dann Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
+und ändern; Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; das + unten links im
+Finanzierungsplan fügt einen Förderer hinzu.
+
 **Darstellung:** hell (voreingestellt), dunkel oder wie Windows – über das Zahnrad oben rechts.
 `Foerderplan_Vorlage.xlsx` ist dieselbe Vorlage ohne Bedarf.
 

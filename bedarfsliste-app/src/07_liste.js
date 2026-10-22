@@ -22,34 +22,36 @@ function lFreigabe(b) {
   const it = Object.fromEntries(frItems(b).map(i => [i.k, i]));
   const L = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => {
     const i = it[k];
-    if (!frNeeded(i)) return `<div class="ml nn" title="${esc(frText(i))}">${mi('none')}<span>${lab}</span></div>`;
-    return `<div class="ml">${mi(({ ok: 'ok', angefragt: 'run', nein: 'no' })[i.st] || 'off', frText(i))}<span>${lab}</span></div>`;
+    if (!frNeeded(i)) return `<div class="ml nn" data-le="fr" data-k="${k}" title="${esc(frText(i))}">${mi('none')}<span>${lab}</span></div>`;
+    return `<div class="ml" data-le="fr" data-k="${k}">${mi(({ ok: 'ok', angefragt: 'run', nein: 'no' })[i.st] || 'off', frText(i))}<span>${lab}</span></div>`;
   });
   const a = angebotUL(b);
-  L.push(`<div class="ml">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`);
+  L.push(`<div class="ml" data-le="ang">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`);
   return frOffen(b).names.length ? L.join('') : `<div class="done" title="Freigabe vollständig">${L.join('')}</div>`;
 }
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
 const F_SYM = { zugesagt: 'ok', beantragt: 'run', vorb: 'run', geplant: 'off', abgelehnt: 'no' };
 const EMPTY3 = '<span></span><span></span><span></span>';
 function lNachweis(f, fertig) {
-  const v = f.vn;
-  if (!v.noetig) return '<span></span><span></span><span class="vt nn">nicht nötig</span>';
-  if (fertig) return `<span class="lead"></span>${mi('dot', 'erledigt')}<span class="vt">erledigt</span>`;
-  return `<span class="lead"></span>${mi(({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st], (VN_ST.find(o => o[0] === v.st) || [])[1])}<span class="vt">${v.st === 'erledigt' ? 'erledigt' : v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt'}</span>`;
+  const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`;
+  if (!v.noetig) return `<span></span><span></span><span class="vt nn" ${a}>nicht nötig</span>`;
+  if (fertig) return `<span class="lead"></span><span class="mi m-dot" ${a} title="erledigt"></span><span class="vt" ${a}>erledigt</span>`;
+  return `<span class="lead"></span><span class="mi ${MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]][0]}" ${a} title="${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]][1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt'}</span>`;
 }
 function lFinanz(b) {
   const F = finState(b), R = [];
   for (const f of F.fs) {
-    const t = esc((f.name || '(ohne Namen)') + ': ' + F_ST_L[f.status]), nm = `<span class="fn">${esc(f.name || '(ohne Namen)')}</span><span class="fa">${eur(foeAmt(f))}</span>`, ab = f.status === 'abgelehnt' ? ' ab' : '';
-    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${mi(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false) : EMPTY3}</div>`);
-    else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${mi('dot')}${nm}${EMPTY3}</div>`);
-    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${mi('dot')}${nm}${lNachweis(f, fertig)}</div>`); }
+    const t = esc((f.name || '(ohne Namen)') + ': ' + F_ST_L[f.status]), a = `data-fid="${f.id}"`, ab = f.status === 'abgelehnt' ? ' ab' : '';
+    const sym = s => `<span class="mi ${MI[s][0]}" data-le="foe" ${a}>${MI[s][1]}</span>`;
+    const nm = `<span class="fn" data-le="foe" ${a}>${esc(f.name || '(ohne Namen)')}</span><span class="fa" data-le="amt" ${a}>${eur(foeAmt(f))}</span>`;
+    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false) : EMPTY3}</div>`);
+    else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${sym('dot')}${nm}${EMPTY3}</div>`);
+    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig)}</div>`); }
   }
   R.push('<div class="fline"></div>');
   if (F.d) R.push(`<div class="fr sum"><span></span><span class="fn">${F.d > 0 ? 'Delta' : 'Überfinanzierung'}</span><span class="fa">${eur(Math.abs(F.d))}</span>${EMPTY3}</div><div class="fline"></div>`);
-  R.push(`<div class="fr sum"><span></span><span class="fn">Eigenmittel</span><span class="fa">${eur(F.eig)}</span>${EMPTY3}</div>`);
-  return `<div class="fg">${R.join('')}</div>`;
+  R.push(`<div class="fr sum"><span></span><span class="fn">Eigenmittel</span><span class="fa" data-le="eig">${eur(F.eig)}</span>${EMPTY3}</div>`);
+  return `<div class="fg">${R.join('')}</div><button class="le-plus" data-le="add" title="Förderer hinzufügen" aria-label="Förderer hinzufügen">+</button>`;
 }
 // Spendenübergabe: steht die Finanzierung und ist noch nichts vereinbart, ein oranges Dreieck; darunter die Info dazu
 function lUebergabe(b) {
@@ -71,16 +73,20 @@ function filtered() {
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
   if (UI.fSw) L = L.filter(b => b.stichwort === UI.fSw);
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, b.stichwort, ...b.zust, ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
-  return L.sort((x, y) => cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
+  L.sort((x, y) => cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
+  if (ORDER.ids) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
+  return L;
 }
+// Reihenfolge, solange mit Strg bearbeitet wird (Zeilen springen nicht unter dem Mauszeiger weg)
+const ORDER = { ids: null };
 const anyFilter = () => !!(UI.q || UI.fSw);
 
 function row(b) {
   const tag = b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : b.prio === 'hoch' ? ' <span class="prio-t">(Prio)</span>' : '';
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">
-    <td class="l-name">${esc(b.titel || '(ohne Namen)')}${tag}</td>
-    <td class="l-sum">${b.summe ? eur(b.summe) : '<span class="faint">–</span>'}</td>
-    <td class="l-meta"><div class="ort">${esc(b.gliederung === DIO ? 'Diözese' : b.gliederung || '–')}</div><div>${esc(b.zust[0] || '–')}</div><div>${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
+    <td class="l-name" data-le="titel">${esc(b.titel || '(ohne Namen)')}${tag}</td>
+    <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="faint">–</span>'}</td>
+    <td class="l-meta"><div class="ort" data-le="ort">${esc(b.gliederung === DIO ? 'Diözese' : b.gliederung || '–')}</div><div data-le="zust">${esc(b.zust[0] || '–')}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
     <td class="l-fin">${lFinanz(b)}</td>
     <td class="l-ueb">${lUebergabe(b)}</td>
@@ -97,7 +103,7 @@ function listView() {
   const sws = uniq(all.map(b => b.stichwort)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<main><section class="card">
     <div class="list-head">
-      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span>
+      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span><span class="strg-hint" title="Mit gedrückter Strg-Taste: Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu">Strg halten: direkt bearbeiten</span>
       <div class="tools">
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
@@ -108,6 +114,7 @@ function listView() {
       <th>Bedarf</th><th class="r">Summe</th><th></th><th class="l-fr">Freigabe</th>
       <th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div></th><th class="l-ueb">Spendenübergabe</th>
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
+    ${dl('dl-gl', [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)])}${dl('dl-zust', D.bedarfe.flatMap(x => x.zust))}${dl('dl-kartei', KR.list.map(k => k.name))}
   </section></main>`;
 }
 // Priorität ändern: kleines Menü am Balken (Seite des Bedarfs)

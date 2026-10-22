@@ -15,7 +15,7 @@ const seg = (opts, cur, attrs, cls = '') => `<div class="seg ${cls}" role="group
 const dl = (id, vals) => `<datalist id="${id}">${uniq(vals).map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
 const INFO = {
   ordner: 'Link: in OneDrive beim Ordner „Link kopieren“ wählen und hier einfügen – „Öffnen“ zeigt den Ordner im Browser, Word-Dateien gehen von dort in der Desktop-App auf. Pfad: aus der Adresszeile des Explorers kopieren. „Kopieren“ legt ihn in die Zwischenablage, im Explorer dann Strg+L und Strg+V. Direkt öffnen kann der Browser den Explorer nicht.',
-  deadline: 'Bis wann der Bedarf gedeckt sein muss. Ohne Deadline steht in der Liste ein Strich.',
+  deadline: 'Bis wann der Bedarf gedeckt sein muss. Ohne Deadline steht in der Liste blass „ohne Deadline“.',
   stichwort: 'Bedarfe mit demselben Stichwort – zum Beispiel einem Fördertopf – lassen sich in der Liste zusammen filtern.',
   recherche: 'Die Excel enthält den Bedarf (Beschreibung, Summe, Gliederung) und den bisherigen Förderplan. Im Blatt „Anleitung“ steht, was in jede Spalte gehört – so kann eine KI sie direkt als Vorlage für die Förderrecherche nehmen. Die ausgefüllte Datei hier wieder übernehmen: neue Förderer kommen dazu, vorhandene werden ergänzt.',
   freigabe: 'Kreis anklicken, um den Stand zu ändern: gelb = angefragt, grün = zugestimmt, rot = abgelehnt. Ortsführungskreis immer, Fachreferat und Verwaltung ab 1.000 € – darunter nur, wenn sie angefragt wurden. Dazu muss das Angebot vorliegen (bei den Unterlagen).',
