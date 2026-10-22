@@ -108,9 +108,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join() === 'true,true,true,Förderer,Betrag in Euro,0px', 'neue Zeile unter den Förderern, über Delta und Eigenmittel; Name endet vor den Beträgen, Betrag in deren Spalte, ohne Rahmen: ' + r.join());
   await K.type('Sparkasse Musterstadt'); await K.press('Enter');
   ok(await p.evaluate(() => document.activeElement.getAttribute('aria-label')) === 'Betrag in Euro', 'Enter springt zum Betrag');
-  await K.type('1.000'); await K.press('Enter');
+  await K.type('1.000'); await K.press('Shift+Enter');
   r = await F('b-aed', 'Sparkasse Musterstadt');
   ok(r && r.status === 'geplant' && r.betrag === 1000 && r.art === 'Sparkasse' && (await p.$eval(R('b-aed') + ' .l-fin', e => e.innerText)).includes('Sparkasse Musterstadt'), 'neuer Förderer geplant, mit Betrag und Art aus der Kartei');
+  ok(await p.evaluate(sel => !!document.querySelector(sel + ' .le-new') && document.activeElement.getAttribute('aria-label') === 'Neuer Förderer', R('b-aed')), 'Shift+Enter: gespeichert und gleich die nächste leere Zeile, der Cursor steht im Namen');
+  await K.type('Stadt Lippstadt'); await K.press('Enter'); await K.type('500'); await K.press('Shift+Enter');
+  await K.type('Kreis Soest'); await K.press('Enter'); await K.type('250'); await K.press('Enter');
+  r = await p.evaluate(() => D.bedarfe.find(x => x.id === 'b-aed').foerderer.map(f => f.name + ':' + f.betrag).slice(-3).join());
+  ok(r === 'Sparkasse Musterstadt:1000,Stadt Lippstadt:500,Kreis Soest:250' && !(await p.$('.le-new')), 'drei Förderer nacheinander nur mit der Tastatur; Enter schließt ab: ' + r);
 
   // Stift ganz rechts: Förderer umbenennen
   await K.down('Control');
@@ -175,6 +180,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
 
   // Spaltenbreiten wie in Excel: eine Spalte schmaler, die rechts davon rücken nach
   const ths = () => p.$$eval('table.list thead th', t => t.map(x => { const r = x.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width)]; }));
+  await p.evaluate(() => scrollTo(0, 0));
   const a0 = await ths(), hb = await (await p.$('.col-rs[data-i="2"]')).boundingBox();
   await p.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2); await p.mouse.down(); await p.mouse.move(hb.x + hb.width / 2 - 30, hb.y + hb.height / 2, { steps: 6 }); await p.mouse.up();
   const a1 = await ths(), near = (x, y) => Math.abs(x - y) <= 2;

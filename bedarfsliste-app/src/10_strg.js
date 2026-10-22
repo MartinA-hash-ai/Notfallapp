@@ -211,7 +211,8 @@ function editField(b, el, o) {
   inp.addEventListener('blur', () => finish(true));
 }
 
-// + im Finanzierungsplan: neue Zeile unter den Förderern – Name (blass „Förderer“, Vorschläge aus Förder-Kartei und Förderplänen) und Betrag dort, wo die Beträge stehen
+// + im Finanzierungsplan: neue Zeile unter den Förderern – Name (blass „Förderer“, Vorschläge aus Förder-Kartei und Förderplänen) und Betrag dort, wo die Beträge stehen.
+// Enter: vom Namen zum Betrag, dann speichern; Shift+Enter: speichern und gleich die nächste Zeile – ganz ohne Maus
 function addFoeForm(el, b) {
   const fg = el.closest('.l-fin') && el.closest('.l-fin').querySelector('.fg'); if (!fg || fg.querySelector('.le-new')) return;
   const nm = h('input', { type: 'text', class: 'le-edit le-in', placeholder: 'Förderer', size: 1, autocomplete: 'off', 'aria-label': 'Neuer Förderer' });
@@ -223,7 +224,7 @@ function addFoeForm(el, b) {
   nm.style.width = Math.max(60, fn.clientWidth - Math.max(0, am.offsetWidth - fa.clientWidth) - 8) + 'px';
   nm.focus();
   let fertig = false;
-  const finish = ok => {
+  const finish = (ok, weiter) => {                                                   // weiter: gleich die nächste leere Zeile (Shift+Enter)
     if (fertig) return; fertig = true;
     const name = nm.value.trim(), v = deNum(am.value);
     if (ok && name) {
@@ -231,8 +232,10 @@ function addFoeForm(el, b) {
       const nf = ff({ name, betrag: v === null || v === '' ? null : v }), k = kartei(name), art = k ? artFromKartei(k, name) : '';
       if (art) nf.art = art;
       b.foerderer.push(nf); changed();
-    }
+    } else weiter = false;
     relist(b);
+    const plus = weiter && $(`#list-body tr[data-id="${CSS.escape(b.id)}"] .le-plus`);
+    if (plus) addFoeForm(plus, b);
   };
   const next = () => { if (!am.value.trim()) am.focus(); else finish(true); };
   const sug = suggest(nm, SRC.foe, next);
@@ -241,7 +244,8 @@ function addFoeForm(el, b) {
     if (e.key === 'Escape') { e.preventDefault(); finish(false); }
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    if (e.target === nm) next(); else finish(true);
+    if (e.shiftKey) finish(true, true);                                             // Shift+Enter: speichern und nächster Förderer
+    else if (e.target === nm) next(); else finish(true);
   });
   line.addEventListener('focusout', () => setTimeout(() => { if (!line.contains(document.activeElement)) finish(true); }, 0));
 }
