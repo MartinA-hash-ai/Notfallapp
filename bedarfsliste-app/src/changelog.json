@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.9.0",
+    "date": "2026-10-22T11:10",
+    "items": [
+      "Kalender- und Uhrsymbole passen zur gewählten Darstellung (hell: dunkle Symbole), auch wenn die Umgebung dunkel ist",
+      "Eigener Kalender in der Farbe der Darstellung: öffnet beim Klick sofort die Monatsansicht – für die Frist des Verwendungsnachweises, die Deadline in der Liste und das Datum der Spendenübergabe; „Frist entfernen“ bzw. „Deadline entfernen“",
+      "Uhrzeit der Spendenübergabe in 5-Minuten-Schritten: Liste von 06:00 bis 22:00, Getipptes filtert (15 → 15:00 bis 15:55) und wird auf 5 Minuten gerundet",
+      "Spendenübergabe in der Liste mittig in der Höhe; unter Termin und Ort ein kleiner Strich, darunter die Notizen",
+      "Spaltenbreiten der Liste wie in Excel: am rechten Rand eines Spaltenkopfs ziehen, die Spalten rechts davon rücken mit; Doppelklick auf einen Rand oder das Zahnrad setzt zurück"
+    ]
+  },
+  {
     "version": "0.8.1",
     "date": "2026-10-22T11:00",
     "items": [

@@ -32,7 +32,11 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await edit(R('b-aed') + ' .l-sum', '5.200');
   await edit(R('b-aed') + ' [data-le="ort"]', 'Geseke');
   await edit(R('b-aed') + ' [data-le="zust"]', 'Maria Beispiel');
-  await edit(R('b-aed') + ' [data-le="deadline"]', '2027-05-15');
+  // Deadline: eigener Kalender, direkt geöffnet
+  const pick = async iso => { for (let k = 0; k < 24 && !(await p.$(`.cal-pop [data-v="${iso}"]`)); k++) await p.click('.cal-pop .cal-nav[data-d="1"]'); await p.click(`.cal-pop [data-v="${iso}"]`); };
+  await K.down('Control'); await p.click(R('b-aed') + ' [data-le="deadline"]'); await K.up('Control');
+  ok(await p.$eval('.cal-pop .cal-h', e => e.textContent.trim()) === '‹März 2027›' && !!(await p.$('.cal-pop .cal-d.on[data-v="2027-03-31"]')), 'Deadline: Kalender öffnet im Monat der Deadline, der Tag ist markiert');
+  await pick('2027-05-15');
   r = await B('b-aed');
   ok([r.summe, r.gliederung, r.zust.join(), r.deadline].join('|') === '5200|Geseke|Maria Beispiel|2027-05-15', 'Summe, Ort, Ansprechperson und Deadline geändert: ' + [r.summe, r.gliederung, r.zust.join(), r.deadline].join('|'));
   ok((await p.$eval(R('b-aed') + ' .l-meta', e => e.innerText.replace(/\s+/g, ' ').trim())) === 'Geseke Maria Beispiel bis 15.05.2027', 'Liste zeigt die neuen Angaben');
@@ -127,9 +131,10 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await p.$eval(R('b-mtw') + ' .vt[data-le="vn"]', e => e.textContent)) === 'Frist fehlt' && await p.$eval(R('b-mtw') + ' .le-cal', e => getComputedStyle(e).display) === 'none', 'ohne Strg: „Frist fehlt“, kein Kalender');
   await K.down('Control');
   ok(await p.$eval(R('b-mtw') + ' .le-cal', e => getComputedStyle(e).display) !== 'none', 'mit Strg: Kalender direkt daneben');
-  await p.click(R('b-mtw') + ' .le-cal'); await K.up('Control'); await p.mouse.move(5, 5);   // der Kalender schluckt das Loslassen – die nächste Mausbewegung zählt
-  ok(await p.evaluate(() => document.activeElement.type) === 'date', 'Klick auf den Kalender: Datum wählen');
-  await p.fill('.le-edit', '2027-08-31');
+  await p.click(R('b-mtw') + ' .le-cal'); await K.up('Control');
+  r = await p.evaluate(() => { const c = document.querySelector('.cal-pop'); return c && [getComputedStyle(c).backgroundColor, getComputedStyle(c.querySelector('.cal-h b')).color]; });
+  ok(r && r.join() === 'rgb(255, 255, 255),rgb(38, 38, 38)', 'Klick auf den Kalender: Monatsansicht sofort offen, in der hellen Darstellung hell: ' + r);
+  await pick('2027-08-31');
   ok((await F('b-mtw', 'Sparkasse Musterstadt')).vn.frist === '2027-08-31' && (await p.$eval(R('b-mtw') + ' .vt[data-le="vn"]', e => e.textContent)) === 'bis 31.08.2027', 'Frist aus dem Kalender gleich übernommen');
 
   // Spendenübergabe: mit Strg ein Kreis mit Stift, der Ort, Datum, Uhrzeit und Notizen öffnet – bleibt offen ohne Strg
@@ -140,19 +145,44 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join() === 'grid,50%,true', 'mit Strg: großer Kreis mit Stift: ' + r.join());
   await p.click(R('b-kueche') + ' .le-ue'); await K.up('Control'); await p.mouse.move(5, 5);
   r = await p.evaluate(sel => [...document.querySelectorAll(sel + ' .ue-form .le-edit')].map(e => e.getAttribute('aria-label').split(' ')[0] + '=' + e.value + (e.placeholder ? '(' + e.placeholder + ')' : '')).join(' | '), R('b-kueche'));
-  ok(r === 'Ort=(Ort) | Datum= | Uhrzeit= | Notizen=Küche wird erst Ende November eingebaut – Übergabe danach, damit es Fotos von der fertigen Küche gibt.(Notizen)', 'Felder offen, auch nach dem Loslassen von Strg: ' + r);
+  ok(r === 'Ort=(Ort) | Datum=(Datum) | Uhrzeit=(Uhrzeit) | Notizen=Küche wird erst Ende November eingebaut – Übergabe danach, damit es Fotos von der fertigen Küche gibt.(Notizen)', 'Felder offen, auch nach dem Loslassen von Strg: ' + r);
   await p.fill(R('b-kueche') + ' [aria-label="Ort der Spendenübergabe"]', 'Gruppenraum Warburg');
-  await p.fill(R('b-kueche') + ' [aria-label="Datum der Spendenübergabe"]', '2026-12-05');
-  await p.fill(R('b-kueche') + ' [aria-label="Uhrzeit der Spendenübergabe"]', '15:00');
+  await p.click(R('b-kueche') + ' [aria-label="Datum der Spendenübergabe"]');
+  ok(!!(await p.$('.cal-pop')), 'Datum: Kalender öffnet beim Hineinklicken');
+  await pick('2026-12-05');
+  r = await p.evaluate(() => [document.activeElement.getAttribute('aria-label'), [...document.querySelectorAll('.le-sug .le-opt')].map(o => o.textContent)]);
+  ok(r[0] === 'Uhrzeit der Spendenübergabe' && r[1][0] === '06:00' && r[1][1] === '06:05' && r[1].every(t => +t.slice(3) % 5 === 0) && r[1].length === 193, 'nach dem Tag gleich zur Uhrzeit: Liste in 5-Minuten-Schritten (06:00 bis 22:00)');
+  await K.type('15');
+  r = await p.$$eval('.le-sug .le-opt', o => o.map(x => x.textContent));
+  ok(r.length === 12 && r[0] === '15:00' && r[11] === '15:55', 'Getipptes filtert: 15 → 15:00 bis 15:55');
+  await p.fill(R('b-kueche') + ' [aria-label="Uhrzeit der Spendenübergabe"]', '15:02');
   await p.fill(R('b-kueche') + ' textarea.le-edit', 'Mit Bürgermeister und Jugendgruppe');
   ok(!!(await p.$(R('b-kueche') + ' .ue-form')), 'beim Wechsel zwischen den Feldern bleibt das Formular offen');
   await p.click(R('b-kueche') + ' .ue-ok');
   r = (await B('b-kueche')).nach.ueb;
   ok([r.ort, r.termin, r.zeit, r.st, r.info].join('|') === 'Gruppenraum Warburg|2026-12-05|15:00|terminiert|Mit Bürgermeister und Jugendgruppe', 'Übergabe eingetragen: ' + [r.ort, r.termin, r.zeit, r.st, r.info].join('|'));
-  ok(await ue() === '05.12.2026, 15:00 Uhr Gruppenraum Warburg Mit Bürgermeister und Jugendgruppe' && await view() === 'list', 'Liste zeigt Termin mit Uhrzeit, Ort und Notizen: ' + await ue());
+  ok(await ue() === '05.12.2026, 15:00 Uhr Gruppenraum Warburg Mit Bürgermeister und Jugendgruppe' && await view() === 'list', 'Liste zeigt Termin mit Uhrzeit (auf 5 Minuten gerundet), Ort und Notizen: ' + await ue());
+  r = await p.evaluate(sel => { const td = document.querySelector(sel + ' .l-ueb'), k = [...td.children].map(e => e.className.split(' ')[0]); return [getComputedStyle(td).verticalAlign, k.join()]; }, R('b-kueche'));
+  ok(r[0] === 'middle' && r[1].startsWith('ml,ml-sub,ue-sep,note'), 'Übergabe mittig in der Höhe; unter dem Ort ein kleiner Strich, dann die Notizen: ' + r.join(' / '));
   await K.down('Control'); await p.click(R('b-kueche') + ' .le-ue'); await K.up('Control');
   await p.fill(R('b-kueche') + ' [aria-label="Uhrzeit der Spendenübergabe"]', ''); await p.press(R('b-kueche') + ' [aria-label="Ort der Spendenübergabe"]', 'Enter');
   ok((await B('b-kueche')).nach.ueb.zeit === '' && (await ue()).startsWith('05.12.2026 Gruppenraum'), 'Uhrzeit geleert: nur das Datum, Enter übernimmt');
+
+  // Spaltenbreiten wie in Excel: eine Spalte schmaler, die rechts davon rücken nach
+  const ths = () => p.$$eval('table.list thead th', t => t.map(x => { const r = x.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.width)]; }));
+  const a0 = await ths(), hb = await (await p.$('.col-rs[data-i="2"]')).boundingBox();
+  await p.mouse.move(hb.x + hb.width / 2, hb.y + hb.height / 2); await p.mouse.down(); await p.mouse.move(hb.x + hb.width / 2 - 30, hb.y + hb.height / 2, { steps: 6 }); await p.mouse.up();
+  const a1 = await ths(), near = (x, y) => Math.abs(x - y) <= 2;
+  ok(near(a1[2][1], a0[2][1] - 30) && near(a1[0][1], a0[0][1]) && near(a1[1][1], a0[1][1]) && a1.slice(3).every((c, k) => near(c[1], a0[k + 3][1]) && near(c[0], a0[k + 3][0] - 30)), 'Spalte Ort 30 px schmaler, die links bleiben, die rechts behalten ihre Breite und rücken nach: ' + JSON.stringify([a0, a1]));
+  await p.evaluate(() => keep(renderNow));
+  ok(JSON.stringify(await ths()) === JSON.stringify(a1) && !!(await p.evaluate(() => localStorage.getItem('bl-colw'))), 'Breiten bleiben nach dem Neuzeichnen (der Browser merkt sie sich)');
+  await p.dblclick('.col-rs[data-i="1"]');
+  ok(!(await p.$('table.list colgroup')) && !(await p.evaluate(() => localStorage.getItem('bl-colw'))), 'Doppelklick auf einen Rand: alle Spalten wieder automatisch');
+
+  // Darstellung hell, auch wenn die umgebende Seite dunkel ist: eingebaute Bedienelemente hell
+  r = await p.evaluate(() => { const st = document.createElement('style'); st.textContent = ':root[data-theme=dark]{color-scheme:dark}'; document.head.append(st); document.documentElement.dataset.theme = 'dark';
+    const v = getComputedStyle(document.querySelector('#q')).colorScheme; st.remove(); delete document.documentElement.dataset.theme; return v; });
+  ok(r === 'light', 'Kalender- und Uhrsymbole folgen der hellen Darstellung (nicht der dunklen Umgebung): ' + r);
 
   ok(!(await p.evaluate(() => document.body.classList.contains('strg'))) && await view() === 'list', 'Strg losgelassen: Bearbeitungsmodus aus, Liste bleibt');
   await p.click(R('b-mtw') + ' .l-sum');

@@ -26,6 +26,9 @@ und ändern; Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Kl
 Finanzierungsplan fügt einen Förderer hinzu, der Stift am Ende des Förderernamens benennt ihn um; der Kalender beim
 Verwendungsnachweis setzt die Frist; der Kreis mit Stift bei der Spendenübergabe öffnet Ort, Datum, Uhrzeit und Notizen.
 
+**Spaltenbreiten:** in der Liste am rechten Rand eines Spaltenkopfs ziehen (wie in Excel); der Browser merkt sie sich,
+Doppelklick auf einen Rand oder „Spaltenbreiten zurücksetzen“ im Zahnrad stellt sie zurück.
+
 **Darstellung:** hell (voreingestellt), dunkel oder wie Windows – über das Zahnrad oben rechts.
 `Foerderplan_Vorlage.xlsx` ist dieselbe Vorlage ohne Bedarf.
 

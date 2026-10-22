@@ -11,7 +11,7 @@ function strgSet(on) {
   STRG = on;
   document.body.classList.toggle('strg', on);
   if (on) ORDER.ids = filtered().map(b => b.id);
-  else if (ORDER.ids) { ORDER.ids = null; if (UI.view === 'list' && !$('.le-edit')) keep(renderNow); }   // erst jetzt neu sortieren (ein offenes Feld sortiert beim Übernehmen)
+  else if (ORDER.ids) { ORDER.ids = null; if (UI.view === 'list' && !$('.le-edit, .cal-pop')) keep(renderNow); }   // erst jetzt neu sortieren (ein offenes Feld oder ein offener Kalender sortiert beim Übernehmen)
 }
 // nach einer Änderung: mit Strg nur die Zeile neu zeichnen (Reihenfolge bleibt), sonst die ganze Liste
 function relist(b) {
@@ -50,7 +50,7 @@ function strgAct(b, el) {
     case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe in Euro', set: v => { b.summe = v; } });
     case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', set: v => { b.gliederung = v.trim(); } });
     case 'zust': return editField(b, el, { value: b.zust[0] || '', src: SRC.zust, label: 'Ansprechperson', set: v => { v = v.trim(); b.zust = v ? [v, ...b.zust.slice(1).filter(x => x !== v)] : b.zust.slice(1); } });
-    case 'deadline': return editField(b, el, { type: 'date', value: b.deadline, label: 'Deadline', set: v => { b.deadline = v; } });
+    case 'deadline': return calPop(el, b.deadline, v => { b.deadline = v; changed(); relist(b); }, { clear: 'Deadline entfernen' });
     case 'eig': return editField(b, el, { value: b.eigenanteil, num: true, right: true, label: 'Eigenmittel in Euro', set: v => { b.eigenanteil = v; } });
     case 'amt': if (!f) return;
       return editField(b, el, { value: f.status === 'zugesagt' ? f.zugesagt : f.betrag, num: true, right: true, label: 'Betrag in Euro', set: v => { if (f.status === 'zugesagt') f.zugesagt = v; else f.betrag = v; } });
@@ -71,41 +71,85 @@ function strgAct(b, el) {
     case 'foe-name': if (!f) return;                                                    // Stift am Ende des Namens: Förderer umbenennen
       return editField(b, el.closest('.fn'), { value: f.name, keep: true, fit: true, src: SRC.foe, label: 'Förderer', set: v => { if (v.trim()) f.name = v.trim(); } });
     case 'vn-frist': if (!f) return;                                                    // Kalender neben „Frist fehlt“ bzw. der Frist
-      return editField(b, el.closest('.vt'), { type: 'date', picker: true, value: f.vn.frist, label: 'Frist', set: v => { f.vn.frist = v; } });
+      return calPop(el, f.vn.frist, v => { f.vn.frist = v; changed(); relist(b); }, { clear: 'Frist entfernen' });
     case 'ueb': return uebForm(b, el);
     case 'add': return addFoeForm(el, b);
   }
 }
 
-// Vorschläge beim Tippen: schlichtes Fenster unter dem Feld, gefiltert nach dem Eingegebenen; Pfeiltasten wählen, Enter oder Klick übernimmt
-function suggest(inp, source, onPick) {
+// Vorschläge beim Tippen: schlichtes Fenster unter dem Feld, gefiltert nach dem Eingegebenen; Pfeiltasten wählen, Enter oder Klick übernimmt.
+// o.all: schon beim Hineinklicken die ganze Liste (scrollbar, zum Wert gescrollt); o.match: eigener Abgleich
+function suggest(inp, source, onPick, o = {}) {
   let box = null, hi = -1, items = [];
   const close = () => { if (box) box.remove(); box = null; hi = -1; };
   const draw = () => {
     close();
-    const q = norm(inp.value.trim()); if (!q) return;
-    items = uniq(source().filter(Boolean)).filter(v => norm(v).includes(q) && norm(v) !== q)
-      .sort((a, c) => (norm(c).startsWith(q) - norm(a).startsWith(q)) || a.localeCompare(c, 'de')).slice(0, 7);
+    const raw = inp.value.trim(), q = norm(raw); if (!q && !o.all) return;
+    items = o.match ? source().filter(v => o.match(raw, v))
+      : uniq(source().filter(Boolean)).filter(v => norm(v).includes(q) && norm(v) !== q).sort((a, c) => (norm(c).startsWith(q) - norm(a).startsWith(q)) || a.localeCompare(c, 'de')).slice(0, 7);
     if (!items.length) return;
-    box = h('div', { class: 'le-sug', role: 'listbox' }, items.map((v, i) => h('div', { class: 'le-opt', role: 'option', 'data-i': i }, v)));
-    box.addEventListener('mousedown', e => { const o = e.target.closest('.le-opt'); if (!o) return; e.preventDefault(); inp.value = items[+o.dataset.i]; close(); onPick(); });
+    box = h('div', { class: 'le-sug' + (o.all ? ' lang' : ''), role: 'listbox' }, items.map((v, i) => h('div', { class: 'le-opt' + (v === raw ? ' on' : ''), role: 'option', 'data-i': i }, v)));
+    box.addEventListener('mousedown', e => { e.preventDefault(); const x = e.target.closest('.le-opt'); if (!x) return; inp.value = items[+x.dataset.i]; close(); onPick(); });
     document.body.append(box);
     const r = inp.getBoundingClientRect();
-    Object.assign(box.style, { left: r.left + 'px', top: (r.bottom + 3) + 'px', minWidth: Math.max(r.width, 160) + 'px' });
+    Object.assign(box.style, { left: r.left + 'px', top: (r.bottom + 3) + 'px', minWidth: Math.max(r.width, o.all ? 80 : 160) + 'px' });
+    const cur = box.querySelector('.le-opt.on') || (o.near && box.children[Math.max(0, items.indexOf(o.near()))]);
+    if (cur) box.scrollTop = cur.offsetTop - box.clientHeight / 2 + cur.offsetHeight / 2;
   };
   const mark = () => [...box.children].forEach((c, i) => c.classList.toggle('on', i === hi));
   inp.addEventListener('input', draw);
+  if (o.all) inp.addEventListener('focus', draw);
   inp.addEventListener('blur', close);
   return e => {                                                   // Tastendruck: true, wenn er nur die Vorschläge betraf
     if (!box) return false;
-    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { hi = Math.max(-1, Math.min(items.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); mark(); return true; }
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { hi = Math.max(-1, Math.min(items.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); mark(); const c = box.children[hi]; if (c) c.scrollIntoView({ block: 'nearest' }); return true; }
     if (e.key === 'Escape') { close(); return true; }
-    if (e.key === 'Enter' && hi >= 0) inp.value = items[hi];
+    if (e.key === 'Enter' && hi >= 0) { inp.value = items[hi]; close(); onPick(); return true; }
     if (e.key === 'Enter') close();
     return false;
   };
 }
-window.addEventListener('scroll', () => $$('.le-sug').forEach(x => x.remove()), true);
+window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.le-sug'))) $$('.le-sug').forEach(x => x.remove()); }, true);
+
+// Uhrzeit in 5-Minuten-Schritten: Liste 06:00 bis 22:00, Getipptes wird auf 5 Minuten gerundet (1530, 15.30, 15:32 → 15:30)
+const ZEITEN = Array.from({ length: 16 * 12 + 1 }, (_, k) => z2(6 + Math.floor(k / 12)) + ':' + z2(k % 12 * 5));
+function normZeit(s) {
+  s = String(s || '').trim().replace(/\s*uhr$/i, '');
+  let q = /^(\d{1,2})[:.,h ](\d{1,2})$/.exec(s), hh, mm;
+  if (q) { hh = +q[1]; mm = q[2].length === 1 ? +q[2] * 10 : +q[2]; }
+  else if (/^\d{3,4}$/.test(s)) { hh = +s.slice(0, -2); mm = +s.slice(-2); }
+  else if (/^\d{1,2}$/.test(s)) { hh = +s; mm = 0; }
+  else return '';
+  mm = Math.round(mm / 5) * 5; if (mm === 60) { mm = 0; hh++; }
+  return hh < 24 && mm < 60 ? z2(hh) + ':' + z2(mm) : '';
+}
+const zeitPasst = (raw, t) => { const d = raw.replace(/\D/g, ''); return !d || t.replace(':', '').startsWith(d.length === 1 ? '0' + d : d) || (d.length === 1 && t.startsWith(d)); };
+
+// eigener Kalender (hell oder dunkel wie das Programm): Monat blättern, Tag anklicken; o.clear: Datum entfernen
+const MONATE = ['Januar', 'Februar', 'März', 'April', 'Mai', 'Juni', 'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
+function calPop(anchor, iso, pick, o = {}) {
+  closeMenus();
+  const start = validIso(iso) ? iso : today();
+  let y = +start.slice(0, 4), m = +start.slice(5, 7) - 1;
+  const box = h('div', { class: 'menu cal-pop', role: 'dialog', 'aria-label': 'Datum wählen' });
+  const draw = () => {
+    const lead = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 6) % 7, n = new Date(Date.UTC(y, m + 1, 0)).getUTCDate(), heute = today();
+    let g = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'].map(d => `<span class="cal-wd">${d}</span>`).join('') + '<span></span>'.repeat(lead);
+    for (let d = 1; d <= n; d++) { const v = `${y}-${z2(m + 1)}-${z2(d)}`; g += `<button type="button" class="cal-d${v === iso ? ' on' : ''}${v === heute ? ' heute' : ''}" data-v="${v}">${d}</button>`; }
+    box.innerHTML = `<div class="cal-h"><button type="button" class="cal-nav" data-d="-1" aria-label="Voriger Monat">‹</button><b>${MONATE[m]} ${y}</b><button type="button" class="cal-nav" data-d="1" aria-label="Nächster Monat">›</button></div>`
+      + `<div class="cal-g">${g}</div>` + (o.clear && validIso(iso) ? `<div class="cal-f"><button type="button" class="link small" data-v="">${o.clear}</button></div>` : '');
+  };
+  draw();
+  box.addEventListener('mousedown', e => e.preventDefault());                    // der Fokus bleibt, wo er ist
+  box.addEventListener('click', e => {
+    const nav = e.target.closest('.cal-nav');
+    if (nav) { m += +nav.dataset.d; if (m < 0) { m = 11; y--; } if (m > 11) { m = 0; y++; } draw(); return; }
+    const d = e.target.closest('[data-v]'); if (d) { box.remove(); pick(d.dataset.v); }
+  });
+  placePop(box, anchor, o.align);
+  return box;
+}
+
 const SRC = {
   ort: () => [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)],
   zust: () => D.bedarfe.flatMap(x => x.zust),
@@ -128,7 +172,6 @@ function editField(b, el, o) {
   Object.assign(inp.style, { left: left + 'px', top: (r.top - y0) + 'px', width: width + 'px' });
   el.classList.add('le-hide'); leStop(inp);
   inp.focus(); if (o.area || o.keep) inp.select();
-  if (o.picker) try { inp.showPicker(); } catch (e) { /* Kalender nicht direkt zu öffnen: das Feld bleibt zum Tippen */ }
   let fertig = false;
   const finish = ok => {
     if (fertig) return; fertig = true;
@@ -146,12 +189,6 @@ function editField(b, el, o) {
     if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
   });
   inp.addEventListener('blur', () => finish(true));
-  // Datum im Kalender gewählt: gleich übernehmen; beim Tippen erst mit Enter oder Klick daneben (sonst zählte schon die halbe Uhrzeit)
-  if (/date/.test(inp.type)) {
-    let tipp = 0;
-    inp.addEventListener('keydown', () => { tipp = Date.now(); });
-    inp.addEventListener('change', () => { if (Date.now() - tipp > 400 && +inp.value.slice(0, 4) >= 2000) finish(true); });
-  }
 }
 
 // + im Finanzierungsplan: neue Zeile unter den Förderern – Name (blass „Förderer“, Vorschläge aus Förder-Kartei und Förderplänen) und Betrag dort, wo die Beträge stehen
@@ -194,8 +231,8 @@ function uebForm(b, el) {
   const cell = el.closest('td'); if (!cell || cell.querySelector('.ue-form')) return;
   const u = b.nach.ueb, inp = (o) => h('input', Object.assign({ type: 'text', class: 'le-edit le-in', autocomplete: 'off' }, o));
   const ort = inp({ value: u.ort, placeholder: 'Ort', 'aria-label': 'Ort der Spendenübergabe' });
-  const dat = inp({ type: 'date', value: u.termin, 'aria-label': 'Datum der Spendenübergabe' });
-  const zeit = inp({ type: 'time', value: u.zeit, 'aria-label': 'Uhrzeit der Spendenübergabe' });
+  const dat = inp({ value: fmtDate(u.termin), placeholder: 'Datum', 'aria-label': 'Datum der Spendenübergabe' });
+  const zeit = inp({ value: u.zeit, placeholder: 'Uhrzeit', inputmode: 'numeric', 'aria-label': 'Uhrzeit der Spendenübergabe' });
   const info = h('textarea', { class: 'le-edit le-in', rows: 1, value: u.info, placeholder: 'Notizen', 'aria-label': 'Notizen zur Spendenübergabe' });
   const ok = h('button', { class: 'link small ue-ok', type: 'button' }, 'fertig');
   const form = h('div', { class: 'ue-form' }, ort, h('div', { class: 'ue-wann' }, dat, zeit), info, ok);
@@ -203,8 +240,11 @@ function uebForm(b, el) {
   let fertig = false;
   const finish = save => {
     if (fertig) return; fertig = true;
+    closeMenus();
     if (save) {
-      Object.assign(u, { ort: ort.value.trim(), termin: dat.value, zeit: zeit.value, info: info.value.trim() });
+      const d = anyDate(dat.value), t = normZeit(zeit.value);
+      if (dat.value.trim() && !d) toast('„' + dat.value + '“ ist kein Datum – Datum nicht übernommen (z. B. 05.12.2026).', 'warn');
+      Object.assign(u, { ort: ort.value.trim(), termin: d || (dat.value.trim() ? u.termin : ''), zeit: t, info: info.value.trim() });
       if (u.termin && u.st === 'offen') u.st = 'terminiert';
       if (!u.termin && u.st === 'terminiert') u.st = 'offen';
       changed();
@@ -212,8 +252,13 @@ function uebForm(b, el) {
     relist(b);
   };
   const sug = suggest(ort, SRC.uebOrt, () => dat.focus());
+  const zsug = suggest(zeit, () => ZEITEN, () => info.focus(), { all: true, match: zeitPasst, near: () => '12:00' });
+  const kal = () => { if (!$('.cal-pop')) calPop(dat, anyDate(dat.value), v => { dat.value = fmtDate(v); zeit.focus(); }); };
+  dat.addEventListener('focus', kal); dat.addEventListener('click', kal);
+  dat.addEventListener('input', () => closeMenus()); dat.addEventListener('blur', () => closeMenus());
   form.addEventListener('keydown', e => {
     if (e.target === ort && sug(e)) { e.preventDefault(); return; }
+    if (e.target === zeit && zsug(e)) { e.preventDefault(); return; }
     if (e.key === 'Escape') { e.preventDefault(); finish(false); }
     if (e.key === 'Enter' && !(e.target === info && e.shiftKey)) { e.preventDefault(); finish(true); }
   });

@@ -102,6 +102,10 @@ label.check { display: inline-flex; align-items: center; gap: 6px; cursor: point
 h3 { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); margin: 0 0 8px; }
 .pathbox { background: var(--soft); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; font-family: var(--mono); font-size: 12.5px; word-break: break-all; }
 
+/* eingebaute Bedienelemente (Kalender- und Uhrsymbole, Auswahllisten) folgen der Darstellung im Programm, nicht der umgebenden Seite */
+html:root[data-bl-theme="light"], html:root[data-bl-theme="light"] input, html:root[data-bl-theme="light"] select, html:root[data-bl-theme="light"] textarea { color-scheme: light; }
+html:root[data-bl-theme="dark"], html:root[data-bl-theme="dark"] input, html:root[data-bl-theme="dark"] select, html:root[data-bl-theme="dark"] textarea { color-scheme: dark; }
+
 /* ---------- Kopfzeile und Hinweise */
 header.top { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 30; display: flex; align-items: stretch; gap: 6px 22px; flex-wrap: wrap;
   padding-block: 0; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -212,6 +216,15 @@ table.list tbody tr[data-act]:hover { background: var(--hover); }
 table.list tbody tr.paused { opacity: .6; }
 /* Zeile: Kerninfo mittig in der Höhe, dann Freigabe, Finanzierungsplan ⋯ Verwendungsnachweis, Spendenübergabe – je Block ein feiner Strich */
 table.list { min-width: 1180px; }
+/* Spaltenbreiten selbst gezogen: feste Breiten, rechts davon rücken die Spalten mit (wie in Excel) */
+table.list.fixed { table-layout: fixed; min-width: 0; }
+table.list th { position: relative; }
+.col-rs { position: absolute; top: 0; right: -5px; width: 9px; height: 100%; cursor: col-resize; z-index: 3; touch-action: none; }
+.col-rs::after { content: ''; position: absolute; top: 15%; bottom: 15%; left: 3px; width: 3px; border-radius: 2px; background: transparent; }
+table.list th:hover .col-rs::after, body.col-resizing .col-rs::after { background: var(--line2); }
+body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none; }
+table.list.fixed td.l-meta > div, table.list.fixed td.l-name { overflow: hidden; text-overflow: ellipsis; }
+table.list.fixed td.l-fr .ml > span:last-child { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 table.list th { vertical-align: bottom; background: none; text-transform: uppercase; letter-spacing: .05em; font-size: 11px; color: var(--faint); padding: 4px 12px 8px; }
 table.list td { padding: 14px 12px; font-size: 12.5px; line-height: 20px; }
 table.list td.l-name, table.list td.l-sum, table.list td.l-meta { vertical-align: middle; }
@@ -310,6 +323,21 @@ td.l-ueb { position: relative; }
 body.strg #list-body .le-ue[data-le] { display: grid; border-radius: 50%; }
 body.strg #list-body .le-ue:hover { background: var(--runbg); }
 .ue-form { display: grid; gap: 6px; }
+table.list td.l-ueb { vertical-align: middle; }
+.ue-sep { width: 36px; border-top: 1px solid var(--line2); margin: 7px 0 5px; }
+.ue-sep + .note { margin-top: 0; }
+/* eigener Kalender */
+.cal-pop { min-width: 0; width: 236px; padding: 8px; }
+.cal-h { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; font-size: 13px; color: var(--ink); }
+.cal-nav { border: 0; background: none; width: 28px; height: 26px; padding: 0; justify-content: center; font-size: 18px; color: var(--ink2); border-radius: 5px; }
+.cal-nav:hover { background: var(--hover); }
+.cal-g { display: grid; grid-template-columns: repeat(7, 1fr); gap: 2px; }
+.cal-wd { font-size: 11px; color: var(--faint); text-align: center; padding: 2px 0 4px; }
+.cal-d { border: 0; background: none; height: 28px; padding: 0; justify-content: center; font-size: 12.5px; color: var(--ink2); border-radius: 5px; }
+.cal-d:hover { background: var(--hover); color: var(--ink); }
+.cal-d.heute { box-shadow: inset 0 0 0 1px var(--line2); font-weight: 600; }
+.cal-d.on { background: var(--ink2); color: var(--card); font-weight: 700; }
+.cal-f { margin-top: 6px; text-align: right; font-size: 12px; }
 .ue-form .le-edit { position: static; width: 100%; }
 .ue-wann { display: grid; grid-template-columns: minmax(0, 1fr) 76px; gap: 8px; }
 .ue-ok { justify-self: end; font-size: 12px; }
@@ -317,6 +345,7 @@ body.strg #list-body .le-ue:hover { background: var(--runbg); }
 .le-new .fa { position: relative; align-self: stretch; }
 .le-new .fa .le-edit.le-in { position: absolute; right: 0; top: 0; width: 92px; }
 /* Vorschläge beim Tippen */
+.le-sug.lang { max-height: 232px; overflow-y: auto; }
 .le-sug { position: fixed; z-index: 90; background: var(--card); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,.12); padding: 3px 0; max-width: 340px; font-size: 13px; }
 .le-opt { padding: 4px 10px; cursor: pointer; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .le-opt:hover, .le-opt.on { background: var(--hover); color: var(--ink); }

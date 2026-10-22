@@ -59,12 +59,13 @@ function lFinanz(b) {
 // Spendenübergabe: steht die Finanzierung und ist noch nichts vereinbart, ein oranges Dreieck; darunter die Info dazu
 const uebWann = u => u.termin ? fmtDate(u.termin) + (u.zeit ? ', ' + u.zeit + ' Uhr' : '') : '';
 function lUebergabe(b) {
-  const u = b.nach.ueb, F = finState(b), ort = u.ort ? `<div class="ml-sub">${esc(u.ort)}</div>` : '';
+  const u = b.nach.ueb, F = finState(b);
   const top = !u.noetig ? '<div class="ml nn">nicht nötig</div>'
-    : u.st === 'erledigt' ? `<div class="ml">${mi('ok', 'erledigt')}<span>erledigt${u.termin ? ' am ' + fmtDate(u.termin) : ''}</span></div>${ort}`
-    : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>${ort}`
-    : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '';
-  const view = top + (u.noetig && u.info.trim() ? `<div class="note">${esc(u.info)}</div>` : '');
+    : (u.st === 'erledigt' ? `<div class="ml">${mi('ok', 'erledigt')}<span>erledigt${u.termin ? ' am ' + fmtDate(u.termin) : ''}</span></div>`
+      : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>`
+      : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '')
+      + (u.ort ? `<div class="ml-sub">${esc(u.ort)}</div>` : '');
+  const view = top + (u.noetig && u.info.trim() ? (top ? '<div class="ue-sep"></div>' : '') + `<div class="note">${esc(u.info)}</div>` : '');
   if (!u.noetig) return view;
   // mit Strg: großer Kreis mit Stift – öffnet Ort, Datum, Uhrzeit und Notizen zum Eintragen (bleibt offen, auch ohne Strg)
   return view + `<button class="le-ue" data-le="ueb" title="Spendenübergabe eintragen: Ort, Datum und Uhrzeit, Notizen" aria-label="Spendenübergabe eintragen">${ICON_PEN}</button>`;
@@ -107,7 +108,7 @@ function listBody() {
 }
 function listView() {
   const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), body = listBody();
-  const sws = uniq(all.map(b => b.stichwort)).sort((a, c) => a.localeCompare(c, 'de'));
+  const sws = uniq(all.map(b => b.stichwort)).sort((a, c) => a.localeCompare(c, 'de')), colw = colwGet();
   return `<main><section class="card">
     <div class="list-head">
       <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span><span class="strg-hint" title="Mit gedrückter Strg-Taste: Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu">Strg halten: direkt bearbeiten</span>
@@ -117,12 +118,35 @@ function listView() {
         ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
       </div>
     </div>
-    <div class="tablewrap"><table class="list"><thead><tr>
-      <th>Bedarf</th><th class="r">Summe</th><th></th><th class="l-fr">Freigabe</th>
-      <th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div></th><th class="l-ueb">Spendenübergabe</th>
+    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
+      ${['<th>Bedarf', '<th class="r">Summe', '<th>', '<th class="l-fr">Freigabe', '<th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div>', '<th class="l-ueb">Spendenübergabe']
+        .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
   </section></main>`;
 }
+/* ---------- Spaltenbreiten wie in Excel: am rechten Rand eines Spaltenkopfs ziehen – nur diese Spalte ändert sich, die rechts davon rücken mit.
+   Die Breiten merkt sich der Browser; Doppelklick auf einen Rand oder das Zahnrad setzt alle zurück. */
+const COLW_KEY = 'bl-colw', COL_MIN = [140, 70, 90, 110, 330, 150];
+const colwGet = () => { try { const a = JSON.parse(localStorage.getItem(COLW_KEY) || 'null'); return Array.isArray(a) && a.length === NCOL && a.every(x => x > 0) ? a : null; } catch (e) { return null; } };
+const colwSet = a => { try { if (a) localStorage.setItem(COLW_KEY, JSON.stringify(a)); else localStorage.removeItem(COLW_KEY); } catch (e) { /* nur in diesem Browser */ } };
+document.addEventListener('pointerdown', e => {
+  const hnd = e.target.closest && e.target.closest('.col-rs'); if (!hnd || e.button !== 0) return;
+  e.preventDefault();
+  const table = hnd.closest('table'), i = +hnd.dataset.i;
+  const w = colwGet() || [...table.querySelectorAll('thead th')].map(th => Math.round(th.getBoundingClientRect().width));
+  let cg = table.querySelector('colgroup');
+  if (!cg) { cg = h('colgroup', null, w.map(() => h('col'))); table.prepend(cg); }
+  const cols = [...cg.children];
+  const apply = () => { cols.forEach((c, k) => { c.style.width = w[k] + 'px'; }); table.style.width = w.reduce((a, x) => a + x, 0) + 'px'; table.classList.add('fixed'); };
+  apply();
+  const x0 = e.clientX, w0 = w[i];
+  hnd.setPointerCapture(e.pointerId); document.body.classList.add('col-resizing');
+  const move = ev => { w[i] = Math.max(COL_MIN[i], Math.round(w0 + ev.clientX - x0)); apply(); };
+  const up = () => { hnd.removeEventListener('pointermove', move); hnd.removeEventListener('pointerup', up); document.body.classList.remove('col-resizing'); colwSet(w); };
+  hnd.addEventListener('pointermove', move); hnd.addEventListener('pointerup', up);
+});
+document.addEventListener('dblclick', e => { if (e.target.closest && e.target.closest('.col-rs')) { colwSet(null); keep(renderNow); } });
+
 // Priorität ändern: kleines Menü am Balken (Seite des Bedarfs)
 function prioMenu(btn) {
   closeMenus();
@@ -146,4 +170,4 @@ function placePop(m, btn, align) {
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
 document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="prio-menu"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"]')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
-window.addEventListener('scroll', closeMenus, true);
+window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);

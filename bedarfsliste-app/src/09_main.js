@@ -159,6 +159,7 @@ function mainMenu(btn) {
     h('div', { class: 'menu-row' }, h('span', null, 'Darstellung'), ...[['light', 'hell'], ['dark', 'dunkel'], ['system', 'wie Windows']].map(([v, l]) =>
       h('button', { class: 'mini-btn' + (th === v ? ' on' : ''), 'data-act': 'theme', 'data-v': v }, l))),
     h('hr'),
+    colwGet() ? item('colw-reset', 'Spaltenbreiten der Liste zurücksetzen') : null,
     item('vorlage-leer', 'Leere Förderplan-Vorlage (Excel)'),
     DEMO ? null : item('kartei', 'Förder-Kartei wählen oder neu einlesen …'),
     h('hr'),
@@ -198,6 +199,7 @@ async function act(k, a, e) {
     case 'prio-menu': e.stopPropagation(); prioMenu(a); return;
     case 'prio-set': { const x = D.bedarfe.find(y => y.id === a.dataset.id); if (x) { x.prio = a.dataset.v; changed(); } closeMenus(); keep(renderNow); return; }
     case 'menu': if ($('#mmenu')) closeMenus(); else mainMenu(a); return;
+    case 'colw-reset': colwSet(null); closeMenus(); keep(renderNow); return;
     case 'theme': applyTheme(a.dataset.v); $$('#mmenu .mini-btn').forEach(x => x.classList.toggle('on', x === a)); return;
     case 'about': closeMenus(); about(); return;
     case 'save': closeMenus(); if (FSA && ST.conn === 'none') await connectFolder(); else saveAll({}); renderNow(); return;

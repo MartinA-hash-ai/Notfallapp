@@ -14,8 +14,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
       sym: [...tr.querySelectorAll('.l-fin .fr > .mi:first-child')].map(m => m.className.replace('mi m-', '')).join(), leads: tr.querySelectorAll('.l-fin .lead').length, ueb: t(tr.querySelector('.l-ueb')) }; }, id);
   r = await L('b-mtw');
   ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst (Prio)' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone, 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig blass: ' + JSON.stringify(r));
-  ok(r.sym === 'ok,run,run' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Bürgerstiftung Musterstadt 15.000 € | :Beispiel-Soziallotterie 30.000 € | sum:Eigenmittel 13.000 €' && r.ueb === '',
-    'Finanzierung läuft: Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe noch leer: ' + r.fin);
+  ok(r.sym === 'ok,run,run' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Bürgerstiftung Musterstadt 15.000 € | :Beispiel-Soziallotterie 30.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
+    'Finanzierung läuft: Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe zeigt nur den Ort: ' + r.fin);
   r = await L('b-aed');
   ok(!r.frDone && r.fr === 'ok,off,run,ok' && r.fin.includes('sum:Delta 2.400 €') && r.sym === 'off', 'AED: Freigabe offen (Kreise), Delta 2.400 €: ' + r.fr + ' / ' + r.fin);
   ok((await L('b-rucksack')).fr === 'ok,no,off,ok', 'Rucksäcke: Verwaltung abgelehnt als roter Kreis');
