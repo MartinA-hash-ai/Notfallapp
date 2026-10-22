@@ -166,6 +166,6 @@ function placePop(m, btn, align) {
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="prio-menu"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"]')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="prio-menu"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);

@@ -301,3 +301,28 @@ document.addEventListener('focusin', e => {
 });
 // Beträge in den Feldern der Liste ebenfalls gleich mit Tausenderpunkt
 document.addEventListener('input', e => { if (e.target.matches && e.target.matches('input.le-edit.num')) liveNum(e.target); }, true);
+
+// Hinweise am Förderer (rotes Dreieck): beim Überfahren ein kleines Fenster; es bleibt, solange die Maus auf Dreieck oder Fenster ist
+let fwZu = null;
+document.addEventListener('mouseover', e => {
+  const t = e.target.closest && e.target.closest('.fw-tri'), p = $('.fw-pop');
+  if (t) { clearTimeout(fwZu); if (!p || p.dataset.fid !== t.dataset.fid) fwPop(t); return; }
+  if (!p) return;
+  if (e.target.closest && e.target.closest('.fw-pop')) { clearTimeout(fwZu); return; }
+  clearTimeout(fwZu); fwZu = setTimeout(() => { const q = $('.fw-pop'); if (q && !q.matches(':hover')) q.remove(); }, 250);
+});
+// Datumsfeld ohne Kalendersymbol (Förderer-Kacheln): Klick öffnet den eigenen Kalender, tippen geht auch (05.10.2026)
+function dfeldSet(el, iso) {
+  const b = cur(), f = b && b.foerderer.find(x => x.id === el.dataset.fid); if (!f || (f[el.dataset.dp] || '') === iso) return;
+  f[el.dataset.dp] = iso; changed(); keep(renderNow);
+}
+const dfeldAuf = el => { const p = $('.cal-pop'); if (p && p.feld === el) return; calPop(el, anyDate(el.value), v => dfeldSet(el, v), { clear: 'Datum entfernen' }).feld = el; };
+document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('input.dfeld'); if (el) dfeldAuf(el); });
+document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('input.dfeld')) dfeldAuf(e.target); });
+document.addEventListener('input', e => { if (e.target.matches && e.target.matches('input.dfeld')) closeMenus(); });
+document.addEventListener('change', e => {
+  const el = e.target; if (!el.matches || !el.matches('input.dfeld')) return;
+  const v = el.value.trim(), iso = v ? anyDate(v) : '';
+  if (v && !iso) { toast('„' + v + '“ ist kein Datum – nicht übernommen (z. B. 05.10.2026).', 'warn'); keep(renderNow); return; }
+  dfeldSet(el, iso);
+});

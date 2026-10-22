@@ -43,10 +43,11 @@ async function writeKartei(p, kontakt) {
   await p.click('button[data-act="det"]');
   let t = await p.$eval('.det-panel', e => e.textContent);
   ok(t.includes('Aus der Förder-Kartei') && t.includes('Silke S') && t.includes('silke@mb.example') && t.includes('Antragswegdirekt') && t.includes('Hagen, Iserlohn-Menden'), 'aufgeklappt: Kartei-Angaben geordnet: ' + t.replace(/\s+/g, ' ').slice(0, 140));
-  ok(!(await p.$eval('.fp [id^="fw-"]', e => e.textContent)).includes('Laut Kartei'), 'passende Region: kein Hinweis');
+  ok(!(await p.$('.fp .fw-tri')), 'passende Region: kein Hinweis-Dreieck');
   await p.fill('.fp input[data-p="name"]', 'Herner Sparkasse');
-  t = await p.$eval('.fp [id^="fw-"]', e => e.textContent);
-  ok(t.includes('Laut Kartei zuständig für Herne') && (await p.$eval('.det-panel', e => e.textContent)).includes('nicht direkt anschreiben'), 'andere Region wird angemerkt, Kartei-Angaben wechseln mit');
+  await p.hover('.fp .fw-tri');
+  t = await p.$eval('.fw-pop', e => e.textContent);
+  ok(t.includes('Laut Kartei zuständig für Herne') && (await p.$eval('.det-panel', e => e.textContent)).includes('nicht direkt anschreiben'), 'andere Region: rotes Dreieck hinter dem Namen, beim Überfahren der Hinweis; Kartei-Angaben wechseln mit');
   // Kartei in Excel geändert → nach etwa einer Minute neu gelesen
   await writeKartei(p, 'Silke Neu');
   await skip(p, 15000); await skip(p, 15000); await skip(p, 15000); await skip(p, 15000); await p.waitForTimeout(400);

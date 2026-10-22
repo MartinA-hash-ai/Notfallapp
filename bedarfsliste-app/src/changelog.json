@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.12.0",
+    "date": "2026-10-22T13:38",
+    "items": [
+      "Förderer-Kacheln: keine Überschrift „Förderer · Anzahl“ und kein Knopf mehr – stattdessen eine hellgraue Kachel „+ Förderer hinzufügen“ dort, wo der nächste Förderer erscheinen würde",
+      "Name des Förderers so groß wie die Summe und direkt darüber; der Stift ist weg (Name einfach anklicken), die Prozentangabe auch (steht oben im Förderplan)",
+      "Hinweise (z. B. „Laut Kartei zuständig für …“, „Auch im Förderplan von …“) als kleines rotes Dreieck hinter dem Namen – beim Überfahren erscheint der Text",
+      "Daten in den Kacheln ohne Kalendersymbol und ohne Lücke: Klick aufs Datum öffnet den eigenen Kalender, tippen geht auch",
+      "Mehr Abstand zwischen Pro und Contra"
+    ]
+  },
+  {
     "version": "0.11.0",
     "date": "2026-10-22T12:58",
     "items": [

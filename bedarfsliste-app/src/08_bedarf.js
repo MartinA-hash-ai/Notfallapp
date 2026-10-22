@@ -146,14 +146,21 @@ const F_ST_L = Object.fromEntries(F_ST.map(([v, l]) => [v, l]));
 const LVL = ['suw', 'uw', 'u', 'w', 'sw'];                 // Einschätzung als Punkte 1 (rot) … 5 (grün)
 const artFromKartei = (k, name) => /stiftung/i.test(name) || /stift/i.test(k.blatt) ? 'Stiftung' : /sparkasse/i.test(name) ? 'Sparkasse' : /bank/i.test(name) ? 'Volksbank / Bank' : '';
 // Hinweise, die immer zu sehen sind: andere Region laut Kartei, derselbe Förderer bei anderen Bedarfen
-function foeWarn(b, f) {
-  if (!f.name.trim()) return '';
+function foeWarnList(b, f) {
+  if (!f.name.trim()) return [];
   const k = kartei(f.name), key = kkey(f.name);
   const other = D.bedarfe.filter(x => x !== b && !x.archiv && x.foerderer.some(g => kkey(g.name) === key && g.status !== 'abgelehnt'));
   const L = [];
   if (k && b.gliederung && b.gliederung !== DIO && k.gl.length && !k.gl.some(g => /^alle$/i.test(g)) && !k.gl.includes(b.gliederung)) L.push('Laut Kartei zuständig für ' + esc(k.gl.join(', ')));
   if (other.length) L.push('Auch im Förderplan von: ' + other.map(x => `<button class="link" data-act="open" data-id="${x.id}">${esc(x.titel || '(ohne Namen)')}</button> (${F_ST_L[x.foerderer.find(g => kkey(g.name) === key).status]})`).join(', '));
-  return L.length ? `<div class="foe-warn">${L.map(t => `<div>${t}</div>`).join('')}</div>` : '';
+  return L;
+}
+const foeWarn = (b, f) => foeWarnList(b, f).length ? `<button class="fw-tri" data-act="fw" data-fid="${f.id}" aria-label="Hinweise anzeigen">${ICON_TRI}</button>` : '';
+function fwPop(btn) {
+  closeMenus();
+  const b = cur(), f = b && b.foerderer.find(x => x.id === btn.dataset.fid); if (!f) return;
+  const m = h('div', { class: 'menu info-pop fw-pop', role: 'tooltip', 'data-fid': f.id, html: foeWarnList(b, f).map(t => `<div>${t}</div>`).join('') });
+  placePop(m, btn);
 }
 function detSummary(f) {
   const k = kartei(f.name), c = k && k.kontakte[0];
@@ -196,7 +203,7 @@ function geldBlock(f) {
 }
 // Fristen je Stand, jeweils Bezeichnung über dem Datum
 function fpDates(f) {
-  const a = `data-fid="${f.id}"`, d = (lab, p) => `<label class="fp-d"><span>${lab}:</span><input type="date" class="inline date" data-p="${p}" ${a} value="${esc(f[p] || '')}" aria-label="${lab}"></label>`;
+  const d = (lab, p) => `<label class="fp-d"><span>${lab}:</span><input type="text" class="inline date dfeld" data-dp="${p}" data-fid="${f.id}" value="${esc(fmtDate(f[p]))}" placeholder="tt.mm.jjjj" aria-label="${lab}" autocomplete="off"></label>`;
   return ({ geplant: d('Antragsfrist', 'frist'), vorb: d('Antragsfrist', 'frist'), beantragt: d('beantragt am', 'beantragtAm') + d('Antwort erwartet', 'erwartet'),
     zugesagt: d('zugesagt am', 'entscheidungAm'), abgelehnt: d('abgelehnt am', 'entscheidungAm') })[f.status];
 }
@@ -212,12 +219,13 @@ function fpCard(b, f) {
   const a = `data-fid="${f.id}"`, st = f.status, open = !!UI.open['det-' + f.id], amtP = st === 'zugesagt' ? 'zugesagt' : 'betrag';
   return `<article class="card fp fk st-${st}${open ? ' open' : ''}" id="foe-${f.id}">
     <div class="fk-top">
-      <div class="fp-title"><input type="text" class="inline fp-h" data-p="name" ${a} value="${esc(f.name)}" placeholder="Förderer" aria-label="Förderer" autocomplete="off">
-        <button class="pen" data-act="pen" ${a} aria-label="Namen bearbeiten" title="Namen bearbeiten">${ICON_PEN}</button><button class="rm" data-act="rm-foe" ${a} title="Förderer entfernen" aria-label="Förderer entfernen">${ICON_TRASH}</button></div>
+      <div class="fk-kopf">
+        <div class="fp-title"><input type="text" class="inline fp-h" data-p="name" ${a} value="${esc(f.name)}" placeholder="Förderer" aria-label="Förderer" autocomplete="off">
+          <button class="rm" data-act="rm-foe" ${a} title="Förderer entfernen" aria-label="Förderer entfernen">${ICON_TRASH}</button><span id="fw-${f.id}">${foeWarn(b, f)}</span></div>
+        <div class="fk-amt"><input type="text" inputmode="decimal" class="inline num amt" data-num data-p="${amtP}" ${a} id="amt-${f.id}" value="${esc(fmtNum(st === 'zugesagt' ? f.zugesagt : f.betrag))}" placeholder="0" aria-label="${AMT_LAB[st]}" title="${AMT_LAB[st]}"><span class="unit">€</span></div>
+      </div>
       ${dots(f)}
     </div>
-    <div id="fw-${f.id}">${foeWarn(b, f)}</div>
-    <div class="fk-amt"><input type="text" inputmode="decimal" class="inline num amt" data-num data-p="${amtP}" ${a} id="amt-${f.id}" value="${esc(fmtNum(st === 'zugesagt' ? f.zugesagt : f.betrag))}" placeholder="0" aria-label="${AMT_LAB[st]}" title="${AMT_LAB[st]}"><span class="unit">€</span><span id="sh-${f.id}" class="share-t" title="Anteil am Bedarf">${foeShare(b, f)}</span></div>
     <div class="fk-st"><button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div></div>
     ${st === 'zugesagt' ? `<div class="fk-geld">${geldBlock(f)}</div>` : ''}
     <div class="pc">
@@ -285,8 +293,7 @@ function secFoe(b) {
       <tbody><tr class="r-eig"><th>${swa('eig')}Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
     <div id="fin-pie" class="fin-pie">${finPie(b)}</div></div>
   </section>
-  <div class="fk-head"><h2>Förderer <span class="muted">· ${b.foerderer.length}</span></h2><button data-act="add-foe">+ Förderer</button></div>
-  ${b.foerderer.length ? `<div class="fk-grid">${b.foerderer.map(f => fpCard(b, f)).join('')}</div>` : '<div class="empty fp-empty">Noch kein Förderer eingetragen – mit „+ Förderer“ oder viele auf einmal aus einer ausgefüllten Recherche-Excel (Symbol oben rechts im Förderplan).</div>'}`;
+  <div class="fk-grid">${b.foerderer.map(f => fpCard(b, f)).join('')}<button class="fk-neu" data-act="add-foe" title="Förderer hinzufügen – viele auf einmal über die Recherche-Excel (Symbol oben rechts im Förderplan)"><span class="fk-plus" aria-hidden="true">+</span>Förderer hinzufügen</button></div>`;
 }
 
 /* ---------- Nacharbeit: Übergabe und Pressemitteilung einmal je Bedarf, Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */

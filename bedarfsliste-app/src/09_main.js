@@ -192,6 +192,7 @@ async function act(k, a, e) {
     }
     case 'clear': Object.assign(UI, { q: '', fSw: '' }); keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
+    case 'fw': if ($('.fw-pop')) closeMenus(); else fwPop(a); return;
     case 'st-menu': stMenu(a); return;
     case 'more': if ($('#mmenu')) closeMenus(); else moreMenu(a); return;
     case 'pen': { const el = $(`#foe-${a.dataset.fid} .fp-h`); if (el) { el.focus(); el.select(); } return; }

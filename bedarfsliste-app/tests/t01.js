@@ -49,7 +49,7 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   await p.click('button[data-act="add-foe"]');
   await p.keyboard.type('Sparkasse X');
   await p.fill('.fp input[data-p="betrag"]', '800');
-  ok((await status(p)).includes('Anträge stellen') && (await p.$eval('.share-t', e => e.textContent)).includes('100 %'), 'Förderer geplant → Anträge stellen; Anteil 100 %');
+  ok((await status(p)).includes('Anträge stellen') && (await p.$eval('#fin-rows', e => e.textContent)).includes('100 %'), 'Förderer geplant → Anträge stellen; Anteil 100 %');
   await p.click('.fp .st-btn'); await p.click('.st-pop button[data-v="zugesagt"]');
   r = await p.evaluate(() => { const f = D.bedarfe[0].foerderer[0]; return [f.zugesagt, f.beantragtAm === today(), D.bedarfe[0].nach.ueb.mit.includes(f.id), document.querySelector('.fp input.amt').dataset.p, document.querySelector('.fp .st-btn').textContent.trim(), document.querySelector('.fp input.amt').getAttribute('aria-label')]; });
   ok(r.join() === '800,true,true,zugesagt,zugesagt ▾,Zugesagte Summe', 'Stand über den Knopf: zugesagt, Summe und Datum vorbelegt');

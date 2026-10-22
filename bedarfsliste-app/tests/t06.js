@@ -60,9 +60,21 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = [await ulSt()];
   for (let i = 0; i < 3; i++) { await p.click(kp); r.push(await ulSt()); }
   ok(r.join() === 'arbeit,da,fehlt,arbeit' && !(await p.$('.circ-pop')) && await p.$eval(kp, e => !!e.querySelector('svg')), 'Kreis: Klick schaltet weiter (in Arbeit → vorhanden → fehlt → in Arbeit), ohne Menü, Zeichen als Grafik: ' + r.join());
-  r = await p.evaluate(() => [document.querySelectorAll('.fk-grid > .card.fp.fk').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), document.querySelector('#sh-f-mtw-spk').textContent, document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(),
-    [...document.querySelectorAll('#foe-f-mtw-spk .pc textarea')].map(e => e.placeholder.split(':')[0]).join(), getComputedStyle(document.querySelector('.fk-grid')).gridTemplateColumns.split(' ').length, document.querySelector('.fk-head').textContent.replace(/\s+/g, ' ').trim()]);
-  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3] === '15 %' && r[4] === 'beantragt am:Antwort erwartet:' && r[5] === 'Pro,Contra' && r[6] === 2 && r[7].replace(/\s/g, '') === 'Förderer·3+Förderer', 'Förderer als Kacheln (zwei nebeneinander): Einschätzung, Stand-Knopf, Anteil, Fristen, Pro und Contra: ' + JSON.stringify(r));
+  r = await p.evaluate(() => [document.querySelectorAll('.fk-grid > .card.fp.fk').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), !document.querySelector('.fk .share-t, .fk .pen, .fk-head'), document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(),
+    [...document.querySelectorAll('#foe-f-mtw-spk .pc textarea')].map(e => e.placeholder.split(':')[0]).join(), getComputedStyle(document.querySelector('.fk-grid')).gridTemplateColumns.split(' ').length, document.querySelector('.fk-grid').lastElementChild.textContent.trim()]);
+  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3] && r[4] === 'beantragt am:Antwort erwartet:' && r[5] === 'Pro,Contra' && r[6] === 2 && r[7] === '+Förderer hinzufügen', 'Förderer als Kacheln: ohne Überschrift, Stift und Prozent; als letzte Kachel „+ Förderer hinzufügen“: ' + JSON.stringify(r));
+  r = await p.evaluate(() => { const k = document.querySelector('#foe-f-mtw-bst'), n = k.querySelector('.fp-h'), a = k.querySelector('input.amt'), d = [...k.querySelectorAll('.fp-d input')], pc = [...k.querySelectorAll('.pc > label')].map(x => x.getBoundingClientRect());
+    return [getComputedStyle(n).fontSize === getComputedStyle(a).fontSize, a.getBoundingClientRect().top - n.getBoundingClientRect().bottom <= 3, Math.round(n.getBoundingClientRect().left) === Math.round(a.getBoundingClientRect().left),
+      d.map(x => x.type + ':' + x.value).join(), pc[1].top - pc[0].bottom >= 6, !!k.querySelector('.fp-title .fw-tri')]; });
+  ok(r.join('|') === 'true|true|true|text:15.09.2026,text:30.11.2026|true|true', 'Name so groß wie die Summe, direkt darüber; Datum ohne Kalendersymbol; Abstand zwischen Pro und Contra; Hinweis als Dreieck: ' + r.join('|'));
+  await p.hover('#foe-f-mtw-bst .fw-tri');
+  ok((await p.$eval('.fw-pop', e => e.textContent)).includes('Auch im Förderplan von'), 'Dreieck überfahren: der Hinweis erscheint');
+  await p.mouse.move(5, 5); await p.waitForTimeout(400);
+  ok(!(await p.$('.fw-pop')), 'Maus weg: Hinweis verschwindet');
+  await p.click('#foe-f-mtw-bst .fp-d input >> nth=1');
+  ok(!!(await p.$('.cal-pop .cal-d.on[data-v="2026-11-30"]')), 'Klick aufs Datum öffnet den Kalender beim Datum');
+  await p.click('.cal-pop .cal-d[data-v="2026-11-27"]');
+  ok(await p.evaluate(() => cur().foerderer.find(f => f.id === 'f-mtw-bst').erwartet) === '2026-11-27', 'Tag gewählt: Datum übernommen');
   // Einschätzung füllt sich von rechts: der rechte Punkt allein = sehr unwahrscheinlich
   r = await p.evaluate(() => [...document.querySelectorAll('#foe-f-mtw-bst .dots .dot')].map(d => d.classList.contains('on') ? 'x' : '-').join(''));
   ok(r === '--xxx', 'Einschätzung „unsicher“: die drei rechten Punkte gefüllt: ' + r);
@@ -78,7 +90,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [document.querySelector('#amt-f-mtw-lot').value, cur().foerderer.find(f => f.id === 'f-mtw-lot').betrag]);
   ok(r.join() === '45.000,45000', 'Summe beim Tippen: 45000 → 45.000: ' + r.join());
   // neuer Förderer: kein Auswahlpfeil des Browsers, eigene Vorschläge
-  await p.click('.fk-head button[data-act="add-foe"]'); await p.keyboard.type('Bürger');
+  await p.click('.fk-grid .fk-neu'); await p.keyboard.type('Bürger');
   r = await p.evaluate(() => [document.activeElement.hasAttribute('list'), [...document.querySelectorAll('.le-sug .le-opt')].map(o => o.textContent).join()]);
   ok(r[0] === false && r[1].includes('Bürgerstiftung Musterstadt'), 'Namensfeld ohne Pfeil, Vorschläge beim Tippen: ' + r[1]);
   await p.click('.le-opt:text-is("Bürgerstiftung Musterstadt")');
