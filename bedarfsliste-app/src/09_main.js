@@ -1,8 +1,8 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null, zEdit: null };
-const UI_KEEP = ['view', 'id', 'tab'];
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null, zEdit: null, ansicht: 'voll' };
+const UI_KEEP = ['view', 'id', 'tab', 'ansicht'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
 function saveUI() { try { localStorage.setItem(uiKey(), JSON.stringify(Object.fromEntries(UI_KEEP.map(k => [k, UI[k]])))); } catch (e) { /* */ } }
@@ -185,9 +185,9 @@ function fmtInfo() {
     h('p', null, 'In der Beschreibung eines Bedarfs und in Notizen, Fristen, Fördersumme und Eigenanteil im Fenster eines Förderers lassen sich Texte einfach gestalten – wie in Chat-Programmen:'),
     h('table', { class: 'imp fmt-tab' }, h('thead', null, h('tr', null, h('th', null, 'Eingabe'), h('th', null, 'Ergebnis'))), h('tbody', null,
       z('* Punkt  oder  - Punkt', fmtText('* Punkt') + '<span class="muted small">sofort beim Tippen; Umschalt+Enter: nächster Punkt</span>'), z('1. Schritt', fmtText('1. Schritt')), z('*wichtig*', fmtText('*wichtig*')), z('_Hinweis_', fmtText('_Hinweis_')),
-      z('~erledigt~', fmtText('~erledigt~')), z('https://…', 'wird ein anklickbarer Link'))),
+      z('+wichtig+', fmtText('+wichtig+')), z('~erledigt~', fmtText('~erledigt~')), z('https://…', 'wird ein anklickbarer Link'))),
     h('p', { class: 'muted small' }, 'Aufzählung: „* “ oder „- “ am Zeilenanfang wird beim Tippen sofort zum Punkt •. Umschalt+Enter setzt den nächsten Punkt (bei „1. “ die nächste Nummer), Enter geht in eine neue Zeile ohne Punkt. Strg+Enter oder Klick daneben übernimmt den Text.'),
-    h('p', { class: 'muted small' }, 'Fett, kursiv und durchgestrichen: Die Zeichen müssen direkt am Wort stehen (*so*, nicht * so *). Beim Bearbeiten sieht man die Zeichen, sobald man das Feld verlässt, die Formatierung.')),
+    h('p', { class: 'muted small' }, 'Am einfachsten: ein Wort markieren – darüber erscheinen Knöpfe für fett, kursiv, unterstrichen, durchgestrichen und Aufzählung (auch Strg+B, Strg+I, Strg+U). Die Zeichen müssen direkt am Wort stehen (*so*, nicht * so *). Beim Bearbeiten sieht man die Zeichen, sobald man das Feld verlässt, die Formatierung.')),
     [['OK', true, 'primary']]);
 }
 function about() {
@@ -199,9 +199,9 @@ function about() {
 // leer gebliebene Kontakte entfernen, wenn das Fenster beim Bearbeiten geschlossen wird
 // wessen Kontakte: die eines Förderers (Knopf mit data-fid, im Fenster) oder die Zuständigen des Bedarfs (oben auf der Seite)
 function kZiel(b, a) {
-  if (!a.dataset.fid) return { o: b, p: 'zust', ui: 'zEdit', id: b.id, box: '#sec-eck', max: MAX_ZUST };
+  if (!a.dataset.fid) return { o: b, p: 'zust', ui: 'zEdit', id: b.id, box: '#sec-eck', max: MAX_ZUST, neu: leerZ };
   const f = b.foerderer.find(x => x.id === a.dataset.fid);
-  return f && { o: f, p: 'kontakte', ui: 'kEdit', id: f.id, box: '.foe-pop', max: MAX_KONTAKTE };
+  return f && { o: f, p: 'kontakte', ui: 'kEdit', id: f.id, box: '.foe-pop', max: MAX_KONTAKTE, neu: leerK };
 }
 // Zuständige bearbeiten: beim Namen Vorschläge aus allen Bedarfen; ein bekannter Name bringt Position, E-Mail und Telefon mit (nur in leere Zeilen)
 document.addEventListener('focusin', e => {
@@ -211,7 +211,7 @@ document.addEventListener('focusin', e => {
   const ergaenzen = () => {
     const b = cur(), z = b && b.zust[+inp.dataset.p.split('.')[1]], v = z && zustVorbild(z.n, z); if (!v) return;
     let neu = false;
-    for (const p of ['rolle', 'mail', 'tel']) if (!z[p].trim() && v[p]) { z[p] = v[p]; neu = true; const x = inp.parentNode.querySelector('.k-li-' + p); if (x) x.value = v[p]; }
+    for (const p of ZUST_F) if (!(z[p] || '').trim() && v[p]) { z[p] = v[p]; neu = true; const x = inp.parentNode.querySelector('.k-li-' + p); if (x) x.value = v[p]; }
     if (neu) changed();
   };
   const key = suggest(inp, SRC.zust, () => { inp.dispatchEvent(new Event('input', { bubbles: true })); ergaenzen(); });
@@ -253,6 +253,7 @@ async function act(k, a, e) {
     case 'theme': applyTheme(a.dataset.v); $$('#mmenu .mini-btn').forEach(x => x.classList.toggle('on', x === a)); return;
     case 'about': closeMenus(); about(); return;
     case 'undo': undo(); return;
+    case 'ansicht': UI.ansicht = a.dataset.v === 'kompakt' ? 'kompakt' : 'voll'; keep(renderNow); return;
     case 'fmt-info': closeMenus(); fmtInfo(); return;
     case 'save': closeMenus(); if (FSA && ST.conn === 'none') await connectFolder(); else saveAll({}); renderNow(); return;
     case 'connect': await connectFolder(); renderNow(); return;
@@ -323,7 +324,7 @@ async function act(k, a, e) {
     // Kontakte im Fenster und Zuständige oben auf der Seite: Stift → bearbeiten, + → weiterer (höchstens drei), × → entfernen, ☆ → nach vorn, Fertig → leere entfernen
     case 'k-edit': case 'k-neu': {
       const z = kZiel(b, a); if (!z) return;
-      if (k === 'k-neu' && z.o[z.p].length < z.max) { z.o[z.p].push(leerK()); changed(); }
+      if (k === 'k-neu' && z.o[z.p].length < z.max) { z.o[z.p].push(z.neu()); changed(); }
       UI[z.ui] = z.id; keep(renderNow);
       const L = $$(z.box + ' .k-ed'), e = k === 'k-neu' ? L[L.length - 1] : L[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
       return;

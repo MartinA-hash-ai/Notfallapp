@@ -46,6 +46,7 @@ function ff(o) {
 // Kontakte eines Förderers: { n: Name, rolle: Funktion, mail, tel }; als Text „Name; Funktion; E-Mail; Telefon“ (Teile werden an ihrer Art erkannt)
 const MAX_KONTAKTE = 3, MAX_ZUST = 12;
 const leerK = () => ({ n: '', rolle: '', mail: '', tel: '' });
+const leerZ = () => Object.assign(leerK(), { mobil: '' });                       // Zuständige haben dazu ein Handy
 function kontaktAusText(t) {
   const k = leerK(), teile = String(t || '').split(/\s*;\s*/).map(x => x.trim()).filter(Boolean), rest = [];
   for (const x of teile) { if (!k.mail && /^\S+@\S+\.\S+$/.test(x)) k.mail = x; else if (!k.tel && /^[+\d][\d\s\/().-]{4,}$/.test(x)) k.tel = x; else rest.push(x); }
@@ -55,21 +56,22 @@ function kontaktAusText(t) {
 }
 const kontakteAusText = t => String(t || '').split(/\r?\n/).map(kontaktAusText).filter(k => k.n || k.rolle || k.mail || k.tel).slice(0, MAX_KONTAKTE);
 const kontaktText = k => [k.n, k.rolle, k.mail, k.tel].join('; ').replace(/(;\s*)+$/, '');
-const kontaktLeer = k => !(k.n.trim() || k.rolle.trim() || k.mail.trim() || k.tel.trim());
+const kontaktLeer = k => !(k.n.trim() || k.rolle.trim() || k.mail.trim() || k.tel.trim() || (k.mobil || '').trim());
+const ZUST_F = ['rolle', 'mail', 'tel', 'mobil'];                                // Angaben einer zuständigen Person außer dem Namen
 // Zuständige: ein bekannter Name bringt Position, E-Mail und Telefon mit – aus der Personen-Excel, sonst aus einem anderen Bedarf (die vollständigste Angabe)
 function zustVorbild(name, ohne) {
-  const q = norm(name), voll = z => !!z.rolle + !!z.mail + !!z.tel; let best = null;
+  const q = norm(name), voll = z => !!z.rolle + !!z.mail + !!z.tel + !!z.mobil; let best = null;
   if (q) for (const x of D.bedarfe) for (const z of x.zust) if (z !== ohne && norm(z.n) === q && voll(z) && (!best || voll(z) >= voll(best))) best = z;
   const p = typeof person === 'function' ? person(name) : null;
-  return p ? { n: p.n, rolle: p.rolle || (best && best.rolle) || '', mail: p.mail || (best && best.mail) || '', tel: p.tel || (best && best.tel) || '' } : best;
+  return p ? Object.fromEntries([['n', p.n], ...ZUST_F.map(k => [k, p[k] || (best && best[k]) || ''])]) : best;
 }
 // Ansprechperson in der Liste ändern: sie wird die erste Zuständige. Hat die bisherige erste schon Angaben, bleibt sie dahinter stehen.
 function zustVorn(b, v) {
   const L = b.zust.slice(), i = L.findIndex(z => norm(z.n) === norm(v));
   if (!v) return L.slice(1);
   if (i >= 0) return [L[i], ...L.filter((z, j) => j !== i)];
-  const v0 = zustVorbild(v), neu = Object.assign(leerK(), v0 && { rolle: v0.rolle, mail: v0.mail, tel: v0.tel }, { n: v });
-  return L[0] && (L[0].rolle || L[0].mail || L[0].tel) ? [neu, ...L] : [neu, ...L.slice(1)];
+  const v0 = zustVorbild(v), neu = Object.assign(leerZ(), v0 && Object.fromEntries(ZUST_F.map(k => [k, v0[k] || ''])), { n: v });
+  return L[0] && ZUST_F.some(k => L[0][k]) ? [neu, ...L] : [neu, ...L.slice(1)];
 }
 // Daten aus der Datei auf den aktuellen Aufbau bringen (fehlende Felder ergänzen, Unbrauchbares verwerfen)
 function normalize(d) {
@@ -85,8 +87,8 @@ function normalize(d) {
     n.stichworte = uniq([...(Array.isArray(b.stichworte) ? b.stichworte : []), ...(typeof b.stichwort === 'string' ? [b.stichwort] : [])].map(s => String(s ?? '').trim()).filter(Boolean));
     delete n.stichwort;
     // ab 0.24 sind die Zuständigen Kontakte wie bei den Förderern (Name, Position, E-Mail, Telefon) – bisher nur Namen
-    n.zust = (Array.isArray(b.zust) ? b.zust : []).map(z => typeof z === 'string' ? Object.assign(leerK(), { n: z.trim() })
-      : isObj(z) ? { n: String(z.n ?? ''), rolle: String(z.rolle ?? ''), mail: String(z.mail ?? ''), tel: String(z.tel ?? '') } : null).filter(z => z && !kontaktLeer(z));
+    n.zust = (Array.isArray(b.zust) ? b.zust : []).map(z => typeof z === 'string' ? Object.assign(leerZ(), { n: z.trim() })
+      : isObj(z) ? { n: String(z.n ?? ''), rolle: String(z.rolle ?? ''), mail: String(z.mail ?? ''), tel: String(z.tel ?? ''), mobil: String(z.mobil ?? '') } : null).filter(z => z && !kontaktLeer(z));
     n.unterlagen = (Array.isArray(b.unterlagen) ? b.unterlagen : []).filter(isObj).map(u => Object.assign(UL('', 'fehlt'), u));
     // ab 0.2 ist das Angebot eine Unterlage (vorher Teil der Freigabe); die drei festen Unterlagen gibt es immer
     const alt = isObj(b.freigabe) && isObj(b.freigabe.angebot) ? b.freigabe.angebot.st : null;

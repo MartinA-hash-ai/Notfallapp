@@ -101,7 +101,7 @@ const ulKind = u => ({ da: 'ok', arbeit: 'run', fehlt: 'no' })[u.st] || 'no';
 function freigabeList(b) {
   const rows = frItems(b).map(i => {
     const p = 'freigabe.' + i.k;
-    const name = i.k === 'fach' ? `<input type="text" class="inline fr-name" data-p="${p}.name" list="dl-fach" value="${esc(i.item.name)}" placeholder="Fachreferat" title="Fachreferat" aria-label="Fachreferat">`
+    const name = i.k === 'fach' ? `<span class="fr-fach"><span class="ci-n">Fachreferat</span><input type="text" class="inline fr-name" data-p="${p}.name" list="dl-fach" value="${esc(i.item.name)}" placeholder="welches?" title="Welches Fachreferat" aria-label="Welches Fachreferat"></span>`
       : `<span class="ci-n" title="${esc(i.label)}">${i.k === 'verw' ? 'Verwaltung' : esc(i.label)}</span>`;
     const hint = i.na ? 'entfällt' : i.opt && i.st === 'offen' ? 'nicht nötig' : i.st === 'offen' ? 'noch nicht angefragt' : '';
     const since = i.st === 'angefragt' && validIso(i.item.angefragt) ? 'angefragt am ' + fmtDate(i.item.angefragt) + ', seit ' + days(i.item.angefragt, today()) + ' Tagen' : 'angefragt am';
@@ -218,18 +218,19 @@ function pe(f, k, lab, art = 'line', o = {}) {
 function personen(L, o) {
   const a = o.a || '', n = L.length, plus = t => n < (o.max || MAX_KONTAKTE) ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>${t}</button>` : '';
   if (o.edit) {
-    const linie = (i, p, ph) => `<input type="${p === 'mail' ? 'email' : p === 'tel' ? 'tel' : 'text'}" class="k-li k-li-${p}" data-p="${o.p}.${i}.${p}" ${a} value="${esc(L[i][p])}" placeholder="${ph}" aria-label="${ph}" autocomplete="off">`;
-    return L.map((c, i) => `<div class="k-ed">${linie(i, 'n', 'Vorname Nachname')}${linie(i, 'rolle', 'Position')}${linie(i, 'mail', 'E-Mail-Adresse')}${linie(i, 'tel', 'Telefonnummer')}
+    const linie = (i, p, ph) => `<input type="${p === 'mail' ? 'email' : p === 'tel' || p === 'mobil' ? 'tel' : 'text'}" class="k-li k-li-${p}" data-p="${o.p}.${i}.${p}" ${a} value="${esc(L[i][p] || '')}" placeholder="${ph}" aria-label="${ph}" autocomplete="off">`;
+    return L.map((c, i) => `<div class="k-ed">${linie(i, 'n', 'Vorname Nachname')}${linie(i, 'rolle', 'Position')}${linie(i, 'mail', 'E-Mail-Adresse')}${linie(i, 'tel', 'Telefonnummer')}${o.mobil ? linie(i, 'mobil', 'Handynummer') : ''}
         <button class="x" data-act="k-weg" data-i="${i}" ${a} title="${o.wer} entfernen" aria-label="${o.wer} entfernen">×</button></div>`).join('') + plus(o.neu[0]);
   }
   const knopf = (href, sym, t, tip) => `<a class="kb" href="${esc(href)}" data-act="link" data-tip="${esc(tip)}" aria-label="${t}: ${esc(tip)}">${sym}</a>`;
   const zeile = (c, i, ausKartei) => {
-    const tel = telNr(c.tel), links = o.kompakt ? '' : [c.mail && `<div><a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a></div>`, tel && `<div><a href="tel:${tel}" data-act="link">${esc(c.tel)}</a></div>`].filter(Boolean).join('');
+    const tel = telNr(c.tel), mob = telNr(c.mobil || ''), links = o.kompakt ? '' : [c.mail && `<div><a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a></div>`,
+      tel && `<div><a href="tel:${tel}" data-act="link">${esc(c.tel)}</a></div>`, mob && `<div><a href="tel:${mob}" data-act="link">${esc(c.mobil)}</a></div>`].filter(Boolean).join('');
     const stern = ausKartei ? '' : i === 0 ? `<span class="star" title="${o.haupt[0]}">★</span>`
       : `<button class="star off" data-act="k-haupt" data-i="${i}" ${a} title="${o.haupt[1]}" aria-label="${o.haupt[1]}">☆</button>`;
     return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
       + (c.n && c.rolle ? `<div class="kr">${esc(c.rolle)}</div>` : '') + (links ? `<div class="kl">${links}</div>` : '')
-      + `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben', c.mail) : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen', c.tel) : ''}</div></div>`;
+      + `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben', c.mail) : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen', c.tel) : ''}${mob ? knopf('tel:' + mob, ICON_HANDY, 'Handy anrufen', c.mobil) : ''}</div></div>`;
   };
   return L.map((c, i) => zeile(c, i, false)).join('') + (o.extra || []).map(c => zeile(c, 0, true)).join('') + plus(n ? o.neu[0] : o.neu[1]);
 }
@@ -239,7 +240,8 @@ function kontaktListe(f) {
   return personen(f.kontakte, { a: `data-fid="${f.id}"`, p: 'kontakte', edit: UI.kEdit === f.id, wer: 'Kontakt', neu: ['weiterer Kontakt', 'Kontakt eintragen'],
     haupt: ['Hauptkontakt – steht in der Kachel', 'Zum Hauptkontakt machen'], extra: k ? k.kontakte.map(c => ({ n: c.n, rolle: c.nicht ? 'nicht direkt anschreiben' : '', mail: c.m, tel: c.t })) : [] });
 }
-const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
+const ICON_HANDY = '<svg viewBox="0 0 12 16" width="10" height="14" aria-hidden="true"><rect x="1.5" y="1" width="9" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.8 12.3h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
   haupt: ['Ansprechperson – steht in der Liste', 'Zur Ansprechperson machen'] });
 // Überschrift über Kontakten bzw. Zuständigen: rechts der Stift, beim Bearbeiten „Fertig“
 const kKopf = (titel, edit, a = '', extra = '') => `<div class="sub">${titel}${extra}${edit ? `<button class="k-fertig" data-act="k-fertig" ${a}>Fertig</button>`
@@ -276,10 +278,12 @@ function popEdit(el) {
   val.classList.remove('leer'); val.replaceChildren(inp); el.classList.add('edit');
   inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) { /* */ }
   if (el.dataset.fmt && lang) listAuto(inp);
+  const leiste = el.dataset.fmt && lang ? fmtLeiste(inp) : null;
   const sk = el.dataset.sug && suggest(inp, SRC[el.dataset.sug], () => finish(true));
   let fertig = false;
   const finish = ok => {
     if (fertig) return; fertig = true;
+    if (leiste) leiste();
     if (ok) {
       let v = k === 'quellen' ? quellenZeilen(inp.value).join('\n') : inp.value.trim();
       if (art === 'num') { v = deNum(v); if (v === null) { toast('„' + inp.value + '“ ist keine Zahl – nicht übernommen.', 'warn'); v = f[k]; } else if (v === '') v = null; }

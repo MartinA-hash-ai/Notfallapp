@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.26.0",
+    "date": "2026-10-23T15:30",
+    "items": [
+      "Liste: Knöpfe „Ausführlich“ und „Kompakt“. Kompakt ist je Bedarf eine Zeile – Name, Summe, Ort und je Bereich nur der Stand: Freigabe (freigegeben · in Bearbeitung · keine Freigabe), Finanzierung (Finanzierung beendet · in Bearbeitung · keine Finanzierung), Verwendungsnachweis (erbracht · in Bearbeitung · offen mit Frist · nicht nötig), Spendenübergabe (Datum und Uhrzeit oder grau „nicht geplant“). „+ Bedarf“ führt dort durch Name, Summe und Ort. Die Wahl bleibt gemerkt",
+      "Zuständige: zusätzlich ein Handy – beim Bearbeiten eine eigene Linie, sonst ein Knopf mit der Nummer beim Überfahren. Auch die Personen-Excel hat eine Spalte „Handy“",
+      "Formatieren per Markierung: ein Wort markieren, darüber erscheinen Knöpfe für fett, kursiv, unterstrichen, durchgestrichen und Aufzählung (auch Strg+B, Strg+I, Strg+U); noch einmal geklickt nimmt die Formatierung weg. Neu: +unterstrichen+",
+      "Freigaben: vor dem Namen des Fachreferats steht „Fachreferat“",
+      "Fortschritt oben auf der Bedarfsseite: erledigte Schritte dezent grün mit umrandetem Haken, der aktuelle Schritt ohne farbige Hinterlegung"
+    ]
+  },
+  {
     "version": "0.25.0",
     "date": "2026-10-23T14:10",
     "items": [

@@ -217,6 +217,36 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => document.activeElement.placeholder) === 'Summe', 'auch in einer vorhandenen Zeile: Tab springt vom Namen zur Summe');
   await K.press('Escape');
 
+  // kompakte Ansicht: je Bereich nur der Stand als Kreis mit Wort
+  r = await p.evaluate(() => {
+    const t = html => { const d = document.createElement('div'); d.innerHTML = html; const m = d.querySelector('.mi'); return (m ? m.className.replace('mi ', '') + ':' : '') + d.textContent.trim(); };
+    const x = blank(); x.summe = 5000; x.gliederung = 'Brakel';
+    const out = [t(kFreigabe(x)), t(kFinanz(x)), t(kNachweis(x)), t(kUebergabe(x))];
+    x.freigabe.ofk.st = 'angefragt'; out.push(t(kFreigabe(x)));
+    x.freigabe.verw.st = 'nein'; out.push(t(kFreigabe(x)));
+    Object.assign(x.freigabe, { ofk: Object.assign(x.freigabe.ofk, { st: 'ok' }), fach: Object.assign(x.freigabe.fach, { st: 'ok' }), verw: Object.assign(x.freigabe.verw, { st: 'ok' }) }); angebotUL(x).st = 'da'; out.push(t(kFreigabe(x)));
+    x.foerderer.push(ff({ name: 'A', betrag: 3000, status: 'beantragt' })); out.push(t(kFinanz(x)));
+    x.eigenanteil = 2000; Object.assign(x.foerderer[0], { status: 'zugesagt', zugesagt: 3000 }); out.push(t(kFinanz(x)), t(kNachweis(x)));
+    x.foerderer[0].vn.frist = '2027-03-31'; out.push(t(kNachweis(x)));
+    x.foerderer[0].vn.st = 'arbeit'; out.push(t(kNachweis(x)));
+    x.foerderer[0].vn.st = 'erledigt'; out.push(t(kNachweis(x)));
+    x.foerderer[0].vn.noetig = false; out.push(t(kNachweis(x)), t(kUebergabe(x)));
+    Object.assign(x.nach.ueb, { termin: '2026-11-20', zeit: '15:00', st: 'terminiert' }); out.push(t(kUebergabe(x)));
+    x.nach.ueb.noetig = false; out.push(t(kUebergabe(x)));
+    return out; });
+  ok(r.join(' / ') === ['m-off:keine Freigabe', 'm-off:keine Finanzierung', 'noch keine Zusage', 'nicht geplant', 'm-run:in Bearbeitung', 'm-no:keine Freigabe', 'm-ok:freigegeben', 'm-run:in Bearbeitung',
+    'm-ok:Finanzierung beendet', 'm-off:offen', 'm-off:offen, bis 31.03.2027', 'm-run:in Bearbeitung', 'm-ok:erbracht', 'nicht nötig', 'nicht geplant', '20.11.2026, 15:00 Uhr', 'nicht nötig'].join(' / '),
+    'kompakte Stände für Freigabe, Finanzierung, Verwendungsnachweis und Spendenübergabe: ' + r.join(' / '));
+  await p.click('.seg.ansicht [data-v="kompakt"]');
+  r = await p.evaluate(() => { const rows = [...document.querySelectorAll('#list-body tr[data-id]')], hs = rows.map(x => Math.round(x.getBoundingClientRect().height));
+    return [rows[0].children.length, [...document.querySelectorAll('table.list thead th')].map(x => x.textContent).join(','), JSON.parse(localStorage.getItem(uiKey())).ansicht, Math.max(...hs) - Math.min(...hs) <= 2, !document.querySelector('#list-body [data-le="zust"], #list-body [data-le="deadline"]')]; });
+  ok(r.join('|') === '7|Bedarf,Summe,Ort,Freigabe,Finanzierung,Verwendungsnachweis,Spendenübergabe|kompakt|true|true', 'Knopf „Kompakt“: je Bedarf eine Zeile, Ansprechperson und Deadline ausgeblendet, Wahl gemerkt: ' + r.join('|'));
+  await p.click('button[data-act="new"]'); await K.type('Funkmast'); await K.press('Enter'); await K.type('3.000'); await K.press('Enter'); await K.type('Warburg'); await K.press('Enter');
+  r = await p.evaluate(() => { const x = D.bedarfe[0]; return [x.titel, x.summe, x.gliederung, !!document.querySelector('.le-edit, .cal-pop'), document.querySelector('#list-body tr[data-id]').children[0].textContent]; });
+  ok(r.join('|') === 'Funkmast|3000|Warburg|false|Funkmast', 'kompakt: + Bedarf führt durch Name, Summe, Ort – dann fertig: ' + r.join('|'));
+  await p.click('.seg.ansicht [data-v="voll"]');
+  ok(await p.evaluate(() => UI.ansicht === 'voll' && document.querySelectorAll('#list-body tr[data-id]')[0].children.length === 6), 'Knopf „Ausführlich“: wieder alle Angaben');
+
   // Darstellung hell, auch wenn die umgebende Seite dunkel ist: eingebaute Bedienelemente hell
   r = await p.evaluate(() => { const st = document.createElement('style'); st.textContent = ':root[data-theme=dark], body { color-scheme: dark }'; document.head.append(st); document.documentElement.dataset.theme = 'dark';
     const box = document.createElement('div'); box.className = 'le-sug lang'; document.body.append(box);

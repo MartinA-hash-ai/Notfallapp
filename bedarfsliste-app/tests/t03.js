@@ -106,19 +106,20 @@ async function writeKartei(p, kontakt) {
   await p.click('.rech-steps li button'); await p.waitForTimeout(200);
   r = await p.evaluate(async () => { const f = __fs.files['/Ordner/Personen.xlsx']; if (!f) return null; const bk = await xlsxBook(f.data.buffer.slice(0));
     return [bk.sheets.map(s => s.name).join('+'), bk.sheets[0].rows[0].join('|'), bk.sheets[0].rows.slice(1).filter(x => x[0]).map(x => x[0] + ':' + x[2] + ':' + x[4]).join(','), document.querySelector('.rech-steps li button').disabled]; });
-  ok(r && r[0] === 'Personen+Anleitung' && r[1] === 'Name|Position|Gliederung / Dienststelle|E-Mail|Telefon|Quelle|Stand' && r[2].includes('Otto Ohne:Iserlohn-Menden:') && r[2].includes('Paula Person:Iserlohn-Menden:0170 eigene') && r[3],
+  ok(r && r[0] === 'Personen+Anleitung' && r[1] === 'Name|Position|Gliederung / Dienststelle|E-Mail|Telefon|Handy|Quelle|Stand' && r[2].includes('Otto Ohne:Iserlohn-Menden:') && r[2].includes('Paula Person:Iserlohn-Menden:0170 eigene') && r[3],
     'Personen.xlsx im Ordner angelegt, mit allen Personen, die die Liste kennt; danach nicht noch einmal: ' + JSON.stringify(r));
   // Copilot füllt die Datei; eine zweite, neuere Fassung mit Vor- und Nachname in zwei Spalten – die neueste gilt, Eigenes bleibt
   await pers('Personen.xlsx', [['Name', 'Position', 'Gliederung / Dienststelle', 'E-Mail', 'Telefon', 'Quelle', 'Stand'], ['Paula Person', 'Ortsbeauftragte', 'Iserlohn-Menden', 'paula@malteser.example', '02371 1', 'Outlook', '2026-10-23'],
     ['Otto Ohne', 'Kassenwart', '', '', '02371 2', '', '']], 95000);
+  await pers('Personen (2).xlsx', [['Name', 'Handy'], ['Paula Person', '0171 9']], 94000);
   await pers('Personen (1).xlsx', [['Vorname', 'Nachname', 'Funktion', 'E-Mail-Adresse', 'Telefon'], ['Otto', 'Ohne', '', 'otto@malteser.example', '02371 22']], 96000);
   await p.click('.rech-steps li:nth-child(3) .rech-btns button:last-child'); await p.waitForTimeout(250);
   r = await p.evaluate(() => [cur().zust.map(kontaktText).join(' | '), document.querySelector('.modal .rech-steps li:nth-child(3)').textContent, PR.list.length]);
-  ok(r[0] === 'Paula Person; Ortsbeauftragte; paula@malteser.example; 0170 eigene | Otto Ohne; Kassenwart; otto@malteser.example; 02371 22' && r[1].includes('Ergänzt: Paula Person (Position, E-Mail) · Otto Ohne (Position, E-Mail, Telefon)') && !r[1].includes('Noch nicht'),
+  ok(r[0] === 'Paula Person; Ortsbeauftragte; paula@malteser.example; 0170 eigene | Otto Ohne; Kassenwart; otto@malteser.example; 02371 22' && r[1].includes('Ergänzt: Paula Person (Position, E-Mail, Handy) · Otto Ohne (Position, E-Mail, Telefon)') && !r[1].includes('Noch nicht'),
     'Excel einlesen: leere Angaben ergänzt, eigene bleiben, die neueste Datei gilt (auch mit Vor- und Nachname): ' + r.join(' / '));
   await p.click('.modal footer button'); await p.waitForTimeout(100);
   r = await p.evaluate(async () => { await karteiScan(true); return [SRC.zust().includes('Paula Person'), JSON.stringify(zustVorbild('paula  person')), KR.name]; });
-  ok(r[0] && r[1] === '{"n":"Paula Person","rolle":"Ortsbeauftragte","mail":"paula@malteser.example","tel":"02371 1"}' && r[2] === 'Banken- und Stiftungsübersicht.xlsx',
+  ok(r[0] && r[1] === '{"n":"Paula Person","rolle":"Ortsbeauftragte","mail":"paula@malteser.example","tel":"02371 1","mobil":"0171 9"}' && r[2] === 'Banken- und Stiftungsübersicht.xlsx',
     'die Liste kennt die Personen: Vorschlag beim Namen, Angaben kommen mit; die Förder-Kartei bleibt dieselbe: ' + r.join(' / '));
   // ein weiterer Bedarf mit einer bekannten Person: beim nächsten Einlesen ergänzt
   await p.evaluate(async () => { const x = blank(); x.titel = 'Zelt'; x.zust = [Object.assign(leerK(), { n: 'Otto Ohne' })]; D.bedarfe.push(x); changed(); await personenScan(true); });

@@ -214,11 +214,13 @@ function editField(b, el, o) {
   inp.addEventListener('blur', () => finish(true, 'blur'));
 }
 
-// Tab im Feld: übernehmen und weiter zum nächsten Feld der Zeile (Shift+Tab: zurück) – Name → Summe → Ort → Ansprechperson → Deadline
+// Tab im Feld: übernehmen und weiter zum nächsten Feld der Zeile (Shift+Tab: zurück) – Name → Summe → Ort → Ansprechperson → Deadline;
+// in der kompakten Ansicht nur Name → Summe → Ort (die anderen stehen dort nicht)
 const LISTE_FELDER = ['titel', 'summe', 'ort', 'zust', 'deadline'];
+const zeilenFelder = id => { const tr = $(`#list-body tr[data-id="${CSS.escape(id)}"]`); return tr ? LISTE_FELDER.filter(k => tr.querySelector(`[data-le="${k}"]`)) : []; };
 function feldWeiter(b, k, wie, then) {
-  const i = LISTE_FELDER.indexOf(k) + (wie === 'back' ? -1 : 1);
-  const el = i >= 0 && i < LISTE_FELDER.length && $(`#list-body tr[data-id="${CSS.escape(b.id)}"] [data-le="${LISTE_FELDER[i]}"]`);
+  const L = zeilenFelder(b.id), i = L.indexOf(k) + (wie === 'back' ? -1 : 1);
+  const el = i >= 0 && i < L.length && $(`#list-body tr[data-id="${CSS.escape(b.id)}"] [data-le="${L[i]}"]`);
   if (el) strgAct(b, el, then);
 }
 // „+ Bedarf“: neue Zeile oben in der Liste, dann der Reihe nach Name → Summe → Ort → Ansprechperson → Deadline (Enter oder Tab, Shift+Tab zurück);
@@ -229,7 +231,7 @@ function neuerBedarf() {
   ORDER.ids = [nb.id, ...(ORDER.ids || []).filter(id => id !== nb.id)];
   renderNow(); strgSet(false); scrollTo(0, 0);
   const feld = k => $(`#list-body tr[data-id="${CSS.escape(nb.id)}"] [data-le="${k}"]`);
-  const schritte = LISTE_FELDER;
+  const schritte = zeilenFelder(nb.id);
   const weg = () => { D.bedarfe = D.bedarfe.filter(x => x !== nb); ORDER.ids = ORDER.ids && ORDER.ids.filter(id => id !== nb.id); changed(); keep(renderNow); };
   const geh = i => {
     const el = feld(schritte[i]); if (!el) return;

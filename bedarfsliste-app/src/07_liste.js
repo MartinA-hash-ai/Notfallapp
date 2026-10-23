@@ -94,12 +94,47 @@ function filtered() {
 const ORDER = { ids: null };
 const anyFilter = () => !!(UI.q || UI.fSw);
 
+/* ---------- kompakte Ansicht: je Bedarf eine Zeile – Name, Summe, Ort und je Bereich nur der Stand als Kreis mit Wort.
+   Grün: durch · Gelb: in Bearbeitung · Rot: abgelehnt · leerer Kreis: noch nichts · grau: nicht nötig */
+const kz = (s, t, cls = '') => `<span class="kz ${cls}">${mi(s)}<span>${t}</span></span>`;
+const kGrau = t => `<span class="kz nn">${t}</span>`;
+function kFreigabe(b) {
+  const L = frItems(b).filter(frNeeded), a = angebotUL(b);
+  if (L.some(i => i.st === 'nein')) return kz('no', 'keine Freigabe', 'k-no');
+  if (!frOffen(b).names.length) return kz('ok', 'freigegeben', 'k-ok');
+  if (L.every(i => i.st === 'offen') && (!a || a.st === 'fehlt')) return kz('off', 'keine Freigabe', 'k-off');
+  return kz('run', 'in Bearbeitung', 'k-run');
+}
+function kFinanz(b) {
+  const F = finState(b);
+  if (!F.fs.length && !F.eig) return kz('off', 'keine Finanzierung', 'k-off');
+  return F.done ? kz('ok', 'Finanzierung beendet', 'k-ok') : kz('run', 'in Bearbeitung', 'k-run');
+}
+function kNachweis(b) {
+  const Z = b.foerderer.filter(f => f.status === 'zugesagt'), L = Z.filter(f => f.vn.noetig);
+  if (!Z.length) return kGrau('noch keine Zusage');
+  if (!L.length) return kGrau('nicht nötig');
+  if (L.every(f => f.vn.st === 'erledigt')) return kz('ok', 'erbracht', 'k-ok');
+  if (L.some(f => f.vn.st !== 'offen')) return kz('run', 'in Bearbeitung', 'k-run');
+  const fr = L.map(f => f.vn.frist).filter(Boolean).sort()[0];
+  return kz('off', 'offen' + (fr ? ', bis ' + fmtDate(fr) : ''), 'k-off');
+}
+function kUebergabe(b) {
+  const u = b.nach.ueb, F = finState(b);
+  if (!u.noetig) return kGrau('nicht nötig');
+  if (u.termin) return u.st === 'erledigt' ? kz('ok', uebWann(u), 'k-ok') : `<span class="kz">${uebWann(u)}</span>`;
+  if (u.st === 'erledigt') return kz('ok', 'erledigt', 'k-ok');
+  return F.done && F.zu > 0 ? `<span class="kz warnl" title="Finanzierung steht – Spendenübergabe einleiten">${ICON_TRI}<span>nicht geplant</span></span>` : kGrau('nicht geplant');
+}
+const KOMPAKT = () => UI.ansicht === 'kompakt';
+const nameZelle = b => `<td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : b.prio === 'hoch' ? ' <span class="prio-t">(Prio)</span>' : ''}</td>
+    <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>`;
+const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
 function row(b) {
-  const tag = b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : b.prio === 'hoch' ? ' <span class="prio-t">(Prio)</span>' : '';
-  return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">
-    <td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${tag}</td>
-    <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>
-    <td class="l-meta"><div class="ort" data-le="ort">${b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>'}</div><div data-le="zust">${b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
+  if (KOMPAKT()) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">${nameZelle(b)}
+    <td class="l-ort"><div class="ort" data-le="ort">${ortText(b)}</div></td><td>${kFreigabe(b)}</td><td>${kFinanz(b)}</td><td>${kNachweis(b)}</td><td>${kUebergabe(b)}</td></tr>`;
+  return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">${nameZelle(b)}
+    <td class="l-meta"><div class="ort" data-le="ort">${ortText(b)}</div><div data-le="zust">${b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
     <td class="l-fin">${lFinanz(b)}</td>
     <td class="l-ueb">${lUebergabe(b)}</td>
@@ -108,23 +143,25 @@ function row(b) {
 const NCOL = 6;
 function listBody() {
   const L = filtered();
-  if (!L.length) return { html: `<tr><td colspan="${NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
+  if (!L.length) return { html: `<tr><td colspan="${KOMPAKT() ? 7 : NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
   return { html: L.map(row).join(''), n: L.length };
 }
 function listView() {
   const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), body = listBody();
-  const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de')), colw = colwGet();
+  const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de')), komp = KOMPAKT(), colw = komp ? null : colwGet();
   return `<main><section class="card">
     <div class="list-head">
       <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span><span class="strg-hint" title="Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Mit gedrückter Strg-Taste öffnet ein Klick den Bedarf.">Strg + Klick öffnet den Bedarf</span>
       <div class="tools">
+        <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
         ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
       </div>
     </div>
-    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
-      ${['<th>Bedarf', '<th>Summe', '<th>', '<th class="l-fr">Freigabe', '<th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div>', '<th class="l-ueb">Spendenübergabe']
+    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
+      ${komp ? ['Bedarf', 'Summe', 'Ort', 'Freigabe', 'Finanzierung', 'Verwendungsnachweis', 'Spendenübergabe'].map(t => `<th>${t}</th>`).join('')
+        : ['<th>Bedarf', '<th>Summe', '<th>', '<th class="l-fr">Freigabe', '<th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div>', '<th class="l-ueb">Spendenübergabe']
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
   </section></main>`;

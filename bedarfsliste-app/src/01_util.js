@@ -45,11 +45,71 @@ function listAuto(ta) {
     else if (e.key === 'Enter' && e.shiftKey && m) { e.preventDefault(); setze(z.p, z.p, '\n' + (m[2] ? +m[2] + 1 + '. ' : '• ')); } else if (e.key === 'Backspace' && z.t === '• ') { e.preventDefault(); setze(z.a, z.p, ''); }
   });
 }
+// Formatierung über der Markierung: fett, kursiv, unterstrichen, durchgestrichen, Aufzählung – setzt die Zeichen um das markierte Wort
+// (sind sie schon da, nimmt sie sie wieder weg); Strg+B, Strg+I, Strg+U gehen auch. Die Knöpfe nehmen dem Feld den Fokus nicht
+// (sonst wäre der Text übernommen). Gibt eine Funktion zurück, die die Leiste schließt.
+const FMT_KNOPF = [['*', '<b>B</b>', 'Fett (Strg+B)'], ['_', '<i>I</i>', 'Kursiv (Strg+I)'], ['+', '<u>U</u>', 'Unterstrichen (Strg+U)'], ['~', '<s>S</s>', 'Durchgestrichen'],
+  ['•', '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="3" cy="4" r="1.3" fill="currentColor"/><circle cx="3" cy="8" r="1.3" fill="currentColor"/><circle cx="3" cy="12" r="1.3" fill="currentColor"/><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>', 'Aufzählung']];
+function caretXY(ta, pos) {                       // Bildschirmlage eines Zeichens im Textfeld (über ein unsichtbares Abbild des Felds)
+  const cs = getComputedStyle(ta), d = document.createElement('div'), s = document.createElement('span');
+  for (const p of ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'wordSpacing', 'paddingTop', 'paddingLeft', 'paddingRight', 'borderTopWidth', 'borderLeftWidth', 'borderRightWidth', 'boxSizing']) d.style[p] = cs[p];
+  Object.assign(d.style, { position: 'absolute', visibility: 'hidden', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: ta.offsetWidth + 'px', left: '-9999px', top: '0' });
+  d.textContent = ta.value.slice(0, pos); s.textContent = '\u200b'; d.append(s); document.body.append(d);
+  const r = ta.getBoundingClientRect(), o = { x: r.left + s.offsetLeft - ta.scrollLeft, y: r.top + s.offsetTop - ta.scrollTop, h: s.offsetHeight };
+  d.remove(); return o;
+}
+function fmtLeiste(ta) {
+  let bar = null;
+  const zu = () => { if (bar) bar.remove(); bar = null; };
+  const setze = (von, bis, t) => { ta.setSelectionRange(von, bis); if (!document.execCommand(t ? 'insertText' : 'delete', false, t)) ta.setRangeText(t, von, bis, 'end'); };
+  const anwenden = z => {
+    const v = ta.value; let a = ta.selectionStart, e = ta.selectionEnd;
+    if (z === '•') {                                // Aufzählung: die berührten Zeilen bekommen einen Punkt (oder verlieren ihn, wenn alle einen haben)
+      const za = v.lastIndexOf('\n', a - 1) + 1, ze = v.indexOf('\n', e - (e > a && v[e - 1] === '\n' ? 1 : 0)), ende = ze < 0 ? v.length : ze, L = v.slice(za, ende).split('\n');
+      const alle = L.every(l => !l.trim() || /^• /.test(l)), neu = L.map(l => !l.trim() ? l : alle ? l.replace(/^• /, '') : /^• /.test(l) ? l : '• ' + l.replace(/^[*-] /, '')).join('\n');
+      setze(za, ende, neu); ta.setSelectionRange(za, za + neu.length); return;
+    }
+    while (a < e && /\s/.test(v[a])) a++; while (e > a && /\s/.test(v[e - 1])) e--;
+    if (a === e) return;
+    const wz = /[\p{L}\p{N}]/u;                    // angefangene Wörter ganz nehmen – mitten im Wort wirken die Zeichen nicht
+    while (a > 0 && wz.test(v[a - 1]) && wz.test(v[a])) a--; while (e < v.length && wz.test(v[e]) && wz.test(v[e - 1])) e++;
+    let l = a, r = e;                                // schon so formatiert (auch mit anderen Zeichen dazwischen, *+so+*): Zeichen wegnehmen
+    while (l > 0 && '*_~+'.includes(v[l - 1]) && v[l - 1] !== z) l--;
+    while (r < v.length && '*_~+'.includes(v[r]) && v[r] !== z) r++;
+    if (v[l - 1] === z && v[r] === z) { setze(l - 1, r + 1, v.slice(l, r)); ta.setSelectionRange(a - 1, e - 1); return; }
+    if (v[a] === z && v[e - 1] === z && e - a > 2) { setze(a, e, v.slice(a + 1, e - 1)); ta.setSelectionRange(a, e - 2); return; }
+    const L = v.slice(a, e).split('\n').map(l => { const m = /^(• |\d+\. |\s*)(.*?)(\s*)$/.exec(l); return m[2] ? m[1] + z + m[2] + z + m[3] : l; }).join('\n');
+    setze(a, e, L); ta.setSelectionRange(a + (L.indexOf(z) >= 0 && !/\n/.test(L) ? 1 : 0), a + L.length - (/\n/.test(L) ? 0 : 1));
+  };
+  const zeig = () => {
+    if (ta.selectionStart === ta.selectionEnd || document.activeElement !== ta) { zu(); return; }
+    if (!bar) {
+      bar = h('div', { class: 'fmt-bar', role: 'toolbar', 'aria-label': 'Text formatieren' }, FMT_KNOPF.map(([z, ic, t]) => h('button', { type: 'button', title: t, 'aria-label': t, html: ic, 'data-z': z })));
+      bar.addEventListener('mousedown', e => { e.preventDefault(); const k = e.target.closest('button'); if (k) { anwenden(k.dataset.z); setTimeout(zeig, 0); } });
+      document.body.append(bar);
+    }
+    const p1 = caretXY(ta, ta.selectionStart), p2 = caretXY(ta, ta.selectionEnd), r = ta.getBoundingClientRect();
+    const x = p1.y === p2.y ? (p1.x + p2.x) / 2 : p1.x, y = Math.max(r.top, p1.y);
+    bar.style.left = Math.max(8, Math.min(x - bar.offsetWidth / 2, innerWidth - bar.offsetWidth - 8)) + 'px';
+    bar.style.top = (y - bar.offsetHeight - 6 < 4 ? y + p1.h + 6 : y - bar.offsetHeight - 6) + 'px';
+  };
+  ta.addEventListener('mouseup', () => setTimeout(zeig, 0));
+  ta.addEventListener('keyup', zeig);
+  ta.addEventListener('input', zeig);
+  ta.addEventListener('blur', zu);
+  ta.addEventListener('keydown', e => {
+    const z = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && { b: '*', i: '_', u: '+' }[e.key.toLowerCase()];
+    if (z) { e.preventDefault(); anwenden(z); zeig(); }
+  });
+  ta.addEventListener('scroll', () => bar && zeig());
+  return zu;
+}
 function fmtText(t) {
   const links = [];
   const s = esc(String(t || '')).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)\]]/g, u => { links.push(u); return '\u0001' + (links.length - 1) + '\u0001'; });
-  const um = (x, z, tag) => x.replace(new RegExp('(^|[\\s(„])' + z + '(?=\\S)([^' + z + '\\n]*?\\S)' + z + '(?=$|[\\s.,;:!?)“])', 'g'), '$1<' + tag + '>$2</' + tag + '>');
-  const inl = x => um(um(um(x, '\\*', 'b'), '_', 'i'), '~', 's');
+  // Zeichen gelten nur am Wortrand – auch verschachtelt (*+so+*): davor/danach darf ein anderes Zeichen oder eine schon gesetzte Formatierung stehen
+  const um = (x, z, tag) => x.replace(new RegExp('(^|[\\s(„>*_~+])' + z + '(?=\\S)([^' + z + '\\n]*?\\S)' + z + '(?=$|[\\s.,;:!?)“<*_~+])', 'g'), '$1<' + tag + '>$2</' + tag + '>');
+  const inl = x => um(um(um(um(x, '\\*', 'b'), '_', 'i'), '~', 's'), '\\+', 'u');
   const out = []; let liste = null, absatz = [];
   const zu = () => { if (absatz.length) { out.push(absatz.join('<br>')); absatz = []; } if (liste) { out.push(`<${liste.typ}>${liste.li.join('')}</${liste.typ}>`); liste = null; } };
   for (const z of s.split('\n')) {

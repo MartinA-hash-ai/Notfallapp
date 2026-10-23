@@ -8,7 +8,7 @@
   --bg: #f7f7f5; --card: #ffffff; --input: #ffffff; --soft: #fbfbfa; --head: #f5f5f4; --hover: #f3f3f1; --chipbg: #ececea;
   --warn: #b45309; --warnbg: #fff4e0; --warnline: #f0c27a;
   --errbg: #fdecea; --errline: #f5b5ae; --errink: #8a1c12;
-  --okbg: #e8f5e9; --okline: #a5d6a7; --okink: #1b5e20;
+  --okbg: #e8f5e9; --okline: #a5d6a7; --okink: #1b5e20; --okmuted: #5a9a5f;
   --runbg: #e3f2fd; --runline: #9cc8f0; --runink: #0d47a1;
   --viobg: #f1ebfb; --violine: #cdb8f0; --vioink: #5b2ea6;
   --prio-h: #c0837c; --prio-m: #c9a467; --prio-l: #b3b5b8; --prio-off: #e3e3e0; --prio-t: #c8524a;
@@ -31,7 +31,7 @@
     --bg: #141516; --card: #26282b; --input: #1e2022; --soft: #2a2c30; --head: #303236; --hover: #33363a; --chipbg: #3a3c40;
     --warn: #f0a24a; --warnbg: #3a2b14; --warnline: #7a5a22;
     --errbg: #3b1d1c; --errline: #7a3430; --errink: #ffb4ab;
-    --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6;
+    --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6; --okmuted: #86c08b;
     --runbg: #1a2c40; --runline: #2f5d8a; --runink: #9ccaff;
     --viobg: #2c2340; --violine: #5a4688; --vioink: #cdb5ff;
     --prio-h: #b98b86; --prio-m: #b9a072; --prio-l: #7d8086; --prio-off: #43464b; --prio-t: #f0948b;
@@ -53,7 +53,7 @@
   --bg: #141516; --card: #26282b; --input: #1e2022; --soft: #2a2c30; --head: #303236; --hover: #33363a; --chipbg: #3a3c40;
   --warn: #f0a24a; --warnbg: #3a2b14; --warnline: #7a5a22;
   --errbg: #3b1d1c; --errline: #7a3430; --errink: #ffb4ab;
-  --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6;
+  --okbg: #1c3320; --okline: #3f6e45; --okink: #9fdca6; --okmuted: #86c08b;
   --runbg: #1a2c40; --runline: #2f5d8a; --runink: #9ccaff;
   --viobg: #2c2340; --violine: #5a4688; --vioink: #cdb5ff;
   --prio-h: #b98b86; --prio-m: #b9a072; --prio-l: #7d8086; --prio-off: #43464b; --prio-t: #f0948b;
@@ -232,6 +232,14 @@ table.list.fixed td.l-fr .ml > span:last-child { overflow: hidden; text-overflow
 table.list th { vertical-align: bottom; background: none; text-transform: uppercase; letter-spacing: .05em; font-size: 11px; color: var(--faint); padding: 4px 12px 8px; }
 table.list td { padding: 14px 12px; font-size: 12.5px; line-height: 20px; }
 table.list td.l-name, table.list td.l-sum, table.list td.l-meta { vertical-align: middle; }
+/* kompakte Ansicht: eine Zeile je Bedarf */
+table.list.kompakt td { vertical-align: middle; white-space: nowrap; padding-top: 9px; padding-bottom: 9px; }
+table.list.kompakt td.l-name { max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
+table.list.kompakt td.l-ort { font-size: 13px; color: var(--ink2); }
+.kz { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink2); white-space: nowrap; }
+.kz.k-ok { color: var(--e5ink); } .kz.k-run { color: var(--ph1ink); } .kz.k-no { color: var(--red-d); } .kz.k-off { color: var(--muted); } .kz.nn { color: var(--faint); }
+.kz.warnl { color: var(--warn); } .kz .tri { width: 14px; height: 14px; }
+.seg.ansicht button { padding: 4px 11px; }
 table.list td.l-name { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.35; min-width: 180px; }
 table.list td.l-sum { font-size: 14.5px; font-weight: 700; text-align: left; white-space: nowrap; line-height: 1.35; }
 td.l-sum .le-edit.num { text-align: left; }
@@ -377,9 +385,9 @@ ol.steps li:first-child { padding-left: 0; }
 ol.steps li + li { border-left: 1px solid var(--line); }
 ol.steps li .st-k { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid var(--line2); display: inline-grid; place-items: center; font-size: 11px; font-weight: 700; flex: none; }
 ol.steps li .st-k svg { width: 13px; height: 13px; }
-ol.steps li.done { color: var(--ink2); }
-ol.steps li.done .st-k { background: var(--e5); border-color: var(--okline); color: var(--e5ink); }
-ol.steps li.cur { color: var(--ink); font-weight: 700; }
+ol.steps li.done { color: var(--okmuted); }                                              /* erledigt: dezent grün, Kreis nur umrandet */
+ol.steps li.done .st-k { background: transparent; border-color: var(--okline); color: var(--okmuted); }
+ol.steps li.cur { color: var(--ink); font-weight: 700; background: none; }                /* aktueller Schritt: nur fett, nicht hinterlegt */
 ol.steps li.cur .st-k { border-color: currentColor; }
 ol.steps li.cur.ph-frei .st-k { background: var(--ph1bg); color: var(--ph1ink); border-color: var(--ph1ink); }
 ol.steps li.cur.ph-foer .st-k { background: var(--ph2bg); color: var(--ph2ink); border-color: var(--ph2ink); }
@@ -528,6 +536,13 @@ textarea.rech-prompt.kurz { height: 150px; }
 .ci-row { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto; gap: 8px; align-items: center; min-height: 32px; }
 .ci-t { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
 .ci-n { font-weight: 600; color: var(--ink); }
+.fr-fach { display: flex; align-items: baseline; gap: 5px; min-width: 0; }
+.fr-fach .fr-name { flex: 1 1 auto; min-width: 0; font-weight: 600; }
+/* Formatierungsleiste über markiertem Text */
+.fmt-bar { position: fixed; z-index: 92; display: flex; gap: 2px; padding: 3px; background: var(--card); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 6px 18px rgba(0,0,0,.16); }
+.fmt-bar button { width: 30px; height: 28px; padding: 0; border: 0; border-radius: 5px; background: none; color: var(--ink); font-size: 14px; font-family: Georgia, 'Times New Roman', serif; display: grid; place-items: center; }
+.fmt-bar button:hover { background: var(--hover); }
+.pe .pv.fmt u { text-underline-offset: 2px; }
 .ci-hint { font-size: 11.5px; color: var(--muted); }
 .ci-t input.inline { font-weight: 600; width: 100%; padding: 1px 0; }
 .ci-row.add input.inline { font-weight: 400; }

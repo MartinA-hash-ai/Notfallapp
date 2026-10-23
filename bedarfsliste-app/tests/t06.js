@@ -98,7 +98,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [!!document.querySelector('#fr-blk .fr-blk.ok'), document.querySelector('#fr-blk h3').textContent.replace(/\s+/g, ' ').trim()]);
   ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
   r = await p.evaluate(() => [[...document.querySelectorAll('#fr-body .ci-n')].map(e => e.textContent).join(','), [...document.querySelectorAll('#ul-body .ci-n')].map(e => e.textContent).join(',')]);
-  ok(r.join(' / ') === 'Ortsführungskreis,Verwaltung,Angebot / Konzept,Projektsteckbrief', 'Angebot bei den Freigaben, nicht mehr bei den Unterlagen: ' + r.join(' / '));
+  ok(r.join(' / ') === 'Ortsführungskreis,Fachreferat,Verwaltung,Angebot / Konzept,Projektsteckbrief', 'Angebot bei den Freigaben, nicht mehr bei den Unterlagen: ' + r.join(' / '));
   // Förderplan und Nacharbeit einklappen
   await p.click('#sec-foe .sec-zu');
   r = await p.evaluate(() => [!!document.querySelector('#fin-pie'), document.querySelectorAll('.fk.fp').length, document.querySelector('#foe-kurz').textContent.replace(/\u00a0/g, ' '), document.querySelector('#sec-foe .sec-zu').getAttribute('aria-expanded')]);
@@ -226,7 +226,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('.foe-pop .pA-n .sub .info');
   r = await p.evaluate(() => { const m = document.querySelector('.modal'), q = m && m.getBoundingClientRect(), top = m && document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
     return [m && m.querySelector('h2').textContent, !!(top && top.closest('.modal')), m && m.querySelectorAll('tbody tr').length]; });
-  ok(r.join('|') === 'Texte formatieren|true|6', 'Erklärung zur Formatierung über dem Fenster: ' + r.join('|'));
+  ok(r.join('|') === 'Texte formatieren|true|7', 'Erklärung zur Formatierung über dem Fenster: ' + r.join('|'));
   await p.keyboard.press('Escape');
   ok(await p.evaluate(() => !document.querySelector('.modal') && !!document.querySelector('.foe-pop')), 'Esc schließt die Erklärung, das Fenster bleibt');
   // kein waagrechter Scrollbalken in den Bereichen
@@ -276,14 +276,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // Zuständige bearbeiten wie Kontakte: Linien, zwei je Zeile, auch mehr als drei, Fertig oben rechts
   await p.click('#sec-eck .k-pen');
   r = await p.evaluate(() => [document.querySelectorAll('#sec-eck .k-ed').length, [...document.querySelectorAll('#zust-liste > .k-ed:first-child input')].map(e => e.placeholder).join(','), !!document.querySelector('#sec-eck .sub [data-act="k-fertig"]')]);
-  ok(r.join('|') === '2|Vorname Nachname,Position,E-Mail-Adresse,Telefonnummer|true', 'Stift: Zuständige als Linien, „Fertig“ oben rechts: ' + r.join('|'));
-  await p.fill('#sec-eck [data-p="zust.0.rolle"]', 'Ortsbeauftragter'); await p.fill('#sec-eck [data-p="zust.0.mail"]', 'thomas@malteser.example'); await p.fill('#sec-eck [data-p="zust.0.tel"]', '05251 123');
+  ok(r.join('|') === '2|Vorname Nachname,Position,E-Mail-Adresse,Telefonnummer,Handynummer|true', 'Stift: Zuständige als Linien mit Handy, „Fertig“ oben rechts: ' + r.join('|'));
+  await p.fill('#sec-eck [data-p="zust.0.rolle"]', 'Ortsbeauftragter'); await p.fill('#sec-eck [data-p="zust.0.mail"]', 'thomas@malteser.example'); await p.fill('#sec-eck [data-p="zust.0.tel"]', '05251 123'); await p.fill('#sec-eck [data-p="zust.0.mobil"]', '0170 55');
   await p.click('#sec-eck .kadd');
   r = await p.evaluate(() => { const k = [...document.querySelectorAll('#sec-eck .k-ed')].map(e => e.getBoundingClientRect()); return [k.length, !!document.querySelector('#sec-eck .kadd'), k[0].top === k[1].top, k[2].top > k[0].bottom && Math.abs(k[2].left - k[0].left) < 2]; });
   ok(r.join() === '3,true,true,true', 'dritte Person in der nächsten Zeile, weitere möglich: ' + r.join());
   await p.click('#sec-eck .sub [data-act="k-fertig"]');
   r = await p.evaluate(() => [cur().zust.map(kontaktText).join(' | '), [...document.querySelectorAll('#sec-eck .k1 a')].map(a => a.getAttribute('href') + '=' + a.dataset.tip).join(), document.querySelector('#sec-eck .k1 .star').textContent, document.querySelectorAll('#sec-eck .k1 .kl').length, document.querySelector('#sec-eck .k1 .kr').textContent]);
-  ok(r.join(' / ') === 'Thomas Beispiel; Ortsbeauftragter; thomas@malteser.example; 05251 123 | Anna Muster / mailto:thomas@malteser.example=thomas@malteser.example,tel:05251123=05251 123 / ★ / 0 / Ortsbeauftragter',
+  ok(r.join(' / ') === 'Thomas Beispiel; Ortsbeauftragter; thomas@malteser.example; 05251 123 | Anna Muster / mailto:thomas@malteser.example=thomas@malteser.example,tel:05251123=05251 123,tel:017055=0170 55 / ★ / 0 / Ortsbeauftragter',
     'Fertig: leere Zeile entfernt; Name und Position, E-Mail und Telefon nur als Knöpfe: ' + r.join(' / '));
   await p.hover('#sec-eck .k1 .kb[href^="tel:"]');
   ok(await p.evaluate(() => ($('.tip-pop') || {}).textContent) === '05251 123', 'über dem Anruf-Knopf steht die Nummer');
@@ -305,7 +305,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     return [t(zustVorn(x, 'B')), t(zustVorn(x, 'C')), t(zustVorn({ zust: [{ n: 'A', rolle: '', mail: '', tel: '' }] }, 'Thomas Beispiel')), t(zustVorn(x, ''))].join(' / '); });
   ok(r === 'B,A:R / C,A:R,B / Thomas Beispiel:Ortsbeauftragter / B', 'Ansprechperson in der Liste ändern: vorhandene nach vorn, Angaben gehen nicht verloren, bekannte bringt ihre mit: ' + r);
   r = await p.evaluate(() => JSON.stringify(normalize({ bedarfe: [{ id: 'x', zust: ['Anna', ' ', { n: 'Bo', mail: 'b@x.de' }, {}] }] }).bedarfe[0].zust));
-  ok(r === '[{"n":"Anna","rolle":"","mail":"","tel":""},{"n":"Bo","rolle":"","mail":"b@x.de","tel":""}]', 'bisherige Namen werden zu Zuständigen mit leeren Angaben: ' + r);
+  ok(r === '[{"n":"Anna","rolle":"","mail":"","tel":"","mobil":""},{"n":"Bo","rolle":"","mail":"b@x.de","tel":"","mobil":""}]', 'bisherige Namen werden zu Zuständigen mit leeren Angaben: ' + r);
   // Deadline über den Kalender, Stichwort mit Vorschlägen, „i“ öffnet nur den Hinweis
   await p.click('#sec-eck .pe[data-k="deadline"] .info');
   ok(!!(await p.$('.info-pop')) && !(await p.$('.cal-pop')), '„i“ bei der Deadline zeigt den Hinweis, öffnet nicht den Kalender');
@@ -338,9 +338,23 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.keyboard.type('1. erst'); await p.keyboard.press('Shift+Enter'); await p.keyboard.type('dann'); await p.keyboard.press('Enter'); await p.keyboard.type('- '); await p.keyboard.press('Backspace'); await p.keyboard.type('Ende');
   r = await tv();
   ok(r === 'Wir brauchen:\n• Trage\n• Decke\n1. erst\n2. dann\nEnde', 'Umschalt+Enter: nächster Punkt bzw. Nummer; Enter: Zeile ohne Punkt, auf leerem Punkt nimmt er ihn weg; Rücktaste ebenso: ' + JSON.stringify(r));
+  // Wort markieren: darüber die Formatierungsleiste; Knopf setzt die Zeichen (angefangene Wörter ganz), noch einmal nimmt sie weg; Strg+U unterstreicht
+  await p.evaluate(() => { const t = document.activeElement, i = t.value.indexOf('rage'); t.setSelectionRange(i, i + 3); t.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' })); });
+  r = await p.evaluate(() => { const bar = $('.fmt-bar'), t = document.activeElement; if (!bar) return null; const q = bar.getBoundingClientRect(), c = caretXY(t, t.selectionStart);
+    return [[...bar.querySelectorAll('button')].map(x => x.getAttribute('aria-label').split(' ')[0]).join(','), q.bottom <= c.y + 1 && Math.abs(q.left + q.width / 2 - c.x) < 120]; });
+  ok(r && r.join('|') === 'Fett,Kursiv,Unterstrichen,Durchgestrichen,Aufzählung|true', 'Markierung: Leiste mit fett, kursiv, unterstrichen, durchgestrichen und Aufzählung direkt darüber: ' + JSON.stringify(r));
+  await p.click('.fmt-bar button[data-z="*"]');
+  r = await tv(); const fett = r.includes('• *Trage*');
+  await p.keyboard.press('Control+u'); r = await tv(); const unter = r.includes('• *+Trage+*');
+  await p.click('.fmt-bar button[data-z="*"]'); r = await tv();
+  ok(fett && unter && r.includes('• +Trage+\n') && await p.evaluate(() => document.activeElement.matches('textarea.pe-in')), 'fett (ganzes Wort), Strg+U unterstrichen, noch einmal fett nimmt es weg; das Feld bleibt offen: ' + JSON.stringify(r));
   await p.keyboard.press('Control+Enter');
-  r = await p.$eval('#sec-eck .pe[data-k="beschreibung"] .pv', e => [e.classList.contains('fmt'), [...e.querySelectorAll('ul li')].map(x => x.textContent).join(), [...e.querySelectorAll('ol li')].map(x => x.textContent).join()]);
-  ok(r.join('|') === 'true|Trage,Decke|erst,dann', 'Beschreibung formatiert angezeigt: ' + r.join('|'));
+  r = await p.$eval('#sec-eck .pe[data-k="beschreibung"] .pv', e => [e.classList.contains('fmt'), [...e.querySelectorAll('ul li')].map(x => x.innerHTML).join(), [...e.querySelectorAll('ol li')].map(x => x.textContent).join(), !document.querySelector('.fmt-bar')]);
+  ok(r.join('|') === 'true|<u>Trage</u>,Decke|erst,dann|true', 'Beschreibung formatiert angezeigt, Leiste wieder weg: ' + r.join('|'));
+  // Freigaben: „Fachreferat“ vor dem Namen; Fortschritt oben: erledigt dezent grün, der aktuelle Schritt nicht hinterlegt
+  r = await p.evaluate(() => { const done = $('#d-steps li.done'), cur = $('#d-steps li.cur');
+    return [$('#fr-fach .fr-fach .ci-n').textContent + ' ' + $('#fr-fach .fr-name').value, getComputedStyle(done).color, getComputedStyle(done.querySelector('.st-k')).backgroundColor, getComputedStyle(cur).backgroundColor]; });
+  ok(r.join('|') === 'Fachreferat Notfallvorsorge|rgb(90, 154, 95)|rgba(0, 0, 0, 0)|rgba(0, 0, 0, 0)', 'Fachreferat davor; Fortschritt: erledigt dezent grün, Kreis nur umrandet, aktueller Schritt ohne Hinterlegung: ' + r.join('|'));
   await p.screenshot({ path: 'vorschau_bedarf.png', fullPage: true });
   const q = await open(b, { file, fakefs: false, dark: true, width: 390 });
   r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);

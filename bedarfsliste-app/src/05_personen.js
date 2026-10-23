@@ -10,17 +10,18 @@ const PERS_COLS = [
   { k: 'rolle', t: 'Position', w: 32, re: /position|funktion|rolle|aufgabe/ },
   { k: 'gl', t: 'Gliederung / Dienststelle', w: 26, re: /gliederung|dienststelle|einheit/ },
   { k: 'mail', t: 'E-Mail', w: 32, re: /mail/ },
-  { k: 'tel', t: 'Telefon', w: 20, re: /telefon|^tel\b|mobil|handy/ },
+  { k: 'tel', t: 'Telefon', w: 20, re: /^(telefon|tel\b|festnetz)(?!.*(\b2\b|mobil|handy))/ },
+  { k: 'mobil', t: 'Handy', w: 18, re: /handy|mobil|telefon 2|tel\.? 2/ },
   { k: 'quelle', t: 'Quelle', w: 40, re: /quelle/ },
   { k: 'stand', t: 'Stand', w: 12, re: /^stand|datum/ },
 ];
 const person = name => PR.byKey.get(kkey(name)) || null;
 
-// je Blatt die Kopfzeile mit „Name“ und „E-Mail“ oder „Telefon“; „Vorname“ und „Nachname“ in zwei Spalten gehen auch
+// je Blatt die Kopfzeile mit „Name“ und „E-Mail“, „Telefon“ oder „Handy“; „Vorname“ und „Nachname“ in zwei Spalten gehen auch
 function parsePersonen(book) {
   const out = [];
   for (const sh of book.sheets) {
-    const rows = sh.rows, hi = rows.slice(0, 15).findIndex(r => r.some(v => /name/.test(norm(v))) && r.some(v => /mail|telefon/.test(norm(v))));
+    const rows = sh.rows, hi = rows.slice(0, 15).findIndex(r => r.some(v => /name/.test(norm(v))) && r.some(v => /mail|telefon|handy|mobil/.test(norm(v))));
     if (hi < 0) continue;
     const head = rows[hi].map(v => norm(v)), ci = {};
     for (const c of PERS_COLS) { const i = head.findIndex((t, j) => t && c.re.test(t) && !Object.values(ci).includes(j)); if (i >= 0) ci[c.k] = i; }
@@ -62,7 +63,7 @@ function personenErgaenzen() {
   for (const b of D.bedarfe) for (const z of b.zust) {
     const p = person(z.n); if (!p) continue;
     let neu = false;
-    for (const k of ['rolle', 'mail', 'tel']) if (!z[k].trim() && p[k]) { z[k] = p[k]; neu = true; }
+    for (const k of ZUST_F) if (!(z[k] || '').trim() && p[k]) { z[k] = p[k]; neu = true; }
     if (neu) n++;
   }
   if (n) changed();
@@ -89,14 +90,14 @@ async function personenDatei(file) {
 const PERS_ANL = ['Personen für die Bedarfsliste',
   'Hier stehen die Zuständigen der Bedarfe (Fundraising, Malteser Hilfsdienst e. V., Diözese Paderborn) mit ihren dienstlichen Kontaktdaten. Die Bedarfsliste liest diese Datei und ergänzt damit fehlende Angaben bei den Zuständigen. Ausgefüllt von Copilot oder von Hand; die Datei wächst mit jedem Bedarf.',
   'Regeln: Je Person genau eine Zeile im Blatt „Personen“. Spaltenüberschriften und Blattnamen nicht ändern. Vorhandene Zeilen nicht löschen und Angaben nicht überschreiben – nur leere Zellen ergänzen und neue Personen unten anfügen. Nur dienstliche Angaben, die tatsächlich gefunden wurden; sonst leer lassen.',
-  'Name: Vor- und Nachname. Position: Funktion bei den Maltesern (z. B. Ortsbeauftragter, Referent Fundraising). Gliederung / Dienststelle: z. B. Paderborn oder Diözesangeschäftsstelle. E-Mail und Telefon: dienstlich, Telefon als Text mit Vorwahl (z. B. 05251 1234-56). Quelle: woher die Angabe stammt (z. B. Outlook-Adressbuch oder Link). Stand: Datum der Angabe.'];
+  'Name: Vor- und Nachname. Position: Funktion bei den Maltesern (z. B. Ortsbeauftragter, Referent Fundraising). Gliederung / Dienststelle: z. B. Paderborn oder Diözesangeschäftsstelle. E-Mail, Telefon und Handy: dienstlich, Nummern als Text mit Vorwahl (z. B. 05251 1234-56). Quelle: woher die Angabe stammt (z. B. Outlook-Adressbuch oder Link). Stand: Datum der Angabe.'];
 function personenBlob() {
   const head = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, zelle = { border: 'thin', v: 'top', wrap: true };
   const bek = new Map(PR.list.map(p => [kkey(p.n), Object.assign({}, p)]));
   for (const b of D.bedarfe) for (const z of b.zust) {
     if (!z.n.trim()) continue;
     const k = kkey(z.n), a = bek.get(k) || { n: z.n.trim() };
-    for (const x of ['rolle', 'mail', 'tel']) if (!a[x] && z[x].trim()) a[x] = z[x].trim();
+    for (const x of ZUST_F) if (!a[x] && (z[x] || '').trim()) a[x] = z[x].trim();
     if (!a.gl && b.gliederung) a.gl = b.gliederung === DIO ? 'Diözese' : b.gliederung;
     bek.set(k, a);
   }
@@ -111,7 +112,7 @@ function personenBlob() {
 const personenGesucht = b => { const L = b.zust.filter(z => z.n.trim()), f = L.filter(z => !z.rolle.trim() || !z.mail.trim() || !z.tel.trim()); return f.length ? f : L; };
 function personenPrompt(b) {
   const gl = rechGl(b) || 'Diözese Paderborn';
-  return ['Suche die dienstlichen Kontaktdaten dieser Personen vom Malteser Hilfsdienst e. V. (Diözese Paderborn) und trage sie in die angehängte Excel „' + PERS_DATEI + '“ ein (Blatt „Personen“):',
+  return ['Suche die dienstlichen Kontaktdaten (Position, E-Mail, Telefon, Handy) dieser Personen vom Malteser Hilfsdienst e. V. (Diözese Paderborn) und trage sie in die angehängte Excel „' + PERS_DATEI + '“ ein (Blatt „Personen“):',
     ...personenGesucht(b).map(z => '- ' + z.n.trim() + ' (' + gl + ')'), '',
     'Suche zuerst in unserem Adressbuch und Organigramm (Outlook, Teams), dann auf malteser.de und den Seiten der Gliederung.',
     'Regeln: je Person eine Zeile; steht sie schon drin, nur leere Zellen ergänzen; nichts löschen oder überschreiben; nur eintragen, was du wirklich gefunden hast, sonst leer lassen; Telefon als Text mit Vorwahl; in „Quelle“ angeben, woher die Angabe stammt; Spaltenüberschriften nicht ändern.',
@@ -143,8 +144,8 @@ async function personenDialog(b) {
   };
   // Ergebnis: was bei den Zuständigen dieses Bedarfs ergänzt wurde und wer noch nicht in der Excel steht
   const bericht = vorher => {
-    const L = b.zust.filter(z => z.n.trim()), nicht = L.filter(z => !person(z.n)), neu = L.map((z, i) => [z, ['rolle', 'mail', 'tel'].filter(k => !vorher[i][k].trim() && z[k].trim())]).filter(x => x[1].length);
-    const lab = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon' };
+    const L = b.zust.filter(z => z.n.trim()), nicht = L.filter(z => !person(z.n)), neu = L.map((z, i) => [z, ZUST_F.filter(k => !(vorher[i][k] || '').trim() && (z[k] || '').trim())]).filter(x => x[1].length);
+    const lab = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy' };
     erg.replaceChildren(
       neu.length ? h('div', null, 'Ergänzt: ' + neu.map(([z, k]) => z.n + ' (' + k.map(x => lab[x]).join(', ') + ')').join(' · ')) : h('div', null, 'Bei diesem Bedarf wurde nichts ergänzt.'),
       nicht.length ? h('div', { class: 'warn-t' }, 'Noch nicht in der Excel: ' + nicht.map(z => z.n).join(', ') + '. Copilot noch nicht fertig, OneDrive noch nicht synchronisiert – oder das Ergebnis liegt als eigene Datei vor: dann „Andere Datei wählen …“.') : null);
