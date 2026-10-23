@@ -111,7 +111,7 @@ function refresh() {
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b));
   swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
-  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); swap('ql-' + f.id, quellenListe(f.quellen)); });
+  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b)); swap('foe-kurz', esc(foeKurz(b)));
 }
 
@@ -261,6 +261,7 @@ async function act(k, a, e) {
       return;
     }
     case 'zu': zuSet(a.dataset.v, !zuGet(a.dataset.v)); break;
+    case 'pe': popEdit(a); return;
     case 'det': UI.det = a.dataset.v; break;
     case 'det-zu': UI.det = null; break;
     case 'mailto': case 'tel': case 'web': {                                       // E-Mail schreiben, anrufen, Seite öffnen – mit dem, was gerade im Feld steht

@@ -157,16 +157,36 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await p.$eval('.info-pop', e => e.textContent)).includes('Link kopieren'), 'Hinweis zum Ordner hinter dem „i“');
   await p.mouse.click(5, 300);
   await p.click('button[data-act="det"][data-v="f-mtw-spk"]');
-  ok((await p.$eval('.foe-pop .det-panel table.kt', e => e.textContent)).includes('Erika Beispiel') && !(await p.$('#foe-f-mtw-spk .det-panel')), 'Kontakt als Fenster über der Seite (nicht in der Kachel): Kartei-Kontakte als Tabelle');
+  ok((await p.$eval('.foe-pop table.kt', e => e.textContent)).includes('Erika Beispiel') && !(await p.$('#foe-f-mtw-spk .foe-pop')), 'Kontakt als Fenster über der Seite (nicht in der Kachel): Kartei-Kontakte als Tabelle');
   await p.click('.pop-back', { position: { x: 10, y: 10 } });
   ok(!(await p.$('.foe-pop')), 'Klick daneben schließt das Fenster');
   await p.click('button[data-act="det"][data-v="f-mtw-lot"]');
-  r = await p.evaluate(() => [document.querySelector('.foe-pop [data-p="hoehe"]').tagName, document.querySelector('.foe-pop [data-p="hoehe"]').value, [...document.querySelectorAll('.foe-pop .fx')].map(x => x.dataset.act).join(),
-    quellenZeilen('https://a.de/x ; https://b.de https://c.de\nSatzung').join('|')]);
-  ok(r.join(' / ') === 'TEXTAREA / bis 50 % der Kosten / mailto,tel,web / https://a.de/x|https://b.de|https://c.de|Satzung', 'Recherche-Angaben im Fenster: lange Texte mehrzeilig, Knöpfe für E-Mail, Telefon, Website; Quellen je Zeile: ' + r.join(' / '));
-  await p.fill('.foe-pop [data-p="quellen"]', 'https://www.example.org/satzung ; https://www.example.org/richtlinie');
+  // Steckbrief: links Kontakt, rechts Bedingungen, darunter Quellen und Notizen; keine Eingabefelder, Text darunter eingerückt
+  r = await p.evaluate(() => { const P = document.querySelector('.foe-pop'), lab = P.querySelector('.pA-bed .pe .lab').getBoundingClientRect(), val = P.querySelector('.pA-bed .pe .val .pv').getBoundingClientRect();
+    return [[...P.querySelectorAll('.pA .sub')].map(e => e.textContent).join(','), P.querySelectorAll('.pop-body input, .pop-body textarea').length, P.querySelector('.pe[data-k="hoehe"] .val').textContent, Math.round(val.left - lab.left), [...P.querySelectorAll('.fx')].map(x => x.dataset.act).join()]; });
+  ok(r[0] === 'Kontakt,Bedingungen,Quellen,Notizen' && r[1] === 0 && r[2] === 'bis 50 % der Kosten' && r[3] >= 10 && r[4] === 'web', 'Fenster als Steckbrief ohne Eingabefelder, Werte eingerückt, Knopf nur bei vorhandenem Link: ' + JSON.stringify(r));
+  // Angabe anklicken → Feld; Enter übernimmt; Esc verwirft
+  await p.click('.foe-pop .pe[data-k="mail"]');
+  ok(await p.evaluate(() => document.activeElement.classList.contains('pe-in') && !!document.querySelector('.foe-pop')), 'Klick auf eine Angabe: Feld an derselben Stelle');
+  await p.keyboard.type('info@lotterie.example'); await p.keyboard.press('Enter');
+  r = await p.evaluate(() => [cur().foerderer.find(f => f.id === 'f-mtw-lot').mail, document.querySelector('.foe-pop .pe[data-k="mail"] .pv').textContent, [...document.querySelectorAll('.foe-pop .fx')].map(x => x.dataset.act).join()]);
+  ok(r.join('|') === 'info@lotterie.example|info@lotterie.example|mailto,web', 'E-Mail eingetragen, Knopf zum Schreiben erscheint: ' + r.join('|'));
+  await p.click('.foe-pop .pe[data-k="hoehe"]'); await p.keyboard.type(' – XXX'); await p.keyboard.press('Escape');
+  ok(await p.evaluate(() => cur().foerderer.find(f => f.id === 'f-mtw-lot').hoehe === 'bis 50 % der Kosten' && !!document.querySelector('.foe-pop')), 'Esc verwirft die Änderung, das Fenster bleibt offen');
+  // Quellen bearbeiten: je Link eine Zeile, danach als Links untereinander
+  await p.click('.foe-pop .pe[data-k="quellen"]');
+  await p.fill('.foe-pop .pe-in', 'https://www.example.org/satzung ; https://www.example.org/richtlinie');
+  await p.click('.foe-pop .pA-box .sub');
   r = await p.evaluate(() => [...document.querySelectorAll('.foe-pop .ql a')].map(a => a.getAttribute('href')).join());
-  ok(r === 'https://www.example.org/satzung,https://www.example.org/richtlinie', 'Quellen untereinander als anklickbare Links: ' + r);
+  ok(r === 'https://www.example.org/satzung,https://www.example.org/richtlinie', 'Quellen bearbeitet: untereinander als anklickbare Links: ' + r);
+  // feste Höhe, langer Text scrollt im Fenster
+  const hh = await p.$eval('.foe-pop', e => e.getBoundingClientRect().height);
+  await p.evaluate(() => { cur().foerderer.find(f => f.id === 'f-mtw-lot').notiz = 'Sehr lange Notiz. '.repeat(500); keep(renderNow); });
+  r = await p.evaluate(() => { const P = document.querySelector('.foe-pop'), B = P.querySelector('.pop-body'); return [Math.round(P.getBoundingClientRect().height), B.scrollHeight > B.clientHeight, getComputedStyle(B).overflowY]; });
+  ok(Math.abs(r[0] - hh) <= 1 && r[1] && r[2] === 'auto', 'Fenster bleibt gleich hoch, langer Inhalt scrollt darin: ' + r.join());
+  await p.evaluate(() => { cur().foerderer.find(f => f.id === 'f-mtw-lot').notiz = ''; keep(renderNow); });
+  r = await p.evaluate(() => quellenZeilen('https://a.de/x ; https://b.de https://c.de\nSatzung').join('|'));
+  ok(r === 'https://a.de/x|https://b.de|https://c.de|Satzung', 'Quellen werden je Zeile getrennt: ' + r);
   await p.keyboard.press('Escape');
   // Betrag beim Tippen gleich mit Tausenderpunkt
   await p.click('#amt-f-mtw-lot', { clickCount: 3 }); await p.keyboard.type('45000');

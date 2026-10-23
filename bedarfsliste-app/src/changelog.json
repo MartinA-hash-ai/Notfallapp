@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.20.0",
+    "date": "2026-10-23T18:20",
+    "items": [
+      "Kontakt und Details eines Förderers als Steckbrief: links der Kontakt (mit Kartei-Angaben), rechts die Bedingungen (Fristen, übliche Fördersumme, Eigenanteil), darunter Quellen und Notizen",
+      "Keine Eingabefelder mehr im Fenster: die Angaben stehen als Text da, der Text unter jeder Überschrift etwas eingerückt; ein Klick macht eine Angabe bearbeitbar (Enter bzw. Klick daneben übernimmt, Esc verwirft)",
+      "Knöpfe zum Schreiben, Anrufen und Öffnen erscheinen nur, wenn E-Mail, Telefon bzw. Website eingetragen sind",
+      "Quellen lassen sich bearbeiten (Klick auf den Bereich neben den Links, je Link eine Zeile)",
+      "Das Fenster hat immer dieselbe Höhe; was nicht passt, scrollt innen mit eigenem Scrollbalken"
+    ]
+  },
+  {
     "version": "0.19.0",
     "date": "2026-10-23T17:10",
     "items": [

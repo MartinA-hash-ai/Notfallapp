@@ -181,40 +181,73 @@ function detKartei(f) {
       ${row('Bisher gefördert', hist.length ? hist.map(([y, v]) => `<div>${y}: ${esc(v.replace(/\n/g, ', '))}</div>`).join('') : '<span class="muted">nichts eingetragen</span>')}</dl>
     ${k.kontakte.length ? `<table class="kt"><thead><tr><th>Kontakt</th><th>E-Mail</th><th>Telefon</th></tr></thead><tbody>${k.kontakte.map(c => `<tr><td>${esc(c.n)}${c.nicht ? '<div class="sub">nicht direkt anschreiben</div>' : ''}</td><td class="sel">${c.m ? `<a href="mailto:${esc(c.m)}" title="E-Mail schreiben">${esc(c.m)}</a>` : ''}</td><td>${telNr(c.t) ? `<a href="tel:${telNr(c.t)}" title="Anrufen">${esc(c.t)}</a>` : esc(c.t)}</td></tr>`).join('')}</tbody></table>` : ''}</div>`;
 }
-// eigene Angaben: lange Texte mehrzeilig (wachsen mit), E-Mail, Telefon und Website mit Knopf zum Schreiben, Anrufen, Öffnen; Quellen untereinander als Links
-const OWN_FIELDS = [['kontakt', 'Ansprechperson oder Portal', 'area'], ['weg', 'Antragsweg', ''], ['mail', 'E-Mail', 'mail'], ['tel', 'Telefon', 'tel'],
-  ['web', 'Website oder Portal-Link', 'web wide'], ['fristInfo', 'Weitere Fristen und Termine', 'area wide'], ['hoehe', 'Übliche Fördersumme', 'area'],
-  ['eigenInfo', 'Eigenanteil gefordert', 'area'], ['quellen', 'Quellen', 'q wide'], ['notiz', 'Notizen', 'area wide']];
-const FX = { mail: ['mailto', '✉', 'E-Mail schreiben'], tel: ['tel', '☎', 'Anrufen'], web: ['web', '↗', 'Seite öffnen'] };
+// Kontakt und Details eines Förderers als Fenster (Entwurf A „Steckbrief“): links der Kontakt, rechts die Bedingungen, darunter Quellen und Notizen.
+// Keine Eingabefelder: die Angaben stehen als Text da, ein Klick macht sie bearbeitbar (Enter bzw. Klick daneben übernimmt, Esc verwirft).
+// Feste Höhe; was nicht passt, scrollt im Fenster.
 const telNr = t => String(t || '').replace(/[^\d+]/g, '');
 const webUrl = u => { u = String(u || '').trim(); return /^https?:\/\//i.test(u) ? u : /^www\.|^[\w-]+\.[a-z]{2,}(\/|$)/i.test(u) ? 'https://' + u : ''; };
+const kurzUrl = u => String(u).replace(/^https?:\/\/(www\.)?/, '').replace(/\/$/, '');
 function quellenListe(t) {
   const L = quellenZeilen(t); if (!L.length) return '';
   return L.map(z => { const u = (z.match(/https?:\/\/\S+/) || [])[0];
-    return u ? `<a href="${esc(u)}" target="_blank" rel="noopener" data-act="link" title="${esc(u)}">${esc(z === u ? u.replace(/^https?:\/\/(www\.)?/, '').slice(0, 90) : z)}</a>` : `<span>${esc(z)}</span>`; }).join('');
+    return u ? `<a href="${esc(u)}" target="_blank" rel="noopener" data-act="link" title="${esc(u)}">${esc(z === u ? kurzUrl(u).slice(0, 90) : z)}</a>` : `<span>${esc(z)}</span>`; }).join('');
 }
-function ownField(f, [k, l, art]) {
-  const a = `data-fid="${f.id}"`, x = a + ` aria-label="${l}"`;
-  if (/area/.test(art)) return fld(l, tarea(f, k, x + ' class="ta-auto"', '', 1), /wide/.test(art) ? 'wide' : '');
-  if (art.startsWith('q')) return fld(l, `<div class="ql" id="ql-${f.id}">${quellenListe(f.quellen)}</div><details class="ql-edit"${f.quellen.trim() ? '' : ' open'}><summary>Quellen bearbeiten</summary>${tarea(f, 'quellen', x + ' class="ta-auto"', 'je Link eine Zeile', 2)}</details>`, 'wide');
-  const fx = FX[art.split(' ')[0]];
-  return fld(l, fx ? `<div class="fx-row">${tin(f, k, x)}<button class="fx" data-act="${fx[0]}" ${a} title="${fx[2]}" aria-label="${fx[2]}">${fx[1]}</button></div>` : tin(f, k, x), /wide/.test(art) ? 'wide' : '');
+const FX = { mail: ['mailto', '✉', 'E-Mail schreiben'], tel: ['tel', '☎', 'Anrufen'], web: ['web', '↗', 'Seite öffnen'] };
+// eine Angabe zum Anklicken: art 'line' (eine Zeile), 'area' (mehrere Zeilen), 'num' (Betrag); fx: Knopf zum Schreiben, Anrufen, Öffnen
+function pe(f, k, lab, art = 'line', o = {}) {
+  const v = f[k], leer = v == null || String(v).trim() === '';
+  const shown = o.html != null ? o.html : art === 'num' ? (leer ? '' : eur(v)) : esc(k === 'web' ? kurzUrl(v || '') : v || '');
+  const fx = o.fx && !leer ? `<button class="fx" data-act="${FX[o.fx][0]}" data-fid="${f.id}" title="${FX[o.fx][2]}" aria-label="${FX[o.fx][2]}">${FX[o.fx][1]}</button>` : '';
+  return `<div class="pe${o.cls ? ' ' + o.cls : ''}" data-act="pe" data-fid="${f.id}" data-k="${k}" data-art="${art}" data-lab="${esc(lab || o.ph || k)}" title="Klicken zum Bearbeiten">`
+    + (lab ? `<div class="lab">${lab}</div>` : '')
+    + `<div class="val${leer ? ' leer' : ''}">${leer ? esc(o.ph || 'nicht eingetragen') : `<span class="pv">${shown}</span>${fx}`}</div>${ICON_PEN}</div>`;
 }
-function detPanel(b, f) {
-  const a = `data-fid="${f.id}"`;
-  return `<div class="det-panel"><div><div id="dk-${f.id}">${detKartei(f)}</div>
-      <div class="det-more"><div class="kv"><span class="k">Antrag stellt</span>${seg([['ich', 'ich'], ['gl', 'Gliederung selbst']], f.durch, `data-p="durch" ${a}`, 'small')}</div>
-        ${f.status === 'zugesagt' ? `<div class="kv"><span class="k">beantragt waren</span>${nin(f, 'betrag', a + ' aria-label="beantragter Betrag"')}<span class="unit">€</span></div>` : ''}</div></div>
-    <div class="det-o"><h4>Eigene Angaben und Recherche</h4><div class="grid own-grid">${OWN_FIELDS.map(o => ownField(f, o)).join('')}</div></div></div>`;
-}
-// Kontakt und Details eines Förderers als Fenster über der Seite (Klick daneben, × oder Esc schließt)
 function foePop(b) {
   const f = b.foerderer.find(x => x.id === UI.det); if (!f) return '';
+  const a = `data-fid="${f.id}"`;
   return `<div class="pop-back" data-act="det-zu"></div>
     <div class="foe-pop" role="dialog" aria-modal="true" aria-label="Kontakt und Details: ${esc(f.name || 'Förderer')}">
-      <header><h3>${esc(f.name || '(ohne Namen)')}</h3><span class="st-btn s-${f.status}">${F_ST_L[f.status]}</span><button class="x" data-act="det-zu" aria-label="Schließen" title="Schließen (Esc)">×</button></header>
-      ${detPanel(b, f)}
+      <header><h3>${esc(f.name || '(ohne Namen)')}</h3><span class="st-btn s-${f.status}">${F_ST_L[f.status]}</span>
+        <span class="pop-durch">Antrag stellt ${seg([['ich', 'ich'], ['gl', 'Gliederung selbst']], f.durch, `data-p="durch" ${a}`, 'small')}</span>
+        <button class="x" data-act="det-zu" aria-label="Schließen" title="Schließen (Esc)">×</button></header>
+      <div class="pop-body"><div class="pA">
+        <div class="pA-box"><div class="sub">Kontakt</div>
+          <div id="dk-${f.id}">${detKartei(f)}</div>
+          ${pe(f, 'kontakt', '', 'area', { ph: 'Ansprechperson oder Portal eintragen', cls: 'pe-name' })}
+          ${pe(f, 'mail', 'E-Mail', 'line', { fx: 'mail' })}${pe(f, 'tel', 'Telefon', 'line', { fx: 'tel' })}${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}
+          ${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}</div>
+        <div class="pA-bed"><div class="sub">Bedingungen</div>${pe(f, 'fristInfo', 'Fristen und Termine', 'area')}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area')}${pe(f, 'eigenInfo', 'Eigenanteil', 'area')}</div>
+        <div><div class="sub">Quellen</div>${pe(f, 'quellen', '', 'area', { html: `<span class="ql">${quellenListe(f.quellen)}</span>`, ph: 'Links eintragen, je Link eine Zeile', cls: 'pe-q' })}</div>
+        <div><div class="sub">Notizen</div>${pe(f, 'notiz', '', 'area', { ph: 'Notizen eintragen' })}</div>
+      </div></div>
     </div>`;
+}
+// Angabe im Fenster bearbeiten: an derselben Stelle ein Feld; danach neu zeichnen, das Fenster bleibt an derselben Scrollstelle
+function popEdit(el) {
+  if (el.querySelector('.pe-in')) return;
+  const b = cur(), f = b && b.foerderer.find(x => x.id === el.dataset.fid); if (!f) return;
+  const k = el.dataset.k, art = el.dataset.art, lang = art === 'area', val = el.querySelector('.val');
+  const inp = h(lang ? 'textarea' : 'input', { class: 'pe-in', rows: lang ? 2 : null, type: lang ? null : 'text', inputmode: art === 'num' ? 'decimal' : null, 'aria-label': el.dataset.lab });
+  inp.value = art === 'num' ? fmtNum(f[k]) : f[k] ?? '';
+  val.classList.remove('leer'); val.replaceChildren(inp); el.classList.add('edit');
+  inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) { /* */ }
+  let fertig = false;
+  const finish = ok => {
+    if (fertig) return; fertig = true;
+    if (ok) {
+      let v = k === 'quellen' ? quellenZeilen(inp.value).join('\n') : inp.value.trim();
+      if (art === 'num') { v = deNum(v); if (v === null) { toast('„' + inp.value + '“ ist keine Zahl – nicht übernommen.', 'warn'); v = f[k]; } else if (v === '') v = null; }
+      if (v !== (f[k] ?? (art === 'num' ? null : ''))) { f[k] = v; changed(); }
+    }
+    const y = ($('.foe-pop .pop-body') || {}).scrollTop || 0;
+    keep(renderNow);
+    const nb = $('.foe-pop .pop-body'); if (nb) nb.scrollTop = y;
+  };
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); }
+    else if (e.key === 'Enter' && (!lang || e.ctrlKey || k === 'kontakt')) { e.preventDefault(); finish(true); }
+  });
+  inp.addEventListener('blur', () => finish(true));
 }
 const AMT_LAB = { geplant: 'Erwartete Summe', beantragt: 'Beantragte Summe', zugesagt: 'Zugesagte Summe', abgelehnt: 'Beantragt (abgelehnt)' };
 const pct = (v, S) => S ? Math.round(v / S * 100) + ' %' : '';
