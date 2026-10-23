@@ -8,8 +8,9 @@ let failures = 0;
 const ok = (c, m) => { if (!c) failures++; console.log((c ? 'OK   ' : 'FAIL ') + m); };
 
 // clock: Uhr der Seite steuerbar – mit skip(p, ms) springt sie vor (statt echt auf Speichern/Überwachung zu warten)
-async function open(b, { file = T.HTML, fakefs = true, width = 1500, clock = false, dark = false } = {}) {
-  const ctx = await b.newContext({ viewport: { width, height: 950 }, locale: 'de-DE', timezoneId: 'Europe/Berlin', acceptDownloads: true, colorScheme: dark ? 'dark' : 'light' });
+// motion: Animationen zeigen (sonst wie bei „Animationen aus“ in Windows – die Seite wechselt sofort, Tests müssen nicht warten)
+async function open(b, { file = T.HTML, fakefs = true, width = 1500, clock = false, dark = false, motion = false } = {}) {
+  const ctx = await b.newContext({ viewport: { width, height: 950 }, locale: 'de-DE', timezoneId: 'Europe/Berlin', acceptDownloads: true, colorScheme: dark ? 'dark' : 'light', reducedMotion: motion ? 'no-preference' : 'reduce' });
   if (clock) await ctx.clock.install();
   if (fakefs) await ctx.addInitScript({ path: T.FAKEFS });
   const p = await ctx.newPage(); p.setDefaultTimeout(8000); p.errs = []; p.reqs = [];

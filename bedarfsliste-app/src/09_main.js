@@ -1,8 +1,8 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null };
-const UI_KEEP = ['view', 'id', 'tab', 'ansicht'];
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
 function saveUI() { try { localStorage.setItem(uiKey(), JSON.stringify(Object.fromEntries(UI_KEEP.map(k => [k, UI[k]])))); } catch (e) { /* */ } }
@@ -116,7 +116,7 @@ function swap(id, html, force) { const el = document.getElementById(id); if (!el
 function refresh() {
   const b = cur();
   if (UI.view !== 'detail' || !b) return;
-  swap('d-meta', metaRest(b)); swap('d-steps', steps(b));
+  swap('d-meta', metaRest(b)); swap('d-steps', steps(b)); swap('d-sw', swHead(b));
   swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('fuss-' + f.id, fussKontakt(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b)); swap('foe-kurz', esc(foeKurz(b)));
@@ -220,27 +220,48 @@ document.addEventListener('focusin', e => {
   inp.addEventListener('keydown', ev => { if (key(ev)) ev.preventDefault(); });
   inp.addEventListener('change', ergaenzen);
 });
-// Stichworte: eintippen und Enter (oder einen Vorschlag wählen) – es kommt als Marke dazu, das Feld bleibt für das nächste offen
-function swNeu(inp) {
-  const b = cur(), v = inp.value.trim(); if (!b || !v) return;
-  if (!b.stichworte.some(s => norm(s) === norm(v))) { b.stichworte.push(v); changed(); }
-  inp.value = ''; keep(renderNow);
+// Stichworte über das + im Kopf: eintippen und Enter (oder einen Vorschlag wählen) – es kommt als Marke dazu, das Feld bleibt für das
+// nächste offen; Getipptes ohne Enter geht beim Schließen nicht verloren
+function swPop(btn) {
+  closeMenus();
+  const b = cur(); if (!b) return;
+  const inp = h('input', { type: 'text', class: 'sw-in', placeholder: 'Stichwort oder Fördertopf', 'aria-label': 'Stichwort oder Fördertopf hinzufügen', autocomplete: 'off' });
+  const dazu = () => {
+    const v = inp.value.trim(); inp.value = ''; if (!v) return;
+    if (!b.stichworte.some(s => norm(s) === norm(v))) { b.stichworte.push(v); changed(); swap('d-sw', swHead(b), true); }
+  };
+  const key = suggest(inp, () => SRC.stichwort().filter(s => !b.stichworte.includes(s)), dazu);
+  inp.addEventListener('keydown', e => { if (key(e)) { e.preventDefault(); return; } if (e.key === 'Enter') { e.preventDefault(); dazu(); } else if (e.key === 'Escape') { dazu(); closeMenus(); } });
+  inp.addEventListener('blur', () => dazu());
+  placePop(h('div', { class: 'menu sw-pop' }, inp, h('div', { class: 'muted small' }, 'Enter fügt hinzu – gleich das nächste eintippen')), btn, 'right');
+  inp.focus();
 }
-document.addEventListener('focusin', e => {
-  const inp = e.target;
-  if (!inp.matches || !inp.matches('#sw-neu') || inp.dataset.sug) return;
-  inp.dataset.sug = '1';
-  const key = suggest(inp, () => SRC.stichwort().filter(s => !(cur() || { stichworte: [] }).stichworte.includes(s)), () => swNeu(inp));
-  inp.addEventListener('keydown', ev => { if (key(ev)) { ev.preventDefault(); return; } if (ev.key === 'Enter') { ev.preventDefault(); swNeu(inp); } });
-  inp.addEventListener('blur', () => setTimeout(() => { if (inp.value.trim()) swNeu(inp); }, 0));      // Getipptes ohne Enter geht nicht verloren
-});
+// Wechsel Liste ↔ Bedarf: der Bedarf gleitet von rechts über die Liste und beim Zurückgehen wieder hinaus (ohne Bewegung, wenn der
+// Browser das nicht kann oder in Windows die Animationen ausgeschaltet sind). Die Liste steht danach wieder an derselben Stelle.
+let LISTE_Y = 0;
+function uebergang(r, fn) {
+  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { fn(); return; }
+  const html = document.documentElement; html.dataset.vt = r;
+  document.startViewTransition(fn).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; });
+}
+function oeffnen(id) { if (UI.view === 'list') LISTE_Y = scrollY; closeMenus(); UI.view = 'detail'; UI.id = id; uebergang('vor', () => { renderNow(); scrollTo(0, 0); }); }
+function zurueck() { closeMenus(); UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); }); }
+// Esc auf der Seite eines Bedarfs (nicht in einem Feld, Fenster oder Menü): zurück zur Liste
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || UI.view !== 'detail' || UI.det || e.defaultPrevented) return;
+  const el = document.activeElement;
+  if ($('.menu, .modal, .cal-pop, .zeit-pop, .le-sug, .fmt-bar, .foe-pop') || (el && el.closest && el.closest('input, textarea, select, [contenteditable]'))) return;
+  zurueck();
+}, true);
 function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit); if (f && f.kontakte.some(kontaktLeer)) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } }
 async function act(k, a, e) {
   const b = cur();
   switch (k) {
     case 'tab': UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;
-    case 'open': UI.view = 'detail'; UI.id = a.dataset.id; renderNow(); scrollTo(0, 0); return;
-    case 'back': UI.view = 'list'; renderNow(); scrollTo(0, 0); return;
+    case 'open': oeffnen(a.dataset.id); return;
+    case 'back': zurueck(); return;
+    case 'sort-menu': if ($('.sort-pop')) closeMenus(); else sortPop(a); return;
+    case 'sort-th': sortSpalte(a.dataset.k); return;
     case 'new': neuerBedarf(); return;
     case 'clear': Object.assign(UI, { q: '', fSw: '' }); keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
@@ -338,6 +359,8 @@ async function act(k, a, e) {
     }
     case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; } else UI.kEdit = null; break; }
     case 'sw-weg': b.stichworte.splice(+a.dataset.i, 1); changed(); break;
+    case 'sw-pop': swPop(a); return;
+    case 'deadline': calPop(a, b.deadline, v => { b.deadline = v || ''; changed(); keep(renderNow); }, { clear: 'Deadline entfernen' }); return;
     case 'pers-cop': personenDialog(b); return;
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
@@ -351,7 +374,7 @@ async function act(k, a, e) {
 
 document.addEventListener('click', e => {
   const a = e.target.closest('[data-act]');
-  if (!a || !(a.closest('#app') || a.closest('.menu') || a.closest('#toasts'))) return;
+  if (!a || !(a.closest('#app') || a.closest('.menu') || a.closest('#toasts') || a.closest('#peek'))) return;
   if (a.disabled) return;
   act(a.dataset.act, a, e);
 });

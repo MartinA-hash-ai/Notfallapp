@@ -31,16 +31,17 @@ function lFreigabe(b) {
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
 const F_SYM = { zugesagt: 'ok', beantragt: 'run', geplant: 'off', abgelehnt: 'no' };
 const EMPTY3 = '<span></span><span></span><span></span>';
-// Punktlinie zur Frist des Verwendungsnachweises: von heute bis zur Frist gerechnet – grün, weniger als ein Monat gelb, weniger als eine Woche rot
+// Punktlinie zur Frist des Verwendungsnachweises, von heute aus gerechnet – je knapper die Zeit, desto mehr Punkte in Farbe:
+// drei Monate und mehr alles grau, darunter die ersten Punkte grün, unter einem Monat die Hälfte gelb, unter einer Woche alles rot
 function zeitstrahl(f) {
-  const v = f.vn; if (!v.frist || v.st === 'erledigt') return '<span class="lead"></span>';
+  const v = f.vn; if (!v.noetig || !v.frist || v.st === 'erledigt') return '<span class="lead"></span>';
   const rest = Math.round((Date.parse(v.frist) - Date.parse(today())) / 864e5);
   const t = rest < 0 ? 'Frist seit ' + -rest + (rest === -1 ? ' Tag' : ' Tagen') + ' vorbei' : rest === 0 ? 'Frist ist heute' : 'noch ' + rest + (rest === 1 ? ' Tag' : ' Tage') + ' bis zur Frist';
-  return `<span class="lead tl ${rest < 7 ? 'tl-r' : rest < 30 ? 'tl-y' : 'tl-g'}" title="${t}"></span>`;
+  return `<span class="lead tl ${rest < 7 ? 'tl-r' : rest < 30 ? 'tl-y' : rest < 90 ? 'tl-g' : 'tl-0'}" title="${t}"><i></i></span>`;
 }
 function lNachweis(f, fertig) {
   const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`;
-  if (!v.noetig) return `<span></span><span></span><span class="vt nn" ${a}>nicht nötig</span>`;
+  if (!v.noetig) return `<span class="lead"></span><span class="mi m-off" ${a} title="kein Verwendungsnachweis nötig"></span><span class="vt nn" ${a}>nicht nötig</span>`;
   if (fertig) return `<span class="lead"></span><span class="mi m-dot" ${a} title="erledigt"></span><span class="vt" ${a}>erledigt</span>`;
   const s = MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]], cal = `<button class="le-cal" data-le="vn-frist" data-fid="${f.id}" title="Frist des Verwendungsnachweises" aria-label="Frist des Verwendungsnachweises wählen">${ICON_CAL}</button>`;
   return `${zeitstrahl(f)}<span class="mi ${s[0]}" ${a} title=""${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}</span>`;
@@ -70,7 +71,7 @@ function lUebergabe(b) {
       : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>`
       : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '')
       + (u.ort ? `<div class="ml-sub">${esc(u.ort)}</div>` : '');                      // ohne Zeile darüber nicht eingerückt (CSS)
-  const view = top + (u.noetig && u.info.trim() ? (top ? '<div class="ue-sep"></div>' : '') + `<div class="note">${esc(u.info)}</div>` : '');
+  const view = top + (u.noetig && u.info.trim() ? (top ? '<div class="ue-sep"></div>' : '') + `<div class="note fmt">${fmtText(u.info)}</div>` : '');
   if (!u.noetig) return view;
   // mit Strg: großer Kreis mit Stift – öffnet Ort, Datum, Uhrzeit und Notizen zum Eintragen (bleibt offen, auch ohne Strg)
   return view + `<button class="le-ue" data-le="ueb" title="Spendenübergabe eintragen: Ort, Datum und Uhrzeit, Notizen" aria-label="Spendenübergabe eintragen">${ICON_PEN}</button>`;
@@ -81,12 +82,40 @@ const CMP = {
   prio: b => PRIO_ORD[b.prio], titel: b => (b.titel || '').toLowerCase(), frist: b => (nextFrist(b) || {}).d || '9999',
 };
 function cmp(x, y, k) { const a = CMP[k](x), c = CMP[k](y); return typeof a === 'number' ? a - c : String(a).localeCompare(String(c), 'de'); }
+/* Sortieren in bis zu drei Stufen: erst nach der ersten Angabe, innerhalb davon nach der zweiten, dann nach der dritten (UI.sort = [{ k, d }]).
+   Leere Angaben stehen immer unten. Danach gilt die übliche Reihenfolge (Priorität, nächste Frist, Name). */
+const SORT = {
+  prio: { t: 'Priorität', w: ['hoch zuerst', 'niedrig zuerst'], v: b => PRIO_ORD[b.prio] },
+  titel: { t: 'Name', w: ['A → Z', 'Z → A'], v: b => norm(b.titel) || null },
+  summe: { t: 'Summe', w: ['klein → groß', 'groß → klein'], v: b => +b.summe || null },
+  ort: { t: 'Ort', w: ['A → Z', 'Z → A'], v: b => norm(b.gliederung === DIO ? 'Diözese' : b.gliederung) || null },
+  zust: { t: 'Ansprechperson', w: ['A → Z', 'Z → A'], v: b => norm((b.zust[0] || {}).n) || null },
+  deadline: { t: 'Deadline', w: ['früh → spät', 'spät → früh'], v: b => b.deadline || null },
+  fr: { t: 'Freigabe', w: ['freigegeben zuerst', 'ohne Freigabe zuerst'], v: b => ({ ok: 0, run: 1, off: 2, no: 3 })[frStand(b)] },
+  fin: { t: 'Finanzierung', w: ['beendet zuerst', 'ohne Finanzierung zuerst'], v: b => ({ ok: 0, run: 1, off: 2 })[finStand(b)] },
+  vn: { t: 'Verwendungsnachweis', w: ['nächste Frist zuerst', 'späteste Frist zuerst'], v: b => {
+    const Z = b.foerderer.filter(f => f.status === 'zugesagt'), L = Z.filter(f => f.vn.noetig), auf = L.filter(f => f.vn.st !== 'erledigt');
+    return !Z.length ? null : auf.length ? '0' + (auf.map(f => f.vn.frist).filter(Boolean).sort()[0] || '9999') : L.length ? '1' : '2'; } },
+  ueb: { t: 'Spendenübergabe', w: ['früh → spät', 'spät → früh'], v: b => b.nach.ueb.noetig && b.nach.ueb.termin || null },
+  angelegt: { t: 'Angelegt', w: ['alt → neu', 'neu → alt'], v: b => b.angelegt || null },
+};
+function sortVergleich(x, y) {
+  for (const s of UI.sort || []) {
+    const S = SORT[s.k]; if (!S) continue;
+    const a = S.v(x), c = S.v(y);
+    if (a === c) continue;
+    if (a == null) return 1; if (c == null) return -1;                                   // leer immer unten
+    const r = typeof a === 'number' && typeof c === 'number' ? a - c : String(a).localeCompare(String(c), 'de');
+    if (r) return s.d === 'ab' ? -r : r;
+  }
+  return 0;
+}
 function filtered() {
   const arch = UI.tab === 'archiv', q = norm(UI.q);
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
   if (UI.fSw) L = L.filter(b => b.stichworte.includes(UI.fSw));
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, ...b.stichworte, ...b.zust.map(z => z.n), ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
-  L.sort((x, y) => cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
+  L.sort((x, y) => sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
   if (ORDER.ids) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
   return L;
 }
@@ -98,18 +127,16 @@ const anyFilter = () => !!(UI.q || UI.fSw);
    Grün: durch · Gelb: in Bearbeitung · Rot: abgelehnt · leerer Kreis: noch nichts · grau: nicht nötig */
 const kz = (s, t, cls = '') => `<span class="kz ${cls}">${mi(s)}<span>${t}</span></span>`;
 const kGrau = t => `<span class="kz nn">${t}</span>`;
-function kFreigabe(b) {
+// Stand der Freigabe: ok (alles da), no (etwas abgelehnt), off (noch nichts angefangen), run (dazwischen)
+function frStand(b) {
   const L = frItems(b).filter(frNeeded), a = angebotUL(b);
-  if (L.some(i => i.st === 'nein')) return kz('no', 'keine Freigabe', 'k-no');
-  if (!frOffen(b).names.length) return kz('ok', 'freigegeben', 'k-ok');
-  if (L.every(i => i.st === 'offen') && (!a || a.st === 'fehlt')) return kz('off', 'keine Freigabe', 'k-off');
-  return kz('run', 'in Bearbeitung', 'k-run');
+  if (L.some(i => i.st === 'nein')) return 'no';
+  if (!frOffen(b).names.length) return 'ok';
+  return L.every(i => i.st === 'offen') && (!a || a.st === 'fehlt') ? 'off' : 'run';
 }
-function kFinanz(b) {
-  const F = finState(b);
-  if (!F.fs.length && !F.eig) return kz('off', 'keine Finanzierung', 'k-off');
-  return F.done ? kz('ok', 'Finanzierung beendet', 'k-ok') : kz('run', 'in Bearbeitung', 'k-run');
-}
+const finStand = b => { const F = finState(b); return !F.fs.length && !F.eig ? 'off' : F.done ? 'ok' : 'run'; };
+const kFreigabe = b => ({ ok: kz('ok', 'freigegeben', 'k-ok'), no: kz('no', 'keine Freigabe', 'k-no'), off: kz('off', 'keine Freigabe', 'k-off'), run: kz('run', 'in Bearbeitung', 'k-run') })[frStand(b)];
+const kFinanz = b => ({ off: kz('off', 'keine Finanzierung', 'k-off'), ok: kz('ok', 'Finanzierung beendet', 'k-ok'), run: kz('run', 'in Bearbeitung', 'k-run') })[finStand(b)];
 function kNachweis(b) {
   const Z = b.foerderer.filter(f => f.status === 'zugesagt'), L = Z.filter(f => f.vn.noetig);
   if (!Z.length) return kGrau('noch keine Zusage');
@@ -148,11 +175,13 @@ window.addEventListener('resize', () => aufMessen());
 const nameZelle = b => `<td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : b.prio === 'hoch' ? ' <span class="prio-t">(Prio)</span>' : ''}</td>
     <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>`;
 const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
+// solange die Freigabe nicht vollständig ist, wird hinter ihr noch nichts angegangen: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
 function row(b) {
-  if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">${nameZelle(b)}
-    <td class="l-ort"><div class="ort" data-le="ort">${ortText(b)}</div></td><td>${kFreigabe(b)}</td><td>${kFinanz(b)}</td><td>${kNachweis(b)}</td><td>${kUebergabe(b)}</td></tr>`;
+  const kl = (b.manuell ? 'paused' : '') + (frOffen(b).names.length ? ' ohne-fg' : '');
+  if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b)}
+    <td class="l-ort"><div class="ort" data-le="ort">${ortText(b)}</div></td><td class="k-fr">${kFreigabe(b)}</td><td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td></tr>`;
   const auf = KOMPAKT();                                  // in der kompakten Ansicht aufgeklappt: Finanzierung und Nachweis über zwei Spalten
-  return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}${auf ? ' auf' : ''}">${nameZelle(b)}
+  return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}${auf ? ' auf' : ''}">${nameZelle(b)}
     <td class="l-meta"><div class="ort" data-le="ort">${ortText(b)}</div><div data-le="zust">${b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
     <td class="l-fin"${auf ? ' colspan="2"' : ''}>${lFinanz(b)}</td>
@@ -173,6 +202,7 @@ function listView() {
       <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Name, Summe und Ort anklicken und ändern. Strg + Klick klappt einen Bedarf ausführlich auf – dort lässt sich alles bearbeiten; noch einmal Strg + Klick öffnet ihn, ein Klick daneben klappt ihn wieder zu.">Strg + Klick klappt einen Bedarf auf, noch einmal öffnet ihn</span>'
         : '<span class="strg-hint" title="Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Mit gedrückter Strg-Taste öffnet ein Klick den Bedarf.">Strg + Klick öffnet den Bedarf</span>'}
       <div class="tools">
+        <button class="sort-btn${(UI.sort || []).length ? ' on' : ''}" data-act="sort-menu" aria-haspopup="menu" title="Sortieren – bis zu drei Stufen">${sortText()}</button>
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
@@ -180,11 +210,41 @@ function listView() {
       </div>
     </div>
     <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
-      ${komp ? ['Bedarf', 'Summe', 'Ort', 'Freigabe', 'Finanzierung', 'Verwendungsnachweis', 'Spendenübergabe'].map(t => `<th>${t}</th>`).join('')
-        : ['<th>Bedarf', '<th>Summe', '<th>', '<th class="l-fr">Freigabe', '<th class="l-fin"><div class="fg fg-h"><span>Finanzierungsplan</span><span>Verwendungsnachweis</span></div>', '<th class="l-ueb">Spendenübergabe']
+      ${komp ? [['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => `<th>${sk(k, t)}</th>`).join('')
+        : ['<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')]
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
   </section></main>`;
+}
+// Spaltenkopf zum Sortieren: Klick nimmt die Spalte als nächste Stufe dazu, weiterer Klick dreht die Richtung, der dritte nimmt sie wieder heraus
+function sk(k, t) {
+  const i = (UI.sort || []).findIndex(s => s.k === k), s = UI.sort && UI.sort[i];
+  return `<button class="th-sort${s ? ' on' : ''}" data-act="sort-th" data-k="${k}" title="Sortieren nach ${SORT[k].t}${s ? ' – jetzt: ' + SORT[k].w[s.d === 'ab' ? 1 : 0] : ''}">${t}${s ? `<span class="so">${i + 1}${s.d === 'ab' ? '↓' : '↑'}</span>` : ''}</button>`;
+}
+const sortText = () => (UI.sort || []).length ? 'Sortiert: ' + UI.sort.map(s => SORT[s.k].t).join(' › ') : 'Sortieren';
+function sortSpalte(k) {
+  const L = (UI.sort || []).slice(), i = L.findIndex(s => s.k === k);
+  if (i < 0) { if (L.length >= 3) L.pop(); L.push({ k, d: 'auf' }); }
+  else if (L[i].d === 'auf') L[i] = { k, d: 'ab' };
+  else L.splice(i, 1);
+  UI.sort = L; ORDER.ids = null; keep(renderNow);
+}
+// Menü zum Sortieren: drei Stufen, je Angabe und Richtung; „Zurücksetzen“ stellt die übliche Reihenfolge wieder her
+function sortPop(btn) {
+  closeMenus();
+  const L = (UI.sort || []).slice();
+  const neu = () => { UI.sort = L.filter(s => s && s.k); ORDER.ids = null; renderNow(); const b = $('[data-act="sort-menu"]'); if (b) sortPop(b); };
+  const stufe = i => {
+    const s = L[i] || { k: '', d: 'auf' }, frei = Object.keys(SORT).filter(k => k === s.k || !L.some((x, j) => j !== i && x && x.k === k));
+    const sel = h('select', { 'aria-label': (i + 1) + '. Stufe', onchange: e => { const k = e.target.value; if (k) L[i] = { k, d: (L[i] || {}).d || 'auf' }; else L.splice(i); neu(); } },
+      h('option', { value: '' }, i ? '– keine weitere –' : '– übliche Reihenfolge –'), frei.map(k => h('option', { value: k, selected: k === s.k }, SORT[k].t)));
+    const dir = s.k ? h('div', { class: 'seg' }, ['auf', 'ab'].map((d, j) => h('button', { class: s.d === d ? 'on' : '', onclick: () => { L[i] = { k: s.k, d }; neu(); } }, SORT[s.k].w[j]))) : null;
+    return h('div', { class: 'sort-row' }, h('span', { class: 'sort-n' }, i ? 'dann' : 'zuerst'), sel, dir);
+  };
+  const rows = [stufe(0)]; if (L[0]) rows.push(stufe(1)); if (L[0] && L[1]) rows.push(stufe(2));
+  const m = h('div', { class: 'menu sort-pop', role: 'menu' }, h('div', { class: 'sort-h' }, 'Sortieren'), ...rows,
+    h('div', { class: 'sort-f' }, h('span', { class: 'muted small' }, 'Auch per Klick auf die Spaltenköpfe'), L.length ? h('button', { class: 'link', onclick: () => { L.length = 0; neu(); } }, 'Zurücksetzen') : null));
+  placePop(m, btn, 'right');
 }
 /* ---------- Spaltenbreiten wie in Excel: am rechten Rand eines Spaltenkopfs ziehen – nur diese Spalte ändert sich, die rechts davon rücken mit.
    Die Breiten merkt sich der Browser; Doppelklick auf einen Rand oder das Zahnrad setzt alle zurück. */
@@ -230,6 +290,6 @@ function placePop(m, btn, align) {
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="prio-menu"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sort-menu"], [data-act="sw-pop"], [data-act="prio-menu"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);

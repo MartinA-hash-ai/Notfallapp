@@ -49,6 +49,13 @@ Name, Summe, Ort und je Bereich nur dem Stand – grün durch, gelb in Bearbeitu
 In der kompakten Ansicht führt „+ Bedarf“ durch Name, Summe und Ort; Umschalt+Enter legt gleich den nächsten an (in beiden Ansichten).
 Strg+Klick klappt einen Bedarf ausführlich auf, noch einmal Strg+Klick öffnet ihn, ein Klick daneben klappt ihn zu. Der Browser merkt sich die Wahl.
 
+**Sortieren:** Klick auf einen Spaltenkopf nimmt die Spalte als nächste Stufe dazu (bis zu drei; noch ein Klick: andere Richtung,
+dritter Klick: heraus). Der Knopf „Sortieren“ bietet zusätzlich Priorität, Ansprechperson, Deadline und Angelegt.
+
+**Bedarf öffnen:** Strg halten und mit der Maus über einen Bedarf – rechts zeigt ein Streifen mit Griff an, dass sich hier etwas öffnen lässt.
+Klick auf den Griff oder Strg+Klick: der Bedarf gleitet von rechts herein. Esc oder „‹ Alle Bedarfe“: zurück an dieselbe Stelle der Liste.
+Solange die Freigabe fehlt, sind Finanzierung, Nachweis und Übergabe in der Liste grau.
+
 **In der Liste bearbeiten (Normalzustand):** Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
 und ändern – **Strg + Klick öffnet den Bedarf**. „+ Bedarf“ legt oben eine neue Zeile an und führt mit Enter oder Tab durch
 Name → Summe → Ort → Ansprechperson → Deadline (Shift+Tab zurück; Tab geht auch in vorhandenen Zeilen). Die Reihenfolge
@@ -58,7 +65,7 @@ Im Kreisdiagramm auf der Seite eines Bedarfs schaltet ein Klick auf das Stück e
 Finanzierungsplan fügt einen Förderer hinzu (Enter: zum Betrag, Shift+Enter: speichern und nächster Förderer), der Stift am Ende des Förderernamens benennt ihn um; der Kalender beim
 Verwendungsnachweis setzt die Frist; der Kreis mit Stift bei der Spendenübergabe öffnet Ort, Datum, Uhrzeit und Notizen.
 
-**Bedarfsseite:** Oben links die Zuständigen, je Zeile zwei (Stift: Name, Position, E-Mail, Telefon; E-Mail und Telefon sonst nur
+**Bedarfsseite:** Unter dem Namen die Deadline (Klick: Kalender), daneben die Stichworte mit kleinem + zum Hinzufügen. Oben links die Zuständigen, je Zeile zwei (Stift: Name, Position, E-Mail, Telefon; E-Mail und Telefon sonst nur
 beim Überfahren der Knöpfe; dazu ein Handy; ★ = Ansprechperson in der Liste; ein bekannter Name bringt seine Angaben mit), darunter Deadline und
 Stichworte (eintippen, Enter, das nächste), rechts die Beschreibung – anklicken und ändern, bei der Beschreibung irgendwo in die Fläche.
 

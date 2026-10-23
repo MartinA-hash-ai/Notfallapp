@@ -23,8 +23,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.fin === 'strong:Beispiel-Soziallotterie 12.000 € bis 30.04.2027 | x ab:Volksbank Beispielland eG 2.000 € | x:Stadtwerke Hagen (Beispiel) 1.500 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.ueb === 'erledigt am 05.10.2026 Hauptbahnhof Hagen',
     'Finanzierung steht: Zusage kräftig mit Nachweis, Absage und nie Angegangene blass, kein Delta: ' + r.fin);
   r = await L('b-kueche');
-  ok(r.fin === 'z:Bürgerstiftung Musterstadt 5.000 € erledigt | z:Sparkasse Musterstadt 3.000 € nicht nötig | sum:Überfinanzierung 500 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.meta.endsWith('ohne Deadline')
-    && r.ueb.startsWith('Spendenübergabe einleiten Küche wird erst Ende November eingebaut'), 'Küche: erledigte Nachweise blass grün, „nicht nötig“ ohne Linie, Überfinanzierung, Dreieck mit Info: ' + r.fin + ' / ' + r.ueb);
+  ok(r.fin === 'z:Bürgerstiftung Musterstadt 5.000 € erledigt | z:Sparkasse Musterstadt 3.000 € nicht nötig | sum:Überfinanzierung 500 € | sum:Eigenmittel 2.000 €' && r.leads === 2 && r.meta.endsWith('ohne Deadline')
+    && await p.evaluate(() => document.querySelectorAll('tr[data-id="b-kueche"] .l-fin .mi[data-le="vn"]').length === 2 && !!document.querySelector('tr[data-id="b-kueche"] .l-fin .mi.m-off[data-le="vn"]'))
+    && r.ueb.startsWith('Spendenübergabe einleiten Küche wird erst Ende November eingebaut'), 'Küche: erledigte Nachweise blass grün, auch „nicht nötig“ mit Linie und leerem Kreis, Überfinanzierung, Dreieck mit Info: ' + r.fin + ' / ' + r.ueb);
   r = await L('b-klausur');
   ok(r.sym === 'no' && r.fin.includes('ab:Musterstiftung Ehrenamt NRW 2.000 €') && r.fin.includes('sum:Delta 2.000 € | sum:Eigenmittel 500 €') && r.ueb === 'nicht nötig' && r.meta.startsWith('Diözese'), 'Klausur: Absage durchgestrichen, Delta, Übergabe nicht nötig: ' + r.fin);
   r = await p.evaluate(() => [getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-name')).verticalAlign, getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-meta .ort')).fontWeight,
@@ -37,11 +38,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0].every((y, i) => Math.abs(y - r[1][i]) <= 1) && r[2].every((y, i) => Math.abs(y - r[0][i]) <= 1), 'Freigabe und Förderer stehen Zeile für Zeile auf einer Höhe, Punkte mittig zur Schrift: ' + JSON.stringify(r));
   // Zeitstrahl in der Punktlinie zur Frist des Verwendungsnachweises
   r = await p.evaluate(() => { const l = document.querySelector('tr[data-id="b-mtw"] .l-fin .lead.tl'); return l && [l.className, l.title]; });
-  ok(r && r[0] === 'lead tl tl-g' && /^noch \d+ Tage bis zur Frist$/.test(r[1]), 'Punktlinie zur Frist: grün, solange viel Zeit ist: ' + JSON.stringify(r));
+  ok(r && r[0] === 'lead tl tl-0' && /^noch \d+ Tage bis zur Frist$/.test(r[1]), 'Punktlinie zur Frist: drei Monate und mehr – ganz grau: ' + JSON.stringify(r));
   r = await p.evaluate(() => { const d = n => new Date(Date.parse(today()) + n * 864e5).toISOString().slice(0, 10);
     const z = fr => { const x = document.createElement('div'); x.innerHTML = zeitstrahl(ff({ status: 'zugesagt', eingangAm: d(-300), vn: { noetig: true, frist: fr, st: 'offen' } })); return x.firstChild.className.replace('lead tl ', ''); };
-    return [z(d(200)), z(d(30)), z(d(29)), z(d(7)), z(d(6)), z(d(-3))].join(); });
-  ok(r === 'tl-g,tl-g,tl-y,tl-y,tl-r,tl-r', 'Punktlinie ab heute bis zur Frist: grün, unter einem Monat gelb, unter einer Woche rot (Geldeingang spielt keine Rolle): ' + r);
+    return [z(d(200)), z(d(90)), z(d(89)), z(d(30)), z(d(29)), z(d(7)), z(d(6)), z(d(-3))].join(); });
+  ok(r === 'tl-0,tl-0,tl-g,tl-g,tl-y,tl-y,tl-r,tl-r', 'Punktlinie: ab drei Monaten grau, darunter grün, unter einem Monat gelb, unter einer Woche rot (Geldeingang spielt keine Rolle): ' + r);
+  r = await p.evaluate(() => { const t = document.querySelector('tr[data-id="b-mtw"] .l-fin .lead.tl'), w = k => { t.className = 'lead tl ' + k; const q = t.firstChild.getBoundingClientRect().width / t.getBoundingClientRect().width; return Math.round(q * 100); };
+    const out = ['tl-0', 'tl-g', 'tl-y', 'tl-r'].map(k => k + ':' + w(k) + ':' + getComputedStyle(t.firstChild).borderBottomColor); t.className = 'lead tl tl-0'; return out; });
+  ok(/^tl-0:0:.*,tl-g:30:rgb\(.*,tl-y:55:rgb\(224, 164, 0\),tl-r:100:/.test(r.join()) && r[1].split(':')[2] !== r[3].split(':')[2], 'farbiger Anteil der Punkte: grau 0 %, grün ein Drittel, gelb die Hälfte, rot ganz: ' + r.join(' | '));
   // Bearbeiten ist der Normalzustand; die ganze Zeile wird beim Überfahren hervorgehoben
   await p.hover('tr[data-id="b-aed"] .l-sum');
   r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('tr[data-id="b-aed"]')).backgroundColor]);
@@ -77,9 +81,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   for (let i = 0; i < 3; i++) { await p.click(kp); r.push(await ulSt()); }
   ok(r.join() === 'arbeit,da,fehlt,arbeit' && !(await p.$('.circ-pop')) && await p.$eval(kp, e => !!e.querySelector('svg')), 'Kreis: Klick schaltet weiter (in Arbeit → vorhanden → fehlt → in Arbeit), ohne Menü, Zeichen als Grafik: ' + r.join());
   r = await p.evaluate(() => [document.querySelectorAll('.fk-grid > .card.fp.fk').length, document.querySelectorAll('#foe-f-mtw-spk .dots.lv5 .dot.on').length, document.querySelector('#foe-f-mtw-bst .st-btn').textContent.trim(), !document.querySelector('.fk .share-t, .fk .fp-title .pen, .fk-head'), document.querySelector('#foe-f-mtw-bst .fp-dates').textContent.replace(/\s+/g, ' ').trim(),
-    [...document.querySelectorAll('#foe-f-mtw-spk .pc textarea')].map(e => e.placeholder.split(':')[0]).join(), getComputedStyle(document.querySelector('.fk-grid')).gridTemplateColumns.split(' ').length, document.querySelector('.fk-grid').lastElementChild.textContent.trim()]);
-  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3] && r[4] === 'amAntwort erwartet:' && r[5] === 'Pro,Contra' && r[6] === 2 && r[7] === '+Förderer hinzufügen', 'Förderer als Kacheln: ohne Überschrift, Stift und Prozent; als letzte Kachel „+ Förderer hinzufügen“: ' + JSON.stringify(r));
-  r = await p.evaluate(() => { const k = document.querySelector('#foe-f-mtw-bst'), n = k.querySelector('.fp-h'), a = k.querySelector('input.amt'), d = [...k.querySelectorAll('.fp-d input')], pc = [...k.querySelectorAll('.pc > label')].map(x => x.getBoundingClientRect());
+    [...document.querySelectorAll('#foe-f-mtw-spk .pc > div')].map(e => e.className + (e.querySelector('.pe-pc[data-fmt]') ? '' : '?')).join(), getComputedStyle(document.querySelector('.fk-grid')).gridTemplateColumns.split(' ').length, document.querySelector('.fk-grid').lastElementChild.textContent.trim()]);
+  ok(r[0] === 3 && r[1] === 5 && r[2] === 'beantragt ▾' && r[3] && r[4] === 'amAntwort erwartet:' && r[5] === 'pro,contra' && r[6] === 2 && r[7] === '+Förderer hinzufügen', 'Förderer als Kacheln: ohne Überschrift, Stift und Prozent; als letzte Kachel „+ Förderer hinzufügen“: ' + JSON.stringify(r));
+  r = await p.evaluate(() => { const k = document.querySelector('#foe-f-mtw-bst'), n = k.querySelector('.fp-h'), a = k.querySelector('input.amt'), d = [...k.querySelectorAll('.fp-d input')], pc = [...k.querySelectorAll('.pc > div')].map(x => x.getBoundingClientRect());
     return [getComputedStyle(n).fontSize === getComputedStyle(a).fontSize, a.getBoundingClientRect().top - n.getBoundingClientRect().bottom <= 3, Math.round(n.getBoundingClientRect().left) === Math.round(a.getBoundingClientRect().left),
       d.map(x => x.type + ':' + x.value).join(), pc[1].top - pc[0].bottom >= 6, !!k.querySelector('.fp-title .fw-tri')]; });
   ok(r.join('|') === 'true|true|true|text:15.09.2026,text:30.11.2026|true|true', 'Name so groß wie die Summe, direkt darüber; Datum ohne Kalendersymbol; Abstand zwischen Pro und Contra; Hinweis als Dreieck: ' + r.join('|'));
@@ -118,7 +122,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.mouse.move(pie.x + pie.width / 2, pie.y + pie.height / 2); await p.waitForTimeout(250);
   r = await p.evaluate(() => { const G = [...document.querySelectorAll('#fin-pie .pl')], R = G.map(g => [...g.querySelectorAll('text')].map(t => t.getBoundingClientRect()).reduce((a, c) => ({ l: Math.min(a.l, c.left), r: Math.max(a.r, c.right), t: Math.min(a.t, c.top), b: Math.max(a.b, c.bottom) }), { l: 1e9, r: -1e9, t: 1e9, b: -1e9 }));
     const hit = R.some((a, i) => R.some((c, j) => i < j && a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b));
-    return [G.map(g => [...g.querySelectorAll('text')].map(t => t.textContent.replace(/\u00a0/g, ' ')).join(' ')).join(' | '), hit]; });
+    return [G.map(g => [...g.querySelectorAll('text')].map(t => (t.querySelector('tspan') ? [...t.querySelectorAll('tspan')].map(x => x.textContent).join(' ') : t.textContent).replace(/\u00a0/g, ' ')).join(' ')).join(' | '), hit]; });
   ok(await pl() === '1,1,1,1' && r[0] === 'Sparkasse Musterstadt 10.000 € · 15 % | Eigenmittel 13.000 € · 19 % | Bürgerstiftung Musterstadt 15.000 € · 22 % | Beispiel-Soziallotterie 30.000 € · 44 %' && !r[1],
     'Kreis überfahren: alle Stücke beschriftet mit Name, Betrag und Anteil, nichts überlappt: ' + r[0]);
   await p.mouse.move(5, 5); await p.waitForTimeout(250);
@@ -150,7 +154,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     const k = [...document.querySelectorAll('.fk.fp')].map(c => c.getBoundingClientRect()), overlap = k.some((a, i) => k.some((c, j) => i < j && a.left < c.right - 1 && c.left < a.right - 1 && a.top < c.bottom - 1 && c.top < a.bottom - 1));
     st.remove(); Object.assign(f, JSON.parse(alt)); renderNow(); return [res, overlap]; });
   ok(r.join() === 'true,false', 'Kacheln bleiben in ihrer Spalte und überlappen nicht, auch mit langer Kontaktzeile: ' + r.join());
-  r = await p.evaluate(() => [getComputedStyle(document.querySelector('input.inline.sum')).fontSize, getComputedStyle(document.querySelector('.fp .pc textarea')).maxHeight, getComputedStyle(document.querySelector('.fp .pc')).rowGap]);
+  r = await p.evaluate(() => [getComputedStyle(document.querySelector('input.inline.sum')).fontSize, getComputedStyle(document.querySelector('.fp .pc .pe-pc .val')).maxHeight, getComputedStyle(document.querySelector('.fp .pc')).rowGap]);
   ok(r.join() === '34px,56.55px,14px', 'Summe oben größer; Pro und Contra mit drei Zeilen Vorschau und mehr Abstand: ' + r.join());
   ok(await p.evaluate(() => F_ST.map(x => x[0]).join()) === 'geplant,beantragt,zugesagt,abgelehnt', 'Stände der Förderer: geplant, beantragt, zugesagt, abgelehnt (ohne „in Vorbereitung“)');
   await p.click('button[data-act="info"][data-v="ordner"]');
@@ -266,13 +270,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0] === false && r[1].includes('Bürgerstiftung Musterstadt'), 'Namensfeld ohne Pfeil, Vorschläge beim Tippen: ' + r[1]);
   await p.click('.le-opt:text-is("Bürgerstiftung Musterstadt")');
   ok(await p.evaluate(() => cur().foerderer.at(-1).name === 'Bürgerstiftung Musterstadt'), 'Vorschlag übernommen');
-  // Bedarf oben: links die Zuständigen (je Zeile zwei) wie Kontakte, darunter Deadline und Stichworte; rechts die Beschreibung – ohne Eingabefelder
+  // Bedarf oben: links nur die Zuständigen (je Zeile zwei), rechts die Beschreibung – ohne Eingabefelder; Deadline und Stichworte im Kopf
   await p.evaluate(() => scrollTo(0, 0));
-  r = await p.evaluate(() => { const E = document.querySelector('#sec-eck'), l = E.querySelector('.eck-l').getBoundingClientRect(), rr = E.querySelector('.eck-r').getBoundingClientRect(), liste = E.querySelector('#zust-liste').getBoundingClientRect(),
-    f = E.querySelector('.eck-f').getBoundingClientRect(), be = E.querySelector('.pe[data-k="beschreibung"]').getBoundingClientRect(), k = [...E.querySelectorAll('.k1')].map(e => e.getBoundingClientRect());
-    return [Math.abs(l.top - rr.top) <= 6, rr.left > l.right, Math.abs(rr.width - l.width) < 40, f.top >= liste.bottom - 1, be.left >= rr.left - 8, E.querySelectorAll('input:not(#sw-neu), textarea').length,
-      [...E.querySelectorAll('.k1 .kn')].map(e => e.textContent).join(), k[0].top === k[1].top && k[1].left > k[0].right, [...E.querySelectorAll('.eck-f > *')].map(e => e.dataset.k || e.className).join()]; });
-  ok(r.join('|') === 'true|true|true|true|true|0|Thomas Beispiel,Anna Muster|true|deadline,sw-box', 'Bedarf oben: links Zuständige nebeneinander, darunter Deadline und Stichworte, rechts die Beschreibung, keine Eingabefelder: ' + r.join('|'));
+  r = await p.evaluate(() => { const E = document.querySelector('#sec-eck'), l = E.querySelector('.eck-l').getBoundingClientRect(), rr = E.querySelector('.eck-r').getBoundingClientRect(),
+    be = E.querySelector('.pe[data-k="beschreibung"]').getBoundingClientRect(), k = [...E.querySelectorAll('.k1')].map(e => e.getBoundingClientRect());
+    return [Math.abs(l.top - rr.top) <= 6, rr.left > l.right, Math.abs(rr.width - l.width) < 40, be.left >= rr.left - 8, E.querySelectorAll('input, textarea').length,
+      [...E.querySelectorAll('.k1 .kn')].map(e => e.textContent).join(), k[0].top === k[1].top && k[1].left > k[0].right, [...E.querySelectorAll('.eck-l > *')].map(e => e.className || e.id).join(),
+      document.querySelector('#d-meta').textContent, !!document.querySelector('.d-head #d-sw .sw-plus[data-tip="Stichworte oder Fördertöpfe"]')]; });
+  ok(r.join('|') === 'true|true|true|true|0|Thomas Beispiel,Anna Muster|true|sub,zust-liste|Deadline: 30.06.2027|true', 'Bedarf oben: links nur die Zuständigen nebeneinander, rechts die Beschreibung; im Kopf „Deadline: …“ und das + für Stichworte: ' + r.join('|'));
   ok(await p.evaluate(() => [...document.querySelectorAll('#zust-liste .k1')].every(k => getComputedStyle(k).backgroundColor === 'rgb(243, 243, 241)')), 'Zuständige dauerhaft grau hinterlegt');
   // Zuständige bearbeiten wie Kontakte: Linien, zwei je Zeile, auch mehr als drei, Fertig oben rechts
   await p.click('#sec-eck .k-pen');
@@ -307,24 +312,23 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r === 'B,A:R / C,A:R,B / Thomas Beispiel:Ortsbeauftragter / B', 'Ansprechperson in der Liste ändern: vorhandene nach vorn, Angaben gehen nicht verloren, bekannte bringt ihre mit: ' + r);
   r = await p.evaluate(() => JSON.stringify(normalize({ bedarfe: [{ id: 'x', zust: ['Anna', ' ', { n: 'Bo', mail: 'b@x.de' }, {}] }] }).bedarfe[0].zust));
   ok(r === '[{"n":"Anna","rolle":"","mail":"","tel":"","mobil":""},{"n":"Bo","rolle":"","mail":"b@x.de","tel":"","mobil":""}]', 'bisherige Namen werden zu Zuständigen mit leeren Angaben: ' + r);
-  // Deadline über den Kalender, Stichwort mit Vorschlägen, „i“ öffnet nur den Hinweis
-  await p.click('#sec-eck .pe[data-k="deadline"] .info');
-  ok(!!(await p.$('.info-pop')) && !(await p.$('.cal-pop')), '„i“ bei der Deadline zeigt den Hinweis, öffnet nicht den Kalender');
-  await p.mouse.click(5, 300);
-  await p.click('#sec-eck .pe[data-k="deadline"]');
-  ok(!!(await p.$('.cal-pop .cal-d.on[data-v="2027-06-30"]')), 'Klick auf die Deadline öffnet den Kalender beim Datum');
+  // Deadline im Kopf: Klick öffnet den Kalender
+  await p.click('#d-meta .d-dl');
+  ok(!!(await p.$('.cal-pop .cal-d.on[data-v="2027-06-30"]')), 'Klick auf die Deadline im Kopf öffnet den Kalender beim Datum');
   await p.click('.cal-pop .cal-d[data-v="2027-06-15"]');
-  r = await p.evaluate(() => [cur().deadline, document.querySelector('#sec-eck .pe[data-k="deadline"] .pv').textContent]);
-  ok(r.join() === '2027-06-15,15.06.2027', 'Deadline geändert: ' + r.join());
-  // mehrere Stichworte: eintippen, Enter, das nächste; Vorschläge; × nimmt eines weg; die Liste filtert nach jedem
-  await p.click('#sw-neu'); await p.keyboard.type('landes'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
+  r = await p.evaluate(() => [cur().deadline, document.querySelector('#d-meta').textContent]);
+  ok(r.join() === '2027-06-15,Deadline: 15.06.2027', 'Deadline geändert: ' + r.join());
+  // Stichworte über das + im Kopf: eintippen, Enter, das nächste; Vorschläge; × nimmt eines weg; die Liste filtert nach jedem
+  await p.hover('#d-sw .sw-plus');
+  ok(await p.evaluate(() => ($('.tip-pop') || {}).textContent) === 'Stichworte oder Fördertöpfe', 'beim Überfahren des + steht „Stichworte oder Fördertöpfe“');
+  await p.click('#d-sw .sw-plus'); await p.keyboard.type('landes'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
   await p.keyboard.type('Aktion Mensch'); await p.keyboard.press('Enter'); await p.keyboard.type('aktion mensch'); await p.keyboard.press('Enter');
-  r = await p.evaluate(() => [cur().stichworte.join('|'), document.activeElement.id, [...document.querySelectorAll('#sec-eck .pchip')].map(e => e.firstChild.textContent).join('|')]);
-  ok(r.join(' / ') === 'Landesprogramm Digitalisierung 2027|Aktion Mensch / sw-neu / Landesprogramm Digitalisierung 2027|Aktion Mensch', 'Stichworte: Vorschlag und eigenes per Enter, doppeltes nicht, Feld bleibt für das nächste: ' + r.join(' / '));
+  r = await p.evaluate(() => [cur().stichworte.join('|'), !!document.activeElement.closest('.sw-pop'), [...document.querySelectorAll('#d-sw .pchip')].map(e => e.firstChild.textContent).join('|')]);
+  ok(r.join(' / ') === 'Landesprogramm Digitalisierung 2027|Aktion Mensch / true / Landesprogramm Digitalisierung 2027|Aktion Mensch', 'Stichworte: Vorschlag und eigenes per Enter, doppeltes nicht, das Feld bleibt für das nächste offen, Marken im Kopf: ' + r.join(' / '));
   await p.keyboard.type('Ohne Enter'); await p.mouse.click(5, 300); await p.waitForTimeout(80);
-  ok(await p.evaluate(() => cur().stichworte.at(-1)) === 'Ohne Enter', 'Getipptes Stichwort ohne Enter geht beim Wegklicken nicht verloren');
+  ok(await p.evaluate(() => cur().stichworte.at(-1) === 'Ohne Enter' && !document.querySelector('.sw-pop')), 'Getipptes Stichwort ohne Enter geht beim Wegklicken nicht verloren');
   await p.evaluate(() => { cur().stichworte.pop(); changed(); renderNow(); });
-  await p.click('#sec-eck .pchip .x');
+  await p.click('#d-sw .pchip .x');
   r = await p.evaluate(() => { const alt = UI.fSw; UI.fSw = 'Aktion Mensch'; const n = filtered().some(x => x.id === 'b-mtw'); UI.fSw = alt; return [cur().stichworte.join('|'), n, JSON.stringify(normalize({ bedarfe: [{ id: 'x', stichwort: 'Alt' }] }).bedarfe[0].stichworte)]; });
   ok(r.join(' / ') === 'Aktion Mensch / true / ["Alt"]', '× entfernt ein Stichwort; Filter der Liste findet den Bedarf; bisheriges Stichwort wird übernommen: ' + r.join(' / '));
   // Beschreibung: irgendwo in die Fläche klicken; Aufzählung sofort, Umschalt+Enter = nächster Punkt, Enter = Zeile ohne Punkt
@@ -363,6 +367,28 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.evaluate(() => { const dt = new DataTransfer(); dt.setData('text/html', '<b style="color:red">rot</b>'); dt.setData('text/plain', 'schlicht'); document.activeElement.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); });
   r = await tv(); await p.keyboard.press('Escape');
   ok(r.endsWith('Endeschlicht') && !r.includes('rot'), 'Einfügen bringt nur Text mit, keine fremde Formatierung: ' + JSON.stringify(r.slice(-20)));
+  // Pro und Contra: formatiert (drei Zeilen Vorschau), Klick öffnet das Schreibfeld
+  await p.evaluate(() => document.querySelector('#foe-f-mtw-lot').scrollIntoView({ block: 'center' }));
+  await p.click('#foe-f-mtw-lot .pc .pro .pe-pc');
+  ok(await p.evaluate(() => document.activeElement.matches('#foe-f-mtw-lot .pc .pe-rich[contenteditable]')), 'Klick auf Pro öffnet das Schreibfeld in der Kachel');
+  await p.keyboard.press('Control+A'); await p.keyboard.type('Starker Regionalbezug'); await p.keyboard.press('Enter'); await p.keyboard.type('* Fahrzeug sichtbar');
+  await p.evaluate(() => { const t = document.activeElement.querySelector('div').firstChild, r = document.createRange(); r.setStart(t, 8); r.setEnd(t, 12); getSelection().removeAllRanges(); getSelection().addRange(r); });
+  await p.keyboard.press('Control+b'); await p.keyboard.press('Control+Enter');
+  r = await p.evaluate(() => [cur().foerderer.find(f => f.id === 'f-mtw-lot').warum, document.querySelector('#foe-f-mtw-lot .pc .pro .pv').innerHTML]);
+  ok(r[0] === 'Starker *Regionalbezug*\n• Fahrzeug sichtbar' && r[1].includes('<b>Regionalbezug</b>') && r[1].includes('<li>Fahrzeug sichtbar</li>'), 'Pro mit Formatierung gespeichert und angezeigt: ' + JSON.stringify(r[0]));
+  // Notizen zur Spendenübergabe: ebenfalls mit Formatierung
+  await p.evaluate(() => { zuSet('nach', false); cur().nach.ueb.noetig = true; changed(); renderNow(); });
+  await p.click('#sec-nach .pe[data-k="nach.ueb.info"]');
+  await p.keyboard.press('Control+A'); await p.keyboard.type('Mit _Presse_'); await p.keyboard.press('Control+Enter');
+  r = await p.evaluate(() => [cur().nach.ueb.info, document.querySelector('#sec-nach .pe[data-k="nach.ueb.info"] .pv').innerHTML]);
+  ok(r.join('|') === 'Mit _Presse_|Mit <i>Presse</i>', 'Notizen zur Spendenübergabe mit Formatierung: ' + r.join('|'));
+  // Kreisdiagramm: lange Namen in zwei Zeilen, nichts ragt über den Rand hinaus
+  await p.evaluate(() => { cur().foerderer.find(f => f.id === 'f-mtw-lot').name = 'NRW-Stiftung Naturschutz, Heimat- und Kulturpflege Nordrhein-Westfalen'; changed(); renderNow(); });
+  r = await p.evaluate(() => { const svg = document.querySelector('#fin-pie svg').getBoundingClientRect(), T = [...document.querySelectorAll('#fin-pie .pl-n')];
+    const raus = T.filter(t => { const q = t.getBoundingClientRect(); return q.right > svg.right + 1 || q.left < svg.left - 1; }).length;
+    const lang = T.find(t => t.textContent.startsWith('NRW')); return [raus, lang ? [...lang.querySelectorAll('tspan')].map(x => x.textContent).join(' / ') : '']; });
+  ok(r[0] === 0 && /^NRW-Stiftung.* \/ .+…$/.test(r[1]), 'Kreisdiagramm: langer Name in zwei Zeilen, gekürzt, nichts ragt hinaus: ' + JSON.stringify(r));
+  await p.evaluate(() => { cur().foerderer.find(f => f.id === 'f-mtw-lot').name = 'Beispiel-Soziallotterie'; changed(); renderNow(); });
   // Freigaben: „Fachreferat“ vor dem Namen; Fortschritt oben: erledigt dezent grün, der aktuelle Schritt nicht hinterlegt
   r = await p.evaluate(() => { const done = $('#d-steps li.done'), cur = $('#d-steps li.cur');
     return [$('#fr-fach .fr-fach .ci-n').textContent + ' ' + $('#fr-fach .fr-name').value, getComputedStyle(done).color, getComputedStyle(done.querySelector('.st-k')).backgroundColor, getComputedStyle(cur).backgroundColor]; });
@@ -381,5 +407,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await q.evaluate(() => !document.documentElement.dataset.blTheme && getComputedStyle(document.body).backgroundColor === 'rgb(20, 21, 22)'), '„wie Windows“ folgt dem System (hier dunkel)');
   await q.click('#mmenu button[data-act="theme"][data-v="dark"]'); await q.keyboard.press('Escape');
   await q.screenshot({ path: 'vorschau_handy_dunkel.png', fullPage: true });
-  await finish(b, [p, q]);
+  // mit Animationen: Strg+Klick lässt den Bedarf von rechts hereingleiten, „‹ Alle Bedarfe“ wieder hinaus
+  const m = await open(b, { file, fakefs: false, motion: true });
+  await m.click('tr[data-id="b-mtw"] .l-name', { modifiers: ['Control'] });
+  r = await m.evaluate(() => [document.documentElement.dataset.vt || '', !!document.startViewTransition]);
+  await m.waitForTimeout(500);
+  r.push(await m.evaluate(() => UI.view + ':' + (document.documentElement.dataset.vt || '-') + ':' + !!document.querySelector('main.bedarf')));
+  await m.click('button[data-act="back"]'); r.push(await m.evaluate(() => document.documentElement.dataset.vt || '')); await m.waitForTimeout(500);
+  r.push(await m.evaluate(() => UI.view + ':' + (document.documentElement.dataset.vt || '-')));
+  ok(r.join('|') === 'vor|true|detail:-:true|zurueck|list:-', 'mit Animationen: Bedarf gleitet herein, zurück gleitet er hinaus, danach ist alles wieder normal: ' + r.join('|'));
+  await finish(b, [p, q, m]);
 })();

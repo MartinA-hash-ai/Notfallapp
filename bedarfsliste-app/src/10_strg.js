@@ -10,6 +10,29 @@ function strgSet(ctrl) {
   CTRL_NOW = !!ctrl;
   STRG = !ctrl && UI.view === 'list';
   document.body.classList.toggle('strg', STRG);
+  peekSetzen();
+}
+// Strg halten und mit der Maus über einem Bedarf: rechts schiebt sich ein schmaler Streifen herein, auf Höhe der Zeile ein Griff „‹“ –
+// ein Klick darauf (oder Strg+Klick auf die Zeile) zieht den Bedarf ganz herüber. Auf dem Weg zum Griff bleibt er kurz stehen.
+const PEEK = { el: null, t: null, x: -1, y: -1 };
+function peekSetzen() {
+  const an = CTRL_NOW && UI.view === 'list' && PEEK.x >= 0 && !$('.modal, .le-edit, .ue-form');
+  const ziel = an && document.elementFromPoint(PEEK.x, PEEK.y);
+  const tr = ziel && ziel.closest && ziel.closest('#list-body tr[data-id]');
+  if (tr) { clearTimeout(PEEK.t); PEEK.t = null; return peekAn(tr); }
+  if (an && ziel && ziel.closest && ziel.closest('#peek')) { clearTimeout(PEEK.t); PEEK.t = null; return; }
+  if (!PEEK.el || !PEEK.el.classList.contains('an')) return;
+  clearTimeout(PEEK.t); PEEK.t = an ? setTimeout(() => { PEEK.t = null; PEEK.el.classList.remove('an'); }, 600) : null;
+  if (!an) PEEK.el.classList.remove('an');
+}
+function peekAn(tr) {
+  if (!PEEK.el) {
+    PEEK.el = h('div', { id: 'peek', 'aria-hidden': 'true' }, h('div', { class: 'peek-s' }), h('button', { class: 'peek-g', 'data-act': 'open', tabindex: '-1', title: 'Bedarf öffnen' }, '‹'));
+    document.body.append(PEEK.el);
+  }
+  const r = tr.getBoundingClientRect(), g = PEEK.el.lastChild;
+  g.dataset.id = tr.dataset.id; g.style.top = Math.max(8, Math.min(innerHeight - 66, r.top + r.height / 2 - 29)) + 'px';
+  PEEK.el.classList.add('an');
 }
 // nach einer Änderung: beim Bearbeiten nur die Zeile neu zeichnen (Reihenfolge bleibt), sonst die ganze Liste
 function relist(b) {
@@ -20,7 +43,7 @@ function relist(b) {
 document.addEventListener('keydown', e => strgSet(e.key === 'Control' || e.key === 'Meta' || e.ctrlKey || e.metaKey));
 document.addEventListener('pointerdown', e => strgSet(e.ctrlKey || e.metaKey), true);
 document.addEventListener('keyup', e => { if (e.key === 'Control' || e.key === 'Meta') strgSet(false); });
-document.addEventListener('mousemove', e => strgSet(e.ctrlKey || e.metaKey), { passive: true });
+document.addEventListener('mousemove', e => { PEEK.x = e.clientX; PEEK.y = e.clientY; strgSet(e.ctrlKey || e.metaKey); }, { passive: true });
 window.addEventListener('blur', () => strgSet(false));
 
 // Klicks in offene Felder öffnen nicht den Bedarf (erst nach Feld und Knöpfen anhalten, damit „fertig“ wirkt)
@@ -40,7 +63,7 @@ document.addEventListener('click', e => {
     if (tr.dataset.id === UI.auf) return;                                             // schon aufgeklappt: Strg+Klick öffnet den Bedarf
     e.preventDefault(); e.stopPropagation(); aufklappen(tr.dataset.id); return;
   }
-  if (UI.auf && !(tr && tr.dataset.id === UI.auf) && !e.target.closest('.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new')) aufklappen(null);
+  if (UI.auf && !(tr && tr.dataset.id === UI.auf) && !e.target.closest('.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new, #peek, .fmt-bar')) aufklappen(null);
 }, true);
 function aufklappen(id) {
   const alt = UI.auf; UI.auf = id;
@@ -312,18 +335,20 @@ function uebForm(b, el) {
   const ort = inp({ value: u.ort, placeholder: 'Ort', 'aria-label': 'Ort der Spendenübergabe' });
   const dat = inp({ value: fmtDate(u.termin), placeholder: 'Datum', 'aria-label': 'Datum der Spendenübergabe' });
   const zeit = inp({ value: u.zeit, placeholder: 'Uhrzeit', inputmode: 'numeric', 'aria-label': 'Uhrzeit der Spendenübergabe' });
-  const info = h('textarea', { class: 'le-edit le-in', rows: 1, value: u.info, placeholder: 'Notizen', 'aria-label': 'Notizen zur Spendenübergabe' });
+  const info = h('div', { class: 'le-in pe-rich ue-info', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'data-ph': 'Notizen', 'aria-label': 'Notizen zur Spendenübergabe' });
+  info.innerHTML = fmtText(u.info, true) || '<div><br></div>';
   const ok = h('button', { class: 'link small ue-ok', type: 'button' }, 'fertig');
   const form = h('div', { class: 'ue-form' }, ort, h('div', { class: 'ue-wann' }, dat, zeit), info, ok);
   cell.replaceChildren(form); leStop(form); ort.focus();
+  const leiste = richEdit(info);
   let fertig = false;
   const finish = save => {
     if (fertig) return; fertig = true;
-    closeMenus();
+    closeMenus(); leiste();
     if (save) {
       const d = anyDate(dat.value), t = normZeit(zeit.value);
       if (dat.value.trim() && !d) toast('„' + dat.value + '“ ist kein Datum – Datum nicht übernommen (z. B. 05.12.2026).', 'warn');
-      Object.assign(u, { ort: ort.value.trim(), termin: d || (dat.value.trim() ? u.termin : ''), zeit: t, info: info.value.trim() });
+      Object.assign(u, { ort: ort.value.trim(), termin: d || (dat.value.trim() ? u.termin : ''), zeit: t, info: richText(info).trim() });
       if (u.termin && u.st === 'offen') u.st = 'terminiert';
       if (!u.termin && u.st === 'terminiert') u.st = 'offen';
       changed();
@@ -340,7 +365,7 @@ function uebForm(b, el) {
   form.addEventListener('keydown', e => {
     if (e.target === ort && sug(e)) { e.preventDefault(); return; }
     if (e.key === 'Escape') { e.preventDefault(); finish(false); }
-    if (e.key === 'Enter' && !(e.target === info && e.shiftKey)) { e.preventDefault(); finish(true); }
+    if (e.key === 'Enter' && !e.defaultPrevented && !(info.contains(e.target) && (e.shiftKey || e.ctrlKey))) { e.preventDefault(); finish(true); }
   });
   ok.addEventListener('click', () => finish(true));
   form.addEventListener('focusout', () => setTimeout(() => { if (!fertig && !form.contains(document.activeElement)) finish(true); }, 0));

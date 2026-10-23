@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.28.0",
+    "date": "2026-10-24T10:30",
+    "items": [
+      "Liste sortieren in bis zu drei Stufen: Klick auf einen Spaltenkopf nimmt die Spalte als nächste Stufe dazu (noch ein Klick: andere Richtung, dritter Klick: heraus); der Knopf „Sortieren“ bietet dazu Priorität, Ansprechperson, Deadline und Angelegt. „Zurücksetzen“ stellt die übliche Reihenfolge wieder her; die Wahl bleibt gemerkt",
+      "Strg halten und mit der Maus über einem Bedarf: rechts schiebt sich ein Streifen herein, auf Höhe der Zeile ein Griff „‹“. Klick auf den Griff oder Strg+Klick: der Bedarf gleitet von rechts herein und füllt die Seite; Esc oder „‹ Alle Bedarfe“ schiebt ihn wieder hinaus, die Liste steht an derselben Stelle",
+      "Liste: solange die Freigabe nicht vollständig ist, sind Finanzierung, Verwendungsnachweis und Spendenübergabe grau – ohne Farben",
+      "Verwendungsnachweis: der Kreis steht immer da, auch bei „nicht nötig“ (dann leer). Die Punktlinie zur Frist: ab drei Monaten grau, darunter das erste Drittel grün, unter einem Monat die Hälfte gelb, unter einer Woche ganz rot",
+      "Bedarfsseite: unter dem Namen steht „Deadline: …“ (Klick öffnet den Kalender) statt „angelegt“; Stichworte stehen als Marken neben dem Namen, das kleine + fügt weitere hinzu. Im Kasten „Zuständig“ stehen nur noch die Zuständigen",
+      "Formatierung in allen Freitextfeldern – jetzt auch Pro und Contra auf den Förderer-Kacheln und die Notizen zur Spendenübergabe (auf der Bedarfsseite und in der Liste)",
+      "Kreisdiagramm: lange Namen stehen in zwei Zeilen und werden notfalls gekürzt, statt über den Rand zu laufen"
+    ]
+  },
+  {
     "version": "0.27.1",
     "date": "2026-10-23T17:40",
     "items": [

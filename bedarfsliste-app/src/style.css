@@ -247,6 +247,21 @@ table.list.kompakt tr.auf td.l-name { max-width: none; overflow: visible; }
 .kz { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink2); white-space: nowrap; }
 .kz.k-ok { color: var(--e5ink); } .kz.k-run { color: var(--ph1ink); } .kz.k-no { color: var(--red-d); } .kz.k-off { color: var(--muted); } .kz.nn { color: var(--faint); }
 .kz.warnl { color: var(--warn); } .kz .tri { width: 14px; height: 14px; }
+/* solange die Freigabe fehlt: Finanzierung, Nachweis und Übergabe grau und blass – keine Farben */
+tr.ohne-fg td.l-fin > *, tr.ohne-fg td.l-ueb > *, tr.ohne-fg td.k-nach > * { filter: grayscale(1); opacity: .5; }
+/* Sortieren: Spaltenköpfe als Knöpfe, Stufe und Richtung als kleine Marke; Menü mit drei Stufen */
+.th-sort { border: 0; background: none; padding: 0; font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; }
+.th-sort:hover { color: var(--ink2); }
+.th-sort.on { color: var(--ink); }
+.th-sort .so { font-size: 10px; font-weight: 700; color: var(--card); background: var(--ink2); border-radius: 8px; padding: 0 5px; line-height: 15px; letter-spacing: 0; }
+.sort-btn { font-size: 13px; padding: 4px 10px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sort-btn.on { border-color: var(--ink2); color: var(--ink); }
+.sort-pop { padding: 10px 12px; min-width: 360px; }
+.sort-h { font-weight: 700; margin-bottom: 8px; }
+.sort-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 6px 8px; align-items: center; margin-bottom: 8px; }
+.sort-row .seg { grid-column: 2; }
+.sort-n { color: var(--muted); font-size: 12.5px; }
+.sort-f { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
 .seg.ansicht button { padding: 4px 11px; }
 table.list td.l-name { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.35; min-width: 180px; }
 table.list td.l-sum { font-size: 14.5px; font-weight: 700; text-align: left; white-space: nowrap; line-height: 1.35; }
@@ -294,7 +309,10 @@ table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
 .fline::after { content: ''; position: absolute; left: 0; right: 0; top: 0; border-top: 1px solid var(--line); }
 .lead { border-bottom: 2px dotted var(--line2); height: 0; margin-top: 10px; }
 /* Punktlinie zur Frist des Verwendungsnachweises: Farbe nach der Zeit bis zur Frist */
-.lead.tl-g { border-color: var(--f-zu); } .lead.tl-y { border-color: #e0a400; } .lead.tl-r { border-color: var(--red); }
+/* Punktlinie zur Frist: grau, darüber je nach Restzeit ein Teil in Farbe (grün ein Drittel, gelb die Hälfte, rot ganz) */
+.lead.tl { position: relative; border-color: var(--line2); }
+.lead.tl > i { position: absolute; left: 0; top: 0; border-bottom: 2px dotted transparent; }
+.lead.tl-g > i { width: 30%; border-color: var(--f-zu); } .lead.tl-y > i { width: 55%; border-color: #e0a400; } .lead.tl-r > i { width: 100%; border-color: var(--red); }
 #list-body .ph { color: var(--faint); font-weight: 400; }
 .vt { white-space: nowrap; color: var(--ink2); }
 .vt.nn { color: var(--ghost); }
@@ -309,6 +327,27 @@ table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
 .warnl { color: var(--warn); font-weight: 600; }
 .tri { width: 15px; height: 15px; color: #e8892b; flex: none; }
 .note { color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 4px; white-space: normal; }
+.note.fmt ul, .note.fmt ol { margin: 1px 0; padding-left: 16px; }
+.ue-form .ue-info { min-height: 1.6em; max-height: 9em; padding: 2px 4px; font-size: 12.5px; border: 0; border-bottom: 1px solid var(--focus); border-radius: 0; background: var(--input); }
+.ue-form .ue-info:focus { outline: none; }
+/* Andeutung bei gedrückter Strg-Taste: Streifen am rechten Rand, Griff auf Höhe des Bedarfs */
+#peek .peek-s { position: fixed; top: 0; bottom: 0; right: 0; width: 12px; z-index: 60; background: var(--card); border-left: 1px solid var(--line); box-shadow: -4px 0 14px rgba(0,0,0,.12); transform: translateX(110%); transition: transform .16s ease-out; }
+#peek .peek-g { position: fixed; right: 12px; z-index: 61; width: 30px; height: 58px; padding: 0; border-radius: 12px 0 0 12px; border: 1px solid var(--line); border-right: 0; background: var(--card); box-shadow: -4px 2px 12px rgba(0,0,0,.14);
+  color: var(--focus); font-size: 22px; font-weight: 700; display: grid; place-items: center; cursor: pointer; transform: translateX(calc(100% + 14px)); transition: transform .16s ease-out, top .12s ease-out; }
+#peek .peek-g:hover { background: var(--focus); color: var(--card); }
+#peek.an .peek-s, #peek.an .peek-g { transform: none; }
+/* Bedarf öffnen: er gleitet von rechts über die Liste; zurück gleitet er wieder hinaus */
+html[data-vt] #app > main { view-transition-name: bl-inhalt; background: var(--bg); }        /* deckend, sonst schiene die andere Seite durch */
+::view-transition-old(root), ::view-transition-new(root) { animation: none; }
+::view-transition-group(bl-inhalt) { animation: none; }
+::view-transition-old(bl-inhalt), ::view-transition-new(bl-inhalt) { mix-blend-mode: normal; }
+html[data-vt="vor"]::view-transition-old(bl-inhalt) { animation: none; }
+html[data-vt="vor"]::view-transition-new(bl-inhalt) { animation: bl-rein .32s cubic-bezier(.2, .8, .2, 1) both; box-shadow: -12px 0 30px rgba(0,0,0,.18); }
+html[data-vt="zurueck"]::view-transition-new(bl-inhalt) { animation: none; }
+html[data-vt="zurueck"]::view-transition-old(bl-inhalt) { animation: bl-raus .26s cubic-bezier(.5, 0, .9, .4) both; z-index: 1; box-shadow: -12px 0 30px rgba(0,0,0,.18); }
+@keyframes bl-rein { from { transform: translateX(100vw); } }
+@keyframes bl-raus { to { transform: translateX(100vw); } }
+@media (prefers-reduced-motion: reduce) { #peek .peek-s, #peek .peek-g { transition: none; } }
 /* Strg gedrückt: was sich ändern lässt, hebt sich beim Überfahren ab; unten links im Finanzierungsplan ein + */
 .strg-hint { font-size: 12px; color: var(--faint); padding: 1px 8px; border-radius: 10px; border: 1px solid transparent; cursor: help; }
 body:not(.strg) .strg-hint { color: var(--runink); background: var(--runbg); border-color: var(--runline); }   /* Strg gedrückt: Klick öffnet */
@@ -481,7 +520,17 @@ label.inl { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5
 /* ---------- Bedarfsseite: Phase und Stand hängen unter der Kopfzeile; darunter Name und Gliederung zum Anklicken, rechts die Summe; ⋯ und Löschen ganz rechts */
 .subbar { flex-basis: 100%; display: flex; align-items: center; gap: 6px 18px; flex-wrap: wrap; padding: 7px 0 8px; border-top: 1px solid var(--line3); }
 .subbar .back { padding: 3px 9px; font-size: 13px; }
-.d-head { grid-area: head; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px 16px; align-items: start; }
+.d-head { grid-area: head; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px 16px; align-items: start; }
+/* Kopf: Deadline unter dem Namen (Klick: Kalender), Stichworte rechts neben dem Namen mit kleinem + */
+.d-dl { border: 0; background: none; padding: 0; font: inherit; font-size: 14px; color: var(--muted); cursor: pointer; }
+.d-dl b { color: var(--ink2); font-weight: 600; }
+.d-dl.leer b { color: var(--faint); font-weight: 400; }
+.d-dl:hover b { color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.d-sw { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 5px; max-width: 320px; margin-top: 12px; }
+.sw-plus { width: 24px; height: 24px; padding: 0; border-radius: 6px; border: 1.5px solid var(--focus); color: var(--focus); background: transparent; font-size: 17px; font-weight: 700; line-height: 1; display: grid; place-items: center; }
+.sw-plus:hover { background: var(--focus); color: var(--card); }
+.sw-pop { padding: 8px 10px; min-width: 260px; display: grid; gap: 6px; }
+.sw-pop .sw-in { border-bottom: 1px solid var(--focus); width: 100%; }
 .d-head > .prio { margin-top: 12px; }
 .d-name { min-width: 0; display: grid; gap: 2px; }
 .inline { border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; padding: 2px 2px; color: inherit; }
@@ -504,7 +553,6 @@ input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: 
 /* Bedarf oben: links die Zuständigen (wie die Kontakte im Förderer-Fenster), darunter Deadline und Stichwort; rechts, durch eine Linie getrennt, die Beschreibung */
 .eck { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
 .eck-r { border-left: 1px solid var(--line3); padding-left: 28px; }
-.eck-f { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 0 20px; align-items: start; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line3); }
 .eck .sub { margin-bottom: 6px; }
 /* Zuständige: je Zeile zwei, E-Mail und Telefon stehen nur als Hinweis an den Knöpfen */
 #zust-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: stretch; }
@@ -690,6 +738,13 @@ span.st-btn { display: inline-block; }
 .fk .pro, .fk .contra { display: flex; align-items: flex-start; gap: 8px; }
 .fk .pc i { width: 7px; height: 7px; border-radius: 50%; flex: none; margin-top: 8px; }
 .fk .pro i { background: #43a047; } .fk .contra i { background: #d9534f; }
+/* Pro und Contra: formatierter Text, drei Zeilen Vorschau; Klick öffnet das Schreibfeld */
+.fk .pc .pe-pc { flex: 1 1 auto; min-width: 0; margin: 0; padding: 1px 22px 1px 0; }
+.fk .pc .pe-pc .val { max-height: 4.35em; overflow: hidden; font-size: 13px; line-height: 1.45; color: var(--ink2); }
+.fk .pc .pe-pc.edit .val { max-height: none; }
+.fk .pc .pe-pc .val.leer { color: var(--faint); font-style: normal; }
+.fk .pc .pe-pc > svg { top: 4px; right: 2px; }
+.pe-ue { margin-top: 8px; }
 .fk .pc textarea { border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; padding: 1px 0; min-height: 0; resize: none; field-sizing: content;
   font-size: 13px; line-height: 1.45; color: var(--ink2); max-height: 4.35em; overflow: hidden; }   /* Vorschau: drei Zeilen */
 .fk .pc textarea:hover { border-bottom-color: var(--line2); }

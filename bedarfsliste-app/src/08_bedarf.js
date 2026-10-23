@@ -24,7 +24,11 @@ const infoBtn = k => `<button class="info" data-act="info" data-v="${k}" aria-la
 const okLink = s => /^https?:\/\//i.test((s || '').trim());
 const linkBtn = b => okLink(b.link) ? `<a class="btn" href="${esc(b.link.trim())}" target="_blank" rel="noopener" data-act="link">Öffnen ↗</a>` : `<span class="btn disabled" aria-disabled="true" title="Erst einen Link einfügen (https://…)">Öffnen ↗</span>`;
 const copyBtn = b => `<button data-act="copy-path" ${b.pfad ? '' : 'disabled'}>Kopieren</button>`;
-const metaRest = b => (b.angelegt ? 'angelegt ' + fmtDate(b.angelegt) : '');
+// unter dem Namen: die Deadline (Klick öffnet den Kalender); wann der Bedarf angelegt wurde, steht im Hinweis
+const metaRest = b => `<button class="d-dl${b.deadline ? '' : ' leer'}" data-act="deadline" title="Deadline ändern${b.angelegt ? ' · angelegt am ' + fmtDate(b.angelegt) : ''}">Deadline: <b>${b.deadline ? fmtDate(b.deadline) : 'keine'}</b></button>`;
+// Stichworte oben neben dem Namen: Marken mit ×, dahinter ein kleines + (beim Überfahren „Stichworte oder Fördertöpfe“)
+const swHead = b => b.stichworte.map((s, i) => `<span class="pchip">${esc(s)}<button class="x" data-act="sw-weg" data-i="${i}" aria-label="${esc(s)} entfernen" title="entfernen">×</button></span>`).join('')
+  + `<button class="sw-plus" data-act="sw-pop" data-tip="Stichworte oder Fördertöpfe" aria-label="Stichwort oder Fördertopf hinzufügen">+</button>`;
 const ICON_TRASH = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zM6 9h12l-.9 11.1A2 2 0 0 1 15.1 22H8.9a2 2 0 0 1-2-1.9L6 9zm4 2v8h1.6v-8H10zm2.4 0v8H14v-8h-1.6z"/></svg>';
 const ICON_UP = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M11 20h2v-9.2l3.6 3.6 1.4-1.4-6-6-6 6 1.4 1.4 3.6-3.6V20zM5 4h14v2H5V4z"/></svg>';
 const ICON_PEN = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M4 17.2V20h2.8L17.3 9.5l-2.8-2.8L4 17.2zm15.7-10.1a1 1 0 0 0 0-1.4l-1.4-1.4a1 1 0 0 0-1.4 0l-1.2 1.2 2.8 2.8 1.2-1.2z"/></svg>';
@@ -47,6 +51,7 @@ function bedarfView(b) {
         <textarea class="inline title" id="f-titel" data-p="titel" rows="1" placeholder="Bedarf" aria-label="Bedarf">${esc(b.titel)}</textarea>
         <div class="d-sub"><input type="text" class="inline gl" data-p="gliederung" list="dl-gl" value="${esc(b.gliederung)}" placeholder="Gliederung (Ort oder Diözese)" aria-label="Gliederung"><span class="muted" id="d-meta">${metaRest(b)}</span></div>
       </div>
+      <div class="d-sw" id="d-sw">${swHead(b)}</div>
       <div class="d-right-head">
         <div class="sum-line"><input type="text" inputmode="decimal" class="inline num sum" data-num data-p="summe" value="${esc(fmtNum(b.summe))}" placeholder="Summe" aria-label="Summe in Euro"><span class="unit">€</span></div>
       </div>
@@ -78,17 +83,12 @@ function moreMenu(btn) {
 }
 
 /* ---------- Zuständig, Deadline, Stichwort, Beschreibung */
-// oben: links die Zuständigen (je Zeile zwei, wie die Kontakte im Förderer-Fenster), darunter Deadline und Stichworte; rechts die Beschreibung
-// (die ganze Fläche ist anklickbar). Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift.
-// Stichworte: eintippen, Enter – es steht als Marke da, das nächste lässt sich gleich eintippen; × nimmt eines weg
-const swFeld = b => `<div class="sw-box"><div class="lab">Stichworte oder Fördertöpfe ${infoBtn('stichwort')}</div><div class="sw-l">`
-  + b.stichworte.map((s, i) => `<span class="pchip">${esc(s)}<button class="x" data-act="sw-weg" data-i="${i}" aria-label="${esc(s)} entfernen" title="entfernen">×</button></span>`).join('')
-  + `<input id="sw-neu" class="sw-in" placeholder="${b.stichworte.length ? '+ weiteres' : 'z. B. Landesprogramm Digitalisierung'}" aria-label="Stichwort hinzufügen" autocomplete="off"></div></div>`;
+// oben: links nur die Zuständigen (je Zeile zwei, wie die Kontakte im Förderer-Fenster), rechts die Beschreibung (die ganze Fläche ist anklickbar).
+// Deadline und Stichworte stehen im Kopf der Seite. Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift.
 function secInfo(b) {
   const ed = UI.zEdit === b.id, cop = !ed && b.zust.some(z => z.n.trim()) ? `<button class="k-cop" data-act="pers-cop" title="Fehlende Kontaktdaten der Zuständigen von Copilot suchen lassen">Kontaktdaten mit Copilot</button>` : '';
   return `<section class="card info-card eck" id="sec-eck">
-    <div class="eck-l">${kKopf('Zuständig', ed, '', cop)}<div id="zust-liste">${zustListe(b)}</div>
-      <div class="eck-f">${pe(b, 'deadline', 'Deadline ' + infoBtn('deadline'), 'date', { aria: 'Deadline', ph: 'ohne Deadline' })}${swFeld(b)}</div></div>
+    <div class="eck-l">${kKopf('Zuständig', ed, '', cop)}<div id="zust-liste">${zustListe(b)}</div></div>
     <div class="eck-r">${pe(b, 'beschreibung', 'Beschreibung ' + FMT_I, 'area', { aria: 'Beschreibung', fmt: true, ph: 'Kurzbeschreibung aus der UPL oder in eigenen Worten' })}</div>
   </section>`;
 }
@@ -203,7 +203,7 @@ const FX = { web: ['web', '↗', 'Seite öffnen'] };
 // eine Angabe zum Anklicken: art 'line' (eine Zeile), 'area' (mehrere Zeilen), 'num' (Betrag); fx: Knopf zum Schreiben, Anrufen, Öffnen
 // f: ein Förderer (mit data-fid) oder der Bedarf selbst; o.fmt: Text mit Formatierung, o.sug: Vorschläge beim Tippen, o.aria: Name des Felds
 function pe(f, k, lab, art = 'line', o = {}) {
-  const v = f[k], leer = v == null || String(v).trim() === '';
+  const v = getPath(f, k), leer = v == null || String(v).trim() === '';
   const shown = o.html != null ? o.html : art === 'num' ? (leer ? '' : eur(v)) : art === 'date' ? fmtDate(v) : o.fmt ? fmtText(v) : esc(k === 'web' ? kurzUrl(v || '') : v || '');
   const fx = o.fx && !leer ? `<button class="fx" data-act="${FX[o.fx][0]}" data-fid="${f.id}" title="${FX[o.fx][2]}" aria-label="${FX[o.fx][2]}">${FX[o.fx][1]}</button>` : '';
   return `<div class="pe${o.cls ? ' ' + o.cls : ''}" data-act="pe"${f.foerderer ? '' : ` data-fid="${f.id}"`} data-k="${k}" data-art="${art}" data-lab="${esc(o.aria || lab || o.ph || k)}"${o.fmt ? ' data-fmt="1"' : ''}${o.sug ? ` data-sug="${o.sug}"` : ''} title="Klicken zum Bearbeiten">`
@@ -271,12 +271,13 @@ function popEdit(el) {
   if (el.querySelector('.pe-in')) return;
   const b = cur(), f = b && (el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : b); if (!f) return;
   const k = el.dataset.k, art = el.dataset.art, lang = art === 'area', val = el.querySelector('.val');
-  if (art === 'date') return calPop(el, f[k], v => { f[k] = v || ''; changed(); keep(renderNow); }, { clear: el.dataset.lab + ' entfernen' });
+  const alt = getPath(f, k);
+  if (art === 'date') return calPop(el, alt, v => { setPath(f, k, v || ''); changed(); keep(renderNow); }, { clear: el.dataset.lab + ' entfernen' });
   // Texte mit Formatierung: Schreibfeld, das fett, kursiv, Aufzählungen usw. gleich zeigt; sonst ein schlichtes Feld
   const rich = lang && !!el.dataset.fmt;
   const inp = rich ? h('div', { class: 'pe-in pe-rich', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': el.dataset.lab })
     : h(lang ? 'textarea' : 'input', { class: 'pe-in', rows: lang ? 2 : null, type: lang ? null : 'text', inputmode: art === 'num' ? 'decimal' : null, 'aria-label': el.dataset.lab });
-  if (rich) inp.innerHTML = fmtText(f[k] || '', true) || '<div><br></div>'; else inp.value = art === 'num' ? fmtNum(f[k]) : f[k] ?? '';
+  if (rich) inp.innerHTML = fmtText(alt || '', true) || '<div><br></div>'; else inp.value = art === 'num' ? fmtNum(alt) : alt ?? '';
   const wert = () => rich ? richText(inp) : inp.value;
   if (lang && el.closest('.eck-r')) inp.style.minHeight = Math.max(60, val.getBoundingClientRect().bottom - val.getBoundingClientRect().top, el.getBoundingClientRect().bottom - val.getBoundingClientRect().top - 10) + 'px';
   val.classList.remove('leer'); val.replaceChildren(inp); el.classList.add('edit');
@@ -291,8 +292,8 @@ function popEdit(el) {
     if (leiste) leiste();
     if (ok) {
       let v = k === 'quellen' ? quellenZeilen(wert()).join('\n') : wert().trim();
-      if (art === 'num') { v = deNum(v); if (v === null) { toast('„' + wert() + '“ ist keine Zahl – nicht übernommen.', 'warn'); v = f[k]; } else if (v === '') v = null; }
-      if (v !== (f[k] ?? (art === 'num' ? null : ''))) { f[k] = v; changed(); }
+      if (art === 'num') { v = deNum(v); if (v === null) { toast('„' + wert() + '“ ist keine Zahl – nicht übernommen.', 'warn'); v = alt; } else if (v === '') v = null; }
+      if (v !== (alt ?? (art === 'num' ? null : ''))) { setPath(f, k, v); changed(); }
     }
     const y = ($('.foe-pop .pop-body') || {}).scrollTop || 0;
     keep(renderNow);
@@ -351,8 +352,8 @@ function fpCard(b, f) {
     </div>
     <div class="fk-st">${st === 'zugesagt' && f.eingegangen > 0 ? geldBlock(f) : `<button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div>${st === 'zugesagt' ? geldBlock(f) : ''}`}</div>
     <div class="pc">
-      <label class="pro" title="Pro: warum passt das?"><i></i>${tarea(f, 'warum', a + ' rows="1" aria-label="Pro – warum passt das"', 'Pro: Warum passt das? Satzungszweck, Förderschwerpunkt, Regionalbezug …')}</label>
-      <label class="contra" title="Contra: wo hakt es?"><i></i>${tarea(f, 'knackpunkte', a + ' rows="1" aria-label="Contra – Knackpunkte"', 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?')}</label>
+      <div class="pro" title="Pro: warum passt das?"><i></i>${pe(f, 'warum', '', 'area', { fmt: true, cls: 'pe-pc', aria: 'Pro – warum passt das', ph: 'Pro: Warum passt das? Satzungszweck, Förderschwerpunkt, Regionalbezug …' })}</div>
+      <div class="contra" title="Contra: wo hakt es?"><i></i>${pe(f, 'knackpunkte', '', 'area', { fmt: true, cls: 'pe-pc', aria: 'Contra – Knackpunkte', ph: 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?' })}</div>
     </div>
     <div class="det">
       <div class="fk-fuss" id="fuss-${f.id}">${fussKontakt(f)}</div>
@@ -378,6 +379,17 @@ const swa = k => `<i class="swa ${k}" aria-hidden="true"></i>`;
 // neu aufgeteilt wird der Kreis erst, wenn die Maus ihn verlässt (sonst springen die Stücke unter dem Mauszeiger weg)
 const PIE = { W: 560, H: 240, R: 82 };
 let PIE_HOLD = false;
+// Breite eines Textes in der Schrift der Beschriftung (über ein unsichtbares Zeichenfeld gemessen)
+const textBreite = (() => { let c = null; return (t, font) => { c = c || document.createElement('canvas').getContext('2d'); c.font = font; return c.measureText(t).width; }; })();
+function pieZeilen(t, max) {
+  const font = '600 13px ' + getComputedStyle(document.body).fontFamily, w = s => textBreite(s, font), fit = s => { if (w(s) <= max) return s; while (s.length > 1 && w(s + '…') > max) s = s.slice(0, -1).trimEnd(); return s + '…'; };
+  if (w(t) <= max) return [t];
+  const wo = t.split(/\s+/); let a = '';
+  for (const x of wo) { const n = a ? a + ' ' + x : x; if (w(n) > max) break; a = n; }
+  if (!a) return [fit(t)];
+  const rest = t.slice(a.length).trim();
+  return rest ? [a, fit(rest)] : [a];
+}
 function finPie(b) {
   const F = finState(b), parts = [], fs = F.fs.filter(f => segKind(f) !== 'none' && !(F.done && segKind(f) !== 'zu'));   // steht die Finanzierung, zählen nur noch Zusagen
   const add = (k, name, v, fid) => { if (v > 0) parts.push({ k, name, v, fid }); };
@@ -398,19 +410,20 @@ function finPie(b) {
       : `<path class="ps ${p.k}" d="M${cx} ${cy}L${pt(p.a0)}A${R} ${R} 0 ${p.da > Math.PI ? 1 : 0} 1 ${pt(p.a0 + p.da)}Z"${act}/>`;
   });
   // Beschriftungen: rechte und linke Seite getrennt von oben nach unten, mit Mindestabstand, damit sich nichts überlappt
-  const GAP = 32, TOP = 18, BOT = H - 22;
-  P.forEach(p => { p.re = Math.cos(p.mid) >= 0; p.y = xy(p.mid, R + 16)[1]; });
+  // lange Namen stehen in zwei Zeilen (darüber) – genau so breit, wie neben dem Kreis Platz ist; mehr wird mit … gekürzt
+  const GAP = 32, TOP = 18, BOT = H - 22, PLATZ = W / 2 - R - 44 - 4;
+  P.forEach(p => { p.re = Math.cos(p.mid) >= 0; p.y = xy(p.mid, R + 16)[1]; p.zeilen = pieZeilen(p.k === 'off' ? 'Delta' : p.name, PLATZ); });
   for (const re of [true, false]) {
     const L = P.filter(p => p.re === re).sort((a, c) => a.y - c.y);
-    L.forEach((p, i) => { p.y = Math.max(p.y, TOP, i ? L[i - 1].y + GAP : TOP); });
+    L.forEach((p, i) => { const top = TOP + (p.zeilen.length - 1) * 15; p.y = Math.max(p.y, top, i ? L[i - 1].y + GAP + (p.zeilen.length - 1) * 15 : top); });
     const over = L.length ? L[L.length - 1].y - BOT : 0;
     if (over > 0) for (let i = L.length - 1; i >= 0; i--) L[i].y = Math.min(L[i].y - over, i < L.length - 1 ? L[i + 1].y - GAP : BOT);
   }
-  const kurz = t => t.length > 30 ? t.slice(0, 29) + '…' : t;
   const labels = P.map(p => {
     const [x0, y0] = xy(p.mid, R), [x1, y1] = xy(p.mid, R + 12), tx = p.re ? cx + R + 44 : cx - R - 44, anc = p.re ? 'start' : 'end';
+    const Z = p.zeilen, y = p.y - 2 - (Z.length - 1) * 15;
     return `<g class="pl"><polyline class="pl-l" points="${x0.toFixed(1)},${y0.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)} ${(tx + (p.re ? -6 : 6)).toFixed(1)},${p.y.toFixed(1)}"/>`
-      + `<text class="pl-n" x="${tx}" y="${(p.y - 2).toFixed(1)}" text-anchor="${anc}">${esc(kurz(p.k === 'off' ? 'Delta' : p.name))}</text>`
+      + `<text class="pl-n" x="${tx}" y="${y.toFixed(1)}" text-anchor="${anc}">${Z.map((z, i) => `<tspan x="${tx}" dy="${i ? 15 : 0}">${esc(z)}</tspan>`).join('')}</text>`
       + `<text class="pl-v" x="${tx}" y="${(p.y + 13).toFixed(1)}" text-anchor="${anc}">${esc(eur(p.v))} · ${Math.round(p.v / max * 100)} %</text></g>`;
   });
   return svg(slices.join('') + labels.join(''));
@@ -467,7 +480,7 @@ function nachBody(b) {
     <div><h3>Gemeinsam für den Bedarf</h3>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.ueb.noetig', 'Spendenübergabe')}${n.ueb.noetig ? seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], n.ueb.st, 'data-p="nach.ueb.st"', 'small') : ''}</div>
         ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', `<span class="row nowrap">${din(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}<input type="time" data-p="nach.ueb.zeit" value="${esc(n.ueb.zeit)}" aria-label="Uhrzeit der Spendenübergabe"></span>`)}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus'))}</div>
-          ${fld('Notizen', tarea(b, 'nach.ueb.info', 'aria-label="Notizen zur Spendenübergabe"', 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos'))}
+          ${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}
           ${fld('Wer ist dabei?', `<div class="mit">${cand.length ? cand.map(f => `<label class="check"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${n.ueb.mit.includes(f.id) ? 'checked' : ''}> ${esc(f.name)} <span class="muted small">${F_ST_L[f.status]}</span></label>`).join('') : '<span class="muted small">Noch keine Förderer im Förderplan</span>'}</div>`)}` : ''}
       </div>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.pm.noetig', 'Pressemitteilung')}${n.pm.noetig ? seg([['offen', 'offen'], ['arbeit', 'in Arbeit', 't-warn'], ['veroeff', 'veröffentlicht', 't-ok']], n.pm.st, 'data-p="nach.pm.st"', 'small') : ''}</div>
