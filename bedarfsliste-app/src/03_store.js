@@ -78,7 +78,7 @@ async function attachFolder(create) {
   ST.conn = 'ok';
   const text = f.size ? await f.text() : '', other = text ? parseFileText(text) : null;
   if (isData(other) && BROKEN) {                // geöffnete Datei kaputt, die im Ordner lesbar: diese nehmen
-    BROKEN = null; D = normalize(other); SAVED_JSON = JSON.stringify(D);
+    BROKEN = null; D = normalize(other); SAVED_JSON = JSON.stringify(D); undoReset();
     toast('Die geöffnete Datei war beschädigt – der Stand aus dem Ordner wurde geladen.', 'ok');
   } else if (isData(other) && other.meta && other.meta.savedAt && other.meta.savedAt !== D.meta.savedAt && (!D.meta.savedAt || other.meta.savedAt > D.meta.savedAt)) externalChange(other, f.lastModified);
   noteNewer(text, other);
@@ -141,7 +141,31 @@ async function connectFolder() {
 }
 
 /* ---------- Speichern */
+/* ---------- Rückgängig: die letzten 50 Stände (ohne Speicherangaben); schnelle Änderungen hintereinander (Tippen) zählen als ein Schritt */
+// Rückgängig: vor jeder Änderung den Stand merken (höchstens 50 Schritte). Tippen im selben Feld zählt als ein Schritt;
+// alles andere (Löschen, Status, Knöpfe) ist immer ein eigener Schritt. Wird die Datei von außen neu geladen, beginnt es von vorn.
+const UNDO = { stack: [], last: null, t: 0, aus: false, tipp: null, tippAlt: null };
+const undoStand = () => JSON.stringify({ bedarfe: D.bedarfe, settings: D.settings });
+function undoReset() { UNDO.stack = []; UNDO.last = undoStand(); UNDO.t = 0; UNDO.tippAlt = null; }
+function undoMerk() {
+  const tipp = UNDO.tipp; UNDO.tipp = null;
+  if (UNDO.aus) return;
+  const jetzt = undoStand(), t = Date.now();
+  if (UNDO.last === null || jetzt === UNDO.last) return;
+  if (UNDO.stack[UNDO.stack.length - 1] === jetzt) UNDO.stack.pop();                    // Änderung wieder zurückgenommen: kein leerer Schritt
+  else if (!(tipp && tipp === UNDO.tippAlt && t - UNDO.t < 2000)) { UNDO.stack.push(UNDO.last); if (UNDO.stack.length > 50) UNDO.stack.shift(); }
+  UNDO.last = jetzt; UNDO.t = t; UNDO.tippAlt = tipp;
+}
+function undo() {
+  if (!UNDO.stack.length) { toast('Nichts zum Rückgängigmachen.'); return; }
+  const alt = JSON.parse(UNDO.stack.pop());
+  D = normalize(Object.assign({}, alt, { meta: D.meta })); UNDO.last = undoStand(); UNDO.t = 0; UNDO.tippAlt = null;
+  UNDO.aus = true; try { changed(); } finally { UNDO.aus = false; }
+  ORDER.ids = null;                                                                       // Wiederhergestelltes steht an seinem Platz in der Liste
+  keep(renderNow); toast('Rückgängig gemacht' + (UNDO.stack.length ? '' : ' – weiter zurück geht es nicht.'), 'ok');
+}
 function changed() {
+  undoMerk();
   if (DEMO) { try { localStorage.setItem(DEMO_KEY, JSON.stringify(D)); } catch (e) { /* ohne Speicher weiter */ } return; }
   saveDraft(); scheduleAutosave(); updateSaveUI();
 }
@@ -216,7 +240,7 @@ async function saveDownload() {
 /* ---------- Änderungen von außen (z. B. am zweiten Rechner gespeichert und per OneDrive abgeglichen) */
 function externalChange(other, stamp) {
   if (!isDirty() || BROKEN) {
-    D = normalize(other); SAVED_JSON = JSON.stringify(D); ST.conflict = null; BROKEN = null;
+    D = normalize(other); SAVED_JSON = JSON.stringify(D); undoReset(); ST.conflict = null; BROKEN = null;
     if (stamp != null) ST.stamp = stamp;
     toast('Neuer Stand geladen (gespeichert ' + fmtStamp(other.meta.savedAt) + ')', 'ok');
     safeRender();
@@ -253,7 +277,7 @@ function resolveConflict(how) {
   if (how === 'mine') saveAll({ force: true });
   else {
     const mine = JSON.stringify(D);
-    D = normalize(c.other); SAVED_JSON = JSON.stringify(D); if (c.stamp != null) ST.stamp = c.stamp; clearDraft();
+    D = normalize(c.other); SAVED_JSON = JSON.stringify(D); undoReset(); if (c.stamp != null) ST.stamp = c.stamp; clearDraft();
     toast('Stand aus der Datei geladen.', 'ok', () => { D = normalize(JSON.parse(mine)); changed(); renderNow(); });
   }
   renderNow();

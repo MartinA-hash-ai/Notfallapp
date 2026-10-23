@@ -143,10 +143,10 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(!(await p.$('#fin-pie .ps[data-fid="f-mtw-bst"]')), 'abgelehnt: Stück verschwindet beim Verlassen');
   await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-bst'); f.status = 'beantragt'; f.zugesagt = null; f.entscheidungAm = ''; changed(); renderNow(); });
   // lange Kontaktzeile und lange Texte machen die Kachel nicht breiter (auch wenn ein Browser die Zeile nicht kürzt)
-  r = await p.evaluate(() => { const st = document.createElement('style'); st.textContent = '.fk .det-btn { width: auto !important; } .fk .det-btn .ds { min-width: max-content !important; }'; document.head.append(st);
+  r = await p.evaluate(() => { const st = document.createElement('style'); st.textContent = '.fk-fuss .ff-n { overflow: visible !important; }'; document.head.append(st);
     const f = cur().foerderer.find(x => x.id === 'f-mtw-bst'), alt = JSON.stringify(f);
-    Object.assign(f, { name: 'CaritasStiftung für das Erzbistum Paderborn', mail: 'stiftung@caritas-paderborn.de', kontakt: 'Nadine Mersch, Geschäftsführung der Stiftung (Referat Fördermittel DiCV: Barbara Höltring, 05251 209-327)', warum: 'Zweck: Hilfe für Alte, Kranke und Pflegebedürftige sowie Weiterbildung und Qualifizierung Ehrenamtlicher. '.repeat(3) }); renderNow();
-    const res = [...document.querySelectorAll('.fk.fp')].every(c => { const r = c.getBoundingClientRect(); return [...c.querySelectorAll('.fk-top, .pc, .fk-st, .dots-box')].every(e => e.getBoundingClientRect().right <= r.right + 1); });
+    Object.assign(f, { name: 'CaritasStiftung für das Erzbistum Paderborn', kontakte: [{ n: 'Nadine Mersch, Geschäftsführung der Stiftung (Referat Fördermittel DiCV: Barbara Höltring, 05251 209-327)', rolle: '', mail: 'stiftung@caritas-paderborn.de', tel: '05251 209-227' }], warum: 'Zweck: Hilfe für Alte, Kranke und Pflegebedürftige sowie Weiterbildung und Qualifizierung Ehrenamtlicher. '.repeat(3) }); renderNow();
+    const res = [...document.querySelectorAll('.fk.fp')].every(c => { const r = c.getBoundingClientRect(); return [...c.querySelectorAll('.fk-top, .pc, .fk-st, .dots-box, .fk-fuss .fi, .ff-mehr')].every(e => e.getBoundingClientRect().right <= r.right + 1); });
     const k = [...document.querySelectorAll('.fk.fp')].map(c => c.getBoundingClientRect()), overlap = k.some((a, i) => k.some((c, j) => i < j && a.left < c.right - 1 && c.left < a.right - 1 && a.top < c.bottom - 1 && c.top < a.bottom - 1));
     st.remove(); Object.assign(f, JSON.parse(alt)); renderNow(); return [res, overlap]; });
   ok(r.join() === 'true,false', 'Kacheln bleiben in ihrer Spalte und überlappen nicht, auch mit langer Kontaktzeile: ' + r.join());
@@ -165,7 +165,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => { const P = document.querySelector('.foe-pop'), lab = P.querySelector('.pA-bed .pe .lab').getBoundingClientRect(), val = P.querySelector('.pA-bed .pe .val .pv').getBoundingClientRect();
     return [P.querySelector('header .pe-amt').textContent.replace(/\u00a0/g, ' '), !!P.querySelector('header .dots-box'), !!P.querySelector('header .st-btn, header .seg'), [...P.querySelectorAll('.pop-body .sub')].map(e => e.textContent).join(','),
       P.querySelectorAll('.pop-body input, .pop-body textarea').length, P.querySelector('.pe[data-k="hoehe"] .val').textContent, Math.round(val.left - lab.left), P.querySelector('.pA-bed > .pe').dataset.k]; });
-  ok(r.join('|') === '30.000 €|true|false|Kontakte,Quellen,Notizen|0|bis 50 % der Kosten|12|fristInfo', 'Fenster: Kopf mit Summe und Wahrscheinlichkeit, rechts ohne Überschrift, keine Eingabefelder, Werte eingerückt: ' + r.join('|'));
+  ok(r.join('|') === '30.000 €|true|false|Kontakte,Quellen,Notizen i|0|bis 50 % der Kosten|12|fristInfo', 'Fenster: Kopf mit Summe und Wahrscheinlichkeit, rechts ohne Überschrift, keine Eingabefelder, Werte eingerückt: ' + r.join('|'));
   // Summe und Wahrscheinlichkeit im Kopf ändern
   await p.click('.foe-pop .pe-amt'); await p.keyboard.press('Control+A'); await p.keyboard.type('28000'); await p.keyboard.press('Enter');
   await p.click('.foe-pop header .dot:nth-child(4)');
@@ -176,6 +176,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('.foe-pop .k-pen');
   ok(await p.evaluate(() => document.querySelectorAll('.foe-pop .k-ed').length) === 0, 'Stift: Bearbeiten, noch keine Zeile');
   await p.click('.foe-pop .kadd');
+  r = await p.evaluate(() => { const box = document.querySelector('.foe-pop .pA-box').getBoundingClientRect(), fe = document.querySelector('.foe-pop .pA-box .sub [data-act="k-fertig"]'), fr = fe && fe.getBoundingClientRect(), li = [...document.querySelectorAll('.foe-pop .k-ed input')], cs = getComputedStyle(li[0]);
+    return [li.map(e => e.placeholder).join(','), cs.borderTopWidth + ' ' + cs.borderBottomWidth, li.every((e, i) => !i || e.getBoundingClientRect().top > li[i - 1].getBoundingClientRect().bottom - 1), !!fe && box.right - fr.right < 30 && fr.top - box.top < 40, !document.querySelector('.foe-pop .k-pen')]; });
+  ok(r.join('|') === 'Vorname Nachname,Position,E-Mail-Adresse,Telefonnummer|0px 1px|true|true|true', 'Kontakt bearbeiten: Linien untereinander mit blassem Hinweis, „Fertig“ oben rechts statt Stift: ' + r.join('|'));
   await p.keyboard.type('Petra Lotto'); await p.fill('.foe-pop [data-p="kontakte.0.rolle"]', 'Förderreferentin'); await p.fill('.foe-pop [data-p="kontakte.0.mail"]', 'petra@lotterie.example');
   await p.click('.foe-pop .kadd'); await p.keyboard.type('Max Los'); await p.fill('.foe-pop [data-p="kontakte.1.tel"]', '0211 12345');
   await p.click('.foe-pop .kadd');
@@ -183,8 +186,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join() === '3,false', 'höchstens drei Kontakte, dann kein „+“ mehr: ' + r.join());
   await p.click('.foe-pop [data-act="k-fertig"]');
   r = await p.evaluate(() => [cur().foerderer.find(x => x.id === 'f-mtw-lot').kontakte.map(kontaktText).join(' | '), [...document.querySelectorAll('.foe-pop .k1 .kn')].map(e => e.textContent).join(','),
-    [...document.querySelectorAll('.foe-pop .k1 a.kb')].map(a => a.getAttribute('href')).join(), document.querySelector('#ds-f-mtw-lot').textContent]);
-  ok(r[0] === 'Petra Lotto; Förderreferentin; petra@lotterie.example | Max Los; ; ; 0211 12345' && r[1] === 'Petra Lotto,Max Los' && r[2] === 'mailto:petra@lotterie.example,tel:021112345' && r[3].startsWith('Petra Lotto'),
+    [...document.querySelectorAll('.foe-pop .k1 a.kb')].map(a => a.getAttribute('href')).join(), document.querySelector('#fuss-f-mtw-lot .ff-n').textContent + ' ' + [...document.querySelectorAll('#fuss-f-mtw-lot a.fi')].map(a => a.getAttribute('href')).join()]);
+  ok(r[0] === 'Petra Lotto; Förderreferentin; petra@lotterie.example | Max Los; ; ; 0211 12345' && r[1] === 'Petra Lotto,Max Los' && r[2] === 'mailto:petra@lotterie.example,tel:021112345' && r[3] === 'Petra Lotto mailto:petra@lotterie.example',
     'Fertig: leerer dritter Kontakt entfernt, Kontakte mit Links und Knöpfen, Hauptkontakt in der Kachel: ' + r.join(' / '));
   await p.click('.foe-pop .k1 .star.off');
   ok(await p.evaluate(() => cur().foerderer.find(x => x.id === 'f-mtw-lot').kontakte[0].n) === 'Max Los', '☆ macht einen Kontakt zum Hauptkontakt (nach oben)');
@@ -212,12 +215,51 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-lot'); f.notiz = ''; f.fristInfo = 'laufend, Bearbeitung etwa 3 Monate'; keep(renderNow); });
   r = await p.evaluate(() => quellenZeilen('https://a.de/x ; https://b.de https://c.de\nSatzung').join('|'));
   ok(r === 'https://a.de/x|https://b.de|https://c.de|Satzung', 'Quellen werden je Zeile getrennt: ' + r);
+  // einfache Formatierung in den Texten: * Aufzählung, 1. Nummern, *fett*, _kursiv_, ~durchgestrichen~, Links; Dateinamen mit _ bleiben
+  await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-lot'); f.notiz = 'Vorab *wichtig* und _bald_, ~alt~ – Datei Leitfaden_2026_neu.pdf\n* eins\n* zwei https://x.example/a\n1. erst\n2. dann'; changed(); keep(renderNow); });
+  r = await p.$eval('.foe-pop .pe[data-k="notiz"] .pv', e => [e.classList.contains('fmt'), e.querySelector('b').textContent, e.querySelector('i').textContent, e.querySelector('s').textContent, e.textContent.includes('Leitfaden_2026_neu.pdf'),
+    [...e.querySelectorAll('ul li')].map(x => x.textContent).join('/'), [...e.querySelectorAll('ol li')].map(x => x.textContent).join('/'), e.querySelector('a').getAttribute('href')]);
+  ok(r.join('|') === 'true|wichtig|bald|alt|true|eins/zwei x.example/a|erst/dann|https://x.example/a', 'Notizen formatiert: ' + r.join('|'));
+  r = await p.evaluate(() => fmtText('5*3 und a_b_c, <b>nicht</b>'));
+  ok(r === '5*3 und a_b_c, &lt;b&gt;nicht&lt;/b&gt;', 'Zeichen mitten im Wort bleiben, HTML wird nicht ausgeführt: ' + r);
+  // Erklärung hinter dem „i“: liegt über dem Fenster, Esc schließt nur die Erklärung
+  await p.click('.foe-pop .pA-n .sub .info');
+  r = await p.evaluate(() => { const m = document.querySelector('.modal'), q = m && m.getBoundingClientRect(), top = m && document.elementFromPoint(q.left + q.width / 2, q.top + q.height / 2);
+    return [m && m.querySelector('h2').textContent, !!(top && top.closest('.modal')), m && m.querySelectorAll('tbody tr').length]; });
+  ok(r.join('|') === 'Texte formatieren|true|6', 'Erklärung zur Formatierung über dem Fenster: ' + r.join('|'));
   await p.keyboard.press('Escape');
-  await p.evaluate(() => { cur().foerderer.find(x => x.id === 'f-mtw-lot').betrag = 30000; keep(renderNow); });
+  ok(await p.evaluate(() => !document.querySelector('.modal') && !!document.querySelector('.foe-pop')), 'Esc schließt die Erklärung, das Fenster bleibt');
+  // kein waagrechter Scrollbalken in den Bereichen
+  r = await p.evaluate(() => [...document.querySelectorAll('.pop-body > div')].map(d => { const cs = getComputedStyle(d); return cs.overflowX + ':' + (d.offsetHeight - d.clientHeight - parseFloat(cs.borderTopWidth) - parseFloat(cs.borderBottomWidth)); }).join());
+  ok(r === 'hidden:0,hidden:0,hidden:0,hidden:0', 'Bereiche im Fenster ohne waagrechten Scrollbalken: ' + r);
+  // Rückgängig: versehentlich gelöschten Kontakt mit Strg+Z zurückholen
+  await p.waitForTimeout(50);
+  await p.click('.foe-pop .k-pen'); await p.click('.foe-pop .k-ed .x'); await p.click('.foe-pop .pA-box .sub [data-act="k-fertig"]');
+  ok(await p.evaluate(() => cur().foerderer.find(x => x.id === 'f-mtw-lot').kontakte.map(c => c.n).join()) === 'Petra Lotto,Dritte Person', 'Kontakt gelöscht');
+  await p.keyboard.press('Control+z');
+  r = await p.evaluate(() => [cur().foerderer.find(x => x.id === 'f-mtw-lot').kontakte.map(c => c.n).join(), !!document.querySelector('.foe-pop')]);
+  ok(r.join('|') === 'Max Los,Petra Lotto,Dritte Person|true', 'Strg+Z holt den Kontakt zurück, Fenster bleibt offen: ' + r.join('|'));
+  await p.keyboard.press('Escape');
+  // Kachel unten: Symbole mit Hinweis beim Überfahren
+  await p.hover('#fuss-f-mtw-lot a.fi[href^="tel:"]');
+  r = await p.evaluate(() => [[...document.querySelectorAll('#fuss-f-mtw-lot a.fi')].map(a => a.textContent + a.getAttribute('href')).join(), ($('.tip-pop') || {}).textContent]);
+  ok(r.join('|') === '☎tel:021112345|0211 12345', 'Kachel: Symbol nur für vorhandene Angaben (Max Los hat nur Telefon), Nummer beim Überfahren: ' + r.join('|'));
+  await p.mouse.move(5, 5);
+  ok(!(await p.$('.tip-pop')), 'Hinweis verschwindet beim Verlassen');
+  await p.evaluate(() => { cur().foerderer.find(x => x.id === 'f-mtw-lot').betrag = 30000; changed(); keep(renderNow); });
   // Betrag beim Tippen gleich mit Tausenderpunkt
   await p.click('#amt-f-mtw-lot', { clickCount: 3 }); await p.keyboard.type('45000');
   r = await p.evaluate(() => [document.querySelector('#amt-f-mtw-lot').value, cur().foerderer.find(f => f.id === 'f-mtw-lot').betrag]);
   ok(r.join() === '45.000,45000', 'Summe beim Tippen: 45000 → 45.000: ' + r.join());
+  // Rückgängig in der Kopfzeile: Tippen im selben Feld ist ein Schritt; ein entfernter Förderer kommt zurück
+  await p.click('.undo-btn');
+  ok(await p.evaluate(() => cur().foerderer.find(f => f.id === 'f-mtw-lot').betrag) === 30000, 'Rückgängig nimmt das ganze Tippen in einem Schritt zurück');
+  await p.click('.fp [data-act="rm-foe"][data-fid="f-mtw-lot"]'); await p.click('.modal footer button.primary');
+  ok(await p.evaluate(() => !cur().foerderer.some(f => f.id === 'f-mtw-lot')), 'Förderer entfernt');
+  await p.waitForTimeout(100); await p.click('.undo-btn');
+  r = await p.evaluate(() => { const f = cur().foerderer.find(f => f.id === 'f-mtw-lot'); return [!!f && f.betrag, !!document.querySelector('#fuss-f-mtw-lot')]; });
+  ok(r.join() === '30000,true', 'Rückgängig in der Kopfzeile holt den Förderer zurück: ' + r.join());
+  await p.click('#amt-f-mtw-lot', { clickCount: 3 }); await p.keyboard.type('45000');
   // neuer Förderer: kein Auswahlpfeil des Browsers, eigene Vorschläge
   await p.click('.fk-grid .fk-neu'); await p.keyboard.type('Bürger');
   r = await p.evaluate(() => [document.activeElement.hasAttribute('list'), [...document.querySelectorAll('.le-sug .le-opt')].map(o => o.textContent).join()]);

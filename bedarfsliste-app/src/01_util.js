@@ -26,6 +26,23 @@ function anyDate(v) {
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+// einfache Formatierung wie in Chat-Programmen: Zeilen mit „* “ oder „- “ werden Aufzählungen, „1. “ eine Nummerierung;
+// *fett*, _kursiv_, ~durchgestrichen~ (wie bei WhatsApp); Links werden anklickbar. Alles andere bleibt Text.
+function fmtText(t) {
+  const links = [];
+  const s = esc(String(t || '')).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)\]]/g, u => { links.push(u); return '\u0001' + (links.length - 1) + '\u0001'; });
+  const um = (x, z, tag) => x.replace(new RegExp('(^|[\\s(„])' + z + '(?=\\S)([^' + z + '\\n]*?\\S)' + z + '(?=$|[\\s.,;:!?)“])', 'g'), '$1<' + tag + '>$2</' + tag + '>');
+  const inl = x => um(um(um(x, '\\*', 'b'), '_', 'i'), '~', 's');
+  const out = []; let liste = null, absatz = [];
+  const zu = () => { if (absatz.length) { out.push(absatz.join('<br>')); absatz = []; } if (liste) { out.push(`<${liste.typ}>${liste.li.join('')}</${liste.typ}>`); liste = null; } };
+  for (const z of s.split('\n')) {
+    const m = z.match(/^\s*[*\-•]\s+(.*)$/), n = !m && z.match(/^\s*\d+[.)]\s+(.*)$/), typ = m ? 'ul' : n ? 'ol' : null;
+    if (typ) { if (absatz.length || (liste && liste.typ !== typ)) zu(); if (!liste) liste = { typ, li: [] }; liste.li.push(`<li>${inl((m || n)[1])}</li>`); }
+    else { if (liste) zu(); absatz.push(inl(z)); }
+  }
+  zu();
+  return out.join('').replace(/\u0001(\d+)\u0001/g, (x, i) => `<a href="${links[i]}" target="_blank" rel="noopener" data-act="link">${links[i].replace(/^https?:\/\/(www\.)?/, '')}</a>`);
+}
 // Quellen: je Link eine Zeile (auch wenn sie mit „;“ oder Leerzeichen hintereinander stehen)
 const quellenZeilen = t => String(t || '').replace(/\s*;\s*/g, '\n').replace(/(https?:\/\/\S+)\s+(?=https?:\/\/)/g, '$1\n').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
 const unquote = s => String(s).replace(/^\s*"|"\s*$/g, '');

@@ -56,6 +56,13 @@ Verwendungsnachweis setzt die Frist; der Kreis mit Stift bei der Spendenübergab
 **Bedarfsseite:** Förderplan und Nacharbeit klappen über den Pfeil vor der Überschrift ein (der Browser merkt es sich).
 Das Angebot steht bei den Freigaben (es ist Voraussetzung dafür), gespeichert bleibt es als feste Unterlage.
 
+**Förderer-Fenster:** „Weitere Infos →“ unten rechts in der Kachel öffnet es. Angaben anklicken und ändern; Kontakte über den Stift
+(höchstens drei, ★ = Hauptkontakt, der unten in der Kachel steht). Notizen, Fristen, Fördersumme und Eigenanteil lassen sich
+einfach formatieren: `* ` oder `- ` am Zeilenanfang = Aufzählung, `1. ` = Nummerierung, `*fett*`, `_kursiv_`, `~durchgestrichen~`.
+
+**Rückgängig:** „↶ Rückgängig“ in der Kopfzeile oder Strg+Z (nicht in einem Eingabefeld – dort gilt das Rückgängig des Browsers).
+Bis zu 50 Schritte; Tippen im selben Feld ist ein Schritt. Nach dem Neuladen der Datei von außen beginnt die Liste von vorn.
+
 **Spaltenbreiten:** in der Liste am rechten Rand eines Spaltenkopfs ziehen (wie in Excel); der Browser merkt sie sich,
 Doppelklick auf einen Rand oder „Spaltenbreiten zurücksetzen“ im Zahnrad stellt sie zurück.
 

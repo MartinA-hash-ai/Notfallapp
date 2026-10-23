@@ -165,10 +165,16 @@ function fwPop(btn) {
   const m = h('div', { class: 'menu info-pop fw-pop', role: 'tooltip', 'data-fid': f.id, html: foeWarnList(b, f).map(t => `<div>${t}</div>`).join('') });
   placePop(m, btn);
 }
-function detSummary(f) {
-  const k = kartei(f.name), c = k && k.kontakte[0], hk = f.kontakte[0];
-  const parts = [c ? c.n : hk && (hk.n || hk.rolle), k && k.weg.length ? 'Antrag ' + k.weg.join(' oder ') : f.weg, !c && hk && hk.mail].filter(Boolean);
-  return esc(parts.join(' · ') || (k ? 'aus der Förder-Kartei' : 'Ansprechperson, Antragsweg, Quellen …'));
+// Fuß der Kachel: links die Hauptansprechperson (ohne Person, z. B. bei einem Portal: die Website), daneben Telefon und E-Mail als Symbole
+// (beim Überfahren steht dran, was dahinter ist; Klick ruft an bzw. schreibt); rechts „Weitere Infos →“ öffnet das Fenster
+function fussKontakt(f) {
+  const k = kartei(f.name), kk = k && k.kontakte[0], hk = f.kontakte[0] || (kk ? { n: kk.n, rolle: '', mail: kk.m, tel: kk.t } : null);
+  const web = webUrl(f.web || (k && k.web) || ''), tel = hk && telNr(hk.tel);
+  const name = hk && (hk.n || hk.rolle) ? `<span class="ff-n">${esc(hk.n || hk.rolle)}</span>`
+    : web ? `<a class="ff-n" href="${esc(web)}" target="_blank" rel="noopener" data-act="link">${esc(/portal/i.test(f.weg) ? 'Portal: ' : '')}${esc(kurzUrl(web).split('/')[0])}</a>` : '<span class="ff-n leer">kein Kontakt</span>';
+  const sym = [tel && `<a class="fi" href="tel:${tel}" data-act="link" data-tip="${esc(hk.tel)}" aria-label="Anrufen: ${esc(hk.tel)}">☎</a>`,
+    hk && hk.mail && `<a class="fi" href="mailto:${esc(hk.mail)}" data-act="link" data-tip="${esc(hk.mail)}" aria-label="E-Mail an ${esc(hk.mail)}">✉</a>`].filter(Boolean).join('');
+  return `${name}${sym}<button class="ff-mehr" data-act="det" data-v="${f.id}" aria-haspopup="dialog">Weitere Infos <span aria-hidden="true">→</span></button>`;
 }
 function detKartei(f) {
   const k = kartei(f.name);
@@ -195,26 +201,25 @@ const FX = { web: ['web', '↗', 'Seite öffnen'] };
 // eine Angabe zum Anklicken: art 'line' (eine Zeile), 'area' (mehrere Zeilen), 'num' (Betrag); fx: Knopf zum Schreiben, Anrufen, Öffnen
 function pe(f, k, lab, art = 'line', o = {}) {
   const v = f[k], leer = v == null || String(v).trim() === '';
-  const shown = o.html != null ? o.html : art === 'num' ? (leer ? '' : eur(v)) : esc(k === 'web' ? kurzUrl(v || '') : v || '');
+  const shown = o.html != null ? o.html : art === 'num' ? (leer ? '' : eur(v)) : o.fmt ? fmtText(v) : esc(k === 'web' ? kurzUrl(v || '') : v || '');
   const fx = o.fx && !leer ? `<button class="fx" data-act="${FX[o.fx][0]}" data-fid="${f.id}" title="${FX[o.fx][2]}" aria-label="${FX[o.fx][2]}">${FX[o.fx][1]}</button>` : '';
   return `<div class="pe${o.cls ? ' ' + o.cls : ''}" data-act="pe" data-fid="${f.id}" data-k="${k}" data-art="${art}" data-lab="${esc(lab || o.ph || k)}" title="Klicken zum Bearbeiten">`
     + (lab ? `<div class="lab">${lab}</div>` : '')
-    + `<div class="val${leer ? ' leer' : ''}">${leer ? esc(o.ph || 'nicht eingetragen') : `<span class="pv">${shown}</span>${fx}`}</div>${ICON_PEN}</div>`;
+    + `<div class="val${leer ? ' leer' : ''}">${leer ? esc(o.ph || 'nicht eingetragen') : `<span class="pv${o.fmt ? ' fmt' : ''}">${shown}</span>${fx}`}</div>${ICON_PEN}</div>`;
 }
 // Kontakte (Entwurf 1): untereinander mit Name, Funktion, E-Mail und Telefon als Links, daneben Knöpfe; der Stern markiert den Hauptkontakt
 // (er steht in der Kachel). Kontakte aus der Förder-Kartei stehen darunter, mit Vermerk und nicht bearbeitbar. Stift oben rechts: bearbeiten.
 function kontaktListe(f) {
   const k = kartei(f.name), a = `data-fid="${f.id}"`, n = f.kontakte.length;
-  if (UI.kEdit === f.id) {
-    const inp = (i, p, ph) => `<input type="text" data-p="kontakte.${i}.${p}" ${a} value="${esc(f.kontakte[i][p])}" placeholder="${ph}" aria-label="${ph}" autocomplete="off">`;
-    return f.kontakte.map((c, i) => `<div class="k-ed"><div class="k-ed-g">${inp(i, 'n', 'Name')}${inp(i, 'rolle', 'Funktion')}${inp(i, 'mail', 'E-Mail')}${inp(i, 'tel', 'Telefon')}</div>
+  if (UI.kEdit === f.id) {                      // bearbeiten: schlichte Linien mit blassem Hinweis, untereinander (keine Kästen)
+    const linie = (i, p, ph) => `<input type="${p === 'mail' ? 'email' : p === 'tel' ? 'tel' : 'text'}" class="k-li k-li-${p}" data-p="kontakte.${i}.${p}" ${a} value="${esc(f.kontakte[i][p])}" placeholder="${ph}" aria-label="${ph}" autocomplete="off">`;
+    return f.kontakte.map((c, i) => `<div class="k-ed">${linie(i, 'n', 'Vorname Nachname')}${linie(i, 'rolle', 'Position')}${linie(i, 'mail', 'E-Mail-Adresse')}${linie(i, 'tel', 'Telefonnummer')}
         <button class="x" data-act="k-weg" data-i="${i}" ${a} title="Kontakt entfernen" aria-label="Kontakt entfernen">×</button></div>`).join('')
-      + (n < MAX_KONTAKTE ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>weiterer Kontakt</button>` : '')
-      + `<div class="k-ed-f"><button class="primary" data-act="k-fertig" ${a}>Fertig</button></div>`;
+      + (n < MAX_KONTAKTE ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>weiterer Kontakt</button>` : '');
   }
   const knopf = (href, sym, t) => `<a class="kb" href="${esc(href)}" data-act="link" title="${t}" aria-label="${t}">${sym}</a>`;
   const zeile = (c, i, ausKartei) => {
-    const tel = telNr(c.tel), links = [c.mail && `<a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a>`, tel && `<a href="tel:${tel}" data-act="link">${esc(c.tel)}</a>`].filter(Boolean).join(' · ');
+    const tel = telNr(c.tel), links = [c.mail && `<div><a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a></div>`, tel && `<div><a href="tel:${tel}" data-act="link">${esc(c.tel)}</a></div>`].filter(Boolean).join('');
     const stern = ausKartei ? '' : i === 0 ? '<span class="star" title="Hauptkontakt – steht in der Kachel">★</span>'
       : `<button class="star off" data-act="k-haupt" data-i="${i}" ${a} title="Zum Hauptkontakt machen" aria-label="Zum Hauptkontakt machen">☆</button>`;
     return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
@@ -235,12 +240,12 @@ function foePop(b) {
         <div class="pop-einsch">${dots(f)}</div>
         <button class="x" data-act="det-zu" aria-label="Schließen" title="Schließen (Esc)">×</button></header>
       <div class="pop-body">
-        <div class="pA-box"><div class="sub">Kontakte${UI.kEdit === f.id ? '' : `<button class="k-pen" data-act="k-edit" ${a} title="Kontakte bearbeiten" aria-label="Kontakte bearbeiten">${ICON_PEN}</button>`}</div>
+        <div class="pA-box"><div class="sub">Kontakte${UI.kEdit === f.id ? `<button class="k-fertig" data-act="k-fertig" ${a}>Fertig</button>` : `<button class="k-pen" data-act="k-edit" ${a} title="Kontakte bearbeiten" aria-label="Kontakte bearbeiten">${ICON_PEN}</button>`}</div>
           ${kontaktListe(f)}<div class="ksep"></div>
           ${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}</div>
-        <div class="pA-bed">${kartei(f.name) ? `<div id="dk-${f.id}">${detKartei(f)}</div>` : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area')}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area')}${pe(f, 'eigenInfo', 'Eigenanteil', 'area')}</div>
+        <div class="pA-bed">${kartei(f.name) ? `<div id="dk-${f.id}">${detKartei(f)}</div>` : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area', { fmt: true })}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area', { fmt: true })}${pe(f, 'eigenInfo', 'Eigenanteil', 'area', { fmt: true })}</div>
         <div class="pA-q"><div class="sub">Quellen</div>${pe(f, 'quellen', '', 'area', { html: `<span class="ql">${quellenListe(f.quellen)}</span>`, ph: 'Links eintragen, je Link eine Zeile', cls: 'pe-q' })}</div>
-        <div class="pA-n"><div class="sub">Notizen</div>${pe(f, 'notiz', '', 'area', { ph: 'Notizen eintragen' })}</div>
+        <div class="pA-n"><div class="sub">Notizen <button class="info" data-act="fmt-info" title="Texte formatieren: Aufzählung, fett, kursiv …" aria-label="Wie formatiere ich Texte?">i</button></div>${pe(f, 'notiz', '', 'area', { ph: 'Notizen eintragen – „* “ am Zeilenanfang macht eine Aufzählung', fmt: true })}</div>
       </div>
     </div>`;
 }
@@ -321,7 +326,7 @@ function fpCard(b, f) {
       <label class="contra" title="Contra: wo hakt es?"><i></i>${tarea(f, 'knackpunkte', a + ' rows="1" aria-label="Contra – Knackpunkte"', 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?')}</label>
     </div>
     <div class="det">
-      <button class="det-btn" data-act="det" data-v="${f.id}" aria-haspopup="dialog" title="Kontakt, Links und Recherche-Angaben öffnen"><span class="ds" id="ds-${f.id}">${detSummary(f)}</span><span class="det-auf" aria-hidden="true">›</span></button>
+      <div class="fk-fuss" id="fuss-${f.id}">${fussKontakt(f)}</div>
     </div>
   </article>`;
 }
@@ -381,6 +386,15 @@ function finPie(b) {
   });
   return svg(slices.join('') + labels.join(''));
 }
+// kleines Hinweisfeld beim Überfahren von Elementen mit data-tip (z. B. Telefonnummer, E-Mail-Adresse) – sofort, hell statt des schwarzen Browser-Hinweises
+document.addEventListener('mouseover', e => {
+  const el = e.target.closest && e.target.closest('[data-tip]'); let t = $('.tip-pop');
+  if (!el) { if (t) t.remove(); return; }
+  if (!t) { t = h('div', { class: 'tip-pop', role: 'tooltip' }); document.body.append(t); }
+  t.textContent = el.dataset.tip;
+  const r = el.getBoundingClientRect();
+  t.style.left = Math.max(8, Math.min(r.left + r.width / 2 - t.offsetWidth / 2, innerWidth - t.offsetWidth - 8)) + 'px'; t.style.top = (r.top - t.offsetHeight - 6 < 4 ? r.bottom + 6 : r.top - t.offsetHeight - 6) + 'px';
+});
 function finRows(b) {
   const S = +b.summe || 0, F = finState(b);
   return `<tr class="r-sum"><th>${swa('none')}Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`

@@ -39,7 +39,8 @@ async function writeKartei(p, kontakt) {
   await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
   await p.fill('input[data-p="gliederung"]', 'Iserlohn-Menden');
   await p.click('button[data-act="add-foe"]'); await p.keyboard.type('Märkische Bank eG');
-  ok(!(await p.$('.det-panel')) && (await p.$eval('.fp [id^="ds-"]', e => e.textContent)) === 'Silke S · Antrag direkt', 'Kontakt zunächst zu, kurze Zusammenfassung in der Kachel');
+  r = await p.$eval('.fp .fk-fuss', e => [e.querySelector('.ff-n').textContent, [...e.querySelectorAll('a.fi')].map(a => a.getAttribute('href') + '=' + a.dataset.tip).join(), e.querySelector('.ff-mehr').textContent]);
+  ok(!(await p.$('.foe-pop')) && r.join('|') === 'Silke S|tel:023311=02331 1,mailto:silke@mb.example=silke@mb.example|Weitere Infos →', 'Kachel unten: Ansprechperson aus der Kartei mit Telefon- und E-Mail-Symbol, rechts „Weitere Infos →“: ' + r.join('|'));
   ok(await p.evaluate(() => cur().foerderer[0].art === 'Volksbank / Bank' && !document.querySelector('select.art')), 'Art aus der Kartei übernommen (nur in den Daten, kein Auswahlfeld mehr)');
   await p.click('button[data-act="det"]');
   let t = await p.$eval('.foe-pop .det-k', e => e.textContent);

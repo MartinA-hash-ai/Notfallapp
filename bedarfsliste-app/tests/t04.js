@@ -59,7 +59,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => cur().foerderer.map(f => [f.name, f.status, f.betrag, f.frist, f.einsch, f.warum, f.art, f.weg, (f.kontakte[0] || {}).n || '', (f.kontakte[0] || {}).mail || '', f.fristInfo, f.quellen].join('|')));
   ok(r[0] === 'Stiftung A|geplant|5000|2027-01-15|w|passt|Stiftung|Portal|Portal A||Vergabe im März|https://a.example/satzung', 'ergänzen: leere Felder gefüllt, vorhandene bleiben: ' + r[0]);
   ok(r[1] === 'Sparkasse B|geplant|2500|2027-03-31|uw|Regionalbezug|Sparkasse|E-Mail|Frau B|b@spk.example||', 'neuer Förderer mit allen Angaben (Datum, Betrag, Einschätzung umgesetzt): ' + r[1]);
-  ok((await p.$$('.fp')).length === 2 && (await p.$eval('.d-left', e => e.textContent)).includes('Portal A · Portal'), 'Förderplan zeigt beide, Recherche-Zusammenfassung sichtbar');
+  ok((await p.$$('.fp')).length === 2 && (await p.$$eval('.fk-fuss .ff-n', e => e.map(x => x.textContent).join())) === 'Portal A,Frau B', 'Förderplan zeigt beide, Ansprechperson unten in der Kachel');
   // noch einmal, diesmal überschreiben
   await p.evaluate(() => { importFoerderplan(cur(), window.__file); });
   await p.waitForSelector('.modal');

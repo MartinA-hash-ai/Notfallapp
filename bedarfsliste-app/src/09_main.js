@@ -54,7 +54,7 @@ function headerHtml() {
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}</nav>
-    <div class="actions">${karteiChip()}${saveBox()}<button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
+    <div class="actions">${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)">↶ Rückgängig</button><button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
     ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : ''}
   </header>`;
 }
@@ -112,7 +112,7 @@ function refresh() {
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b));
   swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
-  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); });
+  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('fuss-' + f.id, fussKontakt(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b)); swap('foe-kurz', esc(foeKurz(b)));
 }
 
@@ -173,11 +173,23 @@ function mainMenu(btn) {
     DEMO ? null : item('restore', 'Datensicherung laden …'),
     DEMO ? null : item('update', 'Programm-Update einspielen …'),
     h('hr'),
+    item('fmt-info', 'Texte formatieren (Aufzählung, fett, kursiv …)'),
     item('about', 'Über die Bedarfsliste (Version ' + APP_INFO.version + ')'));
   document.body.append(m);
   const r = btn.getBoundingClientRect();
   m.style.top = (r.bottom + 4) + 'px'; m.style.right = Math.max(8, innerWidth - r.right) + 'px';
   const f = m.querySelector('button'); if (f) f.focus();
+}
+// Erklärung der Textformatierung (Zahnrad und „i“ bei den Notizen)
+function fmtInfo() {
+  const z = (ein, aus) => h('tr', null, h('td', null, h('code', null, ein)), h('td', { html: aus }));
+  modal('Texte formatieren', h('div', { class: 'help' },
+    h('p', null, 'In Notizen, Fristen, Fördersumme und Eigenanteil im Fenster eines Förderers lassen sich Texte einfach gestalten – wie in Chat-Programmen:'),
+    h('table', { class: 'imp fmt-tab' }, h('thead', null, h('tr', null, h('th', null, 'Eingabe'), h('th', null, 'Ergebnis'))), h('tbody', null,
+      z('* Punkt  oder  - Punkt', fmtText('* Punkt')), z('1. Schritt', fmtText('1. Schritt')), z('*wichtig*', fmtText('*wichtig*')), z('_Hinweis_', fmtText('_Hinweis_')),
+      z('~erledigt~', fmtText('~erledigt~')), z('https://…', 'wird ein anklickbarer Link'))),
+    h('p', { class: 'muted small' }, 'Die Zeichen müssen direkt am Wort stehen (*so*, nicht * so *). Aufzählungen am Zeilenanfang, mit Leerzeichen danach. Beim Bearbeiten sieht man die Zeichen, danach die Formatierung.')),
+    [['OK', true, 'primary']]);
 }
 function about() {
   modal('Bedarfsliste ' + APP_INFO.version, h('div', { class: 'help' },
@@ -206,6 +218,8 @@ async function act(k, a, e) {
     case 'colw-reset': colwSet(null); closeMenus(); keep(renderNow); return;
     case 'theme': applyTheme(a.dataset.v); $$('#mmenu .mini-btn').forEach(x => x.classList.toggle('on', x === a)); return;
     case 'about': closeMenus(); about(); return;
+    case 'undo': undo(); return;
+    case 'fmt-info': closeMenus(); fmtInfo(); return;
     case 'save': closeMenus(); if (FSA && ST.conn === 'none') await connectFolder(); else saveAll({}); renderNow(); return;
     case 'connect': await connectFolder(); renderNow(); return;
     case 'kartei': closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; await karteiChoose(); return;
@@ -306,6 +320,8 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   const el = e.target;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (!DEMO) saveAll({}); return; }
+  // Strg+Z außerhalb von Eingabefeldern: letzte Änderung zurück (in Feldern macht der Browser das Tippen rückgängig)
+  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !(el.closest && el.closest('input, textarea, select, [contenteditable]'))) { e.preventDefault(); undo(); return; }
   if (e.key === 'Escape' && UI.det && !$('.menu, .modal, .cal-pop')) { kAufraeumen(cur()); UI.det = null; UI.kEdit = null; keep(renderNow); return; }
   if (e.key === 'Enter' && el.matches && el.matches('tr[data-act="open"]')) { e.preventDefault(); act('open', el, e); }
   if (e.key === 'Enter' && el.id === 'zust-new') { e.preventDefault(); addZust(); }
@@ -334,6 +350,7 @@ document.addEventListener('input', e => {
     const k = kartei(base.name), art = k ? artFromKartei(k, base.name) : '';
     if (art) { base.art = art; const s = $('#art-' + base.id); if (s) { s.value = art; s.classList.remove('empty'); } }
   }
+  UNDO.tipp = b.id + '|' + (el.dataset.fid || el.dataset.uid || '') + '|' + el.dataset.p;      // Tippen im selben Feld = ein Rückgängig-Schritt
   changed(); refresh();
 });
 document.addEventListener('change', e => {
@@ -369,7 +386,7 @@ function boot() {
     const el = $('#bl-data'), raw = el ? el.textContent.trim() : '';
     if (raw) try { d = JSON.parse(raw); if (!isData(d)) throw new Error('keine Bedarfsliste gefunden'); } catch (e) { console.error(e); broken = (e && e.message) || String(e); d = null; }
   }
-  D = normalize(d || emptyData()); SAVED_JSON = JSON.stringify(D);
+  D = normalize(d || emptyData()); SAVED_JSON = JSON.stringify(D); undoReset();
   if (broken) BROKEN = { reason: broken.replace(/^JSON\.parse: /, '').slice(0, 120) };
   if (!DEMO) checkDraft();
   renderNow();

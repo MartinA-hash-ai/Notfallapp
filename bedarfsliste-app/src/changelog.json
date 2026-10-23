@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.23.0",
+    "date": "2026-10-23T11:45",
+    "items": [
+      "Rückgängig: Knopf „↶ Rückgängig“ oben in der Kopfzeile und Strg+Z (außerhalb von Eingabefeldern) – holt z. B. einen versehentlich gelöschten Förderer oder Kontakt zurück. Bis zu 50 Schritte; Tippen in einem Feld zählt als ein Schritt",
+      "Kontakte bearbeiten ohne Kästen: je Kontakt vier Linien untereinander mit blassem Hinweis (Vorname Nachname, Position, E-Mail-Adresse, Telefonnummer); „Fertig“ steht oben rechts statt des Stifts",
+      "In der Kontaktliste stehen E-Mail und Telefon jeweils in einer eigenen Zeile",
+      "Förderer-Fenster ohne waagrechte Scrollbalken",
+      "Einfache Formatierung in Notizen, Fristen, Fördersumme und Eigenanteil: „* “ oder „- “ am Zeilenanfang = Aufzählung, „1. “ = Nummerierung, *fett*, _kursiv_, ~durchgestrichen~, Links werden anklickbar. Erklärung hinter dem „i“ bei den Notizen und im Zahnrad",
+      "Förderer-Kachel unten: links die Hauptansprechperson (ohne Person, z. B. bei einem Portal, die Website), daneben Symbole für Telefon und E-Mail – beim Überfahren steht die Nummer bzw. Adresse da, ein Klick ruft an bzw. schreibt; rechts „Weitere Infos →“ öffnet das Fenster"
+    ]
+  },
+  {
     "version": "0.22.0",
     "date": "2026-10-23T20:15",
     "items": [
