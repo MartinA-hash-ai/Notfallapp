@@ -89,6 +89,7 @@ function renderNow() {
     // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
     if (UI.view !== 'list') ORDER.ids = null; else if (!ORDER.ids) ORDER.ids = filtered().map(x => x.id);
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
+    PIE_HOLD = false;
     app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : listView());
     strgSet(CTRL_NOW);
     if (fk) { const e = $(fk, app); if (e) { e.focus({ preventScroll: true }); if (sel && 'setSelectionRange' in e) try { e.setSelectionRange(sel[0], sel[1]); } catch (x) { /* */ } } }
@@ -109,7 +110,7 @@ function refresh() {
   const b = cur();
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b));
-  swap('fr-blk', frBlock(b)); swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
+  swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); swap('ql-' + f.id, quellenListe(f.quellen)); });
   swap('nach-body', nachBody(b));
 }
@@ -250,6 +251,15 @@ async function act(k, a, e) {
       const f0 = b.foerderer.find(f => f.id === a.dataset.fid);
       if (!await confirmBox('Förderer entfernen?', '„' + ((f0 && f0.name) || 'Ohne Namen') + '“ wird mit Summe, Stand, Pro und Contra aus dem Förderplan entfernt. Direkt danach lässt sich das noch rückgängig machen.', 'Entfernen')) return;
       const before = JSON.stringify(D); b.foerderer = b.foerderer.filter(f => f.id !== a.dataset.fid); b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== a.dataset.fid); changed(); keep(renderNow); toast('Förderer entfernt', 'ok', undoTo(before)); return; }
+    case 'pie-st': {                                                               // Stand am Kreisdiagramm weiterschalten (neu aufgeteilt beim Verlassen)
+      const f = b.foerderer.find(x => x.id === a.dataset.fid); if (!f) return;
+      const v = ROT_FOE[f.status] || 'geplant'; f.status = v; effects(b, f, 'status', v); changed();
+      a.setAttribute('class', 'ps ' + (v === 'abgelehnt' ? 'ab' : segKind(f)));
+      PIE_HOLD = true; refresh();
+      const pie = a.closest('#fin-pie');
+      if (pie && !pie.dataset.wart) { pie.dataset.wart = '1'; pie.addEventListener('mouseleave', () => { PIE_HOLD = false; keep(renderNow); }, { once: true }); }
+      return;
+    }
     case 'det': UI.det = a.dataset.v; break;
     case 'det-zu': UI.det = null; break;
     case 'mailto': case 'tel': case 'web': {                                       // E-Mail schreiben, anrufen, Seite öffnen – mit dem, was gerade im Feld steht

@@ -281,14 +281,17 @@ function stMenu(btn) {
 const ROW_CLS = { zugesagt: 'r-zu', beantragt: 'r-be', geplant: 'r-ge', abgelehnt: 'r-ab' };
 const segKind = f => f.status === 'zugesagt' ? 'zu' : f.status === 'beantragt' ? 'be' : f.status === 'abgelehnt' ? 'none' : 'ge';
 const swa = k => `<i class="swa ${k}" aria-hidden="true"></i>`;
-// Kreisdiagramm: je Förderer ein Stück; beim Überfahren erscheinen alle Beschriftungen (Name, Betrag, Anteil) links und rechts mit Linie zum Stück
+// Kreisdiagramm: je Förderer ein Stück, beschriftet links und rechts mit Linie zum Stück (Name, Betrag, Anteil).
+// Klick auf das Stück eines Förderers schaltet seinen Stand weiter (geplant → beantragt → zugesagt → abgelehnt); die Farbe wechselt sofort,
+// neu aufgeteilt wird der Kreis erst, wenn die Maus ihn verlässt (sonst springen die Stücke unter dem Mauszeiger weg)
 const PIE = { W: 560, H: 240, R: 82 };
+let PIE_HOLD = false;
 function finPie(b) {
   const F = finState(b), parts = [], fs = F.fs.filter(f => segKind(f) !== 'none' && !(F.done && segKind(f) !== 'zu'));   // steht die Finanzierung, zählen nur noch Zusagen
-  const add = (k, name, v) => { if (v > 0) parts.push({ k, name, v }); };
-  fs.filter(f => segKind(f) === 'zu').forEach(f => add('zu', f.name || '(ohne Namen)', foeAmt(f)));
+  const add = (k, name, v, fid) => { if (v > 0) parts.push({ k, name, v, fid }); };
+  fs.filter(f => segKind(f) === 'zu').forEach(f => add('zu', f.name || '(ohne Namen)', foeAmt(f), f.id));
   add('eig', 'Eigenmittel', F.eig);
-  for (const k of ['be', 'ge']) fs.filter(f => segKind(f) === k).forEach(f => add(k, f.name || '(ohne Namen)', foeAmt(f)));
+  for (const k of ['be', 'ge']) fs.filter(f => segKind(f) === k).forEach(f => add(k, f.name || '(ohne Namen)', foeAmt(f), f.id));
   const tot = parts.reduce((x, p) => x + p.v, 0), max = Math.max(F.S, tot);
   add('off', 'Delta, noch ohne Förderer', F.S - tot);
   const { W, H, R } = PIE, cx = W / 2, cy = H / 2, xy = (a, r) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
@@ -298,9 +301,9 @@ function finPie(b) {
   let w = -Math.PI / 2;
   const P = parts.map(p => { const da = p.v / max * 2 * Math.PI, o = Object.assign({}, p, { a0: w, da, mid: w + da / 2 }); w += da; return o; });
   const slices = P.map(p => {
-    const pt = a => xy(a, R).map(n => n.toFixed(2)).join(' ');
-    return p.da > 2 * Math.PI - 1e-6 ? `<circle class="ps ${p.k}" cx="${cx}" cy="${cy}" r="${R}"/>`
-      : `<path class="ps ${p.k}" d="M${cx} ${cy}L${pt(p.a0)}A${R} ${R} 0 ${p.da > Math.PI ? 1 : 0} 1 ${pt(p.a0 + p.da)}Z"/>`;
+    const pt = a => xy(a, R).map(n => n.toFixed(2)).join(' '), act = p.fid ? ` data-act="pie-st" data-fid="${p.fid}" aria-label="${esc(p.name)}: Stand weiterschalten"` : '';
+    return p.da > 2 * Math.PI - 1e-6 ? `<circle class="ps ${p.k}" cx="${cx}" cy="${cy}" r="${R}"${act}/>`
+      : `<path class="ps ${p.k}" d="M${cx} ${cy}L${pt(p.a0)}A${R} ${R} 0 ${p.da > Math.PI ? 1 : 0} 1 ${pt(p.a0 + p.da)}Z"${act}/>`;
   });
   // Beschriftungen: rechte und linke Seite getrennt von oben nach unten, mit Mindestabstand, damit sich nichts überlappt
   const GAP = 32, TOP = 18, BOT = H - 22;

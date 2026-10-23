@@ -37,11 +37,11 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0].every((y, i) => Math.abs(y - r[1][i]) <= 1) && r[2].every((y, i) => Math.abs(y - r[0][i]) <= 1), 'Freigabe und Förderer stehen Zeile für Zeile auf einer Höhe, Punkte mittig zur Schrift: ' + JSON.stringify(r));
   // Zeitstrahl in der Punktlinie zur Frist des Verwendungsnachweises
   r = await p.evaluate(() => { const l = document.querySelector('tr[data-id="b-mtw"] .l-fin .lead.tl'); return l && [l.className, l.title]; });
-  ok(r && r[0] === 'lead tl tl-g' && /^noch \d+ Tage bis zur Frist$/.test(r[1]), 'Zeitstrahl zur Frist: grau, solange viel Zeit ist: ' + JSON.stringify(r));
+  ok(r && r[0] === 'lead tl tl-g' && /^noch \d+ Tage bis zur Frist$/.test(r[1]), 'Punktlinie zur Frist: grün, solange viel Zeit ist: ' + JSON.stringify(r));
   r = await p.evaluate(() => { const d = n => new Date(Date.parse(today()) + n * 864e5).toISOString().slice(0, 10);
-    const z = (fr, start) => { const x = document.createElement('div'); x.innerHTML = zeitstrahl(ff({ status: 'zugesagt', entscheidungAm: start || '', vn: { noetig: true, frist: fr, st: 'offen' } })); const l = x.firstChild; return l.className.replace('lead tl ', '') + ':' + Math.round(parseFloat(l.style.getPropertyValue('--p'))); };
-    return [z(d(200), d(-10)), z(d(20)), z(d(5)), z(d(-3))].join(); });
-  ok(r === 'tl-g:5,tl-y:78,tl-r:94,tl-r:100', 'Zeitstrahl füllt sich bis zur Frist; ab einem Monat gelb, ab einer Woche rot, danach ganz rot: ' + r);
+    const z = fr => { const x = document.createElement('div'); x.innerHTML = zeitstrahl(ff({ status: 'zugesagt', eingangAm: d(-300), vn: { noetig: true, frist: fr, st: 'offen' } })); return x.firstChild.className.replace('lead tl ', ''); };
+    return [z(d(200)), z(d(30)), z(d(29)), z(d(7)), z(d(6)), z(d(-3))].join(); });
+  ok(r === 'tl-g,tl-g,tl-y,tl-y,tl-r,tl-r', 'Punktlinie ab heute bis zur Frist: grün, unter einem Monat gelb, unter einer Woche rot (Geldeingang spielt keine Rolle): ' + r);
   // Bearbeiten ist der Normalzustand; die ganze Zeile wird beim Überfahren hervorgehoben
   await p.hover('tr[data-id="b-aed"] .l-sum');
   r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('tr[data-id="b-aed"]')).backgroundColor]);
@@ -99,7 +99,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
   // Kreisdiagramm: beim Überfahren alle Beschriftungen (Name, Betrag, Anteil), ohne Überlappung
   const pl = () => p.evaluate(() => [...document.querySelectorAll('#fin-pie .pl')].map(g => getComputedStyle(g).opacity).join());
-  ok(await pl() === '0,0,0,0', 'Beschriftungen am Kreis zunächst verborgen');
+  r = await p.evaluate(() => [getComputedStyle(document.querySelector('#fin-pie .pl-n')).fill, getComputedStyle(document.querySelector('.d-head')).color]);
+  ok(await pl() === '1,1,1,1' && r[0] === 'rgb(107, 107, 107)', 'Beschriftungen am Kreis immer sichtbar, in Grau: ' + r[0]);
   const pie = await (await p.$('#fin-pie svg')).boundingBox();
   await p.mouse.move(pie.x + pie.width / 2, pie.y + pie.height / 2); await p.waitForTimeout(250);
   r = await p.evaluate(() => { const G = [...document.querySelectorAll('#fin-pie .pl')], R = G.map(g => [...g.querySelectorAll('text')].map(t => t.getBoundingClientRect()).reduce((a, c) => ({ l: Math.min(a.l, c.left), r: Math.max(a.r, c.right), t: Math.min(a.t, c.top), b: Math.max(a.b, c.bottom) }), { l: 1e9, r: -1e9, t: 1e9, b: -1e9 }));
@@ -108,7 +109,34 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await pl() === '1,1,1,1' && r[0] === 'Sparkasse Musterstadt 10.000 € · 15 % | Eigenmittel 13.000 € · 19 % | Bürgerstiftung Musterstadt 15.000 € · 22 % | Beispiel-Soziallotterie 30.000 € · 44 %' && !r[1],
     'Kreis überfahren: alle Stücke beschriftet mit Name, Betrag und Anteil, nichts überlappt: ' + r[0]);
   await p.mouse.move(5, 5); await p.waitForTimeout(250);
-  ok(await pl() === '0,0,0,0', 'Maus weg: Beschriftungen verschwinden');
+  ok(await pl() === '1,1,1,1', 'Maus weg: Beschriftungen bleiben');
+  // Klick auf ein Stück schaltet den Stand weiter; die Farbe wechselt sofort, neu aufgeteilt wird erst beim Verlassen des Kreises
+  const geo = () => p.evaluate(() => [...document.querySelectorAll('#fin-pie .ps')].map(x => x.getAttribute('class').replace('ps ', '') + ':' + (x.dataset.fid || '-')).join());
+  // Punkt mitten im Stück (auf der Linie zur Beschriftung, etwas nach innen) – wie ein echter Mausklick
+  const sliceXY = fid => p.evaluate(fid => { const svg = document.querySelector('#fin-pie svg'), ps = [...svg.querySelectorAll('.ps')], i = ps.findIndex(x => x.dataset.fid === fid);
+    const [x0, y0] = svg.querySelectorAll('.pl-l')[i].getAttribute('points').split(' ')[0].split(',').map(Number), vb = svg.viewBox.baseVal, cx = vb.width / 2, cy = vb.height / 2, pt = svg.createSVGPoint();
+    pt.x = cx + 0.6 * (x0 - cx); pt.y = cy + 0.6 * (y0 - cy); const q = pt.matrixTransform(svg.getScreenCTM()); return [q.x, q.y]; }, fid);
+  const g0 = await geo(), d0 = await p.$eval('#fin-pie .ps[data-fid="f-mtw-bst"]', e => e.getAttribute('d'));
+  let xy = await sliceXY('f-mtw-bst'); await p.mouse.click(xy[0], xy[1]);
+  r = await p.evaluate(() => [cur().foerderer.find(f => f.id === 'f-mtw-bst').status, document.querySelector('#fin-pie .ps[data-fid="f-mtw-bst"]').getAttribute('class'), document.querySelector('#fin-pie .ps[data-fid="f-mtw-bst"]').getAttribute('d')]);
+  ok(r[0] === 'zugesagt' && r[1] === 'ps zu' && r[2] === d0, 'Klick auf „beantragt“: jetzt zugesagt, sofort grün, das Stück bleibt an seiner Stelle');
+  ok((await p.$eval('#fin-rows', e => e.textContent)).includes('zugesagt'), 'die Tabelle daneben zeigt den neuen Stand gleich');
+  await p.mouse.move(5, 5); await p.waitForTimeout(100);
+  const g1 = await geo();
+  ok(g0 === 'zu:f-mtw-spk,eig:-,be:f-mtw-bst,ge:f-mtw-lot' && g1 === 'zu:f-mtw-spk,zu:f-mtw-bst,eig:-,ge:f-mtw-lot', 'Maus weg: Kreis neu aufgeteilt, die Zusage rückt nach vorn: ' + g0 + ' → ' + g1);
+  xy = await sliceXY('f-mtw-bst'); await p.mouse.click(xy[0], xy[1]);
+  ok(await p.evaluate(() => cur().foerderer.find(f => f.id === 'f-mtw-bst').status === 'abgelehnt' && document.querySelector('#fin-pie .ps[data-fid="f-mtw-bst"]').getAttribute('class') === 'ps ab'), 'nächster Klick: abgelehnt, blass rot bis zum Verlassen');
+  await p.mouse.move(5, 5); await p.waitForTimeout(100);
+  ok(!(await p.$('#fin-pie .ps[data-fid="f-mtw-bst"]')), 'abgelehnt: Stück verschwindet beim Verlassen');
+  await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-bst'); f.status = 'beantragt'; f.zugesagt = null; f.entscheidungAm = ''; changed(); renderNow(); });
+  // lange Kontaktzeile und lange Texte machen die Kachel nicht breiter (auch wenn ein Browser die Zeile nicht kürzt)
+  r = await p.evaluate(() => { const st = document.createElement('style'); st.textContent = '.fk .det-btn { width: auto !important; } .fk .det-btn .ds { min-width: max-content !important; }'; document.head.append(st);
+    const f = cur().foerderer.find(x => x.id === 'f-mtw-bst'), alt = JSON.stringify(f);
+    Object.assign(f, { name: 'CaritasStiftung für das Erzbistum Paderborn', mail: 'stiftung@caritas-paderborn.de', kontakt: 'Nadine Mersch, Geschäftsführung der Stiftung (Referat Fördermittel DiCV: Barbara Höltring, 05251 209-327)', warum: 'Zweck: Hilfe für Alte, Kranke und Pflegebedürftige sowie Weiterbildung und Qualifizierung Ehrenamtlicher. '.repeat(3) }); renderNow();
+    const res = [...document.querySelectorAll('.fk.fp')].every(c => { const r = c.getBoundingClientRect(); return [...c.querySelectorAll('.fk-top, .pc, .fk-st, .dots-box')].every(e => e.getBoundingClientRect().right <= r.right + 1); });
+    const k = [...document.querySelectorAll('.fk.fp')].map(c => c.getBoundingClientRect()), overlap = k.some((a, i) => k.some((c, j) => i < j && a.left < c.right - 1 && c.left < a.right - 1 && a.top < c.bottom - 1 && c.top < a.bottom - 1));
+    st.remove(); Object.assign(f, JSON.parse(alt)); renderNow(); return [res, overlap]; });
+  ok(r.join() === 'true,false', 'Kacheln bleiben in ihrer Spalte und überlappen nicht, auch mit langer Kontaktzeile: ' + r.join());
   r = await p.evaluate(() => [getComputedStyle(document.querySelector('input.inline.sum')).fontSize, getComputedStyle(document.querySelector('.fp .pc textarea')).maxHeight, getComputedStyle(document.querySelector('.fp .pc')).rowGap]);
   ok(r.join() === '34px,56.55px,14px', 'Summe oben größer; Pro und Contra mit drei Zeilen Vorschau und mehr Abstand: ' + r.join());
   ok(await p.evaluate(() => F_ST.map(x => x[0]).join()) === 'geplant,beantragt,zugesagt,abgelehnt', 'Stände der Förderer: geplant, beantragt, zugesagt, abgelehnt (ohne „in Vorbereitung“)');

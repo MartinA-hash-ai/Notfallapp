@@ -45,10 +45,11 @@ einmaliger Zuordnung, nicht bei Freigabelinks – zurückgestellt.
 die Anführungszeichen entfernt die Liste.
 
 **In der Liste bearbeiten (Normalzustand):** Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
-und ändern – **Strg + Klick öffnet den Bedarf**. „+ Bedarf“ legt oben eine neue Zeile an und führt mit Enter durch
-Name → Summe → Ort → Ansprechperson → Deadline. Die Reihenfolge bleibt beim Arbeiten stehen und wird beim Zurückkommen
-in die Liste neu sortiert. Die Punktlinie zur Frist des Verwendungsnachweises ist ein Zeitstrahl (grau, ab einem Monat
-vorher gelb, ab einer Woche rot). Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; das + unten links im
+und ändern – **Strg + Klick öffnet den Bedarf**. „+ Bedarf“ legt oben eine neue Zeile an und führt mit Enter oder Tab durch
+Name → Summe → Ort → Ansprechperson → Deadline (Shift+Tab zurück; Tab geht auch in vorhandenen Zeilen). Die Reihenfolge
+bleibt beim Arbeiten stehen und wird beim Zurückkommen in die Liste neu sortiert. Die Punktlinie zur Frist des
+Verwendungsnachweises zeigt die Zeit ab heute (grün, unter einem Monat gelb, unter einer Woche rot).
+Im Kreisdiagramm auf der Seite eines Bedarfs schaltet ein Klick auf das Stück eines Förderers seinen Stand weiter. Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; das + unten links im
 Finanzierungsplan fügt einen Förderer hinzu (Enter: zum Betrag, Shift+Enter: speichern und nächster Förderer), der Stift am Ende des Förderernamens benennt ihn um; der Kalender beim
 Verwendungsnachweis setzt die Frist; der Kreis mit Stift bei der Spendenübergabe öffnet Ort, Datum, Uhrzeit und Notizen.
 

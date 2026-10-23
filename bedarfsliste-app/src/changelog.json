@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.18.0",
+    "date": "2026-10-23T16:00",
+    "items": [
+      "Fehler behoben: Förderer-Kacheln mit langer Kontaktzeile wurden in manchen Browsern breiter als ihre Spalte und schoben sich übereinander – jetzt bleibt jede Kachel in ihrer Spalte, die Kontaktzeile wird gekürzt",
+      "Punktlinie zur Frist des Verwendungsnachweises: gerechnet von heute bis zur Frist, die ganze Linie eingefärbt – grün, unter einem Monat gelb, unter einer Woche rot",
+      "Kreisdiagramm: Beschriftungen immer sichtbar, in Grau",
+      "Klick auf das Stück eines Förderers im Kreisdiagramm schaltet seinen Stand weiter (geplant → beantragt → zugesagt → abgelehnt); die Farbe wechselt sofort, neu aufgeteilt wird der Kreis erst, wenn die Maus ihn verlässt",
+      "Liste: Tab springt beim Bearbeiten zum nächsten Feld der Zeile (Name → Summe → Ort → Ansprechperson → Deadline), Shift+Tab zurück – beim neuen Bedarf und in jeder vorhandenen Zeile"
+    ]
+  },
+  {
     "version": "0.17.0",
     "date": "2026-10-23T14:30",
     "items": [

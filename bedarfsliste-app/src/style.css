@@ -278,10 +278,8 @@ table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
 .fline { grid-column: 2 / 4; height: 0; position: relative; }
 .fline::after { content: ''; position: absolute; left: 0; right: 0; top: 0; border-top: 1px solid var(--line); }
 .lead { border-bottom: 2px dotted var(--line2); height: 0; margin-top: 10px; }
-/* Zeitstrahl zur Frist des Verwendungsnachweises: dieselben Punkte, von links gefüllt */
-.lead.tl { position: relative; }
-.lead.tl::after { content: ''; position: absolute; left: 0; bottom: -2px; width: var(--p); border-bottom: 2px dotted var(--tl); }
-.lead.tl-g { --tl: var(--faint); } .lead.tl-y { --tl: #e0a400; } .lead.tl-r { --tl: var(--red); }
+/* Punktlinie zur Frist des Verwendungsnachweises: Farbe nach der Zeit bis zur Frist */
+.lead.tl-g { border-color: var(--f-zu); } .lead.tl-y { border-color: #e0a400; } .lead.tl-r { border-color: var(--red); }
 #list-body .ph { color: var(--faint); font-weight: 400; }
 .vt { white-space: nowrap; color: var(--ink2); }
 .vt.nn { color: var(--ghost); }
@@ -535,11 +533,12 @@ button.circ:hover:not(:disabled) { box-shadow: 0 0 0 3px var(--hover); }
 .fin-wrap table.fsum { flex: 1 1 380px; width: auto; max-width: 580px; }
 .fin-pie { flex: 1 1 380px; min-width: 300px; max-width: 560px; margin-left: auto; }
 .fin-pie svg.pie { display: block; width: 100%; height: auto; overflow: visible; }
-.fin-pie .pl { opacity: 0; transition: opacity .15s; pointer-events: none; }
-.fin-pie:hover .pl { opacity: 1; }
-.pl-l { fill: none; stroke: var(--faint); stroke-width: 1; }
-.pl-n { fill: var(--ink); font-size: 13px; font-weight: 600; }
-.pl-v { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.fin-pie .pl { pointer-events: none; }
+.pl-l { fill: none; stroke: var(--line2); stroke-width: 1; }
+.pl-n { fill: var(--muted); font-size: 13px; font-weight: 600; }
+.pl-v { fill: var(--faint); font-size: 12px; font-variant-numeric: tabular-nums; }
+.ps[data-act] { cursor: pointer; }
+.ps.ab { fill: var(--errbg); }   /* gerade auf „abgelehnt“ geklickt – verschwindet, wenn die Maus den Kreis verlässt */
 .pie { width: 100%; height: 100%; display: block; }
 .ps { stroke: var(--card); stroke-width: 2px; vector-effect: non-scaling-stroke; }
 .ps.zu { fill: var(--f-zu); } .ps.eig { fill: var(--f-eig); } .ps.be { fill: var(--f-be); } .ps.ge { fill: var(--f-ge); } .ps.off { fill: url(#pie-off); }
@@ -609,7 +608,10 @@ span.st-btn { display: inline-block; }
 .fk-head h2 { margin: 0; font-size: 17px; }
 .fk-head button { margin-left: auto; }
 .fk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; align-items: start; }
-.card.fp.fk { margin: 0; padding: 12px 14px 8px; gap: 7px; }
+.card.fp.fk { margin: 0; padding: 12px 14px 8px; gap: 7px; grid-template-columns: minmax(0, 1fr); }
+/* nichts in der Kachel darf sie breiter machen (lange Kontaktzeile, lange Texte) – sonst schieben sich die Kacheln übereinander */
+.fk > * { min-width: 0; }
+.fk .det { overflow: hidden; }
 .fk-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .fk-kopf { display: grid; gap: 0; min-width: 0; }
 .fk input.inline.fp-h { font-size: 21px; font-weight: 700; line-height: 1.25; padding: 0 1px; }
@@ -642,7 +644,7 @@ span.st-btn { display: inline-block; }
 .fk .det { border-top: 1px solid var(--line3); padding-top: 2px; margin-top: 2px; }
 .fk .det-btn { font-weight: 400; font-size: 12.5px; color: var(--muted); }
 .ds:empty::before { content: 'Kontakt und Details'; }
-.fk .det-btn { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; }
+.fk .det-btn { display: flex; align-items: center; gap: 6px; width: 100%; min-width: 0; max-width: 100%; text-align: left; }
 .fk .det-btn .ds { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .det-auf { font-size: 16px; line-height: 1; color: var(--faint); }
 .fk .det-btn:hover .det-auf { color: var(--ink); }

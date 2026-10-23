@@ -31,15 +31,12 @@ function lFreigabe(b) {
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
 const F_SYM = { zugesagt: 'ok', beantragt: 'run', geplant: 'off', abgelehnt: 'no' };
 const EMPTY3 = '<span></span><span></span><span></span>';
-// Zeitstrahl in der Punktlinie zur Frist: füllt sich von links (ab Geldeingang bzw. Zusage, sonst 90 Tage vorher) bis zur Frist –
-// grau, ab einem Monat vorher gelb, ab einer Woche vorher rot
+// Punktlinie zur Frist des Verwendungsnachweises: von heute bis zur Frist gerechnet – grün, weniger als ein Monat gelb, weniger als eine Woche rot
 function zeitstrahl(f) {
   const v = f.vn; if (!v.frist || v.st === 'erledigt') return '<span class="lead"></span>';
-  const T = 864e5, end = Date.parse(v.frist), now = Date.parse(today()), rest = Math.round((end - now) / T);
-  const s0 = Date.parse(f.eingangAm || f.entscheidungAm || ''), start = isNaN(s0) || s0 >= end ? end - 90 * T : s0;
-  const p = Math.max(0, Math.min(1, (now - start) / (end - start)));
+  const rest = Math.round((Date.parse(v.frist) - Date.parse(today())) / 864e5);
   const t = rest < 0 ? 'Frist seit ' + -rest + (rest === -1 ? ' Tag' : ' Tagen') + ' vorbei' : rest === 0 ? 'Frist ist heute' : 'noch ' + rest + (rest === 1 ? ' Tag' : ' Tage') + ' bis zur Frist';
-  return `<span class="lead tl ${rest <= 7 ? 'tl-r' : rest <= 30 ? 'tl-y' : 'tl-g'}" style="--p:${(p * 100).toFixed(1)}%" title="${t}"></span>`;
+  return `<span class="lead tl ${rest < 7 ? 'tl-r' : rest < 30 ? 'tl-y' : 'tl-g'}" title="${t}"></span>`;
 }
 function lNachweis(f, fertig) {
   const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`;

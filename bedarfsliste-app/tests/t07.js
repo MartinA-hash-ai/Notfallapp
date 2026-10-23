@@ -204,6 +204,19 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => { const x = D.bedarfe[0]; return [x.titel, x.summe, x.gliederung, x.zust.join(), x.deadline, document.querySelector('#list-body tr[data-id]').dataset.id === x.id, UI.view]; });
   ok(r.join('|') === 'Funkgeräte|1200|Brakel|Max Muster|2027-04-30|true|list', 'neuer Bedarf ganz oben in der Liste, alles nur mit der Tastatur: ' + r.join('|'));
 
+  // Tab: weiter zum nächsten Feld, Shift+Tab zurück – beim neuen Bedarf und in jeder Zeile
+  await p.click('button[data-act="new"]');
+  await K.type('Zelt'); await K.press('Tab'); await K.type('900'); await K.press('Shift+Tab');
+  r = await p.evaluate(() => [document.activeElement.placeholder, document.activeElement.value, D.bedarfe[0].summe]);
+  ok(r.join('|') === 'Name des Bedarfs|Zelt|900', 'Tab vom Namen zur Summe, Shift+Tab zurück zum Namen: ' + r.join('|'));
+  await K.press('Tab'); await K.press('Tab'); await K.type('Brakel'); await K.press('Tab');
+  r = await p.evaluate(() => [document.activeElement.placeholder, D.bedarfe[0].titel, D.bedarfe[0].summe, D.bedarfe[0].gliederung]);
+  ok(r.join('|') === 'Ansprechperson|Zelt|900|Brakel', 'mit Tab von Feld zu Feld durch die neue Zeile: ' + r.join('|'));
+  await K.press('Escape');
+  await p.click(R('b-aed') + ' .l-name'); await K.press('Tab');
+  ok(await p.evaluate(() => document.activeElement.placeholder) === 'Summe', 'auch in einer vorhandenen Zeile: Tab springt vom Namen zur Summe');
+  await K.press('Escape');
+
   // Darstellung hell, auch wenn die umgebende Seite dunkel ist: eingebaute Bedienelemente hell
   r = await p.evaluate(() => { const st = document.createElement('style'); st.textContent = ':root[data-theme=dark], body { color-scheme: dark }'; document.head.append(st); document.documentElement.dataset.theme = 'dark';
     const box = document.createElement('div'); box.className = 'le-sug lang'; document.body.append(box);

@@ -45,10 +45,10 @@ document.addEventListener('click', e => {
 function strgAct(b, el, then) {
   const f = el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : null, done = () => { changed(); relist(b); };
   switch (el.dataset.le) {
-    case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
-    case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', then, set: v => { b.summe = v; } });
-    case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', then, set: v => { b.gliederung = v.trim(); } });
-    case 'zust': return editField(b, el, { value: b.zust[0] || '', src: SRC.zust, label: 'Ansprechperson', then, set: v => { v = v.trim(); b.zust = v ? [v, ...b.zust.slice(1).filter(x => x !== v)] : b.zust.slice(1); } });
+    case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', feld: 'titel', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
+    case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', feld: 'summe', then, set: v => { b.summe = v; } });
+    case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', feld: 'ort', then, set: v => { b.gliederung = v.trim(); } });
+    case 'zust': return editField(b, el, { value: b.zust[0] || '', src: SRC.zust, label: 'Ansprechperson', feld: 'zust', then, set: v => { v = v.trim(); b.zust = v ? [v, ...b.zust.slice(1).filter(x => x !== v)] : b.zust.slice(1); } });
     case 'deadline': return calPop(el, b.deadline, v => { b.deadline = v; changed(); relist(b); }, { clear: 'Deadline entfernen' });
     case 'eig': return editField(b, el, { value: b.eigenanteil, num: true, right: true, label: 'Eigenmittel in Euro', set: v => { b.eigenanteil = v; } });
     case 'amt': if (!f) return;
@@ -202,16 +202,25 @@ function editField(b, el, o) {
     }
     relist(b);
     if (o.then) o.then(wie);
+    else if ((wie === 'tab' || wie === 'back') && o.feld) feldWeiter(b, o.feld, wie);
   };
   const sug = o.src ? suggest(inp, o.src, () => finish(true, 'enter')) : () => false;
   inp.addEventListener('keydown', e => {
     if (sug(e)) { e.preventDefault(); return; }
     if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true, 'enter'); } else if (e.key === 'Escape') { e.preventDefault(); finish(false, 'esc'); }
+    else if (e.key === 'Tab' && o.feld) { e.preventDefault(); finish(true, e.shiftKey ? 'back' : 'tab'); }
   });
   inp.addEventListener('blur', () => finish(true, 'blur'));
 }
 
-// „+ Bedarf“: neue Zeile oben in der Liste, dann der Reihe nach Name → Summe → Ort → Ansprechperson → Deadline (jeweils Enter);
+// Tab im Feld: übernehmen und weiter zum nächsten Feld der Zeile (Shift+Tab: zurück) – Name → Summe → Ort → Ansprechperson → Deadline
+const LISTE_FELDER = ['titel', 'summe', 'ort', 'zust', 'deadline'];
+function feldWeiter(b, k, wie, then) {
+  const i = LISTE_FELDER.indexOf(k) + (wie === 'back' ? -1 : 1);
+  const el = i >= 0 && i < LISTE_FELDER.length && $(`#list-body tr[data-id="${CSS.escape(b.id)}"] [data-le="${LISTE_FELDER[i]}"]`);
+  if (el) strgAct(b, el, then);
+}
+// „+ Bedarf“: neue Zeile oben in der Liste, dann der Reihe nach Name → Summe → Ort → Ansprechperson → Deadline (Enter oder Tab, Shift+Tab zurück);
 // Esc oder Klick daneben hört auf. Bleibt der Name leer, verschwindet die neue Zeile wieder.
 function neuerBedarf() {
   const nb = blank(); D.bedarfe.unshift(nb); changed();
@@ -219,13 +228,14 @@ function neuerBedarf() {
   ORDER.ids = [nb.id, ...(ORDER.ids || []).filter(id => id !== nb.id)];
   renderNow(); strgSet(false); scrollTo(0, 0);
   const feld = k => $(`#list-body tr[data-id="${CSS.escape(nb.id)}"] [data-le="${k}"]`);
-  const schritte = ['titel', 'summe', 'ort', 'zust', 'deadline'];
+  const schritte = LISTE_FELDER;
   const weg = () => { D.bedarfe = D.bedarfe.filter(x => x !== nb); ORDER.ids = ORDER.ids && ORDER.ids.filter(id => id !== nb.id); changed(); keep(renderNow); };
   const geh = i => {
     const el = feld(schritte[i]); if (!el) return;
     strgAct(nb, el, wie => {
       if (i === 0 && !nb.titel.trim()) { weg(); return; }
-      if (wie === 'enter' && i + 1 < schritte.length) geh(i + 1);
+      if ((wie === 'enter' || wie === 'tab') && i + 1 < schritte.length) geh(i + 1);
+      else if (wie === 'back' && i > 0) geh(i - 1);
     });
   };
   geh(0);
