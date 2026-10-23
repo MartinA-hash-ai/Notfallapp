@@ -273,6 +273,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     return [Math.abs(l.top - rr.top) <= 6, rr.left > l.right, Math.abs(rr.width - l.width) < 40, f.top >= liste.bottom - 1, be.left >= rr.left - 8, E.querySelectorAll('input:not(#sw-neu), textarea').length,
       [...E.querySelectorAll('.k1 .kn')].map(e => e.textContent).join(), k[0].top === k[1].top && k[1].left > k[0].right, [...E.querySelectorAll('.eck-f > *')].map(e => e.dataset.k || e.className).join()]; });
   ok(r.join('|') === 'true|true|true|true|true|0|Thomas Beispiel,Anna Muster|true|deadline,sw-box', 'Bedarf oben: links Zuständige nebeneinander, darunter Deadline und Stichworte, rechts die Beschreibung, keine Eingabefelder: ' + r.join('|'));
+  ok(await p.evaluate(() => [...document.querySelectorAll('#zust-liste .k1')].every(k => getComputedStyle(k).backgroundColor === 'rgb(243, 243, 241)')), 'Zuständige dauerhaft grau hinterlegt');
   // Zuständige bearbeiten wie Kontakte: Linien, zwei je Zeile, auch mehr als drei, Fertig oben rechts
   await p.click('#sec-eck .k-pen');
   r = await p.evaluate(() => [document.querySelectorAll('#sec-eck .k-ed').length, [...document.querySelectorAll('#zust-liste > .k-ed:first-child input')].map(e => e.placeholder).join(','), !!document.querySelector('#sec-eck .sub [data-act="k-fertig"]')]);
@@ -329,28 +330,39 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // Beschreibung: irgendwo in die Fläche klicken; Aufzählung sofort, Umschalt+Enter = nächster Punkt, Enter = Zeile ohne Punkt
   const er = await p.$eval('#sec-eck .eck-r', e => { const q = e.getBoundingClientRect(); return [q.left + 30, q.bottom - 12]; });
   await p.mouse.click(er[0], er[1]);
-  ok(await p.evaluate(() => document.activeElement.matches('#sec-eck .eck-r textarea.pe-in')), 'Klick unten in die freie Fläche öffnet die Beschreibung zum Schreiben');
+  ok(await p.evaluate(() => document.activeElement.matches('#sec-eck .eck-r .pe-rich[contenteditable]')), 'Klick unten in die freie Fläche öffnet die Beschreibung zum Schreiben');
   await p.keyboard.press('Control+A'); await p.keyboard.type('Wir brauchen:'); await p.keyboard.press('Enter'); await p.keyboard.type('* Trage');
-  const tv = () => p.evaluate(() => document.activeElement.value);
-  r = await tv();
-  ok(r === 'Wir brauchen:\n• Trage', '„* “ wird beim Tippen sofort zum Punkt: ' + JSON.stringify(r));
+  const tv = () => p.evaluate(() => richText(document.activeElement));
+  r = await p.evaluate(() => [richText(document.activeElement), [...document.activeElement.querySelectorAll('ul li')].map(x => x.textContent).join()]);
+  ok(r.join('|') === 'Wir brauchen:\n• Trage|Trage', '„* “ wird beim Tippen sofort zum Punkt (als echte Aufzählung): ' + JSON.stringify(r));
   await p.keyboard.press('Shift+Enter'); await p.keyboard.type('Decke'); await p.keyboard.press('Shift+Enter'); await p.keyboard.press('Enter');
   await p.keyboard.type('1. erst'); await p.keyboard.press('Shift+Enter'); await p.keyboard.type('dann'); await p.keyboard.press('Enter'); await p.keyboard.type('- '); await p.keyboard.press('Backspace'); await p.keyboard.type('Ende');
   r = await tv();
   ok(r === 'Wir brauchen:\n• Trage\n• Decke\n1. erst\n2. dann\nEnde', 'Umschalt+Enter: nächster Punkt bzw. Nummer; Enter: Zeile ohne Punkt, auf leerem Punkt nimmt er ihn weg; Rücktaste ebenso: ' + JSON.stringify(r));
-  // Wort markieren: darüber die Formatierungsleiste; Knopf setzt die Zeichen (angefangene Wörter ganz), noch einmal nimmt sie weg; Strg+U unterstreicht
-  await p.evaluate(() => { const t = document.activeElement, i = t.value.indexOf('rage'); t.setSelectionRange(i, i + 3); t.dispatchEvent(new KeyboardEvent('keyup', { key: 'Shift' })); });
-  r = await p.evaluate(() => { const bar = $('.fmt-bar'), t = document.activeElement; if (!bar) return null; const q = bar.getBoundingClientRect(), c = caretXY(t, t.selectionStart);
-    return [[...bar.querySelectorAll('button')].map(x => x.getAttribute('aria-label').split(' ')[0]).join(','), q.bottom <= c.y + 1 && Math.abs(q.left + q.width / 2 - c.x) < 120]; });
+  // Wort markieren: darüber die Formatierungsleiste; die Formatierung ist sofort zu sehen (angefangene Wörter ganz), noch einmal nimmt sie weg; Strg+U unterstreicht
+  await p.evaluate(() => { const t = document.activeElement.querySelector('li').firstChild, r = document.createRange(); r.setStart(t, 1); r.setEnd(t, 4); getSelection().removeAllRanges(); getSelection().addRange(r); });
+  await p.waitForTimeout(60);
+  r = await p.evaluate(() => { const bar = $('.fmt-bar'); if (!bar) return null; const q = bar.getBoundingClientRect(), c = getSelection().getRangeAt(0).getBoundingClientRect();
+    return [[...bar.querySelectorAll('button')].map(x => x.getAttribute('aria-label').split(' ')[0]).join(','), q.bottom <= c.top + 1 && Math.abs(q.left + q.width / 2 - (c.left + c.width / 2)) < 120]; });
   ok(r && r.join('|') === 'Fett,Kursiv,Unterstrichen,Durchgestrichen,Aufzählung|true', 'Markierung: Leiste mit fett, kursiv, unterstrichen, durchgestrichen und Aufzählung direkt darüber: ' + JSON.stringify(r));
-  await p.click('.fmt-bar button[data-z="*"]');
-  r = await tv(); const fett = r.includes('• *Trage*');
+  await p.click('.fmt-bar button[data-z="*"]'); await p.waitForTimeout(30);
+  const fett = await p.evaluate(() => [document.activeElement.querySelector('li').innerHTML, [...document.querySelectorAll('.fmt-bar button.on')].map(x => x.dataset.z).join('')].join('|'));
   await p.keyboard.press('Control+u'); r = await tv(); const unter = r.includes('• *+Trage+*');
   await p.click('.fmt-bar button[data-z="*"]'); r = await tv();
-  ok(fett && unter && r.includes('• +Trage+\n') && await p.evaluate(() => document.activeElement.matches('textarea.pe-in')), 'fett (ganzes Wort), Strg+U unterstrichen, noch einmal fett nimmt es weg; das Feld bleibt offen: ' + JSON.stringify(r));
+  ok(fett === '<b>Trage</b>|*•' && unter && r.includes('• +Trage+\n') && await p.evaluate(() => document.activeElement.matches('.pe-rich')),
+    'fett sofort sichtbar (ganzes Wort, Knopf zeigt den Stand), Strg+U unterstrichen, noch einmal fett nimmt es weg; das Feld bleibt offen: ' + fett + ' / ' + JSON.stringify(r));
   await p.keyboard.press('Control+Enter');
   r = await p.$eval('#sec-eck .pe[data-k="beschreibung"] .pv', e => [e.classList.contains('fmt'), [...e.querySelectorAll('ul li')].map(x => x.innerHTML).join(), [...e.querySelectorAll('ol li')].map(x => x.textContent).join(), !document.querySelector('.fmt-bar')]);
-  ok(r.join('|') === 'true|<u>Trage</u>,Decke|erst,dann|true', 'Beschreibung formatiert angezeigt, Leiste wieder weg: ' + r.join('|'));
+  ok(r.join('|') === 'true|<u>Trage</u>,Decke|erst,dann|true', 'Beschreibung gespeichert und formatiert angezeigt, Leiste wieder weg: ' + r.join('|'));
+  // Schreibfeld ↔ gespeicherter Text: nichts geht verloren; Formatierung mitten im Wort gilt fürs ganze Wort; Eingefügtes kommt als schlichter Text
+  r = await p.evaluate(() => { const T = ['a *b* _c_ +d+ ~e~ f', 'Vorher\n• a\n• *b*\nDanach', '1. x\n2. y', 'a\n\nb', '*+x+* y', 'Link https://x.example/a_b_c ok'];
+    const d = document.createElement('div'), rt = h => { d.innerHTML = h; return richText(d); };
+    return [T.filter(t => rt(fmtText(t, true)) !== t).join(' ¦ '), rt('<div>Wort<b>xyz</b> und fü<b>r de</b>n</div><div><span style="font-weight: bold">x</span> y<br>z</div>')]; });
+  ok(r.join(' / ') === ' / *Wortxyz* und *für den*\n*x* y\nz', 'Schreibfeld und gespeicherter Text passen zueinander: ' + r.join(' / '));
+  await p.click('#sec-eck .pe[data-k="beschreibung"]');
+  await p.evaluate(() => { const dt = new DataTransfer(); dt.setData('text/html', '<b style="color:red">rot</b>'); dt.setData('text/plain', 'schlicht'); document.activeElement.dispatchEvent(new ClipboardEvent('paste', { clipboardData: dt, bubbles: true, cancelable: true })); });
+  r = await tv(); await p.keyboard.press('Escape');
+  ok(r.endsWith('Endeschlicht') && !r.includes('rot'), 'Einfügen bringt nur Text mit, keine fremde Formatierung: ' + JSON.stringify(r.slice(-20)));
   // Freigaben: „Fachreferat“ vor dem Namen; Fortschritt oben: erledigt dezent grün, der aktuelle Schritt nicht hinterlegt
   r = await p.evaluate(() => { const done = $('#d-steps li.done'), cur = $('#d-steps li.cur');
     return [$('#fr-fach .fr-fach .ci-n').textContent + ' ' + $('#fr-fach .fr-name').value, getComputedStyle(done).color, getComputedStyle(done.querySelector('.st-k')).backgroundColor, getComputedStyle(cur).backgroundColor]; });

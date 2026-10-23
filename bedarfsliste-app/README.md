@@ -46,7 +46,8 @@ die Anführungszeichen entfernt die Liste.
 
 **Ansicht der Liste:** „Ausführlich“ zeigt alles (Förderer einzeln, Ansprechperson, Deadline); „Kompakt“ je Bedarf eine Zeile mit
 Name, Summe, Ort und je Bereich nur dem Stand – grün durch, gelb in Bearbeitung, rot abgelehnt, leerer Kreis noch nichts, grau nicht nötig.
-In der kompakten Ansicht führt „+ Bedarf“ durch Name, Summe und Ort. Der Browser merkt sich die Wahl.
+In der kompakten Ansicht führt „+ Bedarf“ durch Name, Summe und Ort; Umschalt+Enter legt gleich den nächsten an (in beiden Ansichten).
+Strg+Klick klappt einen Bedarf ausführlich auf, noch einmal Strg+Klick öffnet ihn, ein Klick daneben klappt ihn zu. Der Browser merkt sich die Wahl.
 
 **In der Liste bearbeiten (Normalzustand):** Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
 und ändern – **Strg + Klick öffnet den Bedarf**. „+ Bedarf“ legt oben eine neue Zeile an und führt mit Enter oder Tab durch
@@ -73,7 +74,8 @@ Das Angebot steht bei den Freigaben (es ist Voraussetzung dafür), gespeichert b
 (höchstens drei, ★ = Hauptkontakt, der unten in der Kachel steht). Notizen, Fristen, Fördersumme und Eigenanteil lassen sich
 einfach formatieren (ebenso die Beschreibung eines Bedarfs): `* ` oder `- ` am Zeilenanfang wird beim Tippen sofort zum Punkt •
 (Umschalt+Enter: nächster Punkt, Enter: Zeile ohne Punkt), `1. ` = Nummerierung, `*fett*`, `_kursiv_`, `+unterstrichen+`, `~durchgestrichen~`.
-Einfacher: Wort markieren – darüber erscheinen Knöpfe dafür (auch Strg+B, Strg+I, Strg+U).
+Einfacher: Wort markieren – darüber erscheinen Knöpfe dafür (auch Strg+B, Strg+I, Strg+U). Beim Schreiben ist die Formatierung
+sofort zu sehen; gespeichert wird der Text mit den Zeichen.
 
 **Rückgängig:** „↶ Rückgängig“ in der Kopfzeile oder Strg+Z (nicht in einem Eingabefeld – dort gilt das Rückgängig des Browsers).
 Bis zu 50 Schritte; Tippen im selben Feld ist ein Schritt. Nach dem Neuladen der Datei von außen beginnt die Liste von vorn.

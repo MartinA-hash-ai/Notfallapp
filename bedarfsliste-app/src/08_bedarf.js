@@ -272,21 +272,26 @@ function popEdit(el) {
   const b = cur(), f = b && (el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : b); if (!f) return;
   const k = el.dataset.k, art = el.dataset.art, lang = art === 'area', val = el.querySelector('.val');
   if (art === 'date') return calPop(el, f[k], v => { f[k] = v || ''; changed(); keep(renderNow); }, { clear: el.dataset.lab + ' entfernen' });
-  const inp = h(lang ? 'textarea' : 'input', { class: 'pe-in', rows: lang ? 2 : null, type: lang ? null : 'text', inputmode: art === 'num' ? 'decimal' : null, 'aria-label': el.dataset.lab });
-  inp.value = art === 'num' ? fmtNum(f[k]) : f[k] ?? '';
+  // Texte mit Formatierung: Schreibfeld, das fett, kursiv, Aufzählungen usw. gleich zeigt; sonst ein schlichtes Feld
+  const rich = lang && !!el.dataset.fmt;
+  const inp = rich ? h('div', { class: 'pe-in pe-rich', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': el.dataset.lab })
+    : h(lang ? 'textarea' : 'input', { class: 'pe-in', rows: lang ? 2 : null, type: lang ? null : 'text', inputmode: art === 'num' ? 'decimal' : null, 'aria-label': el.dataset.lab });
+  if (rich) inp.innerHTML = fmtText(f[k] || '', true) || '<div><br></div>'; else inp.value = art === 'num' ? fmtNum(f[k]) : f[k] ?? '';
+  const wert = () => rich ? richText(inp) : inp.value;
   if (lang && el.closest('.eck-r')) inp.style.minHeight = Math.max(60, val.getBoundingClientRect().bottom - val.getBoundingClientRect().top, el.getBoundingClientRect().bottom - val.getBoundingClientRect().top - 10) + 'px';
   val.classList.remove('leer'); val.replaceChildren(inp); el.classList.add('edit');
-  inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) { /* */ }
-  if (el.dataset.fmt && lang) listAuto(inp);
-  const leiste = el.dataset.fmt && lang ? fmtLeiste(inp) : null;
+  inp.focus();
+  if (rich) { const rg = document.createRange(); rg.selectNodeContents(inp); rg.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(rg); }
+  else try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) { /* */ }
+  const leiste = rich ? richEdit(inp) : null;
   const sk = el.dataset.sug && suggest(inp, SRC[el.dataset.sug], () => finish(true));
   let fertig = false;
   const finish = ok => {
     if (fertig) return; fertig = true;
     if (leiste) leiste();
     if (ok) {
-      let v = k === 'quellen' ? quellenZeilen(inp.value).join('\n') : inp.value.trim();
-      if (art === 'num') { v = deNum(v); if (v === null) { toast('„' + inp.value + '“ ist keine Zahl – nicht übernommen.', 'warn'); v = f[k]; } else if (v === '') v = null; }
+      let v = k === 'quellen' ? quellenZeilen(wert()).join('\n') : wert().trim();
+      if (art === 'num') { v = deNum(v); if (v === null) { toast('„' + wert() + '“ ist keine Zahl – nicht übernommen.', 'warn'); v = f[k]; } else if (v === '') v = null; }
       if (v !== (f[k] ?? (art === 'num' ? null : ''))) { f[k] = v; changed(); }
     }
     const y = ($('.foe-pop .pop-body') || {}).scrollTop || 0;

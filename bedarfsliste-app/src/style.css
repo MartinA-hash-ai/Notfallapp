@@ -236,6 +236,13 @@ table.list td.l-name, table.list td.l-sum, table.list td.l-meta { vertical-align
 table.list.kompakt td { vertical-align: middle; white-space: nowrap; padding-top: 9px; padding-bottom: 9px; }
 table.list.kompakt td.l-name { max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
 table.list.kompakt td.l-ort { font-size: 13px; color: var(--ink2); }
+/* aufgeklappter Bedarf in der kompakten Liste: ausführlich wie in der anderen Ansicht, hervorgehoben */
+table.list.kompakt tr.auf td { white-space: normal; vertical-align: top; padding-top: 14px; padding-bottom: 14px; background: var(--soft); }
+table.list.kompakt tr.auf td:first-child { box-shadow: inset 3px 0 0 var(--focus); }
+table.list.kompakt tr.auf td.l-fin { min-width: 480px; }
+table.list.kompakt tr.auf td.l-meta { min-width: 130px; }
+table.list.kompakt tr.auf td.l-name, table.list.kompakt tr.auf td.l-sum, table.list.kompakt tr.auf td.l-meta { vertical-align: middle; }
+table.list.kompakt tr.auf td.l-name { max-width: none; overflow: visible; }
 .kz { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink2); white-space: nowrap; }
 .kz.k-ok { color: var(--e5ink); } .kz.k-run { color: var(--ph1ink); } .kz.k-no { color: var(--red-d); } .kz.k-off { color: var(--muted); } .kz.nn { color: var(--faint); }
 .kz.warnl { color: var(--warn); } .kz .tri { width: 14px; height: 14px; }
@@ -499,9 +506,10 @@ input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: 
 .eck-f { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 0 20px; align-items: start; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line3); }
 .eck .sub { margin-bottom: 6px; }
 /* Zuständige: je Zeile zwei, E-Mail und Telefon stehen nur als Hinweis an den Knöpfen */
-#zust-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 2px 18px; align-items: start; }
+#zust-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: stretch; }
 #zust-liste > .kadd { grid-column: 1 / -1; }
-#zust-liste .k1 { margin-bottom: 0; }
+#zust-liste .k1 { margin: 0; background: var(--hover); }                         /* jede Person als graue Karte */
+#zust-liste .k1:hover { background: var(--line3); }
 .k-cop { margin-left: auto; border: 1px solid var(--line2); background: var(--card); padding: 2px 9px; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink2); border-radius: 6px; }
 .k-cop:hover { color: var(--ink); border-color: var(--faint); }
 .k-cop + .k-pen { margin-left: 4px; }
@@ -517,7 +525,13 @@ input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: 
 /* Beschreibung: die ganze rechte Fläche ist anklickbar, das Feld nimmt sie beim Schreiben ein */
 .eck-r { display: flex; flex-direction: column; }
 .eck-r > .pe { flex: 1 1 auto; margin-bottom: 0; }
-.eck-r textarea.pe-in { max-height: none; }
+.eck-r textarea.pe-in, .eck-r .pe-rich { max-height: none; }
+/* Schreibfeld mit sichtbarer Formatierung */
+.pe-rich { min-height: 2.3em; max-height: 18em; overflow-y: auto; padding: 5px 8px; border: 1px solid var(--focus); border-radius: 6px; background: var(--input); color: var(--ink); line-height: 1.45; white-space: normal; overflow-wrap: anywhere; cursor: text; }
+.pe-rich:focus { outline: 2px solid var(--focus); outline-offset: -1px; }
+.pe-rich ul, .pe-rich ol { margin: 2px 0; padding-left: 22px; }
+.pe-rich u { text-underline-offset: 2px; }
+.fmt-bar button.on { background: var(--chipbg); }
 .rech-btns { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 textarea.rech-prompt.kurz { height: 150px; }
 .warn-t { color: var(--red-d); margin-top: 3px; }

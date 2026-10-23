@@ -131,12 +131,13 @@ const nameZelle = b => `<td class="l-name" data-le="titel">${b.titel ? esc(b.tit
     <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>`;
 const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
 function row(b) {
-  if (KOMPAKT()) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">${nameZelle(b)}
+  if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">${nameZelle(b)}
     <td class="l-ort"><div class="ort" data-le="ort">${ortText(b)}</div></td><td>${kFreigabe(b)}</td><td>${kFinanz(b)}</td><td>${kNachweis(b)}</td><td>${kUebergabe(b)}</td></tr>`;
-  return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">${nameZelle(b)}
+  const auf = KOMPAKT();                                  // in der kompakten Ansicht aufgeklappt: Finanzierung und Nachweis über zwei Spalten
+  return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}${auf ? ' auf' : ''}">${nameZelle(b)}
     <td class="l-meta"><div class="ort" data-le="ort">${ortText(b)}</div><div data-le="zust">${b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
-    <td class="l-fin">${lFinanz(b)}</td>
+    <td class="l-fin"${auf ? ' colspan="2"' : ''}>${lFinanz(b)}</td>
     <td class="l-ueb">${lUebergabe(b)}</td>
   </tr>`;
 }
@@ -151,7 +152,8 @@ function listView() {
   const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de')), komp = KOMPAKT(), colw = komp ? null : colwGet();
   return `<main><section class="card">
     <div class="list-head">
-      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span><span class="strg-hint" title="Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Mit gedrückter Strg-Taste öffnet ein Klick den Bedarf.">Strg + Klick öffnet den Bedarf</span>
+      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Name, Summe und Ort anklicken und ändern. Strg + Klick klappt einen Bedarf ausführlich auf – dort lässt sich alles bearbeiten; noch einmal Strg + Klick öffnet ihn, ein Klick daneben klappt ihn wieder zu.">Strg + Klick klappt einen Bedarf auf, noch einmal öffnet ihn</span>'
+        : '<span class="strg-hint" title="Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Mit gedrückter Strg-Taste öffnet ein Klick den Bedarf.">Strg + Klick öffnet den Bedarf</span>'}
       <div class="tools">
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">

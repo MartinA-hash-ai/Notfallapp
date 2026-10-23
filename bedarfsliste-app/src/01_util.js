@@ -28,102 +28,157 @@ function anyDate(v) {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // einfache Formatierung wie in Chat-Programmen: Zeilen mit „* “ oder „- “ werden Aufzählungen, „1. “ eine Nummerierung;
 // *fett*, _kursiv_, ~durchgestrichen~ (wie bei WhatsApp); Links werden anklickbar. Alles andere bleibt Text.
-// Aufzählung sofort beim Tippen (in den Textfeldern mit Formatierung): „* “ oder „- “ am Zeilenanfang wird zu „• “. Umschalt+Enter setzt
-// den nächsten Punkt (bzw. die nächste Nummer nach „1. “), Enter geht in eine neue Zeile ohne Punkt (wie in Teams); auf einem leeren
-// Punkt nehmen beide den Punkt weg, ebenso die Rücktaste direkt dahinter. Über den Browser eingefügt, damit Strg+Z im Feld weiter geht.
-function listAuto(ta) {
-  const zeile = () => { const v = ta.value, p = ta.selectionStart, a = v.lastIndexOf('\n', p - 1) + 1, e = v.indexOf('\n', p); return { v, p, a, t: v.slice(a, p), rest: v.slice(p, e < 0 ? v.length : e) }; };
-  const setze = (von, bis, t) => { ta.setSelectionRange(von, bis); if (!document.execCommand(t ? 'insertText' : 'delete', false, t)) ta.setRangeText(t, von, bis, 'end'); };
-  ta.addEventListener('input', e => {
-    if (e.inputType !== 'insertText' || e.data !== ' ') return;
-    const z = zeile(); if (/^[*-] $/.test(z.t)) setze(z.a, z.p, '• ');
-  });
-  ta.addEventListener('keydown', e => {
-    if (ta.selectionStart !== ta.selectionEnd || e.ctrlKey || e.altKey || e.metaKey) return;
-    const z = zeile(), m = /^(• |(\d+)\. )/.exec(z.t);
-    if (e.key === 'Enter' && m && z.t === m[0] && !z.rest.trim()) { e.preventDefault(); setze(z.a, z.p, ''); }   // leerer Punkt: Aufzählung endet
-    else if (e.key === 'Enter' && e.shiftKey && m) { e.preventDefault(); setze(z.p, z.p, '\n' + (m[2] ? +m[2] + 1 + '. ' : '• ')); } else if (e.key === 'Backspace' && z.t === '• ') { e.preventDefault(); setze(z.a, z.p, ''); }
-  });
-}
-// Formatierung über der Markierung: fett, kursiv, unterstrichen, durchgestrichen, Aufzählung – setzt die Zeichen um das markierte Wort
-// (sind sie schon da, nimmt sie sie wieder weg); Strg+B, Strg+I, Strg+U gehen auch. Die Knöpfe nehmen dem Feld den Fokus nicht
-// (sonst wäre der Text übernommen). Gibt eine Funktion zurück, die die Leiste schließt.
-const FMT_KNOPF = [['*', '<b>B</b>', 'Fett (Strg+B)'], ['_', '<i>I</i>', 'Kursiv (Strg+I)'], ['+', '<u>U</u>', 'Unterstrichen (Strg+U)'], ['~', '<s>S</s>', 'Durchgestrichen'],
-  ['•', '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="3" cy="4" r="1.3" fill="currentColor"/><circle cx="3" cy="8" r="1.3" fill="currentColor"/><circle cx="3" cy="12" r="1.3" fill="currentColor"/><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>', 'Aufzählung']];
-function caretXY(ta, pos) {                       // Bildschirmlage eines Zeichens im Textfeld (über ein unsichtbares Abbild des Felds)
-  const cs = getComputedStyle(ta), d = document.createElement('div'), s = document.createElement('span');
-  for (const p of ['fontFamily', 'fontSize', 'fontWeight', 'lineHeight', 'letterSpacing', 'wordSpacing', 'paddingTop', 'paddingLeft', 'paddingRight', 'borderTopWidth', 'borderLeftWidth', 'borderRightWidth', 'boxSizing']) d.style[p] = cs[p];
-  Object.assign(d.style, { position: 'absolute', visibility: 'hidden', whiteSpace: 'pre-wrap', overflowWrap: 'break-word', width: ta.offsetWidth + 'px', left: '-9999px', top: '0' });
-  d.textContent = ta.value.slice(0, pos); s.textContent = '\u200b'; d.append(s); document.body.append(d);
-  const r = ta.getBoundingClientRect(), o = { x: r.left + s.offsetLeft - ta.scrollLeft, y: r.top + s.offsetTop - ta.scrollTop, h: s.offsetHeight };
-  d.remove(); return o;
-}
-function fmtLeiste(ta) {
-  let bar = null;
-  const zu = () => { if (bar) bar.remove(); bar = null; };
-  const setze = (von, bis, t) => { ta.setSelectionRange(von, bis); if (!document.execCommand(t ? 'insertText' : 'delete', false, t)) ta.setRangeText(t, von, bis, 'end'); };
-  const anwenden = z => {
-    const v = ta.value; let a = ta.selectionStart, e = ta.selectionEnd;
-    if (z === '•') {                                // Aufzählung: die berührten Zeilen bekommen einen Punkt (oder verlieren ihn, wenn alle einen haben)
-      const za = v.lastIndexOf('\n', a - 1) + 1, ze = v.indexOf('\n', e - (e > a && v[e - 1] === '\n' ? 1 : 0)), ende = ze < 0 ? v.length : ze, L = v.slice(za, ende).split('\n');
-      const alle = L.every(l => !l.trim() || /^• /.test(l)), neu = L.map(l => !l.trim() ? l : alle ? l.replace(/^• /, '') : /^• /.test(l) ? l : '• ' + l.replace(/^[*-] /, '')).join('\n');
-      setze(za, ende, neu); ta.setSelectionRange(za, za + neu.length); return;
-    }
-    while (a < e && /\s/.test(v[a])) a++; while (e > a && /\s/.test(v[e - 1])) e--;
-    if (a === e) return;
-    const wz = /[\p{L}\p{N}]/u;                    // angefangene Wörter ganz nehmen – mitten im Wort wirken die Zeichen nicht
-    while (a > 0 && wz.test(v[a - 1]) && wz.test(v[a])) a--; while (e < v.length && wz.test(v[e]) && wz.test(v[e - 1])) e++;
-    let l = a, r = e;                                // schon so formatiert (auch mit anderen Zeichen dazwischen, *+so+*): Zeichen wegnehmen
-    while (l > 0 && '*_~+'.includes(v[l - 1]) && v[l - 1] !== z) l--;
-    while (r < v.length && '*_~+'.includes(v[r]) && v[r] !== z) r++;
-    if (v[l - 1] === z && v[r] === z) { setze(l - 1, r + 1, v.slice(l, r)); ta.setSelectionRange(a - 1, e - 1); return; }
-    if (v[a] === z && v[e - 1] === z && e - a > 2) { setze(a, e, v.slice(a + 1, e - 1)); ta.setSelectionRange(a, e - 2); return; }
-    const L = v.slice(a, e).split('\n').map(l => { const m = /^(• |\d+\. |\s*)(.*?)(\s*)$/.exec(l); return m[2] ? m[1] + z + m[2] + z + m[3] : l; }).join('\n');
-    setze(a, e, L); ta.setSelectionRange(a + (L.indexOf(z) >= 0 && !/\n/.test(L) ? 1 : 0), a + L.length - (/\n/.test(L) ? 0 : 1));
-  };
-  const zeig = () => {
-    if (ta.selectionStart === ta.selectionEnd || document.activeElement !== ta) { zu(); return; }
-    if (!bar) {
-      bar = h('div', { class: 'fmt-bar', role: 'toolbar', 'aria-label': 'Text formatieren' }, FMT_KNOPF.map(([z, ic, t]) => h('button', { type: 'button', title: t, 'aria-label': t, html: ic, 'data-z': z })));
-      bar.addEventListener('mousedown', e => { e.preventDefault(); const k = e.target.closest('button'); if (k) { anwenden(k.dataset.z); setTimeout(zeig, 0); } });
-      document.body.append(bar);
-    }
-    const p1 = caretXY(ta, ta.selectionStart), p2 = caretXY(ta, ta.selectionEnd), r = ta.getBoundingClientRect();
-    const x = p1.y === p2.y ? (p1.x + p2.x) / 2 : p1.x, y = Math.max(r.top, p1.y);
-    bar.style.left = Math.max(8, Math.min(x - bar.offsetWidth / 2, innerWidth - bar.offsetWidth - 8)) + 'px';
-    bar.style.top = (y - bar.offsetHeight - 6 < 4 ? y + p1.h + 6 : y - bar.offsetHeight - 6) + 'px';
-  };
-  ta.addEventListener('mouseup', () => setTimeout(zeig, 0));
-  ta.addEventListener('keyup', zeig);
-  ta.addEventListener('input', zeig);
-  ta.addEventListener('blur', zu);
-  ta.addEventListener('keydown', e => {
-    const z = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && { b: '*', i: '_', u: '+' }[e.key.toLowerCase()];
-    if (z) { e.preventDefault(); anwenden(z); zeig(); }
-  });
-  ta.addEventListener('scroll', () => bar && zeig());
-  return zu;
-}
-function fmtText(t) {
+/* ---------- Texte mit einfacher Formatierung. Gespeichert wird schlichter Text mit Zeichen: *fett*, _kursiv_, +unterstrichen+, ~durchgestrichen~,
+   „• “ bzw. „- “ oder „* “ am Zeilenanfang = Aufzählung, „1. “ = Nummerierung; Links werden anklickbar. Die Zeichen gelten nur am Wortrand –
+   auch verschachtelt (*+so+*): davor/danach darf ein anderes Zeichen oder eine schon gesetzte Formatierung stehen. */
+const fmtUm = (x, z, tag) => x.replace(new RegExp('(^|[\\s(„>*_~+])' + z + '(?=\\S)([^' + z + '\\n]*?\\S)' + z + '(?=$|[\\s.,;:!?)“<*_~+])', 'g'), '$1<' + tag + '>$2</' + tag + '>');
+const fmtInl = x => fmtUm(fmtUm(fmtUm(fmtUm(x, '\\*', 'b'), '_', 'i'), '~', 's'), '\\+', 'u');
+// edit: für das Schreibfeld – je Zeile ein Block, Links als Text
+function fmtText(t, edit) {
   const links = [];
   const s = esc(String(t || '')).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)\]]/g, u => { links.push(u); return '\u0001' + (links.length - 1) + '\u0001'; });
-  // Zeichen gelten nur am Wortrand – auch verschachtelt (*+so+*): davor/danach darf ein anderes Zeichen oder eine schon gesetzte Formatierung stehen
-  const um = (x, z, tag) => x.replace(new RegExp('(^|[\\s(„>*_~+])' + z + '(?=\\S)([^' + z + '\\n]*?\\S)' + z + '(?=$|[\\s.,;:!?)“<*_~+])', 'g'), '$1<' + tag + '>$2</' + tag + '>');
-  const inl = x => um(um(um(um(x, '\\*', 'b'), '_', 'i'), '~', 's'), '\\+', 'u');
   const out = []; let liste = null, absatz = [];
-  const zu = () => { if (absatz.length) { out.push(absatz.join('<br>')); absatz = []; } if (liste) { out.push(`<${liste.typ}>${liste.li.join('')}</${liste.typ}>`); liste = null; } };
+  const zu = () => { if (absatz.length) { out.push(absatz.join(edit ? '' : '<br>')); absatz = []; } if (liste) { out.push(`<${liste.typ}>${liste.li.join('')}</${liste.typ}>`); liste = null; } };
   for (const z of s.split('\n')) {
     const m = z.match(/^\s*[*\-•]\s+(.*)$/), n = !m && z.match(/^\s*\d+[.)]\s+(.*)$/), typ = m ? 'ul' : n ? 'ol' : null;
-    if (typ) { if (absatz.length || (liste && liste.typ !== typ)) zu(); if (!liste) liste = { typ, li: [] }; liste.li.push(`<li>${inl((m || n)[1])}</li>`); }
-    else { if (liste) zu(); absatz.push(inl(z)); }
+    if (typ) { if (absatz.length || (liste && liste.typ !== typ)) zu(); if (!liste) liste = { typ, li: [] }; liste.li.push(`<li>${fmtInl((m || n)[1]) || (edit ? '<br>' : '')}</li>`); }
+    else { if (liste) zu(); absatz.push(edit ? `<div>${fmtInl(z) || '<br>'}</div>` : fmtInl(z)); }
   }
   zu();
-  return out.join('').replace(/\u0001(\d+)\u0001/g, (x, i) => `<a href="${links[i]}" target="_blank" rel="noopener" data-act="link">${links[i].replace(/^https?:\/\/(www\.)?/, '')}</a>`);
+  return out.join('').replace(/\u0001(\d+)\u0001/g, (x, i) => edit ? links[i] : `<a href="${links[i]}" target="_blank" rel="noopener" data-act="link">${links[i].replace(/^https?:\/\/(www\.)?/, '')}</a>`);
+}
+// Schreibfeld zurück in Text mit Zeichen: je Zeile Abschnitte mit ihrer Formatierung; Formatierung, die mitten im Wort beginnt oder endet,
+// gilt für das ganze Wort (sonst würden die Zeichen nicht wirken). Fett usw. kommt als <b>, <i>, <u>, <s>/<strike> oder als Stil.
+const RICH_Z = { B: '*', STRONG: '*', I: '_', EM: '_', U: '+', INS: '+', S: '~', STRIKE: '~', DEL: '~' }, Z_ORD = '*_+~', WZ = /[\p{L}\p{N}]/u;
+function richText(root) {
+  const lines = [[]]; let neu = false;
+  const zeile = () => { lines.push([]); neu = false; };
+  const block = n => /^(DIV|P|LI|UL|OL|H[1-6]|BLOCKQUOTE)$/.test(n.nodeName);
+  const geh = (n, f, pre) => {
+    if (n.nodeType === 3) {
+      if (!n.nodeValue) return; if (neu) zeile();
+      n.nodeValue.replace(/\u00a0/g, ' ').split('\n').forEach((t, i) => { if (i) zeile(); if (t) lines[lines.length - 1].push({ t, f }); });
+      return;
+    }
+    if (n.nodeType !== 1) return;
+    if (n.nodeName === 'BR') { if (!(n.parentNode !== root && block(n.parentNode) && !n.nextSibling)) zeile(); return; }   // <br> am Ende eines Blocks hält ihn nur offen
+    if (n.nodeName === 'UL' || n.nodeName === 'OL') { let k = 0; for (const c of n.childNodes) geh(c, f, c.nodeName === 'LI' ? (n.nodeName === 'OL' ? ++k + '. ' : '• ') : ''); neu = true; return; }
+    if (block(n)) {
+      if (neu || lines[lines.length - 1].length) zeile();
+      if (pre) lines[lines.length - 1].push({ t: pre, f: '', pre: true });
+      for (const c of n.childNodes) geh(c, f);
+      neu = true; return;
+    }
+    let z = RICH_Z[n.nodeName] || ''; const st = n.style;
+    if (st) { const td = st.textDecorationLine || st.textDecoration || ''; if (/^(bold|bolder|[6-9]00)$/.test(st.fontWeight)) z += '*'; if (st.fontStyle === 'italic') z += '_'; if (/underline/.test(td)) z += '+'; if (/line-through/.test(td)) z += '~'; }
+    const f2 = [...new Set(f + z)].sort((a, b) => Z_ORD.indexOf(a) - Z_ORD.indexOf(b)).join('');
+    for (const c of n.childNodes) geh(c, f2);
+  };
+  for (const c of root.childNodes) geh(c, '');
+  const ser = runs => {
+    let out = ''; const st = [];
+    const schliessen = m => { const ws = /\s*$/.exec(out)[0]; out = out.slice(0, out.length - ws.length) + m + ws; };
+    for (const r of runs) {
+      let t = r.t;
+      if (r.pre) { out += t; continue; }
+      const k = st.findIndex(m => !r.f.includes(m));
+      if (k >= 0) {
+        if (WZ.test(out.slice(-1)) && WZ.test(t[0] || '')) { const w = /^[\p{L}\p{N}]+/u.exec(t)[0]; out += w; t = t.slice(w.length); }
+        while (st.length > k) schliessen(st.pop());
+      }
+      if (!t.trim()) { out += t; continue; }
+      const lead = /^\s*/.exec(t)[0]; out += lead; t = t.slice(lead.length);
+      const auf = [...r.f].filter(m => !st.includes(m));
+      if (auf.length) { const w = !lead && WZ.test(t[0]) ? (/[\p{L}\p{N}]+$/u.exec(out) || [''])[0] : ''; out = out.slice(0, out.length - w.length) + auf.join('') + w; st.push(...auf); }
+      out += t;
+    }
+    while (st.length) schliessen(st.pop());
+    return out;
+  };
+  return lines.map(ser).join('\n').replace(/\s+$/, '');
+}
+// Schreibfeld mit sichtbarer Formatierung: über einer Markierung eine Leiste (fett, kursiv, unterstrichen, durchgestrichen, Aufzählung),
+// Strg+B, Strg+I, Strg+U; angefangene Wörter werden ganz formatiert. „* “ oder „- “ am Zeilenanfang wird sofort zum Punkt, „1. “ zur Nummer.
+// In einer Aufzählung setzt Umschalt+Enter den nächsten Punkt, Enter geht in eine Zeile ohne Punkt (wie in Teams). Eingefügtes kommt als
+// schlichter Text. Gibt eine Funktion zurück, die die Leiste schließt.
+const FMT_KNOPF = [['*', '<b>B</b>', 'Fett (Strg+B)', 'bold'], ['_', '<i>I</i>', 'Kursiv (Strg+I)', 'italic'], ['+', '<u>U</u>', 'Unterstrichen (Strg+U)', 'underline'], ['~', '<s>S</s>', 'Durchgestrichen', 'strikeThrough'],
+  ['•', '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><circle cx="3" cy="4" r="1.3" fill="currentColor"/><circle cx="3" cy="8" r="1.3" fill="currentColor"/><circle cx="3" cy="12" r="1.3" fill="currentColor"/><path d="M6.5 4h7M6.5 8h7M6.5 12h7" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>', 'Aufzählung', 'insertUnorderedList']];
+function richEdit(ed) {
+  const sel = () => getSelection();
+  const cmd = c => document.execCommand(c, false, null);
+  const wortGanz = () => {                          // Markierung auf ganze Wörter erweitern – mitten im Wort wirken die Zeichen nicht
+    const s = sel(); if (!s.rangeCount || s.isCollapsed) return;
+    const r = s.getRangeAt(0);
+    if (r.startContainer.nodeType === 3) { const t = r.startContainer.nodeValue; let o = r.startOffset; while (o > 0 && WZ.test(t[o - 1]) && WZ.test(t[o] || '')) o--; r.setStart(r.startContainer, o); }
+    if (r.endContainer.nodeType === 3) { const t = r.endContainer.nodeValue; let o = r.endOffset; while (o < t.length && WZ.test(t[o]) && WZ.test(t[o - 1] || '')) o++; r.setEnd(r.endContainer, o); }
+    s.removeAllRanges(); s.addRange(r);
+  };
+  const anwenden = k => { if (k[3] !== 'insertUnorderedList') wortGanz(); cmd(k[3]); };
+  // Zeilenanfang: im Block um die Schreibmarke alles seit dem letzten Zeilenumbruch oder der letzten Liste
+  const blockVon = node => { let n = node.nodeType === 1 ? node : node.parentNode; while (n && n !== ed && !/^(DIV|P|LI)$/.test(n.nodeName)) n = n.parentNode; return n || ed; };
+  const zeilenAnfang = node => {
+    const blk = blockVon(node); if (node === blk) return [blk, 0];
+    let n = node; while (n && n.parentNode !== blk) n = n.parentNode; if (!n) return [blk, 0];
+    let p = n.previousSibling; while (p && !(p.nodeName === 'BR' || /^(DIV|P|UL|OL)$/.test(p.nodeName))) { n = p; p = p.previousSibling; }
+    return [blk, [...blk.childNodes].indexOf(n)];
+  };
+  const liVon = node => { const e = node && (node.nodeType === 1 ? node : node.parentNode); const li = e && e.closest('li'); return li && ed.contains(li) ? li : null; };
+  // ein Punkt verlässt die Liste: sein Inhalt wird eine Zeile ohne Punkt direkt hinter der Liste (die Liste teilt sich, wenn weitere Punkte folgen)
+  const ausListe = li => {
+    const ul = li.parentNode, rest = [...ul.children].slice([...ul.children].indexOf(li) + 1), d = document.createElement('div');
+    if (li.textContent.replace(/\u00a0/g, '').trim()) d.append(...li.childNodes); else d.append(document.createElement('br'));
+    ul.after(d);
+    if (rest.length) { const u2 = document.createElement(ul.nodeName); u2.append(...rest); d.after(u2); }
+    li.remove(); if (!ul.children.length) ul.remove();
+    const r = document.createRange(); r.setStart(d, 0); r.collapse(true); sel().removeAllRanges(); sel().addRange(r);
+  };
+  const amAnfang = li => { const s = sel(); if (!s.isCollapsed) return false; const r = document.createRange(); r.setStart(li, 0); r.setEnd(s.focusNode, s.focusOffset); return !r.toString().replace(/\u00a0/g, ''); };
+  ed.addEventListener('input', e => {
+    if (e.inputType !== 'insertText' || e.data !== ' ') return;
+    const s = sel(); if (!s.rangeCount || !s.isCollapsed) return;
+    if (liVon(s.focusNode)) return;
+    const a = zeilenAnfang(s.focusNode);
+    const r = document.createRange(); r.setStart(a[0], a[1]); r.setEnd(s.focusNode, s.focusOffset);
+    const m = /^([*\-•]|\d+[.)]) $/.exec(r.toString().replace(/\u00a0/g, ' ')); if (!m) return;
+    s.removeAllRanges(); s.addRange(r); cmd('delete');
+    cmd(/\d/.test(m[1]) ? 'insertOrderedList' : 'insertUnorderedList');
+  });
+  ed.addEventListener('keydown', e => {
+    const z = (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && { b: 0, i: 1, u: 2 }[e.key.toLowerCase()];
+    if (z != null && z !== false) { e.preventDefault(); anwenden(FMT_KNOPF[z]); zeig(); return; }
+    if (e.ctrlKey || e.metaKey || e.altKey) return;
+    const li = liVon(sel().focusNode); if (!li) return;
+    if (e.key === 'Backspace' && amAnfang(li)) { e.preventDefault(); ausListe(li); return; }   // Rücktaste direkt hinter dem Punkt: Punkt weg
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (!li.textContent.replace(/\u00a0/g, '').trim()) { ausListe(li); return; }              // leerer Punkt: Aufzählung endet
+    cmd('insertParagraph');                                                                    // nächster Punkt …
+    if (!e.shiftKey) { const n = liVon(sel().focusNode); if (n) ausListe(n); }                 // … mit Enter eine Zeile ohne Punkt
+  });
+  ed.addEventListener('paste', e => { e.preventDefault(); document.execCommand('insertText', false, (e.clipboardData || window.clipboardData).getData('text/plain')); });
+  let bar = null;
+  const weg = () => { if (bar) bar.remove(); bar = null; };
+  const zeig = () => {
+    const s = sel();
+    if (!s.rangeCount || s.isCollapsed || !ed.contains(s.anchorNode) || document.activeElement !== ed) { weg(); return; }
+    if (!bar) {
+      bar = h('div', { class: 'fmt-bar', role: 'toolbar', 'aria-label': 'Text formatieren' }, FMT_KNOPF.map((k, i) => h('button', { type: 'button', title: k[2], 'aria-label': k[2], html: k[1], 'data-z': k[0], 'data-i': i })));
+      bar.addEventListener('mousedown', e => { e.preventDefault(); const k = e.target.closest('button'); if (k) { anwenden(FMT_KNOPF[+k.dataset.i]); setTimeout(zeig, 0); } });
+      document.body.append(bar);
+    }
+    for (const k of bar.children) k.classList.toggle('on', document.queryCommandState(FMT_KNOPF[+k.dataset.i][3]));
+    const r = s.getRangeAt(0).getBoundingClientRect();
+    bar.style.left = Math.max(8, Math.min(r.left + r.width / 2 - bar.offsetWidth / 2, innerWidth - bar.offsetWidth - 8)) + 'px';
+    bar.style.top = (r.top - bar.offsetHeight - 6 < 4 ? r.bottom + 6 : r.top - bar.offsetHeight - 6) + 'px';
+  };
+  document.addEventListener('selectionchange', zeig);
+  ed.addEventListener('blur', weg);
+  return () => { weg(); document.removeEventListener('selectionchange', zeig); };
 }
 // Quellen: je Link eine Zeile (auch wenn sie mit „;“ oder Leerzeichen hintereinander stehen)
 const quellenZeilen = t => String(t || '').replace(/\s*;\s*/g, '\n').replace(/(https?:\/\/\S+)\s+(?=https?:\/\/)/g, '$1\n').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
 const unquote = s => String(s).replace(/^\s*"|"\s*$/g, '');
-const eur = n => Math.round(n || 0).toLocaleString('de-DE') + ' €';
+const eur = n => Math.round(n || 0).toLocaleString('de-DE') + '\u00a0€';
 const fmtNum = n => (n == null || n === '' || isNaN(n)) ? '' : Number(n).toLocaleString('de-DE', { maximumFractionDigits: 2 });
 // Zahlen deutsch eingeben: „1.500“ = 1500, „1.234,50“ = 1234,5; Ergebnis: Zahl, '' (leer) oder null (keine Zahl)
 // Zahl schon beim Tippen gliedern (15000 → 15.000); der Cursor bleibt hinter derselben Ziffer

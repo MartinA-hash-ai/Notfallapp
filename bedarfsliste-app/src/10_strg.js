@@ -31,6 +31,21 @@ const ROT_FR = ['offen', 'angefragt', 'ok', 'nein'], ROT_ANG = ['fehlt', 'arbeit
 const ROT_FOE = { geplant: 'beantragt', beantragt: 'zugesagt', zugesagt: 'abgelehnt', abgelehnt: 'geplant' };
 const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 
+// kompakte Ansicht: Strg+Klick klappt einen Bedarf ausführlich auf (dort wie gewohnt bearbeiten), noch einmal Strg+Klick öffnet ihn;
+// ein Klick irgendwo anders klappt ihn wieder zu (nicht in seinen offenen Feldern, Kalendern und Menüs)
+document.addEventListener('click', e => {
+  if (UI.view !== 'list' || UI.ansicht !== 'kompakt') return;
+  const tr = e.target.closest('#list-body tr[data-id]');
+  if ((e.ctrlKey || e.metaKey) && tr) {
+    if (tr.dataset.id === UI.auf) return;                                             // schon aufgeklappt: Strg+Klick öffnet den Bedarf
+    e.preventDefault(); e.stopPropagation(); aufklappen(tr.dataset.id); return;
+  }
+  if (UI.auf && !(tr && tr.dataset.id === UI.auf) && !e.target.closest('.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new')) aufklappen(null);
+}, true);
+function aufklappen(id) {
+  const alt = UI.auf; UI.auf = id;
+  for (const x of [alt, id]) { const b = x && D.bedarfe.find(y => y.id === x), tr = x && $(`#list-body tr[data-id="${CSS.escape(x)}"]`); if (b && tr) tr.outerHTML = row(b); }
+}
 // Klick in eine Zeile: bearbeiten (ein Klick neben ein Feld tut nichts); mit Strg geht er durch und öffnet den Bedarf
 document.addEventListener('click', e => {
   if (UI.view !== 'list' || e.ctrlKey || e.metaKey) return;
@@ -205,10 +220,12 @@ function editField(b, el, o) {
     if (o.then) o.then(wie);
     else if ((wie === 'tab' || wie === 'back') && o.feld) feldWeiter(b, o.feld, wie);
   };
-  const sug = o.src ? suggest(inp, o.src, () => finish(true, 'enter')) : () => false;
+  let umsch = false;                                     // Umschalt+Enter: übernehmen und gleich der nächste neue Bedarf ('neu')
+  const sug = o.src ? suggest(inp, o.src, () => finish(true, umsch ? 'neu' : 'enter')) : () => false;
   inp.addEventListener('keydown', e => {
+    umsch = e.key === 'Enter' && e.shiftKey;
     if (sug(e)) { e.preventDefault(); return; }
-    if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true, 'enter'); } else if (e.key === 'Escape') { e.preventDefault(); finish(false, 'esc'); }
+    if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true, e.shiftKey ? 'neu' : 'enter'); } else if (e.key === 'Escape') { e.preventDefault(); finish(false, 'esc'); }
     else if (e.key === 'Tab' && o.feld) { e.preventDefault(); finish(true, e.shiftKey ? 'back' : 'tab'); }
   });
   inp.addEventListener('blur', () => finish(true, 'blur'));
@@ -224,12 +241,15 @@ function feldWeiter(b, k, wie, then) {
   if (el) strgAct(b, el, then);
 }
 // „+ Bedarf“: neue Zeile oben in der Liste, dann der Reihe nach Name → Summe → Ort → Ansprechperson → Deadline (Enter oder Tab, Shift+Tab zurück);
+// Umschalt+Enter legt gleich den nächsten Bedarf an, direkt darunter – so lassen sich viele hintereinander eintippen.
 // Esc oder Klick daneben hört auf. Bleibt der Name leer, verschwindet die neue Zeile wieder.
-function neuerBedarf() {
+function neuerBedarf(nach) {
   const nb = blank(); D.bedarfe.unshift(nb); changed();
   Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: '' });
-  ORDER.ids = [nb.id, ...(ORDER.ids || []).filter(id => id !== nb.id)];
-  renderNow(); strgSet(false); scrollTo(0, 0);
+  const L = (ORDER.ids || []).filter(id => id !== nb.id), at = nach ? L.indexOf(nach) : -1;
+  ORDER.ids = at >= 0 ? [...L.slice(0, at + 1), nb.id, ...L.slice(at + 1)] : [nb.id, ...L];
+  renderNow(); strgSet(false);
+  if (at < 0) scrollTo(0, 0); else { const tr = $(`#list-body tr[data-id="${CSS.escape(nb.id)}"]`); if (tr) tr.scrollIntoView({ block: 'nearest' }); }
   const feld = k => $(`#list-body tr[data-id="${CSS.escape(nb.id)}"] [data-le="${k}"]`);
   const schritte = zeilenFelder(nb.id);
   const weg = () => { D.bedarfe = D.bedarfe.filter(x => x !== nb); ORDER.ids = ORDER.ids && ORDER.ids.filter(id => id !== nb.id); changed(); keep(renderNow); };
@@ -237,6 +257,7 @@ function neuerBedarf() {
     const el = feld(schritte[i]); if (!el) return;
     strgAct(nb, el, wie => {
       if (i === 0 && !nb.titel.trim()) { weg(); return; }
+      if (wie === 'neu') { neuerBedarf(nb.id); return; }
       if ((wie === 'enter' || wie === 'tab') && i + 1 < schritte.length) geh(i + 1);
       else if (wie === 'back' && i > 0) geh(i - 1);
     });

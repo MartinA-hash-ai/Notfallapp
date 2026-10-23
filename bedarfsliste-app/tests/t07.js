@@ -244,6 +244,28 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('button[data-act="new"]'); await K.type('Funkmast'); await K.press('Enter'); await K.type('3.000'); await K.press('Enter'); await K.type('Warburg'); await K.press('Enter');
   r = await p.evaluate(() => { const x = D.bedarfe[0]; return [x.titel, x.summe, x.gliederung, !!document.querySelector('.le-edit, .cal-pop'), document.querySelector('#list-body tr[data-id]').children[0].textContent]; });
   ok(r.join('|') === 'Funkmast|3000|Warburg|false|Funkmast', 'kompakt: + Bedarf führt durch Name, Summe, Ort – dann fertig: ' + r.join('|'));
+  // Umschalt+Enter: gleich der nächste Bedarf, direkt darunter – ohne Maus viele hintereinander
+  await p.click('button[data-act="new"]'); await K.type('Eins'); await K.press('Enter'); await K.type('100'); await K.press('Enter'); await K.type('Brakel'); await K.press('Shift+Enter');
+  await K.type('Zwei'); await K.press('Tab'); await K.type('200'); await K.press('Shift+Enter');
+  await K.type('Drei'); await K.press('Shift+Enter'); await K.press('Shift+Enter');
+  r = await p.evaluate(() => [[...document.querySelectorAll('#list-body tr[data-id]')].slice(0, 4).map(t => t.children[0].textContent).join(','), D.bedarfe.filter(x => ['Eins', 'Zwei', 'Drei'].includes(x.titel)).map(x => x.titel + ':' + (x.summe || '') + ':' + x.gliederung).sort().join(','), D.bedarfe.some(x => !x.titel), !!document.querySelector('.le-edit')]);
+  ok(r.join('|') === 'Eins,Zwei,Drei,Funkmast|Drei::,Eins:100:Brakel,Zwei:200:|false|false', 'Umschalt+Enter legt gleich den nächsten Bedarf darunter an; leer gelassen verschwindet er wieder: ' + r.join('|'));
+  // Strg+Klick klappt einen Bedarf ausführlich auf (bearbeitbar), noch einmal Strg+Klick öffnet ihn; ein Klick daneben klappt ihn zu
+  await p.click(R('b-mtw') + ' .l-sum', { modifiers: ['Control'] });
+  r = await p.evaluate(() => { const tr = document.querySelector('#list-body tr[data-id="b-mtw"]'); return [UI.view, tr.classList.contains('auf'), tr.children.length, !!tr.querySelector('.l-fin[colspan="2"] .fg'), !!tr.querySelector('[data-le="zust"]'), document.querySelectorAll('#list-body tr.auf').length]; });
+  ok(r.join('|') === 'list|true|6|true|true|1', 'Strg+Klick: dieser Bedarf ausführlich (Förderer, Ansprechperson …), die anderen bleiben kompakt: ' + r.join('|'));
+  await p.click(R('b-mtw') + ' [data-le="zust"]');
+  ok(await p.evaluate(() => !!document.querySelector('#list-body tr.auf .le-edit') && UI.auf === 'b-mtw'), 'im aufgeklappten Bedarf wie gewohnt bearbeiten');
+  await K.press('Escape');
+  await p.click(R('b-aed') + ' .l-sum', { modifiers: ['Control'] });
+  ok(await p.evaluate(() => UI.auf === 'b-aed' && document.querySelectorAll('#list-body tr.auf').length === 1), 'Strg+Klick auf einen anderen: der klappt auf, der vorige zu');
+  await p.mouse.click(700, 5); await p.waitForTimeout(50);
+  await p.click('main', { position: { x: 5, y: 5 } });
+  ok(await p.evaluate(() => !UI.auf && !document.querySelector('#list-body tr.auf')), 'Klick daneben klappt ihn wieder zu');
+  await p.click(R('b-mtw') + ' .l-sum', { modifiers: ['Control'] }); await p.click(R('b-mtw') + ' .l-sum', { modifiers: ['Control'] });
+  ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-mtw'), 'noch einmal Strg+Klick öffnet den Bedarf');
+  await p.click('button[data-act="back"]');
+  ok(await p.evaluate(() => UI.view === 'list' && !UI.auf && UI.ansicht === 'kompakt'), 'zurück in der Liste: wieder alles kompakt');
   await p.click('.seg.ansicht [data-v="voll"]');
   ok(await p.evaluate(() => UI.ansicht === 'voll' && document.querySelectorAll('#list-body tr[data-id]')[0].children.length === 6), 'Knopf „Ausführlich“: wieder alle Angaben');
 

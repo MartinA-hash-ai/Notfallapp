@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.27.0",
+    "date": "2026-10-23T17:05",
+    "items": [
+      "Neue Bedarfe am Stück: im letzten Feld (oder jedem anderen) legt Umschalt+Enter gleich den nächsten Bedarf an, direkt darunter – ohne Maus",
+      "Kompakte Liste: Strg+Klick klappt einen Bedarf ausführlich auf (dort wie gewohnt bearbeiten), die anderen bleiben kompakt; noch einmal Strg+Klick öffnet ihn, ein Klick daneben klappt ihn wieder zu",
+      "Bedarfsseite: die Zuständigen stehen dauerhaft auf grauen Karten",
+      "Beschreibung, Notizen, Fristen, Fördersumme und Eigenanteil: Formatierung ist beim Schreiben sofort zu sehen – fett, kursiv, unterstrichen, durchgestrichen und Aufzählungen. Gespeichert wird weiter derselbe schlichte Text mit Zeichen; Eingefügtes kommt ohne fremde Formatierung"
+    ]
+  },
+  {
     "version": "0.26.0",
     "date": "2026-10-23T15:30",
     "items": [

@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null, zEdit: null, ansicht: 'voll' };
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
@@ -88,6 +88,7 @@ function renderNow() {
     if (UI.view === 'detail' && !b) UI.view = 'list';
     // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
     if (UI.view !== 'list') ORDER.ids = null; else if (!ORDER.ids) ORDER.ids = filtered().map(x => x.id);
+    if (UI.view !== 'list' || UI.ansicht !== 'kompakt') UI.auf = null;              // aufgeklappter Bedarf der kompakten Liste
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
     if (UI.kEdit !== UI.det) UI.kEdit = null;
     if (UI.zEdit && UI.zEdit !== (b && b.id)) {                                     // Seite verlassen: Zuständige fertig bearbeitet, leere fallen weg
@@ -187,7 +188,7 @@ function fmtInfo() {
       z('* Punkt  oder  - Punkt', fmtText('* Punkt') + '<span class="muted small">sofort beim Tippen; Umschalt+Enter: nächster Punkt</span>'), z('1. Schritt', fmtText('1. Schritt')), z('*wichtig*', fmtText('*wichtig*')), z('_Hinweis_', fmtText('_Hinweis_')),
       z('+wichtig+', fmtText('+wichtig+')), z('~erledigt~', fmtText('~erledigt~')), z('https://…', 'wird ein anklickbarer Link'))),
     h('p', { class: 'muted small' }, 'Aufzählung: „* “ oder „- “ am Zeilenanfang wird beim Tippen sofort zum Punkt •. Umschalt+Enter setzt den nächsten Punkt (bei „1. “ die nächste Nummer), Enter geht in eine neue Zeile ohne Punkt. Strg+Enter oder Klick daneben übernimmt den Text.'),
-    h('p', { class: 'muted small' }, 'Am einfachsten: ein Wort markieren – darüber erscheinen Knöpfe für fett, kursiv, unterstrichen, durchgestrichen und Aufzählung (auch Strg+B, Strg+I, Strg+U). Die Zeichen müssen direkt am Wort stehen (*so*, nicht * so *). Beim Bearbeiten sieht man die Zeichen, sobald man das Feld verlässt, die Formatierung.')),
+    h('p', { class: 'muted small' }, 'Am einfachsten: ein Wort markieren – darüber erscheinen Knöpfe für fett, kursiv, unterstrichen, durchgestrichen und Aufzählung (auch Strg+B, Strg+I, Strg+U); die Formatierung ist sofort zu sehen. Die Zeichen links gehen beim Tippen genauso; sie müssen direkt am Wort stehen (*so*, nicht * so *).')),
     [['OK', true, 'primary']]);
 }
 function about() {
