@@ -166,8 +166,8 @@ function fwPop(btn) {
   placePop(m, btn);
 }
 function detSummary(f) {
-  const k = kartei(f.name), c = k && k.kontakte[0];
-  const parts = [c ? c.n : f.kontakt, k && k.weg.length ? 'Antrag ' + k.weg.join(' oder ') : f.weg, !c && f.mail].filter(Boolean);
+  const k = kartei(f.name), c = k && k.kontakte[0], hk = f.kontakte[0];
+  const parts = [c ? c.n : hk && (hk.n || hk.rolle), k && k.weg.length ? 'Antrag ' + k.weg.join(' oder ') : f.weg, !c && hk && hk.mail].filter(Boolean);
   return esc(parts.join(' · ') || (k ? 'aus der Förder-Kartei' : 'Ansprechperson, Antragsweg, Quellen …'));
 }
 function detKartei(f) {
@@ -178,8 +178,7 @@ function detKartei(f) {
   return `<div class="det-k"><h4>Aus der Förder-Kartei <span class="badge k">${esc(k.blatt)}</span></h4>
     <dl class="dl">${row('Antragsweg', esc(k.weg.join(' oder ')))}${row('Website', k.web ? `<a href="${esc(/^https?:/i.test(k.web) ? k.web : 'https://' + k.web)}" target="_blank" rel="noopener" data-act="link">${esc(k.web.replace(/^https?:\/\//, '').slice(0, 60))}</a>` : '')}
       ${row('Gliederungen', esc(k.gl.join(', ')))}${row('Schwerpunkte', esc(k.schwer))}${row('Notiz', esc(k.notiz))}
-      ${row('Bisher gefördert', hist.length ? hist.map(([y, v]) => `<div>${y}: ${esc(v.replace(/\n/g, ', '))}</div>`).join('') : '<span class="muted">nichts eingetragen</span>')}</dl>
-    ${k.kontakte.length ? `<table class="kt"><thead><tr><th>Kontakt</th><th>E-Mail</th><th>Telefon</th></tr></thead><tbody>${k.kontakte.map(c => `<tr><td>${esc(c.n)}${c.nicht ? '<div class="sub">nicht direkt anschreiben</div>' : ''}</td><td class="sel">${c.m ? `<a href="mailto:${esc(c.m)}" title="E-Mail schreiben">${esc(c.m)}</a>` : ''}</td><td>${telNr(c.t) ? `<a href="tel:${telNr(c.t)}" title="Anrufen">${esc(c.t)}</a>` : esc(c.t)}</td></tr>`).join('')}</tbody></table>` : ''}</div>`;
+      ${row('Bisher gefördert', hist.length ? hist.map(([y, v]) => `<div>${y}: ${esc(v.replace(/\n/g, ', '))}</div>`).join('') : '<span class="muted">nichts eingetragen</span>')}</dl></div>`;
 }
 // Kontakt und Details eines Förderers als Fenster (Entwurf A „Steckbrief“): links der Kontakt, rechts die Bedingungen, darunter Quellen und Notizen.
 // Keine Eingabefelder: die Angaben stehen als Text da, ein Klick macht sie bearbeitbar (Enter bzw. Klick daneben übernimmt, Esc verwirft).
@@ -192,7 +191,7 @@ function quellenListe(t) {
   return L.map(z => { const u = (z.match(/https?:\/\/\S+/) || [])[0];
     return u ? `<a href="${esc(u)}" target="_blank" rel="noopener" data-act="link" title="${esc(u)}">${esc(z === u ? kurzUrl(u).slice(0, 90) : z)}</a>` : `<span>${esc(z)}</span>`; }).join('');
 }
-const FX = { mail: ['mailto', '✉', 'E-Mail schreiben'], tel: ['tel', '☎', 'Anrufen'], web: ['web', '↗', 'Seite öffnen'] };
+const FX = { web: ['web', '↗', 'Seite öffnen'] };
 // eine Angabe zum Anklicken: art 'line' (eine Zeile), 'area' (mehrere Zeilen), 'num' (Betrag); fx: Knopf zum Schreiben, Anrufen, Öffnen
 function pe(f, k, lab, art = 'line', o = {}) {
   const v = f[k], leer = v == null || String(v).trim() === '';
@@ -202,24 +201,47 @@ function pe(f, k, lab, art = 'line', o = {}) {
     + (lab ? `<div class="lab">${lab}</div>` : '')
     + `<div class="val${leer ? ' leer' : ''}">${leer ? esc(o.ph || 'nicht eingetragen') : `<span class="pv">${shown}</span>${fx}`}</div>${ICON_PEN}</div>`;
 }
+// Kontakte (Entwurf 1): untereinander mit Name, Funktion, E-Mail und Telefon als Links, daneben Knöpfe; der Stern markiert den Hauptkontakt
+// (er steht in der Kachel). Kontakte aus der Förder-Kartei stehen darunter, mit Vermerk und nicht bearbeitbar. Stift oben rechts: bearbeiten.
+function kontaktListe(f) {
+  const k = kartei(f.name), a = `data-fid="${f.id}"`, n = f.kontakte.length;
+  if (UI.kEdit === f.id) {
+    const inp = (i, p, ph) => `<input type="text" data-p="kontakte.${i}.${p}" ${a} value="${esc(f.kontakte[i][p])}" placeholder="${ph}" aria-label="${ph}" autocomplete="off">`;
+    return f.kontakte.map((c, i) => `<div class="k-ed"><div class="k-ed-g">${inp(i, 'n', 'Name')}${inp(i, 'rolle', 'Funktion')}${inp(i, 'mail', 'E-Mail')}${inp(i, 'tel', 'Telefon')}</div>
+        <button class="x" data-act="k-weg" data-i="${i}" ${a} title="Kontakt entfernen" aria-label="Kontakt entfernen">×</button></div>`).join('')
+      + (n < MAX_KONTAKTE ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>weiterer Kontakt</button>` : '')
+      + `<div class="k-ed-f"><button class="primary" data-act="k-fertig" ${a}>Fertig</button></div>`;
+  }
+  const knopf = (href, sym, t) => `<a class="kb" href="${esc(href)}" data-act="link" title="${t}" aria-label="${t}">${sym}</a>`;
+  const zeile = (c, i, ausKartei) => {
+    const tel = telNr(c.tel), links = [c.mail && `<a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a>`, tel && `<a href="tel:${tel}" data-act="link">${esc(c.tel)}</a>`].filter(Boolean).join(' · ');
+    const stern = ausKartei ? '' : i === 0 ? '<span class="star" title="Hauptkontakt – steht in der Kachel">★</span>'
+      : `<button class="star off" data-act="k-haupt" data-i="${i}" ${a} title="Zum Hauptkontakt machen" aria-label="Zum Hauptkontakt machen">☆</button>`;
+    return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
+      + (c.n && c.rolle ? `<div class="kr">${esc(c.rolle)}</div>` : '') + (links ? `<div class="kl">${links}</div>` : '')
+      + `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben') : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen') : ''}</div></div>`;
+  };
+  return f.kontakte.map((c, i) => zeile(c, i, false)).join('')
+    + (k ? k.kontakte.map(c => zeile({ n: c.n, rolle: c.nicht ? 'nicht direkt anschreiben' : '', mail: c.m, tel: c.t }, 0, true)).join('') : '')
+    + (n < MAX_KONTAKTE ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>${n ? 'weiterer Kontakt' : 'Kontakt eintragen'}</button>` : '');
+}
 function foePop(b) {
   const f = b.foerderer.find(x => x.id === UI.det); if (!f) return '';
-  const a = `data-fid="${f.id}"`;
+  const a = `data-fid="${f.id}"`, amtP = f.status === 'zugesagt' ? 'zugesagt' : 'betrag', amt = f[amtP];
   return `<div class="pop-back" data-act="det-zu"></div>
     <div class="foe-pop" role="dialog" aria-modal="true" aria-label="Kontakt und Details: ${esc(f.name || 'Förderer')}">
-      <header><h3>${esc(f.name || '(ohne Namen)')}</h3><span class="st-btn s-${f.status}">${F_ST_L[f.status]}</span>
-        <span class="pop-durch">Antrag stellt ${seg([['ich', 'ich'], ['gl', 'Gliederung selbst']], f.durch, `data-p="durch" ${a}`, 'small')}</span>
+      <header><h3>${esc(f.name || '(ohne Namen)')}</h3>
+        <div class="pe pe-amt" data-act="pe" ${a} data-k="${amtP}" data-art="num" data-lab="${AMT_LAB[f.status]}" title="${AMT_LAB[f.status]} – klicken zum Ändern"><div class="val${amt ? '' : ' leer'}"><span class="pv">${amt ? eur(amt) : 'Summe'}</span></div>${ICON_PEN}</div>
+        <div class="pop-einsch">${dots(f)}</div>
         <button class="x" data-act="det-zu" aria-label="Schließen" title="Schließen (Esc)">×</button></header>
-      <div class="pop-body"><div class="pA">
-        <div class="pA-box"><div class="sub">Kontakt</div>
-          <div id="dk-${f.id}">${detKartei(f)}</div>
-          ${pe(f, 'kontakt', '', 'area', { ph: 'Ansprechperson oder Portal eintragen', cls: 'pe-name' })}
-          ${pe(f, 'mail', 'E-Mail', 'line', { fx: 'mail' })}${pe(f, 'tel', 'Telefon', 'line', { fx: 'tel' })}${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}
-          ${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}</div>
-        <div class="pA-bed"><div class="sub">Bedingungen</div>${pe(f, 'fristInfo', 'Fristen und Termine', 'area')}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area')}${pe(f, 'eigenInfo', 'Eigenanteil', 'area')}</div>
-        <div><div class="sub">Quellen</div>${pe(f, 'quellen', '', 'area', { html: `<span class="ql">${quellenListe(f.quellen)}</span>`, ph: 'Links eintragen, je Link eine Zeile', cls: 'pe-q' })}</div>
-        <div><div class="sub">Notizen</div>${pe(f, 'notiz', '', 'area', { ph: 'Notizen eintragen' })}</div>
-      </div></div>
+      <div class="pop-body">
+        <div class="pA-box"><div class="sub">Kontakte${UI.kEdit === f.id ? '' : `<button class="k-pen" data-act="k-edit" ${a} title="Kontakte bearbeiten" aria-label="Kontakte bearbeiten">${ICON_PEN}</button>`}</div>
+          ${kontaktListe(f)}<div class="ksep"></div>
+          ${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}</div>
+        <div class="pA-bed">${kartei(f.name) ? `<div id="dk-${f.id}">${detKartei(f)}</div>` : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area')}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area')}${pe(f, 'eigenInfo', 'Eigenanteil', 'area')}</div>
+        <div class="pA-q"><div class="sub">Quellen</div>${pe(f, 'quellen', '', 'area', { html: `<span class="ql">${quellenListe(f.quellen)}</span>`, ph: 'Links eintragen, je Link eine Zeile', cls: 'pe-q' })}</div>
+        <div class="pA-n"><div class="sub">Notizen</div>${pe(f, 'notiz', '', 'area', { ph: 'Notizen eintragen' })}</div>
+      </div>
     </div>`;
 }
 // Angabe im Fenster bearbeiten: an derselben Stelle ein Feld; danach neu zeichnen, das Fenster bleibt an derselben Scrollstelle
@@ -245,7 +267,7 @@ function popEdit(el) {
   };
   inp.addEventListener('keydown', e => {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); }
-    else if (e.key === 'Enter' && (!lang || e.ctrlKey || k === 'kontakt')) { e.preventDefault(); finish(true); }
+    else if (e.key === 'Enter' && (!lang || e.ctrlKey)) { e.preventDefault(); finish(true); }
   });
   inp.addEventListener('blur', () => finish(true));
 }

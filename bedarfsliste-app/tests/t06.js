@@ -157,20 +157,42 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await p.$eval('.info-pop', e => e.textContent)).includes('Link kopieren'), 'Hinweis zum Ordner hinter dem „i“');
   await p.mouse.click(5, 300);
   await p.click('button[data-act="det"][data-v="f-mtw-spk"]');
-  ok((await p.$eval('.foe-pop table.kt', e => e.textContent)).includes('Erika Beispiel') && !(await p.$('#foe-f-mtw-spk .foe-pop')), 'Kontakt als Fenster über der Seite (nicht in der Kachel): Kartei-Kontakte als Tabelle');
+  ok((await p.$$eval('.foe-pop .k1.kartei', e => e.map(x => x.textContent).join())).includes('Erika Beispiel') && !(await p.$('#foe-f-mtw-spk .foe-pop')), 'Kontakt als Fenster über der Seite: Kontakte aus der Kartei in der Liste');
   await p.click('.pop-back', { position: { x: 10, y: 10 } });
   ok(!(await p.$('.foe-pop')), 'Klick daneben schließt das Fenster');
   await p.click('button[data-act="det"][data-v="f-mtw-lot"]');
-  // Steckbrief: links Kontakt, rechts Bedingungen, darunter Quellen und Notizen; keine Eingabefelder, Text darunter eingerückt
+  // Kopf: Name, Summe, Wahrscheinlichkeit – kein Stand, kein „Antrag stellt“; rechts keine Überschrift „Bedingungen“, keine Eingabefelder, Werte eingerückt
   r = await p.evaluate(() => { const P = document.querySelector('.foe-pop'), lab = P.querySelector('.pA-bed .pe .lab').getBoundingClientRect(), val = P.querySelector('.pA-bed .pe .val .pv').getBoundingClientRect();
-    return [[...P.querySelectorAll('.pA .sub')].map(e => e.textContent).join(','), P.querySelectorAll('.pop-body input, .pop-body textarea').length, P.querySelector('.pe[data-k="hoehe"] .val').textContent, Math.round(val.left - lab.left), [...P.querySelectorAll('.fx')].map(x => x.dataset.act).join()]; });
-  ok(r[0] === 'Kontakt,Bedingungen,Quellen,Notizen' && r[1] === 0 && r[2] === 'bis 50 % der Kosten' && r[3] >= 10 && r[4] === 'web', 'Fenster als Steckbrief ohne Eingabefelder, Werte eingerückt, Knopf nur bei vorhandenem Link: ' + JSON.stringify(r));
+    return [P.querySelector('header .pe-amt').textContent.replace(/\u00a0/g, ' '), !!P.querySelector('header .dots-box'), !!P.querySelector('header .st-btn, header .seg'), [...P.querySelectorAll('.pop-body .sub')].map(e => e.textContent).join(','),
+      P.querySelectorAll('.pop-body input, .pop-body textarea').length, P.querySelector('.pe[data-k="hoehe"] .val').textContent, Math.round(val.left - lab.left), P.querySelector('.pA-bed > .pe').dataset.k]; });
+  ok(r.join('|') === '30.000 €|true|false|Kontakte,Quellen,Notizen|0|bis 50 % der Kosten|12|fristInfo', 'Fenster: Kopf mit Summe und Wahrscheinlichkeit, rechts ohne Überschrift, keine Eingabefelder, Werte eingerückt: ' + r.join('|'));
+  // Summe und Wahrscheinlichkeit im Kopf ändern
+  await p.click('.foe-pop .pe-amt'); await p.keyboard.press('Control+A'); await p.keyboard.type('28000'); await p.keyboard.press('Enter');
+  await p.click('.foe-pop header .dot:nth-child(4)');
+  r = await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-lot'); return [f.betrag, f.einsch, !!document.querySelector('.foe-pop')]; });
+  ok(r.join() === '28000,uw,true', 'Summe und Wahrscheinlichkeit im Kopf geändert, Fenster bleibt offen: ' + r.join());
+  // Kontakte: Stift → bearbeiten, + → weiterer (höchstens drei), ☆ → Hauptkontakt, Fertig entfernt leere
+  ok(await p.$eval('.foe-pop .pA-box', e => e.querySelectorAll('.k1').length === 0 && !!e.querySelector('.kadd')), 'ohne Kontakte: „Kontakt eintragen“');
+  await p.click('.foe-pop .k-pen');
+  ok(await p.evaluate(() => document.querySelectorAll('.foe-pop .k-ed').length) === 0, 'Stift: Bearbeiten, noch keine Zeile');
+  await p.click('.foe-pop .kadd');
+  await p.keyboard.type('Petra Lotto'); await p.fill('.foe-pop [data-p="kontakte.0.rolle"]', 'Förderreferentin'); await p.fill('.foe-pop [data-p="kontakte.0.mail"]', 'petra@lotterie.example');
+  await p.click('.foe-pop .kadd'); await p.keyboard.type('Max Los'); await p.fill('.foe-pop [data-p="kontakte.1.tel"]', '0211 12345');
+  await p.click('.foe-pop .kadd');
+  r = await p.evaluate(() => [document.querySelectorAll('.foe-pop .k-ed').length, !!document.querySelector('.foe-pop .kadd')]);
+  ok(r.join() === '3,false', 'höchstens drei Kontakte, dann kein „+“ mehr: ' + r.join());
+  await p.click('.foe-pop [data-act="k-fertig"]');
+  r = await p.evaluate(() => [cur().foerderer.find(x => x.id === 'f-mtw-lot').kontakte.map(kontaktText).join(' | '), [...document.querySelectorAll('.foe-pop .k1 .kn')].map(e => e.textContent).join(','),
+    [...document.querySelectorAll('.foe-pop .k1 a.kb')].map(a => a.getAttribute('href')).join(), document.querySelector('#ds-f-mtw-lot').textContent]);
+  ok(r[0] === 'Petra Lotto; Förderreferentin; petra@lotterie.example | Max Los; ; ; 0211 12345' && r[1] === 'Petra Lotto,Max Los' && r[2] === 'mailto:petra@lotterie.example,tel:021112345' && r[3].startsWith('Petra Lotto'),
+    'Fertig: leerer dritter Kontakt entfernt, Kontakte mit Links und Knöpfen, Hauptkontakt in der Kachel: ' + r.join(' / '));
+  await p.click('.foe-pop .k1 .star.off');
+  ok(await p.evaluate(() => cur().foerderer.find(x => x.id === 'f-mtw-lot').kontakte[0].n) === 'Max Los', '☆ macht einen Kontakt zum Hauptkontakt (nach oben)');
   // Angabe anklicken → Feld; Enter übernimmt; Esc verwirft
-  await p.click('.foe-pop .pe[data-k="mail"]');
+  await p.click('.foe-pop .pe[data-k="weg"]');
   ok(await p.evaluate(() => document.activeElement.classList.contains('pe-in') && !!document.querySelector('.foe-pop')), 'Klick auf eine Angabe: Feld an derselben Stelle');
-  await p.keyboard.type('info@lotterie.example'); await p.keyboard.press('Enter');
-  r = await p.evaluate(() => [cur().foerderer.find(f => f.id === 'f-mtw-lot').mail, document.querySelector('.foe-pop .pe[data-k="mail"] .pv').textContent, [...document.querySelectorAll('.foe-pop .fx')].map(x => x.dataset.act).join()]);
-  ok(r.join('|') === 'info@lotterie.example|info@lotterie.example|mailto,web', 'E-Mail eingetragen, Knopf zum Schreiben erscheint: ' + r.join('|'));
+  await p.keyboard.press('Control+A'); await p.keyboard.type('E-Mail'); await p.keyboard.press('Enter');
+  ok(await p.evaluate(() => cur().foerderer.find(f => f.id === 'f-mtw-lot').weg) === 'E-Mail', 'Antragsweg geändert');
   await p.click('.foe-pop .pe[data-k="hoehe"]'); await p.keyboard.type(' – XXX'); await p.keyboard.press('Escape');
   ok(await p.evaluate(() => cur().foerderer.find(f => f.id === 'f-mtw-lot').hoehe === 'bis 50 % der Kosten' && !!document.querySelector('.foe-pop')), 'Esc verwirft die Änderung, das Fenster bleibt offen');
   // Quellen bearbeiten: je Link eine Zeile, danach als Links untereinander
@@ -179,15 +201,17 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('.foe-pop .pA-box .sub');
   r = await p.evaluate(() => [...document.querySelectorAll('.foe-pop .ql a')].map(a => a.getAttribute('href')).join());
   ok(r === 'https://www.example.org/satzung,https://www.example.org/richtlinie', 'Quellen bearbeitet: untereinander als anklickbare Links: ' + r);
-  // feste Höhe, langer Text scrollt im Fenster
+  // feste Höhe für bis zu drei Kontakte; langer Text scrollt im eigenen Bereich
   const hh = await p.$eval('.foe-pop', e => e.getBoundingClientRect().height);
-  await p.evaluate(() => { cur().foerderer.find(f => f.id === 'f-mtw-lot').notiz = 'Sehr lange Notiz. '.repeat(500); keep(renderNow); });
-  r = await p.evaluate(() => { const P = document.querySelector('.foe-pop'), B = P.querySelector('.pop-body'); return [Math.round(P.getBoundingClientRect().height), B.scrollHeight > B.clientHeight, getComputedStyle(B).overflowY]; });
-  ok(Math.abs(r[0] - hh) <= 1 && r[1] && r[2] === 'auto', 'Fenster bleibt gleich hoch, langer Inhalt scrollt darin: ' + r.join());
-  await p.evaluate(() => { cur().foerderer.find(f => f.id === 'f-mtw-lot').notiz = ''; keep(renderNow); });
+  await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-lot'); f.kontakte.push({ n: 'Dritte Person', rolle: 'Vorstand', mail: 'd@x.example', tel: '0211 9' }); f.notiz = 'Sehr lange Notiz. '.repeat(500); f.fristInfo = 'Lange Frist. '.repeat(300); keep(renderNow); });
+  r = await p.evaluate(() => { const P = document.querySelector('.foe-pop'), box = P.querySelector('.pA-box'), bed = P.querySelector('.pA-bed'), n = P.querySelector('.pA-n');
+    return [Math.round(P.getBoundingClientRect().height), box.scrollHeight <= box.clientHeight + 1, bed.scrollHeight > bed.clientHeight, n.scrollHeight > n.clientHeight, getComputedStyle(bed).overflowY]; });
+  ok(Math.abs(r[0] - hh) <= 1 && r[1] && r[2] && r[3] && r[4] === 'auto', 'Fenster bleibt gleich hoch, drei Kontakte passen ohne Scrollen, lange Texte scrollen in ihrem Bereich: ' + r.join());
+  await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-lot'); f.notiz = ''; f.fristInfo = 'laufend, Bearbeitung etwa 3 Monate'; keep(renderNow); });
   r = await p.evaluate(() => quellenZeilen('https://a.de/x ; https://b.de https://c.de\nSatzung').join('|'));
   ok(r === 'https://a.de/x|https://b.de|https://c.de|Satzung', 'Quellen werden je Zeile getrennt: ' + r);
   await p.keyboard.press('Escape');
+  await p.evaluate(() => { cur().foerderer.find(x => x.id === 'f-mtw-lot').betrag = 30000; keep(renderNow); });
   // Betrag beim Tippen gleich mit Tausenderpunkt
   await p.click('#amt-f-mtw-lot', { clickCount: 3 }); await p.keyboard.type('45000');
   r = await p.evaluate(() => [document.querySelector('#amt-f-mtw-lot').value, cur().foerderer.find(f => f.id === 'f-mtw-lot').betrag]);

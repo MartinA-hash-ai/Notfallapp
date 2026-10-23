@@ -39,10 +39,23 @@ function ff(o) {
   return Object.assign({
     id: uid('f'), name: '', durch: 'ich', betrag: null, zugesagt: null, eingegangen: null, eingangAm: '', status: 'geplant', beantragtAm: '', entscheidungAm: '',
     frist: '', erwartet: '', warum: '', knackpunkte: '', einsch: '',
-    art: '', weg: '', kontakt: '', mail: '', tel: '', web: '', fristInfo: '', hoehe: '', eigenInfo: '', quellen: '', notiz: '',
+    art: '', weg: '', kontakte: [], web: '', fristInfo: '', hoehe: '', eigenInfo: '', quellen: '', notiz: '',   // kontakte: bis zu drei, der erste ist der Hauptkontakt
     vn: { noetig: true, frist: '', st: 'offen' },                      // ab 0.17: Verwendungsnachweis standardmäßig nötig
   }, o);
 }
+// Kontakte eines Förderers: { n: Name, rolle: Funktion, mail, tel }; als Text „Name; Funktion; E-Mail; Telefon“ (Teile werden an ihrer Art erkannt)
+const MAX_KONTAKTE = 3;
+const leerK = () => ({ n: '', rolle: '', mail: '', tel: '' });
+function kontaktAusText(t) {
+  const k = leerK(), teile = String(t || '').split(/\s*;\s*/).map(x => x.trim()).filter(Boolean), rest = [];
+  for (const x of teile) { if (!k.mail && /^\S+@\S+\.\S+$/.test(x)) k.mail = x; else if (!k.tel && /^[+\d][\d\s\/().-]{4,}$/.test(x)) k.tel = x; else rest.push(x); }
+  const m = teile.length === 1 && rest.length === 1 && rest[0].match(/^([^,(]{2,40}),\s*(.+)$/);       // „Name, Funktion …“ in einem Stück
+  if (m) Object.assign(k, { n: m[1].trim(), rolle: m[2].trim() }); else Object.assign(k, { n: rest[0] || '', rolle: rest.slice(1).join('; ') });
+  return k;
+}
+const kontakteAusText = t => String(t || '').split(/\r?\n/).map(kontaktAusText).filter(k => k.n || k.rolle || k.mail || k.tel).slice(0, MAX_KONTAKTE);
+const kontaktText = k => [k.n, k.rolle, k.mail, k.tel].join('; ').replace(/(;\s*)+$/, '');
+const kontaktLeer = k => !(k.n.trim() || k.rolle.trim() || k.mail.trim() || k.tel.trim());
 // Daten aus der Datei auf den aktuellen Aufbau bringen (fehlende Felder ergänzen, Unbrauchbares verwerfen)
 function normalize(d) {
   const o = merge(emptyData(), isObj(d) ? d : {});
@@ -76,6 +89,15 @@ function normalize(d) {
       delete f.sb; delete v.erledigt;
       if (vnMig && !b.archiv && v.noetig === false && !v.frist && v.st === 'offen') v.noetig = true;
       if (f.status === 'vorb') f.status = 'geplant';                 // „in Vorbereitung“ gibt es ab 0.17 nicht mehr
+      // bis 0.20 ein Kontakt in drei Feldern (Ansprechperson, E-Mail, Telefon) – daraus wird der erste Kontakt
+      if (!Array.isArray(f0.kontakte)) {
+        const k = kontakteAusText(f0.kontakt);
+        if (!k.length && (f0.mail || f0.tel)) k.push(leerK());
+        if (k.length) { k[0].mail = k[0].mail || String(f0.mail || ''); k[0].tel = k[0].tel || String(f0.tel || ''); }
+        f.kontakte = k;
+      }
+      f.kontakte = (Array.isArray(f.kontakte) ? f.kontakte : []).filter(isObj).map(k => ({ n: String(k.n ?? ''), rolle: String(k.rolle ?? ''), mail: String(k.mail ?? ''), tel: String(k.tel ?? '') })).slice(0, MAX_KONTAKTE);
+      delete f.kontakt; delete f.mail; delete f.tel;
       return f;
     });
     n.foerderer.forEach(f => { if (f.einsch in EINSCH_ALT) f.einsch = EINSCH_ALT[f.einsch]; if (!EINSCH.some(e => e[0] === f.einsch)) f.einsch = ''; });

@@ -43,8 +43,10 @@ async function writeKartei(p, kontakt) {
   ok(await p.evaluate(() => cur().foerderer[0].art === 'Volksbank / Bank' && !document.querySelector('select.art')), 'Art aus der Kartei übernommen (nur in den Daten, kein Auswahlfeld mehr)');
   await p.click('button[data-act="det"]');
   let t = await p.$eval('.foe-pop .det-k', e => e.textContent);
-  ok(t.includes('Aus der Förder-Kartei') && t.includes('Silke S') && t.includes('silke@mb.example') && t.includes('Antragswegdirekt') && t.includes('Hagen, Iserlohn-Menden')
-    && await p.$eval('.foe-pop table.kt a[href^="mailto:"]', e => e.getAttribute('href')) === 'mailto:silke@mb.example', 'Fenster mit Kartei-Angaben, E-Mail als Link: ' + t.replace(/\s+/g, ' ').slice(0, 140));
+  ok(t.includes('Aus der Förder-Kartei') && t.includes('Antragswegdirekt') && t.includes('Hagen, Iserlohn-Menden')
+    , 'Fenster mit Kartei-Angaben: ' + t.replace(/\s+/g, ' ').slice(0, 140));
+  ok(await p.$eval('.foe-pop .k1.kartei', e => e.textContent.includes('Silke S') && e.textContent.includes('Kartei')) && await p.$eval('.foe-pop .k1.kartei a[href^="mailto:"]', e => e.getAttribute('href')) === 'mailto:silke@mb.example',
+    'Kontakte aus der Kartei in der Kontaktliste, mit Vermerk, E-Mail als Link');
   await p.keyboard.press('Escape');
   ok(!(await p.$('.foe-pop')), 'Esc schließt das Fenster');
   ok(!(await p.$('.fp .fw-tri')), 'passende Region: kein Hinweis-Dreieck');
@@ -52,7 +54,7 @@ async function writeKartei(p, kontakt) {
   await p.hover('.fp .fw-tri');
   t = await p.$eval('.fw-pop', e => e.textContent);
   await p.click('button[data-act="det"]');
-  ok(t.includes('Laut Kartei zuständig für Herne') && (await p.$eval('.foe-pop .det-k', e => e.textContent)).includes('nicht direkt anschreiben'), 'andere Region: rotes Dreieck hinter dem Namen, beim Überfahren der Hinweis; Kartei-Angaben wechseln mit');
+  ok(t.includes('Laut Kartei zuständig für Herne') && (await p.$$eval('.foe-pop .k1.kartei', e => e.map(x => x.textContent).join())).includes('nicht direkt anschreiben'), 'andere Region: rotes Dreieck hinter dem Namen, beim Überfahren der Hinweis; Kartei-Angaben wechseln mit');
   await p.click('.foe-pop button.x');
   // Kartei in Excel geändert → nach etwa einer Minute neu gelesen
   await writeKartei(p, 'Silke Neu');

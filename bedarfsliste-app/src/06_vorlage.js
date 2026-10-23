@@ -9,9 +9,9 @@ const FP_COLS = [
   { k: 'stand', t: 'Stand in der Bedarfsliste', w: 16, info: true, help: 'Nur zur Information: wie weit der Förderer schon ist. Wird nicht eingelesen. Bei neuen Förderern leer lassen.' },
   { k: 'art', t: 'Art', w: 18, items: ART, help: 'Aus der Auswahlliste.' },
   { k: 'weg', t: 'Antragsweg', w: 16, items: ['Portal', 'E-Mail', 'Brief', 'Persönlich', 'Telefon', 'Sonstiges'], help: 'Wie der Antrag gestellt wird – aus der Auswahlliste.' },
-  { k: 'kontakt', t: 'Ansprechperson oder Portal', w: 26, help: 'Name und Funktion der zuständigen Person oder Name des Antragsportals – kurz, höchstens etwa 80 Zeichen.' },
-  { k: 'mail', t: 'E-Mail', w: 28, help: 'E-Mail-Adresse der Ansprechperson oder der Förderstelle.' },
-  { k: 'tel', t: 'Telefon', w: 18, help: 'Telefonnummer.' },
+  { k: 'kontakt', t: 'Kontakte', alias: ['Ansprechperson oder Portal'], w: 36, wrap: true, help: 'Bis zu drei Ansprechpersonen, je Person eine Zeile in der Zelle: Name; Funktion; E-Mail; Telefon (Unbekanntes weglassen). Wichtigste Person zuerst. Bei Antrag nur über ein Portal: Name des Portals.' },
+  { k: 'mail', t: 'E-Mail', w: 28, help: 'Allgemeine E-Mail-Adresse der Förderstelle (gilt für die erste Person, wenn sie keine eigene hat).' },
+  { k: 'tel', t: 'Telefon', w: 18, help: 'Allgemeine Telefonnummer der Förderstelle (gilt für die erste Person, wenn sie keine eigene hat).' },
   { k: 'web', t: 'Website oder Portal-Link', w: 32, help: 'Link zur Förderseite oder zum Antragsportal.' },
   { k: 'frist', t: 'Antragsfrist', w: 14, date: true, help: 'Nächster Einsendeschluss als Datum (TT.MM.JJJJ). Laufende Antragstellung: leer lassen und unter „Weitere Fristen und Termine“ notieren.' },
   { k: 'fristInfo', t: 'Weitere Fristen und Termine', w: 30, wrap: true, help: 'Vergabesitzungen, Stichtage, Bearbeitungszeit, „laufend“ usw.' },
@@ -57,7 +57,8 @@ const rechUmfang = b => rechAnzahl(b) + ' Förderer, sortiert nach Erfolgsaussic
   + 'geht das nicht, die Zelle leer lassen. Nicht auf eine Gesamtsumme hinrechnen. Lieber weniger Förderer mit Beleg als viele unsichere.';
 const RECH_REGELN = ['Je Förderer genau eine Zeile im Blatt „Förderplan“, ab der Zeile unter den Überschriften.', 'Spaltenüberschriften, Blattnamen und die Angaben oben (Bedarf, Kennung) nicht ändern.',
   'Datum immer als TT.MM.JJJJ, Beträge nur als Zahl in Euro (ohne Text).', 'Art, Antragsweg und Einschätzung aus der Auswahlliste der Zelle wählen.',
-  'Kurze Felder kurz halten: „Ansprechperson oder Portal“, „Übliche Fördersumme“ und „Eigenanteil gefordert“ höchstens etwa 80 Zeichen – Erläuterungen gehören in „Notizen“.',
+  'Kontakte: bis zu drei Personen, je Person eine Zeile in der Zelle „Name; Funktion; E-Mail; Telefon“.',
+  'Kurze Felder kurz halten: „Übliche Fördersumme“ und „Eigenanteil gefordert“ höchstens etwa 80 Zeichen – Erläuterungen gehören in „Notizen“.',
   'Quellen: je Link eine eigene Zeile in der Zelle, nur die Adresse.',
   'Unsicheres als solches kennzeichnen (z. B. „laut Website 2025, nicht bestätigt“). Nichts erfinden: lieber eine Zelle leer lassen.'];
 
@@ -86,6 +87,8 @@ function vorlageBlob(b) {
       if (c.k === 'einsch') v = (EINSCH.find(e => e[0] === v) || [])[1] || '';
       if (c.k === 'betrag') v = f.betrag != null && f.betrag !== '' ? +f.betrag : '';
       if (c.k === 'stand') v = F_ST_L[f.status] + (f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : '');
+      if (c.k === 'kontakt') v = f.kontakte.map(kontaktText).join('\n');
+      if (c.k === 'mail' || c.k === 'tel') v = (f.kontakte[0] || {})[c.k] || '';
       return cell(c, v);
     });
   });
@@ -274,12 +277,16 @@ function einschKey(v) {
 // Felder eines Förderers aus der Recherche übernehmen: 'fill' = nur leere Felder füllen, 'all' = überschreiben
 function applyResearch(f, it, mode) {
   for (const c of FP_COLS) {
-    if (c.k === 'name' || c.info) continue;
+    if (c.k === 'name' || c.info || c.k === 'kontakt' || c.k === 'mail' || c.k === 'tel') continue;
     let v = it[c.k]; if (v == null || v === '') continue;
     if (c.k === 'quellen') v = quellenZeilen(v).join('\n');
     const empty = f[c.k] == null || f[c.k] === '';
     if (mode === 'all' || empty) f[c.k] = v;
   }
+  // Kontakte: Zeilen „Name; Funktion; E-Mail; Telefon“; allgemeine E-Mail und Telefon gelten für die erste Person
+  const k = kontakteAusText(it.kontakt);
+  if (it.mail || it.tel) { if (!k.length) k.push(leerK()); k[0].mail = k[0].mail || it.mail || ''; k[0].tel = k[0].tel || it.tel || ''; }
+  if (k.length && (mode === 'all' || !f.kontakte.length)) f.kontakte = k;
 }
 async function importFoerderplan(b, file) {
   file = file || await pickFile('.xlsx'); if (!file) return;

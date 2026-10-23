@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null };
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null };
 const UI_KEEP = ['view', 'id', 'tab'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
@@ -89,6 +89,7 @@ function renderNow() {
     // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
     if (UI.view !== 'list') ORDER.ids = null; else if (!ORDER.ids) ORDER.ids = filtered().map(x => x.id);
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
+    if (UI.kEdit !== UI.det) UI.kEdit = null;
     PIE_HOLD = false;
     app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : listView());
     strgSet(CTRL_NOW);
@@ -184,6 +185,8 @@ function about() {
     ...CHANGELOG.slice(0, 5).map(c => h('div', null, h('h3', null, 'Version ' + c.version + (c.date ? ' · ' + fmtDate(c.date.slice(0, 10)) : '')), h('ul', null, c.items.map(i => h('li', null, i)))))), null, { wide: true });
 }
 
+// leer gebliebene Kontakte entfernen, wenn das Fenster beim Bearbeiten geschlossen wird
+function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit); if (f && f.kontakte.some(kontaktLeer)) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } }
 async function act(k, a, e) {
   const b = cur();
   switch (k) {
@@ -263,15 +266,27 @@ async function act(k, a, e) {
     case 'zu': zuSet(a.dataset.v, !zuGet(a.dataset.v)); break;
     case 'pe': popEdit(a); return;
     case 'det': UI.det = a.dataset.v; break;
-    case 'det-zu': UI.det = null; break;
-    case 'mailto': case 'tel': case 'web': {                                       // E-Mail schreiben, anrufen, Seite öffnen – mit dem, was gerade im Feld steht
+    case 'det-zu': kAufraeumen(b); UI.det = null; UI.kEdit = null; break;
+    case 'web': {                                                                   // Website öffnen – mit dem, was gerade eingetragen ist
       const f = b.foerderer.find(x => x.id === a.dataset.fid); if (!f) return;
-      if (k === 'mailto') { const m = f.mail.trim(); if (!/@/.test(m)) { toast('Erst eine E-Mail-Adresse eintragen.', 'warn'); return; } location.href = 'mailto:' + m; return; }
-      if (k === 'tel') { const t = telNr(f.tel); if (!t) { toast('Erst eine Telefonnummer eintragen.', 'warn'); return; } location.href = 'tel:' + t; return; }
       const u = webUrl(f.web); if (!u) { toast('Erst einen Link eintragen (https://…).', 'warn'); return; }
       if (DEMO && /\.example(\/|$)/.test(u)) { toast('Beispiel-Link: In der Programmdatei öffnet sich hier die Seite im Browser.'); return; }
       window.open(u, '_blank', 'noopener'); return;
     }
+    // Kontakte im Fenster: Stift → bearbeiten, + → weiterer (höchstens drei), × → entfernen, ☆ → Hauptkontakt, Fertig → leere entfernen
+    case 'k-edit': case 'k-neu': {
+      const f = b.foerderer.find(x => x.id === a.dataset.fid); if (!f) return;
+      if (k === 'k-neu' && f.kontakte.length < MAX_KONTAKTE) { f.kontakte.push(leerK()); changed(); }
+      UI.kEdit = f.id; keep(renderNow);
+      const L = $$('.foe-pop .k-ed'), z = k === 'k-neu' ? L[L.length - 1] : L[0], inp = z && z.querySelector('input'); if (inp) inp.focus();
+      return;
+    }
+    case 'k-weg': case 'k-haupt': {
+      const f = b.foerderer.find(x => x.id === a.dataset.fid); if (!f) return;
+      const [c] = f.kontakte.splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) f.kontakte.unshift(c);
+      changed(); break;
+    }
+    case 'k-fertig': { const f = b.foerderer.find(x => x.id === a.dataset.fid); if (f) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } UI.kEdit = null; break; }
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
     case 'copy-path': copyPath(b); return;
@@ -291,7 +306,7 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   const el = e.target;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (!DEMO) saveAll({}); return; }
-  if (e.key === 'Escape' && UI.det && !$('.menu, .modal, .cal-pop')) { UI.det = null; keep(renderNow); return; }
+  if (e.key === 'Escape' && UI.det && !$('.menu, .modal, .cal-pop')) { kAufraeumen(cur()); UI.det = null; UI.kEdit = null; keep(renderNow); return; }
   if (e.key === 'Enter' && el.matches && el.matches('tr[data-act="open"]')) { e.preventDefault(); act('open', el, e); }
   if (e.key === 'Enter' && el.id === 'zust-new') { e.preventDefault(); addZust(); }
   if (e.key === 'Enter' && el.id === 'ul-new') { e.preventDefault(); addUl(true); }

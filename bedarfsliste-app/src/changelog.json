@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.21.0",
+    "date": "2026-10-23T19:40",
+    "items": [
+      "Förderer-Fenster, Kopf: neben dem Namen die Summe, die im Raum steht, ganz rechts die Wahrscheinlichkeit – beides direkt änderbar; Stand und „Antrag stellt“ stehen dort nicht mehr",
+      "Bis zu drei Kontakte je Förderer: Name, Funktion, E-Mail und Telefon als Links mit Knöpfen zum Schreiben und Anrufen; der Stern markiert den Hauptkontakt (er steht in der Kachel), ☆ macht einen anderen dazu; Stift oben rechts bearbeitet die Kontakte",
+      "Kontakte aus der Förder-Kartei stehen in derselben Liste, mit Vermerk „Kartei“ und nicht bearbeitbar",
+      "Rechte Seite ohne Überschrift „Bedingungen“, Fristen, Fördersumme und Eigenanteil rücken nach oben",
+      "Das Fenster ist so hoch, dass drei Kontakte passen; längere Texte scrollen jeweils in ihrem Bereich",
+      "Bisherige Ansprechperson, E-Mail und Telefon werden zum ersten Kontakt. Recherche-Excel: Spalte „Kontakte“ mit je Person einer Zeile „Name; Funktion; E-Mail; Telefon“"
+    ]
+  },
+  {
     "version": "0.20.0",
     "date": "2026-10-23T18:20",
     "items": [

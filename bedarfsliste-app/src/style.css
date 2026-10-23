@@ -653,19 +653,48 @@ span.st-btn { display: inline-block; }
 .fk .det-btn .ds { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .det-auf { font-size: 16px; line-height: 1; color: var(--faint); }
 .fk .det-btn:hover .det-auf { color: var(--ink); }
-/* Kontakt und Details als Fenster (Steckbrief): feste Höhe, innen scrollen */
+/* Kontakt und Details als Fenster (Steckbrief): feste Höhe – oben Kontakte | Bedingungen, unten Quellen | Notizen; jeder Bereich scrollt für sich */
 .pop-back { position: fixed; inset: 0; z-index: 80; background: var(--backdrop); }
-.foe-pop { position: fixed; z-index: 81; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(920px, calc(100vw - 32px)); height: min(760px, calc(100vh - 48px));
+.foe-pop { position: fixed; z-index: 81; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(920px, calc(100vw - 32px)); height: min(780px, calc(100vh - 32px));
   display: flex; flex-direction: column; background: var(--card); border-radius: 12px; box-shadow: var(--shadow); overflow: hidden; }
-.foe-pop > header { flex: none; display: flex; align-items: center; gap: 10px; padding: 14px 22px 12px; border-bottom: 1px solid var(--line3); }
+.foe-pop > header { flex: none; display: flex; align-items: center; gap: 14px; padding: 14px 22px 12px; border-bottom: 1px solid var(--line3); }
 .foe-pop > header h3 { margin: 0; font-size: 19px; flex: 0 1 auto; min-width: 0; text-transform: none; letter-spacing: 0; color: var(--ink); }
-.foe-pop .pop-durch { margin-left: auto; display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--muted); white-space: nowrap; }
-.foe-pop > header .x { font-size: 22px; margin-left: 6px; }
-.pop-body { flex: 1 1 auto; min-height: 0; overflow: auto; padding: 16px 22px 22px; }
-.pA { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px 28px; align-items: start; font-size: 13.5px; line-height: 1.45; color: var(--ink2); }
+.foe-pop .pe-amt { margin: 0; padding: 2px 24px 2px 8px; font-size: 19px; font-weight: 700; color: var(--ink); white-space: nowrap; }
+.foe-pop .pe-amt > svg { top: 9px; }
+.foe-pop .pe-amt .val.leer { font-size: 15px; font-weight: 400; }
+.foe-pop .pe-amt .pe-in { width: 130px; font-size: 17px; }
+.foe-pop .pop-einsch { margin-left: auto; }
+.foe-pop > header .x { font-size: 22px; }
+.pop-body { flex: 1 1 auto; min-height: 0; padding: 16px 22px 18px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: minmax(0, 440px) minmax(0, 1fr); gap: 16px 28px; font-size: 13.5px; line-height: 1.45; color: var(--ink2); }
+.pop-body > div { min-height: 0; overflow: auto; scrollbar-width: thin; }
 .pA-box { background: var(--soft); border: 1px solid var(--line3); border-radius: 8px; padding: 12px 16px 8px; }
-.pA .sub { font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; }
-.pA .det-k { margin-bottom: 10px; background: var(--card); }
+.pA-bed { padding-right: 6px; }
+.pop-body .sub { font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; display: flex; align-items: center; }
+.k-pen { margin-left: auto; border: 0; background: none; padding: 2px 4px; color: var(--muted); }
+.k-pen:hover { color: var(--ink); }
+.pA-bed .det-k { margin-bottom: 10px; }
+.k1 { position: relative; padding: 6px 70px 6px 24px; margin: 0 -8px 4px; border-radius: 7px; }
+.k1:hover { background: var(--hover); }
+.k1 .star { position: absolute; left: 6px; top: 6px; font-size: 14px; line-height: 1.45; color: #d29a17; border: 0; background: none; padding: 0; }
+.k1 .star.off { color: var(--line2); cursor: pointer; }
+.k1 .star.off:hover { color: #d29a17; }
+.k1 .kn { font-weight: 600; color: var(--ink); }
+.k1 .kr { color: var(--muted); font-size: 12.5px; }
+.k1 .kl { font-size: 13px; margin-top: 1px; overflow-wrap: anywhere; }
+.k1 .kl a { color: var(--focus); text-decoration: none; }
+.k1 .kl a:hover { text-decoration: underline; }
+.k1 .acts { position: absolute; right: 6px; top: 6px; display: flex; gap: 6px; }
+.kb { display: grid; place-items: center; width: 28px; height: 26px; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); font-size: 13px; color: var(--ink2); text-decoration: none; }
+.kb:hover { border-color: var(--faint); }
+.kadd { display: flex; align-items: center; gap: 8px; border: 0; background: none; padding: 4px 0 2px; color: var(--muted); font-size: 13px; }
+.kadd i { display: grid; place-items: center; width: 20px; height: 20px; border: 1.5px dashed var(--line2); border-radius: 50%; font-style: normal; }
+.kadd:hover { color: var(--ink); }
+.ksep { border-top: 1px solid var(--line3); margin: 10px 0 8px; }
+.k-ed { display: flex; align-items: flex-start; gap: 6px; margin-bottom: 8px; }
+.k-ed-g { flex: 1 1 auto; display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.k-ed-g input { font-size: 13px; padding: 4px 6px; }
+.k-ed-f { margin-top: 6px; }
 .pe { position: relative; padding: 5px 26px 5px 8px; margin: 0 -8px 4px; border-radius: 6px; cursor: text; }
 .pe:hover { background: var(--hover); }
 .pe > svg { position: absolute; right: 7px; top: 8px; color: var(--faint); visibility: hidden; }
@@ -677,7 +706,6 @@ span.st-btn { display: inline-block; }
 .pe .val { white-space: pre-wrap; overflow-wrap: anywhere; display: flex; align-items: flex-start; gap: 8px; }
 .pe .val .pv { flex: 1 1 auto; min-width: 0; }
 .pe .val.leer { color: var(--faint); font-style: italic; }
-.pe-name .val { font-weight: 600; color: var(--ink); }
 .pe .fx { flex: none; width: 28px; height: 26px; padding: 0; display: grid; place-items: center; font-size: 14px; color: var(--ink2); margin-top: -3px; }
 .pe-in { width: 100%; font: inherit; line-height: 1.45; }
 textarea.pe-in { field-sizing: content; min-height: 2.3em; max-height: 18em; resize: vertical; }
@@ -694,7 +722,9 @@ table.kt td a { color: var(--focus); word-break: break-all; }
   .g12 .s6, .g12 .s8 { grid-column: span 12; }
   .g12 .s3, .g12 .s4, .g12 .s5 { grid-column: span 6; }
   .g12 .s2 { grid-column: span 6; }
-  .grid.two, .pA { grid-template-columns: minmax(0, 1fr); }
+  .grid.two { grid-template-columns: minmax(0, 1fr); }
+  .pop-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; overflow: auto; }
+  .pop-body > div { overflow: visible; }
   .d-grid { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "head act" "main main" "side side"; }
 }
 @media (max-width: 640px) {
