@@ -28,7 +28,7 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   ok(await p.evaluate(() => UI.view === 'detail'), 'Strg + Klick öffnet den Bedarf');
   r = await p.evaluate(() => [D.bedarfe[0].titel, document.querySelectorAll('[data-p="titel"]').length, document.querySelector('#f-titel').placeholder, document.querySelector('input[data-p="gliederung"]').placeholder, document.querySelector('input[data-p="summe"]').placeholder,
     [...document.querySelectorAll('#sec-eck .sub, #sec-eck .lab')].map(e => e.textContent.trim()).join(','), !!document.querySelector('#d-title')]);
-  ok(r.join('|') === 'Defibrillator Test|1|Bedarf|Gliederung (Ort oder Diözese)|Summe|Zuständig,Deadline i,Stichwort oder Fördertopf i,Beschreibung i|false', 'Name nur einmal, oben direkt änderbar; Felder darunter: ' + r.join('|'));
+  ok(r.join('|') === 'Defibrillator Test|1|Bedarf|Gliederung (Ort oder Diözese)|Summe|Zuständig,Deadline i,Stichworte oder Fördertöpfe i,Beschreibung i|false', 'Name nur einmal, oben direkt änderbar; Felder darunter: ' + r.join('|'));
   await p.fill('input[data-p="gliederung"]', 'Paderborn');
   await p.fill('input[data-p="summe"]', '1.500'); await p.press('input[data-p="summe"]', 'Tab');
   r = await p.evaluate(() => [D.bedarfe[0].summe, D.bedarfe[0].gliederung, document.querySelector('input[data-p="summe"]').value]);

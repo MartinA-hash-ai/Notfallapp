@@ -171,8 +171,8 @@ function calPop(anchor, iso, pick, o = {}) {
 
 const SRC = {
   ort: () => [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)],
-  zust: () => D.bedarfe.flatMap(x => x.zust.map(z => z.n)),
-  stichwort: () => D.bedarfe.map(x => x.stichwort),
+  zust: () => [...PR.list.map(p => p.n), ...D.bedarfe.flatMap(x => x.zust.map(z => z.n))],
+  stichwort: () => D.bedarfe.flatMap(x => x.stichworte),
   uebOrt: () => [...D.bedarfe.map(x => x.nach.ueb.ort), ...GL_LIST],
   foe: () => [...KR.list.map(k => k.name), ...D.bedarfe.flatMap(x => x.foerderer.map(f => f.name))],
 };

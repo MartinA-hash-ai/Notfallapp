@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.25.0",
+    "date": "2026-10-23T14:10",
+    "items": [
+      "Zuständige nebeneinander, je Zeile zwei – auch mehr als drei. Zu sehen sind Name und Position; E-Mail und Telefon stehen beim Überfahren der Knöpfe ✉ und ☎ (Klick schreibt bzw. ruft an), beim Bearbeiten in den Linien",
+      "Mehrere Stichworte oder Fördertöpfe je Bedarf: eintippen, Enter – es erscheint als Marke, das nächste lässt sich gleich eintippen; × nimmt eines weg. Der Filter in der Liste findet den Bedarf unter jedem seiner Stichworte",
+      "Beschreibung: ein Klick irgendwo in die rechte Fläche öffnet sie zum Schreiben",
+      "Aufzählung: Umschalt+Enter setzt den nächsten Punkt (bzw. die nächste Nummer), Enter geht in eine neue Zeile ohne Punkt",
+      "Kontaktdaten mit Copilot: Knopf bei „Zuständig“ – legt die Personen-Excel an („Personen.xlsx“ neben der Bedarfsliste, mit allen bekannten Personen), gibt einen kurzen Auftrag zum Kopieren und liest das Ergebnis ein",
+      "Die Liste liest die Personen-Excel (und Kopien wie „Personen (1).xlsx“, die neueste gilt) beim Start und etwa jede Minute. Fehlende Position, E-Mail und Telefon der Zuständigen werden in allen Bedarfen daraus ergänzt, Eingetragenes bleibt; die Namen erscheinen als Vorschläge. Die Excel lässt sich auch von Hand erweitern"
+    ]
+  },
+  {
     "version": "0.24.0",
     "date": "2026-10-23T12:40",
     "items": [

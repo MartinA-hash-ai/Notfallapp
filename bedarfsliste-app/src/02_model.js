@@ -22,7 +22,7 @@ const FEST_UL = ['Konzept', 'Projektsteckbrief', 'Angebot'];
 function emptyData() { return { meta: { savedAt: null, rev: 0 }, settings: { kartei: '' }, bedarfe: [] }; }
 function blank() {
   return {
-    id: uid('b'), titel: '', gliederung: '', zust: [], prio: 'mittel', beschreibung: '', summe: null, summeArt: 'Schätzung', deadline: '', stichwort: '', link: '', pfad: '',
+    id: uid('b'), titel: '', gliederung: '', zust: [], prio: 'mittel', beschreibung: '', summe: null, summeArt: 'Schätzung', deadline: '', stichworte: [], link: '', pfad: '',
     freigabe: {
       ofk: { st: 'offen', angefragt: '', erledigt: '', notiz: '' },
       fach: { name: '', st: 'offen', angefragt: '', erledigt: '', notiz: '' }, verw: { st: 'offen', angefragt: '', erledigt: '', notiz: '' },
@@ -44,7 +44,7 @@ function ff(o) {
   }, o);
 }
 // Kontakte eines Förderers: { n: Name, rolle: Funktion, mail, tel }; als Text „Name; Funktion; E-Mail; Telefon“ (Teile werden an ihrer Art erkannt)
-const MAX_KONTAKTE = 3;
+const MAX_KONTAKTE = 3, MAX_ZUST = 12;
 const leerK = () => ({ n: '', rolle: '', mail: '', tel: '' });
 function kontaktAusText(t) {
   const k = leerK(), teile = String(t || '').split(/\s*;\s*/).map(x => x.trim()).filter(Boolean), rest = [];
@@ -56,11 +56,12 @@ function kontaktAusText(t) {
 const kontakteAusText = t => String(t || '').split(/\r?\n/).map(kontaktAusText).filter(k => k.n || k.rolle || k.mail || k.tel).slice(0, MAX_KONTAKTE);
 const kontaktText = k => [k.n, k.rolle, k.mail, k.tel].join('; ').replace(/(;\s*)+$/, '');
 const kontaktLeer = k => !(k.n.trim() || k.rolle.trim() || k.mail.trim() || k.tel.trim());
-// Zuständige: dieselbe Person in einem anderen Bedarf bringt Position, E-Mail und Telefon mit (die vollständigste Angabe)
+// Zuständige: ein bekannter Name bringt Position, E-Mail und Telefon mit – aus der Personen-Excel, sonst aus einem anderen Bedarf (die vollständigste Angabe)
 function zustVorbild(name, ohne) {
   const q = norm(name), voll = z => !!z.rolle + !!z.mail + !!z.tel; let best = null;
   if (q) for (const x of D.bedarfe) for (const z of x.zust) if (z !== ohne && norm(z.n) === q && voll(z) && (!best || voll(z) >= voll(best))) best = z;
-  return best;
+  const p = typeof person === 'function' ? person(name) : null;
+  return p ? { n: p.n, rolle: p.rolle || (best && best.rolle) || '', mail: p.mail || (best && best.mail) || '', tel: p.tel || (best && best.tel) || '' } : best;
 }
 // Ansprechperson in der Liste ändern: sie wird die erste Zuständige. Hat die bisherige erste schon Angaben, bleibt sie dahinter stehen.
 function zustVorn(b, v) {
@@ -80,6 +81,9 @@ function normalize(d) {
   o.meta.vnStd = 1;
   o.bedarfe = (Array.isArray(o.bedarfe) ? o.bedarfe : []).filter(isObj).map(b => {
     const n = merge(blank(), b);
+    // ab 0.25 mehrere Stichworte (Fördertöpfe) je Bedarf – bisher eines
+    n.stichworte = uniq([...(Array.isArray(b.stichworte) ? b.stichworte : []), ...(typeof b.stichwort === 'string' ? [b.stichwort] : [])].map(s => String(s ?? '').trim()).filter(Boolean));
+    delete n.stichwort;
     // ab 0.24 sind die Zuständigen Kontakte wie bei den Förderern (Name, Position, E-Mail, Telefon) – bisher nur Namen
     n.zust = (Array.isArray(b.zust) ? b.zust : []).map(z => typeof z === 'string' ? Object.assign(leerK(), { n: z.trim() })
       : isObj(z) ? { n: String(z.n ?? ''), rolle: String(z.rolle ?? ''), mail: String(z.mail ?? ''), tel: String(z.tel ?? '') } : null).filter(z => z && !kontaktLeer(z));
@@ -120,7 +124,7 @@ function normalize(d) {
     if (!Array.isArray(n.nach.ueb.mit)) n.nach.ueb.mit = [];
     for (const k of ['info', 'zeit', 'ort', 'termin']) if (typeof n.nach.ueb[k] !== 'string') n.nach.ueb[k] = '';
     if (!(n.prio in PRIO_ORD)) n.prio = 'mittel';
-    for (const k of ['titel', 'gliederung', 'beschreibung', 'stichwort', 'link', 'pfad']) if (typeof n[k] !== 'string') n[k] = n[k] == null ? '' : String(n[k]);
+    for (const k of ['titel', 'gliederung', 'beschreibung', 'link', 'pfad']) if (typeof n[k] !== 'string') n[k] = n[k] == null ? '' : String(n[k]);
     n.pfad = unquote(n.pfad);
     return n;
   });

@@ -184,9 +184,9 @@ function fmtInfo() {
   modal('Texte formatieren', h('div', { class: 'help' },
     h('p', null, 'In der Beschreibung eines Bedarfs und in Notizen, Fristen, Fördersumme und Eigenanteil im Fenster eines Förderers lassen sich Texte einfach gestalten – wie in Chat-Programmen:'),
     h('table', { class: 'imp fmt-tab' }, h('thead', null, h('tr', null, h('th', null, 'Eingabe'), h('th', null, 'Ergebnis'))), h('tbody', null,
-      z('* Punkt  oder  - Punkt', fmtText('* Punkt') + '<span class="muted small">sofort beim Tippen</span>'), z('1. Schritt', fmtText('1. Schritt')), z('*wichtig*', fmtText('*wichtig*')), z('_Hinweis_', fmtText('_Hinweis_')),
+      z('* Punkt  oder  - Punkt', fmtText('* Punkt') + '<span class="muted small">sofort beim Tippen; Umschalt+Enter: nächster Punkt</span>'), z('1. Schritt', fmtText('1. Schritt')), z('*wichtig*', fmtText('*wichtig*')), z('_Hinweis_', fmtText('_Hinweis_')),
       z('~erledigt~', fmtText('~erledigt~')), z('https://…', 'wird ein anklickbarer Link'))),
-    h('p', { class: 'muted small' }, 'Aufzählung: „* “ oder „- “ am Zeilenanfang wird beim Tippen sofort zum Punkt •. Enter setzt den nächsten Punkt (bei „1. “ die nächste Nummer), Enter auf einem leeren Punkt beendet die Aufzählung, Umschalt+Enter macht eine Zeile ohne Punkt. Strg+Enter oder Klick daneben übernimmt den Text.'),
+    h('p', { class: 'muted small' }, 'Aufzählung: „* “ oder „- “ am Zeilenanfang wird beim Tippen sofort zum Punkt •. Umschalt+Enter setzt den nächsten Punkt (bei „1. “ die nächste Nummer), Enter geht in eine neue Zeile ohne Punkt. Strg+Enter oder Klick daneben übernimmt den Text.'),
     h('p', { class: 'muted small' }, 'Fett, kursiv und durchgestrichen: Die Zeichen müssen direkt am Wort stehen (*so*, nicht * so *). Beim Bearbeiten sieht man die Zeichen, sobald man das Feld verlässt, die Formatierung.')),
     [['OK', true, 'primary']]);
 }
@@ -199,9 +199,9 @@ function about() {
 // leer gebliebene Kontakte entfernen, wenn das Fenster beim Bearbeiten geschlossen wird
 // wessen Kontakte: die eines Förderers (Knopf mit data-fid, im Fenster) oder die Zuständigen des Bedarfs (oben auf der Seite)
 function kZiel(b, a) {
-  if (!a.dataset.fid) return { o: b, p: 'zust', ui: 'zEdit', id: b.id, box: '#sec-eck' };
+  if (!a.dataset.fid) return { o: b, p: 'zust', ui: 'zEdit', id: b.id, box: '#sec-eck', max: MAX_ZUST };
   const f = b.foerderer.find(x => x.id === a.dataset.fid);
-  return f && { o: f, p: 'kontakte', ui: 'kEdit', id: f.id, box: '.foe-pop' };
+  return f && { o: f, p: 'kontakte', ui: 'kEdit', id: f.id, box: '.foe-pop', max: MAX_KONTAKTE };
 }
 // Zuständige bearbeiten: beim Namen Vorschläge aus allen Bedarfen; ein bekannter Name bringt Position, E-Mail und Telefon mit (nur in leere Zeilen)
 document.addEventListener('focusin', e => {
@@ -217,6 +217,20 @@ document.addEventListener('focusin', e => {
   const key = suggest(inp, SRC.zust, () => { inp.dispatchEvent(new Event('input', { bubbles: true })); ergaenzen(); });
   inp.addEventListener('keydown', ev => { if (key(ev)) ev.preventDefault(); });
   inp.addEventListener('change', ergaenzen);
+});
+// Stichworte: eintippen und Enter (oder einen Vorschlag wählen) – es kommt als Marke dazu, das Feld bleibt für das nächste offen
+function swNeu(inp) {
+  const b = cur(), v = inp.value.trim(); if (!b || !v) return;
+  if (!b.stichworte.some(s => norm(s) === norm(v))) { b.stichworte.push(v); changed(); }
+  inp.value = ''; keep(renderNow);
+}
+document.addEventListener('focusin', e => {
+  const inp = e.target;
+  if (!inp.matches || !inp.matches('#sw-neu') || inp.dataset.sug) return;
+  inp.dataset.sug = '1';
+  const key = suggest(inp, () => SRC.stichwort().filter(s => !(cur() || { stichworte: [] }).stichworte.includes(s)), () => swNeu(inp));
+  inp.addEventListener('keydown', ev => { if (key(ev)) { ev.preventDefault(); return; } if (ev.key === 'Enter') { ev.preventDefault(); swNeu(inp); } });
+  inp.addEventListener('blur', () => setTimeout(() => { if (inp.value.trim()) swNeu(inp); }, 0));      // Getipptes ohne Enter geht nicht verloren
 });
 function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit); if (f && f.kontakte.some(kontaktLeer)) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } }
 async function act(k, a, e) {
@@ -309,7 +323,7 @@ async function act(k, a, e) {
     // Kontakte im Fenster und Zuständige oben auf der Seite: Stift → bearbeiten, + → weiterer (höchstens drei), × → entfernen, ☆ → nach vorn, Fertig → leere entfernen
     case 'k-edit': case 'k-neu': {
       const z = kZiel(b, a); if (!z) return;
-      if (k === 'k-neu' && z.o[z.p].length < MAX_KONTAKTE) { z.o[z.p].push(leerK()); changed(); }
+      if (k === 'k-neu' && z.o[z.p].length < z.max) { z.o[z.p].push(leerK()); changed(); }
       UI[z.ui] = z.id; keep(renderNow);
       const L = $$(z.box + ' .k-ed'), e = k === 'k-neu' ? L[L.length - 1] : L[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
       return;
@@ -320,6 +334,8 @@ async function act(k, a, e) {
       changed(); break;
     }
     case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; } else UI.kEdit = null; break; }
+    case 'sw-weg': b.stichworte.splice(+a.dataset.i, 1); changed(); break;
+    case 'pers-cop': personenDialog(b); return;
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
     case 'copy-path': copyPath(b); return;
@@ -411,7 +427,7 @@ function boot() {
   restoreFolder().then(() => { renderNow(); askPermissionOnFirstClick(); });
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { if (isDirty() && ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); }
-    else karteiScan();
+    else { karteiScan(); personenScan(); }
   });
   window.addEventListener('beforeunload', e => { if (isDirty() && !window.__blReload) { saveDraft(); e.preventDefault(); e.returnValue = ''; } });
 }

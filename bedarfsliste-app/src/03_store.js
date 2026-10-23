@@ -84,7 +84,7 @@ async function attachFolder(create) {
   noteNewer(text, other);
   startWatch();
   scanUpdatePkg();
-  karteiScan();
+  karteiScan(); personenScan();
   safeRender();
   return true;
 }
@@ -256,7 +256,7 @@ function startWatch() {
     if (ST.conn !== 'ok' || ST.saving || document.hidden) return;
     ST.tick++;
     if (ST.tick % 4 === 2) scanUpdatePkg();                       // etwa jede Minute: Update-Paket im Ordner?
-    if (ST.tick % 4 === 0) karteiScan();                          // etwa jede Minute: Förder-Kartei geändert?
+    if (ST.tick % 4 === 0) { karteiScan(); personenScan(); }      // etwa jede Minute: Förder-Kartei oder Personen-Excel geändert?
     if (ST.conflict) return;
     try {
       const f = await ST.html.getFile();
@@ -402,6 +402,7 @@ document.addEventListener('drop', async e => {
   e.preventDefault();
   const pk = fl.find(f => /\.zip$/i.test(f.name)), xl = fl.find(f => /\.xlsx$/i.test(f.name));
   if (pk && !$('.modal')) updateProgram(await programFromFile(pk));
+  else if (xl && PERS_RE.test(xl.name) && !$('.modal')) personenDatei(xl);
   else if (xl && UI.view === 'detail' && cur() && !$('.modal')) importFoerderplan(cur(), xl);
   else toast('Hier lässt sich ein Update-Paket (.zip) ablegen – oder auf der Seite eines Bedarfs eine Förderplan-Excel.', 'warn');
 });

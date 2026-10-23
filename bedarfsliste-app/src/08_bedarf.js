@@ -16,7 +16,7 @@ const dl = (id, vals) => `<datalist id="${id}">${uniq(vals).map(v => `<option va
 const INFO = {
   ordner: 'Link: in OneDrive beim Ordner „Link kopieren“ wählen und hier einfügen – „Öffnen“ zeigt den Ordner im Browser, Word-Dateien gehen von dort in der Desktop-App auf. Pfad: aus der Adresszeile des Explorers kopieren. „Kopieren“ legt ihn in die Zwischenablage, im Explorer dann Strg+L und Strg+V. Direkt öffnen kann der Browser den Explorer nicht.',
   deadline: 'Bis wann der Bedarf gedeckt sein muss. Ohne Deadline steht in der Liste blass „ohne Deadline“.',
-  stichwort: 'Bedarfe mit demselben Stichwort – zum Beispiel einem Fördertopf – lassen sich in der Liste zusammen filtern.',
+  stichwort: 'Bedarfe mit demselben Stichwort – zum Beispiel einem Fördertopf – lassen sich in der Liste zusammen filtern. Ein Bedarf kann mehrere Stichworte haben: eintippen, Enter, das nächste.',
   recherche: 'Die Excel enthält den Bedarf (Beschreibung, Summe, Gliederung) und den bisherigen Förderplan. Im Blatt „Anleitung“ steht, was in jede Spalte gehört – so kann eine KI sie direkt als Vorlage für die Förderrecherche nehmen. Die ausgefüllte Datei hier wieder übernehmen: neue Förderer kommen dazu, vorhandene werden ergänzt.',
   freigabe: 'Kreis anklicken, um den Stand zu ändern: gelb = angefragt, grün = zugestimmt, rot = abgelehnt. Ortsführungskreis immer, Fachreferat und Verwaltung ab 1.000 € – darunter nur, wenn sie angefragt wurden. Dazu muss das Angebot vorliegen (bei den Unterlagen).',
 };
@@ -24,7 +24,7 @@ const infoBtn = k => `<button class="info" data-act="info" data-v="${k}" aria-la
 const okLink = s => /^https?:\/\//i.test((s || '').trim());
 const linkBtn = b => okLink(b.link) ? `<a class="btn" href="${esc(b.link.trim())}" target="_blank" rel="noopener" data-act="link">Öffnen ↗</a>` : `<span class="btn disabled" aria-disabled="true" title="Erst einen Link einfügen (https://…)">Öffnen ↗</span>`;
 const copyBtn = b => `<button data-act="copy-path" ${b.pfad ? '' : 'disabled'}>Kopieren</button>`;
-const metaRest = b => (b.stichwort ? `<span class="chip sw">${esc(b.stichwort)}</span> · ` : '') + (b.angelegt ? 'angelegt ' + fmtDate(b.angelegt) : '');
+const metaRest = b => (b.angelegt ? 'angelegt ' + fmtDate(b.angelegt) : '');
 const ICON_TRASH = '<svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M9 3h6l1 2h4v2H4V5h4l1-2zM6 9h12l-.9 11.1A2 2 0 0 1 15.1 22H8.9a2 2 0 0 1-2-1.9L6 9zm4 2v8h1.6v-8H10zm2.4 0v8H14v-8h-1.6z"/></svg>';
 const ICON_UP = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path fill="currentColor" d="M11 20h2v-9.2l3.6 3.6 1.4-1.4-6-6-6 6 1.4 1.4 3.6-3.6V20zM5 4h14v2H5V4z"/></svg>';
 const ICON_PEN = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="true"><path fill="currentColor" d="M4 17.2V20h2.8L17.3 9.5l-2.8-2.8L4 17.2zm15.7-10.1a1 1 0 0 0 0-1.4l-1.4-1.4a1 1 0 0 0-1.4 0l-1.2 1.2 2.8 2.8 1.2-1.2z"/></svg>';
@@ -78,12 +78,17 @@ function moreMenu(btn) {
 }
 
 /* ---------- Zuständig, Deadline, Stichwort, Beschreibung */
-// oben: links die Zuständigen wie die Kontakte im Förderer-Fenster, darunter Deadline und Stichwort; rechts die Beschreibung.
-// Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift
+// oben: links die Zuständigen (je Zeile zwei, wie die Kontakte im Förderer-Fenster), darunter Deadline und Stichworte; rechts die Beschreibung
+// (die ganze Fläche ist anklickbar). Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift.
+// Stichworte: eintippen, Enter – es steht als Marke da, das nächste lässt sich gleich eintippen; × nimmt eines weg
+const swFeld = b => `<div class="sw-box"><div class="lab">Stichworte oder Fördertöpfe ${infoBtn('stichwort')}</div><div class="sw-l">`
+  + b.stichworte.map((s, i) => `<span class="pchip">${esc(s)}<button class="x" data-act="sw-weg" data-i="${i}" aria-label="${esc(s)} entfernen" title="entfernen">×</button></span>`).join('')
+  + `<input id="sw-neu" class="sw-in" placeholder="${b.stichworte.length ? '+ weiteres' : 'z. B. Landesprogramm Digitalisierung'}" aria-label="Stichwort hinzufügen" autocomplete="off"></div></div>`;
 function secInfo(b) {
+  const ed = UI.zEdit === b.id, cop = !ed && b.zust.some(z => z.n.trim()) ? `<button class="k-cop" data-act="pers-cop" title="Fehlende Kontaktdaten der Zuständigen von Copilot suchen lassen">Kontaktdaten mit Copilot</button>` : '';
   return `<section class="card info-card eck" id="sec-eck">
-    <div class="eck-l">${kKopf('Zuständig', UI.zEdit === b.id)}<div id="zust-liste">${zustListe(b)}</div>
-      <div class="eck-f">${pe(b, 'deadline', 'Deadline ' + infoBtn('deadline'), 'date', { aria: 'Deadline', ph: 'ohne Deadline' })}${pe(b, 'stichwort', 'Stichwort oder Fördertopf ' + infoBtn('stichwort'), 'line', { aria: 'Stichwort oder Fördertopf', ph: 'z. B. Landesprogramm Digitalisierung', sug: 'stichwort' })}</div></div>
+    <div class="eck-l">${kKopf('Zuständig', ed, '', cop)}<div id="zust-liste">${zustListe(b)}</div>
+      <div class="eck-f">${pe(b, 'deadline', 'Deadline ' + infoBtn('deadline'), 'date', { aria: 'Deadline', ph: 'ohne Deadline' })}${swFeld(b)}</div></div>
     <div class="eck-r">${pe(b, 'beschreibung', 'Beschreibung ' + FMT_I, 'area', { aria: 'Beschreibung', fmt: true, ph: 'Kurzbeschreibung aus der UPL oder in eigenen Worten' })}</div>
   </section>`;
 }
@@ -208,22 +213,23 @@ function pe(f, k, lab, art = 'line', o = {}) {
 // Kontakte eines Förderers und Zuständige eines Bedarfs sehen gleich aus: untereinander Name, Funktion, E-Mail und Telefon als Links,
 // daneben Knöpfe; der Stern markiert den ersten (Hauptkontakt in der Kachel bzw. Ansprechperson in der Liste), ☆ macht einen anderen dazu.
 // Bearbeiten (Stift oben rechts): schlichte Linien mit blassem Hinweis, untereinander (keine Kästen); „Fertig“ steht dann oben rechts.
-// o: a – Attribute der Knöpfe (data-fid beim Förderer), p – Pfad der Liste, edit, wer, neu – Texte für +, haupt – Texte zum Stern, extra – Zeilen aus der Kartei
+// o: a – Attribute der Knöpfe (data-fid beim Förderer), p – Pfad der Liste, edit, wer, neu – Texte für +, haupt – Texte zum Stern, extra – Zeilen aus der Kartei,
+// max – höchstens so viele, kompakt – E-Mail und Telefon nur als Hinweis an den Knöpfen (beim Überfahren), nicht als Zeilen
 function personen(L, o) {
-  const a = o.a || '', n = L.length, plus = t => n < MAX_KONTAKTE ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>${t}</button>` : '';
+  const a = o.a || '', n = L.length, plus = t => n < (o.max || MAX_KONTAKTE) ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>${t}</button>` : '';
   if (o.edit) {
     const linie = (i, p, ph) => `<input type="${p === 'mail' ? 'email' : p === 'tel' ? 'tel' : 'text'}" class="k-li k-li-${p}" data-p="${o.p}.${i}.${p}" ${a} value="${esc(L[i][p])}" placeholder="${ph}" aria-label="${ph}" autocomplete="off">`;
     return L.map((c, i) => `<div class="k-ed">${linie(i, 'n', 'Vorname Nachname')}${linie(i, 'rolle', 'Position')}${linie(i, 'mail', 'E-Mail-Adresse')}${linie(i, 'tel', 'Telefonnummer')}
         <button class="x" data-act="k-weg" data-i="${i}" ${a} title="${o.wer} entfernen" aria-label="${o.wer} entfernen">×</button></div>`).join('') + plus(o.neu[0]);
   }
-  const knopf = (href, sym, t) => `<a class="kb" href="${esc(href)}" data-act="link" title="${t}" aria-label="${t}">${sym}</a>`;
+  const knopf = (href, sym, t, tip) => `<a class="kb" href="${esc(href)}" data-act="link" data-tip="${esc(tip)}" aria-label="${t}: ${esc(tip)}">${sym}</a>`;
   const zeile = (c, i, ausKartei) => {
-    const tel = telNr(c.tel), links = [c.mail && `<div><a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a></div>`, tel && `<div><a href="tel:${tel}" data-act="link">${esc(c.tel)}</a></div>`].filter(Boolean).join('');
+    const tel = telNr(c.tel), links = o.kompakt ? '' : [c.mail && `<div><a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a></div>`, tel && `<div><a href="tel:${tel}" data-act="link">${esc(c.tel)}</a></div>`].filter(Boolean).join('');
     const stern = ausKartei ? '' : i === 0 ? `<span class="star" title="${o.haupt[0]}">★</span>`
       : `<button class="star off" data-act="k-haupt" data-i="${i}" ${a} title="${o.haupt[1]}" aria-label="${o.haupt[1]}">☆</button>`;
     return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
       + (c.n && c.rolle ? `<div class="kr">${esc(c.rolle)}</div>` : '') + (links ? `<div class="kl">${links}</div>` : '')
-      + `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben') : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen') : ''}</div></div>`;
+      + `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben', c.mail) : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen', c.tel) : ''}</div></div>`;
   };
   return L.map((c, i) => zeile(c, i, false)).join('') + (o.extra || []).map(c => zeile(c, 0, true)).join('') + plus(n ? o.neu[0] : o.neu[1]);
 }
@@ -233,10 +239,10 @@ function kontaktListe(f) {
   return personen(f.kontakte, { a: `data-fid="${f.id}"`, p: 'kontakte', edit: UI.kEdit === f.id, wer: 'Kontakt', neu: ['weiterer Kontakt', 'Kontakt eintragen'],
     haupt: ['Hauptkontakt – steht in der Kachel', 'Zum Hauptkontakt machen'], extra: k ? k.kontakte.map(c => ({ n: c.n, rolle: c.nicht ? 'nicht direkt anschreiben' : '', mail: c.m, tel: c.t })) : [] });
 }
-const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
+const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
   haupt: ['Ansprechperson – steht in der Liste', 'Zur Ansprechperson machen'] });
 // Überschrift über Kontakten bzw. Zuständigen: rechts der Stift, beim Bearbeiten „Fertig“
-const kKopf = (titel, edit, a = '') => `<div class="sub">${titel}${edit ? `<button class="k-fertig" data-act="k-fertig" ${a}>Fertig</button>`
+const kKopf = (titel, edit, a = '', extra = '') => `<div class="sub">${titel}${extra}${edit ? `<button class="k-fertig" data-act="k-fertig" ${a}>Fertig</button>`
   : `<button class="k-pen" data-act="k-edit" ${a} title="${titel} bearbeiten" aria-label="${titel} bearbeiten">${ICON_PEN}</button>`}</div>`;
 const FMT_I = '<button class="info" data-act="fmt-info" title="Texte formatieren: Aufzählung, fett, kursiv …" aria-label="Wie formatiere ich Texte?">i</button>';
 function foePop(b) {
@@ -266,6 +272,7 @@ function popEdit(el) {
   if (art === 'date') return calPop(el, f[k], v => { f[k] = v || ''; changed(); keep(renderNow); }, { clear: el.dataset.lab + ' entfernen' });
   const inp = h(lang ? 'textarea' : 'input', { class: 'pe-in', rows: lang ? 2 : null, type: lang ? null : 'text', inputmode: art === 'num' ? 'decimal' : null, 'aria-label': el.dataset.lab });
   inp.value = art === 'num' ? fmtNum(f[k]) : f[k] ?? '';
+  if (lang && el.closest('.eck-r')) inp.style.minHeight = Math.max(60, val.getBoundingClientRect().bottom - val.getBoundingClientRect().top, el.getBoundingClientRect().bottom - val.getBoundingClientRect().top - 10) + 'px';
   val.classList.remove('leer'); val.replaceChildren(inp); el.classList.add('edit');
   inp.focus(); try { inp.setSelectionRange(inp.value.length, inp.value.length); } catch (e) { /* */ }
   if (el.dataset.fmt && lang) listAuto(inp);

@@ -72,7 +72,7 @@ function vorlageBlob(b) {
   const F = b ? finState(b) : null, num = v => v ? { v, t: 'n' } : '';
   const info = [['Bedarf', b ? b.titel : ''], ['Gliederung', b ? (b.gliederung === DIO ? 'Diözese (ohne Gliederung)' : b.gliederung) : ''], ['Summe (€)', num(F && F.S)],
     ['Eigenmittel (€)', num(F && F.eig)], ['Schon zugesagt (€)', num(F && F.zu)], ['Noch offen (€)', num(rechOffen(b))],
-    ['Deadline', b && b.deadline ? { v: b.deadline, t: 'd' } : ''], ['Stichwort oder Fördertopf', b ? b.stichwort : ''], ['Beschreibung', b ? b.beschreibung : ''], ['Kennung', b ? b.id : '']];
+    ['Deadline', b && b.deadline ? { v: b.deadline, t: 'd' } : ''], ['Stichworte oder Fördertöpfe', b ? b.stichworte.join(', ') : ''], ['Beschreibung', b ? b.beschreibung : ''], ['Kennung', b ? b.id : '']];
   info.forEach(([k, v], i) => {
     const r = 3 + i;
     rows[r] = [{ v: k, st: lab }, typeof v === 'object' && v ? Object.assign(v, { st: val }) : { v, st: k === 'Kennung' ? { sz: 8, color: '#9A9A9A' } : val }];
@@ -172,7 +172,7 @@ function rechPrompt(b) {
   L.push('Bedarf: ' + (b.titel || '(ohne Namen)'), 'Gliederung: ' + (gl || 'Diözese Paderborn (ohne Gliederung)'));
   if (F.S) L.push('Summe: ' + eur(F.S) + (F.eig ? ' · Eigenmittel ' + eur(F.eig) : '') + (F.zu ? ' · schon zugesagt ' + eur(F.zu) : '') + ' · noch offen ' + eur(o));
   if (b.deadline) L.push('Deadline: ' + fmtDate(b.deadline));
-  if (b.stichwort.trim()) L.push('Stichwort oder Fördertopf: ' + b.stichwort.trim());
+  if (b.stichworte.length) L.push('Stichworte oder Fördertöpfe: ' + b.stichworte.join(', '));
   if (b.beschreibung.trim()) L.push('Beschreibung: ' + b.beschreibung.trim().replace(/\s*\n+\s*/g, ' '));
   L.push('', 'Datei: die angehängte Excel „' + name + '“' + (rechOrdnerOk() && P.od ? ' (liegt in OneDrive unter „' + P.od + '“)' : '')
     + '. Oben im Blatt „Förderplan“ stehen der Bedarf und die Finanzierung, darunter die Förderer, die schon im Plan sind.', '');
