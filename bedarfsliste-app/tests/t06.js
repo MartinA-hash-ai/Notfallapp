@@ -201,12 +201,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('.foe-pop .pA-box .sub');
   r = await p.evaluate(() => [...document.querySelectorAll('.foe-pop .ql a')].map(a => a.getAttribute('href')).join());
   ok(r === 'https://www.example.org/satzung,https://www.example.org/richtlinie', 'Quellen bearbeitet: untereinander als anklickbare Links: ' + r);
-  // feste Höhe für bis zu drei Kontakte; langer Text scrollt im eigenen Bereich
-  const hh = await p.$eval('.foe-pop', e => e.getBoundingClientRect().height);
+  // so hoch wie nötig: wenig Inhalt → kleineres Fenster ohne Leerraum; viel Inhalt → höchstens so hoch, dass drei Kontakte passen, lange Texte scrollen im eigenen Bereich
+  const maß = () => p.evaluate(() => { const P = document.querySelector('.foe-pop'), r = s => P.querySelector(s).getBoundingClientRect(), box = P.querySelector('.pA-box'), bed = P.querySelector('.pA-bed'), n = P.querySelector('.pA-n');
+    return { h: Math.round(P.getBoundingClientRect().height), luecke: Math.round(r('.pop-body').bottom - Math.max(r('.pA-q').bottom, r('.pA-n').bottom)), boxScroll: box.scrollHeight > box.clientHeight + 1, bedScroll: bed.scrollHeight > bed.clientHeight + 1, nScroll: n.scrollHeight > n.clientHeight + 1, max: Math.min(780, innerHeight - 32) }; });
+  const m0 = await maß();
+  ok(m0.h < m0.max - 100 && m0.luecke <= 20, 'wenig Inhalt: Fenster kleiner, kein Leerraum unter Quellen und Notizen: ' + JSON.stringify(m0));
   await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-lot'); f.kontakte.push({ n: 'Dritte Person', rolle: 'Vorstand', mail: 'd@x.example', tel: '0211 9' }); f.notiz = 'Sehr lange Notiz. '.repeat(500); f.fristInfo = 'Lange Frist. '.repeat(300); keep(renderNow); });
-  r = await p.evaluate(() => { const P = document.querySelector('.foe-pop'), box = P.querySelector('.pA-box'), bed = P.querySelector('.pA-bed'), n = P.querySelector('.pA-n');
-    return [Math.round(P.getBoundingClientRect().height), box.scrollHeight <= box.clientHeight + 1, bed.scrollHeight > bed.clientHeight, n.scrollHeight > n.clientHeight, getComputedStyle(bed).overflowY]; });
-  ok(Math.abs(r[0] - hh) <= 1 && r[1] && r[2] && r[3] && r[4] === 'auto', 'Fenster bleibt gleich hoch, drei Kontakte passen ohne Scrollen, lange Texte scrollen in ihrem Bereich: ' + r.join());
+  const m1 = await maß();
+  ok(m1.h <= m1.max + 1 && m1.h > m0.h && !m1.boxScroll && m1.bedScroll && m1.nScroll, 'viel Inhalt: höchstens die volle Größe, drei Kontakte ohne Scrollen, lange Texte scrollen in ihrem Bereich: ' + JSON.stringify(m1));
   await p.evaluate(() => { const f = cur().foerderer.find(x => x.id === 'f-mtw-lot'); f.notiz = ''; f.fristInfo = 'laufend, Bearbeitung etwa 3 Monate'; keep(renderNow); });
   r = await p.evaluate(() => quellenZeilen('https://a.de/x ; https://b.de https://c.de\nSatzung').join('|'));
   ok(r === 'https://a.de/x|https://b.de|https://c.de|Satzung', 'Quellen werden je Zeile getrennt: ' + r);
