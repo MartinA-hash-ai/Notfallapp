@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.24.0",
+    "date": "2026-10-23T12:40",
+    "items": [
+      "Aufzählung sofort beim Tippen: „* “ oder „- “ am Zeilenanfang wird gleich zum Punkt •; Enter setzt den nächsten Punkt (bei „1. “ die nächste Nummer), Enter auf einem leeren Punkt beendet die Aufzählung, Umschalt+Enter macht eine Zeile ohne Punkt",
+      "Bedarfsseite oben neu: links die Zuständigen wie die Kontakte im Förderer-Fenster (Name, Position, E-Mail, Telefon mit Knöpfen zum Schreiben und Anrufen; Stift zum Bearbeiten, „Fertig“ oben rechts, höchstens drei; ★ = Ansprechperson in der Liste), darunter Deadline und Stichwort; rechts, durch eine Linie getrennt, die Beschreibung",
+      "Keine Eingabefelder mehr oben: Deadline (Kalender), Stichwort (Vorschläge beim Tippen) und Beschreibung (mit Formatierung) anklicken und ändern",
+      "Eine Person, die schon in einem anderen Bedarf mit Angaben steht, bringt Position, E-Mail und Telefon mit, sobald ihr Name eingetragen ist. Bisher gespeicherte Namen werden zu Zuständigen ohne weitere Angaben"
+    ]
+  },
+  {
     "version": "0.23.0",
     "date": "2026-10-23T11:45",
     "items": [

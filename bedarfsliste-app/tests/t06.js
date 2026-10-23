@@ -266,6 +266,65 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0] === false && r[1].includes('Bürgerstiftung Musterstadt'), 'Namensfeld ohne Pfeil, Vorschläge beim Tippen: ' + r[1]);
   await p.click('.le-opt:text-is("Bürgerstiftung Musterstadt")');
   ok(await p.evaluate(() => cur().foerderer.at(-1).name === 'Bürgerstiftung Musterstadt'), 'Vorschlag übernommen');
+  // Bedarf oben: links die Zuständigen wie Kontakte, darunter Deadline und Stichwort; rechts die Beschreibung – ohne Eingabefelder
+  await p.evaluate(() => scrollTo(0, 0));
+  r = await p.evaluate(() => { const E = document.querySelector('#sec-eck'), l = E.querySelector('.eck-l').getBoundingClientRect(), rr = E.querySelector('.eck-r').getBoundingClientRect(), liste = E.querySelector('#zust-liste').getBoundingClientRect(),
+    f = E.querySelector('.eck-f').getBoundingClientRect(), be = E.querySelector('.pe[data-k="beschreibung"]').getBoundingClientRect();
+    return [Math.abs(l.top - rr.top) <= 6, rr.left > l.right, Math.abs(rr.width - l.width) < 40, f.top >= liste.bottom - 1, be.left >= rr.left - 8, E.querySelectorAll('input, textarea').length,
+      [...E.querySelectorAll('.k1 .kn')].map(e => e.textContent).join(), [...E.querySelectorAll('.eck-f .pe')].map(e => e.dataset.k).join()]; });
+  ok(r.join('|') === 'true|true|true|true|true|0|Thomas Beispiel,Anna Muster|deadline,stichwort', 'Bedarf oben: links Zuständige, darunter Deadline und Stichwort, rechts die Beschreibung, keine Eingabefelder: ' + r.join('|'));
+  // Zuständige bearbeiten wie Kontakte: Linien, höchstens drei, Fertig oben rechts
+  await p.click('#sec-eck .k-pen');
+  r = await p.evaluate(() => [document.querySelectorAll('#sec-eck .k-ed').length, [...document.querySelectorAll('#zust-liste > .k-ed:first-child input')].map(e => e.placeholder).join(','), !!document.querySelector('#sec-eck .sub [data-act="k-fertig"]')]);
+  ok(r.join('|') === '2|Vorname Nachname,Position,E-Mail-Adresse,Telefonnummer|true', 'Stift: Zuständige als Linien, „Fertig“ oben rechts: ' + r.join('|'));
+  await p.fill('#sec-eck [data-p="zust.0.rolle"]', 'Ortsbeauftragter'); await p.fill('#sec-eck [data-p="zust.0.mail"]', 'thomas@malteser.example'); await p.fill('#sec-eck [data-p="zust.0.tel"]', '05251 123');
+  await p.click('#sec-eck .kadd');
+  ok(await p.evaluate(() => document.querySelectorAll('#sec-eck .k-ed').length === 3 && !document.querySelector('#sec-eck .kadd')), 'höchstens drei Zuständige');
+  await p.click('#sec-eck .sub [data-act="k-fertig"]');
+  r = await p.evaluate(() => [cur().zust.map(kontaktText).join(' | '), [...document.querySelectorAll('#sec-eck .k1 a')].map(a => a.getAttribute('href')).join(), document.querySelector('#sec-eck .k1 .star').textContent]);
+  ok(r.join(' / ') === 'Thomas Beispiel; Ortsbeauftragter; thomas@malteser.example; 05251 123 | Anna Muster / mailto:thomas@malteser.example,tel:05251123,mailto:thomas@malteser.example,tel:05251123 / ★',
+    'Fertig: leere Zeile entfernt, E-Mail und Telefon als Links mit Knöpfen: ' + r.join(' / '));
+  await p.click('#sec-eck .k1 .star.off');
+  ok(await p.evaluate(() => cur().zust.map(z => z.n).join()) === 'Anna Muster,Thomas Beispiel', '☆ macht eine Person zur Ansprechperson (sie steht in der Liste)');
+  await p.click('#sec-eck .k1 .star.off');
+  // ein bekannter Name bringt in einem anderen Bedarf Position, E-Mail und Telefon mit
+  await p.evaluate(() => { UI.id = 'b-aed'; renderNow(); });
+  await p.click('#sec-eck .k-pen'); await p.click('#sec-eck .kadd'); await p.keyboard.type('thomas b');
+  const sug = await p.$$eval('.le-sug .le-opt', o => o.map(x => x.textContent).join());
+  await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
+  r = await p.evaluate(() => [cur().zust.map(kontaktText).join(' | '), [...document.querySelectorAll('#sec-eck .k-ed')].at(-1).querySelector('.k-li-mail').value]);
+  ok(sug === 'Thomas Beispiel' && r.join(' / ') === 'Klaus Exempel | Thomas Beispiel; Ortsbeauftragter; thomas@malteser.example; 05251 123 / thomas@malteser.example', 'Vorschlag beim Namen, Angaben aus dem anderen Bedarf ergänzt: ' + sug + ' / ' + r.join(' / '));
+  await p.click('#sec-eck .kadd');
+  await p.evaluate(() => { UI.id = 'b-mtw'; renderNow(); });
+  ok(await p.evaluate(() => D.bedarfe.find(x => x.id === 'b-aed').zust.length === 2 && !UI.zEdit), 'Seite verlassen: Bearbeiten endet, leere Zeile fällt weg');
+  r = await p.evaluate(() => { const x = { zust: [{ n: 'A', rolle: 'R', mail: '', tel: '' }, { n: 'B', rolle: '', mail: '', tel: '' }] }, t = L => L.map(z => z.n + (z.rolle ? ':' + z.rolle : '')).join(',');
+    return [t(zustVorn(x, 'B')), t(zustVorn(x, 'C')), t(zustVorn({ zust: [{ n: 'A', rolle: '', mail: '', tel: '' }] }, 'Thomas Beispiel')), t(zustVorn(x, ''))].join(' / '); });
+  ok(r === 'B,A:R / C,A:R,B / Thomas Beispiel:Ortsbeauftragter / B', 'Ansprechperson in der Liste ändern: vorhandene nach vorn, Angaben gehen nicht verloren, bekannte bringt ihre mit: ' + r);
+  r = await p.evaluate(() => JSON.stringify(normalize({ bedarfe: [{ id: 'x', zust: ['Anna', ' ', { n: 'Bo', mail: 'b@x.de' }, {}] }] }).bedarfe[0].zust));
+  ok(r === '[{"n":"Anna","rolle":"","mail":"","tel":""},{"n":"Bo","rolle":"","mail":"b@x.de","tel":""}]', 'bisherige Namen werden zu Zuständigen mit leeren Angaben: ' + r);
+  // Deadline über den Kalender, Stichwort mit Vorschlägen, „i“ öffnet nur den Hinweis
+  await p.click('#sec-eck .pe[data-k="deadline"] .info');
+  ok(!!(await p.$('.info-pop')) && !(await p.$('.cal-pop')), '„i“ bei der Deadline zeigt den Hinweis, öffnet nicht den Kalender');
+  await p.mouse.click(5, 300);
+  await p.click('#sec-eck .pe[data-k="deadline"]');
+  ok(!!(await p.$('.cal-pop .cal-d.on[data-v="2027-06-30"]')), 'Klick auf die Deadline öffnet den Kalender beim Datum');
+  await p.click('.cal-pop .cal-d[data-v="2027-06-15"]');
+  r = await p.evaluate(() => [cur().deadline, document.querySelector('#sec-eck .pe[data-k="deadline"] .pv').textContent]);
+  ok(r.join() === '2027-06-15,15.06.2027', 'Deadline geändert: ' + r.join());
+  await p.click('#sec-eck .pe[data-k="stichwort"]'); await p.keyboard.type('landes'); await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
+  ok(await p.evaluate(() => cur().stichwort === 'Landesprogramm Digitalisierung 2027' && !document.querySelector('#sec-eck .pe-in')), 'Stichwort: Vorschlag beim Tippen übernommen');
+  // Aufzählung sofort beim Tippen
+  await p.click('#sec-eck .pe[data-k="beschreibung"]'); await p.keyboard.press('Control+A'); await p.keyboard.type('Wir brauchen:'); await p.keyboard.press('Enter'); await p.keyboard.type('* Trage');
+  const tv = () => p.evaluate(() => document.activeElement.value);
+  r = await tv();
+  ok(r === 'Wir brauchen:\n• Trage', '„* “ wird beim Tippen sofort zum Punkt: ' + JSON.stringify(r));
+  await p.keyboard.press('Enter'); await p.keyboard.type('Decke'); await p.keyboard.press('Enter'); await p.keyboard.press('Enter');
+  await p.keyboard.type('1. erst'); await p.keyboard.press('Enter'); await p.keyboard.type('dann'); await p.keyboard.press('Shift+Enter'); await p.keyboard.type('- '); await p.keyboard.press('Backspace'); await p.keyboard.type('Ende');
+  r = await tv();
+  ok(r === 'Wir brauchen:\n• Trage\n• Decke\n1. erst\n2. dann\nEnde', 'Enter: nächster Punkt bzw. Nummer, Enter auf leerem Punkt beendet, Rücktaste nimmt den Punkt weg: ' + JSON.stringify(r));
+  await p.keyboard.press('Control+Enter');
+  r = await p.$eval('#sec-eck .pe[data-k="beschreibung"] .pv', e => [e.classList.contains('fmt'), [...e.querySelectorAll('ul li')].map(x => x.textContent).join(), [...e.querySelectorAll('ol li')].map(x => x.textContent).join()]);
+  ok(r.join('|') === 'true|Trage,Decke|erst,dann', 'Beschreibung formatiert angezeigt: ' + r.join('|'));
   await p.screenshot({ path: 'vorschau_bedarf.png', fullPage: true });
   const q = await open(b, { file, fakefs: false, dark: true, width: 390 });
   r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);

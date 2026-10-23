@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null };
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null, zEdit: null };
 const UI_KEEP = ['view', 'id', 'tab'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
@@ -90,6 +90,10 @@ function renderNow() {
     if (UI.view !== 'list') ORDER.ids = null; else if (!ORDER.ids) ORDER.ids = filtered().map(x => x.id);
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
     if (UI.kEdit !== UI.det) UI.kEdit = null;
+    if (UI.zEdit && UI.zEdit !== (b && b.id)) {                                     // Seite verlassen: Zuständige fertig bearbeitet, leere fallen weg
+      const z = D.bedarfe.find(x => x.id === UI.zEdit); UI.zEdit = null;
+      if (z && z.zust.some(kontaktLeer)) { z.zust = z.zust.filter(c => !kontaktLeer(c)); changed(); }
+    }
     PIE_HOLD = false;
     app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : listView());
     strgSet(CTRL_NOW);
@@ -138,12 +142,6 @@ function baseOf(el, b) {
   if (el.dataset.uid) return b.unterlagen.find(u => u.id === el.dataset.uid);
   return b;
 }
-function addZust() {
-  const b = cur(), el = $('#zust-new'), v = el ? el.value.trim() : '';
-  if (!b || !v) return;
-  if (!b.zust.includes(v)) b.zust.push(v);
-  el.value = ''; changed(); swap('zust-chips', zustChips(b), true);
-}
 function addUl(refocus) {
   const b = cur(), el = $('#ul-new'), v = el ? el.value.trim() : '';
   if (!b || !v) return;
@@ -184,11 +182,12 @@ function mainMenu(btn) {
 function fmtInfo() {
   const z = (ein, aus) => h('tr', null, h('td', null, h('code', null, ein)), h('td', { html: aus }));
   modal('Texte formatieren', h('div', { class: 'help' },
-    h('p', null, 'In Notizen, Fristen, Fördersumme und Eigenanteil im Fenster eines Förderers lassen sich Texte einfach gestalten – wie in Chat-Programmen:'),
+    h('p', null, 'In der Beschreibung eines Bedarfs und in Notizen, Fristen, Fördersumme und Eigenanteil im Fenster eines Förderers lassen sich Texte einfach gestalten – wie in Chat-Programmen:'),
     h('table', { class: 'imp fmt-tab' }, h('thead', null, h('tr', null, h('th', null, 'Eingabe'), h('th', null, 'Ergebnis'))), h('tbody', null,
-      z('* Punkt  oder  - Punkt', fmtText('* Punkt')), z('1. Schritt', fmtText('1. Schritt')), z('*wichtig*', fmtText('*wichtig*')), z('_Hinweis_', fmtText('_Hinweis_')),
+      z('* Punkt  oder  - Punkt', fmtText('* Punkt') + '<span class="muted small">sofort beim Tippen</span>'), z('1. Schritt', fmtText('1. Schritt')), z('*wichtig*', fmtText('*wichtig*')), z('_Hinweis_', fmtText('_Hinweis_')),
       z('~erledigt~', fmtText('~erledigt~')), z('https://…', 'wird ein anklickbarer Link'))),
-    h('p', { class: 'muted small' }, 'Die Zeichen müssen direkt am Wort stehen (*so*, nicht * so *). Aufzählungen am Zeilenanfang, mit Leerzeichen danach. Beim Bearbeiten sieht man die Zeichen, danach die Formatierung.')),
+    h('p', { class: 'muted small' }, 'Aufzählung: „* “ oder „- “ am Zeilenanfang wird beim Tippen sofort zum Punkt •. Enter setzt den nächsten Punkt (bei „1. “ die nächste Nummer), Enter auf einem leeren Punkt beendet die Aufzählung, Umschalt+Enter macht eine Zeile ohne Punkt. Strg+Enter oder Klick daneben übernimmt den Text.'),
+    h('p', { class: 'muted small' }, 'Fett, kursiv und durchgestrichen: Die Zeichen müssen direkt am Wort stehen (*so*, nicht * so *). Beim Bearbeiten sieht man die Zeichen, sobald man das Feld verlässt, die Formatierung.')),
     [['OK', true, 'primary']]);
 }
 function about() {
@@ -198,6 +197,27 @@ function about() {
 }
 
 // leer gebliebene Kontakte entfernen, wenn das Fenster beim Bearbeiten geschlossen wird
+// wessen Kontakte: die eines Förderers (Knopf mit data-fid, im Fenster) oder die Zuständigen des Bedarfs (oben auf der Seite)
+function kZiel(b, a) {
+  if (!a.dataset.fid) return { o: b, p: 'zust', ui: 'zEdit', id: b.id, box: '#sec-eck' };
+  const f = b.foerderer.find(x => x.id === a.dataset.fid);
+  return f && { o: f, p: 'kontakte', ui: 'kEdit', id: f.id, box: '.foe-pop' };
+}
+// Zuständige bearbeiten: beim Namen Vorschläge aus allen Bedarfen; ein bekannter Name bringt Position, E-Mail und Telefon mit (nur in leere Zeilen)
+document.addEventListener('focusin', e => {
+  const inp = e.target;
+  if (!inp.matches || !inp.matches('#sec-eck .k-li-n') || inp.dataset.sug) return;
+  inp.dataset.sug = '1';
+  const ergaenzen = () => {
+    const b = cur(), z = b && b.zust[+inp.dataset.p.split('.')[1]], v = z && zustVorbild(z.n, z); if (!v) return;
+    let neu = false;
+    for (const p of ['rolle', 'mail', 'tel']) if (!z[p].trim() && v[p]) { z[p] = v[p]; neu = true; const x = inp.parentNode.querySelector('.k-li-' + p); if (x) x.value = v[p]; }
+    if (neu) changed();
+  };
+  const key = suggest(inp, SRC.zust, () => { inp.dispatchEvent(new Event('input', { bubbles: true })); ergaenzen(); });
+  inp.addEventListener('keydown', ev => { if (key(ev)) ev.preventDefault(); });
+  inp.addEventListener('change', ergaenzen);
+});
 function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit); if (f && f.kontakte.some(kontaktLeer)) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } }
 async function act(k, a, e) {
   const b = cur();
@@ -257,7 +277,6 @@ async function act(k, a, e) {
       if (!await confirmBox('Bedarf löschen?', '„' + (b.titel || 'Neuer Bedarf') + '“ wird mit Förderplan und Nacharbeit gelöscht. Direkt danach lässt sich das noch rückgängig machen.', 'Löschen')) return;
       const before = JSON.stringify(D); D.bedarfe = D.bedarfe.filter(x => x !== b); changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); toast('Bedarf gelöscht', 'ok', undoTo(before)); return;
     }
-    case 'rm-zust': b.zust.splice(+a.dataset.i, 1); changed(); swap('zust-chips', zustChips(b), true); return;
     case 'rm-ul': b.unterlagen = b.unterlagen.filter(u => u.id !== a.dataset.uid); changed(); break;
     case 'add-foe': {
       const f = ff({}); b.foerderer.push(f); changed(); keep(renderNow);
@@ -287,20 +306,20 @@ async function act(k, a, e) {
       if (DEMO && /\.example(\/|$)/.test(u)) { toast('Beispiel-Link: In der Programmdatei öffnet sich hier die Seite im Browser.'); return; }
       window.open(u, '_blank', 'noopener'); return;
     }
-    // Kontakte im Fenster: Stift → bearbeiten, + → weiterer (höchstens drei), × → entfernen, ☆ → Hauptkontakt, Fertig → leere entfernen
+    // Kontakte im Fenster und Zuständige oben auf der Seite: Stift → bearbeiten, + → weiterer (höchstens drei), × → entfernen, ☆ → nach vorn, Fertig → leere entfernen
     case 'k-edit': case 'k-neu': {
-      const f = b.foerderer.find(x => x.id === a.dataset.fid); if (!f) return;
-      if (k === 'k-neu' && f.kontakte.length < MAX_KONTAKTE) { f.kontakte.push(leerK()); changed(); }
-      UI.kEdit = f.id; keep(renderNow);
-      const L = $$('.foe-pop .k-ed'), z = k === 'k-neu' ? L[L.length - 1] : L[0], inp = z && z.querySelector('input'); if (inp) inp.focus();
+      const z = kZiel(b, a); if (!z) return;
+      if (k === 'k-neu' && z.o[z.p].length < MAX_KONTAKTE) { z.o[z.p].push(leerK()); changed(); }
+      UI[z.ui] = z.id; keep(renderNow);
+      const L = $$(z.box + ' .k-ed'), e = k === 'k-neu' ? L[L.length - 1] : L[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
       return;
     }
     case 'k-weg': case 'k-haupt': {
-      const f = b.foerderer.find(x => x.id === a.dataset.fid); if (!f) return;
-      const [c] = f.kontakte.splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) f.kontakte.unshift(c);
+      const z = kZiel(b, a); if (!z) return;
+      const [c] = z.o[z.p].splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) z.o[z.p].unshift(c);
       changed(); break;
     }
-    case 'k-fertig': { const f = b.foerderer.find(x => x.id === a.dataset.fid); if (f) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } UI.kEdit = null; break; }
+    case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; } else UI.kEdit = null; break; }
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
     case 'copy-path': copyPath(b); return;
@@ -324,7 +343,6 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !(el.closest && el.closest('input, textarea, select, [contenteditable]'))) { e.preventDefault(); undo(); return; }
   if (e.key === 'Escape' && UI.det && !$('.menu, .modal, .cal-pop')) { kAufraeumen(cur()); UI.det = null; UI.kEdit = null; keep(renderNow); return; }
   if (e.key === 'Enter' && el.matches && el.matches('tr[data-act="open"]')) { e.preventDefault(); act('open', el, e); }
-  if (e.key === 'Enter' && el.id === 'zust-new') { e.preventDefault(); addZust(); }
   if (e.key === 'Enter' && el.id === 'ul-new') { e.preventDefault(); addUl(true); }
   if (e.key === 'Enter' && el.id === 'f-titel') { e.preventDefault(); el.blur(); }
   if (e.key === 'Enter' && el.classList && el.classList.contains('inline') && el.tagName === 'INPUT' && el.type !== 'date') { e.preventDefault(); el.blur(); }
@@ -356,7 +374,6 @@ document.addEventListener('input', e => {
 document.addEventListener('change', e => {
   const el = e.target;
   if (!el.closest || !el.closest('#app')) return;
-  if (el.id === 'zust-new') { addZust(); return; }
   if (el.id === 'ul-new') { addUl(false); return; }
   if (el.dataset.ui && el.dataset.ui !== 'q') { UI[el.dataset.ui] = el.type === 'checkbox' ? el.checked : el.value; keep(renderNow); return; }
   if (!el.dataset.p || !(el.type === 'checkbox' || el.tagName === 'SELECT')) return;

@@ -85,7 +85,7 @@ function filtered() {
   const arch = UI.tab === 'archiv', q = norm(UI.q);
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
   if (UI.fSw) L = L.filter(b => b.stichwort === UI.fSw);
-  if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, b.stichwort, ...b.zust, ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
+  if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, b.stichwort, ...b.zust.map(z => z.n), ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
   L.sort((x, y) => cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
   if (ORDER.ids) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
   return L;
@@ -99,7 +99,7 @@ function row(b) {
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">
     <td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${tag}</td>
     <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>
-    <td class="l-meta"><div class="ort" data-le="ort">${b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>'}</div><div data-le="zust">${b.zust[0] ? esc(b.zust[0]) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
+    <td class="l-meta"><div class="ort" data-le="ort">${b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>'}</div><div data-le="zust">${b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
     <td class="l-fin">${lFinanz(b)}</td>
     <td class="l-ueb">${lUebergabe(b)}</td>

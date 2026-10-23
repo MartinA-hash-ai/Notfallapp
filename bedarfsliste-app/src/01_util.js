@@ -28,6 +28,26 @@ function anyDate(v) {
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 // einfache Formatierung wie in Chat-Programmen: Zeilen mit „* “ oder „- “ werden Aufzählungen, „1. “ eine Nummerierung;
 // *fett*, _kursiv_, ~durchgestrichen~ (wie bei WhatsApp); Links werden anklickbar. Alles andere bleibt Text.
+// Aufzählung sofort beim Tippen (in den Textfeldern mit Formatierung): „* “ oder „- “ am Zeilenanfang wird zu „• “; Enter setzt den
+// nächsten Punkt (bzw. die nächste Nummer nach „1. “), Enter auf einem leeren Punkt beendet die Aufzählung, Rücktaste direkt hinter
+// dem Punkt nimmt ihn weg. Umschalt+Enter: neue Zeile ohne Punkt. Über den Browser eingefügt, damit Strg+Z im Feld weiter geht.
+function listAuto(ta) {
+  const zeile = () => { const v = ta.value, p = ta.selectionStart, a = v.lastIndexOf('\n', p - 1) + 1, e = v.indexOf('\n', p); return { v, p, a, t: v.slice(a, p), rest: v.slice(p, e < 0 ? v.length : e) }; };
+  const setze = (von, bis, t) => { ta.setSelectionRange(von, bis); if (!document.execCommand(t ? 'insertText' : 'delete', false, t)) ta.setRangeText(t, von, bis, 'end'); };
+  ta.addEventListener('input', e => {
+    if (e.inputType !== 'insertText' || e.data !== ' ') return;
+    const z = zeile(); if (/^[*-] $/.test(z.t)) setze(z.a, z.p, '• ');
+  });
+  ta.addEventListener('keydown', e => {
+    if (ta.selectionStart !== ta.selectionEnd || e.ctrlKey || e.altKey || e.metaKey) return;
+    const z = zeile(), m = /^(• |(\d+)\. )/.exec(z.t);
+    if (e.key === 'Enter' && !e.shiftKey && m) {
+      e.preventDefault();
+      if (z.t === m[0] && !z.rest.trim()) setze(z.a, z.p, '');                                  // leerer Punkt: Aufzählung endet
+      else setze(z.p, z.p, '\n' + (m[2] ? +m[2] + 1 + '. ' : '• '));
+    } else if (e.key === 'Backspace' && z.t === '• ') { e.preventDefault(); setze(z.a, z.p, ''); }
+  });
+}
 function fmtText(t) {
   const links = [];
   const s = esc(String(t || '')).replace(/https?:\/\/[^\s<]+[^\s<.,;:!?)\]]/g, u => { links.push(u); return '\u0001' + (links.length - 1) + '\u0001'; });

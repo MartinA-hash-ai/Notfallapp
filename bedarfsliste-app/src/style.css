@@ -415,12 +415,7 @@ button.info:hover:not(:disabled) { color: var(--ink); border-color: var(--faint)
 .row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
 .grow { flex: 1 1 160px; width: auto !important; }
 .unit { color: var(--muted); }
-.chips { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; border: 1px solid var(--line2); border-radius: 5px; padding: 3px 4px; background: var(--input); min-height: 33px; }
 #zust-chips { display: contents; }
-.pchip { display: inline-flex; align-items: center; gap: 2px; background: var(--chipbg); border-radius: 12px; padding: 1px 2px 1px 9px; font-size: 13px; }
-.chips input.chip-in { border: 0; padding: 3px 4px; flex: 1 1 90px; width: auto; background: transparent; }
-.chips input.chip-in:focus { outline: none; }
-.chips:focus-within { outline: 2px solid var(--focus); outline-offset: -1px; }
 button.x { border: 0; background: none; color: var(--faint); padding: 1px 6px; font-size: 17px; line-height: 1; }
 button.x:hover:not(:disabled) { color: var(--red-d); }
 .seg { display: inline-flex; flex-wrap: wrap; border: 1px solid var(--line2); border-radius: 6px; overflow: hidden; background: var(--card); align-self: flex-start; }
@@ -491,8 +486,12 @@ input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: 
 .icon-btn.trash { color: var(--red-d); border-color: var(--errline); background: var(--errbg); }
 .icon-btn.trash:hover:not(:disabled) { border-color: var(--red-d); }
 .d-flag { padding: 8px 12px; border-radius: 8px; background: var(--ph4bg); color: var(--ph4ink); font-size: 13px; margin-bottom: 12px; }
-.info-card .grid { row-gap: 12px; }
-textarea.desc { min-height: 5.5em; }
+/* Bedarf oben: links die Zuständigen (wie die Kontakte im Förderer-Fenster), darunter Deadline und Stichwort; rechts, durch eine Linie getrennt, die Beschreibung */
+.eck { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
+.eck-r { border-left: 1px solid var(--line3); padding-left: 28px; }
+.eck-f { display: grid; grid-template-columns: minmax(0, 150px) minmax(0, 1fr); gap: 0 20px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line3); }
+.eck .sub { margin-bottom: 6px; }
+.pe .lab .info, .sub .info { margin-left: 4px; text-transform: none; letter-spacing: 0; vertical-align: 1px; }
 /* oben Kopf (Name, Summe) und rechts daneben ⋯ und Löschen; darunter links die Abschnitte, rechts Freigaben und Unterlagen – oben bündig mit dem ersten Abschnitt */
 .d-grid { display: grid; grid-template-columns: minmax(0, 1fr) clamp(300px, 26%, 400px); grid-template-areas: "head act" "main side"; gap: 16px; align-items: start; }
 .d-left { grid-area: main; min-width: 0; }
@@ -663,7 +662,7 @@ span.st-btn { display: inline-block; }
 .pA-bed, .pA-q, .pA-n { padding: 0 8px; margin: 0 -8px; }      /* Platz für die Hervorhebung beim Überfahren – ohne waagrechten Scrollbalken */
 .pA-box { background: var(--soft); border: 1px solid var(--line3); border-radius: 8px; padding: 12px 16px 8px; }
 .pA-bed { padding-right: 6px; }
-.pop-body .sub { font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; display: flex; align-items: center; }
+.pop-body .sub, .eck .sub { font-size: 11.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); margin: 0 0 8px; display: flex; align-items: center; }
 .k-pen { margin-left: auto; border: 0; background: none; padding: 2px 4px; color: var(--muted); }
 .k-pen:hover { color: var(--ink); }
 .pA-bed .det-k { margin-bottom: 10px; }
@@ -695,9 +694,9 @@ span.st-btn { display: inline-block; }
 .pe .pv.fmt { white-space: normal; }
 .pe .pv.fmt ul, .pe .pv.fmt ol { margin: 2px 0; padding-left: 20px; }
 .pe .pv.fmt a { color: var(--focus); }
-.pop-body .sub .info { margin-left: 6px; text-transform: none; letter-spacing: 0; }
 .fmt-tab code { background: var(--soft); padding: 1px 5px; border-radius: 4px; }
 .fmt-tab ul, .fmt-tab ol { margin: 0; padding-left: 18px; }
+.fmt-tab td .small { display: block; margin-top: 2px; }
 /* Fuß der Förderer-Kachel: Ansprechperson mit Symbolen, rechts „Weitere Infos →“ */
 .fk-fuss { display: flex; align-items: center; gap: 8px; min-height: 30px; font-size: 13px; }
 .fk-fuss .ff-n { color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
@@ -741,6 +740,10 @@ table.kt td a { color: var(--focus); word-break: break-all; }
   .pop-body { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; overflow: auto; }
   .pop-body > div { overflow: visible; }
   .d-grid { grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: "head act" "main main" "side side"; }
+}
+@media (max-width: 760px) {
+  .eck { grid-template-columns: minmax(0, 1fr); }
+  .eck-r { border-left: 0; padding-left: 0; border-top: 1px solid var(--line3); margin-top: 10px; padding-top: 10px; }
 }
 @media (max-width: 640px) {
   .g12 .s2, .g12 .s3, .g12 .s4, .g12 .s5 { grid-column: span 12; }

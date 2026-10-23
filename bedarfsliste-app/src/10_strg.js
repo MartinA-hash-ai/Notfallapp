@@ -48,7 +48,7 @@ function strgAct(b, el, then) {
     case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', feld: 'titel', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
     case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', feld: 'summe', then, set: v => { b.summe = v; } });
     case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', feld: 'ort', then, set: v => { b.gliederung = v.trim(); } });
-    case 'zust': return editField(b, el, { value: b.zust[0] || '', src: SRC.zust, label: 'Ansprechperson', feld: 'zust', then, set: v => { v = v.trim(); b.zust = v ? [v, ...b.zust.slice(1).filter(x => x !== v)] : b.zust.slice(1); } });
+    case 'zust': return editField(b, el, { value: (b.zust[0] || {}).n || '', src: SRC.zust, label: 'Ansprechperson', feld: 'zust', then, set: v => { b.zust = zustVorn(b, v.trim()); } });
     case 'deadline': return calPop(el, b.deadline, v => { b.deadline = v; changed(); relist(b); }, { clear: 'Deadline entfernen' });
     case 'eig': return editField(b, el, { value: b.eigenanteil, num: true, right: true, label: 'Eigenmittel in Euro', set: v => { b.eigenanteil = v; } });
     case 'amt': if (!f) return;
@@ -171,7 +171,8 @@ function calPop(anchor, iso, pick, o = {}) {
 
 const SRC = {
   ort: () => [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)],
-  zust: () => D.bedarfe.flatMap(x => x.zust),
+  zust: () => D.bedarfe.flatMap(x => x.zust.map(z => z.n)),
+  stichwort: () => D.bedarfe.map(x => x.stichwort),
   uebOrt: () => [...D.bedarfe.map(x => x.nach.ueb.ort), ...GL_LIST],
   foe: () => [...KR.list.map(k => k.name), ...D.bedarfe.flatMap(x => x.foerderer.map(f => f.name))],
 };

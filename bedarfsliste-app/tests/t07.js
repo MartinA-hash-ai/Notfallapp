@@ -40,7 +40,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.$eval('.cal-pop .cal-h', e => e.textContent.trim()) === '‹März 2027›' && !!(await p.$('.cal-pop .cal-d.on[data-v="2027-03-31"]')), 'Deadline: Kalender öffnet im Monat der Deadline, der Tag ist markiert');
   await pick('2027-05-15');
   r = await B('b-aed');
-  ok([r.summe, r.gliederung, r.zust.join(), r.deadline].join('|') === '5200|Geseke|Maria Beispiel|2027-05-15', 'Summe, Ort, Ansprechperson und Deadline geändert: ' + [r.summe, r.gliederung, r.zust.join(), r.deadline].join('|'));
+  ok([r.summe, r.gliederung, r.zust.map(z => z.n).join(), r.deadline].join('|') === '5200|Geseke|Maria Beispiel|2027-05-15', 'Summe, Ort, Ansprechperson und Deadline geändert: ' + [r.summe, r.gliederung, r.zust.map(z => z.n).join(), r.deadline].join('|'));
   ok((await p.$eval(R('b-aed') + ' .l-meta', e => e.innerText.replace(/\s+/g, ' ').trim())) === 'Geseke Maria Beispiel bis 15.05.2027', 'Liste zeigt die neuen Angaben');
   // schlichtes Feld: leer mit blassem Namen, ohne Rahmen, nichts verschiebt sich; Vorschläge beim Tippen
   const xs = () => p.evaluate(sel => [...document.querySelectorAll(sel + ' td')].map(td => Math.round(td.getBoundingClientRect().left)).join(), R('b-aed'));
@@ -56,9 +56,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await B('b-aed')).gliederung === 'Paderborn' && !(await p.$('.le-sug')), 'Klick auf einen Vorschlag übernimmt ihn');
   await p.click(R('b-aed') + ' [data-le="zust"]');
   await K.type('anna'); await K.press('ArrowDown'); await K.press('Enter');
-  ok((await B('b-aed')).zust[0] === 'Anna Muster', 'Pfeil runter und Enter übernimmt den Vorschlag');
+  ok((await B('b-aed')).zust[0].n === 'Anna Muster', 'Pfeil runter und Enter übernimmt den Vorschlag');
   await p.click(R('b-aed') + ' [data-le="zust"]'); await K.press('Enter');
-  ok((await B('b-aed')).zust[0] === 'Anna Muster', 'nichts eingegeben: Wert bleibt');
+  ok((await B('b-aed')).zust[0].n === 'Anna Muster', 'nichts eingegeben: Wert bleibt');
   await edit(R('b-aed') + ' .l-name', 'soll nicht bleiben', 'Escape');
   ok((await B('b-aed')).titel === 'Defibrillatoren für Lippstadt', 'Esc verwirft');
   await edit(R('b-aed') + ' .l-sum', 'viel');
@@ -201,7 +201,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await K.type('Brakel'); await K.press('Enter'); await K.type('Max Muster'); await K.press('Enter');
   ok(!!(await p.$('.cal-pop')), 'nach der Ansprechperson öffnet der Kalender für die Deadline');
   await pick('2027-04-30');
-  r = await p.evaluate(() => { const x = D.bedarfe[0]; return [x.titel, x.summe, x.gliederung, x.zust.join(), x.deadline, document.querySelector('#list-body tr[data-id]').dataset.id === x.id, UI.view]; });
+  r = await p.evaluate(() => { const x = D.bedarfe[0]; return [x.titel, x.summe, x.gliederung, x.zust.map(z => z.n).join(), x.deadline, document.querySelector('#list-body tr[data-id]').dataset.id === x.id, UI.view]; });
   ok(r.join('|') === 'Funkgeräte|1200|Brakel|Max Muster|2027-04-30|true|list', 'neuer Bedarf ganz oben in der Liste, alles nur mit der Tastatur: ' + r.join('|'));
 
   // Tab: weiter zum nächsten Feld, Shift+Tab zurück – beim neuen Bedarf und in jeder Zeile
