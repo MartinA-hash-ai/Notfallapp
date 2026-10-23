@@ -239,7 +239,8 @@ table.list.kompakt td.l-ort { font-size: 13px; color: var(--ink2); }
 /* aufgeklappter Bedarf in der kompakten Liste: ausführlich wie in der anderen Ansicht, hervorgehoben */
 table.list.kompakt tr.auf td { white-space: normal; vertical-align: top; padding-top: 14px; padding-bottom: 14px; background: var(--soft); }
 table.list.kompakt tr.auf td:first-child { box-shadow: inset 3px 0 0 var(--focus); }
-table.list.kompakt tr.auf td.l-fin { min-width: 480px; }
+table.list.kompakt tr.auf td.l-fin { min-width: calc(var(--vnw, 200px) + 300px); }
+table.list.kompakt tr.auf .fg { grid-template-columns: 15px minmax(0, 1fr) auto 36px 15px var(--vtw, 112px); }   /* Nachweis unter seiner Überschrift */
 table.list.kompakt tr.auf td.l-meta { min-width: 130px; }
 table.list.kompakt tr.auf td.l-name, table.list.kompakt tr.auf td.l-sum, table.list.kompakt tr.auf td.l-meta { vertical-align: middle; }
 table.list.kompakt tr.auf td.l-name { max-width: none; overflow: visible; }

@@ -97,6 +97,7 @@ function renderNow() {
     }
     PIE_HOLD = false;
     app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : listView());
+    aufMass();
     strgSet(CTRL_NOW);
     if (fk) { const e = $(fk, app); if (e) { e.focus({ preventScroll: true }); if (sel && 'setSelectionRange' in e) try { e.setSelectionRange(sel[0], sel[1]); } catch (x) { /* */ } } }
     document.title = (isDirty() ? '● ' : '') + 'Bedarfsliste';

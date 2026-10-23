@@ -14,7 +14,7 @@ function strgSet(ctrl) {
 // nach einer Änderung: beim Bearbeiten nur die Zeile neu zeichnen (Reihenfolge bleibt), sonst die ganze Liste
 function relist(b) {
   const tr = STRG && $(`#list-body tr[data-id="${CSS.escape(b.id)}"]`);
-  if (tr) tr.outerHTML = row(b); else keep(renderNow);
+  if (tr) { tr.outerHTML = row(b); aufMass(); } else keep(renderNow);
 }
 // Zustand der Taste auch an jeder anderen Taste und jedem Klick ablesen (ein offener Kalender schluckt das Loslassen)
 document.addEventListener('keydown', e => strgSet(e.key === 'Control' || e.key === 'Meta' || e.ctrlKey || e.metaKey));
@@ -45,6 +45,7 @@ document.addEventListener('click', e => {
 function aufklappen(id) {
   const alt = UI.auf; UI.auf = id;
   for (const x of [alt, id]) { const b = x && D.bedarfe.find(y => y.id === x), tr = x && $(`#list-body tr[data-id="${CSS.escape(x)}"]`); if (b && tr) tr.outerHTML = row(b); }
+  aufMass();
 }
 // Klick in eine Zeile: bearbeiten (ein Klick neben ein Feld tut nichts); mit Strg geht er durch und öffnet den Bedarf
 document.addEventListener('click', e => {

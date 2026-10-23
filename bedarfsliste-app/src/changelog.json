@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.27.1",
+    "date": "2026-10-23T17:40",
+    "items": [
+      "Fehler behoben: Im aufgeklappten Bedarf der kompakten Liste stand der Verwendungsnachweis nicht unter seiner Überschrift, und zwischen Förderer und Betrag klaffte eine Lücke. Jetzt stehen Förderer und Beträge unter „Finanzierung“, der Nachweis genau unter „Verwendungsnachweis“ – auch nach Änderung der Fenstergröße"
+    ]
+  },
+  {
     "version": "0.27.0",
     "date": "2026-10-23T17:05",
     "items": [

@@ -127,6 +127,24 @@ function kUebergabe(b) {
   return F.done && F.zu > 0 ? `<span class="kz warnl" title="Finanzierung steht – Spendenübergabe einleiten">${ICON_TRI}<span>nicht geplant</span></span>` : kGrau('nicht geplant');
 }
 const KOMPAKT = () => UI.ansicht === 'kompakt';
+// aufgeklappter Bedarf in der kompakten Liste: Finanzierung und Nachweis teilen sich zwei Spalten – der Verwendungsnachweis soll genau
+// unter seiner Überschrift stehen. Dafür bekommt die Zeile den Abstand von dieser Überschrift bis zum Zellenende. Gemessen wird nach dem
+// Zeichnen und jedes Mal, wenn sich die Spalten verschieben (Fenstergröße, Symbole beim Überfahren, neue Inhalte)
+function aufMessen() {
+  const tr = $('#list-body tr.auf'), th = $$('table.list.kompakt thead th')[5], td = tr && tr.querySelector('td.l-fin'); if (!th || !td) return;
+  for (let i = 0; i < 2; i++) {                    // zweimal: die neue Breite kann die Spalten noch einmal verschieben
+    const a = th.getBoundingClientRect().left, z = td.getBoundingClientRect().right, pl = parseFloat(getComputedStyle(th).paddingLeft), pr = parseFloat(getComputedStyle(td).paddingRight);
+    tr.style.setProperty('--vnw', (z - a) + 'px'); tr.style.setProperty('--vtw', Math.max(90, z - pr - a - pl - 23) + 'px');   // 23: Kreis und Abstand
+  }
+}
+const AUF_RO = typeof ResizeObserver === 'function' ? new ResizeObserver(() => aufMessen()) : null;
+function aufMass() {
+  aufMessen();
+  if (!AUF_RO) return;
+  AUF_RO.disconnect();
+  if ($('#list-body tr.auf')) $$('table.list.kompakt thead th').forEach(t => AUF_RO.observe(t));
+}
+window.addEventListener('resize', () => aufMessen());
 const nameZelle = b => `<td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : b.prio === 'hoch' ? ' <span class="prio-t">(Prio)</span>' : ''}</td>
     <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>`;
 const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
