@@ -1,4 +1,4 @@
-// Strg gedrückt halten: in der Liste direkt bearbeiten (Felder, Stände per Klick weiterdrehen, + für Förderer); ohne Strg öffnet der Klick den Bedarf
+// In der Liste direkt bearbeiten ist der Normalzustand (Felder, Stände per Klick weiterdrehen, + für Förderer); Strg + Klick öffnet den Bedarf
 const { chromium, ok, open, finish, fs, T } = require('./lib');
 (async () => {
   const b = await chromium.launch();
@@ -9,32 +9,34 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   const F = (id, name) => p.evaluate(([id, n]) => JSON.parse(JSON.stringify(D.bedarfe.find(x => x.id === id).foerderer.find(f => f.name === n))), [id, name]);
   const view = () => p.evaluate(() => UI.view);
 
-  await p.click(R('b-aed') + ' .l-name');
-  ok(await view() === 'detail', 'ohne Strg: Klick öffnet den Bedarf');
+  await p.click(R('b-aed') + ' .l-name', { modifiers: ['Control'] });
+  ok(await view() === 'detail', 'Strg + Klick öffnet den Bedarf');
   await p.click('button[data-act="back"]');
 
+  let r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('.strg-hint')).backgroundColor === 'rgba(0, 0, 0, 0)', document.querySelector('.strg-hint').textContent]);
+  ok(r.join() === 'true,true,Strg + Klick öffnet den Bedarf', 'ohne Strg: Bearbeiten aktiv, Hinweis „Strg + Klick öffnet den Bedarf“ unauffällig: ' + r.join());
   await K.down('Control');
-  let r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('.strg-hint')).backgroundColor !== 'rgba(0, 0, 0, 0)']);
-  ok(r.join() === 'true,true', 'Strg gedrückt: Bearbeitungsmodus sichtbar');
+  r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('.strg-hint')).backgroundColor !== 'rgba(0, 0, 0, 0)']);
+  ok(r.join() === 'false,true', 'Strg gedrückt: Bearbeiten aus, der Hinweis leuchtet');
+  await K.up('Control');
   await p.hover(R('b-aed') + ' td.l-fin');
   ok(await p.$eval(R('b-aed') + ' .le-plus', e => getComputedStyle(e).display) === 'grid' && await p.$eval(R('b-mtw') + ' .le-plus', e => getComputedStyle(e).display) === 'none', '+ erscheint nur über dem Finanzierungsplan, den die Maus berührt');
 
   // Felder: Name, Summe, Ort, Ansprechperson, Deadline
   await p.click(R('b-aed') + ' .l-name');
   r = await p.evaluate(() => [UI.view, document.activeElement.className, document.activeElement.value]);
-  ok(r.join('|') === 'list|le-edit|Defibrillatoren (AED) für den Sanitätsdienst', 'Strg + Klick auf den Namen: Feld statt Bedarf öffnen: ' + r.join('|'));
-  await K.up('Control');
+  ok(r.join('|') === 'list|le-edit|Defibrillatoren (AED) für den Sanitätsdienst', 'Klick auf den Namen: Feld statt Bedarf öffnen: ' + r.join('|'));
   await p.click(R('b-aed') + ' .l-name .le-edit');
   ok(await view() === 'list', 'Klick ins offene Feld öffnet den Bedarf nicht');
   await p.fill('.le-edit', 'Defibrillatoren für Lippstadt'); await p.press('.le-edit', 'Enter');
-  ok((await B('b-aed')).titel === 'Defibrillatoren für Lippstadt' && (await p.$eval(R('b-aed') + ' .l-name', e => e.textContent)).startsWith('Defibrillatoren für Lippstadt'), 'Name geändert (Strg darf beim Tippen los sein)');
-  const edit = async (sel, val, key = 'Enter') => { await K.down('Control'); await p.click(sel); await K.up('Control'); const i = '.le-edit'; await p.fill(i, val); if (await p.$(i)) await p.press(i, key); };   // ein Datum wie aus dem Kalender gilt sofort
+  ok((await B('b-aed')).titel === 'Defibrillatoren für Lippstadt' && (await p.$eval(R('b-aed') + ' .l-name', e => e.textContent)).startsWith('Defibrillatoren für Lippstadt'), 'Name geändert');
+  const edit = async (sel, val, key = 'Enter') => { await p.click(sel); const i = '.le-edit'; await p.fill(i, val); if (await p.$(i)) await p.press(i, key); };   // ein Datum wie aus dem Kalender gilt sofort
   await edit(R('b-aed') + ' .l-sum', '5.200');
   await edit(R('b-aed') + ' [data-le="ort"]', 'Geseke');
   await edit(R('b-aed') + ' [data-le="zust"]', 'Maria Beispiel');
   // Deadline: eigener Kalender, direkt geöffnet
   const pick = async iso => { for (let k = 0; k < 24 && !(await p.$(`.cal-pop [data-v="${iso}"]`)); k++) await p.click('.cal-pop .cal-nav[data-d="1"]'); await p.click(`.cal-pop [data-v="${iso}"]`); };
-  await K.down('Control'); await p.click(R('b-aed') + ' [data-le="deadline"]'); await K.up('Control');
+  await p.click(R('b-aed') + ' [data-le="deadline"]');
   ok(await p.$eval('.cal-pop .cal-h', e => e.textContent.trim()) === '‹März 2027›' && !!(await p.$('.cal-pop .cal-d.on[data-v="2027-03-31"]')), 'Deadline: Kalender öffnet im Monat der Deadline, der Tag ist markiert');
   await pick('2027-05-15');
   r = await B('b-aed');
@@ -43,7 +45,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // schlichtes Feld: leer mit blassem Namen, ohne Rahmen, nichts verschiebt sich; Vorschläge beim Tippen
   const xs = () => p.evaluate(sel => [...document.querySelectorAll(sel + ' td')].map(td => Math.round(td.getBoundingClientRect().left)).join(), R('b-aed'));
   const x0 = await xs();
-  await K.down('Control'); await p.click(R('b-aed') + ' [data-le="ort"]'); await K.up('Control');
+  await p.click(R('b-aed') + ' [data-le="ort"]');
   r = await p.evaluate(() => { const e = document.activeElement, cs = getComputedStyle(e); return [e.value, e.placeholder, cs.borderTopWidth, cs.borderBottomWidth, e.hasAttribute('list')]; });
   ok(r.join('|') === '|Ort oder Gliederung|0px|1px|false', 'Feld beginnt leer mit blassem „Ort oder Gliederung“, nur eine Linie darunter, ohne Auswahlpfeil: ' + r.join('|'));
   ok(await xs() === x0, 'nichts verschiebt sich, das Feld bleibt in seiner Spalte');
@@ -52,10 +54,10 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.includes('Paderborn'), 'Vorschläge beim Tippen gefiltert: ' + r.join());
   await p.click('.le-opt:text-is("Paderborn")');
   ok((await B('b-aed')).gliederung === 'Paderborn' && !(await p.$('.le-sug')), 'Klick auf einen Vorschlag übernimmt ihn');
-  await K.down('Control'); await p.click(R('b-aed') + ' [data-le="zust"]'); await K.up('Control');
+  await p.click(R('b-aed') + ' [data-le="zust"]');
   await K.type('anna'); await K.press('ArrowDown'); await K.press('Enter');
   ok((await B('b-aed')).zust[0] === 'Anna Muster', 'Pfeil runter und Enter übernimmt den Vorschlag');
-  await K.down('Control'); await p.click(R('b-aed') + ' [data-le="zust"]'); await K.up('Control'); await K.press('Enter');
+  await p.click(R('b-aed') + ' [data-le="zust"]'); await K.press('Enter');
   ok((await B('b-aed')).zust[0] === 'Anna Muster', 'nichts eingegeben: Wert bleibt');
   await edit(R('b-aed') + ' .l-name', 'soll nicht bleiben', 'Escape');
   ok((await B('b-aed')).titel === 'Defibrillatoren für Lippstadt', 'Esc verwirft');
@@ -63,7 +65,6 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await B('b-aed')).summe === 5200 && (await p.$eval('#toasts', e => e.textContent)).includes('keine Zahl'), 'keine Zahl: nicht übernommen, Hinweis');
 
   // Stände per Klick weiterdrehen
-  await K.down('Control');
   const order = () => p.$$eval('#list-body tr[data-id]', t => t.map(x => x.dataset.id).join());
   const before = await order();
   const seq = [];
@@ -85,10 +86,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   const vn = async () => { const f = await F('b-mtw', 'Sparkasse Musterstadt'); return f.vn.noetig ? f.vn.st : 'nicht nötig'; };
   for (let i = 0; i < 4; i++) { await p.click(R('b-mtw') + ' .vt[data-le="vn"]'); seq.push(await vn()); }
   ok(seq.join() === 'arbeit,erledigt,nicht nötig,offen', 'Verwendungsnachweis: steht aus → in Arbeit → erledigt → nicht nötig → steht aus: ' + seq.join());
-  ok(await order() === before, 'solange Strg gedrückt ist, springen die Zeilen nicht');
+  ok(await order() === before, 'beim Bearbeiten springen die Zeilen nicht (neu sortiert wird beim Zurückkommen in die Liste)');
   await p.click(R('b-klausur') + ' [data-le="fr"][data-k="ofk"]');
   ok((await B('b-klausur')).freigabe.ofk.st === 'offen' && (await p.$eval('#toasts', e => e.textContent)).includes('entfällt'), 'Diözese: Ortsführungskreis entfällt, bleibt unverändert');
-  await K.up('Control');
 
   // Beträge und Eigenmittel
   await edit(R('b-mtw') + ' .fa[data-le="amt"] >> nth=2', '25.000');
@@ -96,9 +96,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await F('b-mtw', 'Beispiel-Soziallotterie')).betrag === 25000 && (await B('b-aed')).eigenanteil === 400, 'Betrag eines Förderers und Eigenmittel geändert');
 
   // + : weiteren Förderer hinzufügen
-  await K.down('Control');
   await p.hover(R('b-aed') + ' td.l-fin'); await p.click(R('b-aed') + ' .le-plus');
-  await K.up('Control');
   ok(await p.evaluate(() => document.activeElement.getAttribute('aria-label')) === 'Neuer Förderer', '+ öffnet Felder für Name und Betrag');
   r = await p.evaluate(sel => {
     const n = document.querySelector('.le-new'), kids = [...n.parentElement.children], nm = n.querySelector('[aria-label="Neuer Förderer"]'), am = n.querySelector('[aria-label="Betrag in Euro"]');
@@ -118,14 +116,13 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r === 'Sparkasse Musterstadt:1000,Stadt Lippstadt:500,Kreis Soest:250' && !(await p.$('.le-new')), 'drei Förderer nacheinander nur mit der Tastatur; Enter schließt ab: ' + r);
 
   // Stift ganz rechts: Förderer umbenennen
-  await K.down('Control');
   await p.hover(R('b-mtw') + ' .fn[data-le="foe"] >> nth=1');
   r = await p.$$eval(R('b-mtw') + ' .le-pen', b => b.map(x => getComputedStyle(x).visibility).join());
   ok(r === 'hidden,visible,hidden', 'Stift erscheint nur am Förderer unter der Maus: ' + r);
   r = await p.evaluate(sel => { const pen = document.querySelectorAll(sel + ' .le-pen')[1].getBoundingClientRect(), nm = document.querySelectorAll(sel + ' .fn-t')[1].getBoundingClientRect(),
     amt = document.querySelectorAll(sel + ' .fa[data-le="amt"]')[1].getBoundingClientRect(); return [Math.abs(pen.top + pen.height / 2 - (nm.top + 10)) < 4, pen.left >= nm.right, pen.right <= amt.left]; }, R('b-mtw'));
   ok(r.join() === 'true,true,true', 'Stift in der Zeile des Namens, rechts davon und vor dem Betrag: ' + r.join());
-  await p.click(R('b-mtw') + ' .le-pen >> nth=1'); await K.up('Control');
+  await p.click(R('b-mtw') + ' .le-pen >> nth=1');
   r = await p.evaluate(sel => { const e = document.activeElement, a = document.querySelector(sel + ' .fa[data-le="amt"]').getBoundingClientRect(); return [e.value, e.placeholder, e.getBoundingClientRect().right <= a.left]; }, R('b-mtw'));
   ok(r.join('|') === 'Bürgerstiftung Musterstadt|Förderer|true', 'Stift: Name zum Ändern, Feld endet vor den Beträgen: ' + r.join('|'));
   await p.fill('.le-edit', 'Bürgerstiftung Beispielstadt'); await p.press('.le-edit', 'Enter');
@@ -133,24 +130,32 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
 
   // Kalender beim Verwendungsnachweis
   await p.evaluate(() => { D.bedarfe.find(x => x.id === 'b-mtw').foerderer[0].vn.frist = ''; renderNow(); });
-  ok((await p.$eval(R('b-mtw') + ' .vt[data-le="vn"]', e => e.textContent)) === 'Frist fehlt' && await p.$eval(R('b-mtw') + ' .le-cal', e => getComputedStyle(e).display) === 'none', 'ohne Strg: „Frist fehlt“, kein Kalender');
   await K.down('Control');
-  ok(await p.$eval(R('b-mtw') + ' .le-cal', e => getComputedStyle(e).display) !== 'none', 'mit Strg: Kalender direkt daneben');
-  await p.click(R('b-mtw') + ' .le-cal'); await K.up('Control');
+  ok((await p.$eval(R('b-mtw') + ' .vt[data-le="vn"]', e => e.textContent)) === 'Frist fehlt' && await p.$eval(R('b-mtw') + ' .le-cal', e => getComputedStyle(e).display) === 'none', 'mit Strg (Ansicht): „Frist fehlt“, kein Kalender');
+  await K.up('Control');
+  await p.hover(R('b-aed') + ' .l-sum');
+  ok(await p.$eval(R('b-mtw') + ' .le-cal', e => getComputedStyle(e).display) === 'none', 'Kalender nur in der Zeile unter der Maus');
+  await p.hover(R('b-mtw') + ' .l-sum');
+  ok(await p.$eval(R('b-mtw') + ' .le-cal', e => getComputedStyle(e).display) !== 'none', 'ohne Strg, Maus auf der Zeile: Kalender direkt daneben');
+  await p.click(R('b-mtw') + ' .le-cal');
   r = await p.evaluate(() => { const c = document.querySelector('.cal-pop'); return c && [getComputedStyle(c).backgroundColor, getComputedStyle(c.querySelector('.cal-h b')).color]; });
   ok(r && r.join() === 'rgb(255, 255, 255),rgb(38, 38, 38)', 'Klick auf den Kalender: Monatsansicht sofort offen, in der hellen Darstellung hell: ' + r);
   await pick('2027-08-31');
   ok((await F('b-mtw', 'Sparkasse Musterstadt')).vn.frist === '2027-08-31' && (await p.$eval(R('b-mtw') + ' .vt[data-le="vn"]', e => e.textContent)) === 'bis 31.08.2027', 'Frist aus dem Kalender gleich übernommen');
 
-  // Spendenübergabe: mit Strg ein Kreis mit Stift, der Ort, Datum, Uhrzeit und Notizen öffnet – bleibt offen ohne Strg
+  // Spendenübergabe: ein Kreis mit Stift, der Ort, Datum, Uhrzeit und Notizen öffnet
   const ue = () => p.$eval(R('b-kueche') + ' .l-ueb', e => e.innerText.replace(/\s+/g, ' ').trim());
-  r = await ue(); ok(r.startsWith('Spendenübergabe einleiten') && await p.$eval(R('b-kueche') + ' .le-ue', e => getComputedStyle(e).display) === 'none', 'ohne Strg: Dreieck wie bisher, kein Kreis: ' + r);
   await K.down('Control');
+  r = await ue(); ok(r.startsWith('Spendenübergabe einleiten') && await p.$eval(R('b-kueche') + ' .le-ue', e => getComputedStyle(e).display) === 'none', 'mit Strg (Ansicht): Dreieck, kein Kreis: ' + r);
+  await K.up('Control');
+  await p.mouse.move(5, 5);
+  ok(await p.$eval(R('b-kueche') + ' .le-ue', e => getComputedStyle(e).display) === 'none', 'Kreis mit Stift nur in der Zeile unter der Maus');
+  await p.hover(R('b-kueche') + ' .l-sum');
   r = await p.$eval(R('b-kueche') + ' .le-ue', e => { const b = e.getBoundingClientRect(), cs = getComputedStyle(e); return [cs.display, cs.borderTopLeftRadius, Math.round(b.width) >= 26]; });
-  ok(r.join() === 'grid,50%,true', 'mit Strg: großer Kreis mit Stift: ' + r.join());
-  await p.click(R('b-kueche') + ' .le-ue'); await K.up('Control'); await p.mouse.move(5, 5);
+  ok(r.join() === 'grid,50%,true', 'ohne Strg: großer Kreis mit Stift: ' + r.join());
+  await p.click(R('b-kueche') + ' .le-ue'); await p.mouse.move(5, 5);
   r = await p.evaluate(sel => [...document.querySelectorAll(sel + ' .ue-form .le-edit')].map(e => e.getAttribute('aria-label').split(' ')[0] + '=' + e.value + (e.placeholder ? '(' + e.placeholder + ')' : '')).join(' | '), R('b-kueche'));
-  ok(r === 'Ort=(Ort) | Datum=(Datum) | Uhrzeit=(Uhrzeit) | Notizen=Küche wird erst Ende November eingebaut – Übergabe danach, damit es Fotos von der fertigen Küche gibt.(Notizen)', 'Felder offen, auch nach dem Loslassen von Strg: ' + r);
+  ok(r === 'Ort=(Ort) | Datum=(Datum) | Uhrzeit=(Uhrzeit) | Notizen=Küche wird erst Ende November eingebaut – Übergabe danach, damit es Fotos von der fertigen Küche gibt.(Notizen)', 'Felder offen: ' + r);
   await p.fill(R('b-kueche') + ' [aria-label="Ort der Spendenübergabe"]', 'Gruppenraum Warburg');
   await p.click(R('b-kueche') + ' [aria-label="Datum der Spendenübergabe"]');
   ok(!!(await p.$('.cal-pop')), 'Datum: Kalender öffnet beim Hineinklicken');
@@ -174,7 +179,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(sel => document.querySelector(sel + ' .ue-sep').getBoundingClientRect().width === document.querySelector(sel + ' .note').getBoundingClientRect().width, R('b-kueche')), 'der Strich geht über die ganze Breite der Notizen');
   r = await p.evaluate(sel => [getComputedStyle(document.querySelector(sel + ' td.l-sum')).textAlign, getComputedStyle(document.querySelectorAll('table.list thead th')[1]).textAlign], R('b-kueche'));
   ok(r.join() === 'left,left', 'Summe linksbündig: ' + r.join());
-  await K.down('Control'); await p.click(R('b-kueche') + ' .le-ue'); await K.up('Control');
+  await p.hover(R('b-kueche') + ' .l-sum'); await p.click(R('b-kueche') + ' .le-ue');
   await p.fill(R('b-kueche') + ' [aria-label="Uhrzeit der Spendenübergabe"]', ''); await p.press(R('b-kueche') + ' [aria-label="Ort der Spendenübergabe"]', 'Enter');
   ok((await B('b-kueche')).nach.ueb.zeit === '' && (await ue()).startsWith('05.12.2026 Gruppenraum'), 'Uhrzeit geleert: nur das Datum, Enter übernimmt');
 
@@ -190,15 +195,24 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.dblclick('.col-rs[data-i="1"]');
   ok(!(await p.$('table.list colgroup')) && !(await p.evaluate(() => localStorage.getItem('bl-colw'))), 'Doppelklick auf einen Rand: alle Spalten wieder automatisch');
 
+  // „+ Bedarf“: neue Zeile oben, Name → Summe → Ort → Ansprechperson → Deadline nur mit Enter
+  await p.click('button[data-act="new"]');
+  await K.type('Funkgeräte'); await K.press('Enter'); await K.type('1.200'); await K.press('Enter');
+  await K.type('Brakel'); await K.press('Enter'); await K.type('Max Muster'); await K.press('Enter');
+  ok(!!(await p.$('.cal-pop')), 'nach der Ansprechperson öffnet der Kalender für die Deadline');
+  await pick('2027-04-30');
+  r = await p.evaluate(() => { const x = D.bedarfe[0]; return [x.titel, x.summe, x.gliederung, x.zust.join(), x.deadline, document.querySelector('#list-body tr[data-id]').dataset.id === x.id, UI.view]; });
+  ok(r.join('|') === 'Funkgeräte|1200|Brakel|Max Muster|2027-04-30|true|list', 'neuer Bedarf ganz oben in der Liste, alles nur mit der Tastatur: ' + r.join('|'));
+
   // Darstellung hell, auch wenn die umgebende Seite dunkel ist: eingebaute Bedienelemente hell
   r = await p.evaluate(() => { const st = document.createElement('style'); st.textContent = ':root[data-theme=dark], body { color-scheme: dark }'; document.head.append(st); document.documentElement.dataset.theme = 'dark';
     const box = document.createElement('div'); box.className = 'le-sug lang'; document.body.append(box);
     const v = [getComputedStyle(document.querySelector('#q')).colorScheme, getComputedStyle(box).colorScheme, getComputedStyle(box).scrollbarColor]; box.remove(); st.remove(); delete document.documentElement.dataset.theme; return v; });
   ok(r[0] === 'light' && r[1] === 'light' && r[2] !== 'auto', 'Kalender-, Uhrsymbole und Scrollbalken folgen der hellen Darstellung (nicht der dunklen Umgebung): ' + r.join(' / '));
 
-  ok(!(await p.evaluate(() => document.body.classList.contains('strg'))) && await view() === 'list', 'Strg losgelassen: Bearbeitungsmodus aus, Liste bleibt');
-  await p.click(R('b-mtw') + ' .l-sum');
-  ok(await view() === 'detail', 'danach öffnet ein Klick ohne Strg wieder den Bedarf');
+  ok(await p.evaluate(() => document.body.classList.contains('strg')) && await view() === 'list', 'nach allem: Bearbeiten weiter aktiv, Liste bleibt');
+  await p.click(R('b-mtw') + ' .l-sum', { modifiers: ['Control'] });
+  ok(await view() === 'detail', 'Strg + Klick öffnet den Bedarf');
   await p.screenshot({ path: 'strg.png' });
   await finish(b, [p]);
 })();

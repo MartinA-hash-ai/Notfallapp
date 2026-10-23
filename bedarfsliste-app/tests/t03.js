@@ -35,19 +35,25 @@ async function writeKartei(p, kontakt) {
   ok(r.ab && r.ab.weg.join() === 'Portal' && r.ab.kontakte.length === 0 && r.ab.gl.join() === 'alle', 'Aktion: Portal, „-“ ist kein Kontakt');
   ok((await p.$eval('.kchip', e => e.textContent)) === 'Förder-Kartei · 5 Förderer', 'Kopfzeile zeigt die Kartei');
   // im Förderplan
-  await p.click('button[data-act="new"]'); await p.keyboard.type('Rucksäcke');
+  await p.click('button[data-act="new"]'); await p.keyboard.type('Rucksäcke'); await p.keyboard.press('Enter'); await p.keyboard.press('Escape');
+  await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
   await p.fill('input[data-p="gliederung"]', 'Iserlohn-Menden');
   await p.click('button[data-act="add-foe"]'); await p.keyboard.type('Märkische Bank eG');
-  ok(!(await p.$('.det-panel')) && (await p.$eval('.fp [id^="ds-"]', e => e.textContent)) === 'Silke S · Antrag direkt', 'Kontakt zunächst eingeklappt, kurze Zusammenfassung sichtbar');
+  ok(!(await p.$('.det-panel')) && (await p.$eval('.fp [id^="ds-"]', e => e.textContent)) === 'Silke S · Antrag direkt', 'Kontakt zunächst zu, kurze Zusammenfassung in der Kachel');
   ok(await p.evaluate(() => cur().foerderer[0].art === 'Volksbank / Bank' && !document.querySelector('select.art')), 'Art aus der Kartei übernommen (nur in den Daten, kein Auswahlfeld mehr)');
   await p.click('button[data-act="det"]');
-  let t = await p.$eval('.det-panel', e => e.textContent);
-  ok(t.includes('Aus der Förder-Kartei') && t.includes('Silke S') && t.includes('silke@mb.example') && t.includes('Antragswegdirekt') && t.includes('Hagen, Iserlohn-Menden'), 'aufgeklappt: Kartei-Angaben geordnet: ' + t.replace(/\s+/g, ' ').slice(0, 140));
+  let t = await p.$eval('.foe-pop .det-panel', e => e.textContent);
+  ok(t.includes('Aus der Förder-Kartei') && t.includes('Silke S') && t.includes('silke@mb.example') && t.includes('Antragswegdirekt') && t.includes('Hagen, Iserlohn-Menden')
+    && await p.$eval('.foe-pop table.kt a[href^="mailto:"]', e => e.getAttribute('href')) === 'mailto:silke@mb.example', 'Fenster mit Kartei-Angaben, E-Mail als Link: ' + t.replace(/\s+/g, ' ').slice(0, 140));
+  await p.keyboard.press('Escape');
+  ok(!(await p.$('.foe-pop')), 'Esc schließt das Fenster');
   ok(!(await p.$('.fp .fw-tri')), 'passende Region: kein Hinweis-Dreieck');
-  await p.fill('.fp input[data-p="name"]', 'Herner Sparkasse');
+  await p.fill('.fp input[data-p="name"]', 'Herner Sparkasse'); await p.press('.fp input[data-p="name"]', 'Tab');
   await p.hover('.fp .fw-tri');
   t = await p.$eval('.fw-pop', e => e.textContent);
-  ok(t.includes('Laut Kartei zuständig für Herne') && (await p.$eval('.det-panel', e => e.textContent)).includes('nicht direkt anschreiben'), 'andere Region: rotes Dreieck hinter dem Namen, beim Überfahren der Hinweis; Kartei-Angaben wechseln mit');
+  await p.click('button[data-act="det"]');
+  ok(t.includes('Laut Kartei zuständig für Herne') && (await p.$eval('.foe-pop .det-panel', e => e.textContent)).includes('nicht direkt anschreiben'), 'andere Region: rotes Dreieck hinter dem Namen, beim Überfahren der Hinweis; Kartei-Angaben wechseln mit');
+  await p.click('.foe-pop button.x');
   // Kartei in Excel geändert → nach etwa einer Minute neu gelesen
   await writeKartei(p, 'Silke Neu');
   await skip(p, 15000); await skip(p, 15000); await skip(p, 15000); await skip(p, 15000); await p.waitForTimeout(400);

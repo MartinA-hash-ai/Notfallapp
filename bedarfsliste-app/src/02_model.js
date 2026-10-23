@@ -40,7 +40,7 @@ function ff(o) {
     id: uid('f'), name: '', durch: 'ich', betrag: null, zugesagt: null, eingegangen: null, eingangAm: '', status: 'geplant', beantragtAm: '', entscheidungAm: '',
     frist: '', erwartet: '', warum: '', knackpunkte: '', einsch: '',
     art: '', weg: '', kontakt: '', mail: '', tel: '', web: '', fristInfo: '', hoehe: '', eigenInfo: '', quellen: '', notiz: '',
-    vn: { noetig: false, frist: '', st: 'offen' },
+    vn: { noetig: true, frist: '', st: 'offen' },                      // ab 0.17: Verwendungsnachweis standardmäßig nötig
   }, o);
 }
 // Daten aus der Datei auf den aktuellen Aufbau bringen (fehlende Felder ergänzen, Unbrauchbares verwerfen)
@@ -48,6 +48,9 @@ function normalize(d) {
   const o = merge(emptyData(), isObj(d) ? d : {});
   if (!isObj(o.meta)) o.meta = emptyData().meta;
   if (!isObj(o.settings)) o.settings = emptyData().settings;
+  // ab 0.17 ist der Verwendungsnachweis standardmäßig nötig: in schon gespeicherten Daten einmalig auch dort, wo er unberührt auf „nicht nötig“ stand
+  const vnMig = isObj(d) && isObj(d.meta) && !d.meta.vnStd && !!(d.meta.savedAt || d.meta.rev);
+  o.meta.vnStd = 1;
   o.bedarfe = (Array.isArray(o.bedarfe) ? o.bedarfe : []).filter(isObj).map(b => {
     const n = merge(blank(), b);
     n.zust = Array.isArray(b.zust) ? b.zust.filter(x => typeof x === 'string' && x.trim()) : [];
@@ -71,6 +74,8 @@ function normalize(d) {
         }
       }
       delete f.sb; delete v.erledigt;
+      if (vnMig && !b.archiv && v.noetig === false && !v.frist && v.st === 'offen') v.noetig = true;
+      if (f.status === 'vorb') f.status = 'geplant';                 // „in Vorbereitung“ gibt es ab 0.17 nicht mehr
       return f;
     });
     n.foerderer.forEach(f => { if (f.einsch in EINSCH_ALT) f.einsch = EINSCH_ALT[f.einsch]; if (!EINSCH.some(e => e[0] === f.einsch)) f.einsch = ''; });
@@ -113,7 +118,7 @@ function fin(b) {
   let ge = 0, be = 0, zu = 0, ein = 0;
   for (const f of b.foerderer) {
     const v = +f.betrag || 0;
-    if (f.status === 'geplant' || f.status === 'vorb') ge += v;
+    if (f.status === 'geplant') ge += v;
     else if (f.status === 'beantragt') be += v;
     else if (f.status === 'zugesagt') { zu += f.zugesagt != null ? +f.zugesagt : v; ein += +f.eingegangen || 0; }
   }
@@ -172,7 +177,7 @@ function phase(b) {
   if (fo.rej.length) return { k: 'stop', step: 0, t: 'Freigabe abgelehnt', sub: fo.rej.map(frName).join(', '), bad: true, warn };
   if (fo.names.length) return { k: 'frei', step: 0, t: 'Es fehlt', sub: fo.names.join(', '), bad: false, warn };
   if (!fs.length) return { k: 'plan', step: 1, t: 'Förderplan aufstellen', sub: 'noch kein Förderer eingetragen', bad: false, warn };
-  const vor = fs.filter(f => f.status === 'geplant' || f.status === 'vorb'), wart = fs.filter(f => f.status === 'beantragt');
+  const vor = fs.filter(f => f.status === 'geplant'), wart = fs.filter(f => f.status === 'beantragt');
   const FS = finState(b), zu = fs.filter(f => f.status === 'zugesagt');
   if (!FS.done) {
     if (vor.length) return { k: 'antrag', step: 1, t: 'Anträge stellen', sub: names(vor) + (wart.length ? ' · wartet auf ' + names(wart) : ''), bad: false, warn };
@@ -194,7 +199,7 @@ function fristen(b) {
   const p = phase(b), L = [];
   if ((p.step === 0 || p.step === 1) && b.deadline) L.push({ d: b.deadline, t: 'Deadline des Bedarfs' });
   for (const f of b.foerderer) {
-    if ((f.status === 'geplant' || f.status === 'vorb') && f.frist) L.push({ d: f.frist, t: 'Antragsfrist ' + short(f.name) });
+    if (f.status === 'geplant' && f.frist) L.push({ d: f.frist, t: 'Antragsfrist ' + short(f.name) });
     if (f.status === 'beantragt' && f.erwartet) L.push({ d: f.erwartet, t: 'Antwort ' + short(f.name) });
     if (f.status === 'zugesagt' && f.vn.noetig && f.vn.st !== 'erledigt' && f.vn.frist) L.push({ d: f.vn.frist, t: 'Verwendungsnachweis ' + short(f.name) });
   }

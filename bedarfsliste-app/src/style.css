@@ -278,6 +278,11 @@ table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
 .fline { grid-column: 2 / 4; height: 0; position: relative; }
 .fline::after { content: ''; position: absolute; left: 0; right: 0; top: 0; border-top: 1px solid var(--line); }
 .lead { border-bottom: 2px dotted var(--line2); height: 0; margin-top: 10px; }
+/* Zeitstrahl zur Frist des Verwendungsnachweises: dieselben Punkte, von links gefüllt */
+.lead.tl { position: relative; }
+.lead.tl::after { content: ''; position: absolute; left: 0; bottom: -2px; width: var(--p); border-bottom: 2px dotted var(--tl); }
+.lead.tl-g { --tl: var(--faint); } .lead.tl-y { --tl: #e0a400; } .lead.tl-r { --tl: var(--red); }
+#list-body .ph { color: var(--faint); font-weight: 400; }
 .vt { white-space: nowrap; color: var(--ink2); }
 .vt.nn { color: var(--ghost); }
 /* Finanzierung steht: Zusagen mit offenem Nachweis kräftig, erledigte blass grün, alle übrigen blass grau */
@@ -293,9 +298,8 @@ table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
 .note { color: var(--muted); font-size: 12px; line-height: 1.4; margin-top: 4px; white-space: normal; }
 /* Strg gedrückt: was sich ändern lässt, hebt sich beim Überfahren ab; unten links im Finanzierungsplan ein + */
 .strg-hint { font-size: 12px; color: var(--faint); padding: 1px 8px; border-radius: 10px; border: 1px solid transparent; cursor: help; }
-body.strg .strg-hint { color: var(--runink); background: var(--runbg); border-color: var(--runline); }
+body:not(.strg) .strg-hint { color: var(--runink); background: var(--runbg); border-color: var(--runline); }   /* Strg gedrückt: Klick öffnet */
 body.strg #list-body tr[data-id] { cursor: default; }
-body.strg #list-body tr[data-id]:hover { background: none; }
 body.strg #list-body [data-le] { cursor: pointer; }
 body.strg #list-body [data-le]:not(.mi) { border-radius: 4px; }
 body.strg #list-body [data-le]:not(.mi):hover { background: var(--runbg); box-shadow: 0 0 0 2px var(--runbg); }
@@ -327,12 +331,12 @@ body.strg #list-body .fr:hover .le-pen { visibility: visible; }
 .le-pen:hover, .le-cal:hover, .le-ue:hover { color: var(--ink); }
 .le-cal { display: none; width: 14px; height: 14px; margin-left: 5px; vertical-align: -2px; }
 .le-cal svg { width: 13px; height: 13px; }
-body.strg #list-body .le-cal { display: inline-grid; }
+body.strg #list-body tr:hover .le-cal { display: inline-grid; }   /* nur in der Zeile unter der Maus – sonst stünden überall Symbole */
 /* Spendenübergabe: mit Strg ein großer Kreis mit Stift oben rechts; Klick öffnet die Felder, die offen bleiben */
 td.l-ueb { position: relative; }
 .le-ue { display: none; position: absolute; top: 9px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--runline); background: var(--card); color: var(--runink); }
 .le-ue svg { width: 15px; height: 15px; }
-body.strg #list-body .le-ue[data-le] { display: grid; border-radius: 50%; }
+body.strg #list-body tr:hover .le-ue[data-le] { display: grid; border-radius: 50%; }
 body.strg #list-body .le-ue:hover { background: var(--runbg); }
 .ue-form { display: grid; gap: 6px; }
 table.list td.l-ueb { vertical-align: middle; }
@@ -480,8 +484,8 @@ textarea.title { font-size: 30px; font-weight: 700; line-height: 1.2; width: 100
 input.inline.gl { width: auto; min-width: 4ch; max-width: 100%; field-sizing: content; font-size: 14px; color: var(--ink2); }
 .d-right-head { border-left: 1px solid var(--line2); padding-left: 18px; display: flex; gap: 14px; align-items: center; align-self: center; }
 .sum-line { display: flex; align-items: baseline; gap: 6px; justify-content: flex-end; }
-input.inline.sum { width: 170px; font-size: 28px; font-weight: 700; text-align: right; padding: 0 2px 2px; }
-.sum-line .unit { font-size: 20px; font-weight: 600; }
+input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: right; padding: 0 2px 2px; }
+.sum-line .unit { font-size: 24px; font-weight: 600; }
 .d-actions { grid-area: act; display: flex; gap: 6px; align-items: center; justify-self: end; align-self: center; }
 .icon-btn { width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 7px; font-weight: 700; color: var(--ink2); background: var(--head); border-color: var(--line2); }
 .icon-btn.trash { color: var(--red-d); border-color: var(--errline); background: var(--errbg); }
@@ -527,14 +531,18 @@ button.circ:hover:not(:disabled) { box-shadow: 0 0 0 3px var(--hover); }
 .fp-head .sec-head { align-items: center; }
 .sec-tools { display: flex; gap: 6px; margin-left: auto; }
 .sec-tools .icon-btn { width: 30px; height: 30px; }
-.fin-wrap { display: flex; gap: 16px 80px; align-items: center; flex-wrap: wrap; }
+.fin-wrap { display: flex; gap: 16px 24px; align-items: center; flex-wrap: wrap; }
 .fin-wrap table.fsum { flex: 1 1 380px; width: auto; max-width: 580px; }
-.fin-pie { flex: none; width: 150px; height: 150px; }
+.fin-pie { flex: 1 1 380px; min-width: 300px; max-width: 560px; margin-left: auto; }
+.fin-pie svg.pie { display: block; width: 100%; height: auto; overflow: visible; }
+.fin-pie .pl { opacity: 0; transition: opacity .15s; pointer-events: none; }
+.fin-pie:hover .pl { opacity: 1; }
+.pl-l { fill: none; stroke: var(--faint); stroke-width: 1; }
+.pl-n { fill: var(--ink); font-size: 13px; font-weight: 600; }
+.pl-v { fill: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
 .pie { width: 100%; height: 100%; display: block; }
 .ps { stroke: var(--card); stroke-width: 2px; vector-effect: non-scaling-stroke; }
 .ps.zu { fill: var(--f-zu); } .ps.eig { fill: var(--f-eig); } .ps.be { fill: var(--f-be); } .ps.ge { fill: var(--f-ge); } .ps.off { fill: url(#pie-off); }
-.pie-tip { position: fixed; z-index: 95; pointer-events: none; background: var(--card); color: var(--ink2); border: 1px solid var(--line); border-radius: 7px; box-shadow: 0 6px 18px rgba(0,0,0,.14); padding: 6px 10px; font-size: 12.5px; display: grid; gap: 1px; white-space: nowrap; }
-.pie-tip b { color: var(--ink); }
 .ps:hover { opacity: .85; }
 table.fsum { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
 table.fsum th { text-align: left; font-weight: 600; padding: 6px 12px 6px 0; }
@@ -602,7 +610,6 @@ span.st-btn { display: inline-block; }
 .fk-head button { margin-left: auto; }
 .fk-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; align-items: start; }
 .card.fp.fk { margin: 0; padding: 12px 14px 8px; gap: 7px; }
-.fk.open { grid-column: 1 / -1; }
 .fk-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
 .fk-kopf { display: grid; gap: 0; min-width: 0; }
 .fk input.inline.fp-h { font-size: 21px; font-weight: 700; line-height: 1.25; padding: 0 1px; }
@@ -624,17 +631,38 @@ span.st-btn { display: inline-block; }
 .fk .fp-dates { display: flex; flex-wrap: wrap; gap: 2px 14px; font-size: 12.5px; color: var(--muted); }
 .fk .fp-d { display: inline-flex; align-items: center; gap: 5px; }
 .fk .fp-d input.inline.dfeld { width: 84px; color: var(--ink2); cursor: pointer; }
-.fk .pc { grid-template-columns: minmax(0, 1fr); gap: 7px; }
+.fk .pc { grid-template-columns: minmax(0, 1fr); gap: 14px; margin-top: 6px; }
 .fk .pro, .fk .contra { display: flex; align-items: flex-start; gap: 8px; }
 .fk .pc i { width: 7px; height: 7px; border-radius: 50%; flex: none; margin-top: 8px; }
 .fk .pro i { background: #43a047; } .fk .contra i { background: #d9534f; }
 .fk .pc textarea { border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; padding: 1px 0; min-height: 0; resize: none; field-sizing: content;
-  font-size: 13px; line-height: 1.45; color: var(--ink2); max-height: 2.9em; overflow: hidden; }
+  font-size: 13px; line-height: 1.45; color: var(--ink2); max-height: 4.35em; overflow: hidden; }   /* Vorschau: drei Zeilen */
 .fk .pc textarea:hover { border-bottom-color: var(--line2); }
 .fk .pc textarea:focus { outline: none; border-bottom-color: var(--focus); max-height: none; background: var(--input); }
 .fk .det { border-top: 1px solid var(--line3); padding-top: 2px; margin-top: 2px; }
 .fk .det-btn { font-weight: 400; font-size: 12.5px; color: var(--muted); }
 .ds:empty::before { content: 'Kontakt und Details'; }
+.fk .det-btn { display: flex; align-items: center; gap: 6px; width: 100%; text-align: left; }
+.fk .det-btn .ds { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.det-auf { font-size: 16px; line-height: 1; color: var(--faint); }
+.fk .det-btn:hover .det-auf { color: var(--ink); }
+/* Kontakt und Details als Fenster */
+.pop-back { position: fixed; inset: 0; z-index: 80; background: var(--backdrop); }
+.foe-pop { position: fixed; z-index: 81; left: 50%; top: 50%; transform: translate(-50%, -50%); width: min(920px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto;
+  background: var(--card); border-radius: 10px; box-shadow: var(--shadow); padding: 0 20px 18px; }
+.foe-pop > header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center; gap: 10px; padding: 14px 0 10px; margin-bottom: 10px; background: var(--card); border-bottom: 1px solid var(--line3); }
+.foe-pop > header h3 { margin: 0; font-size: 18px; flex: 0 1 auto; min-width: 0; text-transform: none; letter-spacing: 0; color: var(--ink); }
+.foe-pop > header .x { margin-left: auto; font-size: 22px; }
+.foe-pop .det-panel { padding-top: 0; }
+.foe-pop textarea.ta-auto { field-sizing: content; min-height: 2.3em; max-height: 16em; resize: vertical; line-height: 1.45; }
+.fx-row { display: flex; gap: 6px; }
+.fx-row input { flex: 1 1 auto; min-width: 0; }
+.fx { flex: none; width: 34px; padding: 0; display: grid; place-items: center; font-size: 15px; color: var(--ink2); }
+.ql { display: grid; gap: 4px; font-size: 13px; margin: 2px 0 6px; }
+.ql a { color: var(--focus); word-break: break-all; }
+.ql span { color: var(--ink2); }
+.ql-edit summary { font-size: 12px; color: var(--muted); cursor: pointer; margin-bottom: 4px; }
+table.kt td a { color: var(--focus); word-break: break-all; }
 .fk .geld-link { font-size: 12.5px; color: var(--ink); margin-left: auto; }
 .fk .geld.ok { display: inline-flex; align-items: center; gap: 4px; font-size: 12.5px; font-weight: 600; color: var(--okink); }
 .fk .geld.ok svg { width: 14px; height: 14px; }

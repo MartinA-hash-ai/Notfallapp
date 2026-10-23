@@ -14,7 +14,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
       sym: [...tr.querySelectorAll('.l-fin .fr > .mi:first-child')].map(m => m.className.replace('mi m-', '')).join(), leads: tr.querySelectorAll('.l-fin .lead').length, ueb: t(tr.querySelector('.l-ueb')) }; }, id);
   r = await L('b-mtw');
   ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst (Prio)' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone, 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig blass: ' + JSON.stringify(r));
-  ok(r.sym === 'ok,run,run' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Bürgerstiftung Musterstadt 15.000 € | :Beispiel-Soziallotterie 30.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
+  ok(r.sym === 'ok,run,off' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Bürgerstiftung Musterstadt 15.000 € | :Beispiel-Soziallotterie 30.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
     'Finanzierung läuft: Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe zeigt nur den Ort: ' + r.fin);
   r = await L('b-aed');
   ok(!r.frDone && r.fr === 'ok,off,run,ok' && r.fin.includes('sum:Delta 2.400 €') && r.sym === 'off', 'AED: Freigabe offen (Kreise), Delta 2.400 €: ' + r.fr + ' / ' + r.fin);
@@ -35,8 +35,19 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     const fr = [...tr.querySelectorAll('.l-fr .ml')].map(mid), fin = [...tr.querySelectorAll('.l-fin .fr > .fn')].map(mid);
     const dots = [...tr.querySelectorAll('.l-fr .ml .mi')].map(mid); return [fr, fin, dots]; });
   ok(r[0].every((y, i) => Math.abs(y - r[1][i]) <= 1) && r[2].every((y, i) => Math.abs(y - r[0][i]) <= 1), 'Freigabe und Förderer stehen Zeile für Zeile auf einer Höhe, Punkte mittig zur Schrift: ' + JSON.stringify(r));
+  // Zeitstrahl in der Punktlinie zur Frist des Verwendungsnachweises
+  r = await p.evaluate(() => { const l = document.querySelector('tr[data-id="b-mtw"] .l-fin .lead.tl'); return l && [l.className, l.title]; });
+  ok(r && r[0] === 'lead tl tl-g' && /^noch \d+ Tage bis zur Frist$/.test(r[1]), 'Zeitstrahl zur Frist: grau, solange viel Zeit ist: ' + JSON.stringify(r));
+  r = await p.evaluate(() => { const d = n => new Date(Date.parse(today()) + n * 864e5).toISOString().slice(0, 10);
+    const z = (fr, start) => { const x = document.createElement('div'); x.innerHTML = zeitstrahl(ff({ status: 'zugesagt', entscheidungAm: start || '', vn: { noetig: true, frist: fr, st: 'offen' } })); const l = x.firstChild; return l.className.replace('lead tl ', '') + ':' + Math.round(parseFloat(l.style.getPropertyValue('--p'))); };
+    return [z(d(200), d(-10)), z(d(20)), z(d(5)), z(d(-3))].join(); });
+  ok(r === 'tl-g:5,tl-y:78,tl-r:94,tl-r:100', 'Zeitstrahl füllt sich bis zur Frist; ab einem Monat gelb, ab einer Woche rot, danach ganz rot: ' + r);
+  // Bearbeiten ist der Normalzustand; die ganze Zeile wird beim Überfahren hervorgehoben
+  await p.hover('tr[data-id="b-aed"] .l-sum');
+  r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('tr[data-id="b-aed"]')).backgroundColor]);
+  ok(r.join() === 'true,rgb(243, 243, 241)', 'ohne Strg: Bearbeiten aktiv, ganze Zeile beim Überfahren grau hinterlegt: ' + r.join());
   await p.screenshot({ path: 'vorschau_liste.png', fullPage: true });
-  await p.click('tr[data-id="b-mtw"]');
+  await p.click('tr[data-id="b-mtw"] .l-name', { modifiers: ['Control'] });
   r = await p.evaluate(() => [document.querySelector('#f-titel').value, document.querySelector('.d-head input[data-p="gliederung"]').value, document.querySelector('.d-right-head input[data-p="summe"]').value, document.querySelectorAll('[data-p="summe"]').length, document.querySelector('#d-steps .cur').lastChild.textContent]);
   ok(r.join('|') === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst|Paderborn|68.000|1|Förderung', 'Kopf: Name, Gliederung und Summe oben (einmalig), Phase Förderung');
   r = await p.evaluate(() => [!!document.querySelector('header.top .subbar #d-steps'), !!document.querySelector('#d-status'), document.querySelector('#d-steps [title]').title.startsWith('Anträge stellen'), !!document.querySelector('.jump'), document.documentElement.dataset.blTheme,
@@ -86,20 +97,36 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // Freigaben alle da: grünes Kästchen, Überschrift „alle vorhanden“
   r = await p.evaluate(() => [!!document.querySelector('#fr-blk .fr-blk.ok'), document.querySelector('#fr-blk h3').textContent.replace(/\s+/g, ' ').trim()]);
   ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
-  // Kreisdiagramm: Infofeld sofort beim Überfahren (wer und wie viel)
-  const sl = await (await p.$('#fin-pie .ps.zu')).boundingBox();
-  await p.mouse.move(sl.x + sl.width / 2, sl.y + sl.height / 3);
-  r = await p.evaluate(() => { const t = document.querySelector('.pie-tip'); return t && [t.querySelector('b').textContent, t.querySelector('span').textContent.replace(/\u00a0/g, ' '), getComputedStyle(t).backgroundColor]; });
-  ok(r && r[0] === 'Sparkasse Musterstadt' && r[1] === '10.000 €' && r[2] === 'rgb(255, 255, 255)', 'Kreisstück überfahren: sofort ein Infofeld mit Förderer und Summe (in den Farben des Programms): ' + r);
-  await p.mouse.move(5, 5);
-  ok(!(await p.$('.pie-tip')), 'Maus weg: Infofeld verschwindet');
+  // Kreisdiagramm: beim Überfahren alle Beschriftungen (Name, Betrag, Anteil), ohne Überlappung
+  const pl = () => p.evaluate(() => [...document.querySelectorAll('#fin-pie .pl')].map(g => getComputedStyle(g).opacity).join());
+  ok(await pl() === '0,0,0,0', 'Beschriftungen am Kreis zunächst verborgen');
+  const pie = await (await p.$('#fin-pie svg')).boundingBox();
+  await p.mouse.move(pie.x + pie.width / 2, pie.y + pie.height / 2); await p.waitForTimeout(250);
+  r = await p.evaluate(() => { const G = [...document.querySelectorAll('#fin-pie .pl')], R = G.map(g => [...g.querySelectorAll('text')].map(t => t.getBoundingClientRect()).reduce((a, c) => ({ l: Math.min(a.l, c.left), r: Math.max(a.r, c.right), t: Math.min(a.t, c.top), b: Math.max(a.b, c.bottom) }), { l: 1e9, r: -1e9, t: 1e9, b: -1e9 }));
+    const hit = R.some((a, i) => R.some((c, j) => i < j && a.l < c.r && c.l < a.r && a.t < c.b && c.t < a.b));
+    return [G.map(g => [...g.querySelectorAll('text')].map(t => t.textContent.replace(/\u00a0/g, ' ')).join(' ')).join(' | '), hit]; });
+  ok(await pl() === '1,1,1,1' && r[0] === 'Sparkasse Musterstadt 10.000 € · 15 % | Eigenmittel 13.000 € · 19 % | Bürgerstiftung Musterstadt 15.000 € · 22 % | Beispiel-Soziallotterie 30.000 € · 44 %' && !r[1],
+    'Kreis überfahren: alle Stücke beschriftet mit Name, Betrag und Anteil, nichts überlappt: ' + r[0]);
+  await p.mouse.move(5, 5); await p.waitForTimeout(250);
+  ok(await pl() === '0,0,0,0', 'Maus weg: Beschriftungen verschwinden');
+  r = await p.evaluate(() => [getComputedStyle(document.querySelector('input.inline.sum')).fontSize, getComputedStyle(document.querySelector('.fp .pc textarea')).maxHeight, getComputedStyle(document.querySelector('.fp .pc')).rowGap]);
+  ok(r.join() === '34px,56.55px,14px', 'Summe oben größer; Pro und Contra mit drei Zeilen Vorschau und mehr Abstand: ' + r.join());
+  ok(await p.evaluate(() => F_ST.map(x => x[0]).join()) === 'geplant,beantragt,zugesagt,abgelehnt', 'Stände der Förderer: geplant, beantragt, zugesagt, abgelehnt (ohne „in Vorbereitung“)');
   await p.click('button[data-act="info"][data-v="ordner"]');
   ok((await p.$eval('.info-pop', e => e.textContent)).includes('Link kopieren'), 'Hinweis zum Ordner hinter dem „i“');
   await p.mouse.click(5, 300);
   await p.click('button[data-act="det"][data-v="f-mtw-spk"]');
-  ok((await p.$eval('#foe-f-mtw-spk .det-panel table.kt', e => e.textContent)).includes('Erika Beispiel'), 'Kontakt aufgeklappt: Kartei-Kontakte als Tabelle');
+  ok((await p.$eval('.foe-pop .det-panel table.kt', e => e.textContent)).includes('Erika Beispiel') && !(await p.$('#foe-f-mtw-spk .det-panel')), 'Kontakt als Fenster über der Seite (nicht in der Kachel): Kartei-Kontakte als Tabelle');
+  await p.click('.pop-back', { position: { x: 10, y: 10 } });
+  ok(!(await p.$('.foe-pop')), 'Klick daneben schließt das Fenster');
   await p.click('button[data-act="det"][data-v="f-mtw-lot"]');
-  ok(await p.$eval('#foe-f-mtw-lot [data-p="hoehe"]', e => e.value === 'bis 50 % der Kosten'), 'Recherche-Angaben in den Details');
+  r = await p.evaluate(() => [document.querySelector('.foe-pop [data-p="hoehe"]').tagName, document.querySelector('.foe-pop [data-p="hoehe"]').value, [...document.querySelectorAll('.foe-pop .fx')].map(x => x.dataset.act).join(),
+    quellenZeilen('https://a.de/x ; https://b.de https://c.de\nSatzung').join('|')]);
+  ok(r.join(' / ') === 'TEXTAREA / bis 50 % der Kosten / mailto,tel,web / https://a.de/x|https://b.de|https://c.de|Satzung', 'Recherche-Angaben im Fenster: lange Texte mehrzeilig, Knöpfe für E-Mail, Telefon, Website; Quellen je Zeile: ' + r.join(' / '));
+  await p.fill('.foe-pop [data-p="quellen"]', 'https://www.example.org/satzung ; https://www.example.org/richtlinie');
+  r = await p.evaluate(() => [...document.querySelectorAll('.foe-pop .ql a')].map(a => a.getAttribute('href')).join());
+  ok(r === 'https://www.example.org/satzung,https://www.example.org/richtlinie', 'Quellen untereinander als anklickbare Links: ' + r);
+  await p.keyboard.press('Escape');
   // Betrag beim Tippen gleich mit Tausenderpunkt
   await p.click('#amt-f-mtw-lot', { clickCount: 3 }); await p.keyboard.type('45000');
   r = await p.evaluate(() => [document.querySelector('#amt-f-mtw-lot').value, cur().foerderer.find(f => f.id === 'f-mtw-lot').betrag]);
@@ -114,7 +141,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   const q = await open(b, { file, fakefs: false, dark: true, width: 390 });
   r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth]);
   ok(r[0] <= r[1], 'schmal (390 px): kein Querscrollen der Seite (' + r.join(' / ') + ')');
-  await q.click('tr[data-id="b-mtw"]');
+  await q.click('tr[data-id="b-mtw"] .l-name', { modifiers: ['Control'] });
   r = await q.evaluate(() => getComputedStyle(document.body).backgroundColor);
   ok(r !== 'rgb(20, 21, 22)', 'System dunkel, Programm bleibt hell (Standard): ' + r);
   await q.click('button[data-act="menu"]'); await q.click('#mmenu button[data-act="theme"][data-v="dark"]');

@@ -44,8 +44,11 @@ einmaliger Zuordnung, nicht bei Freigabelinks – zurückgestellt.
 **Ordner-Pfad:** Im Explorer den Ordner markieren, Strg+Umschalt+C („Als Pfad kopieren“) und ins Feld einfügen –
 die Anführungszeichen entfernt die Liste.
 
-**In der Liste bearbeiten:** Strg gedrückt halten, dann Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
-und ändern; Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; das + unten links im
+**In der Liste bearbeiten (Normalzustand):** Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
+und ändern – **Strg + Klick öffnet den Bedarf**. „+ Bedarf“ legt oben eine neue Zeile an und führt mit Enter durch
+Name → Summe → Ort → Ansprechperson → Deadline. Die Reihenfolge bleibt beim Arbeiten stehen und wird beim Zurückkommen
+in die Liste neu sortiert. Die Punktlinie zur Frist des Verwendungsnachweises ist ein Zeitstrahl (grau, ab einem Monat
+vorher gelb, ab einer Woche rot). Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; das + unten links im
 Finanzierungsplan fügt einen Förderer hinzu (Enter: zum Betrag, Shift+Enter: speichern und nächster Förderer), der Stift am Ende des Förderernamens benennt ihn um; der Kalender beim
 Verwendungsnachweis setzt die Frist; der Kreis mit Stift bei der Spendenübergabe öffnet Ort, Datum, Uhrzeit und Notizen.
 

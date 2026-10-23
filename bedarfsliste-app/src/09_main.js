@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', open: {} };
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null };
 const UI_KEEP = ['view', 'id', 'tab'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
@@ -86,7 +86,11 @@ function renderNow() {
     let sel = null; try { sel = ae && 'selectionStart' in ae ? [ae.selectionStart, ae.selectionEnd] : null; } catch (e) { /* */ }
     const b = UI.view === 'detail' ? cur() : null;
     if (UI.view === 'detail' && !b) UI.view = 'list';
+    // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
+    if (UI.view !== 'list') ORDER.ids = null; else if (!ORDER.ids) ORDER.ids = filtered().map(x => x.id);
+    if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
     app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : listView());
+    strgSet(CTRL_NOW);
     if (fk) { const e = $(fk, app); if (e) { e.focus({ preventScroll: true }); if (sel && 'setSelectionRange' in e) try { e.setSelectionRange(sel[0], sel[1]); } catch (x) { /* */ } } }
     document.title = (isDirty() ? '● ' : '') + 'Bedarfsliste';
     saveUI();
@@ -106,7 +110,7 @@ function refresh() {
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b));
   swap('fr-blk', frBlock(b)); swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
-  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); });
+  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); swap('ql-' + f.id, quellenListe(f.quellen)); });
   swap('nach-body', nachBody(b));
 }
 
@@ -182,14 +186,10 @@ function about() {
 async function act(k, a, e) {
   const b = cur();
   switch (k) {
-    case 'tab': UI.tab = a.dataset.v; UI.view = 'list'; renderNow(); scrollTo(0, 0); return;
+    case 'tab': UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;
     case 'open': UI.view = 'detail'; UI.id = a.dataset.id; renderNow(); scrollTo(0, 0); return;
     case 'back': UI.view = 'list'; renderNow(); scrollTo(0, 0); return;
-    case 'new': {
-      const nb = blank(); D.bedarfe.unshift(nb); changed();
-      UI.tab = 'aktiv'; UI.view = 'detail'; UI.id = nb.id; renderNow(); scrollTo(0, 0);
-      const t = $('#f-titel'); if (t) t.focus(); return;
-    }
+    case 'new': neuerBedarf(); return;
     case 'clear': Object.assign(UI, { q: '', fSw: '' }); keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
     case 'fw': if ($('.fw-pop')) closeMenus(); else fwPop(a); return;
@@ -250,7 +250,16 @@ async function act(k, a, e) {
       const f0 = b.foerderer.find(f => f.id === a.dataset.fid);
       if (!await confirmBox('Förderer entfernen?', '„' + ((f0 && f0.name) || 'Ohne Namen') + '“ wird mit Summe, Stand, Pro und Contra aus dem Förderplan entfernt. Direkt danach lässt sich das noch rückgängig machen.', 'Entfernen')) return;
       const before = JSON.stringify(D); b.foerderer = b.foerderer.filter(f => f.id !== a.dataset.fid); b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== a.dataset.fid); changed(); keep(renderNow); toast('Förderer entfernt', 'ok', undoTo(before)); return; }
-    case 'det': UI.open['det-' + a.dataset.v] = !UI.open['det-' + a.dataset.v]; break;
+    case 'det': UI.det = a.dataset.v; break;
+    case 'det-zu': UI.det = null; break;
+    case 'mailto': case 'tel': case 'web': {                                       // E-Mail schreiben, anrufen, Seite öffnen – mit dem, was gerade im Feld steht
+      const f = b.foerderer.find(x => x.id === a.dataset.fid); if (!f) return;
+      if (k === 'mailto') { const m = f.mail.trim(); if (!/@/.test(m)) { toast('Erst eine E-Mail-Adresse eintragen.', 'warn'); return; } location.href = 'mailto:' + m; return; }
+      if (k === 'tel') { const t = telNr(f.tel); if (!t) { toast('Erst eine Telefonnummer eintragen.', 'warn'); return; } location.href = 'tel:' + t; return; }
+      const u = webUrl(f.web); if (!u) { toast('Erst einen Link eintragen (https://…).', 'warn'); return; }
+      if (DEMO && /\.example(\/|$)/.test(u)) { toast('Beispiel-Link: In der Programmdatei öffnet sich hier die Seite im Browser.'); return; }
+      window.open(u, '_blank', 'noopener'); return;
+    }
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
     case 'copy-path': copyPath(b); return;
@@ -270,6 +279,7 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   const el = e.target;
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (!DEMO) saveAll({}); return; }
+  if (e.key === 'Escape' && UI.det && !$('.menu, .modal, .cal-pop')) { UI.det = null; keep(renderNow); return; }
   if (e.key === 'Enter' && el.matches && el.matches('tr[data-act="open"]')) { e.preventDefault(); act('open', el, e); }
   if (e.key === 'Enter' && el.id === 'zust-new') { e.preventDefault(); addZust(); }
   if (e.key === 'Enter' && el.id === 'ul-new') { e.preventDefault(); addUl(true); }

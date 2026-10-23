@@ -29,7 +29,7 @@ function demoBedarfe() {
           vn: { noetig: true, frist: '2027-09-30', st: 'offen' } }),
         ff({ id: 'f-mtw-bst', name: 'Bürgerstiftung Musterstadt', art: 'Stiftung', betrag: 15000, status: 'beantragt', beantragtAm: '2026-09-15', erwartet: '2026-11-30', einsch: 'u',
           warum: 'Satzungszweck Bevölkerungsschutz und bürgerschaftliches Engagement.', knackpunkte: 'Fördert ungern ganze Fahrzeuge. Im Antrag die Ausstattung (Sanitätsmaterial, Funk) in den Vordergrund stellen.' }),
-        ff({ id: 'f-mtw-lot', name: 'Beispiel-Soziallotterie', betrag: 30000, status: 'vorb', frist: '2027-01-15', einsch: 'w', art: 'Soziallotterie', weg: 'Portal', web: 'https://antrag.beispiel-lotterie.example',
+        ff({ id: 'f-mtw-lot', name: 'Beispiel-Soziallotterie', betrag: 30000, status: 'geplant', frist: '2027-01-15', einsch: 'w', art: 'Soziallotterie', weg: 'Portal', web: 'https://antrag.beispiel-lotterie.example',
           fristInfo: 'laufend, Bearbeitung etwa 3 Monate', hoehe: 'bis 50 % der Kosten', eigenInfo: 'mindestens 10 %',
           warum: 'Förderschwerpunkt Fahrzeuge für soziale Dienste. Der MTW fährt zusätzlich im Fahrdienst für Menschen mit Behinderung.', knackpunkte: 'Die Nutzung im Fahrdienst muss im Konzept deutlich werden.' }),
       ],
@@ -48,7 +48,7 @@ function demoBedarfe() {
       freigabe: { ofk: { st: 'ok', angefragt: '2026-10-08', erledigt: '2026-10-12' }, angebot: { st: 'angefragt', angefragt: '2026-10-13' },
         fach: { name: 'Ausbildung', st: 'angefragt', angefragt: '2026-10-13' }, verw: { st: 'offen' } },
       unterlagen: [UL('Konzept', 'fehlt', true), UL('Projektsteckbrief', 'arbeit', true)],
-      foerderer: [ff({ name: 'Landesprogramm Digitalisierung (Beispiel)', kontakt: 'Förderportal des Landes', art: 'Öffentliche Förderung', weg: 'Portal', betrag: 1000, status: 'vorb', frist: '2026-10-30', einsch: 'sw',
+      foerderer: [ff({ name: 'Landesprogramm Digitalisierung (Beispiel)', kontakt: 'Förderportal des Landes', art: 'Öffentliche Förderung', weg: 'Portal', betrag: 1000, status: 'geplant', frist: '2026-10-30', einsch: 'sw',
         warum: 'Das Programm fördert Hardware für Ehrenamt und Ausbildung, pauschal 1.000 € je Standort.' })] }),
 
     B({ id: 'b-dig-bra', titel: 'Tablets für die Einsatzdokumentation', gliederung: 'Brakel', stichwort: 'Landesprogramm Digitalisierung 2027', zust: ['Stefan Muster'], prio: 'niedrig', summe: 800, summeArt: 'Angebot', deadline: '2026-12-31',
@@ -76,7 +76,8 @@ function demoBedarfe() {
       foerderer: [
         ff({ name: 'Bürgerstiftung Musterstadt', art: 'Stiftung', betrag: 5000, status: 'zugesagt', zugesagt: 5000, eingegangen: 5000, eingangAm: '2026-08-20', beantragtAm: '2026-05-20', entscheidungAm: '2026-07-02', einsch: 'sw',
           vn: { noetig: true, frist: '2027-03-31', st: 'erledigt' } }),
-        ff({ name: 'Sparkasse Musterstadt', art: 'Sparkasse', betrag: 3000, status: 'zugesagt', zugesagt: 3000, eingegangen: 3000, eingangAm: '2026-08-28', beantragtAm: '2026-05-20', entscheidungAm: '2026-07-10', einsch: 'sw' }),
+        ff({ name: 'Sparkasse Musterstadt', art: 'Sparkasse', betrag: 3000, status: 'zugesagt', zugesagt: 3000, eingegangen: 3000, eingangAm: '2026-08-28', beantragtAm: '2026-05-20', entscheidungAm: '2026-07-10', einsch: 'sw',
+          vn: { noetig: false } }),
       ],
       eigenanteil: 2000,
       nach: { ueb: { noetig: true, st: 'offen', info: 'Küche wird erst Ende November eingebaut – Übergabe danach, damit es Fotos von der fertigen Küche gibt.' }, pm: { noetig: true, st: 'offen' } } }),

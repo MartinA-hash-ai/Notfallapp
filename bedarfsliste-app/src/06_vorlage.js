@@ -9,19 +9,19 @@ const FP_COLS = [
   { k: 'stand', t: 'Stand in der Bedarfsliste', w: 16, info: true, help: 'Nur zur Information: wie weit der Förderer schon ist. Wird nicht eingelesen. Bei neuen Förderern leer lassen.' },
   { k: 'art', t: 'Art', w: 18, items: ART, help: 'Aus der Auswahlliste.' },
   { k: 'weg', t: 'Antragsweg', w: 16, items: ['Portal', 'E-Mail', 'Brief', 'Persönlich', 'Telefon', 'Sonstiges'], help: 'Wie der Antrag gestellt wird – aus der Auswahlliste.' },
-  { k: 'kontakt', t: 'Ansprechperson oder Portal', w: 26, help: 'Name und Funktion der zuständigen Person oder Name des Antragsportals.' },
+  { k: 'kontakt', t: 'Ansprechperson oder Portal', w: 26, help: 'Name und Funktion der zuständigen Person oder Name des Antragsportals – kurz, höchstens etwa 80 Zeichen.' },
   { k: 'mail', t: 'E-Mail', w: 28, help: 'E-Mail-Adresse der Ansprechperson oder der Förderstelle.' },
   { k: 'tel', t: 'Telefon', w: 18, help: 'Telefonnummer.' },
   { k: 'web', t: 'Website oder Portal-Link', w: 32, help: 'Link zur Förderseite oder zum Antragsportal.' },
   { k: 'frist', t: 'Antragsfrist', w: 14, date: true, help: 'Nächster Einsendeschluss als Datum (TT.MM.JJJJ). Laufende Antragstellung: leer lassen und unter „Weitere Fristen und Termine“ notieren.' },
   { k: 'fristInfo', t: 'Weitere Fristen und Termine', w: 30, wrap: true, help: 'Vergabesitzungen, Stichtage, Bearbeitungszeit, „laufend“ usw.' },
   { k: 'betrag', t: 'Erwartete Summe (€)', alias: ['Betrag beantragen (€)'], w: 15, num: true, help: 'Wie viel von diesem Förderer zu erwarten ist bzw. beantragt werden sollte – eine feste Summe, nur die Zahl in Euro.' },
-  { k: 'hoehe', t: 'Übliche Fördersumme', w: 22, wrap: true, help: 'Typische oder maximale Förderhöhe laut Richtlinien oder Förderhistorie.' },
-  { k: 'eigenInfo', t: 'Eigenanteil gefordert', w: 20, wrap: true, help: 'Ob und wie viel Eigenanteil verlangt wird.' },
+  { k: 'hoehe', t: 'Übliche Fördersumme', w: 22, wrap: true, help: 'Typische oder maximale Förderhöhe laut Richtlinien oder Förderhistorie – kurz, z. B. „1.000–5.000 €, max. 10.000 €“ (höchstens etwa 80 Zeichen; Erläuterungen in „Notizen“).' },
+  { k: 'eigenInfo', t: 'Eigenanteil gefordert', w: 20, wrap: true, help: 'Ob und wie viel Eigenanteil verlangt wird – kurz, z. B. „ja, mind. 20 %“ oder „nein“ (höchstens etwa 80 Zeichen; Erläuterungen in „Notizen“).' },
   { k: 'warum', t: 'Pro – warum passt das?', alias: ['Warum passt das?'], w: 48, wrap: true, help: 'Begründung: Satzungszweck, Förderschwerpunkt, Regionalbezug, frühere Förderungen.' },
   { k: 'knackpunkte', t: 'Contra – Knackpunkte', alias: ['Knackpunkte'], w: 48, wrap: true, help: 'Wo es haken kann und worauf der Antrag den Fokus legen sollte.' },
   { k: 'einsch', t: 'Einschätzung', w: 22, items: EINSCH.map(e => e[1]), help: 'Wie wahrscheinlich eine Förderung ist – nur: ' + EINSCH.map(e => e[1]).join(' · ') + '.' },
-  { k: 'quellen', t: 'Quellen', w: 36, wrap: true, help: 'Links zu Satzung, Förderrichtlinien und weiteren Belegen.' },
+  { k: 'quellen', t: 'Quellen', w: 36, wrap: true, help: 'Links zu Satzung, Förderrichtlinien und weiteren Belegen – je Link eine eigene Zeile in der Zelle (Zeilenumbruch), nur die Adresse, keine Trennzeichen wie „;“.' },
   { k: 'notiz', t: 'Notizen', w: 30, wrap: true, help: 'Alles Weitere.' },
 ];
 const fpHeadKey = t => norm(t).replace(/[^a-zäöüß0-9]/g, '');
@@ -57,6 +57,8 @@ const rechUmfang = b => rechAnzahl(b) + ' Förderer, sortiert nach Erfolgsaussic
   + 'geht das nicht, die Zelle leer lassen. Nicht auf eine Gesamtsumme hinrechnen. Lieber weniger Förderer mit Beleg als viele unsichere.';
 const RECH_REGELN = ['Je Förderer genau eine Zeile im Blatt „Förderplan“, ab der Zeile unter den Überschriften.', 'Spaltenüberschriften, Blattnamen und die Angaben oben (Bedarf, Kennung) nicht ändern.',
   'Datum immer als TT.MM.JJJJ, Beträge nur als Zahl in Euro (ohne Text).', 'Art, Antragsweg und Einschätzung aus der Auswahlliste der Zelle wählen.',
+  'Kurze Felder kurz halten: „Ansprechperson oder Portal“, „Übliche Fördersumme“ und „Eigenanteil gefordert“ höchstens etwa 80 Zeichen – Erläuterungen gehören in „Notizen“.',
+  'Quellen: je Link eine eigene Zeile in der Zelle, nur die Adresse.',
   'Unsicheres als solches kennzeichnen (z. B. „laut Website 2025, nicht bestätigt“). Nichts erfinden: lieber eine Zelle leer lassen.'];
 
 /* ---------- Vorlage schreiben (leer oder mit Bedarf und bisherigem Förderplan) */
@@ -273,7 +275,8 @@ function einschKey(v) {
 function applyResearch(f, it, mode) {
   for (const c of FP_COLS) {
     if (c.k === 'name' || c.info) continue;
-    const v = it[c.k]; if (v == null || v === '') continue;
+    let v = it[c.k]; if (v == null || v === '') continue;
+    if (c.k === 'quellen') v = quellenZeilen(v).join('\n');
     const empty = f[c.k] == null || f[c.k] === '';
     if (mode === 'all' || empty) f[c.k] = v;
   }

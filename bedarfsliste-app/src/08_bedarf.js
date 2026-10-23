@@ -59,6 +59,7 @@ function bedarfView(b) {
     <div class="d-left">${secInfo(b)}${secFoe(b)}${secNach(b)}</div>
     <aside class="d-right">${sidePanel(b)}</aside>
     </div>
+    ${UI.det ? foePop(b) : ''}
     ${dl('dl-gl', [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)])}
   </main>`;
 }
@@ -140,7 +141,7 @@ function circNext(btn) {
 
 /* ---------- Förderplan: je Förderer eine Überschrift (Name), rechts groß die Summe mit Anteil, daneben der Stand mit Fristen, oben rechts die Einschätzung;
    darunter Pro und Contra, Kontakt und Details zum Aufklappen */
-const F_ST = [['geplant', 'geplant'], ['vorb', 'in Vorbereitung', 't-warn'], ['beantragt', 'beantragt', 't-run'], ['zugesagt', 'zugesagt', 't-ok'], ['abgelehnt', 'abgelehnt', 't-err']];
+const F_ST = [['geplant', 'geplant'], ['beantragt', 'beantragt', 't-run'], ['zugesagt', 'zugesagt', 't-ok'], ['abgelehnt', 'abgelehnt', 't-err']];
 const F_ST_L = Object.fromEntries(F_ST.map(([v, l]) => [v, l]));
 const LVL = ['suw', 'uw', 'u', 'w', 'sw'];                 // Einschätzung als Punkte 1 (rot) … 5 (grün)
 const artFromKartei = (k, name) => /stiftung/i.test(name) || /stift/i.test(k.blatt) ? 'Stiftung' : /sparkasse/i.test(name) ? 'Sparkasse' : /bank/i.test(name) ? 'Volksbank / Bank' : '';
@@ -175,18 +176,44 @@ function detKartei(f) {
     <dl class="dl">${row('Antragsweg', esc(k.weg.join(' oder ')))}${row('Website', k.web ? `<a href="${esc(/^https?:/i.test(k.web) ? k.web : 'https://' + k.web)}" target="_blank" rel="noopener" data-act="link">${esc(k.web.replace(/^https?:\/\//, '').slice(0, 60))}</a>` : '')}
       ${row('Gliederungen', esc(k.gl.join(', ')))}${row('Schwerpunkte', esc(k.schwer))}${row('Notiz', esc(k.notiz))}
       ${row('Bisher gefördert', hist.length ? hist.map(([y, v]) => `<div>${y}: ${esc(v.replace(/\n/g, ', '))}</div>`).join('') : '<span class="muted">nichts eingetragen</span>')}</dl>
-    ${k.kontakte.length ? `<table class="kt"><thead><tr><th>Kontakt</th><th>E-Mail</th><th>Telefon</th></tr></thead><tbody>${k.kontakte.map(c => `<tr><td>${esc(c.n)}${c.nicht ? '<div class="sub">nicht direkt anschreiben</div>' : ''}</td><td class="sel">${esc(c.m)}</td><td>${esc(c.t)}</td></tr>`).join('')}</tbody></table>` : ''}</div>`;
+    ${k.kontakte.length ? `<table class="kt"><thead><tr><th>Kontakt</th><th>E-Mail</th><th>Telefon</th></tr></thead><tbody>${k.kontakte.map(c => `<tr><td>${esc(c.n)}${c.nicht ? '<div class="sub">nicht direkt anschreiben</div>' : ''}</td><td class="sel">${c.m ? `<a href="mailto:${esc(c.m)}" title="E-Mail schreiben">${esc(c.m)}</a>` : ''}</td><td>${telNr(c.t) ? `<a href="tel:${telNr(c.t)}" title="Anrufen">${esc(c.t)}</a>` : esc(c.t)}</td></tr>`).join('')}</tbody></table>` : ''}</div>`;
 }
-const OWN_FIELDS = [['kontakt', 'Ansprechperson oder Portal'], ['mail', 'E-Mail'], ['tel', 'Telefon'], ['web', 'Website oder Portal-Link'], ['weg', 'Antragsweg'],
-  ['fristInfo', 'Weitere Fristen und Termine'], ['hoehe', 'Übliche Fördersumme'], ['eigenInfo', 'Eigenanteil gefordert'], ['quellen', 'Quellen'], ['notiz', 'Notizen']];
+// eigene Angaben: lange Texte mehrzeilig (wachsen mit), E-Mail, Telefon und Website mit Knopf zum Schreiben, Anrufen, Öffnen; Quellen untereinander als Links
+const OWN_FIELDS = [['kontakt', 'Ansprechperson oder Portal', 'area'], ['weg', 'Antragsweg', ''], ['mail', 'E-Mail', 'mail'], ['tel', 'Telefon', 'tel'],
+  ['web', 'Website oder Portal-Link', 'web wide'], ['fristInfo', 'Weitere Fristen und Termine', 'area wide'], ['hoehe', 'Übliche Fördersumme', 'area'],
+  ['eigenInfo', 'Eigenanteil gefordert', 'area'], ['quellen', 'Quellen', 'q wide'], ['notiz', 'Notizen', 'area wide']];
+const FX = { mail: ['mailto', '✉', 'E-Mail schreiben'], tel: ['tel', '☎', 'Anrufen'], web: ['web', '↗', 'Seite öffnen'] };
+const telNr = t => String(t || '').replace(/[^\d+]/g, '');
+const webUrl = u => { u = String(u || '').trim(); return /^https?:\/\//i.test(u) ? u : /^www\.|^[\w-]+\.[a-z]{2,}(\/|$)/i.test(u) ? 'https://' + u : ''; };
+function quellenListe(t) {
+  const L = quellenZeilen(t); if (!L.length) return '';
+  return L.map(z => { const u = (z.match(/https?:\/\/\S+/) || [])[0];
+    return u ? `<a href="${esc(u)}" target="_blank" rel="noopener" data-act="link" title="${esc(u)}">${esc(z === u ? u.replace(/^https?:\/\/(www\.)?/, '').slice(0, 90) : z)}</a>` : `<span>${esc(z)}</span>`; }).join('');
+}
+function ownField(f, [k, l, art]) {
+  const a = `data-fid="${f.id}"`, x = a + ` aria-label="${l}"`;
+  if (/area/.test(art)) return fld(l, tarea(f, k, x + ' class="ta-auto"', '', 1), /wide/.test(art) ? 'wide' : '');
+  if (art.startsWith('q')) return fld(l, `<div class="ql" id="ql-${f.id}">${quellenListe(f.quellen)}</div><details class="ql-edit"${f.quellen.trim() ? '' : ' open'}><summary>Quellen bearbeiten</summary>${tarea(f, 'quellen', x + ' class="ta-auto"', 'je Link eine Zeile', 2)}</details>`, 'wide');
+  const fx = FX[art.split(' ')[0]];
+  return fld(l, fx ? `<div class="fx-row">${tin(f, k, x)}<button class="fx" data-act="${fx[0]}" ${a} title="${fx[2]}" aria-label="${fx[2]}">${fx[1]}</button></div>` : tin(f, k, x), /wide/.test(art) ? 'wide' : '');
+}
 function detPanel(b, f) {
-  const a = `data-fid="${f.id}"`, area = k => k === 'quellen' || k === 'notiz' || k === 'fristInfo';
+  const a = `data-fid="${f.id}"`;
   return `<div class="det-panel"><div><div id="dk-${f.id}">${detKartei(f)}</div>
       <div class="det-more"><div class="kv"><span class="k">Antrag stellt</span>${seg([['ich', 'ich'], ['gl', 'Gliederung selbst']], f.durch, `data-p="durch" ${a}`, 'small')}</div>
         ${f.status === 'zugesagt' ? `<div class="kv"><span class="k">beantragt waren</span>${nin(f, 'betrag', a + ' aria-label="beantragter Betrag"')}<span class="unit">€</span></div>` : ''}</div></div>
-    <div class="det-o"><h4>Eigene Angaben und Recherche</h4><div class="grid own-grid">${OWN_FIELDS.map(([k, l]) => fld(l, area(k) ? tarea(f, k, a + ` aria-label="${l}"`) : tin(f, k, a + ` aria-label="${l}"`), area(k) ? 'wide' : '')).join('')}</div></div></div>`;
+    <div class="det-o"><h4>Eigene Angaben und Recherche</h4><div class="grid own-grid">${OWN_FIELDS.map(o => ownField(f, o)).join('')}</div></div></div>`;
 }
-const AMT_LAB = { geplant: 'Erwartete Summe', vorb: 'Erwartete Summe', beantragt: 'Beantragte Summe', zugesagt: 'Zugesagte Summe', abgelehnt: 'Beantragt (abgelehnt)' };
+// Kontakt und Details eines Förderers als Fenster über der Seite (Klick daneben, × oder Esc schließt)
+function foePop(b) {
+  const f = b.foerderer.find(x => x.id === UI.det); if (!f) return '';
+  return `<div class="pop-back" data-act="det-zu"></div>
+    <div class="foe-pop" role="dialog" aria-modal="true" aria-label="Kontakt und Details: ${esc(f.name || 'Förderer')}">
+      <header><h3>${esc(f.name || '(ohne Namen)')}</h3><span class="st-btn s-${f.status}">${F_ST_L[f.status]}</span><button class="x" data-act="det-zu" aria-label="Schließen" title="Schließen (Esc)">×</button></header>
+      ${detPanel(b, f)}
+    </div>`;
+}
+const AMT_LAB = { geplant: 'Erwartete Summe', beantragt: 'Beantragte Summe', zugesagt: 'Zugesagte Summe', abgelehnt: 'Beantragt (abgelehnt)' };
 const pct = (v, S) => S ? Math.round(v / S * 100) + ' %' : '';
 function foeShare(b, f) {
   const S = +b.summe || 0, v = f.status === 'abgelehnt' ? 0 : foeAmt(f);
@@ -208,7 +235,7 @@ function geldPop(btn) {
 // Fristen je Stand, jeweils Bezeichnung über dem Datum
 function fpDates(f) {
   const d = (lab, p) => `<label class="fp-d"><span>${lab}${lab === 'am' ? '' : ':'}</span><input type="text" class="inline date dfeld" data-dp="${p}" data-fid="${f.id}" value="${esc(fmtDate(f[p]))}" placeholder="tt.mm.jjjj" aria-label="${lab}" autocomplete="off"></label>`;
-  return ({ geplant: d('Antragsfrist', 'frist'), vorb: d('Antragsfrist', 'frist'), beantragt: d('am', 'beantragtAm') + d('Antwort erwartet', 'erwartet'),
+  return ({ geplant: d('Antragsfrist', 'frist'), beantragt: d('am', 'beantragtAm') + d('Antwort erwartet', 'erwartet'),
     zugesagt: d('am', 'entscheidungAm'), abgelehnt: d('am', 'entscheidungAm') })[f.status];
 }
 // Einschätzung: fünf kleine Punkte, die sich von rechts füllen – der rechte allein ist „sehr unwahrscheinlich“, alle fünf „sehr wahrscheinlich“
@@ -220,8 +247,8 @@ function dots(f) {
 }
 // je Förderer eine kompakte Kachel: Name mit Löschen, Einschätzung; groß die Summe; Stand mit Datum (nach dem Geldeingang nur noch „eingegangen am …“ mit Stift); Pro und Contra; unten Kontakt
 function fpCard(b, f) {
-  const a = `data-fid="${f.id}"`, st = f.status, open = !!UI.open['det-' + f.id], amtP = st === 'zugesagt' ? 'zugesagt' : 'betrag';
-  return `<article class="card fp fk st-${st}${open ? ' open' : ''}" id="foe-${f.id}">
+  const a = `data-fid="${f.id}"`, st = f.status, amtP = st === 'zugesagt' ? 'zugesagt' : 'betrag';
+  return `<article class="card fp fk st-${st}" id="foe-${f.id}">
     <div class="fk-top">
       <div class="fk-kopf">
         <div class="fp-title"><input type="text" class="inline fp-h" data-p="name" ${a} value="${esc(f.name)}" placeholder="Förderer" aria-label="Förderer" autocomplete="off">
@@ -236,8 +263,7 @@ function fpCard(b, f) {
       <label class="contra" title="Contra: wo hakt es?"><i></i>${tarea(f, 'knackpunkte', a + ' rows="1" aria-label="Contra – Knackpunkte"', 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?')}</label>
     </div>
     <div class="det">
-      <button class="det-btn" data-act="det" data-v="${f.id}" aria-expanded="${open}"><span class="tw">${open ? '▾' : '▸'}</span><span class="ds" id="ds-${f.id}">${detSummary(f)}</span></button>
-      ${open ? detPanel(b, f) : ''}
+      <button class="det-btn" data-act="det" data-v="${f.id}" aria-haspopup="dialog" title="Kontakt, Links und Recherche-Angaben öffnen"><span class="ds" id="ds-${f.id}">${detSummary(f)}</span><span class="det-auf" aria-hidden="true">›</span></button>
     </div>
   </article>`;
 }
@@ -252,9 +278,11 @@ function stMenu(btn) {
 }
 /* ---------- Übersicht oben im Förderplan: Tabelle (Gesamtbedarf, Förderer nach Stand, Delta, Eigenmittel) und daneben ein Kreisdiagramm.
    Die Tabelle ist zugleich die Legende: jede Zeile trägt das Farbfeld ihres Kreisstücks. */
-const ROW_CLS = { zugesagt: 'r-zu', beantragt: 'r-be', vorb: 'r-ge', geplant: 'r-ge', abgelehnt: 'r-ab' };
+const ROW_CLS = { zugesagt: 'r-zu', beantragt: 'r-be', geplant: 'r-ge', abgelehnt: 'r-ab' };
 const segKind = f => f.status === 'zugesagt' ? 'zu' : f.status === 'beantragt' ? 'be' : f.status === 'abgelehnt' ? 'none' : 'ge';
 const swa = k => `<i class="swa ${k}" aria-hidden="true"></i>`;
+// Kreisdiagramm: je Förderer ein Stück; beim Überfahren erscheinen alle Beschriftungen (Name, Betrag, Anteil) links und rechts mit Linie zum Stück
+const PIE = { W: 560, H: 240, R: 82 };
 function finPie(b) {
   const F = finState(b), parts = [], fs = F.fs.filter(f => segKind(f) !== 'none' && !(F.done && segKind(f) !== 'zu'));   // steht die Finanzierung, zählen nur noch Zusagen
   const add = (k, name, v) => { if (v > 0) parts.push({ k, name, v }); };
@@ -263,26 +291,35 @@ function finPie(b) {
   for (const k of ['be', 'ge']) fs.filter(f => segKind(f) === k).forEach(f => add(k, f.name || '(ohne Namen)', foeAmt(f)));
   const tot = parts.reduce((x, p) => x + p.v, 0), max = Math.max(F.S, tot);
   add('off', 'Delta, noch ohne Förderer', F.S - tot);
-  if (!max) return '<svg class="pie" viewBox="0 0 100 100" aria-hidden="true"><circle class="ps off" cx="50" cy="50" r="48"/></svg>';
+  const { W, H, R } = PIE, cx = W / 2, cy = H / 2, xy = (a, r) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  const svg = inner => `<svg class="pie" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(finText(b))}"><defs><pattern id="pie-off" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
+    + `<rect width="4" height="4" style="fill:var(--track)"/><rect width="1.2" height="4" style="fill:var(--off-st)"/></pattern></defs>${inner}</svg>`;
+  if (!max) return svg(`<circle class="ps off" cx="${cx}" cy="${cy}" r="${R}"/>`);
   let w = -Math.PI / 2;
-  const pt = x => (50 + 48 * Math.cos(x)).toFixed(2) + ' ' + (50 + 48 * Math.sin(x)).toFixed(2);
-  const slices = parts.map(p => {
-    const da = p.v / max * 2 * Math.PI, d = da > 2 * Math.PI - 1e-6 ? null : `M50 50L${pt(w)}A48 48 0 ${da > Math.PI ? 1 : 0} 1 ${pt(w + da)}Z`, tip = `data-tip="${esc(p.name)}" data-tip2="${esc(eur(p.v))}"`;
-    w += da;
-    return d ? `<path class="ps ${p.k}" d="${d}" ${tip}/>` : `<circle class="ps ${p.k}" cx="50" cy="50" r="48" ${tip}/>`;
+  const P = parts.map(p => { const da = p.v / max * 2 * Math.PI, o = Object.assign({}, p, { a0: w, da, mid: w + da / 2 }); w += da; return o; });
+  const slices = P.map(p => {
+    const pt = a => xy(a, R).map(n => n.toFixed(2)).join(' ');
+    return p.da > 2 * Math.PI - 1e-6 ? `<circle class="ps ${p.k}" cx="${cx}" cy="${cy}" r="${R}"/>`
+      : `<path class="ps ${p.k}" d="M${cx} ${cy}L${pt(p.a0)}A${R} ${R} 0 ${p.da > Math.PI ? 1 : 0} 1 ${pt(p.a0 + p.da)}Z"/>`;
   });
-  return `<svg class="pie" viewBox="0 0 100 100" role="img" aria-label="${esc(finText(b))}"><defs><pattern id="pie-off" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
-    + `<rect width="4" height="4" style="fill:var(--track)"/><rect width="1.2" height="4" style="fill:var(--off-st)"/></pattern></defs>${slices.join('')}</svg>`;
+  // Beschriftungen: rechte und linke Seite getrennt von oben nach unten, mit Mindestabstand, damit sich nichts überlappt
+  const GAP = 32, TOP = 18, BOT = H - 22;
+  P.forEach(p => { p.re = Math.cos(p.mid) >= 0; p.y = xy(p.mid, R + 16)[1]; });
+  for (const re of [true, false]) {
+    const L = P.filter(p => p.re === re).sort((a, c) => a.y - c.y);
+    L.forEach((p, i) => { p.y = Math.max(p.y, TOP, i ? L[i - 1].y + GAP : TOP); });
+    const over = L.length ? L[L.length - 1].y - BOT : 0;
+    if (over > 0) for (let i = L.length - 1; i >= 0; i--) L[i].y = Math.min(L[i].y - over, i < L.length - 1 ? L[i + 1].y - GAP : BOT);
+  }
+  const kurz = t => t.length > 30 ? t.slice(0, 29) + '…' : t;
+  const labels = P.map(p => {
+    const [x0, y0] = xy(p.mid, R), [x1, y1] = xy(p.mid, R + 12), tx = p.re ? cx + R + 44 : cx - R - 44, anc = p.re ? 'start' : 'end';
+    return `<g class="pl"><polyline class="pl-l" points="${x0.toFixed(1)},${y0.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)} ${(tx + (p.re ? -6 : 6)).toFixed(1)},${p.y.toFixed(1)}"/>`
+      + `<text class="pl-n" x="${tx}" y="${(p.y - 2).toFixed(1)}" text-anchor="${anc}">${esc(kurz(p.k === 'off' ? 'Delta' : p.name))}</text>`
+      + `<text class="pl-v" x="${tx}" y="${(p.y + 13).toFixed(1)}" text-anchor="${anc}">${esc(eur(p.v))} · ${Math.round(p.v / max * 100)} %</text></g>`;
+  });
+  return svg(slices.join('') + labels.join(''));
 }
-// Infofeld am Kreisdiagramm: sofort beim Überfahren, wer und wie viel
-document.addEventListener('mousemove', e => {
-  const s = e.target.closest && e.target.closest('.ps[data-tip]');
-  let t = $('.pie-tip');
-  if (!s) { if (t) t.remove(); return; }
-  if (!t) { t = h('div', { class: 'pie-tip', role: 'tooltip' }); document.body.append(t); }
-  t.innerHTML = `<b>${esc(s.dataset.tip)}</b><span>${esc(s.dataset.tip2)}</span>`;
-  t.style.left = Math.min(e.clientX + 14, innerWidth - t.offsetWidth - 8) + 'px'; t.style.top = (e.clientY + 14) + 'px';
-}, { passive: true });
 function finRows(b) {
   const S = +b.summe || 0, F = finState(b);
   return `<tr class="r-sum"><th>${swa('none')}Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`

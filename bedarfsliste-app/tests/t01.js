@@ -10,9 +10,23 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   const p = await open(b, { fakefs: false });
   ok(await p.$eval('#list-body', e => e.textContent.includes('Noch keine Bedarfe')), 'leere Liste mit Hinweis');
   ok(await p.$$eval('.tools select', s => s.map(x => x.getAttribute('aria-label')).join()) === 'Stichwort' && !!(await p.$('#q')), 'über der Liste nur Suche und Stichwort');
+  // „+ Bedarf“: neue Zeile in der Liste, der Reihe nach Name → Summe → …; Strg + Klick öffnet den Bedarf
   await p.click('button[data-act="new"]');
-  await p.keyboard.type('Defibrillator Test');
-  let r = await p.evaluate(() => [D.bedarfe[0].titel, document.querySelectorAll('[data-p="titel"]').length, document.querySelector('#f-titel').placeholder, document.querySelector('input[data-p="gliederung"]').placeholder, document.querySelector('input[data-p="summe"]').placeholder,
+  let r = await p.evaluate(() => [UI.view, document.querySelectorAll('#list-body tr[data-id]').length, document.activeElement.classList.contains('le-edit'), document.activeElement.placeholder,
+    [...document.querySelectorAll('#list-body tr[data-id] .ph')].map(e => e.textContent).join(',')]);
+  ok(r.join('|') === 'list|1|true|Name des Bedarfs|Name des Bedarfs,Summe,Ort,Ansprechperson', '„+ Bedarf“: neue Zeile in der Liste, Feld für den Namen offen, leere Felder mit blassem Platzhalter: ' + r.join('|'));
+  await p.keyboard.type('Defibrillator Test'); await p.keyboard.press('Enter');
+  r = await p.evaluate(() => [D.bedarfe[0].titel, document.activeElement.placeholder]);
+  ok(r.join('|') === 'Defibrillator Test|Summe', 'Enter: Name übernommen, weiter zur Summe: ' + r.join('|'));
+  await p.keyboard.press('Escape');
+  await p.click('button[data-act="new"]'); await p.keyboard.press('Escape');
+  ok(await p.evaluate(() => D.bedarfe.length === 1 && document.querySelectorAll('#list-body tr[data-id]').length === 1), 'neuer Bedarf ohne Namen (Esc) verschwindet wieder');
+  await p.click('#list-body tr[data-id] .l-name');
+  ok(await p.evaluate(() => UI.view === 'list' && !!document.querySelector('#list-body .le-edit')), 'ohne Strg: Klick auf den Namen bearbeitet ihn, der Bedarf bleibt zu');
+  await p.keyboard.press('Escape');
+  await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
+  ok(await p.evaluate(() => UI.view === 'detail'), 'Strg + Klick öffnet den Bedarf');
+  r = await p.evaluate(() => [D.bedarfe[0].titel, document.querySelectorAll('[data-p="titel"]').length, document.querySelector('#f-titel').placeholder, document.querySelector('input[data-p="gliederung"]').placeholder, document.querySelector('input[data-p="summe"]').placeholder,
     [...document.querySelectorAll('#sec-eck .lab')].map(e => e.textContent.trim()).join(','), !!document.querySelector('#d-title')]);
   ok(r.join('|') === 'Defibrillator Test|1|Bedarf|Gliederung (Ort oder Diözese)|Summe|Zuständig,Deadline i,Stichwort oder Fördertopf i,Beschreibung|false', 'Name nur einmal, oben direkt änderbar; Felder darunter: ' + r.join('|'));
   await p.fill('input[data-p="gliederung"]', 'Paderborn');
@@ -69,33 +83,41 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   ok(!!(await p.$('.fk-st .st-btn')) && !!(await p.$('.fk-st .geld-link')) && await p.evaluate(() => D.bedarfe[0].foerderer[0].eingegangen) == null, 'Stift → „Eingang zurücknehmen“: Stand, Datum und Link sind wieder da');
   await p.click('button[data-act="geld"]'); await p.click('.cal-pop .cal-d.heute');
   ok(r[0] === 800 && r[1].includes('Spendenübergabe') && r[1].includes('Pressemitteilung') && r[2] === 'Nacharbeit', 'Geld eingegangen → Phase Nacharbeit: ' + r[1]);
-  await p.click('[data-p="nach.ueb.st"][data-v="erledigt"]'); await p.click('[data-p="nach.pm.st"][data-v="veroeff"]');
+  ok(await p.evaluate(() => D.bedarfe[0].foerderer[0].vn.noetig === true) && r[1].includes('Verwendungsnachweis'), 'Verwendungsnachweis standardmäßig nötig');
+  await p.click('[data-p="nach.ueb.st"][data-v="erledigt"]'); await p.click('[data-p="nach.pm.st"][data-v="veroeff"]'); await p.click('[data-p="vn.st"][data-v="erledigt"]');
   ok((await status(p)).includes('Alles erledigt'), 'Nacharbeit erledigt → abgeschlossen');
   await p.click('button[data-act="back"]');
   r = await p.evaluate(() => { const tr = document.querySelector('#list-body tr[data-id]'), td = [...tr.querySelectorAll('td')].map(e => e.innerText.replace(/\s+/g, ' ').trim());
-    return [td.length, td[0], td[1], td[2], !!tr.querySelector('.l-fr .done'), tr.querySelector('.l-fin .fr.z .fn').textContent, tr.querySelector('.l-fin .vt.nn').textContent, !tr.querySelector('.l-fin .lead'), td[5], !tr.querySelector('.phase, button.prio')]; });
-  ok(r.join('|') === '6|Defibrillator Test|800 €|Paderborn – ohne Deadline|true|Sparkasse X|nicht nötig|true|erledigt|true', 'Liste: Name, Summe, Ort; Freigabe blass grün; Förderer blass grün ohne Nachweis; Übergabe erledigt: ' + r.join('|'));
-  await p.click('#list-body tr[data-id]');
+    return [td.length, td[0], td[1], td[2], !!tr.querySelector('.l-fr .done'), tr.querySelector('.l-fin .fr.z .fn').textContent, tr.querySelector('.l-fin .vt').textContent, !!tr.querySelector('.l-fin .fr.z .lead'), td[5], !tr.querySelector('.phase, button.prio')]; });
+  ok(r.join('|') === '6|Defibrillator Test|800 €|Paderborn Ansprechperson ohne Deadline|true|Sparkasse X|erledigt|true|erledigt|true', 'Liste: Name, Summe, Ort; Freigabe blass grün; Förderer blass grün, Nachweis erledigt; Übergabe erledigt: ' + r.join('|'));
+  await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
   await p.click('.d-head button.prio'); await p.click('#pmenu button[data-v="hoch"]');
   await p.click('button[data-act="back"]');
   ok(await p.evaluate(() => D.bedarfe[0].prio === 'hoch' && document.querySelector('#list-body tr[data-id] .prio-t').textContent === '(Prio)'), 'Priorität hoch (auf der Seite des Bedarfs) → „(Prio)“ hinter dem Namen');
-  await p.click('#list-body tr[data-id]');
+  await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
   await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-v="zurückgestellt"]');
   ok(await p.evaluate(() => D.bedarfe[0].manuell === 'zurückgestellt'), '„⋯“: zurückgestellt');
   await p.click('button[data-act="back"]');
   ok(await p.evaluate(() => document.querySelector('#list-body tr.paused .pause-t').textContent === '(zurückgestellt)'), 'Liste: zurückgestellt steht hinter dem Namen');
-  await p.click('#list-body tr[data-id]');
+  await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
   await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-v=""]');
   ok(await p.evaluate(() => D.bedarfe[0].manuell === ''), '„⋯“: wieder aufgenommen');
   await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-act="archive"]');
   ok(await p.evaluate(() => D.bedarfe[0].archiv && !document.querySelector('#list-body tr[data-id]')), '„⋯“: archiviert, aus der Liste verschwunden');
   await p.click('#toasts button.link');
   ok(await p.evaluate(() => !D.bedarfe[0].archiv && !!document.querySelector('#list-body tr[data-id]')), 'Rückgängig holt ihn zurück');
-  await p.click('#list-body tr[data-id]'); await p.click('button[data-act="del"]');
+  await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] }); await p.click('button[data-act="del"]');
   await p.waitForSelector('.modal'); await p.click('.modal footer button.primary');
   ok(await p.evaluate(() => D.bedarfe.length === 0 && UI.view === 'list'), 'roter Knopf: nach Rückfrage gelöscht');
   await p.click('#toasts button.link');
   ok(await p.evaluate(() => D.bedarfe.length === 1), 'Löschen rückgängig gemacht');
+  // ab 0.17: Verwendungsnachweis standardmäßig nötig (gespeicherte Daten einmalig umgestellt, Archiv und Fälle mit Frist nicht), „in Vorbereitung“ → geplant
+  r = await p.evaluate(() => { const mk = arch => ({ id: 'x' + arch, titel: 'x', archiv: arch, foerderer: [{ name: 'A', status: 'vorb', vn: { noetig: false, frist: '', st: 'offen' } }, { name: 'B', status: 'zugesagt', vn: { noetig: false, frist: '2027-01-01', st: 'offen' } }] });
+    const n = normalize({ meta: { savedAt: '2026-10-01T00:00:00Z', rev: 3 }, bedarfe: [mk(false), mk(true)] });
+    const m = n.bedarfe[0].foerderer.map(f => f.vn.noetig + ':' + f.status).join();
+    n.bedarfe[0].foerderer[0].vn.noetig = false; const again = normalize(JSON.parse(JSON.stringify(n)));
+    return [m, n.bedarfe[1].foerderer[0].vn.noetig, n.meta.vnStd, again.bedarfe[0].foerderer[0].vn.noetig, normalize({ bedarfe: [mk(false)] }).bedarfe[0].foerderer[0].vn.noetig, ff({}).vn.noetig].join('|'); });
+  ok(r === 'true:geplant,false:zugesagt|false|1|false|false|true', 'Verwendungsnachweis: neu standardmäßig nötig; gespeicherte Daten einmalig umgestellt (ohne Archiv, ohne Fälle mit Frist), danach bleibt „nicht nötig“; „in Vorbereitung“ wird geplant: ' + r);
   // Daten aus 0.1: Angebot war Teil der Freigabe, Einschätzung dreistufig
   r = await p.evaluate(() => { const n = normalize({ bedarfe: [{ id: 'alt', titel: 'alt', freigabe: { angebot: { st: 'ok' }, trotzdem: true }, unterlagen: [{ name: 'Konzept', st: 'da', fest: true }, { name: 'Bilder', st: 'da' }], foerderer: [{ name: 'A', einsch: 'gut' }, { name: 'B', einsch: 'schwierig' }] }] }).bedarfe[0];
     return [n.unterlagen.map(u => u.name + ':' + u.st).join(), 'angebot' in n.freigabe, 'trotzdem' in n.freigabe, n.foerderer.map(f => f.einsch).join()]; });

@@ -1,5 +1,23 @@
 [
   {
+    "version": "0.17.0",
+    "date": "2026-10-23T14:30",
+    "items": [
+      "Liste: Bearbeiten ist jetzt der Normalzustand – Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern, Stände per Klick weiterdrehen; Strg + Klick öffnet den Bedarf",
+      "Beim Überfahren ist immer die ganze Zeile grau hinterlegt, das Feld unter der Maus zusätzlich hervorgehoben; Kalender und Kreis mit Stift erscheinen nur in der Zeile unter der Maus",
+      "„+ Bedarf“ legt eine neue Zeile oben in der Liste an: Name → Summe → Ort → Ansprechperson → Deadline, jeweils mit Enter weiter; leere Felder zeigen einen blassen Platzhalter; ohne Namen verschwindet die Zeile wieder",
+      "Beim Arbeiten in der Liste bleibt die Reihenfolge stehen; neu sortiert wird beim Zurückkommen in die Liste",
+      "Verwendungsnachweis ist standardmäßig nötig; in schon gespeicherten Daten einmalig auch dort, wo er unberührt auf „nicht nötig“ stand (ohne Archiv und ohne Fälle mit Frist)",
+      "Zeitstrahl: die Punktlinie zur Frist des Verwendungsnachweises füllt sich von links – grau, ab einem Monat vor der Frist gelb, ab einer Woche rot",
+      "Förderer haben nur noch die Stände geplant, beantragt, zugesagt und abgelehnt („in Vorbereitung“ wird zu „geplant“)",
+      "Kreisdiagramm: beim Überfahren erscheinen alle Beschriftungen mit Name, Betrag und Anteil; das Diagramm steht weiter rechts",
+      "Summe oben auf der Seite größer",
+      "Kontakt und Details eines Förderers als Fenster statt Aufklappen über die ganze Breite: E-Mail, Telefon und Website mit Knopf zum Schreiben, Anrufen und Öffnen; Mail-Adressen und Telefonnummern aus der Kartei anklickbar; lange Texte mehrzeilig; Quellen untereinander als Links",
+      "Pro und Contra mit drei Zeilen Vorschau und mehr Abstand",
+      "Recherche mit Copilot: Quellen je Link eine Zeile, „Ansprechperson“, „Übliche Fördersumme“ und „Eigenanteil“ kurz (Erläuterungen in „Notizen“); beim Übernehmen werden hintereinander geschriebene Quellen getrennt"
+    ]
+  },
+  {
     "version": "0.16.0",
     "date": "2026-10-23T09:10",
     "items": [

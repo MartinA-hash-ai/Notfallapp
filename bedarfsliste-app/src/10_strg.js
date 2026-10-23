@@ -1,19 +1,17 @@
-/* ===================================================================== Strg gedrückt halten: in der Liste direkt bearbeiten.
+/* ===================================================================== In der Liste direkt bearbeiten – das ist der Normalzustand; mit gedrückter Strg-Taste öffnet ein Klick den Bedarf.
    Name, Summe, Ort, Ansprechperson, Deadline, Beträge und Eigenmittel werden per Klick zum schlichten Feld an derselben Stelle (Vorschläge beim Tippen);
    Freigabe, Angebot, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; über dem Finanzierungsplan unten links ein + für weitere Förderer,
    am Ende des Förderernamens ein Stift zum Umbenennen, beim Nachweis ein Kalender für die Frist; bei der Spendenübergabe ein Kreis mit Stift, der Ort,
-   Datum, Uhrzeit und Notizen zum Eintragen öffnet – das Feld bleibt offen, auch wenn Strg losgelassen wird. */
+   Datum, Uhrzeit und Notizen zum Eintragen öffnet. „+ Bedarf“ legt eine neue Zeile oben in der Liste an und führt durch Name, Summe, Ort, Ansprechperson und Deadline. */
 
-let STRG = false;
-function strgSet(on) {
-  on = !!on && UI.view === 'list';
-  if (on === STRG) return;
-  STRG = on;
-  document.body.classList.toggle('strg', on);
-  if (on) ORDER.ids = filtered().map(b => b.id);
-  else if (ORDER.ids) { ORDER.ids = null; if (UI.view === 'list' && !$('.le-edit, .cal-pop')) keep(renderNow); }   // erst jetzt neu sortieren (ein offenes Feld oder ein offener Kalender sortiert beim Übernehmen)
+// STRG: Bearbeiten aktiv (Liste, Strg nicht gedrückt). Der Name stammt aus der Zeit, als es umgekehrt war.
+let STRG = false, CTRL_NOW = false;
+function strgSet(ctrl) {
+  CTRL_NOW = !!ctrl;
+  STRG = !ctrl && UI.view === 'list';
+  document.body.classList.toggle('strg', STRG);
 }
-// nach einer Änderung: mit Strg nur die Zeile neu zeichnen (Reihenfolge bleibt), sonst die ganze Liste
+// nach einer Änderung: beim Bearbeiten nur die Zeile neu zeichnen (Reihenfolge bleibt), sonst die ganze Liste
 function relist(b) {
   const tr = STRG && $(`#list-body tr[data-id="${CSS.escape(b.id)}"]`);
   if (tr) tr.outerHTML = row(b); else keep(renderNow);
@@ -30,26 +28,27 @@ const leStop = el => el.addEventListener('click', e => e.stopPropagation());
 
 // je Klick ein Stand weiter
 const ROT_FR = ['offen', 'angefragt', 'ok', 'nein'], ROT_ANG = ['fehlt', 'arbeit', 'da'];
-const ROT_FOE = { geplant: 'beantragt', vorb: 'zugesagt', beantragt: 'zugesagt', zugesagt: 'abgelehnt', abgelehnt: 'geplant' };
+const ROT_FOE = { geplant: 'beantragt', beantragt: 'zugesagt', zugesagt: 'abgelehnt', abgelehnt: 'geplant' };
 const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 
+// Klick in eine Zeile: bearbeiten (ein Klick neben ein Feld tut nichts); mit Strg geht er durch und öffnet den Bedarf
 document.addEventListener('click', e => {
-  if (UI.view !== 'list') return;
+  if (UI.view !== 'list' || e.ctrlKey || e.metaKey) return;
   if (e.target.closest('.le-edit, .le-new, .ue-form')) return;                         // offene Felder halten ihre Klicks selbst zurück (le-stop)
-  if (!(e.ctrlKey || e.metaKey)) return;
   const tr = e.target.closest('#list-body tr[data-id]'); if (!tr) return;
   e.preventDefault(); e.stopPropagation();
   const b = D.bedarfe.find(x => x.id === tr.dataset.id), el = e.target.closest('[data-le]');
   if (b && el) strgAct(b, el);
 }, true);
 
-function strgAct(b, el) {
+// then(wie): nach dem Feld – 'enter' (übernommen mit Enter oder Vorschlag), 'esc' oder 'blur'
+function strgAct(b, el, then) {
   const f = el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : null, done = () => { changed(); relist(b); };
   switch (el.dataset.le) {
-    case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Bedarf', set: v => { if (v.trim()) b.titel = v.trim(); } });
-    case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe in Euro', set: v => { b.summe = v; } });
-    case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', set: v => { b.gliederung = v.trim(); } });
-    case 'zust': return editField(b, el, { value: b.zust[0] || '', src: SRC.zust, label: 'Ansprechperson', set: v => { v = v.trim(); b.zust = v ? [v, ...b.zust.slice(1).filter(x => x !== v)] : b.zust.slice(1); } });
+    case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
+    case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', then, set: v => { b.summe = v; } });
+    case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', then, set: v => { b.gliederung = v.trim(); } });
+    case 'zust': return editField(b, el, { value: b.zust[0] || '', src: SRC.zust, label: 'Ansprechperson', then, set: v => { v = v.trim(); b.zust = v ? [v, ...b.zust.slice(1).filter(x => x !== v)] : b.zust.slice(1); } });
     case 'deadline': return calPop(el, b.deadline, v => { b.deadline = v; changed(); relist(b); }, { clear: 'Deadline entfernen' });
     case 'eig': return editField(b, el, { value: b.eigenanteil, num: true, right: true, label: 'Eigenmittel in Euro', set: v => { b.eigenanteil = v; } });
     case 'amt': if (!f) return;
@@ -193,7 +192,7 @@ function editField(b, el, o) {
   el.classList.add('le-hide'); leStop(inp);
   inp.focus(); if (o.area || o.keep) inp.select();
   let fertig = false;
-  const finish = ok => {
+  const finish = (ok, wie) => {
     if (fertig) return; fertig = true;
     let v = inp.value;
     if (ok && String(v).trim()) {
@@ -202,13 +201,34 @@ function editField(b, el, o) {
       else if (v !== o.value) { o.set(v === '' ? null : v); changed(); }
     }
     relist(b);
+    if (o.then) o.then(wie);
   };
-  const sug = o.src ? suggest(inp, o.src, () => finish(true)) : () => false;
+  const sug = o.src ? suggest(inp, o.src, () => finish(true, 'enter')) : () => false;
   inp.addEventListener('keydown', e => {
     if (sug(e)) { e.preventDefault(); return; }
-    if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true); } else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true, 'enter'); } else if (e.key === 'Escape') { e.preventDefault(); finish(false, 'esc'); }
   });
-  inp.addEventListener('blur', () => finish(true));
+  inp.addEventListener('blur', () => finish(true, 'blur'));
+}
+
+// „+ Bedarf“: neue Zeile oben in der Liste, dann der Reihe nach Name → Summe → Ort → Ansprechperson → Deadline (jeweils Enter);
+// Esc oder Klick daneben hört auf. Bleibt der Name leer, verschwindet die neue Zeile wieder.
+function neuerBedarf() {
+  const nb = blank(); D.bedarfe.unshift(nb); changed();
+  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: '' });
+  ORDER.ids = [nb.id, ...(ORDER.ids || []).filter(id => id !== nb.id)];
+  renderNow(); strgSet(false); scrollTo(0, 0);
+  const feld = k => $(`#list-body tr[data-id="${CSS.escape(nb.id)}"] [data-le="${k}"]`);
+  const schritte = ['titel', 'summe', 'ort', 'zust', 'deadline'];
+  const weg = () => { D.bedarfe = D.bedarfe.filter(x => x !== nb); ORDER.ids = ORDER.ids && ORDER.ids.filter(id => id !== nb.id); changed(); keep(renderNow); };
+  const geh = i => {
+    const el = feld(schritte[i]); if (!el) return;
+    strgAct(nb, el, wie => {
+      if (i === 0 && !nb.titel.trim()) { weg(); return; }
+      if (wie === 'enter' && i + 1 < schritte.length) geh(i + 1);
+    });
+  };
+  geh(0);
 }
 
 // + im Finanzierungsplan: neue Zeile unter den Förderern – Name (blass „Förderer“, Vorschläge aus Förder-Kartei und Förderplänen) und Betrag dort, wo die Beträge stehen.

@@ -5,7 +5,7 @@ const setData = (text, d) => text.replace(/(<script type="application\/json" id=
   const b = await chromium.launch();
   const p = await open(b, { clock: true });
   ok(await connect(p) === 'ok', 'Ordner verbunden');
-  await p.click('button[data-act="new"]'); await p.keyboard.type('MTW');
+  await p.click('button[data-act="new"]'); await p.keyboard.type('MTW'); await p.keyboard.press('Enter'); await p.keyboard.press('Escape');
   await skip(p, 2600);
   let t = await readF(p);
   ok(dataOf(t).bedarfe[0].titel === 'MTW' && verOf(t) === T.VERSION, 'automatisch gespeichert (Version ' + verOf(t) + ')');

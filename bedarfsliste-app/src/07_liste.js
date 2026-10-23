@@ -29,14 +29,24 @@ function lFreigabe(b) {
   return frOffen(b).names.length ? L.join('') : `<div class="done" title="Freigabe vollständig">${L.join('')}</div>`;
 }
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
-const F_SYM = { zugesagt: 'ok', beantragt: 'run', vorb: 'run', geplant: 'off', abgelehnt: 'no' };
+const F_SYM = { zugesagt: 'ok', beantragt: 'run', geplant: 'off', abgelehnt: 'no' };
 const EMPTY3 = '<span></span><span></span><span></span>';
+// Zeitstrahl in der Punktlinie zur Frist: füllt sich von links (ab Geldeingang bzw. Zusage, sonst 90 Tage vorher) bis zur Frist –
+// grau, ab einem Monat vorher gelb, ab einer Woche vorher rot
+function zeitstrahl(f) {
+  const v = f.vn; if (!v.frist || v.st === 'erledigt') return '<span class="lead"></span>';
+  const T = 864e5, end = Date.parse(v.frist), now = Date.parse(today()), rest = Math.round((end - now) / T);
+  const s0 = Date.parse(f.eingangAm || f.entscheidungAm || ''), start = isNaN(s0) || s0 >= end ? end - 90 * T : s0;
+  const p = Math.max(0, Math.min(1, (now - start) / (end - start)));
+  const t = rest < 0 ? 'Frist seit ' + -rest + (rest === -1 ? ' Tag' : ' Tagen') + ' vorbei' : rest === 0 ? 'Frist ist heute' : 'noch ' + rest + (rest === 1 ? ' Tag' : ' Tage') + ' bis zur Frist';
+  return `<span class="lead tl ${rest <= 7 ? 'tl-r' : rest <= 30 ? 'tl-y' : 'tl-g'}" style="--p:${(p * 100).toFixed(1)}%" title="${t}"></span>`;
+}
 function lNachweis(f, fertig) {
   const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`;
   if (!v.noetig) return `<span></span><span></span><span class="vt nn" ${a}>nicht nötig</span>`;
   if (fertig) return `<span class="lead"></span><span class="mi m-dot" ${a} title="erledigt"></span><span class="vt" ${a}>erledigt</span>`;
   const s = MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]], cal = `<button class="le-cal" data-le="vn-frist" data-fid="${f.id}" title="Frist des Verwendungsnachweises" aria-label="Frist des Verwendungsnachweises wählen">${ICON_CAL}</button>`;
-  return `<span class="lead"></span><span class="mi ${s[0]}" ${a} title="${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}</span>`;
+  return `${zeitstrahl(f)}<span class="mi ${s[0]}" ${a} title=""${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}</span>`;
 }
 function lFinanz(b) {
   const F = finState(b), R = [];
@@ -90,9 +100,9 @@ const anyFilter = () => !!(UI.q || UI.fSw);
 function row(b) {
   const tag = b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : b.prio === 'hoch' ? ' <span class="prio-t">(Prio)</span>' : '';
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${b.manuell ? 'paused' : ''}">
-    <td class="l-name" data-le="titel">${esc(b.titel || '(ohne Namen)')}${tag}</td>
-    <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="faint">–</span>'}</td>
-    <td class="l-meta"><div class="ort" data-le="ort">${esc(b.gliederung === DIO ? 'Diözese' : b.gliederung || '–')}</div><div data-le="zust">${esc(b.zust[0] || '–')}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
+    <td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${tag}</td>
+    <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>
+    <td class="l-meta"><div class="ort" data-le="ort">${b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>'}</div><div data-le="zust">${b.zust[0] ? esc(b.zust[0]) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
     <td class="l-fin">${lFinanz(b)}</td>
     <td class="l-ueb">${lUebergabe(b)}</td>
@@ -109,7 +119,7 @@ function listView() {
   const sws = uniq(all.map(b => b.stichwort)).sort((a, c) => a.localeCompare(c, 'de')), colw = colwGet();
   return `<main><section class="card">
     <div class="list-head">
-      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span><span class="strg-hint" title="Mit gedrückter Strg-Taste: Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu">Strg halten: direkt bearbeiten</span>
+      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span><span class="strg-hint" title="Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Mit gedrückter Strg-Taste öffnet ein Klick den Bedarf.">Strg + Klick öffnet den Bedarf</span>
       <div class="tools">
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
