@@ -155,7 +155,7 @@ nav.tabs { display: flex; gap: 2px; }
 .modal > header h2 { margin: 0; font-size: 17px; }
 .modal-body { padding: 6px 18px 12px; overflow: auto; }
 .modal > footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 18px; border-top: 1px solid var(--line); }
-.help p { margin: 0 0 10px; }
+.help p { margin: 0 0 10px; overflow-wrap: anywhere; }
 .radios { display: grid; gap: 6px; margin-top: 8px; }
 table.imp { border-collapse: collapse; width: 100%; font-size: 13px; }
 table.imp th { text-align: left; font-size: 12px; color: var(--muted); border-bottom: 1px solid var(--line); padding: 4px 6px; }
@@ -171,6 +171,7 @@ ol.rech-steps { margin: 4px 0 0; padding-left: 22px; display: grid; gap: 16px; }
 ol.rech-steps > li::marker { font-weight: 700; color: var(--muted); }
 .rech-row { display: flex; align-items: center; justify-content: space-between; gap: 6px 14px; flex-wrap: wrap; margin-bottom: 4px; }
 .rech-pfad { margin-top: 3px; font-size: 12px; color: var(--ink2); word-break: break-all; user-select: all; }
+.rech-hinweis { margin-top: 6px; }
 textarea.rech-prompt { width: 100%; margin-top: 6px; font-size: 12.5px; line-height: 1.45; height: 170px; min-height: 100px; resize: vertical; }
 
 main { padding-block: 16px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); max-width: 1680px; margin: 0 auto; }

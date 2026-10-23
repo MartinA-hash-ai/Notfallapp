@@ -18,13 +18,31 @@ Es werden keine Daten ins Internet gesendet und nichts nachgeladen.
 durchformatiert, liest die Liste nur den vorderen Teil – die leeren Zeilen unter der Tabelle in Excel löschen.
 
 **Förderrecherche mit Copilot:** Auf der Seite eines Bedarfs öffnet „Recherche mit Copilot“ oben rechts im Förderplan drei Schritte:
-1. Excel zu diesem Bedarf anlegen – mit verbundenem Ordner im Unterordner `Förderrecherche` (dort findet Copilot Cowork sie im OneDrive),
-   sonst als Download. Blätter: „Förderplan“ (Bedarf mit Summe, Eigenmitteln, Zusagen und offenem Betrag, darunter die Förderer mit Stand),
-   „Anleitung“ (Auftrag, Umfang, Regeln, jede Spalte) und „Förder-Kartei“ (Zuständige für die Gliederung mit Historie, ohne Kontaktdaten).
-2. Prompt kopieren (vorher anpassbar) und in Copilot Cowork einfügen.
+1. Excel zu diesem Bedarf anlegen – mit verbundenem Ordner im Unterordner `Förderrecherche`, sonst als Download.
+   Name: `Foerderrecherche_<Titel>_<Gliederung>_<Kürzel>.xlsx`; über das Kürzel der Kennung findet die Liste die Datei
+   auch nach einer Umbenennung und nimmt die neueste passende (auch Kopien wie „… (1).xlsx“).
+   Blätter: „Förderplan“ (Bedarf mit Summe, Eigenmitteln, Zusagen und offenem Betrag, darunter die Förderer mit Stand),
+   „Anleitung“ (Auftrag, Umfang, Regeln, jede Spalte) und „Förder-Kartei“ (Zuständige für die Gliederung mit Historie,
+   ohne Kontaktdaten und Notizen).
+2. Prompt kopieren (vorher anpassbar), in Copilot Cowork einfügen und die Excel anhängen. Der Prompt verlangt Websuche
+   (sonst Abbruch), nur tatsächlich geöffnete Links als Quellen, realistische Summen je Förderer ohne Zielsumme und
+   einen nach offenem Betrag gestaffelten Umfang (bis 2.000 €: 3–5, bis 20.000 €: 5–8, darüber 8–12 Förderer).
 3. Ausgefüllte Excel übernehmen: die Liste zeigt die Vorschläge mit Summe, Frist, Einschätzung, Begründung und „ohne Quelle“-Hinweis;
-   du wählst aus. Neue Förderer kommen als „geplant“ dazu, vorhandene werden ergänzt. Eine Excel lässt sich auch auf die Seite ziehen;
-   das Upload-Symbol neben dem Knopf öffnet die Dateiauswahl.
+   du wählst aus. Neue Förderer kommen als „geplant“ dazu, vorhandene werden ergänzt. Steht in der Excel noch nichts Neues,
+   sagt die Liste das (Copilot nicht fertig, OneDrive noch nicht synchronisiert, Ergebnis als eigene Datei) und bietet
+   „Andere Datei wählen …“. Eine Excel lässt sich auch auf die Seite ziehen; das Upload-Symbol öffnet die Dateiauswahl.
+
+**Geplant – Hinweise aus dem Postfach (Copilot Cowork, morgens):** Cowork liest Posteingang und Gesendete Elemente und legt
+je Lauf eine neue Excel in einen Eingangsordner; die Liste zeigt die Hinweise beim Öffnen zum Übernehmen oder Verwerfen.
+Festgelegte Regeln: (1) Doppeltes erkennt die Liste selbst – stimmt der Vorschlag schon mit den Daten überein, erscheint er nicht.
+(2) Die Kennung eines Hinweises bildet die Liste aus Absender, Datum (vereinheitlicht) und Betreff, nicht Copilot; übernommene
+und verworfene Hinweise merkt sie sich. (3) Hinweise, die einen Stand zurücksetzen würden (z. B. „beantragt“, obwohl schon
+„zugesagt“), werden unterdrückt. (4) Nichts wird ohne Klick übernommen.
+Explorer-Pfad aus einem SharePoint-Link umrechnen geht nur bei direkten Adressen (`…/sites/…/Shared Documents/…`) mit
+einmaliger Zuordnung, nicht bei Freigabelinks – zurückgestellt.
+
+**Ordner-Pfad:** Im Explorer den Ordner markieren, Strg+Umschalt+C („Als Pfad kopieren“) und ins Feld einfügen –
+die Anführungszeichen entfernt die Liste.
 
 **In der Liste bearbeiten:** Strg gedrückt halten, dann Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
 und ändern; Freigaben, Angebot, Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; das + unten links im

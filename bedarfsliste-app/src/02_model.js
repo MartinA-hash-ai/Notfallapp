@@ -78,6 +78,7 @@ function normalize(d) {
     for (const k of ['info', 'zeit', 'ort', 'termin']) if (typeof n.nach.ueb[k] !== 'string') n.nach.ueb[k] = '';
     if (!(n.prio in PRIO_ORD)) n.prio = 'mittel';
     for (const k of ['titel', 'gliederung', 'beschreibung', 'stichwort', 'link', 'pfad']) if (typeof n[k] !== 'string') n[k] = n[k] == null ? '' : String(n[k]);
+    n.pfad = unquote(n.pfad);
     return n;
   });
   return o;

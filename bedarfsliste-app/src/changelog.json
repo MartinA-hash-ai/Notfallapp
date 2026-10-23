@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.16.0",
+    "date": "2026-10-23T09:10",
+    "items": [
+      "Recherche-Excel mit eindeutigem Namen: Titel, Gliederung und ein Kürzel des Bedarfs – gleiche Titel in verschiedenen Gliederungen kommen sich nicht mehr in die Quere; die Liste findet die Datei auch nach dem Umbenennen und nimmt die neueste passende, auch eine Kopie wie „… (1).xlsx“",
+      "„Excel übernehmen“ bei einer noch unveränderten Datei: Hinweis auf die möglichen Gründe (Copilot nicht fertig, OneDrive noch nicht synchronisiert, Ergebnis als eigene Datei) und „Andere Datei wählen …“",
+      "Prompt: die Excel wird in Copilot angehängt statt über den Ort beschrieben; Copilot muss im Web recherchieren (sonst Abbruch) und darf nur tatsächlich geöffnete Links als Quelle angeben",
+      "Umfang nach offenem Betrag gestaffelt (bis 2.000 €: 3–5, bis 20.000 €: 5–8, darüber 8–12 Förderer) und ohne Zielsumme – die Summen je Förderer sollen realistisch begründet sein",
+      "Kartei-Blatt ohne Notizen; im Dialog steht, was an Copilot geht",
+      "Pfad im Explorer: Anführungszeichen aus „Als Pfad kopieren“ werden entfernt"
+    ]
+  },
+  {
     "version": "0.15.0",
     "date": "2026-10-22T16:40",
     "items": [

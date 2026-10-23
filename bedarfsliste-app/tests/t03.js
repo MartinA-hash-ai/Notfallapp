@@ -61,19 +61,24 @@ async function writeKartei(p, kontakt) {
   // Recherche mit Copilot: Excel im Unterordner „Förderrecherche“, mit Kartei-Auszug für die Gliederung (ohne Kontaktdaten); ausgefüllt wieder übernehmen
   await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
   r = await p.evaluate(() => [document.querySelector('.rech-steps li button').textContent, document.querySelector('.rech-prompt').value]);
-  ok(r[0] === 'Excel anlegen' && r[1].includes('Gliederung: Iserlohn-Menden') && r[1].includes('Bezug zu Iserlohn-Menden') && r[1].includes('Blatt „Förder-Kartei“') && r[1].includes('im Ordner „Förderrecherche“'), 'mit Ordner: „Excel anlegen“, Prompt nennt Gliederung, Kartei-Blatt und Ordner');
+  ok(r[0] === 'Excel anlegen' && r[1].includes('Gliederung: Iserlohn-Menden') && r[1].includes('Bezug zu Iserlohn-Menden') && r[1].includes('Blatt „Förder-Kartei“') && r[1].includes('die angehängte Excel'), 'mit Ordner: „Excel anlegen“, Prompt nennt Gliederung, Kartei-Blatt und die angehängte Datei');
   await p.click('.rech-steps li button'); await p.waitForTimeout(200);
-  const RP = '/Ordner/Förderrecherche/Foerderrecherche_Rucksaecke.xlsx';
+  const RP = '/Ordner/Förderrecherche/' + await p.evaluate(() => vorlageName(cur()));
   r = await p.evaluate(async rp => { const f = __fs.files[rp]; if (!f) return null; const bk = await xlsxBook(f.data.buffer.slice(0)); const k = bk.sheets[2];
-    return [bk.sheets.map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], document.querySelector('.rech-st').textContent.startsWith('Liegt im Ordner'), document.querySelector('.rech-steps li button').textContent]; }, RP);
-  ok(r && r[0] === 'Förderplan+Anleitung+Förder-Kartei' && r[1] === 'Märkische Bank eG,Aktion Beispiel' && !r[2] && r[3] === '2025: 1.000 € Folierung' && r[4] && r[5] === 'Neu anlegen',
-    'Excel im Ordner angelegt; Kartei-Blatt nur mit den Zuständigen, eigene Gliederung zuerst, Historie, ohne Kontaktdaten: ' + JSON.stringify(r));
-  await p.click('.modal footer button');
-  // Copilot hat die Datei ausgefüllt
+    return [bk.sheets.map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], k.rows[3].includes('Notizen'), document.querySelector('.rech-st').textContent.includes('liegt im Ordner'), document.querySelector('.rech-steps li button').textContent]; }, RP);
+  ok(r && r[0] === 'Förderplan+Anleitung+Förder-Kartei' && r[1] === 'Märkische Bank eG,Aktion Beispiel' && !r[2] && r[3] === '2025: 1.000 € Folierung' && !r[4] && r[5] && r[6] === 'Neu anlegen',
+    'Excel im Ordner angelegt; Kartei-Blatt nur mit den Zuständigen, eigene Gliederung zuerst, Historie, ohne Kontaktdaten und Notizen: ' + JSON.stringify(r));
+  // gleich übernehmen, obwohl Copilot noch nichts eingetragen hat: Hinweis statt leerer Vorschau
+  await p.click('.rech-steps li:nth-child(3) button');
+  await p.waitForFunction(() => [...document.querySelectorAll('.modal h2')].some(e => e.textContent === 'Noch keine neuen Förderer'));
+  t = await p.$eval('.modal', e => e.textContent);
+  ok(t.includes('Noch keine neuen Förderer') && t.includes('als eigene Datei gespeichert') && t.includes('Andere Datei wählen'), 'unveränderte Excel: Hinweis mit möglichen Gründen und „Andere Datei wählen“');
+  await p.click('.modal footer button:first-child'); await p.waitForTimeout(100);
+  // Copilot hat das Ergebnis als Kopie neben die Datei gelegt („… (1).xlsx“) – die neueste passende Datei wird genommen
   await p.evaluate(async rp => {
     const cols = ['Förderer', 'Stand in der Bedarfsliste', 'Erwartete Summe (€)', 'Pro – warum passt das?', 'Quellen'];
     const rows = [['Förderplan'], [], ['Kennung', cur().id], [], cols, ['Herner Sparkasse', 'geplant', '', '', ''], ['Stiftung Neu', '', '3000', 'Fördert Ausstattung im Ehrenamt', 'https://neu.example'], ['Lotterie Neu', '', '2.000', 'Regionalbezug', '']];
-    __fs.files[rp] = { data: new Uint8Array(await xlsxBlob([{ name: 'Förderplan', cols: cols.map(() => 12), rows }]).arrayBuffer()), lm: 90000 };
+    __fs.files[rp.replace(/\.xlsx$/, ' (1).xlsx')] = { data: new Uint8Array(await xlsxBlob([{ name: 'Förderplan', cols: cols.map(() => 12), rows }]).arrayBuffer()), lm: 90000 };
   }, RP);
   await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
   await p.click('.rech-steps li:nth-child(3) button'); await p.waitForSelector('.modal .imp');

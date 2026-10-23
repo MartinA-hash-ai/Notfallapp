@@ -145,7 +145,7 @@ function addUl(refocus) {
   if (refocus) { const n = $('#ul-new'); if (n) n.focus(); }
 }
 function copyPath(b) {
-  const p = (b.pfad || '').trim(); if (!p) return;
+  const p = unquote(b.pfad || '').trim(); if (!p) return;
   const done = () => toast('Pfad kopiert. Im Explorer: Strg+L, dann Strg+V', 'ok');
   const fail = () => { const el = $('input[data-p="pfad"]'); if (el) { el.focus(); el.select(); } toast('Pfad markiert – jetzt mit Strg+C kopieren'); };
   try { navigator.clipboard.writeText(p).then(done, fail); } catch (e) { fail(); }
@@ -288,7 +288,11 @@ document.addEventListener('input', e => {
   const b = cur(); if (!b) return;
   const base = baseOf(el, b);
   if ('num' in el.dataset) { liveNum(el); const v = deNum(el.value); if (v === null) return; setPath(base, el.dataset.p, v === '' ? null : v); }
-  else setPath(base, el.dataset.p, el.value);
+  else {
+    // „Als Pfad kopieren“ (Strg+Umschalt+C) setzt Anführungszeichen – die braucht der Explorer nicht
+    if (el.dataset.p === 'pfad' && /^\s*"|"\s*$/.test(el.value)) el.value = unquote(el.value);
+    setPath(base, el.dataset.p, el.value);
+  }
   if (el.dataset.p === 'name' && el.dataset.fid && !base.art) {               // Förderer aus der Kartei: Art gleich mit eintragen
     const k = kartei(base.name), art = k ? artFromKartei(k, base.name) : '';
     if (art) { base.art = art; const s = $('#art-' + base.id); if (s) { s.value = art; s.classList.remove('empty'); } }

@@ -26,6 +26,7 @@ function anyDate(v) {
 }
 
 const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const unquote = s => String(s).replace(/^\s*"|"\s*$/g, '');
 const eur = n => Math.round(n || 0).toLocaleString('de-DE') + ' €';
 const fmtNum = n => (n == null || n === '' || isNaN(n)) ? '' : Number(n).toLocaleString('de-DE', { maximumFractionDigits: 2 });
 // Zahlen deutsch eingeben: „1.500“ = 1500, „1.234,50“ = 1234,5; Ergebnis: Zahl, '' (leer) oder null (keine Zahl)
