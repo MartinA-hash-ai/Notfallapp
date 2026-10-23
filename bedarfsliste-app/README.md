@@ -53,6 +53,9 @@ Im Kreisdiagramm auf der Seite eines Bedarfs schaltet ein Klick auf das Stück e
 Finanzierungsplan fügt einen Förderer hinzu (Enter: zum Betrag, Shift+Enter: speichern und nächster Förderer), der Stift am Ende des Förderernamens benennt ihn um; der Kalender beim
 Verwendungsnachweis setzt die Frist; der Kreis mit Stift bei der Spendenübergabe öffnet Ort, Datum, Uhrzeit und Notizen.
 
+**Bedarfsseite:** Förderplan und Nacharbeit klappen über den Pfeil vor der Überschrift ein (der Browser merkt es sich).
+Das Angebot steht bei den Freigaben (es ist Voraussetzung dafür), gespeichert bleibt es als feste Unterlage.
+
 **Spaltenbreiten:** in der Liste am rechten Rand eines Spaltenkopfs ziehen (wie in Excel); der Browser merkt sie sich,
 Doppelklick auf einen Rand oder „Spaltenbreiten zurücksetzen“ im Zahnrad stellt sie zurück.
 

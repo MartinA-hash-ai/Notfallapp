@@ -389,6 +389,12 @@ ol.steps li.cur.ph-fertig .st-k { background: var(--ph4bg); color: var(--ph4ink)
 section.card { scroll-margin-top: 76px; }
 .sec-head { display: flex; align-items: baseline; gap: 4px 14px; flex-wrap: wrap; margin-bottom: 14px; }
 .sec-head h2 { font-size: 17px; margin: 0; }
+/* Abschnitt ein- und ausklappen: Pfeil vor der Überschrift */
+.sec-zu { border: 0; background: none; padding: 0; font: inherit; color: inherit; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.sec-zu .chev { width: 16px; height: 16px; color: var(--muted); transition: transform .15s; }
+.sec-zu.zu .chev { transform: rotate(-90deg); }
+.sec-zu:hover .chev { color: var(--ink); }
+.card.zu .sec-head { margin-bottom: 0; }
 .sec-head p { margin: 0; color: var(--muted); font-size: 13px; flex: 1 1 300px; }
 .grid { display: grid; gap: 12px 16px; }
 .g12 { grid-template-columns: repeat(12, minmax(0, 1fr)); }

@@ -97,6 +97,19 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // Freigaben alle da: grünes Kästchen, Überschrift „alle vorhanden“
   r = await p.evaluate(() => [!!document.querySelector('#fr-blk .fr-blk.ok'), document.querySelector('#fr-blk h3').textContent.replace(/\s+/g, ' ').trim()]);
   ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
+  r = await p.evaluate(() => [[...document.querySelectorAll('#fr-body .ci-n')].map(e => e.textContent).join(','), [...document.querySelectorAll('#ul-body .ci-n')].map(e => e.textContent).join(',')]);
+  ok(r.join(' / ') === 'Ortsführungskreis,Verwaltung,Angebot / Konzept,Projektsteckbrief', 'Angebot bei den Freigaben, nicht mehr bei den Unterlagen: ' + r.join(' / '));
+  // Förderplan und Nacharbeit einklappen
+  await p.click('#sec-foe .sec-zu');
+  r = await p.evaluate(() => [!!document.querySelector('#fin-pie'), document.querySelectorAll('.fk.fp').length, document.querySelector('#foe-kurz').textContent.replace(/\u00a0/g, ' '), document.querySelector('#sec-foe .sec-zu').getAttribute('aria-expanded')]);
+  ok(r.join('|') === 'false|0|3 Förderer · 10.000 € zugesagt · 45.000 € noch ohne Zusage|false', 'Förderplan eingeklappt: Kreis, Tabelle und alle Förderer weg, eine Zeile Zusammenfassung: ' + r.join('|'));
+  await p.click('#sec-nach .sec-zu');
+  r = await p.evaluate(() => [!!document.querySelector('#nach-body'), document.querySelector('#nach-kurz').textContent]);
+  ok(r[0] === false && r[1].startsWith('offen: '), 'Nacharbeit eingeklappt, offene Punkte in einer Zeile: ' + r[1]);
+  await p.reload(); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => !document.querySelector('#fin-pie') && !document.querySelector('#nach-body')), 'bleibt eingeklappt (merkt sich der Browser)');
+  await p.click('#sec-foe .sec-zu'); await p.click('#sec-nach .sec-zu');
+  ok(await p.evaluate(() => !!document.querySelector('#fin-pie') && !!document.querySelector('#nach-body') && document.querySelectorAll('.fk.fp').length === 3), 'wieder aufgeklappt');
   // Kreisdiagramm: beim Überfahren alle Beschriftungen (Name, Betrag, Anteil), ohne Überlappung
   const pl = () => p.evaluate(() => [...document.querySelectorAll('#fin-pie .pl')].map(g => getComputedStyle(g).opacity).join());
   r = await p.evaluate(() => [getComputedStyle(document.querySelector('#fin-pie .pl-n')).fill, getComputedStyle(document.querySelector('.d-head')).color]);

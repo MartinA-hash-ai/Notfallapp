@@ -107,19 +107,22 @@ function freigabeList(b) {
     return `<div class="ci-row" id="fr-${i.k}">${i.na ? `<span class="circ c-na" aria-hidden="true">${ICO.na}</span>` : circ(frKind(i), `data-kind="fr" data-k="${i.k}"`, i.label)}
       <div class="ci-t">${name}${hint ? `<span class="ci-hint">${hint}</span>` : ''}</div>${date}</div>`;
   }).join('');
+  // das Angebot gehört zur Freigabe (ohne Angebot keine Freigabe) – Daten bleiben eine feste Unterlage
+  const a = angebotUL(b), angebot = a ? `<div class="ci-row" id="fr-ang">${circ(ulKind(a), `data-kind="ul" data-uid="${a.id}"`, 'Angebot')}
+      <div class="ci-t"><span class="ci-n">Angebot</span>${a.st !== 'da' ? `<span class="ci-hint">${esc(ulText(a))}</span>` : ''}</div></div>` : '';
   const fo = frOffen(b);
-  return rows + (fo.names.length ? `<div class="ci-foot warn">Es fehlt noch: ${esc(fo.names.join(', '))}</div>` : '')
+  return rows + angebot + (fo.names.length ? `<div class="ci-foot warn">Es fehlt noch: ${esc(fo.names.join(', '))}</div>` : '')
     + dl('dl-fach', [...FACH_LIST, ...D.bedarfe.map(x => x.freigabe.fach.name)]);
 }
 function unterlagenList(b) {
-  return b.unterlagen.map(u => `<div class="ci-row">${circ(ulKind(u), `data-kind="ul" data-uid="${u.id}"`, u.name || 'Unterlage')}
+  return b.unterlagen.filter(u => !(u.fest && u.name === 'Angebot')).map(u => `<div class="ci-row">${circ(ulKind(u), `data-kind="ul" data-uid="${u.id}"`, u.name || 'Unterlage')}
       <div class="ci-t">${u.fest ? `<span class="ci-n">${esc(u.name)}</span>` : tin(u, 'name', `class="inline" data-uid="${u.id}" aria-label="Name der Unterlage"`, 'Unterlage')}<span class="ci-hint">${esc(ulText(u))}</span></div>
       ${u.fest ? '' : `<button class="x" data-act="rm-ul" data-uid="${u.id}" aria-label="${esc(u.name)} entfernen" title="entfernen">×</button>`}</div>`).join('')
     + `<div class="ci-row add"><span class="circ c-add" aria-hidden="true">+</span><input type="text" id="ul-new" class="inline" list="dl-ul" placeholder="weitere Unterlage" aria-label="Weitere Unterlage hinzufügen"></div>`
     + dl('dl-ul', ['Bilder', 'Presseartikel', 'Studien', 'Kostenplan', 'Zeitplan', 'Unterstützerschreiben'].filter(n => !b.unterlagen.some(u => u.name === n)));
 }
 function frBlock(b) {
-  const ok = frItems(b).filter(frNeeded).every(i => i.st === 'ok');
+  const ok = !frOffen(b).names.length;                    // alle nötigen Freigaben und das Angebot
   return `<div class="fr-blk${ok ? ' ok' : ''}"><h3>Freigaben${ok ? ' <span class="fr-ok">· alle vorhanden</span>' : ''} ${infoBtn('freigabe')}</h3><div id="fr-body" class="ci-list">${freigabeList(b)}</div></div>`;
 }
 function sidePanel(b) {
@@ -331,9 +334,20 @@ function finRows(b) {
     + (F.d ? `<tr class="r-delta"><th>${swa(F.d > 0 ? 'off' : 'none')}${F.d > 0 ? 'Delta <span class="r-st">noch ohne Förderer</span>' : 'Überfinanzierung'}</th><td class="num">${eur(Math.abs(F.d))}</td><td class="num">${pct(Math.abs(F.d), S)}</td></tr>` : '');
 }
 const finEigPct = b => pct(+b.eigenanteil || 0, +b.summe || 0);
+// Förderplan und Nacharbeit lassen sich einklappen (merkt sich der Browser, für alle Bedarfe gleich)
+const ZU_KEY = 'bl-zu';
+const zuGet = k => { try { return !!(JSON.parse(localStorage.getItem(ZU_KEY) || '{}'))[k]; } catch (e) { return false; } };
+const zuSet = (k, v) => { try { const o = JSON.parse(localStorage.getItem(ZU_KEY) || '{}'); o[k] = v; localStorage.setItem(ZU_KEY, JSON.stringify(o)); } catch (e) { /* nur in diesem Browser */ } };
+const ICON_CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+const zuKopf = (k, titel, zu) => `<h2><button class="sec-zu${zu ? ' zu' : ''}" data-act="zu" data-v="${k}" aria-expanded="${!zu}" title="${zu ? 'Aufklappen' : 'Einklappen'}">${ICON_CHEV}${titel}</button></h2>`;
+function foeKurz(b) {
+  const F = finState(b), n = F.fs.filter(f => f.status !== 'abgelehnt').length, rest = F.S - F.zu - F.eig;
+  return [n + ' Förderer', F.zu ? eur(F.zu) + ' zugesagt' : 'noch keine Zusage', F.S ? (rest > 0 ? eur(rest) + ' noch ohne Zusage' : 'Finanzierung steht') : ''].join(' · ').replace(/ · $/, '');
+}
 function secFoe(b) {
+  if (zuGet('foe')) return `<section class="card fp-head zu" id="sec-foe"><div class="sec-head">${zuKopf('foe', 'Förderplan', true)}<p id="foe-kurz">${esc(foeKurz(b))}</p></div></section>`;
   return `<section class="card fp-head" id="sec-foe">
-    <div class="sec-head"><h2>Förderplan</h2>
+    <div class="sec-head">${zuKopf('foe', 'Förderplan', false)}
       <div class="sec-tools"><button class="rech-btn" data-act="vorlage" title="Förderrecherche mit Copilot: Excel zu diesem Bedarf, Auftrag zum Kopieren, Ergebnis übernehmen">Recherche mit Copilot</button>
         <button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – du siehst zuerst die Vorschläge">${ICON_UP}</button></div></div>
     <div class="fin-wrap">
@@ -368,6 +382,8 @@ function nachBody(b) {
   </div>`;
 }
 function secNach(b) {
-  return `<section class="card" id="sec-nach"><div class="sec-head"><h2>Nacharbeit</h2><p>Spendenübergabe und Pressemitteilung einmal für den ganzen Bedarf, der Verwendungsnachweis (Sach- und Finanzbericht) je Förderer.</p></div>
+  if (zuGet('nach')) { const L = nachOffen(b);
+    return `<section class="card zu" id="sec-nach"><div class="sec-head">${zuKopf('nach', 'Nacharbeit', true)}<p id="nach-kurz">${esc(L.length ? 'offen: ' + L.join(', ') : 'nichts offen')}</p></div></section>`; }
+  return `<section class="card" id="sec-nach"><div class="sec-head">${zuKopf('nach', 'Nacharbeit', false)}<p>Spendenübergabe und Pressemitteilung einmal für den ganzen Bedarf, der Verwendungsnachweis (Sach- und Finanzbericht) je Förderer.</p></div>
     <div id="nach-body">${nachBody(b)}</div></section>`;
 }

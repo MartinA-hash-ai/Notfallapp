@@ -112,7 +112,7 @@ function refresh() {
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b));
   swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('ds-' + f.id, detSummary(f)); swap('sh-' + f.id, foeShare(b, f)); swap('ql-' + f.id, quellenListe(f.quellen)); });
-  swap('nach-body', nachBody(b));
+  swap('nach-body', nachBody(b)); swap('foe-kurz', esc(foeKurz(b)));
 }
 
 /* ---------- Bedienung */
@@ -260,6 +260,7 @@ async function act(k, a, e) {
       if (pie && !pie.dataset.wart) { pie.dataset.wart = '1'; pie.addEventListener('mouseleave', () => { PIE_HOLD = false; keep(renderNow); }, { once: true }); }
       return;
     }
+    case 'zu': zuSet(a.dataset.v, !zuGet(a.dataset.v)); break;
     case 'det': UI.det = a.dataset.v; break;
     case 'det-zu': UI.det = null; break;
     case 'mailto': case 'tel': case 'web': {                                       // E-Mail schreiben, anrufen, Seite öffnen – mit dem, was gerade im Feld steht

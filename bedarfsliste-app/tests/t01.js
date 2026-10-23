@@ -39,7 +39,7 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   ok(r[0] === 1500 && r[1] === '1.500', 'keine Zahl: nicht übernommen, alter Wert zurück');
   await p.fill('input[data-p="summe"]', '800'); await p.press('input[data-p="summe"]', 'Tab');
   r = await p.evaluate(() => [document.querySelector('#fr-body').textContent.split('nicht nötig').length - 1, document.querySelectorAll('#fr-body .circ').length, !document.querySelector('#fr-body [data-p$=".notiz"]')]);
-  ok(r.join() === '2,3,true', 'unter 1.000 €: drei Kreise, Fachreferat und Verwaltung „nicht nötig“, keine Notizfelder');
+  ok(r.join() === '2,4,true', 'unter 1.000 €: vier Kreise (mit Angebot), Fachreferat und Verwaltung „nicht nötig“, keine Notizfelder');
   ok((await status(p)) === 'Es fehlt: Ortsführungskreis, Angebot', 'unter 1.000 €: es fehlen nur Ortsführungskreis und Angebot');
   await setCirc(p, '#fr-ofk .circ', 'angefragt');
   r = await p.evaluate(() => [D.bedarfe[0].freigabe.ofk.angefragt === today(), document.querySelector('#fr-ofk .circ').className, !!document.querySelector('#fr-ofk input[type=date]')]);
@@ -59,7 +59,8 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   ok((await status(p)).includes('Förderplan aufstellen') && (await p.$eval(`.circ[data-uid="${ang}"]`, e => e.className)) === 'circ c-ok', 'Ortsführungskreis und Angebot (grüner Kreis) → Förderplan aufstellen');
   await p.fill('#ul-new', 'Bilder'); await p.press('#ul-new', 'Enter');
   r = await p.evaluate(() => [...document.querySelectorAll('#ul-body .ci-row:not(.add)')].map(e => (e.querySelector('.ci-n') || e.querySelector('input')).textContent || e.querySelector('input').value).join());
-  ok(r === 'Konzept,Projektsteckbrief,Angebot,Bilder' && !!(await p.$('#ul-body [data-act="rm-ul"]')), 'weitere Unterlage hinzugefügt, nur sie lässt sich entfernen');
+  ok(r === 'Konzept,Projektsteckbrief,Bilder' && !!(await p.$('#ul-body [data-act="rm-ul"]')), 'weitere Unterlage hinzugefügt, nur sie lässt sich entfernen; das Angebot steht bei den Freigaben');
+  ok(!!(await p.$(`#fr-body .circ[data-uid="${ang}"]`)), 'Angebot als Kreis im Block der Freigaben');
   await p.click('#ul-body [data-act="rm-ul"]');
   await p.click('button[data-act="add-foe"]');
   await p.keyboard.type('Sparkasse X');
