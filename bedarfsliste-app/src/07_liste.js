@@ -182,8 +182,10 @@ const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gl
 // solange die Freigabe nicht vollständig ist, wird hinter ihr noch nichts angegangen: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
 function row(b) {
   const kl = (b.manuell ? 'paused' : '') + (frOffen(b).names.length ? ' ohne-fg' : '');
+  const fg = frStand(b);                                   // kompakt ohne Freigabe: in Finanzierung nur der Hinweis, Nachweis und Übergabe leer
   if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b)}
-    <td class="l-ort"><div class="ort" data-le="ort">${ortText(b)}</div></td><td class="k-fr">${kFreigabe(b)}</td><td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td></tr>`;
+    <td class="l-ort"><div class="ort" data-le="ort">${ortText(b)}</div></td><td class="k-fr">${kFreigabe(b)}</td>${fg === 'ok' ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
+      : `<td class="k-nach">${kGrau(fg === 'no' ? 'Freigabe abgelehnt' : 'Freigabe ausstehend')}</td><td class="k-nach"></td><td class="k-nach"></td>`}</tr>`;
   const auf = KOMPAKT();                                  // in der kompakten Ansicht aufgeklappt: Finanzierung und Nachweis über zwei Spalten
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}${auf ? ' auf' : ''}">${nameZelle(b)}
     <td class="l-meta"><div class="ort" data-le="ort">${ortText(b)}</div><div data-le="zust">${b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
@@ -198,21 +200,24 @@ function listBody() {
   if (!L.length) return { html: `<tr><td colspan="${KOMPAKT() ? 8 : NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
   return { html: L.map(row).join(''), n: L.length };
 }
-function listView() {
-  const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), body = listBody();
-  const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de')), komp = KOMPAKT(), colw = komp ? null : colwGet();
-  return `<main><section class="card">
-    <div class="list-head">
-      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${body.n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Name, Summe und Ort anklicken und ändern. Strg + Klick klappt einen Bedarf ausführlich auf – dort lässt sich alles bearbeiten; noch einmal Strg + Klick öffnet ihn, ein Klick daneben klappt ihn wieder zu.">Strg + Klick klappt einen Bedarf auf, noch einmal öffnet ihn</span>'
+// Leiste der Liste: hängt wie auf der Seite eines Bedarfs unter der Kopfzeile – so beginnen beide Seiten gleich hoch und beim Hineinschieben springt nichts
+function listBar() {
+  const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), n = filtered().length, komp = KOMPAKT();
+  const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de'));
+  return `<div class="subbar list-head">
+      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Name, Summe und Ort anklicken und ändern. Strg + Klick klappt einen Bedarf ausführlich auf – dort lässt sich alles bearbeiten; noch einmal Strg + Klick öffnet ihn, ein Klick daneben klappt ihn wieder zu.">Strg + Klick klappt einen Bedarf auf, noch einmal öffnet ihn</span>'
         : '<span class="strg-hint" title="Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Mit gedrückter Strg-Taste öffnet ein Klick den Bedarf.">Strg + Klick öffnet den Bedarf</span>'}
       <div class="tools">
-        <button class="sort-btn${(UI.sort || []).length ? ' on' : ''}" data-act="sort-menu" aria-haspopup="menu" title="Sortieren – bis zu drei Stufen">${sortText()}</button>
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
         ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
       </div>
-    </div>
+    </div>`;
+}
+function listView() {
+  const body = listBody(), komp = KOMPAKT(), colw = komp ? null : colwGet();
+  return `<main><section class="card list-card">
     <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
       ${komp ? `<th class="l-star">${kopfStern()}</th>` + [['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => `<th>${sk(k, t)}</th>`).join('')
         : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')]
@@ -229,30 +234,12 @@ function sk(k, t) {
 // 3. Klick – wieder normal
 const KOPF_STERN = ['Klick: Bedarfe mit Prio nach oben', 'Prio oben – Klick: nur noch Bedarfe mit Prio zeigen', 'nur Prio – Klick: wieder alle wie gewohnt'];
 const kopfStern = () => `<button class="kopf-stern s${UI.prioKopf || 0}" data-act="prio-kopf" title="${KOPF_STERN[UI.prioKopf || 0]}" aria-label="Priorität: ${KOPF_STERN[UI.prioKopf || 0]}">${ICON_STERN}</button>`;
-const sortText = () => (UI.sort || []).length ? 'Sortiert: ' + UI.sort.map(s => SORT[s.k].t).join(' › ') : 'Sortieren';
 function sortSpalte(k) {
   const L = (UI.sort || []).slice(), i = L.findIndex(s => s.k === k);
   if (i < 0) { if (L.length >= 3) L.pop(); L.push({ k, d: 'auf' }); }
   else if (L[i].d === 'auf') L[i] = { k, d: 'ab' };
   else L.splice(i, 1);
   UI.sort = L; ORDER.ids = null; keep(renderNow);
-}
-// Menü zum Sortieren: drei Stufen, je Angabe und Richtung; „Zurücksetzen“ stellt die übliche Reihenfolge wieder her
-function sortPop(btn) {
-  closeMenus();
-  const L = (UI.sort || []).slice();
-  const neu = () => { UI.sort = L.filter(s => s && s.k); ORDER.ids = null; renderNow(); const b = $('[data-act="sort-menu"]'); if (b) sortPop(b); };
-  const stufe = i => {
-    const s = L[i] || { k: '', d: 'auf' }, frei = Object.keys(SORT).filter(k => k === s.k || !L.some((x, j) => j !== i && x && x.k === k));
-    const sel = h('select', { 'aria-label': (i + 1) + '. Stufe', onchange: e => { const k = e.target.value; if (k) L[i] = { k, d: (L[i] || {}).d || 'auf' }; else L.splice(i); neu(); } },
-      h('option', { value: '' }, i ? '– keine weitere –' : '– übliche Reihenfolge –'), frei.map(k => h('option', { value: k, selected: k === s.k }, SORT[k].t)));
-    const dir = s.k ? h('div', { class: 'seg' }, ['auf', 'ab'].map((d, j) => h('button', { class: s.d === d ? 'on' : '', onclick: () => { L[i] = { k: s.k, d }; neu(); } }, SORT[s.k].w[j]))) : null;
-    return h('div', { class: 'sort-row' }, h('span', { class: 'sort-n' }, i ? 'dann' : 'zuerst'), sel, dir);
-  };
-  const rows = [stufe(0)]; if (L[0]) rows.push(stufe(1)); if (L[0] && L[1]) rows.push(stufe(2));
-  const m = h('div', { class: 'menu sort-pop', role: 'menu' }, h('div', { class: 'sort-h' }, 'Sortieren'), ...rows,
-    h('div', { class: 'sort-f' }, h('span', { class: 'muted small' }, 'Auch per Klick auf die Spaltenköpfe'), L.length ? h('button', { class: 'link', onclick: () => { L.length = 0; neu(); } }, 'Zurücksetzen') : null));
-  placePop(m, btn, 'right');
 }
 /* ---------- Spaltenbreiten wie in Excel: am rechten Rand eines Spaltenkopfs ziehen – nur diese Spalte ändert sich, die rechts davon rücken mit.
    Die Breiten merkt sich der Browser; Doppelklick auf einen Rand oder das Zahnrad setzt alle zurück. */
@@ -289,6 +276,6 @@ function placePop(m, btn, align) {
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sort-menu"], [data-act="sw-pop"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sw-pop"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);

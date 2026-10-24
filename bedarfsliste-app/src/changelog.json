@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.31.0",
+    "date": "2026-10-24T13:00",
+    "items": [
+      "Überschrift, Anzahl, Hinweis, Ausführlich/Kompakt, Suche und Stichwort stehen als Leiste direkt unter der Kopfzeile – genauso hoch wie die Leiste auf der Seite eines Bedarfs. Beim Hineinschieben springt die Seite nicht mehr nach unten; die Tabelle steht als Kasten darunter. Die Leiste bleibt beim Scrollen oben",
+      "Knopf „Sortieren“ entfällt – sortiert wird über die Spaltenköpfe. Eine früher übers Menü gewählte Sortierung nach Deadline, Ansprechperson oder Angelegt fällt dabei weg",
+      "Kompakte Ansicht: solange die Freigabe fehlt, steht bei Finanzierung nur „Freigabe ausstehend“ (abgelehnt: „Freigabe abgelehnt“), Verwendungsnachweis und Spendenübergabe bleiben leer"
+    ]
+  },
+  {
     "version": "0.30.0",
     "date": "2026-10-24T12:00",
     "items": [

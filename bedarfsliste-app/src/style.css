@@ -197,7 +197,7 @@ main { padding-block: 16px 64px; padding-left: max(16px, env(safe-area-inset-lef
 .u-soon { color: var(--warn); font-weight: 700; }
 
 /* ---------- Liste */
-.list-head { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.list-head { display: flex; gap: 10px 14px; align-items: center; flex-wrap: wrap; }
 .list-head h2 { margin: 0; font-size: 18px; }
 .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-left: auto; }
 .tools input[type=search] { width: 190px; }
@@ -263,14 +263,6 @@ tr.ohne-fg td.l-fin > *, tr.ohne-fg td.l-ueb > *, tr.ohne-fg td.k-nach > * { fil
 .th-sort:hover { color: var(--ink2); }
 .th-sort.on { color: var(--ink); }
 .th-sort .so { font-size: 10px; font-weight: 700; color: var(--card); background: var(--ink2); border-radius: 8px; padding: 0 5px; line-height: 15px; letter-spacing: 0; }
-.sort-btn { font-size: 13px; padding: 4px 10px; max-width: 320px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.sort-btn.on { border-color: var(--ink2); color: var(--ink); }
-.sort-pop { padding: 10px 12px; min-width: 360px; }
-.sort-h { font-weight: 700; margin-bottom: 8px; }
-.sort-row { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 6px 8px; align-items: center; margin-bottom: 8px; }
-.sort-row .seg { grid-column: 2; }
-.sort-n { color: var(--muted); font-size: 12.5px; }
-.sort-f { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-top: 4px; }
 .seg.ansicht button { padding: 4px 11px; }
 table.list td.l-name { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.35; min-width: 180px; }
 table.list td.l-sum { font-size: 14.5px; font-weight: 700; text-align: left; white-space: nowrap; line-height: 1.35; }
@@ -526,7 +518,7 @@ table.kt td.sel { user-select: all; word-break: break-all; }
 label.inl { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink2); }
 
 /* ---------- Bedarfsseite: Phase und Stand hängen unter der Kopfzeile; darunter Name und Gliederung zum Anklicken, rechts die Summe; ⋯ und Löschen ganz rechts */
-.subbar { flex-basis: 100%; display: flex; align-items: center; gap: 6px 18px; flex-wrap: wrap; padding: 7px 0 8px; border-top: 1px solid var(--line3); }
+.subbar { flex-basis: 100%; display: flex; align-items: center; gap: 6px 18px; flex-wrap: wrap; padding: 7px 0 8px; min-height: 49px; border-top: 1px solid var(--line3); }   /* Liste und Bedarf gleich hoch: beim Hineinschieben springt nichts */
 .subbar .back { padding: 3px 9px; font-size: 13px; }
 .d-head { grid-area: head; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px 16px; align-items: start; }
 /* Kopf: Deadline unter dem Namen (Klick: Kalender), Stichworte rechts neben dem Namen mit kleinem + */

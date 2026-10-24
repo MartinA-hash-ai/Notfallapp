@@ -242,6 +242,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => { const rows = [...document.querySelectorAll('#list-body tr[data-id]')], hs = rows.map(x => Math.round(x.getBoundingClientRect().height));
     return [rows[0].children.length, [...document.querySelectorAll('table.list thead th')].map(x => x.textContent).join(','), JSON.parse(localStorage.getItem(uiKey())).ansicht, Math.max(...hs) - Math.min(...hs) <= 2, !document.querySelector('#list-body [data-le="zust"], #list-body [data-le="deadline"]')]; });
   ok(r.join('|') === '8|,Bedarf,Summe,Ort,Freigabe,Finanzierung,Verwendungsnachweis,Spendenübergabe|kompakt|true|true', 'Knopf „Kompakt“: je Bedarf eine Zeile, Ansprechperson und Deadline ausgeblendet, Wahl gemerkt: ' + r.join('|'));
+  r = await p.evaluate(() => [...document.querySelectorAll('#list-body tr[data-id]')].map(tr => { const b = D.bedarfe.find(x => x.id === tr.dataset.id), c = [...tr.querySelectorAll('td.k-nach')].map(t => t.textContent.trim());
+    return frStand(b) === 'ok' ? c.every(Boolean) : c[0] === (frStand(b) === 'no' ? 'Freigabe abgelehnt' : 'Freigabe ausstehend') && !c[1] && !c[2]; }));
+  ok(r.every(Boolean) && await p.evaluate(() => D.bedarfe.some(b => !b.archiv && frStand(b) !== 'ok')), 'kompakt ohne Freigabe: Finanzierung „Freigabe ausstehend“, Nachweis und Übergabe leer; freigegebene wie gewohnt: ' + r.join(','));
   await p.click('button[data-act="new"]'); await K.type('Funkmast'); await K.press('Enter'); await K.type('3.000'); await K.press('Enter'); await K.type('Warburg'); await K.press('Enter');
   r = await p.evaluate(() => { const x = D.bedarfe[0]; return [x.titel, x.summe, x.gliederung, !!document.querySelector('.le-edit, .cal-pop'), document.querySelector('#list-body tr[data-id]').children[1].textContent]; });
   ok(r.join('|') === 'Funkmast|3000|Warburg|false|Funkmast', 'kompakt: + Bedarf führt durch Name, Summe, Ort – dann fertig: ' + r.join('|'));
@@ -301,7 +304,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('.seg.ansicht [data-v="kompakt"]');
   ok(await p.evaluate(() => !!document.querySelector('table.list thead th:first-child [data-act="prio-kopf"]')), 'Kopf-Stern auch in der kompakten Ansicht');
   await p.click('.seg.ansicht [data-v="voll"]');
-  // Sortieren in bis zu drei Stufen: Spaltenköpfe nehmen die Spalte als nächste Stufe dazu (Klick: aufwärts, nochmal: abwärts, nochmal: heraus); Menü mit Priorität & Co.
+  // Sortieren in bis zu drei Stufen: Spaltenköpfe nehmen die Spalte als nächste Stufe dazu (Klick: aufwärts, nochmal: abwärts, nochmal: heraus)
   const reihe = () => p.evaluate(() => [...document.querySelectorAll('#list-body tr[data-id]')].map(t => t.dataset.id));
   const vorher = await reihe();
   await p.click('table.list thead [data-act="sort-th"][data-k="summe"]');
@@ -312,15 +315,19 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join('|') === 'true|1↓', 'noch ein Klick: absteigend: ' + r.join('|'));
   await p.click('table.list thead [data-act="sort-th"][data-k="summe"]');
   ok(JSON.stringify(await reihe()) === JSON.stringify(vorher) && !(await p.$('table.list thead .so')), 'dritter Klick: Spalte wieder heraus, übliche Reihenfolge');
-  await p.click('[data-act="sort-menu"]'); await p.selectOption('.sort-pop .sort-row:nth-child(2) select', 'fr');
-  await p.selectOption('.sort-pop .sort-row:nth-child(3) select', 'prio'); await p.click('.sort-pop .sort-row:nth-child(3) .seg button:last-child');
+  ok(!(await p.$('[data-act="sort-menu"], .sort-btn')), 'kein Knopf „Sortieren“ mehr – sortiert wird über die Spaltenköpfe');
+  await p.click('table.list thead [data-act="sort-th"][data-k="fr"]'); await p.click('table.list thead [data-act="sort-th"][data-k="summe"]');
   r = await p.evaluate(() => { const L = [...document.querySelectorAll('#list-body tr[data-id]')].map(t => D.bedarfe.find(b => b.id === t.dataset.id)), fr = L.map(b => ({ ok: 0, run: 1, off: 2, no: 3 })[frStand(b)]);
-    const gut = L.every((b, i) => !i || fr[i - 1] < fr[i] || (fr[i - 1] === fr[i] && PRIO_ORD[L[i - 1].prio] >= PRIO_ORD[b.prio]));
-    return [gut, $('[data-act="sort-menu"]').textContent, JSON.parse(localStorage.getItem(uiKey())).sort.map(s => s.k + ':' + s.d).join(), !!$('.sort-pop')]; });
-  ok(r.join('|') === 'true|Sortiert: Freigabe › Priorität|fr:auf,prio:ab|true', 'Menü: zuerst Freigabe (freigegeben zuerst), darin Priorität (niedrig zuerst); gemerkt, Menü bleibt offen: ' + r.join('|'));
-  await p.click('.sort-pop .sort-f .link');
-  ok(await p.evaluate(() => !UI.sort.length && $('[data-act="sort-menu"]').textContent === 'Sortieren'), '„Zurücksetzen“: übliche Reihenfolge');
-  await p.keyboard.press('Escape');
+    const gut = L.every((b, i) => !i || fr[i - 1] < fr[i] || (fr[i - 1] === fr[i] && (!+b.summe || (+L[i - 1].summe && +L[i - 1].summe <= +b.summe))));   // leere Summe unten
+    return [gut, ['fr', 'summe'].map(k => $(`table.list thead [data-k="${k}"] .so`).textContent).join(), JSON.parse(localStorage.getItem(uiKey())).sort.map(s => s.k + ':' + s.d).join()]; });
+  ok(r.join('|') === 'true|1↑,2↑|fr:auf,summe:auf', 'Spaltenköpfe in zwei Stufen: zuerst Freigabe, darin Summe; gemerkt: ' + r.join('|'));
+  r = await p.evaluate(() => { localStorage.setItem(uiKey(), JSON.stringify(Object.assign(JSON.parse(localStorage.getItem(uiKey())), { sort: [{ k: 'deadline', d: 'auf' }, { k: 'fr', d: 'ab' }] }))); loadUI(); const x = JSON.stringify(UI.sort); UI.sort = []; renderNow(); return x; });
+  ok(r === '[{"k":"fr","d":"ab"}]', 'gemerkte Sortierung nach Deadline (früher übers Menü) fällt weg – es gibt keinen Spaltenkopf dafür: ' + r);
+  // Kopf der Liste hängt als Leiste unter der Kopfzeile, so hoch wie die Leiste auf der Seite eines Bedarfs: beide Seiten beginnen gleich hoch
+  const oben = () => p.evaluate(() => [!!document.querySelector('header.top .subbar'), document.querySelector('header.top .subbar').getBoundingClientRect().height, document.querySelector('#app > main').getBoundingClientRect().top + scrollY]);
+  const o1 = await oben(); await p.evaluate(() => oeffnen('b-mtw')); const o2 = await oben(); await p.evaluate(() => zurueck());
+  ok(o1[0] && o1.join() === o2.join(), 'Liste und Bedarf: Leiste unter der Kopfzeile gleich hoch, Inhalt beginnt an derselben Stelle: ' + o1.join() + ' / ' + o2.join());
+  ok(await p.evaluate(() => !!document.querySelector('header.top .subbar.list-head #q') && !!document.querySelector('header.top #list-count') && !document.querySelector('main .list-head')), 'Suche, Anzahl und Ansicht stehen in der Leiste oben, die Tabelle als Kasten darunter');
   // ohne vollständige Freigabe: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
   r = await p.evaluate(() => ['b-aed', 'b-mtw'].map(id => { const tr = document.querySelector(`#list-body tr[data-id="${id}"]`), c = tr.querySelector('td.l-fin > .fg'); return tr.classList.contains('ohne-fg') + ':' + getComputedStyle(c).filter + ':' + getComputedStyle(tr.querySelector('td.l-fr > *')).filter; }));
   ok(r.join(' / ') === 'true:grayscale(1):none / false:none:none', 'AED ohne Freigabe: alles hinter der Freigabe grau; MTW freigegeben: farbig: ' + r.join(' / '));

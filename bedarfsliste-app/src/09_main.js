@@ -4,7 +4,9 @@ const DEMO_KEY = 'bedarfsliste-vorschau-4';
 const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
-function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
+const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
+function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ }
+  UI.sort = Array.isArray(UI.sort) ? UI.sort.filter(s => s && SORT_SPALTEN.includes(s.k)) : []; }
 function saveUI() { try { localStorage.setItem(uiKey(), JSON.stringify(Object.fromEntries(UI_KEEP.map(k => [k, UI[k]])))); } catch (e) { /* */ } }
 const cur = () => D.bedarfe.find(b => b.id === UI.id) || null;
 
@@ -55,7 +57,7 @@ function headerHtml() {
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}</nav>
     <div class="actions">${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)">↶ Rückgängig</button><button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
-    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : ''}
+    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : listBar()}
   </header>`;
 }
 function bannersHtml() {
@@ -260,7 +262,6 @@ async function act(k, a, e) {
     case 'tab': UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;
     case 'open': oeffnen(a.dataset.id); return;
     case 'back': zurueck(); return;
-    case 'sort-menu': if ($('.sort-pop')) closeMenus(); else sortPop(a); return;
     case 'sort-th': sortSpalte(a.dataset.k); return;
     case 'new': neuerBedarf(); return;
     case 'clear': Object.assign(UI, { q: '', fSw: '', prioKopf: 0 }); ORDER.ids = null; keep(renderNow); return;

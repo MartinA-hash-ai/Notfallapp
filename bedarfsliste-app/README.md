@@ -46,13 +46,14 @@ die Anführungszeichen entfernt die Liste.
 
 **Ansicht der Liste:** „Ausführlich“ zeigt alles (Förderer einzeln, Ansprechperson, Deadline); „Kompakt“ je Bedarf eine Zeile mit
 Name, Summe, Ort und je Bereich nur dem Stand – grün durch, gelb in Bearbeitung, rot abgelehnt, leerer Kreis noch nichts, grau nicht nötig.
+Fehlt die Freigabe noch, steht bei Finanzierung nur „Freigabe ausstehend“; Verwendungsnachweis und Spendenübergabe bleiben leer.
 In der kompakten Ansicht führt „+ Bedarf“ durch Name, Summe und Ort; Umschalt+Enter legt gleich den nächsten an (in beiden Ansichten).
 Strg+Klick klappt einen Bedarf ausführlich auf, noch einmal Strg+Klick öffnet ihn, ein Klick daneben klappt ihn zu. Der Browser merkt sich die Wahl.
 
 **Priorität:** der Stern ganz vorn in der Liste (und auf der Seite des Bedarfs) – Klick: Prio an (gelb) oder aus. Stern im Spaltenkopf: 1. Klick – Bedarfe mit Prio nach oben (Rand golden), 2. Klick – nur noch Bedarfe mit Prio (ausgefüllt), 3. Klick – wieder normal.
 
 **Sortieren:** Klick auf einen Spaltenkopf nimmt die Spalte als nächste Stufe dazu (bis zu drei; noch ein Klick: andere Richtung,
-dritter Klick: heraus). Der Knopf „Sortieren“ bietet zusätzlich Priorität, Ansprechperson, Deadline und Angelegt.
+dritter Klick: heraus). Nach Priorität sortiert der Stern im Spaltenkopf.
 
 **Bedarf öffnen:** Strg halten und mit der Maus über einen Bedarf – rechts zeigt ein Streifen mit Griff an, dass sich hier etwas öffnen lässt.
 Klick auf den Griff oder Strg+Klick: der Bedarf gleitet von rechts herein. Esc oder „‹ Alle Bedarfe“: zurück an dieselbe Stelle der Liste.
