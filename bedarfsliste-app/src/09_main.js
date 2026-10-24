@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', fPrio: false, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
@@ -263,7 +263,8 @@ async function act(k, a, e) {
     case 'sort-menu': if ($('.sort-pop')) closeMenus(); else sortPop(a); return;
     case 'sort-th': sortSpalte(a.dataset.k); return;
     case 'new': neuerBedarf(); return;
-    case 'clear': Object.assign(UI, { q: '', fSw: '' }); keep(renderNow); return;
+    case 'clear': Object.assign(UI, { q: '', fSw: '', fPrio: false }); ORDER.ids = null; keep(renderNow); return;
+    case 'f-prio': UI.fPrio = !UI.fPrio; ORDER.ids = null; keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
     case 'fw': if ($('.fw-pop')) closeMenus(); else fwPop(a); return;
     case 'st-menu': stMenu(a); return;

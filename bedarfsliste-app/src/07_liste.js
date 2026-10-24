@@ -114,6 +114,7 @@ function filtered() {
   const arch = UI.tab === 'archiv', q = norm(UI.q);
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
   if (UI.fSw) L = L.filter(b => b.stichworte.includes(UI.fSw));
+  if (UI.fPrio) L = L.filter(b => b.prio === 'hoch');
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, ...b.stichworte, ...b.zust.map(z => z.n), ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
   L.sort((x, y) => sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
   if (ORDER.ids) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
@@ -121,7 +122,7 @@ function filtered() {
 }
 // Reihenfolge, solange mit Strg bearbeitet wird (Zeilen springen nicht unter dem Mauszeiger weg)
 const ORDER = { ids: null };
-const anyFilter = () => !!(UI.q || UI.fSw);
+const anyFilter = () => !!(UI.q || UI.fSw || UI.fPrio);
 
 /* ---------- kompakte Ansicht: je Bedarf eine Zeile – Name, Summe, Ort und je Bereich nur der Stand als Kreis mit Wort.
    Grün: durch · Gelb: in Bearbeitung · Rot: abgelehnt · leerer Kreis: noch nichts · grau: nicht nötig */
@@ -158,7 +159,7 @@ const KOMPAKT = () => UI.ansicht === 'kompakt';
 // unter seiner Überschrift stehen. Dafür bekommt die Zeile den Abstand von dieser Überschrift bis zum Zellenende. Gemessen wird nach dem
 // Zeichnen und jedes Mal, wenn sich die Spalten verschieben (Fenstergröße, Symbole beim Überfahren, neue Inhalte)
 function aufMessen() {
-  const tr = $('#list-body tr.auf'), th = $$('table.list.kompakt thead th')[5], td = tr && tr.querySelector('td.l-fin'); if (!th || !td) return;
+  const tr = $('#list-body tr.auf'), th = $$('table.list.kompakt thead th')[6], td = tr && tr.querySelector('td.l-fin'); if (!th || !td) return;
   for (let i = 0; i < 2; i++) {                    // zweimal: die neue Breite kann die Spalten noch einmal verschieben
     const a = th.getBoundingClientRect().left, z = td.getBoundingClientRect().right, pl = parseFloat(getComputedStyle(th).paddingLeft), pr = parseFloat(getComputedStyle(td).paddingRight);
     tr.style.setProperty('--vnw', (z - a) + 'px'); tr.style.setProperty('--vtw', Math.max(90, z - pr - a - pl - 23) + 'px');   // 23: Kreis und Abstand
@@ -172,7 +173,10 @@ function aufMass() {
   if ($('#list-body tr.auf')) $$('table.list.kompakt thead th').forEach(t => AUF_RO.observe(t));
 }
 window.addEventListener('resize', () => aufMessen());
-const nameZelle = b => `<td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : b.prio === 'hoch' ? ' <span class="prio-t">(Prio)</span>' : ''}</td>
+// Priorität ganz vorn als Stern: leer umrandet = keine Prio, gelb = Prio (Priorität „hoch“); ein Klick schaltet um
+const ICON_STERN = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M8 1.6l1.95 3.95 4.35.63-3.15 3.07.74 4.33L8 11.53l-3.89 2.05.74-4.33L1.7 6.18l4.35-.63z"/></svg>';
+const sternZelle = b => `<td class="l-star"><button class="star-p${b.prio === 'hoch' ? ' on' : ''}" data-le="prio" aria-pressed="${b.prio === 'hoch'}" title="${b.prio === 'hoch' ? 'Prio – klicken: keine Prio' : 'keine Prio – klicken: Prio'}" aria-label="Priorität">${ICON_STERN}</button></td>`;
+const nameZelle = b => `${sternZelle(b)}<td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : ''}</td>
     <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>`;
 const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
 // solange die Freigabe nicht vollständig ist, wird hinter ihr noch nichts angegangen: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
@@ -188,10 +192,10 @@ function row(b) {
     <td class="l-ueb">${lUebergabe(b)}</td>
   </tr>`;
 }
-const NCOL = 6;
+const NCOL = 7;
 function listBody() {
   const L = filtered();
-  if (!L.length) return { html: `<tr><td colspan="${KOMPAKT() ? 7 : NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
+  if (!L.length) return { html: `<tr><td colspan="${KOMPAKT() ? 8 : NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
   return { html: L.map(row).join(''), n: L.length };
 }
 function listView() {
@@ -204,14 +208,15 @@ function listView() {
       <div class="tools">
         <button class="sort-btn${(UI.sort || []).length ? ' on' : ''}" data-act="sort-menu" aria-haspopup="menu" title="Sortieren – bis zu drei Stufen">${sortText()}</button>
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
+        <button class="prio-filter${UI.fPrio ? ' on' : ''}" data-act="f-prio" aria-pressed="${!!UI.fPrio}" title="Nur Bedarfe mit Prio zeigen">${ICON_STERN}nur Prio</button>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
         ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
       </div>
     </div>
     <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
-      ${komp ? [['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => `<th>${sk(k, t)}</th>`).join('')
-        : ['<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')]
+      ${komp ? [['prio', ICON_STERN], ['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => `<th>${sk(k, t)}</th>`).join('')
+        : ['<th class="l-star">' + sk('prio', ICON_STERN), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')]
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
   </section></main>`;
@@ -248,7 +253,7 @@ function sortPop(btn) {
 }
 /* ---------- Spaltenbreiten wie in Excel: am rechten Rand eines Spaltenkopfs ziehen – nur diese Spalte ändert sich, die rechts davon rücken mit.
    Die Breiten merkt sich der Browser; Doppelklick auf einen Rand oder das Zahnrad setzt alle zurück. */
-const COLW_KEY = 'bl-colw', COL_MIN = [140, 70, 90, 110, 330, 150];
+const COLW_KEY = 'bl-colw', COL_MIN = [30, 140, 70, 90, 110, 330, 150];
 const colwGet = () => { try { const a = JSON.parse(localStorage.getItem(COLW_KEY) || 'null'); return Array.isArray(a) && a.length === NCOL && a.every(x => x > 0) ? a : null; } catch (e) { return null; } };
 const colwSet = a => { try { if (a) localStorage.setItem(COLW_KEY, JSON.stringify(a)); else localStorage.removeItem(COLW_KEY); } catch (e) { /* nur in diesem Browser */ } };
 document.addEventListener('pointerdown', e => {

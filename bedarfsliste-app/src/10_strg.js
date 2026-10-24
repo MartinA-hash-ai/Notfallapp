@@ -84,6 +84,7 @@ document.addEventListener('click', e => {
 function strgAct(b, el, then) {
   const f = el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : null, done = () => { changed(); relist(b); };
   switch (el.dataset.le) {
+    case 'prio': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; return done();             // Stern: Prio an oder aus
     case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', feld: 'titel', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
     case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', feld: 'summe', then, set: v => { b.summe = v; } });
     case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', feld: 'ort', then, set: v => { b.gliederung = v.trim(); } });
@@ -269,7 +270,7 @@ function feldWeiter(b, k, wie, then) {
 // Esc oder Klick daneben hört auf. Bleibt der Name leer, verschwindet die neue Zeile wieder.
 function neuerBedarf(nach) {
   const nb = blank(); D.bedarfe.unshift(nb); changed();
-  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: '' });
+  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: '', fPrio: false });
   const L = (ORDER.ids || []).filter(id => id !== nb.id), at = nach ? L.indexOf(nach) : -1;
   ORDER.ids = at >= 0 ? [...L.slice(0, at + 1), nb.id, ...L.slice(at + 1)] : [nb.id, ...L];
   renderNow(); strgSet(false);
