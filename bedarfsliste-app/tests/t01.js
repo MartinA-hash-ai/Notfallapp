@@ -21,7 +21,7 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   await p.keyboard.press('Escape');
   await p.click('button[data-act="new"]'); await p.keyboard.press('Escape');
   ok(await p.evaluate(() => D.bedarfe.length === 1 && document.querySelectorAll('#list-body tr[data-id]').length === 1), 'neuer Bedarf ohne Namen (Esc) verschwindet wieder');
-  await p.click('#list-body tr[data-id] .l-name');
+  await p.click('#list-body tr[data-id] [data-le="titel"]');
   ok(await p.evaluate(() => UI.view === 'list' && !!document.querySelector('#list-body .le-edit')), 'ohne Strg: Klick auf den Namen bearbeitet ihn, der Bedarf bleibt zu');
   await p.keyboard.press('Escape');
   await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });

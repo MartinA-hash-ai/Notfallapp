@@ -394,6 +394,7 @@ document.addEventListener('input', e => {
   const el = e.target;
   if (!el.closest || !el.closest('#app')) return;
   if (el.dataset.ui === 'q') {
+    if (UI.auf) aufklappen(null);
     UI.q = el.value; const r = listBody(); swap('list-body', r.html, true);
     const c = $('#list-count'); if (c) c.textContent = r.n + ' von ' + D.bedarfe.filter(b => !!b.archiv === (UI.tab === 'archiv')).length;
     return;

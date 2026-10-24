@@ -14,7 +14,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('button[data-act="back"]');
 
   let r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('.strg-hint')).backgroundColor === 'rgba(0, 0, 0, 0)', document.querySelector('.strg-hint').textContent]);
-  ok(r.join() === 'true,true,Strg + Klick öffnet den Bedarf', 'ohne Strg: Bearbeiten aktiv, Hinweis „Strg + Klick öffnet den Bedarf“ unauffällig: ' + r.join());
+  ok(r.join() === 'true,true,Klick aufs Wort ändert es, daneben öffnet den Bedarf', 'ohne Strg: Bearbeiten aktiv, Hinweis unauffällig: ' + r.join());
   await K.down('Control');
   r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('.strg-hint')).backgroundColor !== 'rgba(0, 0, 0, 0)']);
   ok(r.join() === 'false,true', 'Strg gedrückt: Bearbeiten aus, der Hinweis leuchtet');
@@ -23,7 +23,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.$eval(R('b-aed') + ' .le-plus', e => getComputedStyle(e).display) === 'grid' && await p.$eval(R('b-mtw') + ' .le-plus', e => getComputedStyle(e).display) === 'none', '+ erscheint nur über dem Finanzierungsplan, den die Maus berührt');
 
   // Felder: Name, Summe, Ort, Ansprechperson, Deadline
-  await p.click(R('b-aed') + ' .l-name');
+  await p.click(R('b-aed') + ' [data-le="titel"]');
   r = await p.evaluate(() => [UI.view, document.activeElement.className, document.activeElement.value]);
   ok(r.join('|') === 'list|le-edit|Defibrillatoren (AED) für den Sanitätsdienst', 'Klick auf den Namen: Feld statt Bedarf öffnen: ' + r.join('|'));
   await p.click(R('b-aed') + ' .l-name .le-edit');
@@ -31,7 +31,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.fill('.le-edit', 'Defibrillatoren für Lippstadt'); await p.press('.le-edit', 'Enter');
   ok((await B('b-aed')).titel === 'Defibrillatoren für Lippstadt' && (await p.$eval(R('b-aed') + ' .l-name', e => e.textContent)).startsWith('Defibrillatoren für Lippstadt'), 'Name geändert');
   const edit = async (sel, val, key = 'Enter') => { await p.click(sel); const i = '.le-edit'; await p.fill(i, val); if (await p.$(i)) await p.press(i, key); };   // ein Datum wie aus dem Kalender gilt sofort
-  await edit(R('b-aed') + ' .l-sum', '5.200');
+  await edit(R('b-aed') + ' [data-le="summe"]', '5.200');
   await edit(R('b-aed') + ' [data-le="ort"]', 'Geseke');
   await edit(R('b-aed') + ' [data-le="zust"]', 'Maria Beispiel');
   // Deadline: eigener Kalender, direkt geöffnet
@@ -59,9 +59,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await B('b-aed')).zust[0].n === 'Anna Muster', 'Pfeil runter und Enter übernimmt den Vorschlag');
   await p.click(R('b-aed') + ' [data-le="zust"]'); await K.press('Enter');
   ok((await B('b-aed')).zust[0].n === 'Anna Muster', 'nichts eingegeben: Wert bleibt');
-  await edit(R('b-aed') + ' .l-name', 'soll nicht bleiben', 'Escape');
+  await edit(R('b-aed') + ' [data-le="titel"]', 'soll nicht bleiben', 'Escape');
   ok((await B('b-aed')).titel === 'Defibrillatoren für Lippstadt', 'Esc verwirft');
-  await edit(R('b-aed') + ' .l-sum', 'viel');
+  await edit(R('b-aed') + ' [data-le="summe"]', 'viel');
   ok((await B('b-aed')).summe === 5200 && (await p.$eval('#toasts', e => e.textContent)).includes('keine Zahl'), 'keine Zahl: nicht übernommen, Hinweis');
 
   // Stände per Klick weiterdrehen
@@ -214,7 +214,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [document.activeElement.placeholder, D.bedarfe[0].titel, D.bedarfe[0].summe, D.bedarfe[0].gliederung]);
   ok(r.join('|') === 'Ansprechperson|Zelt|900|Brakel', 'mit Tab von Feld zu Feld durch die neue Zeile: ' + r.join('|'));
   await K.press('Escape');
-  await p.click(R('b-aed') + ' .l-name'); await K.press('Tab');
+  await p.click(R('b-aed') + ' [data-le="titel"]'); await K.press('Tab');
   ok(await p.evaluate(() => document.activeElement.placeholder) === 'Summe', 'auch in einer vorhandenen Zeile: Tab springt vom Namen zur Summe');
   await K.press('Escape');
 
@@ -276,8 +276,30 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-mtw'), 'noch einmal Strg+Klick öffnet den Bedarf');
   await p.click('button[data-act="back"]');
   ok(await p.evaluate(() => UI.view === 'list' && !UI.auf && UI.ansicht === 'kompakt'), 'zurück in der Liste: wieder alles kompakt');
+  // ohne Strg: Klick aufs Wort ändert es; daneben klappt der Bedarf auf (Spalten bleiben, die anderen werden blass), noch ein Klick daneben öffnet ihn
+  const daneben = async sel => { const q = await (await p.$(sel)).boundingBox(); await p.mouse.click(q.x + 3, q.y + 3); };
+  const spalten = () => p.evaluate(() => $$('table.list thead th').map(t => Math.round(t.getBoundingClientRect().width)).join());
+  const sp0 = await spalten();
+  await p.click(R('b-kueche') + ' [data-le="ort"]');
+  ok(await p.evaluate(() => !!document.querySelector('#list-body tr[data-id="b-kueche"] .le-edit') && !UI.auf && UI.view === 'list'), 'kompakt: Klick auf das Wort (Ort) ändert es');
+  await K.press('Escape');
+  await daneben(R('b-kueche') + ' td.l-name');
+  r = await p.evaluate(() => [UI.view, UI.auf, !document.querySelector('.le-edit'), $$('table.list thead th').map(t => Math.round(t.getBoundingClientRect().width)).join(), +getComputedStyle(document.querySelector('#list-body tr[data-id]:not(.auf)')).opacity, +getComputedStyle(document.querySelector('#list-body tr.auf')).opacity]);
+  ok(r[0] === 'list' && r[1] === 'b-kueche' && r[2] && r[3] === sp0 && r[4] < .5 && r[5] === 1, 'Klick neben den Namen klappt auf; Spaltenbreiten bleiben gleich, die anderen Bedarfe blass: ' + JSON.stringify(r) + ' / ' + sp0);
+  await p.click(R('b-aed') + ' [data-le="titel"]');
+  ok(await p.evaluate(() => UI.auf === 'b-aed' && !document.querySelector('.le-edit')), 'Klick auf eine blasse Zeile holt diese nach vorn (statt ein Wort darin zu ändern)');
+  await K.press('Escape');
+  ok(await p.evaluate(() => !UI.auf && !document.querySelector('table.list.hat-auf, table.list.auf-fest')) && await spalten() === sp0, 'Esc klappt zu, Spalten wie vorher');
+  await daneben(R('b-kueche') + ' td.k-fr'); await daneben(R('b-kueche') + ' td.l-sum');
+  ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-kueche'), 'Klick neben die Freigabe klappt auf, danach Klick neben die Summe öffnet den Bedarf');
+  await p.click('button[data-act="back"]');
   await p.click('.seg.ansicht [data-v="voll"]');
   ok(await p.evaluate(() => UI.ansicht === 'voll' && document.querySelectorAll('#list-body tr[data-id]')[0].children.length === 7), 'Knopf „Ausführlich“: wieder alle Angaben');
+  await daneben(R('b-kueche') + ' td.l-fr');
+  ok(await view() === 'list', 'ausführlich: Klick neben die Freigabe tut nichts (dort liegen die kleinen Knöpfe)');
+  await daneben(R('b-kueche') + ' td.l-meta');
+  ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-kueche'), 'ausführlich: Klick neben Ort und Ansprechperson öffnet den Bedarf');
+  await p.click('button[data-act="back"]');
 
   // Priorität als Stern ganz vorn: Klick schaltet Prio an und aus; Stern im Kopf: 1. Klick Prio nach oben, 2. Klick nur Prio, 3. Klick normal
   r = await p.evaluate(() => [...document.querySelectorAll('table.list thead th')][0].querySelector('[data-act="prio-kopf"]') !== null && !document.querySelector('[data-act="f-prio"], .prio-filter') && [...document.querySelectorAll('#list-body tr[data-id]')].every(t => t.firstElementChild.matches('td.l-star')));
@@ -360,5 +382,11 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click(R('b-mtw') + ' .l-sum', { modifiers: ['Control'] });
   ok(await view() === 'detail', 'Strg + Klick öffnet den Bedarf');
   await p.screenshot({ path: 'strg.png' });
-  await finish(b, [p]);
+  // mit Animationen: beim Aufklappen gleitet die Zeile auf, die Zeilen darunter rutschen mit
+  const m = await open(b, { file: process.cwd() + '/vorschau.html', fakefs: false, motion: true });
+  await m.click('.seg.ansicht [data-v="kompakt"]');
+  const q = await (await m.$('#list-body tr[data-id="b-mtw"] td.l-name')).boundingBox(); await m.mouse.click(q.x + 3, q.y + 3);
+  r = await m.evaluate(() => { const A = document.getAnimations(); return [UI.auf, A.filter(a => a.effect.target.matches('#list-body tr.auf td')).length, A.filter(a => a.effect.target.matches('#list-body tr:not(.auf)')).length]; });
+  ok(r[0] === 'b-mtw' && r[1] > 0 && r[2] > 0, 'Aufklappen gleitet: Zeile zieht sich auf, die darunter rutschen mit: ' + r.join('|'));
+  await finish(b, [p, m]);
 })();

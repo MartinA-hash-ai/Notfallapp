@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.32.0",
+    "date": "2026-10-24T14:00",
+    "items": [
+      "Ohne Strg: ein Klick genau auf das Wort (Name, Summe, Ort, Ansprechperson, Deadline) ändert es – nur das Wort leuchtet beim Überfahren. Ein Klick daneben klappt in der kompakten Ansicht den Bedarf auf, noch ein Klick neben Name, Summe oder Ort öffnet ihn; in der ausführlichen Ansicht öffnet er ihn gleich",
+      "Aufklappen gleitet: die Zeile zieht sich auf, die Bedarfe darunter rutschen mit, alle anderen werden blass. Ein Klick auf eine blasse Zeile holt diese nach vorn, Esc oder ein Klick außerhalb der Liste klappt zu",
+      "Die Spaltenbreiten bleiben beim Aufklappen stehen; dafür hat die Finanzierung in der kompakten Ansicht von vornherein Platz für die Förderer"
+    ]
+  },
+  {
     "version": "0.31.0",
     "date": "2026-10-24T13:00",
     "items": [

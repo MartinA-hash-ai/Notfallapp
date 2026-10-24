@@ -176,19 +176,21 @@ window.addEventListener('resize', () => aufMessen());
 // Priorität ganz vorn als Stern: leer umrandet = keine Prio, gelb = Prio (Priorität „hoch“); ein Klick schaltet um
 const ICON_STERN = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M8 1.6l1.95 3.95 4.35.63-3.15 3.07.74 4.33L8 11.53l-3.89 2.05.74-4.33L1.7 6.18l4.35-.63z"/></svg>';
 const sternZelle = b => `<td class="l-star"><button class="star-p${b.prio === 'hoch' ? ' on' : ''}" data-le="prio" aria-pressed="${b.prio === 'hoch'}" title="${b.prio === 'hoch' ? 'Prio – klicken: keine Prio' : 'keine Prio – klicken: Prio'}" aria-label="Priorität">${ICON_STERN}</button></td>`;
-const nameZelle = b => `${sternZelle(b)}<td class="l-name" data-le="titel">${b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>'}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : ''}</td>
-    <td class="l-sum" data-le="summe">${b.summe ? eur(b.summe) : '<span class="ph">Summe</span>'}</td>`;
+// Name, Summe, Ort, Ansprechperson und Deadline: anklickbar ist nur das Wort selbst – ein Klick daneben klappt den Bedarf auf bzw. öffnet ihn
+const wort = (k, t) => `<span class="le-w" data-le="${k}">${t}</span>`;
+const nameZelle = b => `${sternZelle(b)}<td class="l-name">${wort('titel', b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>')}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : ''}</td>
+    <td class="l-sum">${wort('summe', b.summe ? eur(b.summe) : '<span class="ph">Summe</span>')}</td>`;
 const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
 // solange die Freigabe nicht vollständig ist, wird hinter ihr noch nichts angegangen: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
 function row(b) {
   const kl = (b.manuell ? 'paused' : '') + (frOffen(b).names.length ? ' ohne-fg' : '');
   const fg = frStand(b);                                   // kompakt ohne Freigabe: in Finanzierung nur der Hinweis, Nachweis und Übergabe leer
   if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b)}
-    <td class="l-ort"><div class="ort" data-le="ort">${ortText(b)}</div></td><td class="k-fr">${kFreigabe(b)}</td>${fg === 'ok' ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
+    <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-fr">${kFreigabe(b)}</td>${fg === 'ok' ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
       : `<td class="k-nach">${kGrau(fg === 'no' ? 'Freigabe abgelehnt' : 'Freigabe ausstehend')}</td><td class="k-nach"></td><td class="k-nach"></td>`}</tr>`;
   const auf = KOMPAKT();                                  // in der kompakten Ansicht aufgeklappt: Finanzierung und Nachweis über zwei Spalten
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}${auf ? ' auf' : ''}">${nameZelle(b)}
-    <td class="l-meta"><div class="ort" data-le="ort">${ortText(b)}</div><div data-le="zust">${b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>'}</div><div data-le="deadline">${b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>'}</div></td>
+    <td class="l-meta"><div class="ort">${wort('ort', ortText(b))}</div><div>${wort('zust', b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>')}</div><div>${wort('deadline', b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>')}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
     <td class="l-fin"${auf ? ' colspan="2"' : ''}>${lFinanz(b)}</td>
     <td class="l-ueb">${lUebergabe(b)}</td>
@@ -205,8 +207,8 @@ function listBar() {
   const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), n = filtered().length, komp = KOMPAKT();
   const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<div class="subbar list-head">
-      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Name, Summe und Ort anklicken und ändern. Strg + Klick klappt einen Bedarf ausführlich auf – dort lässt sich alles bearbeiten; noch einmal Strg + Klick öffnet ihn, ein Klick daneben klappt ihn wieder zu.">Strg + Klick klappt einen Bedarf auf, noch einmal öffnet ihn</span>'
-        : '<span class="strg-hint" title="Name, Summe, Ort, Ansprechperson und Deadline anklicken und ändern; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Mit gedrückter Strg-Taste öffnet ein Klick den Bedarf.">Strg + Klick öffnet den Bedarf</span>'}
+      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Ein Klick auf Name, Summe oder Ort ändert das Wort. Ein Klick daneben klappt den Bedarf auf – dort lässt sich alles bearbeiten; noch ein Klick neben Name oder Summe öffnet ihn. Ein Klick auf eine andere Zeile holt diese nach vorn, Esc oder ein Klick außerhalb der Liste klappt wieder zu.">Klick aufs Wort ändert es, daneben klappt den Bedarf auf</span>'
+        : '<span class="strg-hint" title="Ein Klick auf Name, Summe, Ort, Ansprechperson oder Deadline ändert das Wort; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Ein Klick neben Name, Summe oder Ort öffnet den Bedarf.">Klick aufs Wort ändert es, daneben öffnet den Bedarf</span>'}
       <div class="tools">
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
@@ -217,8 +219,9 @@ function listBar() {
 }
 function listView() {
   const body = listBody(), komp = KOMPAKT(), colw = komp ? null : colwGet();
+  if (!komp || !UI.auf) AUF_W = null;
   return `<main><section class="card list-card">
-    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
+    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}${komp && UI.auf ? ' hat-auf' : ''}${AUF_W ? ' auf-fest' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : AUF_W ? ` style="min-width:${AUF_W.min}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : AUF_W ? aufCols() : ''}<thead><tr>
       ${komp ? `<th class="l-star">${kopfStern()}</th>` + [['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => `<th>${sk(k, t)}</th>`).join('')
         : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')]
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}

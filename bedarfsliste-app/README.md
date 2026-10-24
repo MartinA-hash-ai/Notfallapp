@@ -48,7 +48,9 @@ die Anführungszeichen entfernt die Liste.
 Name, Summe, Ort und je Bereich nur dem Stand – grün durch, gelb in Bearbeitung, rot abgelehnt, leerer Kreis noch nichts, grau nicht nötig.
 Fehlt die Freigabe noch, steht bei Finanzierung nur „Freigabe ausstehend“; Verwendungsnachweis und Spendenübergabe bleiben leer.
 In der kompakten Ansicht führt „+ Bedarf“ durch Name, Summe und Ort; Umschalt+Enter legt gleich den nächsten an (in beiden Ansichten).
-Strg+Klick klappt einen Bedarf ausführlich auf, noch einmal Strg+Klick öffnet ihn, ein Klick daneben klappt ihn zu. Der Browser merkt sich die Wahl.
+Ein Klick neben das Wort (oder auf Freigabe, Finanzierung …) klappt einen Bedarf ausführlich auf – er gleitet auf, die Spalten bleiben stehen,
+die anderen Bedarfe werden blass. Noch ein Klick neben Name, Summe oder Ort öffnet ihn; ein Klick auf eine andere Zeile holt diese nach vorn,
+Esc oder ein Klick außerhalb der Liste klappt zu. Strg+Klick geht weiterhin. Der Browser merkt sich die Wahl.
 
 **Priorität:** der Stern ganz vorn in der Liste (und auf der Seite des Bedarfs) – Klick: Prio an (gelb) oder aus. Stern im Spaltenkopf: 1. Klick – Bedarfe mit Prio nach oben (Rand golden), 2. Klick – nur noch Bedarfe mit Prio (ausgefüllt), 3. Klick – wieder normal.
 
@@ -56,11 +58,11 @@ Strg+Klick klappt einen Bedarf ausführlich auf, noch einmal Strg+Klick öffnet 
 dritter Klick: heraus). Nach Priorität sortiert der Stern im Spaltenkopf.
 
 **Bedarf öffnen:** Strg halten und mit der Maus über einen Bedarf – rechts zeigt ein Streifen mit Griff an, dass sich hier etwas öffnen lässt.
-Klick auf den Griff oder Strg+Klick: der Bedarf gleitet von rechts herein. Esc oder „‹ Alle Bedarfe“: zurück an dieselbe Stelle der Liste.
+Klick auf den Griff, Strg+Klick oder ein Klick neben Name, Summe oder Ort (kompakt: zweimal): der Bedarf gleitet von rechts herein. Esc oder „‹ Alle Bedarfe“: zurück an dieselbe Stelle der Liste.
 Solange die Freigabe fehlt, sind Finanzierung, Nachweis und Übergabe in der Liste grau.
 
 **In der Liste bearbeiten (Normalzustand):** Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
-und ändern – **Strg + Klick öffnet den Bedarf**. „+ Bedarf“ legt oben eine neue Zeile an und führt mit Enter oder Tab durch
+und ändern – anklickbar ist genau das Wort; **ein Klick daneben öffnet den Bedarf** (kompakt: klappt ihn erst auf). „+ Bedarf“ legt oben eine neue Zeile an und führt mit Enter oder Tab durch
 Name → Summe → Ort → Ansprechperson → Deadline (Shift+Tab zurück; Tab geht auch in vorhandenen Zeilen). Die Reihenfolge
 bleibt beim Arbeiten stehen und wird beim Zurückkommen in die Liste neu sortiert. Die Punktlinie zur Frist des
 Verwendungsnachweises zeigt die Zeit ab heute (grün, unter einem Monat gelb, unter einer Woche rot).

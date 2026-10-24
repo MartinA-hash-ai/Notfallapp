@@ -54,32 +54,72 @@ const ROT_FR = ['offen', 'angefragt', 'ok', 'nein'], ROT_ANG = ['fehlt', 'arbeit
 const ROT_FOE = { geplant: 'beantragt', beantragt: 'zugesagt', zugesagt: 'abgelehnt', abgelehnt: 'geplant' };
 const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 
-// kompakte Ansicht: Strg+Klick klappt einen Bedarf ausführlich auf (dort wie gewohnt bearbeiten), noch einmal Strg+Klick öffnet ihn;
-// ein Klick irgendwo anders klappt ihn wieder zu (nicht in seinen offenen Feldern, Kalendern und Menüs)
+// Klick in eine Zeile – ohne Strg: auf ein Wort (Name, Summe, Ort …), einen Kreis oder Stern: bearbeiten. Daneben: in der kompakten Ansicht klappt der Bedarf auf;
+// ist er schon aufgeklappt (oder in der ausführlichen Ansicht), öffnet ein Klick neben Name, Summe oder Ort ihn. Neben Freigabe, Finanzierung und Übergabe
+// passiert dort nichts – da liegen viele kleine Knöpfe dicht beieinander. Mit Strg wie bisher: kompakt erst aufklappen, dann öffnen (über data-act="open").
+// Ist ein Bedarf aufgeklappt, holt ein Klick auf eine andere Zeile diese nach vorn; ein Klick außerhalb der Liste (oder Esc) klappt ihn zu.
+const AUF_POPS = '.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new, #peek, .fmt-bar';
 document.addEventListener('click', e => {
-  if (UI.view !== 'list' || UI.ansicht !== 'kompakt') return;
-  const tr = e.target.closest('#list-body tr[data-id]');
-  if ((e.ctrlKey || e.metaKey) && tr) {
-    if (tr.dataset.id === UI.auf) return;                                             // schon aufgeklappt: Strg+Klick öffnet den Bedarf
-    e.preventDefault(); e.stopPropagation(); aufklappen(tr.dataset.id); return;
-  }
-  if (UI.auf && !(tr && tr.dataset.id === UI.auf) && !e.target.closest('.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new, #peek, .fmt-bar')) aufklappen(null);
-}, true);
-function aufklappen(id) {
-  const alt = UI.auf; UI.auf = id;
-  for (const x of [alt, id]) { const b = x && D.bedarfe.find(y => y.id === x), tr = x && $(`#list-body tr[data-id="${CSS.escape(x)}"]`); if (b && tr) tr.outerHTML = row(b); }
-  aufMass();
-}
-// Klick in eine Zeile: bearbeiten (ein Klick neben ein Feld tut nichts); mit Strg geht er durch und öffnet den Bedarf
-document.addEventListener('click', e => {
-  if (UI.view !== 'list' || e.ctrlKey || e.metaKey) return;
+  if (UI.view !== 'list') return;
   if (e.target.closest('.le-edit, .le-new, .ue-form')) return;                         // offene Felder halten ihre Klicks selbst zurück (le-stop)
-  const tr = e.target.closest('#list-body tr[data-id]'); if (!tr) return;
+  const tr = e.target.closest('#list-body tr[data-id]'), id = tr && tr.dataset.id, komp = UI.ansicht === 'kompakt';
+  if (komp && UI.auf && id !== UI.auf && !e.target.closest(AUF_POPS)) {
+    if (tr) { e.preventDefault(); e.stopPropagation(); aufklappen(id); return; }
+    aufklappen(null);
+  }
+  if (!tr) return;
+  const zu = komp && id !== UI.auf;                                                 // kompakte Zeile, noch zugeklappt
+  if (e.ctrlKey || e.metaKey) { if (zu) { e.preventDefault(); e.stopPropagation(); aufklappen(id); } return; }
   e.preventDefault(); e.stopPropagation();
-  const b = D.bedarfe.find(x => x.id === tr.dataset.id), el = e.target.closest('[data-le]');
-  if (b && el) strgAct(b, el);
+  const b = D.bedarfe.find(x => x.id === id), el = e.target.closest('[data-le]');
+  if (b && el) return strgAct(b, el);
+  if (zu) return aufklappen(id);
+  if (e.target.closest('td.l-star, td.l-name, td.l-sum, td.l-meta')) oeffnen(id);
 }, true);
-
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape' || UI.view !== 'list' || !UI.auf || e.defaultPrevented || $('.menu, .cal-pop, .le-sug, .modal, .ue-form, .le-edit, .fmt-bar')) return;
+  const el = document.activeElement; if (el && el.closest && el.closest('input, textarea, select, [contenteditable]')) return;
+  aufklappen(null);
+});
+// Spaltenbreiten bleiben beim Aufklappen stehen: vorher gemessen (Anteil an der Tabelle), solange ein Bedarf offen ist, fest
+let AUF_W = null;
+const aufCols = () => '<colgroup class="auf-w">' + AUF_W.map(w => `<col style="width:${w}%">`).join('') + '</colgroup>';
+function aufBreiten() {
+  const t = $('table.list.kompakt'); if (!t) return;
+  if (UI.auf && !AUF_W) { const W = t.getBoundingClientRect().width; AUF_W = $$('thead th', t).map(th => th.getBoundingClientRect().width / W * 100); AUF_W.min = Math.round(W); }
+  if (!UI.auf) AUF_W = null;
+  const cg = t.querySelector('colgroup.auf-w'); if (cg) cg.remove();
+  t.classList.toggle('auf-fest', !!AUF_W); t.classList.toggle('hat-auf', !!UI.auf);
+  t.style.minWidth = AUF_W ? AUF_W.min + 'px' : '';
+  if (AUF_W) t.insertAdjacentHTML('afterbegin', aufCols());
+}
+// Aufklappen gleitet: die Zeile zieht sich von ihrer alten Höhe nach unten auf, die Zeilen darunter rutschen mit, die anderen werden blass
+function aufklappen(id) {
+  const alt = UI.auf; if (alt === id) return;
+  const wie = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const vorher = wie ? new Map($$('#list-body tr[data-id]').map(r => [r.dataset.id, r.getBoundingClientRect()])) : null;
+  if (id && !alt) { UI.auf = id; aufBreiten(); }                                    // messen, solange noch alles zugeklappt ist
+  UI.auf = id;
+  for (const x of [alt, id]) { const b = x && D.bedarfe.find(y => y.id === x), tr = x && $(`#list-body tr[data-id="${CSS.escape(x)}"]`); if (b && tr) tr.outerHTML = row(b); }
+  aufBreiten(); aufMass();
+  if (vorher) aufGleiten(vorher, alt, id);
+}
+function aufGleiten(vorher, alt, id) {
+  const ms = 340, ease = 'cubic-bezier(.2, .8, .2, 1)', o = { duration: ms, easing: ease };
+  for (const r of $$('#list-body tr[data-id]')) {
+    const a = vorher.get(r.dataset.id); if (!a) continue;
+    const n = r.getBoundingClientRect(), dy = a.top - n.top;
+    if (dy) r.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], o);
+    if (r.dataset.id === id) { const cut = Math.max(0, n.height - a.height); for (const td of r.children) td.animate([{ clipPath: `inset(0 0 ${cut}px 0)` }, { clipPath: 'inset(0 0 0 0)' }], o); }
+    else if (r.dataset.id === alt && id) r.animate([{ opacity: 1 }, { opacity: .42 }], { duration: 250 });
+  }
+  if (!id) return;
+  setTimeout(() => {                                                                  // aufgeklappt, aber unten aus dem Bild: so weit hochrollen, dass er ganz zu sehen ist
+    const r = $(`#list-body tr[data-id="${CSS.escape(id)}"]`); if (!r) return;
+    const q = r.getBoundingClientRect(), oben = ($('header.top') || { getBoundingClientRect: () => ({ bottom: 0 }) }).getBoundingClientRect().bottom + 8;
+    if (q.bottom > innerHeight - 8) scrollBy({ top: Math.min(q.bottom - innerHeight + 16, q.top - oben), behavior: 'smooth' });
+  }, ms);
+}
 // then(wie): nach dem Feld – 'enter' (übernommen mit Enter oder Vorschlag), 'esc' oder 'blur'
 function strgAct(b, el, then) {
   const f = el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : null, done = () => { changed(); relist(b); };
