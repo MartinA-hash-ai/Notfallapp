@@ -97,6 +97,7 @@ function aufBreiten() {
 // Aufklappen gleitet: die Zeile zieht sich von ihrer alten Höhe nach unten auf, die Zeilen darunter rutschen mit, die anderen werden blass
 function aufklappen(id) {
   const alt = UI.auf; if (alt === id) return;
+  klickRuhe();
   const wie = !matchMedia('(prefers-reduced-motion: reduce)').matches;
   const vorher = wie ? new Map($$('#list-body tr[data-id]').map(r => [r.dataset.id, r.getBoundingClientRect()])) : null;
   if (id && !alt) { UI.auf = id; aufBreiten(); }                                    // messen, solange noch alles zugeklappt ist
@@ -137,10 +138,10 @@ function strgAct(b, el, then) {
     case 'fr': {
       const k = el.dataset.k, it = b.freigabe[k];
       if (k === 'ofk' && b.gliederung === DIO) { toast('Bei Bedarfen der Diözese entfällt der Ortsführungskreis.', 'warn'); return; }
-      const v = nextOf(ROT_FR, it.st); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v); return done();
+      const alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); return done();
     }
     case 'ang': { const u = angebotUL(b); if (!u) return; u.st = nextOf(ROT_ANG, u.st); return done(); }
-    case 'foe': { if (!f) return; const v = ROT_FOE[f.status] || 'geplant'; f.status = v; effects(b, f, 'status', v); return done(); }
+    case 'foe': { if (!f) return; if (geldDa(f)) return geldDaHinweis(); const alt = f.status, v = ROT_FOE[alt] || 'geplant'; f.status = v; effects(b, f, 'status', v, alt); return done(); }
     case 'vn': {                                                                         // nicht nötig → steht aus → in Arbeit → erledigt → nicht nötig
       if (!f) return; const x = f.vn;
       if (!x.noetig) Object.assign(x, { noetig: true, st: 'offen' });

@@ -85,11 +85,17 @@ Das Angebot steht bei den Freigaben (es ist Voraussetzung dafür), gespeichert b
 **Förderer-Fenster:** „Weitere Infos →“ unten rechts in der Kachel öffnet es. Angaben anklicken und ändern; Kontakte über den Stift
 (höchstens drei, ★ = Hauptkontakt, der unten in der Kachel steht). Notizen, Fristen, Fördersumme und Eigenanteil lassen sich
 einfach formatieren (ebenso die Beschreibung eines Bedarfs): `* ` oder `- ` am Zeilenanfang wird beim Tippen sofort zum Punkt •
-(Umschalt+Enter: nächster Punkt, Enter: Zeile ohne Punkt), `1. ` = Nummerierung, `*fett*`, `_kursiv_`, `+unterstrichen+`, `~durchgestrichen~`.
+(Umschalt+Enter: nächster Punkt, Enter: Zeile ohne Punkt), `1. ` = Nummerierung (beginnt bei 1 und zählt lückenlos – „31. März“ am Zeilenanfang bleibt Text), `*fett*`, `_kursiv_`, `+unterstrichen+`, `~durchgestrichen~`.
 Einfacher: Wort markieren – darüber erscheinen Knöpfe dafür (auch Strg+B, Strg+I, Strg+U). Beim Schreiben ist die Formatierung
 sofort zu sehen; gespeichert wird der Text mit den Zeichen.
 
 **Rückgängig:** „↶ Rückgängig“ in der Kopfzeile oder Strg+Z (nicht in einem Eingabefeld – dort gilt das Rückgängig des Browsers).
+„Rückgängig“ im Hinweis nach Archivieren, Löschen oder Förderer-Entfernen nimmt nur diese eine Aktion zurück.
+
+**Schutz vor Datenverlust:** Was während des Speicherns getippt wird, gilt erst als gespeichert, wenn es wirklich in der Datei steht.
+Liegt im Ordner plötzlich ein leerer, älterer oder undatierter Stand (z. B. überkopiert oder von OneDrive wiederhergestellt), fragt die Liste,
+statt ihn still zu übernehmen. Bei zwei Ständen wird der nicht gewählte als Sicherung heruntergeladen. Ungespeicherte Änderungen aus einer
+früheren Sitzung bleiben angeboten, bis „Wiederherstellen“ oder „Verwerfen“ gewählt ist. Ist dieselbe Datei in einem zweiten Tab offen, warnt die Liste.
 Bis zu 50 Schritte; Tippen im selben Feld ist ein Schritt. Nach dem Neuladen der Datei von außen beginnt die Liste von vorn.
 
 **Spaltenbreiten:** in der Liste am rechten Rand eines Spaltenkopfs ziehen (wie in Excel) – ausführlich und kompakt getrennt, mit Mindestbreiten

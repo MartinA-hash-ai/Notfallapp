@@ -33,6 +33,9 @@ const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': 
    auch verschachtelt (*+so+*): davor/danach darf ein anderes Zeichen oder eine schon gesetzte Formatierung stehen. */
 const fmtUm = (x, z, tag) => x.replace(new RegExp('(^|[\\s(„>*_~+])' + z + '(?=\\S)([^' + z + '\\n]*?\\S)' + z + '(?=$|[\\s.,;:!?)“<*_~+])', 'g'), '$1<' + tag + '>$2</' + tag + '>');
 const fmtInl = x => fmtUm(fmtUm(fmtUm(fmtUm(x, '\\*', 'b'), '_', 'i'), '~', 's'), '\\+', 'u');
+// Nummerierung nur, wenn sie bei 1 beginnt und lückenlos weiterzählt – „31. März: Antragsschluss“ oder „2. Halbjahr“ am Zeilenanfang
+// bleiben Text (sonst würde daraus „1. März“); nach „1. “ ein Monatsname ist ein Datum, keine Nummer
+const MONAT = /^(jan|feb|mär|maer|apr|mai|jun|jul|aug|sep|okt|nov|dez)/i;
 // edit: für das Schreibfeld – je Zeile ein Block, Links als Text
 function fmtText(t, edit) {
   const links = [];
@@ -40,8 +43,11 @@ function fmtText(t, edit) {
   const out = []; let liste = null, absatz = [];
   const zu = () => { if (absatz.length) { out.push(absatz.join(edit ? '' : '<br>')); absatz = []; } if (liste) { out.push(`<${liste.typ}>${liste.li.join('')}</${liste.typ}>`); liste = null; } };
   for (const z of s.split('\n')) {
-    const m = z.match(/^\s*[*\-•]\s+(.*)$/), n = !m && z.match(/^\s*\d+[.)]\s+(.*)$/), typ = m ? 'ul' : n ? 'ol' : null;
-    if (typ) { if (absatz.length || (liste && liste.typ !== typ)) zu(); if (!liste) liste = { typ, li: [] }; liste.li.push(`<li>${fmtInl((m || n)[1]) || (edit ? '<br>' : '')}</li>`); }
+    const m = z.match(/^\s*[*\-•]\s+(.*)$/);
+    let n = !m && z.match(/^\s*(\d+)[.)]\s+(.*)$/);
+    if (n && (MONAT.test(n[2]) || +n[1] !== (liste && liste.typ === 'ol' ? liste.n + 1 : 1))) n = null;
+    const typ = m ? 'ul' : n ? 'ol' : null;
+    if (typ) { if (absatz.length || (liste && liste.typ !== typ)) zu(); if (!liste) liste = { typ, li: [], n: 0 }; if (n) liste.n = +n[1]; liste.li.push(`<li>${fmtInl(m ? m[1] : n[2]) || (edit ? '<br>' : '')}</li>`); }
     else { if (liste) zu(); absatz.push(edit ? `<div>${fmtInl(z) || '<br>'}</div>` : fmtInl(z)); }
   }
   zu();
@@ -139,7 +145,7 @@ function richEdit(ed) {
     if (liVon(s.focusNode)) return;
     const a = zeilenAnfang(s.focusNode);
     const r = document.createRange(); r.setStart(a[0], a[1]); r.setEnd(s.focusNode, s.focusOffset);
-    const m = /^([*\-•]|\d+[.)]) $/.exec(r.toString().replace(/\u00a0/g, ' ')); if (!m) return;
+    const m = /^([*\-•]|1[.)]) $/.exec(r.toString().replace(/\u00a0/g, ' ')); if (!m) return;          // „1. “ beginnt eine Nummerierung, „31. “ nicht
     s.removeAllRanges(); s.addRange(r); cmd('delete');
     cmd(/\d/.test(m[1]) ? 'insertOrderedList' : 'insertUnorderedList');
   });
@@ -183,8 +189,11 @@ const fmtNum = n => (n == null || n === '' || isNaN(n)) ? '' : Number(n).toLocal
 // Zahlen deutsch eingeben: „1.500“ = 1500, „1.234,50“ = 1234,5; Ergebnis: Zahl, '' (leer) oder null (keine Zahl)
 // Zahl schon beim Tippen gliedern (15000 → 15.000); der Cursor bleibt hinter derselben Ziffer
 function liveNum(el) {
-  const v = el.value, pos = el.selectionStart ?? v.length, vor = v.slice(0, pos).replace(/[^\d,]/g, '').length;
+  let v = el.value; const pos = el.selectionStart ?? v.length, vor = v.slice(0, pos).replace(/[^\d,]/g, '').length;
   if (/[^\d.,\s€]/.test(v)) return;                                            // Buchstaben: so lassen, beim Verlassen gibt es den Hinweis
+  const t = v.replace(/[\s€]/g, '');
+  if (/^\d{1,3}(,\d{3})+\.\d{1,2}$/.test(t)) v = t.replace(/,/g, '').replace('.', ',');             // englisch eingefügt: 1,500.00 → 1500,00
+  else if (/^\d+(\.\d{3})*\.\d{0,2}$/.test(t) && !/^\d{1,3}(\.\d{3})+$/.test(t)) return;       // Punkt mit 0–2 Ziffern dahinter: vielleicht Dezimalpunkt (1500.00) – so lassen, beim Verlassen entscheidet deNum
   const [ganz, ...rest] = v.replace(/[^\d,]/g, '').split(',');
   const out = ganz.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, '.') + (rest.length ? ',' + rest.join('').slice(0, 2) : '');
   if (out === v) return;
@@ -195,10 +204,13 @@ function liveNum(el) {
 }
 function deNum(t) {
   if (typeof t === 'number') return t;
-  let s = String(t ?? '').replace(/\s|€|EUR/gi, '');
+  let s = String(t ?? '').replace(/\s|€|euro?/gi, '');
   if (!s) return '';
-  if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');
-  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');
+  if (s.includes(',') && s.includes('.') && s.lastIndexOf('.') > s.lastIndexOf(',')) s = s.replace(/,/g, '');      // englisch: 1,234.50
+  else if (/^\d{1,3}(,\d{3})+$/.test(s)) s = s.replace(/,/g, '');                                                  // englisch ohne Cent: 15,000
+  else if (s.includes(',')) s = s.replace(/\./g, '').replace(',', '.');                                            // deutsch: 1.234,50
+  else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g, '');                                              // deutsch ohne Cent: 1.500
+  else if (/^\d+(\.\d{3})*\.\d{1,2}$/.test(s)) { const i = s.lastIndexOf('.'); s = s.slice(0, i).replace(/\./g, '') + s.slice(i); }   // Dezimalpunkt: 1500.00, 1.500.50
   return /^\d+(\.\d+)?$/.test(s) ? +s : null;
 }
 const uniq = a => [...new Set(a.filter(Boolean))];

@@ -334,5 +334,5 @@ async function importFoerderplan(b, file) {
   });
   if (!neu && !erg) return;
   changed(); keep(renderNow);
-  toast([neu ? neu + ' Förderer übernommen' : '', erg ? erg + ' ergänzt' : ''].filter(Boolean).join(', '), 'ok', () => { D = normalize(JSON.parse(before)); changed(); keep(renderNow); });
+  toast([neu ? neu + ' Förderer übernommen' : '', erg ? erg + ' ergänzt' : ''].filter(Boolean).join(', '), 'ok', undoGanz(before));
 }

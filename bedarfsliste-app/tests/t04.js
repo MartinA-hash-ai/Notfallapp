@@ -67,7 +67,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(200);
   r = await p.evaluate(() => { const f = cur().foerderer[0]; return [cur().foerderer.length, f.warum, f.betrag]; });
   ok(r.join('|') === '2|neue Begründung|6000', 'überschreiben: Angaben aus der Excel übernommen, nichts doppelt');
-  await p.click('#toasts button.link');
+  await p.click('#toasts .toast:last-child button.link');
   r = await p.evaluate(() => cur().foerderer[0].warum);
   ok(r === 'passt', 'Rückgängig stellt den vorherigen Stand her');
   // Kontakte: je Zeile „Name; Funktion; E-Mail; Telefon“ – in beide Richtungen; höchstens drei

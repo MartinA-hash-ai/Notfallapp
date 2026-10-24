@@ -1,5 +1,21 @@
 [
   {
+    "version": "0.34.0",
+    "date": "2026-10-24T17:00",
+    "items": [
+      "Speichern: was während des Speicherns getippt wird, gilt nicht mehr fälschlich als gespeichert – es bleibt im Entwurf und wird gleich nachgespeichert. Ist die Datei direkt danach kurz gesperrt (OneDrive), gibt es keinen falschen Konflikt mehr",
+      "Beträge: „1500.00“, „99.9“, „1,500.00“ und „15,000“ werden richtig gelesen (vorher u. a. 150.000 €); „10.000 Euro“ ebenso",
+      "Texte: „31. März: Antragsschluss“ oder „2. Halbjahr“ am Zeilenanfang bleiben Text – eine Nummerierung beginnt nur mit „1.“ und zählt lückenlos",
+      "Stand von außen: leer, älter oder ohne Speicherdatum wird nicht mehr still übernommen, sondern mit Begründung angeboten; bei zwei Ständen wird der nicht gewählte als Sicherung heruntergeladen",
+      "Entwurf aus einer früheren Sitzung bleibt angeboten, bis entschieden ist; ist die Datei inzwischen neuer, fragt „Wiederherstellen“ erst nach",
+      "Update und „Meinen Stand behalten“ überschreiben weder einen Stand vom anderen Rechner noch eine neuere Programmversion im Ordner",
+      "Doppelklick: der zweite Klick löst nach dem Aufklappen oder Öffnen nichts mehr aus",
+      "Förderer-Stand: beim Weiterschalten bleiben keine alten Zusagen, Geldeingänge oder Daten hängen; ist das Geld schon da, schaltet ein Klick in der Liste nicht mehr um",
+      "Kein Neuzeichnen mehr mitten im Tippen (auch in Schreibfeldern mit Formatierung und im Übergabe-Fenster)",
+      "„Rückgängig“ nach Archivieren, Löschen oder Förderer-Entfernen nimmt nur diese Aktion zurück, nicht spätere Änderungen; Warnung, wenn dieselbe Datei in zwei Tabs offen ist"
+    ]
+  },
+  {
     "version": "0.33.0",
     "date": "2026-10-24T15:00",
     "items": [

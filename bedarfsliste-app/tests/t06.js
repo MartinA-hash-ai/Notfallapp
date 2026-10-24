@@ -411,7 +411,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   const m = await open(b, { file, fakefs: false, motion: true });
   await m.click('tr[data-id="b-mtw"] .l-name', { modifiers: ['Control'] });
   r = await m.evaluate(() => [document.documentElement.dataset.vt || '', !!document.startViewTransition]);
-  await m.waitForTimeout(500);
+  await m.waitForFunction(() => !document.documentElement.dataset.vt, null, { timeout: 3000 }).catch(() => {});
   r.push(await m.evaluate(() => UI.view + ':' + (document.documentElement.dataset.vt || '-') + ':' + !!document.querySelector('main.bedarf')));
   await m.click('button[data-act="back"]'); r.push(await m.evaluate(() => document.documentElement.dataset.vt || '')); await m.waitForFunction(() => !document.documentElement.dataset.vt, null, { timeout: 3000 }).catch(() => {});
   r.push(await m.evaluate(() => UI.view + ':' + (document.documentElement.dataset.vt || '-')));

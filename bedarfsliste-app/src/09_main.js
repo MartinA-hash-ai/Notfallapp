@@ -65,7 +65,15 @@ function bannersHtml() {
   if (DEMO) ban('', '<b>Vorschau</b> mit erfundenen Beispieldaten. Änderungen merkt sich nur dieser Browser; Speichern, Förder-Kartei und Excel gibt es in der Programmdatei.', '<button class="link" data-act="demo-reset">Beispieldaten zurücksetzen</button>');
   if (BROKEN) ban('err', 'Die Daten dieser Datei lassen sich nicht lesen (' + esc(BROKEN.reason) + '). Damit nichts überschrieben wird, speichert die Liste nicht.', '<button class="primary" data-act="restore">Datensicherung laden …</button>');
   if (ST.newer) ban('err', 'Im Ordner liegt eine neuere Version der Bedarfsliste (' + esc(ST.newer.version) + '). Bitte neu laden, damit nichts mit der alten Version überschrieben wird.', '<button class="primary" data-act="reload">Neu laden</button>');
-  if (ST.conflict) ban('err', 'Die Datei wurde woanders gespeichert (' + esc(fmtStamp(ST.conflict.other.meta && ST.conflict.other.meta.savedAt)) + '), während hier ungespeicherte Änderungen offen sind.', '<button data-act="conflict-theirs">Stand aus der Datei laden</button><button class="primary" data-act="conflict-mine">Meinen Stand behalten</button>');
+  if (ST.conflict) {
+    const c = ST.conflict, o = c.other, n = x => x.bedarfe.length + (x.bedarfe.length === 1 ? ' Bedarf' : ' Bedarfe');
+    const text = c.grund === 'leer' ? 'Im Ordner liegt jetzt eine leere Bedarfsliste – hier sind es ' + n(D) + '. Wurde die Datei versehentlich ersetzt?'
+      : c.grund === 'ohne' ? 'Die Datei im Ordner wurde durch eine Fassung ohne Speicherdatum ersetzt (z. B. eine frisch kopierte Programmdatei, ' + n(o) + '). Hier sind es ' + n(D) + '.'
+      : c.grund === 'aelter' ? 'Im Ordner liegt jetzt ein älterer Stand (gespeichert ' + esc(fmtStamp(o.meta.savedAt)) + ', ' + n(o) + ') als hier (' + esc(fmtStamp(D.meta.savedAt)) + ', ' + n(D) + ') – z. B. von OneDrive wiederhergestellt.'
+      : 'Die Datei wurde woanders gespeichert (' + esc(fmtStamp(o.meta && o.meta.savedAt)) + '), während hier ungespeicherte Änderungen offen sind.';
+    ban('err', text + ' Der Stand, der nicht gewählt wird, wird als Sicherung heruntergeladen.', '<button data-act="conflict-theirs">Stand aus der Datei laden</button><button class="primary" data-act="conflict-mine">Meinen Stand behalten</button>');
+  }
+  if (ST.zweiTab) ban('err', 'Diese Bedarfsliste ist noch in einem anderen Fenster oder Tab offen. Bitte nur in einem davon arbeiten und das andere schließen – sonst überschreiben sich die Änderungen gegenseitig.');
   if (ST.zipUpd && !ST.newer && UI.zipHide !== ST.zipUpd.name + '@' + ST.zipUpd.info.version) ban('upd', 'Im Ordner liegt das Update-Paket „' + esc(ST.zipUpd.name) + '“ mit Version ' + esc(ST.zipUpd.info.version) + ' – installiert ist Version ' + esc(APP_INFO.version) + '.', '<button class="primary" data-act="zip-go">Jetzt einspielen …</button><button data-act="zip-later">Später</button>');
   if (DRAFT_OFFER) ban('', 'In diesem Browser liegen ungespeicherte Änderungen vom ' + esc(fmtStamp(DRAFT_OFFER.at)) + '.', '<button class="primary" data-act="draft-restore">Wiederherstellen</button><button data-act="draft-drop">Verwerfen</button>');
   if (!DEMO && !FSA) ban('', 'Dieser Browser kann nicht direkt in den Ordner speichern – „Speichern“ lädt die Datei dann herunter. Mit Microsoft Edge oder Google Chrome speichert die Liste automatisch.');
@@ -107,10 +115,19 @@ function renderNow() {
   } finally { _rendering = false; }
 }
 function keep(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
-// neu zeichnen, aber nicht mitten im Tippen
-function safeRender() {
+// wird gerade getippt oder ist ein Feld zum Bearbeiten offen (auch Schreibfelder mit Formatierung, Übergabe-Fenster)? Dann nicht
+// neu zeichnen – und keinen Stand von außen still übernehmen, der Text im offenen Feld ginge sonst verloren
+const offenesFeld = () => !!$('.le-edit, .ue-form, .pe-in');               // Felder, die erst beim Verlassen übernehmen
+function beschaeftigt() {
   const ae = document.activeElement;
-  if (ae && /^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) && ae.closest('#app')) { ae.addEventListener('blur', () => setTimeout(() => keep(renderNow), 0), { once: true }); return; }
+  if (ae && ae !== document.body && (/^(INPUT|TEXTAREA|SELECT)$/.test(ae.tagName) || ae.isContentEditable)) return true;
+  return offenesFeld();
+}
+// neu zeichnen, aber nicht mitten im Tippen: dann kurz danach noch einmal versuchen
+let SR_T = null;
+function safeRender() {
+  clearTimeout(SR_T); SR_T = null;
+  if (beschaeftigt()) { SR_T = setTimeout(safeRender, 400); return; }
   keep(renderNow);
 }
 function swap(id, html, force) { const el = document.getElementById(id); if (!el || (!force && el.contains(document.activeElement))) return; el.innerHTML = html; }
@@ -125,22 +142,31 @@ function refresh() {
 }
 
 /* ---------- Bedienung */
-function effects(b, base, p, v) {
+// Folgen eines neuen Stands (alt: der Stand davor, sofern bekannt). Was zum alten Stand gehörte, fällt weg: wer nicht mehr zugesagt ist,
+// hat keine Zusage, keinen Geldeingang und ist nicht bei der Übergabe; zurück auf „geplant“ heißt: noch nicht beantragt
+function effects(b, base, p, v, alt) {
   const m = p.match(/^freigabe\.(\w+)\.st$/);
   if (m) {
     const it = b.freigabe[m[1]];
     if (v === 'offen') { it.angefragt = ''; it.erledigt = ''; }
     if (v === 'angefragt') { if (!it.angefragt) it.angefragt = today(); it.erledigt = ''; }
-    if ((v === 'ok' || v === 'nein') && !it.erledigt) it.erledigt = today();
+    if ((v === 'ok' || v === 'nein') && (!it.erledigt || (alt && alt !== v))) it.erledigt = today();
   }
   if (p === 'status' && base !== b) {
-    const f = base;
+    const f = base, ent = s => s === 'zugesagt' || s === 'abgelehnt';
+    if (alt === v) return;
+    if (v === 'geplant') { f.beantragtAm = ''; f.entscheidungAm = ''; }
     if (['beantragt', 'zugesagt', 'abgelehnt'].includes(v) && !f.beantragtAm) f.beantragtAm = today();
-    if (v === 'zugesagt' || v === 'abgelehnt') { if (!f.entscheidungAm) f.entscheidungAm = today(); } else f.entscheidungAm = '';
+    if (v === 'beantragt') f.entscheidungAm = '';
+    if (ent(v) && (!f.entscheidungAm || ent(alt))) f.entscheidungAm = today();
+    if (alt === 'zugesagt') { f.zugesagt = null; f.eingegangen = null; f.eingangAm = ''; b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f.id); }
     if (v === 'zugesagt') { if (f.zugesagt == null) f.zugesagt = f.betrag; if (b.nach.ueb.noetig && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id); }
     if (v === 'abgelehnt') b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f.id);
   }
 }
+// schnelles Weiterklicken (Liste, Kreisdiagramm): ist das Geld schon da, nicht per Klick umschalten – nur bewusst auf der Seite des Bedarfs
+const geldDa = f => f.status === 'zugesagt' && (f.eingegangen != null || !!f.eingangAm);
+const geldDaHinweis = () => toast('Das Geld ist schon eingegangen – den Stand bitte auf der Seite des Bedarfs ändern.', 'warn');
 function baseOf(el, b) {
   if (el.dataset.fid) return b.foerderer.find(f => f.id === el.dataset.fid);
   if (el.dataset.uid) return b.unterlagen.find(u => u.id === el.dataset.uid);
@@ -158,7 +184,6 @@ function copyPath(b) {
   const fail = () => { const el = $('input[data-p="pfad"]'); if (el) { el.focus(); el.select(); } toast('Pfad markiert – jetzt mit Strg+C kopieren'); };
   try { navigator.clipboard.writeText(p).then(done, fail); } catch (e) { fail(); }
 }
-const undoTo = before => () => { D = normalize(JSON.parse(before)); changed(); keep(renderNow); };
 function mainMenu(btn) {
   closeMenus();
   const item = (act, label, v) => h('button', { role: 'menuitem', 'data-act': act, 'data-v': v || '' }, label);
@@ -246,8 +271,13 @@ function uebergang(r, fn) {
   const html = document.documentElement; html.dataset.vt = r;
   document.startViewTransition(fn).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; });
 }
-function oeffnen(id) { if (UI.view === 'list') LISTE_Y = scrollY; closeMenus(); UI.view = 'detail'; UI.id = id; uebergang('vor', () => { renderNow(); scrollTo(0, 0); }); }
-function zurueck() { closeMenus(); UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); }); }
+function oeffnen(id) { if (UI.view === 'list') LISTE_Y = scrollY; closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; uebergang('vor', () => { renderNow(); scrollTo(0, 0); }); }
+function zurueck() { closeMenus(); klickRuhe(); UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); }); }
+// Doppelklick: der zweite Klick träfe sonst, was nach dem ersten erscheint (aufgeklappte Zeile, Seite des Bedarfs, wieder die Liste) –
+// kurz nach so einem Wechsel zählt der zweite Klick eines Doppelklicks nicht. Bewusst einzeln geklickt geht weiterhin sofort.
+let KLICK_RUHE = 0;
+function klickRuhe() { KLICK_RUHE = performance.now() + 600; }
+window.addEventListener('click', e => { if (e.detail > 1 && performance.now() < KLICK_RUHE) { e.preventDefault(); e.stopPropagation(); } }, true);
 // Esc auf der Seite eines Bedarfs (nicht in einem Feld, Fenster oder Menü): zurück zur Liste
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || UI.view !== 'detail' || UI.det || e.defaultPrevented) return;
@@ -292,8 +322,8 @@ async function act(k, a, e) {
     case 'zip-go': { const z = ST.zipUpd; const f = z && await z.handle.getFile().catch(() => null); if (!f) { toast('Das Paket ist nicht mehr da.', 'warn'); ST.zipUpd = null; renderNow(); return; } updateProgram(Object.assign(await programFromFile(f), { pkg: z })); return; }
     case 'zip-later': UI.zipHide = ST.zipUpd.name + '@' + ST.zipUpd.info.version; renderNow(); return;
     case 'draft-restore': restoreDraft(); return;
-    case 'draft-drop': clearDraft(); renderNow(); return;
-    case 'demo-reset': { const before = JSON.stringify(D); D = normalize({ bedarfe: demoBedarfe() }); changed(); UI.view = 'list'; renderNow(); toast('Beispieldaten wiederhergestellt', 'ok', undoTo(before)); return; }
+    case 'draft-drop': dropOffer(); renderNow(); return;
+    case 'demo-reset': { const before = JSON.stringify(D); D = normalize({ bedarfe: demoBedarfe() }); changed(); UI.view = 'list'; renderNow(); toast('Beispieldaten wiederhergestellt', 'ok', undoGanz(before)); return; }
     case 'link': {
       let host = ''; try { host = new URL(a.getAttribute('href')).hostname; } catch (er) { /* ungültiger Link */ }
       if (DEMO && host.endsWith('.example')) { e.preventDefault(); toast('Beispiel-Link: In der Programmdatei öffnet sich hier der Ordner bzw. die Seite im Browser.'); }
@@ -307,13 +337,15 @@ async function act(k, a, e) {
       const base = baseOf(a, b), p = a.dataset.p; let v = a.dataset.v;
       if (v === 'true') v = true; else if (v === 'false') v = false;
       if (a.dataset.toggle != null && getPath(base, p) === v) v = a.dataset.toggle;   // zweiter Klick auf den gewählten Stand nimmt ihn zurück
-      setPath(base, p, v); effects(b, base, p, v); changed(); break;
+      const alt = getPath(base, p); setPath(base, p, v); effects(b, base, p, v, alt); changed(); break;
     }
-    case 'archive': { const before = JSON.stringify(D); b.archiv = true; changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); toast(`„${b.titel || 'Bedarf'}“ liegt jetzt im Archiv`, 'ok', undoTo(before)); return; }
+    case 'archive': { b.archiv = true; changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe();
+      toast(`„${b.titel || 'Bedarf'}“ liegt jetzt im Archiv`, 'ok', () => { if (D.bedarfe.includes(b) && b.archiv) { b.archiv = false; changed(); ORDER.ids = null; keep(renderNow); } }); return; }
     case 'unarchive': b.archiv = false; changed(); toast('Wieder in der Liste der Bedarfe', 'ok'); break;
     case 'del': {
       if (!await confirmBox('Bedarf löschen?', '„' + (b.titel || 'Neuer Bedarf') + '“ wird mit Förderplan und Nacharbeit gelöscht. Direkt danach lässt sich das noch rückgängig machen.', 'Löschen')) return;
-      const before = JSON.stringify(D); D.bedarfe = D.bedarfe.filter(x => x !== b); changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); toast('Bedarf gelöscht', 'ok', undoTo(before)); return;
+      const i = D.bedarfe.indexOf(b); D.bedarfe = D.bedarfe.filter(x => x !== b); changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe();
+      toast('Bedarf gelöscht', 'ok', () => { if (!D.bedarfe.includes(b)) { D.bedarfe.splice(Math.min(i, D.bedarfe.length), 0, b); changed(); ORDER.ids = null; keep(renderNow); } }); return;
     }
     case 'rm-ul': b.unterlagen = b.unterlagen.filter(u => u.id !== a.dataset.uid); changed(); break;
     case 'add-foe': {
@@ -324,10 +356,14 @@ async function act(k, a, e) {
     case 'rm-foe': {
       const f0 = b.foerderer.find(f => f.id === a.dataset.fid);
       if (!await confirmBox('Förderer entfernen?', '„' + ((f0 && f0.name) || 'Ohne Namen') + '“ wird mit Summe, Stand, Pro und Contra aus dem Förderplan entfernt. Direkt danach lässt sich das noch rückgängig machen.', 'Entfernen')) return;
-      const before = JSON.stringify(D); b.foerderer = b.foerderer.filter(f => f.id !== a.dataset.fid); b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== a.dataset.fid); changed(); keep(renderNow); toast('Förderer entfernt', 'ok', undoTo(before)); return; }
+      if (!f0) return;
+      const i = b.foerderer.indexOf(f0), mit = b.nach.ueb.mit.includes(f0.id);
+      b.foerderer = b.foerderer.filter(f => f !== f0); b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f0.id); changed(); keep(renderNow);
+      toast('Förderer entfernt', 'ok', () => { if (D.bedarfe.includes(b) && !b.foerderer.includes(f0)) { b.foerderer.splice(Math.min(i, b.foerderer.length), 0, f0); if (mit && !b.nach.ueb.mit.includes(f0.id)) b.nach.ueb.mit.push(f0.id); changed(); keep(renderNow); } }); return; }
     case 'pie-st': {                                                               // Stand am Kreisdiagramm weiterschalten (neu aufgeteilt beim Verlassen)
       const f = b.foerderer.find(x => x.id === a.dataset.fid); if (!f) return;
-      const v = ROT_FOE[f.status] || 'geplant'; f.status = v; effects(b, f, 'status', v); changed();
+      if (geldDa(f)) return geldDaHinweis();
+      const alt = f.status, v = ROT_FOE[alt] || 'geplant'; f.status = v; effects(b, f, 'status', v, alt); changed();
       a.setAttribute('class', 'ps ' + (v === 'abgelehnt' ? 'ab' : segKind(f)));
       PIE_HOLD = true; refresh();
       const pie = a.closest('#fin-pie');
@@ -452,7 +488,18 @@ function boot() {
   if (!DEMO) checkDraft();
   renderNow();
   if (DEMO) return;
-  restoreFolder().then(() => { renderNow(); askPermissionOnFirstClick(); });
+  restoreFolder().then(() => { renderNow(); askPermissionOnFirstClick(); }, e => { console.warn(e); ST.conn = 'none'; renderNow(); });
+  // dieselbe Datei in einem zweiten Fenster oder Tab? Dann warnen – sonst überschreiben sich die Stände gegenseitig
+  try {
+    const kanal = new BroadcastChannel('bl:' + location.pathname), ich = uid('tab');
+    kanal.onmessage = e => {
+      const m = e.data || {}; if (m.von === ich) return;
+      if (m.t === 'hallo') kanal.postMessage({ t: 'da', von: ich });
+      const zwei = m.t !== 'weg'; if (ST.zweiTab !== zwei) { ST.zweiTab = zwei; safeRender(); }
+    };
+    kanal.postMessage({ t: 'hallo', von: ich });
+    window.addEventListener('pagehide', () => kanal.postMessage({ t: 'weg', von: ich }));
+  } catch (e) { /* Browser ohne BroadcastChannel */ }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { if (isDirty() && ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); }
     else { karteiScan(); personenScan(); }

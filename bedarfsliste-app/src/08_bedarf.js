@@ -139,7 +139,7 @@ function sidePanel(b) {
 // Klick auf den Kreis: ein Stand weiter (Freigabe: offen → angefragt → zugestimmt → abgelehnt; Unterlage: fehlt → in Arbeit → vorhanden)
 function circNext(btn) {
   const b = cur(); if (!b) return;
-  if (btn.dataset.kind === 'fr') { const k = btn.dataset.k, it = b.freigabe[k], v = nextOf(ROT_FR, it.st); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v); }
+  if (btn.dataset.kind === 'fr') { const k = btn.dataset.k, it = b.freigabe[k], alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); }
   else { const u = b.unterlagen.find(x => x.id === btn.dataset.uid); if (!u) return; u.st = nextOf(ROT_ANG, u.st); }
   changed();
 }

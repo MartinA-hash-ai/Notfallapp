@@ -178,18 +178,18 @@ async function saveAll(opts = {}) {
   clearTimeout(ST.timer); ST.timer = null;
   if (DEMO) return false;
   if (BROKEN) { if (!opts.auto) toast('Speichern ist gesperrt: Die Daten dieser Datei waren beschädigt. Erst eine Datensicherung laden (Hinweis oben).', 'err'); return false; }
-  if (ST.newer && !opts.force) { if (!opts.auto) toast('Im Ordner liegt eine neuere Programmversion (' + ST.newer.version + '). Bitte zuerst neu starten (Hinweis oben).', 'err'); return false; }
+  if (ST.newer && !opts.update) { if (!opts.auto) toast('Im Ordner liegt eine neuere Programmversion (' + ST.newer.version + '). Bitte zuerst neu starten (Hinweis oben).', 'err'); return false; }
   if (ST.saving) { ST.again = true; return false; }
   if (!FSA) return opts.auto ? false : saveDownload();
   if (ST.conn !== 'ok') {
     if (opts.auto) return false;
     if (!await connectFolder()) return false;
   }
-  if (ST.conflict && !opts.force) { if (!opts.auto) toast('Erst den Hinweis oben klären (anderen Stand laden oder meinen behalten).', 'warn'); return false; }
+  if (ST.conflict && !opts.trotzKonflikt) { if (!opts.auto) toast('Erst den Hinweis oben klären (anderen Stand laden oder meinen behalten).', 'warn'); return false; }
   ST.saving = true; updateSaveUI();
   try {
     const f = await ST.html.getFile();
-    if (!opts.force && ST.stamp != null && f.lastModified !== ST.stamp) {
+    if (!opts.trotzKonflikt && ST.stamp != null && f.lastModified !== ST.stamp) {
       const text = await f.text(), other = parseFileText(text);
       if (noteNewer(text, other)) { ST.saving = false; if (!isDirty() && isData(other)) externalChange(other, f.lastModified); return false; }
       if (!other && text.length) { ST.saving = false; throw Object.assign(new Error('Die Datei im Ordner ist gerade nicht lesbar (wird sie synchronisiert?)'), { name: 'Unreadable' }); }
@@ -201,8 +201,10 @@ async function saveAll(opts = {}) {
     data.meta.rev = (+D.meta.rev || 0) + 1;
     const w = await ST.html.createWritable();
     await w.write(buildFile(data)); await w.close();
-    ST.stamp = (await ST.html.getFile()).lastModified;
-    D.meta = data.meta; SAVED_JSON = JSON.stringify(D); clearDraft();
+    // gespeichert ist genau dieser Stand – was während des Speicherns getippt wurde, bleibt „ungespeichert“ (und im Entwurf)
+    D.meta = data.meta; SAVED_JSON = JSON.stringify(data);
+    if (isDirty()) saveDraft(); else clearDraft();
+    try { ST.stamp = (await ST.html.getFile()).lastModified; } catch (x) { ST.stamp = null; }   // Datei kurz gesperrt (OneDrive): Stempel holt der nächste Blick
     ST.lastSave = new Date(); ST.conflict = null;
     if (ST.fail) { if (ST.fail.n > 1) toast('Wieder gespeichert.', 'ok'); ST.fail = null; }
     clearTimeout(ST.retry); ST.retry = null;
@@ -238,14 +240,23 @@ async function saveDownload() {
 }
 
 /* ---------- Änderungen von außen (z. B. am zweiten Rechner gespeichert und per OneDrive abgeglichen) */
+// still übernommen wird nur, was nach einem echten neueren Stand aussieht – älter, ohne Speicherdatum (z. B. frisch überkopierte
+// Programmdatei) oder leer gegenüber diesem Stand sieht nach einem Versehen aus: dann fragen statt alles zu ersetzen
+function fremdGrund(other) {
+  if (!other.meta || !other.meta.savedAt) return 'ohne';
+  if (D.meta.savedAt && other.meta.savedAt < D.meta.savedAt) return 'aelter';
+  if (!other.bedarfe.length && D.bedarfe.length) return 'leer';
+  return null;
+}
 function externalChange(other, stamp) {
-  if (!isDirty() || BROKEN) {
+  const grund = BROKEN ? null : fremdGrund(other);
+  if (BROKEN || (!isDirty() && !offenesFeld() && !grund)) {
     D = normalize(other); SAVED_JSON = JSON.stringify(D); undoReset(); ST.conflict = null; BROKEN = null;
     if (stamp != null) ST.stamp = stamp;
     toast('Neuer Stand geladen (gespeichert ' + fmtStamp(other.meta.savedAt) + ')', 'ok');
     safeRender();
   } else {
-    ST.conflict = { other, stamp };
+    ST.conflict = { other, stamp, grund };
     clearTimeout(ST.timer); ST.timer = null;
     safeRender();
   }
@@ -271,20 +282,27 @@ function startWatch() {
     } catch (e) { /* Datei kurz nicht lesbar (Synchronisierung) */ }
   }, 15000);
 }
+// Wer verliert, landet als Sicherung im Download-Ordner. Liegt im Ordner eine neuere Programmversion, wird sie nicht mit der alten
+// überschrieben: mein Stand kommt als Entwurf mit, die neue Version startet und bietet ihn zum Wiederherstellen an
 function resolveConflict(how) {
   const c = ST.conflict; if (!c) return;
-  ST.conflict = null;
-  if (how === 'mine') saveAll({ force: true });
-  else {
-    const mine = JSON.stringify(D);
+  if (how === 'mine') {
+    if (isData(c.other) && c.other.bedarfe.length) sicherung(c.other, 'Stand-aus-der-Datei');
+    if (ST.newer) { entwurfFest(); window.__blReload = true; location.reload(); return; }
+    ST.conflict = null; saveAll({ trotzKonflikt: true });
+  } else {
+    ST.conflict = null;
+    sicherung(D, 'mein-Stand');
     D = normalize(c.other); SAVED_JSON = JSON.stringify(D); undoReset(); if (c.stamp != null) ST.stamp = c.stamp; clearDraft();
-    toast('Stand aus der Datei geladen.', 'ok', () => { D = normalize(JSON.parse(mine)); changed(); renderNow(); });
+    toast('Stand aus der Datei geladen – dein bisheriger Stand liegt als Sicherung im Download-Ordner.', 'ok');
   }
   renderNow();
 }
 
 /* ---------- Entwurf im Browser (Schutz vor Verlust, falls nicht gespeichert wurde) */
-const draftKey = () => 'bl-draft:' + location.pathname;
+// Ein Entwurf aus einer früheren Sitzung wird beim Start beiseitegelegt (eigener Schlüssel) und angeboten: neue Änderungen überschreiben ihn nicht,
+// bis „Wiederherstellen“ oder „Verwerfen“ gewählt ist
+const draftKey = () => 'bl-draft:' + location.pathname, offerKey = () => 'bl-draft-angebot:' + location.pathname;
 let DRAFT_OFFER = null;
 function saveDraft() {
   try {
@@ -292,25 +310,45 @@ function saveDraft() {
     else localStorage.removeItem(draftKey());
   } catch (e) { /* kein Speicher verfügbar */ }
 }
-function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) { /* */ } DRAFT_OFFER = null; }
-function readDraft() { try { const d = JSON.parse(localStorage.getItem(draftKey()) || 'null'); return d && isData(d.data) ? d : null; } catch (e) { return null; } }
+function clearDraft() { try { localStorage.removeItem(draftKey()); } catch (e) { /* */ } }
+function dropOffer() { try { localStorage.removeItem(offerKey()); } catch (e) { /* */ } DRAFT_OFFER = null; }
+function entwurfFest() { try { localStorage.setItem(draftKey(), JSON.stringify({ base: D.meta.savedAt, at: new Date().toISOString(), data: D })); } catch (e) { /* */ } }
+function readDraft(k = draftKey()) { try { const d = JSON.parse(localStorage.getItem(k) || 'null'); return d && isData(d.data) ? d : null; } catch (e) { return null; } }
 function checkDraft() {
-  const d = readDraft(); if (!d || BROKEN) return;
-  if (JSON.stringify(normalize(JSON.parse(JSON.stringify(d.data)))) === SAVED_JSON) { clearDraft(); return; }
+  const neu = readDraft(), alt = readDraft(offerKey()), d = neu && alt ? (neu.at >= alt.at ? neu : alt) : neu || alt;
+  if (!d) return;
+  if (!BROKEN && JSON.stringify(normalize(JSON.parse(JSON.stringify(d.data)))) === SAVED_JSON) { clearDraft(); dropOffer(); return; }
   DRAFT_OFFER = d;
+  try { localStorage.setItem(offerKey(), JSON.stringify(d)); localStorage.removeItem(draftKey()); } catch (e) { /* */ }
 }
-function restoreDraft() {
+// Wiederherstellen: wurde die Datei nach dem Stand gespeichert, auf dem der Entwurf beruht (z. B. am anderen Rechner), erst fragen –
+// der neuere Stand wird dann vorher als Sicherung heruntergeladen
+async function restoreDraft() {
   const dr = DRAFT_OFFER; if (!dr) return;
-  const before = JSON.stringify(D);
-  D = normalize(dr.data); DRAFT_OFFER = null;
+  if (!BROKEN && (dr.base || '') !== (D.meta.savedAt || '')) {
+    if (!await confirmBox('Die Datei ist neuer als diese Änderungen', 'Die Datei wurde am ' + fmtStamp(D.meta.savedAt) + ' gespeichert – nach dem Stand, auf dem diese Änderungen beruhen' + (dr.base ? ' (' + fmtStamp(dr.base) + ')' : '') +
+      '. Wiederherstellen ersetzt den neueren Stand; er wird vorher als Sicherung heruntergeladen.', 'Trotzdem wiederherstellen')) return;
+    sicherung(D, 'Stand-der-Datei');
+  }
+  const vorher = JSON.stringify(D);
+  D = normalize(dr.data); BROKEN = null; dropOffer();
   changed(); renderNow();
-  toast('Ungespeicherte Änderungen wiederhergestellt – werden gespeichert.', 'ok', () => { D = normalize(JSON.parse(before)); changed(); renderNow(); });
+  toast('Ungespeicherte Änderungen wiederhergestellt – werden gespeichert.', 'ok', undoGanz(vorher));
+}
+// Rückgängig für Aktionen, die den ganzen Stand ersetzen: wurde danach weiter geändert, erst fragen (sonst wäre das mit weg)
+function undoGanz(vorher) {
+  const nachher = undoStand();
+  return async () => {
+    if (undoStand() !== nachher && !await confirmBox('Seitdem geändert', 'Seitdem wurde weiter geändert. „Rückgängig“ nimmt auch diese Änderungen zurück. Trotzdem?', 'Trotzdem zurück')) return;
+    D = normalize(Object.assign(JSON.parse(vorher), { meta: D.meta })); changed(); ORDER.ids = null; keep(renderNow);
+  };
 }
 
 /* ---------- Sicherung */
-function saveBackup() {
-  download('Bedarfsliste_Sicherung_' + today() + '.json', new Blob([JSON.stringify(D, null, 1)], { type: 'application/json' }));
+function sicherung(data = D, zusatz = '') {
+  download('Bedarfsliste_Sicherung_' + today() + (zusatz ? '_' + zusatz : '') + '.json', new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' }));
 }
+function saveBackup() { sicherung(D); }
 async function openBackup() {
   if (!await confirmBox('Sicherung laden', 'Die Daten aus der Sicherung (.json oder eine ältere Kopie der Programmdatei) ersetzen den aktuellen Stand. Der aktuelle Stand wird vorher als Sicherung heruntergeladen.', 'Sicherung wählen …')) return;
   const f = await pickFile('.json,.html,.htm'); if (!f) return;
@@ -320,7 +358,7 @@ async function openBackup() {
   const before = JSON.stringify(D);
   const n = normalize(data); n.meta = D.meta; D = n; BROKEN = null;
   changed(); renderNow();
-  toast('Sicherung „' + f.name + '“ geladen.', 'ok', () => { D = normalize(JSON.parse(before)); changed(); renderNow(); });
+  toast('Sicherung „' + f.name + '“ geladen.', 'ok', undoGanz(before));
 }
 
 /* ---------- Programm-Update: aus dem ZIP-Paket (ohne Entpacken) oder aus der Programmdatei; die Daten bleiben */
@@ -361,6 +399,7 @@ async function scanUpdatePkg() {
 }
 async function updateProgram(got) {
   if (BROKEN) { toast('Erst die beschädigten Daten wiederherstellen (Hinweis oben).', 'err'); return; }
+  if (ST.conflict) { toast('Erst den Hinweis oben klären (anderen Stand laden oder meinen behalten), dann das Update einspielen.', 'warn'); return; }
   if (!got) {
     if (!await confirmBox('Programm-Update einspielen', 'Wähle das Update-Paket „Bedarfsliste_Update.zip“ (entpacken ist nicht nötig) oder eine neue Programmdatei „' + DEFAULT_FILE + '“. Deine Daten bleiben erhalten, nur das Programm wird ersetzt. Zur Sicherheit wird vorher eine Datensicherung heruntergeladen.', 'Datei wählen')) return;
     const f = await pickFile('.zip,.html,.htm'); if (!f) return;
@@ -384,10 +423,19 @@ async function updateProgram(got) {
   if (ST.conn !== 'ok' && !await connectFolder()) return fail('Die App hat keinen Zugriff auf den Ordner bekommen.');
   saveBackup();
   for (let i = 0; i < 60 && ST.saving; i++) await new Promise(r => setTimeout(r, 100));
+  // vorher nachsehen: inzwischen woanders gespeichert, oder liegt im Ordner schon eine neuere Version? Dann nichts überschreiben
+  try {
+    const f0 = await ST.html.getFile(), t0 = await f0.text(), o0 = parseFileText(t0), v0 = fileVersion(t0);
+    if (v0 && info && verCmp(v0, info.version) > 0) return modal('Update nicht nötig', h('p', null, 'Im Ordner liegt schon Version ' + v0 + ' – neuer als dieses Update (' + info.version + '). Bitte die Bedarfsliste neu laden.'));
+    if (isData(o0) && o0.meta && o0.meta.savedAt && o0.meta.savedAt !== D.meta.savedAt) {
+      externalChange(o0, f0.lastModified);
+      return modal('Update noch nicht eingespielt', h('p', null, 'Die Datei wurde gerade woanders gespeichert. Erst diesen Stand übernehmen (oder den Hinweis oben klären), dann das Update noch einmal einspielen.'));
+    }
+  } catch (e) { return fail('Die Programmdatei im Ordner ist gerade nicht lesbar (wird sie synchronisiert?).'); }
   const oldCss = $('#bl-style').textContent, oldJs = $('#bl-app').textContent;
   $('#bl-style').textContent = prog.css; $('#bl-app').textContent = prog.js;
   let ok = false, saved = '';
-  try { ok = await saveAll({ force: true }); saved = ok ? await (await ST.html.getFile()).text() : ''; } catch (e) { console.warn(e); }
+  try { ok = await saveAll({ update: true }); saved = ok ? await (await ST.html.getFile()).text() : ''; } catch (e) { console.warn(e); }
   if (!ok || !saved.includes(prog.js.slice(-400)) || (info && fileVersion(saved) !== info.version)) {
     $('#bl-style').textContent = oldCss; $('#bl-app').textContent = oldJs;
     return fail('Die neue Version konnte nicht in „' + (ST.html ? ST.html.name : currentFileName()) + '“ geschrieben werden.');
