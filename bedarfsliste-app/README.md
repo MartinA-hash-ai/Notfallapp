@@ -49,7 +49,7 @@ Name, Summe, Ort und je Bereich nur dem Stand – grün durch, gelb in Bearbeitu
 In der kompakten Ansicht führt „+ Bedarf“ durch Name, Summe und Ort; Umschalt+Enter legt gleich den nächsten an (in beiden Ansichten).
 Strg+Klick klappt einen Bedarf ausführlich auf, noch einmal Strg+Klick öffnet ihn, ein Klick daneben klappt ihn zu. Der Browser merkt sich die Wahl.
 
-**Priorität:** der Stern ganz vorn in der Liste – Klick: Prio an (gelb) oder aus. „nur Prio“ neben der Suche filtert danach.
+**Priorität:** der Stern ganz vorn in der Liste (und auf der Seite des Bedarfs) – Klick: Prio an (gelb) oder aus. Stern im Spaltenkopf: 1. Klick – Bedarfe mit Prio nach oben (Rand golden), 2. Klick – nur noch Bedarfe mit Prio (ausgefüllt), 3. Klick – wieder normal.
 
 **Sortieren:** Klick auf einen Spaltenkopf nimmt die Spalte als nächste Stufe dazu (bis zu drei; noch ein Klick: andere Richtung,
 dritter Klick: heraus). Der Knopf „Sortieren“ bietet zusätzlich Priorität, Ansprechperson, Deadline und Angelegt.

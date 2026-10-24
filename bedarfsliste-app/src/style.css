@@ -187,13 +187,6 @@ main { padding-block: 16px 64px; padding-left: max(16px, env(safe-area-inset-lef
 .ph-nach { background: var(--ph3bg); color: var(--ph3ink); border-color: var(--ph3line); }
 .ph-fertig { background: var(--ph4bg); color: var(--ph4ink); border-color: var(--ph4line); }
 .ph-pause { background: transparent; color: var(--muted); border: 1px dashed var(--line2); }
-.prio { display: inline-flex; align-items: flex-end; gap: 2px; height: 18px; padding: 2px 3px; border: 0; border-radius: 4px; background: none; vertical-align: -3px; flex: none; }
-button.prio:hover { background: var(--hover); }
-.prio i { width: 3.5px; background: var(--prio-off); border-radius: 1px; }
-.prio i:nth-child(1) { height: 5px; } .prio i:nth-child(2) { height: 9px; } .prio i:nth-child(3) { height: 13px; }
-.prio.p-hoch i { background: var(--prio-h); }
-.prio.p-mittel i:nth-child(-n+2) { background: var(--prio-m); }
-.prio.p-niedrig i:first-child { background: var(--prio-l); }
 .swa.in { background: var(--f-in); } .swa.zu { background: var(--f-zu); } .swa.eig { background: var(--f-eig); } .swa.be { background: var(--f-be); }
 .swa.ge { background: var(--f-ge); }
 .swa.off { background: repeating-linear-gradient(135deg, var(--off-st) 0 1px, var(--track) 1px 4px); box-shadow: inset 0 0 0 1px var(--line2); }
@@ -256,10 +249,13 @@ table.list td.l-star { vertical-align: middle; }
 .star-p.on { color: #e8a800; }
 .star-p.on svg path { fill: #f5c000; stroke: #d29a17; }
 .th-sort svg path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
-.prio-filter { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; padding: 4px 10px; color: var(--ink2); }
-.prio-filter svg path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
-.prio-filter.on { border-color: var(--ph1line); background: var(--ph1bg); color: var(--ph1ink); }
-.prio-filter.on svg path { fill: #f5c000; stroke: #d29a17; }
+.kopf-stern { border: 0; background: none; padding: 2px; display: grid; place-items: center; color: var(--faint); cursor: pointer; }
+.kopf-stern svg path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
+.kopf-stern:hover { color: #d29a17; }
+.kopf-stern.s1 svg path { stroke: #d29a17; stroke-width: 1.8; }                 /* Prio oben */
+.kopf-stern.s2 svg path { fill: #f5c000; stroke: #d29a17; }                     /* nur Prio */
+.d-head > .d-star { margin-top: 13px; padding: 0; }
+.d-head > .d-star svg { width: 22px; height: 22px; }
 /* solange die Freigabe fehlt: Finanzierung, Nachweis und Übergabe grau und blass – keine Farben */
 tr.ohne-fg td.l-fin > *, tr.ohne-fg td.l-ueb > *, tr.ohne-fg td.k-nach > * { filter: grayscale(1); opacity: .5; }
 /* Sortieren: Spaltenköpfe als Knöpfe, Stufe und Richtung als kleine Marke; Menü mit drei Stufen */
@@ -543,7 +539,6 @@ label.inl { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5
 .sw-plus:hover { background: var(--focus); color: var(--card); }
 .sw-pop { padding: 8px 10px; min-width: 260px; display: grid; gap: 6px; }
 .sw-pop .sw-in { border-bottom: 1px solid var(--focus); width: 100%; }
-.d-head > .prio { margin-top: 12px; }
 .d-name { min-width: 0; display: grid; gap: 2px; }
 .inline { border: 0; border-bottom: 1px solid transparent; border-radius: 0; background: transparent; padding: 2px 2px; color: inherit; }
 .inline:hover { border-bottom-color: var(--line2); }

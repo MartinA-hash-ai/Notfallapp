@@ -46,7 +46,7 @@ function bedarfView(b) {
     ${b.archiv ? '<div class="d-flag">Dieser Bedarf liegt im Archiv. <button class="link" data-act="unarchive">Zurück in die Liste holen</button></div>' : ''}
     <div class="d-grid">
     <div class="d-head">
-      ${prioMark(b)}
+      <button class="star-p d-star${b.prio === 'hoch' ? ' on' : ''}" data-act="prio-stern" aria-pressed="${b.prio === 'hoch'}" title="${b.prio === 'hoch' ? 'Prio – klicken: keine Prio' : 'keine Prio – klicken: Prio'}" aria-label="Priorität">${ICON_STERN}</button>
       <div class="d-name">
         <textarea class="inline title" id="f-titel" data-p="titel" rows="1" placeholder="Bedarf" aria-label="Bedarf">${esc(b.titel)}</textarea>
         <div class="d-sub"><input type="text" class="inline gl" data-p="gliederung" list="dl-gl" value="${esc(b.gliederung)}" placeholder="Gliederung (Ort oder Diözese)" aria-label="Gliederung"><span class="muted" id="d-meta">${metaRest(b)}</span></div>

@@ -1,7 +1,6 @@
 /* ===================================================================== Liste aller Bedarfe, von links nach rechts so schnell wie möglich erfassbar:
    Name, Summe, Ort · Zuständig · bis wann – Freigabe – Finanzierungsplan mit Verwendungsnachweis je Förderer – Spendenübergabe. */
 
-const prioMark = b => `<button class="prio p-${b.prio}" data-act="prio-menu" data-id="${b.id}" title="Priorität: ${b.prio} – klicken zum Ändern" aria-label="Priorität ${b.prio}, ändern"><i></i><i></i><i></i></button>`;
 
 /* ---------- kleine Kreise: grün mit Haken, gelb mit drei Punkten, rot mit Kreuz, leer; m-dot = vereinfacht (Thema durch) */
 // Zeichen in den Kreisen als klare Grafik (keine Schriftzeichen – die sahen je nach Schrift handgemalt aus)
@@ -114,15 +113,16 @@ function filtered() {
   const arch = UI.tab === 'archiv', q = norm(UI.q);
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
   if (UI.fSw) L = L.filter(b => b.stichworte.includes(UI.fSw));
-  if (UI.fPrio) L = L.filter(b => b.prio === 'hoch');
+  if (UI.prioKopf === 2) L = L.filter(b => b.prio === 'hoch');
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, ...b.stichworte, ...b.zust.map(z => z.n), ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
-  L.sort((x, y) => sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
+  const prioVorn = (x, y) => UI.prioKopf ? (x.prio === 'hoch' ? 0 : 1) - (y.prio === 'hoch' ? 0 : 1) : 0;
+  L.sort((x, y) => prioVorn(x, y) || sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
   if (ORDER.ids) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
   return L;
 }
 // Reihenfolge, solange mit Strg bearbeitet wird (Zeilen springen nicht unter dem Mauszeiger weg)
 const ORDER = { ids: null };
-const anyFilter = () => !!(UI.q || UI.fSw || UI.fPrio);
+const anyFilter = () => !!(UI.q || UI.fSw || UI.prioKopf === 2);
 
 /* ---------- kompakte Ansicht: je Bedarf eine Zeile – Name, Summe, Ort und je Bereich nur der Stand als Kreis mit Wort.
    Grün: durch · Gelb: in Bearbeitung · Rot: abgelehnt · leerer Kreis: noch nichts · grau: nicht nötig */
@@ -208,15 +208,14 @@ function listView() {
       <div class="tools">
         <button class="sort-btn${(UI.sort || []).length ? ' on' : ''}" data-act="sort-menu" aria-haspopup="menu" title="Sortieren – bis zu drei Stufen">${sortText()}</button>
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
-        <button class="prio-filter${UI.fPrio ? ' on' : ''}" data-act="f-prio" aria-pressed="${!!UI.fPrio}" title="Nur Bedarfe mit Prio zeigen">${ICON_STERN}nur Prio</button>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
         ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
       </div>
     </div>
     <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : ''}<thead><tr>
-      ${komp ? [['prio', ICON_STERN], ['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => `<th>${sk(k, t)}</th>`).join('')
-        : ['<th class="l-star">' + sk('prio', ICON_STERN), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')]
+      ${komp ? `<th class="l-star">${kopfStern()}</th>` + [['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => `<th>${sk(k, t)}</th>`).join('')
+        : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')]
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
   </section></main>`;
@@ -226,6 +225,10 @@ function sk(k, t) {
   const i = (UI.sort || []).findIndex(s => s.k === k), s = UI.sort && UI.sort[i];
   return `<button class="th-sort${s ? ' on' : ''}" data-act="sort-th" data-k="${k}" title="Sortieren nach ${SORT[k].t}${s ? ' – jetzt: ' + SORT[k].w[s.d === 'ab' ? 1 : 0] : ''}">${t}${s ? `<span class="so">${i + 1}${s.d === 'ab' ? '↓' : '↑'}</span>` : ''}</button>`;
 }
+// Stern im Spaltenkopf: 1. Klick – Rand golden, alle bleiben sichtbar, die mit Prio stehen oben; 2. Klick – ausgefüllt, nur noch die mit Prio;
+// 3. Klick – wieder normal
+const KOPF_STERN = ['Klick: Bedarfe mit Prio nach oben', 'Prio oben – Klick: nur noch Bedarfe mit Prio zeigen', 'nur Prio – Klick: wieder alle wie gewohnt'];
+const kopfStern = () => `<button class="kopf-stern s${UI.prioKopf || 0}" data-act="prio-kopf" title="${KOPF_STERN[UI.prioKopf || 0]}" aria-label="Priorität: ${KOPF_STERN[UI.prioKopf || 0]}">${ICON_STERN}</button>`;
 const sortText = () => (UI.sort || []).length ? 'Sortiert: ' + UI.sort.map(s => SORT[s.k].t).join(' › ') : 'Sortieren';
 function sortSpalte(k) {
   const L = (UI.sort || []).slice(), i = L.findIndex(s => s.k === k);
@@ -274,15 +277,6 @@ document.addEventListener('pointerdown', e => {
 });
 document.addEventListener('dblclick', e => { if (e.target.closest && e.target.closest('.col-rs')) { colwSet(null); keep(renderNow); } });
 
-// Priorität ändern: kleines Menü am Balken (Seite des Bedarfs)
-function prioMenu(btn) {
-  closeMenus();
-  const b = D.bedarfe.find(x => x.id === btn.dataset.id); if (!b) return;
-  const m = h('div', { class: 'menu', id: 'pmenu', role: 'menu' }, PRIO.map(([v, l]) =>
-    h('button', { role: 'menuitem', class: v === b.prio ? 'on' : '', 'data-act': 'prio-set', 'data-id': b.id, 'data-v': v, html: `<span class="prio p-${v}"><i></i><i></i><i></i></span> ${l}` })));
-  placePop(m, btn);
-  m.querySelector('button.on, button').focus();
-}
 // kleines Fenster mit einem Hinweis (statt Hilfetext unter dem Feld)
 function infoPop(btn, text) {
   closeMenus();
@@ -295,6 +289,6 @@ function placePop(m, btn, align) {
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sort-menu"], [data-act="sw-pop"], [data-act="prio-menu"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sort-menu"], [data-act="sw-pop"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);

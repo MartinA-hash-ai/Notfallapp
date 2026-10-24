@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.30.0",
+    "date": "2026-10-24T12:00",
+    "items": [
+      "Stern im Spaltenkopf schaltet in drei Stufen: 1. Klick – Rand golden, alle Bedarfe bleiben sichtbar, die mit Prio stehen oben; 2. Klick – Stern ausgefüllt, nur noch Bedarfe mit Prio; 3. Klick – wieder normal",
+      "Knopf „nur Prio“ neben der Suche entfällt",
+      "Seite des Bedarfs: statt der drei Balken nur noch der Stern – Klick schaltet Prio an oder aus"
+    ]
+  },
+  {
     "version": "0.29.0",
     "date": "2026-10-24T11:20",
     "items": [

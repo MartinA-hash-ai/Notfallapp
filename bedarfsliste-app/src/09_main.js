@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', fPrio: false, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ } }
@@ -263,15 +263,13 @@ async function act(k, a, e) {
     case 'sort-menu': if ($('.sort-pop')) closeMenus(); else sortPop(a); return;
     case 'sort-th': sortSpalte(a.dataset.k); return;
     case 'new': neuerBedarf(); return;
-    case 'clear': Object.assign(UI, { q: '', fSw: '', fPrio: false }); ORDER.ids = null; keep(renderNow); return;
-    case 'f-prio': UI.fPrio = !UI.fPrio; ORDER.ids = null; keep(renderNow); return;
+    case 'clear': Object.assign(UI, { q: '', fSw: '', prioKopf: 0 }); ORDER.ids = null; keep(renderNow); return;
+    case 'prio-kopf': UI.prioKopf = ((UI.prioKopf || 0) + 1) % 3; ORDER.ids = null; keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
     case 'fw': if ($('.fw-pop')) closeMenus(); else fwPop(a); return;
     case 'st-menu': stMenu(a); return;
     case 'more': if ($('#mmenu')) closeMenus(); else moreMenu(a); return;
     case 'pen': { const el = $(`#foe-${a.dataset.fid} .fp-h`); if (el) { el.focus(); el.select(); } return; }
-    case 'prio-menu': e.stopPropagation(); prioMenu(a); return;
-    case 'prio-set': { const x = D.bedarfe.find(y => y.id === a.dataset.id); if (x) { x.prio = a.dataset.v; changed(); } closeMenus(); keep(renderNow); return; }
     case 'menu': if ($('#mmenu')) closeMenus(); else mainMenu(a); return;
     case 'colw-reset': colwSet(null); closeMenus(); keep(renderNow); return;
     case 'theme': applyTheme(a.dataset.v); $$('#mmenu .mini-btn').forEach(x => x.classList.toggle('on', x === a)); return;
@@ -361,6 +359,7 @@ async function act(k, a, e) {
     case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; } else UI.kEdit = null; break; }
     case 'sw-weg': b.stichworte.splice(+a.dataset.i, 1); changed(); break;
     case 'sw-pop': swPop(a); return;
+    case 'prio-stern': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); break;     // Stern im Kopf der Seite: Prio an oder aus
     case 'deadline': calPop(a, b.deadline, v => { b.deadline = v || ''; changed(); keep(renderNow); }, { clear: 'Deadline entfernen' }); return;
     case 'pers-cop': personenDialog(b); return;
     case 'geld': geldPop(a); return;

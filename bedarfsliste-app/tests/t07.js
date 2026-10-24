@@ -276,19 +276,31 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('.seg.ansicht [data-v="voll"]');
   ok(await p.evaluate(() => UI.ansicht === 'voll' && document.querySelectorAll('#list-body tr[data-id]')[0].children.length === 7), 'Knopf „Ausführlich“: wieder alle Angaben');
 
-  // Priorität als Stern ganz vorn: Klick schaltet Prio an und aus; „nur Prio“ filtert
-  r = await p.evaluate(() => [...document.querySelectorAll('table.list thead th')][0].querySelector('[data-k="prio"]') !== null && [...document.querySelectorAll('#list-body tr[data-id]')].every(t => t.firstElementChild.matches('td.l-star')));
-  ok(r, 'erste Spalte: Stern (Kopf sortiert nach Priorität)');
+  // Priorität als Stern ganz vorn: Klick schaltet Prio an und aus; Stern im Kopf: 1. Klick Prio nach oben, 2. Klick nur Prio, 3. Klick normal
+  r = await p.evaluate(() => [...document.querySelectorAll('table.list thead th')][0].querySelector('[data-act="prio-kopf"]') !== null && !document.querySelector('[data-act="f-prio"], .prio-filter') && [...document.querySelectorAll('#list-body tr[data-id]')].every(t => t.firstElementChild.matches('td.l-star')));
+  ok(r, 'erste Spalte: Stern (Kopf mit Prio-Stern, kein Knopf „nur Prio“ mehr)');
   const stern = id => p.evaluate(id => [D.bedarfe.find(b => b.id === id).prio, document.querySelector(`#list-body tr[data-id="${id}"] .star-p`).classList.contains('on')].join(':'), id);
   r = [await stern('b-kueche')]; await p.click(R('b-kueche') + ' .star-p'); r.push(await stern('b-kueche')); await p.click(R('b-kueche') + ' .star-p'); r.push(await stern('b-kueche'));
   ok(r.join(' → ') === 'mittel:false → hoch:true → mittel:false' && await view() === 'list', 'Klick auf den Stern: Prio an (gelb), noch einmal: aus; der Bedarf bleibt zu: ' + r.join(' → '));
   r = await p.evaluate(() => getComputedStyle(document.querySelector('#list-body tr[data-id="b-mtw"] .star-p.on svg path')).fill);
   ok(r === 'rgb(245, 192, 0)', 'Prio-Stern gelb gefüllt: ' + r);
-  await p.click('[data-act="f-prio"]');
-  r = await p.evaluate(() => [[...document.querySelectorAll('#list-body tr[data-id]')].every(t => D.bedarfe.find(b => b.id === t.dataset.id).prio === 'hoch'), document.querySelectorAll('#list-body tr[data-id]').length, D.bedarfe.filter(b => !b.archiv && b.prio === 'hoch').length, $('[data-act="f-prio"]').classList.contains('on'), !!$('[data-act="clear"]')]);
-  ok(r[0] && r[1] === r[2] && r[1] > 0 && r[3] && r[4], '„nur Prio“: nur Bedarfe mit gelbem Stern, Knopf hervorgehoben, „Filter löschen“ da: ' + r.join('|'));
-  await p.click('[data-act="clear"]');
-  ok(await p.evaluate(() => !UI.fPrio && document.querySelectorAll('#list-body tr[data-id]').length > D.bedarfe.filter(b => !b.archiv && b.prio === 'hoch').length), '„Filter löschen“ zeigt wieder alle');
+  const kopf = () => p.evaluate(() => {
+    const ids = [...document.querySelectorAll('#list-body tr[data-id]')].map(t => t.dataset.id), hoch = ids.map(id => D.bedarfe.find(b => b.id === id).prio === 'hoch');
+    const k = document.querySelector('[data-act="prio-kopf"]'), path = getComputedStyle(k.querySelector('svg path'));
+    return { n: ids.length, alle: D.bedarfe.filter(b => !b.archiv).length, nHoch: hoch.filter(Boolean).length, vorn: hoch.every((h, i) => !i || hoch[i - 1] || !h), nurHoch: hoch.every(Boolean), s: k.className, fill: path.fill, stroke: path.stroke, clear: !!document.querySelector('[data-act="clear"]') };
+  });
+  const k0 = await kopf();
+  await p.click('[data-act="prio-kopf"]'); const k1 = await kopf();
+  ok(k1.s.includes('s1') && k1.fill === 'none' && k1.stroke === 'rgb(210, 154, 23)' && k1.n === k1.alle && k1.nHoch > 0 && k1.vorn && !k1.nurHoch && !k1.clear, '1. Klick auf den Kopf-Stern: Rand golden, alle da, Bedarfe mit Prio oben: ' + JSON.stringify(k1));
+  await p.click('[data-act="prio-kopf"]'); const k2 = await kopf();
+  ok(k2.s.includes('s2') && k2.fill === 'rgb(245, 192, 0)' && k2.nurHoch && k2.n === k1.nHoch && k2.clear, '2. Klick: Stern ausgefüllt, nur noch Bedarfe mit Prio, „Filter löschen“ da: ' + JSON.stringify(k2));
+  await p.click('[data-act="prio-kopf"]'); const k3 = await kopf();
+  ok(k3.s.includes('s0') && k3.n === k0.n && k3.fill === 'none' && !k3.clear, '3. Klick: wieder normal, alle wie vorher: ' + JSON.stringify(k3));
+  await p.click('[data-act="prio-kopf"]'); await p.click('[data-act="prio-kopf"]'); await p.click('[data-act="clear"]');
+  ok(await p.evaluate(() => !UI.prioKopf && document.querySelectorAll('#list-body tr[data-id]').length > D.bedarfe.filter(b => !b.archiv && b.prio === 'hoch').length), '„Filter löschen“ setzt den Kopf-Stern zurück und zeigt wieder alle');
+  await p.click('.seg.ansicht [data-v="kompakt"]');
+  ok(await p.evaluate(() => !!document.querySelector('table.list thead th:first-child [data-act="prio-kopf"]')), 'Kopf-Stern auch in der kompakten Ansicht');
+  await p.click('.seg.ansicht [data-v="voll"]');
   // Sortieren in bis zu drei Stufen: Spaltenköpfe nehmen die Spalte als nächste Stufe dazu (Klick: aufwärts, nochmal: abwärts, nochmal: heraus); Menü mit Priorität & Co.
   const reihe = () => p.evaluate(() => [...document.querySelectorAll('#list-body tr[data-id]')].map(t => t.dataset.id));
   const vorher = await reihe();
