@@ -230,12 +230,16 @@ table.list.kompakt td { vertical-align: middle; white-space: nowrap; padding-top
 table.list.kompakt td.l-name { max-width: 380px; overflow: hidden; text-overflow: ellipsis; }
 table.list.kompakt td.l-ort { font-size: 13px; color: var(--ink2); }
 /* aufgeklappter Bedarf in der kompakten Liste: ausführlich wie in der anderen Ansicht, hervorgehoben */
-table.list.kompakt tr.auf td { white-space: normal; vertical-align: top; padding-top: 14px; padding-bottom: 14px; background: var(--soft); }
+/* Zeilen malen Hintergrund und Linie selbst (nicht die Tabelle) – sonst blieben beim Aufgleiten Linien und Hintergründe stehen, während die Zeilen rutschen */
+table.list.kompakt { border-collapse: separate; border-spacing: 0; }
+table.list.kompakt tbody td { background-color: var(--card); }
+table.list.kompakt tbody tr[data-act]:not(.auf):hover td { background-color: var(--hover); }
+/* aufgeklappt: oben ausgerichtet – die erste Zeile bleibt, wo sie war, darunter zieht sich der Rest auf */
+table.list.kompakt tr.auf td { white-space: normal; vertical-align: top; padding-top: 10px; padding-bottom: 14px; background: var(--soft); }
 table.list.kompakt tr.auf td:first-child { box-shadow: inset 3px 0 0 var(--focus); }
 table.list.kompakt th:nth-child(5) { min-width: 155px; } table.list.kompakt th:nth-child(6) { min-width: 300px; }   /* Platz für die Förderer, wenn ein Bedarf aufklappt – die Spalten bleiben dabei stehen */
 table.list.kompakt tr.auf .fg { grid-template-columns: 15px minmax(0, 1fr) auto 36px 15px var(--vtw, 112px); }   /* Nachweis unter seiner Überschrift */
 table.list.kompakt tr.auf td.l-meta { min-width: 130px; }
-table.list.kompakt tr.auf td.l-name, table.list.kompakt tr.auf td.l-sum, table.list.kompakt tr.auf td.l-meta { vertical-align: middle; }
 table.list.kompakt tr.auf td.l-name { max-width: none; overflow: visible; }
 .kz { display: inline-flex; align-items: center; gap: 7px; font-size: 13px; color: var(--ink2); white-space: nowrap; }
 .kz.k-ok { color: var(--e5ink); } .kz.k-run { color: var(--ph1ink); } .kz.k-no { color: var(--red-d); } .kz.k-off { color: var(--muted); } .kz.nn { color: var(--faint); }
@@ -345,6 +349,14 @@ html[data-vt="vor"]::view-transition-old(bl-inhalt) { animation: none; }
 html[data-vt="vor"]::view-transition-new(bl-inhalt) { animation: bl-rein .32s cubic-bezier(.2, .8, .2, 1) both; box-shadow: -12px 0 30px rgba(0,0,0,.18); }
 html[data-vt="zurueck"]::view-transition-new(bl-inhalt) { animation: none; }
 html[data-vt="zurueck"]::view-transition-old(bl-inhalt) { animation: bl-raus .26s cubic-bezier(.5, 0, .9, .4) both; z-index: 1; box-shadow: -12px 0 30px rgba(0,0,0,.18); }
+/* die Leiste unter der Kopfzeile gleitet mit (Liste: Suche & Co., Bedarf: Phasen) */
+html[data-vt] header.top .subbar { view-transition-name: bl-leiste; background: var(--card); }
+::view-transition-group(bl-leiste) { animation: none; }
+::view-transition-old(bl-leiste), ::view-transition-new(bl-leiste) { mix-blend-mode: normal; }
+html[data-vt="vor"]::view-transition-old(bl-leiste) { animation: none; }
+html[data-vt="vor"]::view-transition-new(bl-leiste) { animation: bl-rein .32s cubic-bezier(.2, .8, .2, 1) both; }
+html[data-vt="zurueck"]::view-transition-new(bl-leiste) { animation: none; }
+html[data-vt="zurueck"]::view-transition-old(bl-leiste) { animation: bl-raus .26s cubic-bezier(.5, 0, .9, .4) both; z-index: 1; }
 @keyframes bl-rein { from { transform: translateX(100vw); } }
 @keyframes bl-raus { to { transform: translateX(100vw); } }
 @media (prefers-reduced-motion: reduce) { #peek .peek-s, #peek .peek-g { transition: none; } }
@@ -360,14 +372,13 @@ body.strg #list-body [data-le="titel"]:hover, body.strg #list-body [data-le="sum
 /* nur das Wort ist zum Ändern da (Textcursor); daneben klappt ein Klick auf (kompakt) bzw. öffnet den Bedarf */
 body.strg #list-body .le-w:is([data-le="titel"], [data-le="summe"], [data-le="ort"], [data-le="zust"]) { cursor: text; }
 body.strg #list-body tr[data-id] :is(td.l-star, td.l-name, td.l-sum, td.l-meta), body.strg table.list.kompakt #list-body tr[data-id]:not(.auf) td { cursor: pointer; }
-body.strg table.list.kompakt #list-body tr[data-id]:not(.auf):hover td { background: var(--hover); }
 /* aufgeklappt: Spalten bleiben, wie sie sind; die anderen Bedarfe treten zurück – ein Klick holt einen davon nach vorn */
 table.list.auf-fest { table-layout: fixed; }
-table.list.hat-auf #list-body tr[data-id]:not(.auf) { opacity: .42; }
-table.list.hat-auf #list-body tr[data-id]:not(.auf):hover { opacity: .75; }
+table.list.hat-auf #list-body tr[data-id]:not(.auf) > td > * { opacity: .42; }          /* nur der Inhalt wird blass – die Zeile bleibt deckend */
+table.list.hat-auf #list-body tr[data-id]:not(.auf):hover > td > * { opacity: .75; }
 body.strg table.list.hat-auf #list-body tr[data-id]:not(.auf) :is([data-le], td) { cursor: pointer; }
 body.strg table.list.hat-auf #list-body tr[data-id]:not(.auf) [data-le]:hover { background: none; box-shadow: none; }
-@media (prefers-reduced-motion: no-preference) { table.list.kompakt #list-body tr[data-id] { transition: opacity .25s; } }
+@media (prefers-reduced-motion: no-preference) { table.list.kompakt #list-body tr[data-id] > td > * { transition: opacity .25s; } }
 td.l-fin { position: relative; }
 .le-plus { display: none; position: absolute; left: 8px; bottom: 6px; width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 1.5px solid var(--runline); background: var(--card); color: var(--runink);
   font-size: 14px; font-weight: 700; line-height: 1; place-items: center; }
@@ -529,7 +540,8 @@ table.kt td.sel { user-select: all; word-break: break-all; }
 label.inl { display: inline-flex; gap: 6px; align-items: center; font-size: 12.5px; color: var(--ink2); }
 
 /* ---------- Bedarfsseite: Phase und Stand hängen unter der Kopfzeile; darunter Name und Gliederung zum Anklicken, rechts die Summe; ⋯ und Löschen ganz rechts */
-.subbar { flex-basis: 100%; display: flex; align-items: center; gap: 6px 18px; flex-wrap: wrap; padding: 7px 0 8px; min-height: 49px; border-top: 1px solid var(--line3); }   /* Liste und Bedarf gleich hoch: beim Hineinschieben springt nichts */
+.subbar { flex-basis: 100%; display: flex; align-items: center; gap: 6px 18px; flex-wrap: wrap; min-height: 49px; border-top: 1px solid var(--line3);
+  padding: 7px max(0px, (100% - 1648px) / 2) 8px; }   /* bündig mit dem Kasten darunter (main: höchstens 1680 px, 16 px Rand) */   /* Liste und Bedarf gleich hoch: beim Hineinschieben springt nichts */
 .subbar .back { padding: 3px 9px; font-size: 13px; }
 .d-head { grid-area: head; display: grid; grid-template-columns: auto minmax(0, 1fr) auto auto; gap: 8px 16px; align-items: start; }
 /* Kopf: Deadline unter dem Namen (Klick: Kalender), Stichworte rechts neben dem Namen mit kleinem + */

@@ -167,7 +167,7 @@ function mainMenu(btn) {
     h('div', { class: 'menu-row' }, h('span', null, 'Darstellung'), ...[['light', 'hell'], ['dark', 'dunkel'], ['system', 'wie Windows']].map(([v, l]) =>
       h('button', { class: 'mini-btn' + (th === v ? ' on' : ''), 'data-act': 'theme', 'data-v': v }, l))),
     h('hr'),
-    colwGet() ? item('colw-reset', 'Spaltenbreiten der Liste zurücksetzen') : null,
+    colwGet(false) || colwGet(true) ? item('colw-reset', 'Spaltenbreiten der Liste zurücksetzen') : null,
     item('vorlage-leer', 'Leere Förderplan-Vorlage (Excel)'),
     DEMO ? null : item('kartei', 'Förder-Kartei wählen oder neu einlesen …'),
     h('hr'),
@@ -272,7 +272,7 @@ async function act(k, a, e) {
     case 'more': if ($('#mmenu')) closeMenus(); else moreMenu(a); return;
     case 'pen': { const el = $(`#foe-${a.dataset.fid} .fp-h`); if (el) { el.focus(); el.select(); } return; }
     case 'menu': if ($('#mmenu')) closeMenus(); else mainMenu(a); return;
-    case 'colw-reset': colwSet(null); closeMenus(); keep(renderNow); return;
+    case 'colw-reset': colwSet(null, false); colwSet(null, true); closeMenus(); keep(renderNow); return;
     case 'theme': applyTheme(a.dataset.v); $$('#mmenu .mini-btn').forEach(x => x.classList.toggle('on', x === a)); return;
     case 'about': closeMenus(); about(); return;
     case 'undo': undo(); return;

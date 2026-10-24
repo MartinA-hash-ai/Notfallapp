@@ -413,7 +413,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await m.evaluate(() => [document.documentElement.dataset.vt || '', !!document.startViewTransition]);
   await m.waitForTimeout(500);
   r.push(await m.evaluate(() => UI.view + ':' + (document.documentElement.dataset.vt || '-') + ':' + !!document.querySelector('main.bedarf')));
-  await m.click('button[data-act="back"]'); r.push(await m.evaluate(() => document.documentElement.dataset.vt || '')); await m.waitForTimeout(500);
+  await m.click('button[data-act="back"]'); r.push(await m.evaluate(() => document.documentElement.dataset.vt || '')); await m.waitForFunction(() => !document.documentElement.dataset.vt, null, { timeout: 3000 }).catch(() => {});
   r.push(await m.evaluate(() => UI.view + ':' + (document.documentElement.dataset.vt || '-')));
   ok(r.join('|') === 'vor|true|detail:-:true|zurueck|list:-', 'mit Animationen: Bedarf gleitet herein, zurück gleitet er hinaus, danach ist alles wieder normal: ' + r.join('|'));
   await finish(b, [p, q, m]);

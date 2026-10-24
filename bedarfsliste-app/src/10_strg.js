@@ -55,8 +55,7 @@ const ROT_FOE = { geplant: 'beantragt', beantragt: 'zugesagt', zugesagt: 'abgele
 const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 
 // Klick in eine Zeile – ohne Strg: auf ein Wort (Name, Summe, Ort …), einen Kreis oder Stern: bearbeiten. Daneben: in der kompakten Ansicht klappt der Bedarf auf;
-// ist er schon aufgeklappt (oder in der ausführlichen Ansicht), öffnet ein Klick neben Name, Summe oder Ort ihn. Neben Freigabe, Finanzierung und Übergabe
-// passiert dort nichts – da liegen viele kleine Knöpfe dicht beieinander. Mit Strg wie bisher: kompakt erst aufklappen, dann öffnen (über data-act="open").
+// ist er schon aufgeklappt (oder in der ausführlichen Ansicht), öffnet ein Klick daneben ihn. Mit Strg wie bisher: kompakt erst aufklappen, dann öffnen (über data-act="open").
 // Ist ein Bedarf aufgeklappt, holt ein Klick auf eine andere Zeile diese nach vorn; ein Klick außerhalb der Liste (oder Esc) klappt ihn zu.
 const AUF_POPS = '.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new, #peek, .fmt-bar';
 document.addEventListener('click', e => {
@@ -74,7 +73,7 @@ document.addEventListener('click', e => {
   const b = D.bedarfe.find(x => x.id === id), el = e.target.closest('[data-le]');
   if (b && el) return strgAct(b, el);
   if (zu) return aufklappen(id);
-  if (e.target.closest('td.l-star, td.l-name, td.l-sum, td.l-meta')) oeffnen(id);
+  oeffnen(id);
 }, true);
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || UI.view !== 'list' || !UI.auf || e.defaultPrevented || $('.menu, .cal-pop, .le-sug, .modal, .ue-form, .le-edit, .fmt-bar')) return;
@@ -86,6 +85,8 @@ let AUF_W = null;
 const aufCols = () => '<colgroup class="auf-w">' + AUF_W.map(w => `<col style="width:${w}%">`).join('') + '</colgroup>';
 function aufBreiten() {
   const t = $('table.list.kompakt'); if (!t) return;
+  t.classList.toggle('hat-auf', !!UI.auf);
+  if (t.classList.contains('fixed')) { AUF_W = null; return; }                      // eigene Spaltenbreiten: stehen ohnehin fest
   if (UI.auf && !AUF_W) { const W = t.getBoundingClientRect().width; AUF_W = $$('thead th', t).map(th => th.getBoundingClientRect().width / W * 100); AUF_W.min = Math.round(W); }
   if (!UI.auf) AUF_W = null;
   const cg = t.querySelector('colgroup.auf-w'); if (cg) cg.remove();
@@ -111,7 +112,7 @@ function aufGleiten(vorher, alt, id) {
     const n = r.getBoundingClientRect(), dy = a.top - n.top;
     if (dy) r.animate([{ transform: `translateY(${dy}px)` }, { transform: 'none' }], o);
     if (r.dataset.id === id) { const cut = Math.max(0, n.height - a.height); for (const td of r.children) td.animate([{ clipPath: `inset(0 0 ${cut}px 0)` }, { clipPath: 'inset(0 0 0 0)' }], o); }
-    else if (r.dataset.id === alt && id) r.animate([{ opacity: 1 }, { opacity: .42 }], { duration: 250 });
+    else if (r.dataset.id === alt && id) for (const c of r.querySelectorAll(':scope > td > *')) c.animate([{ opacity: 1 }, { opacity: .42 }], { duration: 250 });
   }
   if (!id) return;
   setTimeout(() => {                                                                  // aufgeklappt, aber unten aus dem Bild: so weit hochrollen, dass er ganz zu sehen ist

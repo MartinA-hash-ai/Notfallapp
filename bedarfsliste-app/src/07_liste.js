@@ -207,8 +207,8 @@ function listBar() {
   const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), n = filtered().length, komp = KOMPAKT();
   const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<div class="subbar list-head">
-      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Ein Klick auf Name, Summe oder Ort ändert das Wort. Ein Klick daneben klappt den Bedarf auf – dort lässt sich alles bearbeiten; noch ein Klick neben Name oder Summe öffnet ihn. Ein Klick auf eine andere Zeile holt diese nach vorn, Esc oder ein Klick außerhalb der Liste klappt wieder zu.">Klick aufs Wort ändert es, daneben klappt den Bedarf auf</span>'
-        : '<span class="strg-hint" title="Ein Klick auf Name, Summe, Ort, Ansprechperson oder Deadline ändert das Wort; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Ein Klick neben Name, Summe oder Ort öffnet den Bedarf.">Klick aufs Wort ändert es, daneben öffnet den Bedarf</span>'}
+      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Ein Klick auf Name, Summe oder Ort ändert das Wort. Ein Klick daneben klappt den Bedarf auf – dort lässt sich alles bearbeiten; noch ein Klick daneben öffnet ihn. Ein Klick auf eine andere Zeile holt diese nach vorn, Esc oder ein Klick außerhalb der Liste klappt wieder zu.">Klick aufs Wort ändert es, daneben klappt den Bedarf auf</span>'
+        : '<span class="strg-hint" title="Ein Klick auf Name, Summe, Ort, Ansprechperson oder Deadline ändert das Wort; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Ein Klick daneben öffnet den Bedarf.">Klick aufs Wort ändert es, daneben öffnet den Bedarf</span>'}
       <div class="tools">
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
@@ -218,12 +218,12 @@ function listBar() {
     </div>`;
 }
 function listView() {
-  const body = listBody(), komp = KOMPAKT(), colw = komp ? null : colwGet();
-  if (!komp || !UI.auf) AUF_W = null;
+  const body = listBody(), komp = KOMPAKT(), colw = colwGet(komp);
+  if (!komp || !UI.auf || colw) AUF_W = null;
   return `<main><section class="card list-card">
     <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}${komp && UI.auf ? ' hat-auf' : ''}${AUF_W ? ' auf-fest' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : AUF_W ? ` style="min-width:${AUF_W.min}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : AUF_W ? aufCols() : ''}<thead><tr>
-      ${komp ? `<th class="l-star">${kopfStern()}</th>` + [['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => `<th>${sk(k, t)}</th>`).join('')
-        : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')]
+      ${(komp ? ['<th class="l-star">' + kopfStern(), ...[['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => '<th>' + sk(k, t))]
+        : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')])
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
   </section></main>`;
@@ -245,27 +245,30 @@ function sortSpalte(k) {
   UI.sort = L; ORDER.ids = null; keep(renderNow);
 }
 /* ---------- Spaltenbreiten wie in Excel: am rechten Rand eines Spaltenkopfs ziehen – nur diese Spalte ändert sich, die rechts davon rücken mit.
-   Die Breiten merkt sich der Browser; Doppelklick auf einen Rand oder das Zahnrad setzt alle zurück. */
+   Je Ansicht eigene Breiten mit Mindestbreiten (kompakt: Freigabe, Finanzierung, Nachweis und Übergabe brauchen Platz, wenn ein Bedarf aufklappt).
+   Die Breiten merkt sich der Browser; Doppelklick auf einen Rand oder das Zahnrad setzt sie zurück. */
 const COLW_KEY = 'bl-colw', COL_MIN = [30, 140, 70, 90, 110, 330, 150];
-const colwGet = () => { try { const a = JSON.parse(localStorage.getItem(COLW_KEY) || 'null'); return Array.isArray(a) && a.length === NCOL && a.every(x => x > 0) ? a : null; } catch (e) { return null; } };
-const colwSet = a => { try { if (a) localStorage.setItem(COLW_KEY, JSON.stringify(a)); else localStorage.removeItem(COLW_KEY); } catch (e) { /* nur in diesem Browser */ } };
+const COLW_KEY_K = 'bl-colw-k', COL_MIN_K = [30, 140, 80, 90, 155, 300, 150, 140];
+const colwGet = (komp = KOMPAKT()) => { try { const a = JSON.parse(localStorage.getItem(komp ? COLW_KEY_K : COLW_KEY) || 'null'); return Array.isArray(a) && a.length === (komp ? COL_MIN_K : COL_MIN).length && a.every(x => x > 0) ? a : null; } catch (e) { return null; } };
+const colwSet = (a, komp = KOMPAKT()) => { const k = komp ? COLW_KEY_K : COLW_KEY; try { if (a) localStorage.setItem(k, JSON.stringify(a)); else localStorage.removeItem(k); } catch (e) { /* nur in diesem Browser */ } };
 document.addEventListener('pointerdown', e => {
   const hnd = e.target.closest && e.target.closest('.col-rs'); if (!hnd || e.button !== 0) return;
   e.preventDefault();
-  const table = hnd.closest('table'), i = +hnd.dataset.i;
-  const w = colwGet() || [...table.querySelectorAll('thead th')].map(th => Math.round(th.getBoundingClientRect().width));
+  const table = hnd.closest('table'), i = +hnd.dataset.i, komp = table.classList.contains('kompakt'), MIN = komp ? COL_MIN_K : COL_MIN;
+  const w = colwGet(komp) || [...table.querySelectorAll('thead th')].map(th => Math.round(th.getBoundingClientRect().width));
   let cg = table.querySelector('colgroup');
+  if (cg && cg.classList.contains('auf-w')) { cg.remove(); cg = null; AUF_W = null; table.classList.remove('auf-fest'); table.style.minWidth = ''; }   // vorläufig festgehaltene Breiten werden zu eigenen
   if (!cg) { cg = h('colgroup', null, w.map(() => h('col'))); table.prepend(cg); }
   const cols = [...cg.children];
   const apply = () => { cols.forEach((c, k) => { c.style.width = w[k] + 'px'; }); table.style.width = w.reduce((a, x) => a + x, 0) + 'px'; table.classList.add('fixed'); };
   apply();
   const x0 = e.clientX, w0 = w[i];
   hnd.setPointerCapture(e.pointerId); document.body.classList.add('col-resizing');
-  const move = ev => { w[i] = Math.max(COL_MIN[i], Math.round(w0 + ev.clientX - x0)); apply(); };
-  const up = () => { hnd.removeEventListener('pointermove', move); hnd.removeEventListener('pointerup', up); document.body.classList.remove('col-resizing'); colwSet(w); };
+  const move = ev => { w[i] = Math.max(MIN[i], Math.round(w0 + ev.clientX - x0)); apply(); };
+  const up = () => { hnd.removeEventListener('pointermove', move); hnd.removeEventListener('pointerup', up); document.body.classList.remove('col-resizing'); colwSet(w, komp); };
   hnd.addEventListener('pointermove', move); hnd.addEventListener('pointerup', up);
 });
-document.addEventListener('dblclick', e => { if (e.target.closest && e.target.closest('.col-rs')) { colwSet(null); keep(renderNow); } });
+document.addEventListener('dblclick', e => { const r = e.target.closest && e.target.closest('.col-rs'); if (r) { colwSet(null, r.closest('table').classList.contains('kompakt')); keep(renderNow); } });
 
 // kleines Fenster mit einem Hinweis (statt Hilfetext unter dem Feld)
 function infoPop(btn, text) {

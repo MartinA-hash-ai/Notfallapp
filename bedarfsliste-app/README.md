@@ -49,7 +49,7 @@ Name, Summe, Ort und je Bereich nur dem Stand – grün durch, gelb in Bearbeitu
 Fehlt die Freigabe noch, steht bei Finanzierung nur „Freigabe ausstehend“; Verwendungsnachweis und Spendenübergabe bleiben leer.
 In der kompakten Ansicht führt „+ Bedarf“ durch Name, Summe und Ort; Umschalt+Enter legt gleich den nächsten an (in beiden Ansichten).
 Ein Klick neben das Wort (oder auf Freigabe, Finanzierung …) klappt einen Bedarf ausführlich auf – er gleitet auf, die Spalten bleiben stehen,
-die anderen Bedarfe werden blass. Noch ein Klick neben Name, Summe oder Ort öffnet ihn; ein Klick auf eine andere Zeile holt diese nach vorn,
+die anderen Bedarfe werden blass. Noch ein Klick daneben öffnet ihn; ein Klick auf eine andere Zeile holt diese nach vorn,
 Esc oder ein Klick außerhalb der Liste klappt zu. Strg+Klick geht weiterhin. Der Browser merkt sich die Wahl.
 
 **Priorität:** der Stern ganz vorn in der Liste (und auf der Seite des Bedarfs) – Klick: Prio an (gelb) oder aus. Stern im Spaltenkopf: 1. Klick – Bedarfe mit Prio nach oben (Rand golden), 2. Klick – nur noch Bedarfe mit Prio (ausgefüllt), 3. Klick – wieder normal.
@@ -58,7 +58,7 @@ Esc oder ein Klick außerhalb der Liste klappt zu. Strg+Klick geht weiterhin. De
 dritter Klick: heraus). Nach Priorität sortiert der Stern im Spaltenkopf.
 
 **Bedarf öffnen:** Strg halten und mit der Maus über einen Bedarf – rechts zeigt ein Streifen mit Griff an, dass sich hier etwas öffnen lässt.
-Klick auf den Griff, Strg+Klick oder ein Klick neben Name, Summe oder Ort (kompakt: zweimal): der Bedarf gleitet von rechts herein. Esc oder „‹ Alle Bedarfe“: zurück an dieselbe Stelle der Liste.
+Klick auf den Griff, Strg+Klick oder ein Klick neben ein Wort (kompakt: zweimal): der Bedarf gleitet von rechts herein, die Leiste oben gleitet mit. Esc oder „‹ Alle Bedarfe“: zurück an dieselbe Stelle der Liste.
 Solange die Freigabe fehlt, sind Finanzierung, Nachweis und Übergabe in der Liste grau.
 
 **In der Liste bearbeiten (Normalzustand):** Name, Summe, Ort, Ansprechperson, Deadline oder Beträge anklicken
@@ -92,7 +92,8 @@ sofort zu sehen; gespeichert wird der Text mit den Zeichen.
 **Rückgängig:** „↶ Rückgängig“ in der Kopfzeile oder Strg+Z (nicht in einem Eingabefeld – dort gilt das Rückgängig des Browsers).
 Bis zu 50 Schritte; Tippen im selben Feld ist ein Schritt. Nach dem Neuladen der Datei von außen beginnt die Liste von vorn.
 
-**Spaltenbreiten:** in der Liste am rechten Rand eines Spaltenkopfs ziehen (wie in Excel); der Browser merkt sie sich,
+**Spaltenbreiten:** in der Liste am rechten Rand eines Spaltenkopfs ziehen (wie in Excel) – ausführlich und kompakt getrennt, mit Mindestbreiten
+(kompakt: Freigabe, Finanzierung, Nachweis und Übergabe brauchen Platz zum Aufklappen); der Browser merkt sie sich,
 Doppelklick auf einen Rand oder „Spaltenbreiten zurücksetzen“ im Zahnrad stellt sie zurück.
 
 **Darstellung:** hell (voreingestellt), dunkel oder wie Windows – über das Zahnrad oben rechts.

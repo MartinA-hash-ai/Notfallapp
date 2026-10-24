@@ -284,22 +284,34 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => !!document.querySelector('#list-body tr[data-id="b-kueche"] .le-edit') && !UI.auf && UI.view === 'list'), 'kompakt: Klick auf das Wort (Ort) ändert es');
   await K.press('Escape');
   await daneben(R('b-kueche') + ' td.l-name');
-  r = await p.evaluate(() => [UI.view, UI.auf, !document.querySelector('.le-edit'), $$('table.list thead th').map(t => Math.round(t.getBoundingClientRect().width)).join(), +getComputedStyle(document.querySelector('#list-body tr[data-id]:not(.auf)')).opacity, +getComputedStyle(document.querySelector('#list-body tr.auf')).opacity]);
+  r = await p.evaluate(() => [UI.view, UI.auf, !document.querySelector('.le-edit'), $$('table.list thead th').map(t => Math.round(t.getBoundingClientRect().width)).join(), +getComputedStyle(document.querySelector('#list-body tr[data-id]:not(.auf) > td > *')).opacity, +getComputedStyle(document.querySelector('#list-body tr.auf > td > *')).opacity]);
   ok(r[0] === 'list' && r[1] === 'b-kueche' && r[2] && r[3] === sp0 && r[4] < .5 && r[5] === 1, 'Klick neben den Namen klappt auf; Spaltenbreiten bleiben gleich, die anderen Bedarfe blass: ' + JSON.stringify(r) + ' / ' + sp0);
   await p.click(R('b-aed') + ' [data-le="titel"]');
   ok(await p.evaluate(() => UI.auf === 'b-aed' && !document.querySelector('.le-edit')), 'Klick auf eine blasse Zeile holt diese nach vorn (statt ein Wort darin zu ändern)');
   await K.press('Escape');
   ok(await p.evaluate(() => !UI.auf && !document.querySelector('table.list.hat-auf, table.list.auf-fest')) && await spalten() === sp0, 'Esc klappt zu, Spalten wie vorher');
+  r = await p.evaluate(() => { const t = document.querySelector('table.list.kompakt'), td = document.querySelector('#list-body tr[data-id] > td'); return [getComputedStyle(t).borderCollapse, getComputedStyle(td).backgroundColor !== 'rgba(0, 0, 0, 0)']; });
+  ok(r.join() === 'separate,true', 'kompakt: jede Zeile malt Hintergrund und Linie selbst – beim Aufgleiten rutscht alles zusammen: ' + r.join());
+  // Spaltenbreiten auch kompakt ziehen, mit Mindestbreiten; eigene Breiten bleiben beim Aufklappen stehen
+  const zieh = async (i, dx) => { const q = await (await p.$(`table.list.kompakt thead .col-rs[data-i="${i}"]`)).boundingBox(); await p.mouse.move(q.x + 4, q.y + q.height / 2); await p.mouse.down(); await p.mouse.move(q.x + 4 + dx, q.y + q.height / 2, { steps: 4 }); await p.mouse.up(); };
+  await zieh(5, -250); await zieh(1, 60);
+  r = await p.evaluate(() => [$$('table.list thead th').map(t => Math.round(t.getBoundingClientRect().width)), JSON.parse(localStorage.getItem('bl-colw-k') || 'null'), localStorage.getItem('bl-colw')]);
+  ok(r[0][5] === 300 && r[1] && r[1].length === 8 && r[1][5] === 300 && r[1][1] === r[0][1] && r[2] === null, 'kompakt: Spalten ziehen – Finanzierung nicht schmaler als 300 px, gemerkt (getrennt von „Ausführlich“): ' + JSON.stringify(r));
+  const sp1 = await spalten(); await daneben(R('b-kueche') + ' td.l-name');
+  ok(await p.evaluate(() => UI.auf === 'b-kueche') && await spalten() === sp1, 'eigene Breiten bleiben beim Aufklappen stehen');
+  await K.press('Escape');
+  await p.dblclick('table.list.kompakt thead .col-rs[data-i="1"]');
+  ok(await p.evaluate(() => localStorage.getItem('bl-colw-k') === null) && await spalten() === sp0, 'Doppelklick auf einen Rand: kompakte Breiten zurückgesetzt');
   await daneben(R('b-kueche') + ' td.k-fr'); await daneben(R('b-kueche') + ' td.l-sum');
   ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-kueche'), 'Klick neben die Freigabe klappt auf, danach Klick neben die Summe öffnet den Bedarf');
   await p.click('button[data-act="back"]');
   await p.click('.seg.ansicht [data-v="voll"]');
   ok(await p.evaluate(() => UI.ansicht === 'voll' && document.querySelectorAll('#list-body tr[data-id]')[0].children.length === 7), 'Knopf „Ausführlich“: wieder alle Angaben');
-  await daneben(R('b-kueche') + ' td.l-fr');
-  ok(await view() === 'list', 'ausführlich: Klick neben die Freigabe tut nichts (dort liegen die kleinen Knöpfe)');
-  await daneben(R('b-kueche') + ' td.l-meta');
-  ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-kueche'), 'ausführlich: Klick neben Ort und Ansprechperson öffnet den Bedarf');
-  await p.click('button[data-act="back"]');
+  for (const td of ['td.l-meta', 'td.l-fr', 'td.l-ueb']) {
+    await daneben(R('b-kueche') + ' ' + td);
+    ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-kueche'), 'ausführlich: Klick daneben (' + td + ') öffnet den Bedarf');
+    await p.click('button[data-act="back"]');
+  }
 
   // Priorität als Stern ganz vorn: Klick schaltet Prio an und aus; Stern im Kopf: 1. Klick Prio nach oben, 2. Klick nur Prio, 3. Klick normal
   r = await p.evaluate(() => [...document.querySelectorAll('table.list thead th')][0].querySelector('[data-act="prio-kopf"]') !== null && !document.querySelector('[data-act="f-prio"], .prio-filter') && [...document.querySelectorAll('#list-body tr[data-id]')].every(t => t.firstElementChild.matches('td.l-star')));
@@ -350,6 +362,13 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   const o1 = await oben(); await p.evaluate(() => oeffnen('b-mtw')); const o2 = await oben(); await p.evaluate(() => zurueck());
   ok(o1[0] && o1.join() === o2.join(), 'Liste und Bedarf: Leiste unter der Kopfzeile gleich hoch, Inhalt beginnt an derselben Stelle: ' + o1.join() + ' / ' + o2.join());
   ok(await p.evaluate(() => !!document.querySelector('header.top .subbar.list-head #q') && !!document.querySelector('header.top #list-count') && !document.querySelector('main .list-head')), 'Suche, Anzahl und Ansicht stehen in der Leiste oben, die Tabelle als Kasten darunter');
+  // Leiste unter der Kopfzeile bündig mit dem Kasten darunter – auch auf breiten Bildschirmen (Inhalt höchstens 1680 px breit)
+  await p.setViewportSize({ width: 1900, height: 900 });
+  const buendig = () => p.evaluate(() => { const c = document.querySelector('#app > main > *').getBoundingClientRect(), bar = document.querySelector('header.top .subbar'), k = [...bar.children].filter(x => x.getBoundingClientRect().width);
+    return [Math.round(k[0].getBoundingClientRect().left - c.left), Math.round(c.right - Math.max(...k.map(x => x.getBoundingClientRect().right)))]; });
+  const bl = await buendig(); await p.evaluate(() => oeffnen('b-mtw')); const bd = await buendig(); await p.evaluate(() => zurueck());
+  ok(bl[0] === 0 && bl[1] === 0 && bd[0] === 0, 'Leiste bündig mit dem Kasten: Liste links und rechts, Bedarf links: ' + bl.join() + ' / ' + bd.join());
+  await p.setViewportSize({ width: 1500, height: 900 });
   // ohne vollständige Freigabe: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
   r = await p.evaluate(() => ['b-aed', 'b-mtw'].map(id => { const tr = document.querySelector(`#list-body tr[data-id="${id}"]`), c = tr.querySelector('td.l-fin > .fg'); return tr.classList.contains('ohne-fg') + ':' + getComputedStyle(c).filter + ':' + getComputedStyle(tr.querySelector('td.l-fr > *')).filter; }));
   ok(r.join(' / ') === 'true:grayscale(1):none / false:none:none', 'AED ohne Freigabe: alles hinter der Freigabe grau; MTW freigegeben: farbig: ' + r.join(' / '));
@@ -388,5 +407,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   const q = await (await m.$('#list-body tr[data-id="b-mtw"] td.l-name')).boundingBox(); await m.mouse.click(q.x + 3, q.y + 3);
   r = await m.evaluate(() => { const A = document.getAnimations(); return [UI.auf, A.filter(a => a.effect.target.matches('#list-body tr.auf td')).length, A.filter(a => a.effect.target.matches('#list-body tr:not(.auf)')).length]; });
   ok(r[0] === 'b-mtw' && r[1] > 0 && r[2] > 0, 'Aufklappen gleitet: Zeile zieht sich auf, die darunter rutschen mit: ' + r.join('|'));
+  await m.waitForTimeout(450); await m.mouse.click(q.x + 3, q.y + 3);
+  await m.waitForFunction(() => document.getAnimations().some(a => a.effect.pseudoElement), null, { timeout: 2000 }).catch(() => {});
+  r = await m.evaluate(() => [UI.view, document.documentElement.dataset.vt, document.getAnimations().map(a => a.effect.pseudoElement).filter(Boolean).sort().join()]);
+  ok(r[0] === 'detail' && r[1] === 'vor' && r[2].includes('::view-transition-new(bl-inhalt)') && r[2].includes('::view-transition-new(bl-leiste)'), 'kompakt → Bedarf: Inhalt und Leiste gleiten von rechts herein: ' + r.join(' | '));
   await finish(b, [p, m]);
 })();

@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.33.0",
+    "date": "2026-10-24T15:00",
+    "items": [
+      "Aufklappen in der kompakten Ansicht gleitet jetzt sauber: Zeilen nehmen Hintergrund und Trennlinie mit, nichts überlappt mehr; blass wird nur der Inhalt der anderen Zeilen, nicht durchsichtig",
+      "Ausführliche Ansicht und aufgeklappter Bedarf: ein Klick daneben öffnet den Bedarf in jeder Spalte, auch neben Freigabe, Finanzierung, Nachweis und Übergabe",
+      "Spaltenbreiten auch in der kompakten Ansicht ziehen – mit Mindestbreiten, getrennt von „Ausführlich“ gemerkt",
+      "Die Leiste unter der Kopfzeile gleitet beim Öffnen und Zurück mit und steht links und rechts bündig mit dem Kasten darunter, auch auf breiten Bildschirmen"
+    ]
+  },
+  {
     "version": "0.32.0",
     "date": "2026-10-24T14:00",
     "items": [
