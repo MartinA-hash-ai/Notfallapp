@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.38.0",
+    "date": "2026-10-25T19:00",
+    "items": [
+      "Schneller bei vielen Bedarfen: je Neuzeichnen nur einmal filtern und sortieren, Sortierwerte je Bedarf nur einmal berechnet; Suche ab 150 Bedarfen nach kurzer Tipp-Pause (bei 300 Bedarfen: Liste ca. 3× schneller)",
+      "Rückgängig merkt sich je Schritt nur die geänderten Bedarfe statt des ganzen Bestands; der Entwurf im Browser wird höchstens alle 1,5 Sekunden geschrieben (sofort beim Schließen und beim Fensterwechsel)",
+      "Tastatur: ↑/↓, Pos1/Ende von Bedarf zu Bedarf; Enter klappt auf bzw. öffnet; F2 ändert den Namen; Leertaste schaltet den Prio-Stern; „/“ springt in die Suche; nach Esc, Enter, Tab und Zurück bleibt der Fokus auf dem Bedarf",
+      "Kalender mit der Tastatur: Pfeiltasten wählen den Tag, Bild auf/ab den Monat, Enter übernimmt, Esc schließt",
+      "Zahnrad → „Tastenkürzel …“ zeigt alle Kürzel",
+      "Kein kleiner waagrechter Scrollbalken mehr unter der Tabelle; beim Neuzeichnen bleibt die Tabelle waagrecht, wo sie war; nach Verkleinern des Fensters keine alte Mindestbreite mehr"
+    ]
+  },
+  {
     "version": "0.37.0",
     "date": "2026-10-25T16:00",
     "items": [

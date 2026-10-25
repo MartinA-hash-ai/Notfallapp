@@ -140,6 +140,8 @@ nav.tabs { display: flex; gap: 2px; }
 .fp-row.over .fp-d, .fp-row.over .fp-r { color: var(--red-d); }
 /* Förderplan: steht die Finanzierung, sind geplante Förderer „nicht mehr nötig“ */
 tr.r-weg th, tr.r-weg td { opacity: .5; }
+table.kuerzel { border-collapse: collapse; font-size: 13.5px; } table.kuerzel th { text-align: left; white-space: nowrap; padding: 5px 16px 5px 0; vertical-align: top; color: var(--ink); }
+table.kuerzel td { padding: 5px 0; color: var(--ink2); } table.kuerzel tr + tr > * { border-top: 1px solid var(--line3); }
 .kchip { font-size: 12px; padding: 3px 10px; border-radius: 12px; background: var(--chipbg); color: var(--ink2); border: 1px solid transparent; }
 .kchip.ok { background: var(--okbg); color: var(--okink); border-color: var(--okline); }
 .kchip.warn { background: var(--warnbg); color: var(--warn); border-color: var(--warnline); }
@@ -234,6 +236,7 @@ table.list { min-width: 1180px; }
 table.list.fixed { table-layout: fixed; min-width: 0; }
 table.list th { position: relative; }
 .col-rs { position: absolute; top: 0; right: -5px; width: 9px; height: 100%; cursor: col-resize; z-index: 3; touch-action: none; }
+table.list th:last-child .col-rs { right: 0; width: 6px; }                          /* sonst ragt er 5 px hinaus: waagrechter Scrollbalken unter Windows */
 .col-rs::after { content: ''; position: absolute; top: 15%; bottom: 15%; left: 3px; width: 3px; border-radius: 2px; background: transparent; }
 table.list th:hover .col-rs::after, body.col-resizing .col-rs::after { background: var(--line2); }
 body.col-resizing, body.col-resizing * { cursor: col-resize !important; user-select: none; }

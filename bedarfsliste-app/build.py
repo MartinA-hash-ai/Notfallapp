@@ -18,6 +18,13 @@ read = lambda p: open(p, encoding='utf8').read()
 css = read(os.path.join(SRC, 'style.css'))
 parts = sorted(glob.glob(os.path.join(SRC, '[0-9][0-9]_*.js')))
 js = '\n'.join(read(f) for f in parts)
+# Syntax prüfen, bevor etwas geschrieben wird (ein fehlendes „}“ legt sonst die ganze Liste lahm) – nur, wenn Node da ist
+try:
+    chk = subprocess.run(['node', '--check', '-'], input=js, capture_output=True, text=True, encoding='utf-8')
+    if chk.returncode:
+        sys.exit('FEHLER im Skript – nichts gebaut:\n' + (chk.stderr or chk.stdout)[-1500:])
+except OSError:
+    pass
 FAVICON = 'data:image/svg+xml,' + quote(
     "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><rect width='64' height='64' rx='13' fill='#E30714'/>"
     "<rect x='14' y='11' width='36' height='43' rx='5' fill='white'/><g fill='#E30714'><rect x='20' y='20' width='6' height='6' rx='1'/>"

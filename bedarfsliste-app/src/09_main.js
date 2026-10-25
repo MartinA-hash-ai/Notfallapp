@@ -18,9 +18,9 @@ function applyTheme(t = themeGet()) {
 }
 
 /* ---------- Kopfzeile */
-function saveBox() {
+function saveBox(dirty = isDirty()) {
   if (DEMO) return '';
-  const dirty = isDirty(), t = ST.lastSave ? ST.lastSave.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : null;
+  const t = ST.lastSave ? ST.lastSave.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : null;
   let label, cls = 'save', tip;
   if (!FSA) { label = dirty ? '● Speichern' : '✓ Gespeichert'; cls += dirty ? ' primary' : ''; tip = 'Speichern lädt die Datei herunter (Browser ohne Ordnerzugriff)'; }
   else if (ST.saving) { label = 'Speichert …'; tip = 'wird gespeichert'; }
@@ -35,9 +35,9 @@ function saveBox() {
   return `<button id="savebox" class="${cls}" data-act="save" title="${esc(tip)}">${esc(label)}</button>`;
 }
 function updateSaveUI() {
-  const box = $('#savebox');
-  if (box) box.outerHTML = saveBox();
-  document.title = (isDirty() ? '● ' : '') + 'Bedarfsliste';
+  const box = $('#savebox'), dirty = isDirty();
+  if (box) box.outerHTML = saveBox(dirty);
+  document.title = (dirty ? '● ' : '') + 'Bedarfsliste';
 }
 function karteiChip() {
   if (DEMO) return `<button class="kchip ok" data-act="kartei-info">Förder-Kartei · ${KR.list.length} Beispiel-Förderer</button>`;
@@ -133,7 +133,7 @@ function renderNow() {
     saveUI();
   } finally { _rendering = false; }
 }
-function keep(fn) { const y = window.scrollY; fn(); window.scrollTo(0, y); }
+function keep(fn) { const y = window.scrollY, tw = $('.tablewrap'), x = tw ? tw.scrollLeft : 0; fn(); window.scrollTo(0, y); const t2 = $('.tablewrap'); if (t2 && x) t2.scrollLeft = x; }
 // wird gerade getippt oder ist ein Feld zum Bearbeiten offen (auch Schreibfelder mit Formatierung, Übergabe-Fenster)? Dann nicht
 // neu zeichnen – und keinen Stand von außen still übernehmen, der Text im offenen Feld ginge sonst verloren
 const offenesFeld = () => !!$('.le-edit, .ue-form, .pe-in');               // Felder, die erst beim Verlassen übernehmen
@@ -204,6 +204,14 @@ function copyPath(b) {
   const fail = () => { const el = $('input[data-p="pfad"]'); if (el) { el.focus(); el.select(); } toast('Pfad markiert – jetzt mit Strg+C kopieren'); };
   try { navigator.clipboard.writeText(p).then(done, fail); } catch (e) { fail(); }
 }
+// Übersicht der Tastenkürzel (Zahnrad → „Tastenkürzel …“)
+function kuerzelInfo() {
+  const K = [['↑ / ↓', 'von Bedarf zu Bedarf (Pos1 / Ende: erster / letzter)'], ['Enter', 'kompakt: aufklappen, noch einmal: öffnen · ausführlich: öffnen'],
+    ['F2', 'Namen ändern'], ['Leertaste', 'Prio-Stern an / aus'], ['/', 'in die Suche springen'], ['Esc', 'zuklappen · zurück zur Liste · Feld verwerfen'],
+    ['Enter / Tab', 'im Feld: übernehmen (Tab: weiter zum nächsten Feld, Umschalt+Tab: zurück)'], ['Umschalt+Enter', 'im Feld: übernehmen und gleich den nächsten Bedarf darunter anlegen'],
+    ['Kalender', 'Pfeiltasten: Tag · Bild auf / ab: Monat · Enter: übernehmen · Esc: schließen'], ['Strg+Z', 'Rückgängig (außerhalb von Feldern)'], ['Strg+S', 'Speichern']];
+  modal('Tastenkürzel', h('table', { class: 'kuerzel' }, h('tbody', null, K.map(([k, t]) => h('tr', null, h('th', null, k), h('td', null, t))))));
+}
 function mainMenu(btn) {
   closeMenus();
   const item = (act, label, v) => h('button', { role: 'menuitem', 'data-act': act, 'data-v': v || '' }, label);
@@ -218,6 +226,7 @@ function mainMenu(btn) {
     h('hr'),
     DEMO ? null : item('backup', 'Datensicherung herunterladen (.json)'),
     DEMO ? null : item('restore', 'Datensicherung laden …'),
+    item('kuerzel', 'Tastenkürzel …'),
     DEMO ? null : item('update', 'Programm-Update einspielen …'),
     h('hr'),
     item('fmt-info', 'Texte formatieren (Aufzählung, fett, kursiv …)'),
@@ -292,7 +301,7 @@ function uebergang(r, fn) {
   document.startViewTransition(fn).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; });
 }
 function oeffnen(id) { if (UI.view === 'list') LISTE_Y = scrollY; closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; uebergang('vor', () => { renderNow(); scrollTo(0, 0); }); }
-function zurueck() { closeMenus(); klickRuhe(); UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); }); }
+function zurueck() { closeMenus(); klickRuhe(); const id = UI.id; UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); zeileFokus(id); }); }   // Fokus auf dem Bedarf, von dem man kommt
 // Ein Feld übernimmt beim Verlassen und zeichnet neu – passiert das zwischen Drücken und Loslassen der Maus, verwirft der Browser den Klick
 // (sein Ziel gibt es nicht mehr). Dann den Klick an das gleiche Element an derselben Stelle weitergeben, sonst bräuchte es zwei Klicks.
 const KLICK = { el: null, sig: '' };
@@ -349,6 +358,7 @@ async function act(k, a, e) {
     case 'kartei-info': toast('In der Programmdatei liest die Liste deine Excel „Banken- und Stiftungsübersicht“ aus dem Ordner ein. Hier stehen erfundene Förderer.'); return;
     case 'backup': closeMenus(); saveBackup(); return;
     case 'restore': closeMenus(); openBackup(); return;
+    case 'kuerzel': closeMenus(); kuerzelInfo(); return;
     case 'update': closeMenus(); updateProgram(); return;
     case 'vorlage-leer': closeMenus(); vorlageDownload(null); return;
     case 'reload': window.__blReload = true; location.reload(); return;
@@ -459,19 +469,21 @@ document.addEventListener('keydown', e => {
   // Strg+Z außerhalb von Eingabefeldern: letzte Änderung zurück (in Feldern macht der Browser das Tippen rückgängig)
   if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !(el.closest && el.closest('input, textarea, select, [contenteditable]'))) { e.preventDefault(); undo(); return; }
   if (e.key === 'Escape' && UI.det && !$('.menu, .modal, .cal-pop')) { kAufraeumen(cur()); UI.det = null; UI.kEdit = null; keep(renderNow); return; }
-  if (e.key === 'Enter' && el.matches && el.matches('tr[data-act="open"]')) { e.preventDefault(); act('open', el, e); }
   if (e.key === 'Enter' && el.id === 'ul-new') { e.preventDefault(); addUl(true); }
   if (e.key === 'Enter' && el.id === 'f-titel') { e.preventDefault(); el.blur(); }
   if (e.key === 'Enter' && el.classList && el.classList.contains('inline') && el.tagName === 'INPUT' && el.type !== 'date') { e.preventDefault(); el.blur(); }
 });
+let Q_T = null;
 document.addEventListener('input', e => {
   const el = e.target;
   if (!el.closest || !el.closest('#app')) return;
   if (el.dataset.ui === 'q') {
     if (UI.auf) aufklappen(null);
-    UI.q = el.value; const r = listBody(); swap('list-body', r.html, true);
-    const c = $('#list-count'); if (c) c.textContent = r.n + ' von ' + D.bedarfe.filter(b => !!b.archiv === (UI.tab === 'archiv')).length;
-    const x = $('.list-head [data-act="clear"]'); if (x) x.hidden = !anyFilter();
+    UI.q = el.value;
+    const zeig = () => { Q_T = null; const r = listBody(); swap('list-body', r.html, true);
+      const c = $('#list-count'); if (c) c.textContent = r.n + ' von ' + D.bedarfe.filter(b => !!b.archiv === (UI.tab === 'archiv')).length;
+      const x = $('.list-head [data-act="clear"]'); if (x) x.hidden = !anyFilter(); };
+    clearTimeout(Q_T); if (D.bedarfe.length > 150) Q_T = setTimeout(zeig, 150); else zeig();   // viele Bedarfe: erst nach einer kurzen Tipp-Pause
     return;
   }
   if (!el.dataset.p || el.type === 'checkbox' || el.tagName === 'SELECT') return;
@@ -543,7 +555,7 @@ function boot() {
     window.addEventListener('pagehide', () => kanal.postMessage({ t: 'weg', von: ich }));
   } catch (e) { /* Browser ohne BroadcastChannel */ }
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) { if (isDirty() && ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); }
+    if (document.hidden) { if (isDirty()) { saveDraft(); if (ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); } }
     else { karteiScan(); personenScan(); }
   });
   window.addEventListener('beforeunload', e => { if (isDirty() && !window.__blReload) { saveDraft(); e.preventDefault(); e.returnValue = ''; } });

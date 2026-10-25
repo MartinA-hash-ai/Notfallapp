@@ -80,7 +80,10 @@ function lUebergabe(b) {
 const CMP = {
   prio: b => PRIO_ORD[b.prio], titel: b => (b.titel || '').toLowerCase(), frist: b => (nextFrist(b) || {}).d || '9999',
 };
-function cmp(x, y, k) { const a = CMP[k](x), c = CMP[k](y); return typeof a === 'number' ? a - c : String(a).localeCompare(String(c), 'de'); }
+// beim Sortieren jeden Wert je Bedarf nur einmal ausrechnen (sonst bei jedem Vergleich – bei vielen Bedarfen spürbar)
+let SORT_MEMO = null;
+const sortWert = (b, k, fn) => { if (!SORT_MEMO) return fn(b); let m = SORT_MEMO.get(b); if (!m) SORT_MEMO.set(b, m = {}); return k in m ? m[k] : (m[k] = fn(b)); };
+function cmp(x, y, k) { const a = sortWert(x, 'c' + k, CMP[k]), c = sortWert(y, 'c' + k, CMP[k]); return typeof a === 'number' ? a - c : String(a).localeCompare(String(c), 'de'); }
 /* Sortieren in bis zu drei Stufen: erst nach der ersten Angabe, innerhalb davon nach der zweiten, dann nach der dritten (UI.sort = [{ k, d }]).
    Leere Angaben stehen immer unten. Danach gilt die übliche Reihenfolge (Priorität, nächste Frist, Name). */
 const SORT = {
@@ -101,7 +104,7 @@ const SORT = {
 function sortVergleich(x, y) {
   for (const s of UI.sort || []) {
     const S = SORT[s.k]; if (!S) continue;
-    const a = S.v(x), c = S.v(y);
+    const a = sortWert(x, s.k, S.v), c = sortWert(y, s.k, S.v);
     if (a === c) continue;
     if (a == null) return 1; if (c == null) return -1;                                   // leer immer unten
     const r = typeof a === 'number' && typeof c === 'number' ? a - c : String(a).localeCompare(String(c), 'de');
@@ -109,14 +112,25 @@ function sortVergleich(x, y) {
   }
   return 0;
 }
+// je Durchgang (z. B. ein Neuzeichnen) nur einmal filtern und sortieren; jede Änderung (changed) und jeder andere Stand verwirft das
+let FCACHE = null;
 function filtered() {
+  const ck = ordKey();
+  if (FCACHE && FCACHE.k === ck && FCACHE.ids === ORDER.ids && FCACHE.okey === ORDER.key && FCACHE.D === D && FCACHE.n === D.bedarfe.length) return FCACHE.L.slice();
+  const L = filterUndSortiere();
+  FCACHE = { k: ck, ids: ORDER.ids, okey: ORDER.key, D, n: D.bedarfe.length, L };
+  queueMicrotask(() => { FCACHE = null; });
+  return L.slice();
+}
+function filterUndSortiere() {
   const arch = UI.tab === 'archiv', q = norm(UI.q);
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
   if (UI.fSw) L = L.filter(b => b.stichworte.includes(UI.fSw));
   if (UI.prioKopf === 2) L = L.filter(b => b.prio === 'hoch');
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, ...b.stichworte, ...b.zust.map(z => z.n), ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
   const prioVorn = (x, y) => UI.prioKopf ? (x.prio === 'hoch' ? 0 : 1) - (y.prio === 'hoch' ? 0 : 1) : 0;
-  L.sort((x, y) => prioVorn(x, y) || sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
+  SORT_MEMO = new Map();
+  try { L.sort((x, y) => prioVorn(x, y) || sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel')); } finally { SORT_MEMO = null; }
   if (ORDER.ids && ORDER.key === ordKey()) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
   return L;
 }
@@ -229,7 +243,7 @@ function listView() {
   const body = listBody(), komp = KOMPAKT(), colw = colwGet(komp);
   if (!komp || !UI.auf || colw) AUF_W = null;
   return `<main><section class="card list-card">
-    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}${komp && UI.auf ? ' hat-auf' : ''}${AUF_W ? ' auf-fest' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : AUF_W ? ` style="min-width:${AUF_W.min}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : AUF_W ? aufCols() : ''}<thead><tr>
+    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}${komp && UI.auf ? ' hat-auf' : ''}${AUF_W ? ' auf-fest' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : AUF_W && AUF_W.min ? ` style="min-width:${AUF_W.min}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : AUF_W ? aufCols() : ''}<thead><tr>
       ${(komp ? ['<th class="l-star">' + kopfStern(), ...[['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => '<th>' + sk(k, t))]
         : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')])
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}

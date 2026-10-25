@@ -81,11 +81,32 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (e.key !== 'Escape' || UI.view !== 'list' || !UI.auf || e.defaultPrevented || $('.menu, .cal-pop, .le-sug, .modal, .ue-form, .le-edit, .fmt-bar')) return;
   const el = document.activeElement; if (el && el.closest && el.closest('input, textarea, select, [contenteditable]')) return;
-  aufklappen(null);
+  const id = UI.auf; aufklappen(null); zeileFokus(id);
+});
+// Tastatur in der Liste: ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf, Enter klappt auf (kompakt) bzw. öffnet, F2 ändert den Namen,
+// Leertaste schaltet den Prio-Stern, „/“ springt in die Suche. Ist noch keine Zeile gewählt, beginnt ↓ bei der ersten
+const zeileFokus = id => { const r = id && $(`#list-body tr[data-id="${CSS.escape(id)}"]`); if (r) r.focus({ preventScroll: true }); };
+document.addEventListener('keydown', e => {
+  if (UI.view !== 'list' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented || $('.modal')) return;
+  const el = document.activeElement;
+  if (el && el.closest && el.closest('input, textarea, select, [contenteditable], .menu')) return;
+  const rows = $$('#list-body tr[data-id]'), tr = el && el.closest && el.closest('#list-body tr[data-id]');
+  const geh = r => { e.preventDefault(); if (!r) return; r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); };
+  if (e.key === '/') { const q = $('#q'); if (q) { e.preventDefault(); q.focus(); q.select(); } return; }
+  if (e.key === 'ArrowDown') return geh(tr ? rows[rows.indexOf(tr) + 1] : rows[0]);
+  if (e.key === 'ArrowUp') return geh(tr ? rows[rows.indexOf(tr) - 1] : rows[rows.length - 1]);
+  if (!tr) return;
+  if (e.key === 'Home') return geh(rows[0]);
+  if (e.key === 'End') return geh(rows[rows.length - 1]);
+  const b = D.bedarfe.find(x => x.id === tr.dataset.id); if (!b) return;
+  if (e.key === 'F2') { e.preventDefault(); const w = tr.querySelector('[data-le="titel"]'); if (w) strgAct(b, w); return; }
+  if (e.key === ' ') { e.preventDefault(); b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); relist(b); zeileFokus(b.id); return; }
+  if (e.key === 'Enter') { e.preventDefault(); if (UI.ansicht === 'kompakt' && UI.auf !== b.id) { aufklappen(b.id); zeileFokus(b.id); } else oeffnen(b.id); }
 });
 // Spaltenbreiten bleiben beim Aufklappen stehen: vorher gemessen (Anteil an der Tabelle), solange ein Bedarf offen ist, fest
 let AUF_W = null;
 const aufCols = () => '<colgroup class="auf-w">' + AUF_W.map(w => `<col style="width:${w}%">`).join('') + '</colgroup>';
+window.addEventListener('resize', () => { const t = $('table.list.auf-fest'); if (t && AUF_W) { AUF_W.min = 0; t.style.minWidth = ''; } });   // Fenster kleiner: Spaltenanteile bleiben, feste Mindestbreite fällt weg
 function aufBreiten() {
   const t = $('table.list.kompakt'); if (!t) return;
   t.classList.toggle('hat-auf', !!UI.auf);
@@ -244,6 +265,22 @@ function calPop(anchor, iso, pick, o = {}) {
       + `<div class="cal-g">${g}</div>` + (o.clear && validIso(iso) ? `<div class="cal-f"><button type="button" class="link small" data-v="">${o.clear}</button></div>` : '');
   };
   draw();
+  // Tastatur: Pfeile wechseln den Tag, Bild auf/ab den Monat, Enter übernimmt, Esc schließt (Fokus zurück, wo er war)
+  let fd = start;
+  const fokus = () => { const d = box.querySelector(`.cal-d[data-v="${fd}"]`); if (d) d.focus(); };
+  box.addEventListener('keydown', e => {
+    const k = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -7, ArrowDown: 7 }[e.key];
+    if (k || e.key === 'PageUp' || e.key === 'PageDown') {
+      e.preventDefault(); e.stopPropagation();
+      const d = new Date(fd + 'T12:00:00Z');
+      if (k) d.setUTCDate(d.getUTCDate() + k); else d.setUTCMonth(d.getUTCMonth() + (e.key === 'PageDown' ? 1 : -1));
+      fd = d.toISOString().slice(0, 10);
+      if (+fd.slice(0, 4) !== y || +fd.slice(5, 7) - 1 !== m) { y = +fd.slice(0, 4); m = +fd.slice(5, 7) - 1; draw(); }
+      fokus(); return;
+    }
+    if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); box.remove(); const z = anchor.closest && anchor.closest('button, input, [tabindex], tr[data-id]'); if (z) z.focus(); }
+    if (e.key === 'Tab') e.preventDefault();
+  });
   box.addEventListener('mousedown', e => e.preventDefault());                    // der Fokus bleibt, wo er ist
   box.addEventListener('click', e => {
     const nav = e.target.closest('.cal-nav');
@@ -251,6 +288,7 @@ function calPop(anchor, iso, pick, o = {}) {
     const d = e.target.closest('[data-v]'); if (d) { box.remove(); pick(d.dataset.v); }
   });
   placePop(box, anchor, o.align);
+  if (!(anchor.matches && anchor.matches('input'))) fokus();                     // an einem Eingabefeld (Datum tippen) bleibt der Fokus dort
   return box;
 }
 
@@ -289,6 +327,7 @@ function editField(b, el, o) {
     relist(b);
     if (o.then) o.then(wie);
     else if ((wie === 'tab' || wie === 'back') && o.feld) feldWeiter(b, o.feld, wie);
+    if (wie !== 'blur' && wie !== 'neu' && !$('.le-edit, .cal-pop, .ue-form')) zeileFokus(b.id);   // per Tastatur fertig: weiter mit ↑/↓
   };
   let umsch = false;                                     // Umschalt+Enter: übernehmen und gleich der nächste neue Bedarf ('neu')
   const sug = o.src ? suggest(inp, o.src, () => finish(true, umsch ? 'neu' : 'enter')) : () => false;
@@ -296,7 +335,7 @@ function editField(b, el, o) {
     umsch = e.key === 'Enter' && e.shiftKey;
     if (sug(e)) { e.preventDefault(); return; }
     if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true, e.shiftKey ? 'neu' : 'enter'); } else if (e.key === 'Escape') { e.preventDefault(); finish(false, 'esc'); }
-    else if (e.key === 'Tab' && o.feld) { e.preventDefault(); finish(true, e.shiftKey ? 'back' : 'tab'); }
+    else if (e.key === 'Tab') { e.preventDefault(); finish(true, e.shiftKey ? 'back' : 'tab'); }
   });
   inp.addEventListener('blur', () => { if (document.hasFocus()) finish(true, 'blur'); });   // Alt+Tab (z. B. Namen aus Outlook kopieren): Feld bleibt offen
 }

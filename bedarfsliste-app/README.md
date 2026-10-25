@@ -98,6 +98,10 @@ einfach formatieren (ebenso die Beschreibung eines Bedarfs): `* ` oder `- ` am Z
 Einfacher: Wort markieren – darüber erscheinen Knöpfe dafür (auch Strg+B, Strg+I, Strg+U). Beim Schreiben ist die Formatierung
 sofort zu sehen; gespeichert wird der Text mit den Zeichen.
 
+**Tastatur:** ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf, Enter klappt auf (kompakt) bzw. öffnet, F2 ändert den Namen, Leertaste schaltet
+den Prio-Stern, „/“ springt in die Suche, Esc klappt zu bzw. führt zurück. In Feldern: Enter/Tab übernehmen, Esc verwirft. Im Kalender:
+Pfeiltasten wählen den Tag, Bild auf/ab den Monat. Alle Kürzel: Zahnrad → „Tastenkürzel …“.
+
 **Rückgängig:** „↶ Rückgängig“ in der Kopfzeile oder Strg+Z (nicht in einem Eingabefeld – dort gilt das Rückgängig des Browsers).
 „Rückgängig“ im Hinweis nach Archivieren, Löschen oder Förderer-Entfernen nimmt nur diese eine Aktion zurück.
 

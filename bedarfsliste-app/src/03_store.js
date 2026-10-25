@@ -144,32 +144,58 @@ async function connectFolder() {
 /* ---------- Rückgängig: die letzten 50 Stände (ohne Speicherangaben); schnelle Änderungen hintereinander (Tippen) zählen als ein Schritt */
 // Rückgängig: vor jeder Änderung den Stand merken (höchstens 50 Schritte). Tippen im selben Feld zählt als ein Schritt;
 // alles andere (Löschen, Status, Knöpfe) ist immer ein eigener Schritt. Wird die Datei von außen neu geladen, beginnt es von vorn.
+// Je Schritt nur, was sich geändert hat (die betroffenen Bedarfe, Reihenfolge, Einstellungen) – nicht jedes Mal der ganze Bestand.
 const UNDO = { stack: [], last: null, t: 0, aus: false, tipp: null, tippAlt: null };
 const undoStand = () => JSON.stringify({ bedarfe: D.bedarfe, settings: D.settings });
-function undoReset() { UNDO.stack = []; UNDO.last = undoStand(); UNDO.t = 0; UNDO.tippAlt = null; }
+const undoAufnahme = () => ({ set: JSON.stringify(D.settings), ids: D.bedarfe.map(b => b.id), bd: new Map(D.bedarfe.map(b => [b.id, JSON.stringify(b)])) });
+// was man braucht, um vom Stand B zurück zum Stand A zu kommen (null: kein Unterschied)
+function undoDiff(A, B) {
+  const alt = []; for (const [id, j] of A.bd) if (B.bd.get(id) !== j) alt.push([id, j]);
+  const neu = B.ids.filter(id => !A.bd.has(id)), ordnung = A.ids.join('\n') !== B.ids.join('\n') ? A.ids : null, set = A.set !== B.set ? A.set : null;
+  return alt.length || neu.length || ordnung || set ? { alt, neu, ordnung, set } : null;
+}
+// der Stand, zu dem Schritt s von L aus zurückführt
+function undoZiel(L, s) { const bd = new Map(L.bd); s.neu.forEach(id => bd.delete(id)); s.alt.forEach(([id, j]) => bd.set(id, j)); return { set: s.set ?? L.set, ids: s.ordnung || L.ids, bd }; }
+// zwei Schritte hintereinander (Tippen im selben Feld) zu einem: s führt von S1 nach S0, d von S2 nach S1
+function undoVerbinden(s, d) {
+  const hat = new Set(s.alt.map(a => a[0]));
+  for (const [id, j] of d.alt) if (!hat.has(id) && !s.neu.includes(id)) s.alt.push([id, j]);
+  for (const id of d.neu) if (!s.neu.includes(id)) s.neu.push(id);
+  if (!s.ordnung && d.ordnung) s.ordnung = d.ordnung; if (s.set == null && d.set != null) s.set = d.set;
+}
+function undoReset() { UNDO.stack = []; UNDO.last = undoAufnahme(); UNDO.t = 0; UNDO.tippAlt = null; }
 function undoMerk() {
   const tipp = UNDO.tipp; UNDO.tipp = null;
-  if (UNDO.aus) return;
-  const jetzt = undoStand(), t = Date.now();
-  if (UNDO.last === null || jetzt === UNDO.last) return;
-  if (UNDO.stack[UNDO.stack.length - 1] === jetzt) UNDO.stack.pop();                    // Änderung wieder zurückgenommen: kein leerer Schritt
-  else if (!(tipp && tipp === UNDO.tippAlt && t - UNDO.t < 2000)) { UNDO.stack.push(UNDO.last); if (UNDO.stack.length > 50) UNDO.stack.shift(); }
+  if (UNDO.aus || !UNDO.last) return;
+  const jetzt = undoAufnahme(), t = Date.now(), d = undoDiff(UNDO.last, jetzt);
+  if (!d) return;
+  const oben = UNDO.stack[UNDO.stack.length - 1];
+  if (oben && !undoDiff(undoZiel(UNDO.last, oben), jetzt)) UNDO.stack.pop();             // Änderung wieder zurückgenommen: kein leerer Schritt
+  else if (oben && tipp && tipp === UNDO.tippAlt && t - UNDO.t < 2000) undoVerbinden(oben, d);
+  else { UNDO.stack.push(d); if (UNDO.stack.length > 50) UNDO.stack.shift(); }
   UNDO.last = jetzt; UNDO.t = t; UNDO.tippAlt = tipp;
 }
 function undo() {
   if (!UNDO.stack.length) { toast('Nichts zum Rückgängigmachen.'); return; }
-  const alt = JSON.parse(UNDO.stack.pop());
-  D = normalize(Object.assign({}, alt, { meta: D.meta })); UNDO.last = undoStand(); UNDO.t = 0; UNDO.tippAlt = null;
+  const s = UNDO.stack.pop(), map = new Map(D.bedarfe.map(b => [b.id, b]));
+  s.neu.forEach(id => map.delete(id)); s.alt.forEach(([id, j]) => map.set(id, JSON.parse(j)));
+  const ids = s.ordnung || D.bedarfe.map(b => b.id);
+  D = normalize(Object.assign({}, D, { settings: s.set != null ? JSON.parse(s.set) : D.settings, bedarfe: ids.map(id => map.get(id)).filter(Boolean) }));
+  UNDO.last = undoAufnahme(); UNDO.t = 0; UNDO.tippAlt = null;
   UNDO.aus = true; try { changed(); } finally { UNDO.aus = false; }
   ORDER.ids = null;                                                                       // Wiederhergestelltes steht an seinem Platz in der Liste
   keep(renderNow); toast('Rückgängig gemacht' + (UNDO.stack.length ? '' : ' – weiter zurück geht es nicht.'), 'ok');
 }
 function changed() {
-  undoMerk();
+  undoMerk(); FCACHE = null;
   const fc = $('#frist-chip'); if (fc) fc.outerHTML = fristChip();                   // Fristen oben gleich nachführen
   if (DEMO) { try { localStorage.setItem(DEMO_KEY, JSON.stringify(D)); } catch (e) { /* ohne Speicher weiter */ } return; }
-  saveDraft(); scheduleAutosave(); updateSaveUI();
+  saveDraftBald(); scheduleAutosave(); updateSaveUI();
 }
+// Entwurf im Browser höchstens alle 1,5 Sekunden schreiben (bei jedem Tastendruck wäre das bei vielen Bedarfen spürbar);
+// beim Schließen, beim Wechsel in ein anderes Fenster und nach dem Speichern wird sofort geschrieben
+let DRAFT_T = null;
+function saveDraftBald() { if (!DRAFT_T) DRAFT_T = setTimeout(() => { DRAFT_T = null; saveDraft(); }, 1500); }
 function scheduleAutosave() {
   clearTimeout(ST.timer); ST.timer = null;
   if (ST.conn !== 'ok' || ST.conflict || ST.newer || BROKEN) return;
