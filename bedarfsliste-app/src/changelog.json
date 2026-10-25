@@ -1,5 +1,21 @@
 [
   {
+    "version": "0.35.0",
+    "date": "2026-10-25T10:00",
+    "items": [
+      "Cent-Beträge: 1.200,10 + 300,30 deckt 1.500,40 € genau – „Finanzierung steht“ statt „Lücke 0 €“; Beträge mit Cent werden mit Cent angezeigt",
+      "Ein Klick direkt nach dem Bearbeiten wirkt sofort (Liste: Name, dann Ort; Bedarfsseite: Pro, dann ein Knopf) – vorher brauchte es zwei Klicks",
+      "Reihenfolge der Liste passt nach Suche, Stichwort-Filter, „+ Bedarf“ und geladenen Ständen wieder zur Sortierung",
+      "Liste: Links in den Übergabe-Notizen öffnen den Link; markierter Text öffnet nichts mehr; ein bloßer Klick auf einen Spaltenrand legt keine Breiten fest",
+      "Fensterwechsel (Alt+Tab, z. B. um einen Namen aus Outlook zu kopieren) schließt kein offenes Feld und löscht keine neue Zeile",
+      "Lange Namen stehen beim Bearbeiten vollständig und deckend da",
+      "Kreisdiagramm: ab 7 Teilen stehen die Beschriftungen als Liste neben dem Kreis",
+      "„Filter löschen“ erscheint schon beim Tippen in die Suche; beim Wechsel ins Archiv wird der Stichwort-Filter zurückgesetzt; ein weggefilterter aufgeklappter Bedarf klappt zu",
+      "Unvollständige oder seltsame Daten führen nicht mehr zu einer leeren Seite (fehlende Teile werden ergänzt, Zahlen als Text gelesen, unbekannte Stände bereinigt); Uhrzeit der Übergabe nur als HH:MM",
+      "Hinweis am Kreis des Verwendungsnachweises wieder sichtbar"
+    ]
+  },
+  {
     "version": "0.34.0",
     "date": "2026-10-24T17:00",
     "items": [

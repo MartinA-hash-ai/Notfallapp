@@ -43,7 +43,7 @@ function lNachweis(f, fertig) {
   if (!v.noetig) return `<span class="lead"></span><span class="mi m-off" ${a} title="kein Verwendungsnachweis nötig"></span><span class="vt nn" ${a}>nicht nötig</span>`;
   if (fertig) return `<span class="lead"></span><span class="mi m-dot" ${a} title="erledigt"></span><span class="vt" ${a}>erledigt</span>`;
   const s = MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]], cal = `<button class="le-cal" data-le="vn-frist" data-fid="${f.id}" title="Frist des Verwendungsnachweises" aria-label="Frist des Verwendungsnachweises wählen">${ICON_CAL}</button>`;
-  return `${zeitstrahl(f)}<span class="mi ${s[0]}" ${a} title=""${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}</span>`;
+  return `${zeitstrahl(f)}<span class="mi ${s[0]}" ${a} title="${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}</span>`;
 }
 function lFinanz(b) {
   const F = finState(b), R = [];
@@ -62,7 +62,7 @@ function lFinanz(b) {
   return `<div class="fg">${R.join('')}</div><button class="le-plus" data-le="add" title="Förderer hinzufügen – Enter: weiter zum Betrag, dann speichern; Shift+Enter: speichern und nächster Förderer" aria-label="Förderer hinzufügen">+</button>`;
 }
 // Spendenübergabe: steht die Finanzierung und ist noch nichts vereinbart, ein oranges Dreieck; darunter die Info dazu
-const uebWann = u => u.termin ? fmtDate(u.termin) + (u.zeit ? ', ' + u.zeit + ' Uhr' : '') : '';
+const uebWann = u => u.termin ? fmtDate(u.termin) + (u.zeit ? ', ' + esc(u.zeit) + ' Uhr' : '') : '';
 function lUebergabe(b) {
   const u = b.nach.ueb, F = finState(b);
   const top = !u.noetig ? '<div class="ml nn">nicht nötig</div>'
@@ -117,11 +117,13 @@ function filtered() {
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, ...b.stichworte, ...b.zust.map(z => z.n), ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
   const prioVorn = (x, y) => UI.prioKopf ? (x.prio === 'hoch' ? 0 : 1) - (y.prio === 'hoch' ? 0 : 1) : 0;
   L.sort((x, y) => prioVorn(x, y) || sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel'));
-  if (ORDER.ids) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
+  if (ORDER.ids && ORDER.key === ordKey()) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
   return L;
 }
 // Reihenfolge, solange mit Strg bearbeitet wird (Zeilen springen nicht unter dem Mauszeiger weg)
-const ORDER = { ids: null };
+// gilt nur für die Suche, Filter und Sortierung, mit denen sie entstand – ändert sich davon etwas, wird neu geordnet
+const ORDER = { ids: null, key: '' };
+const ordKey = () => JSON.stringify([UI.tab, UI.q, UI.fSw, UI.prioKopf, UI.sort]);
 const anyFilter = () => !!(UI.q || UI.fSw || UI.prioKopf === 2);
 
 /* ---------- kompakte Ansicht: je Bedarf eine Zeile – Name, Summe, Ort und je Bereich nur der Stand als Kreis mit Wort.
@@ -213,7 +215,7 @@ function listBar() {
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
-        ${anyFilter() ? '<button class="link" data-act="clear">Filter löschen</button>' : ''}
+        <button class="link" data-act="clear"${anyFilter() ? '' : ' hidden'}>Filter löschen</button>
       </div>
     </div>`;
 }
@@ -261,12 +263,11 @@ document.addEventListener('pointerdown', e => {
   if (!cg) { cg = h('colgroup', null, w.map(() => h('col'))); table.prepend(cg); }
   const cols = [...cg.children];
   const apply = () => { cols.forEach((c, k) => { c.style.width = w[k] + 'px'; }); table.style.width = w.reduce((a, x) => a + x, 0) + 'px'; table.classList.add('fixed'); };
-  apply();
-  const x0 = e.clientX, w0 = w[i];
+  const x0 = e.clientX, w0 = w[i]; let gezogen = false;                          // ein bloßer Klick auf den Rand legt nichts fest
   hnd.setPointerCapture(e.pointerId); document.body.classList.add('col-resizing');
-  const move = ev => { w[i] = Math.max(MIN[i], Math.round(w0 + ev.clientX - x0)); apply(); };
-  const up = () => { hnd.removeEventListener('pointermove', move); hnd.removeEventListener('pointerup', up); document.body.classList.remove('col-resizing'); colwSet(w, komp); };
-  hnd.addEventListener('pointermove', move); hnd.addEventListener('pointerup', up);
+  const move = ev => { if (!gezogen && Math.abs(ev.clientX - x0) < 3) return; gezogen = true; w[i] = Math.max(MIN[i], Math.round(w0 + ev.clientX - x0)); apply(); };
+  const up = () => { hnd.removeEventListener('pointermove', move); hnd.removeEventListener('pointerup', up); hnd.removeEventListener('lostpointercapture', up); document.body.classList.remove('col-resizing'); if (gezogen) colwSet(w, komp); };
+  hnd.addEventListener('pointermove', move); hnd.addEventListener('pointerup', up); hnd.addEventListener('lostpointercapture', up);
 });
 document.addEventListener('dblclick', e => { const r = e.target.closest && e.target.closest('.col-rs'); if (r) { colwSet(null, r.closest('table').classList.contains('kompakt')); keep(renderNow); } });
 

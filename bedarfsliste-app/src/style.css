@@ -393,6 +393,10 @@ td.le-cell { position: relative; }
 .le-edit::placeholder { color: var(--faint); font-weight: 400; opacity: .75; }
 .le-edit.num { text-align: right; }
 textarea.le-edit { resize: none; field-sizing: content; min-height: 0; overflow: hidden; }
+/* langer Name im Feld: wächst nach unten und deckt die Zeile darunter ab – nicht abgeschnitten (kompakt) und nicht durchscheinend (ausführlich) */
+table.list td.le-cell { overflow: visible !important; }
+textarea.le-edit { background: var(--card); box-shadow: 0 8px 14px -8px rgba(0,0,0,.28); z-index: 6; padding-bottom: 3px; }
+table.list.kompakt tr.auf textarea.le-edit { background: var(--soft); }
 input.le-edit[type=date] { color: var(--ink2); }
 input.le-edit[type=date]::-webkit-calendar-picker-indicator { opacity: .45; cursor: pointer; }
 /* neuer Förderer: eigene Zeile unter den anderen, Name bis vor die Beträge, Betrag in der Spalte der Beträge */

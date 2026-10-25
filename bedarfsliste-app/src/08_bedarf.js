@@ -304,7 +304,7 @@ function popEdit(el) {
     if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); finish(false); }
     else if (e.key === 'Enter' && (!lang || e.ctrlKey)) { e.preventDefault(); finish(true); }
   });
-  inp.addEventListener('blur', () => finish(true));
+  inp.addEventListener('blur', () => { if (document.hasFocus()) finish(true); });     // Fensterwechsel: Feld bleibt offen
 }
 const AMT_LAB = { geplant: 'Erwartete Summe', beantragt: 'Beantragte Summe', zugesagt: 'Zugesagte Summe', abgelehnt: 'Beantragt (abgelehnt)' };
 const pct = (v, S) => S ? Math.round(v / S * 100) + ' %' : '';
@@ -397,8 +397,9 @@ function finPie(b) {
   add('eig', 'Eigenmittel', F.eig);
   for (const k of ['be', 'ge']) fs.filter(f => segKind(f) === k).forEach(f => add(k, f.name || '(ohne Namen)', foeAmt(f), f.id));
   const tot = parts.reduce((x, p) => x + p.v, 0), max = Math.max(F.S, tot);
-  add('off', 'Delta, noch ohne Förderer', F.S - tot);
-  const { W, H, R } = PIE, cx = W / 2, cy = H / 2, xy = (a, r) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
+  add('off', 'Delta, noch ohne Förderer', (ct(F.S) - ct(tot)) / 100);
+  // mehr als 6 Teile: Beschriftungen als Liste rechts neben dem Kreis (an den Stücken liefen sie sonst über die Karte)
+  const viele = parts.length > 6, { W, H, R } = PIE, cx = viele ? R + 16 : W / 2, cy = H / 2, xy = (a, r) => [cx + r * Math.cos(a), cy + r * Math.sin(a)];
   const svg = inner => `<svg class="pie" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(finText(b))}"><defs><pattern id="pie-off" width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">`
     + `<rect width="4" height="4" style="fill:var(--track)"/><rect width="1.2" height="4" style="fill:var(--off-st)"/></pattern></defs>${inner}</svg>`;
   if (!max) return svg(`<circle class="ps off" cx="${cx}" cy="${cy}" r="${R}"/>`);
@@ -409,6 +410,16 @@ function finPie(b) {
     return p.da > 2 * Math.PI - 1e-6 ? `<circle class="ps ${p.k}" cx="${cx}" cy="${cy}" r="${R}"${act}/>`
       : `<path class="ps ${p.k}" d="M${cx} ${cy}L${pt(p.a0)}A${R} ${R} 0 ${p.da > Math.PI ? 1 : 0} 1 ${pt(p.a0 + p.da)}Z"${act}/>`;
   });
+  if (viele) {
+    const font = '600 13px ' + getComputedStyle(document.body).fontFamily, lx = cx + R + 28, rx = W - 4, n = Math.floor((H - 8) / 19);
+    const zeig = P.length > n ? P.slice(0, n - 1) : P, mehr = P.length - zeig.length;
+    const kurz = (t, max) => { if (textBreite(t, font) <= max) return t; let s = t; while (s.length > 1 && textBreite(s + '…', font) > max) s = s.slice(0, -1).trimEnd(); return s + '…'; };
+    const zeilen = zeig.map((p, i) => { const y = 16 + i * 19, wert = esc(eur(p.v)) + ' · ' + Math.round(p.v / max * 100) + ' %';
+      return `<g class="pl"><rect class="ps ${p.k}" x="${lx}" y="${y - 10}" width="11" height="11" rx="2"/><text class="pl-n" x="${lx + 18}" y="${y}">${esc(kurz(p.k === 'off' ? 'Delta' : p.name, rx - lx - 18 - 128))}</text>`
+        + `<text class="pl-v" x="${rx}" y="${y}" text-anchor="end">${wert}</text></g>`; });
+    if (mehr) zeilen.push(`<text class="pl-v" x="${lx + 18}" y="${16 + zeig.length * 19}">… und ${mehr} weitere</text>`);
+    return svg(slices.join('') + zeilen.join(''));
+  }
   // Beschriftungen: rechte und linke Seite getrennt von oben nach unten, mit Mindestabstand, damit sich nichts überlappt
   // lange Namen stehen in zwei Zeilen (darüber) – genau so breit, wie neben dem Kreis Platz ist; mehr wird mit … gekürzt
   const GAP = 32, TOP = 18, BOT = H - 22, PLATZ = W / 2 - R - 44 - 4;
@@ -452,7 +463,7 @@ const zuSet = (k, v) => { try { const o = JSON.parse(localStorage.getItem(ZU_KEY
 const ICON_CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const zuKopf = (k, titel, zu) => `<h2><button class="sec-zu${zu ? ' zu' : ''}" data-act="zu" data-v="${k}" aria-expanded="${!zu}" title="${zu ? 'Aufklappen' : 'Einklappen'}">${ICON_CHEV}${titel}</button></h2>`;
 function foeKurz(b) {
-  const F = finState(b), n = F.fs.filter(f => f.status !== 'abgelehnt').length, rest = F.S - F.zu - F.eig;
+  const F = finState(b), n = F.fs.filter(f => f.status !== 'abgelehnt').length, rest = (ct(F.S) - ct(F.zu) - ct(F.eig)) / 100;
   return [n + ' Förderer', F.zu ? eur(F.zu) + ' zugesagt' : 'noch keine Zusage', F.S ? (rest > 0 ? eur(rest) + ' noch ohne Zusage' : 'Finanzierung steht') : ''].join(' · ').replace(/ · $/, '');
 }
 function secFoe(b) {

@@ -184,7 +184,8 @@ function richEdit(ed) {
 // Quellen: je Link eine Zeile (auch wenn sie mit „;“ oder Leerzeichen hintereinander stehen)
 const quellenZeilen = t => String(t || '').replace(/\s*;\s*/g, '\n').replace(/(https?:\/\/\S+)\s+(?=https?:\/\/)/g, '$1\n').split(/\r?\n/).map(x => x.trim()).filter(Boolean);
 const unquote = s => String(s).replace(/^\s*"|"\s*$/g, '');
-const eur = n => Math.round(n || 0).toLocaleString('de-DE') + '\u00a0€';
+// Euro: ganze Beträge ohne, alles andere mit Cent (1.500,40 €) – vorher wurde auf ganze Euro gerundet und eine Lücke von 0,40 € hieß „0 €“
+const eur = n => { const x = Math.round((+n || 0) * 100) / 100; return x.toLocaleString('de-DE', Number.isInteger(x) ? {} : { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + '\u00a0€'; };
 const fmtNum = n => (n == null || n === '' || isNaN(n)) ? '' : Number(n).toLocaleString('de-DE', { maximumFractionDigits: 2 });
 // Zahlen deutsch eingeben: „1.500“ = 1500, „1.234,50“ = 1234,5; Ergebnis: Zahl, '' (leer) oder null (keine Zahl)
 // Zahl schon beim Tippen gliedern (15000 → 15.000); der Cursor bleibt hinter derselben Ziffer

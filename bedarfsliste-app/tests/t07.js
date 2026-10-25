@@ -324,7 +324,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   const kopf = () => p.evaluate(() => {
     const ids = [...document.querySelectorAll('#list-body tr[data-id]')].map(t => t.dataset.id), hoch = ids.map(id => D.bedarfe.find(b => b.id === id).prio === 'hoch');
     const k = document.querySelector('[data-act="prio-kopf"]'), path = getComputedStyle(k.querySelector('svg path'));
-    return { n: ids.length, alle: D.bedarfe.filter(b => !b.archiv).length, nHoch: hoch.filter(Boolean).length, vorn: hoch.every((h, i) => !i || hoch[i - 1] || !h), nurHoch: hoch.every(Boolean), s: k.className, fill: path.fill, stroke: path.stroke, clear: !!document.querySelector('[data-act="clear"]') };
+    return { n: ids.length, alle: D.bedarfe.filter(b => !b.archiv).length, nHoch: hoch.filter(Boolean).length, vorn: hoch.every((h, i) => !i || hoch[i - 1] || !h), nurHoch: hoch.every(Boolean), s: k.className, fill: path.fill, stroke: path.stroke, clear: !!document.querySelector('[data-act="clear"]:not([hidden])') };
   });
   const k0 = await kopf();
   await p.click('[data-act="prio-kopf"]'); const k1 = await kopf();

@@ -61,7 +61,10 @@ const AUF_POPS = '.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts
 document.addEventListener('click', e => {
   if (UI.view !== 'list') return;
   if (e.target.closest('.le-edit, .le-new, .ue-form')) return;                         // offene Felder halten ihre Klicks selbst zurück (le-stop)
+  if (e.target.closest('#list-body a[href]')) return;                               // Link (z. B. in den Übergabe-Notizen): öffnet den Link, nicht den Bedarf
   const tr = e.target.closest('#list-body tr[data-id]'), id = tr && tr.dataset.id, komp = UI.ansicht === 'kompakt';
+  const sel = getSelection();
+  if (tr && sel && !sel.isCollapsed && String(sel).trim() && tr.contains(sel.anchorNode)) { e.preventDefault(); e.stopPropagation(); return; }   // Text markiert (zum Kopieren): nichts auslösen
   if (komp && UI.auf && id !== UI.auf && !e.target.closest(AUF_POPS)) {
     if (tr) { e.preventDefault(); e.stopPropagation(); aufklappen(id); return; }
     aufklappen(null);
@@ -295,7 +298,7 @@ function editField(b, el, o) {
     if (e.key === 'Enter' && !(o.multi && e.shiftKey)) { e.preventDefault(); finish(true, e.shiftKey ? 'neu' : 'enter'); } else if (e.key === 'Escape') { e.preventDefault(); finish(false, 'esc'); }
     else if (e.key === 'Tab' && o.feld) { e.preventDefault(); finish(true, e.shiftKey ? 'back' : 'tab'); }
   });
-  inp.addEventListener('blur', () => finish(true, 'blur'));
+  inp.addEventListener('blur', () => { if (document.hasFocus()) finish(true, 'blur'); });   // Alt+Tab (z. B. Namen aus Outlook kopieren): Feld bleibt offen
 }
 
 // Tab im Feld: übernehmen und weiter zum nächsten Feld der Zeile (Shift+Tab: zurück) – Name → Summe → Ort → Ansprechperson → Deadline;
@@ -313,8 +316,8 @@ function feldWeiter(b, k, wie, then) {
 function neuerBedarf(nach) {
   const nb = blank(); D.bedarfe.unshift(nb); changed();
   Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: '', prioKopf: UI.prioKopf === 2 ? 0 : UI.prioKopf });
-  const L = (ORDER.ids || []).filter(id => id !== nb.id), at = nach ? L.indexOf(nach) : -1;
-  ORDER.ids = at >= 0 ? [...L.slice(0, at + 1), nb.id, ...L.slice(at + 1)] : [nb.id, ...L];
+  const L = (ORDER.ids && ORDER.key === ordKey() ? ORDER.ids : (ORDER.ids = null, filtered().map(x => x.id))).filter(id => id !== nb.id), at = nach ? L.indexOf(nach) : -1;
+  ORDER.ids = at >= 0 ? [...L.slice(0, at + 1), nb.id, ...L.slice(at + 1)] : [nb.id, ...L]; ORDER.key = ordKey();
   renderNow(); strgSet(false);
   if (at < 0) scrollTo(0, 0); else { const tr = $(`#list-body tr[data-id="${CSS.escape(nb.id)}"]`); if (tr) tr.scrollIntoView({ block: 'nearest' }); }
   const feld = k => $(`#list-body tr[data-id="${CSS.escape(nb.id)}"] [data-le="${k}"]`);

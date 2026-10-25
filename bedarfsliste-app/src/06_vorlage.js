@@ -28,7 +28,7 @@ const fpHeadKey = t => norm(t).replace(/[^a-zäöüß0-9]/g, '');
 
 /* ---------- Auftrag an die Recherche: dieselben Sätze stehen im Blatt „Anleitung“ und im Prompt für Copilot */
 const rechGl = b => b && b.gliederung && b.gliederung !== DIO ? b.gliederung : '';
-const rechOffen = b => { if (!b) return 0; const F = finState(b); return Math.max(0, F.S - F.eig - F.zu); };
+const rechOffen = b => { if (!b) return 0; const F = finState(b); return Math.max(0, (ct(F.S) - ct(F.eig) - ct(F.zu)) / 100); };
 // Kartei-Auszug: zuständig für die Gliederung (oder für alle), die eigene Gliederung zuerst; ohne Gliederung die ganze Kartei
 function karteiFuer(b) {
   if (!b || typeof KR === 'undefined') return [];

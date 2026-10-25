@@ -97,7 +97,9 @@ function renderNow() {
     const b = UI.view === 'detail' ? cur() : null;
     if (UI.view === 'detail' && !b) UI.view = 'list';
     // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
-    if (UI.view !== 'list') ORDER.ids = null; else if (!ORDER.ids) ORDER.ids = filtered().map(x => x.id);
+    if (UI.view !== 'list') ORDER.ids = null;
+    else if (!ORDER.ids || ORDER.key !== ordKey() || filtered().some(x => !ORDER.ids.includes(x.id))) { ORDER.ids = null; ORDER.ids = filtered().map(x => x.id); ORDER.key = ordKey(); }
+    if (UI.auf && (UI.view !== 'list' || !filtered().some(x => x.id === UI.auf))) UI.auf = null;    // aufgeklappter Bedarf weggefiltert oder weg: zuklappen
     if (UI.view !== 'list' || UI.ansicht !== 'kompakt') UI.auf = null;              // aufgeklappter Bedarf der kompakten Liste
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
     if (UI.kEdit !== UI.det) UI.kEdit = null;
@@ -273,6 +275,20 @@ function uebergang(r, fn) {
 }
 function oeffnen(id) { if (UI.view === 'list') LISTE_Y = scrollY; closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; uebergang('vor', () => { renderNow(); scrollTo(0, 0); }); }
 function zurueck() { closeMenus(); klickRuhe(); UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); }); }
+// Ein Feld übernimmt beim Verlassen und zeichnet neu – passiert das zwischen Drücken und Loslassen der Maus, verwirft der Browser den Klick
+// (sein Ziel gibt es nicht mehr). Dann den Klick an das gleiche Element an derselben Stelle weitergeben, sonst bräuchte es zwei Klicks.
+const KLICK = { el: null, sig: '' };
+const klickZiel = t => t && t.closest ? t.closest('[data-le], [data-act], button, a[href], input, select, textarea, #list-body td') : null;
+const klickSig = el => el ? [el.tagName, ...['act', 'le', 'fid', 'id', 'k', 'uid', 'v', 'p', 'kind', 'i'].map(k => el.dataset[k] || '')].join('|') : '';
+document.addEventListener('pointerdown', e => { const el = e.button === 0 ? klickZiel(e.target) : null; KLICK.el = el; KLICK.sig = klickSig(el); }, true);
+document.addEventListener('pointerup', e => {
+  const el = KLICK.el; KLICK.el = null;
+  if (!el || el.isConnected || e.button !== 0) return;
+  const neu = klickZiel(e.target); if (!neu || klickSig(neu) !== KLICK.sig) return;
+  let kam = false; const merk = () => { kam = true; };
+  document.addEventListener('click', merk, { capture: true, once: true });
+  setTimeout(() => { document.removeEventListener('click', merk, true); if (kam || !neu.isConnected) return; if (/^(INPUT|SELECT|TEXTAREA)$/.test(neu.tagName)) neu.focus(); else neu.click(); }, 0);
+}, true);
 // Doppelklick: der zweite Klick träfe sonst, was nach dem ersten erscheint (aufgeklappte Zeile, Seite des Bedarfs, wieder die Liste) –
 // kurz nach so einem Wechsel zählt der zweite Klick eines Doppelklicks nicht. Bewusst einzeln geklickt geht weiterhin sofort.
 let KLICK_RUHE = 0;
@@ -289,7 +305,7 @@ function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit
 async function act(k, a, e) {
   const b = cur();
   switch (k) {
-    case 'tab': UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;
+    case 'tab': if (UI.tab !== a.dataset.v) UI.fSw = ''; UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
     case 'open': oeffnen(a.dataset.id); return;
     case 'back': zurueck(); return;
     case 'sort-th': sortSpalte(a.dataset.k); return;
@@ -433,6 +449,7 @@ document.addEventListener('input', e => {
     if (UI.auf) aufklappen(null);
     UI.q = el.value; const r = listBody(); swap('list-body', r.html, true);
     const c = $('#list-count'); if (c) c.textContent = r.n + ' von ' + D.bedarfe.filter(b => !!b.archiv === (UI.tab === 'archiv')).length;
+    const x = $('.list-head [data-act="clear"]'); if (x) x.hidden = !anyFilter();
     return;
   }
   if (!el.dataset.p || el.type === 'checkbox' || el.tagName === 'SELECT') return;
@@ -483,10 +500,13 @@ function boot() {
     const el = $('#bl-data'), raw = el ? el.textContent.trim() : '';
     if (raw) try { d = JSON.parse(raw); if (!isData(d)) throw new Error('keine Bedarfsliste gefunden'); } catch (e) { console.error(e); broken = (e && e.message) || String(e); d = null; }
   }
-  D = normalize(d || emptyData()); SAVED_JSON = JSON.stringify(D); undoReset();
+  // lässt sich ein Teil der Daten nicht verarbeiten: Hinweis „beschädigt“ mit „Datensicherung laden“ statt einer leeren Seite; gespeichert wird dann nicht
+  const kaputt = e => { console.error(e); return 'Daten lassen sich nicht verarbeiten – ' + ((e && e.message) || e); };
+  try { D = normalize(d || emptyData()); } catch (e) { broken = broken || kaputt(e); D = normalize(emptyData()); }
+  SAVED_JSON = JSON.stringify(D); undoReset();
   if (broken) BROKEN = { reason: broken.replace(/^JSON\.parse: /, '').slice(0, 120) };
   if (!DEMO) checkDraft();
-  renderNow();
+  try { renderNow(); } catch (e) { if (!BROKEN) BROKEN = { reason: kaputt(e).slice(0, 120) }; D = normalize(emptyData()); SAVED_JSON = JSON.stringify(D); undoReset(); renderNow(); }
   if (DEMO) return;
   restoreFolder().then(() => { renderNow(); askPermissionOnFirstClick(); }, e => { console.warn(e); ST.conn = 'none'; renderNow(); });
   // dieselbe Datei in einem zweiten Fenster oder Tab? Dann warnen – sonst überschreiben sich die Stände gegenseitig

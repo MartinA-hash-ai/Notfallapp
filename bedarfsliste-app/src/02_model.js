@@ -73,23 +73,40 @@ function zustVorn(b, v) {
   const v0 = zustVorbild(v), neu = Object.assign(leerZ(), v0 && Object.fromEntries(ZUST_F.map(k => [k, v0[k] || ''])), { n: v });
   return L[0] && ZUST_F.some(k => L[0][k]) ? [neu, ...L] : [neu, ...L.slice(1)];
 }
+// wie merge, aber ein Wert vom falschen Typ (null oder Text statt eines Objekts, Text statt einer Liste) ersetzt die Vorgabe nicht –
+// sonst bräche das Programm beim Start mit leerer Seite ab
+function mergeSicher(a, b) {
+  for (const k in b) {
+    const x = a[k], y = b[k];
+    if (isObj(x)) { if (isObj(y)) mergeSicher(x, y); }
+    else if (Array.isArray(x)) { if (Array.isArray(y)) a[k] = y; }
+    else a[k] = y;
+  }
+  return a;
+}
+const zahlOderLeer = v => { if (v == null || v === '') return null; const x = typeof v === 'number' ? v : deNum(v); return typeof x === 'number' && isFinite(x) ? x : null; };
+const gueltigeId = (v, p) => /^[\w.-]{1,80}$/.test(String(v ?? '')) ? String(v) : uid(p);
+const FOE_STAENDE = ['geplant', 'beantragt', 'zugesagt', 'abgelehnt'], FR_STAENDE = ['offen', 'angefragt', 'ok', 'nein'], UL_STAENDE = ['fehlt', 'arbeit', 'da'];
 // Daten aus der Datei auf den aktuellen Aufbau bringen (fehlende Felder ergänzen, Unbrauchbares verwerfen)
 function normalize(d) {
-  const o = merge(emptyData(), isObj(d) ? d : {});
+  const o = mergeSicher(emptyData(), isObj(d) ? d : {});
   if (!isObj(o.meta)) o.meta = emptyData().meta;
   if (!isObj(o.settings)) o.settings = emptyData().settings;
   // ab 0.17 ist der Verwendungsnachweis standardmäßig nötig: in schon gespeicherten Daten einmalig auch dort, wo er unberührt auf „nicht nötig“ stand
   const vnMig = isObj(d) && isObj(d.meta) && !d.meta.vnStd && !!(d.meta.savedAt || d.meta.rev);
   o.meta.vnStd = 1;
   o.bedarfe = (Array.isArray(o.bedarfe) ? o.bedarfe : []).filter(isObj).map(b => {
-    const n = merge(blank(), b);
+    const n = mergeSicher(blank(), b);
+    n.id = gueltigeId(n.id, 'b'); n.summe = zahlOderLeer(n.summe); n.eigenanteil = zahlOderLeer(n.eigenanteil);
+    for (const k of ['ofk', 'fach', 'verw']) if (!FR_STAENDE.includes(n.freigabe[k].st)) n.freigabe[k].st = 'offen';
     // ab 0.25 mehrere Stichworte (Fördertöpfe) je Bedarf – bisher eines
     n.stichworte = uniq([...(Array.isArray(b.stichworte) ? b.stichworte : []), ...(typeof b.stichwort === 'string' ? [b.stichwort] : [])].map(s => String(s ?? '').trim()).filter(Boolean));
     delete n.stichwort;
     // ab 0.24 sind die Zuständigen Kontakte wie bei den Förderern (Name, Position, E-Mail, Telefon) – bisher nur Namen
     n.zust = (Array.isArray(b.zust) ? b.zust : []).map(z => typeof z === 'string' ? Object.assign(leerZ(), { n: z.trim() })
       : isObj(z) ? { n: String(z.n ?? ''), rolle: String(z.rolle ?? ''), mail: String(z.mail ?? ''), tel: String(z.tel ?? ''), mobil: String(z.mobil ?? '') } : null).filter(z => z && !kontaktLeer(z));
-    n.unterlagen = (Array.isArray(b.unterlagen) ? b.unterlagen : []).filter(isObj).map(u => Object.assign(UL('', 'fehlt'), u));
+    n.unterlagen = (Array.isArray(b.unterlagen) ? b.unterlagen : []).filter(isObj).map(u => Object.assign(UL('', 'fehlt'), u))
+      .map(u => Object.assign(u, { id: gueltigeId(u.id, 'u'), name: String(u.name ?? ''), st: UL_STAENDE.includes(u.st) ? u.st : 'fehlt' }));
     // ab 0.2 ist das Angebot eine Unterlage (vorher Teil der Freigabe); die drei festen Unterlagen gibt es immer
     const alt = isObj(b.freigabe) && isObj(b.freigabe.angebot) ? b.freigabe.angebot.st : null;
     FEST_UL.forEach((name, i) => {
@@ -98,7 +115,7 @@ function normalize(d) {
     });
     delete n.freigabe.angebot; delete n.freigabe.trotzdem;
     n.foerderer = (Array.isArray(b.foerderer) ? b.foerderer : []).filter(isObj).map(f0 => {
-      const f = merge(ff({}), f0), v = f.vn, v0 = isObj(f0.vn) ? f0.vn : {}, sb = isObj(f0.sb) ? f0.sb : null;
+      const f = mergeSicher(ff({}), f0), v = f.vn, v0 = isObj(f0.vn) ? f0.vn : {}, sb = isObj(f0.sb) ? f0.sb : null;
       // ab 0.6 hat der Verwendungsnachweis drei Stände, und der Sachbericht gehört zu ihm (ein Abwasch)
       if (!VN_ST.some(o => o[0] === v0.st)) v.st = v0.erledigt === true ? 'erledigt' : 'offen';
       if (sb && sb.noetig) {
@@ -111,6 +128,8 @@ function normalize(d) {
       delete f.sb; delete v.erledigt;
       if (vnMig && !b.archiv && v.noetig === false && !v.frist && v.st === 'offen') v.noetig = true;
       if (f.status === 'vorb') f.status = 'geplant';                 // „in Vorbereitung“ gibt es ab 0.17 nicht mehr
+      if (!FOE_STAENDE.includes(f.status)) f.status = 'geplant';
+      f.id = gueltigeId(f.id, 'f'); f.name = String(f.name ?? ''); for (const k of ['betrag', 'zugesagt', 'eingegangen']) f[k] = zahlOderLeer(f[k]);
       // bis 0.20 ein Kontakt in drei Feldern (Ansprechperson, E-Mail, Telefon) – daraus wird der erste Kontakt
       if (!Array.isArray(f0.kontakte)) {
         const k = kontakteAusText(f0.kontakt);
@@ -125,6 +144,8 @@ function normalize(d) {
     n.foerderer.forEach(f => { if (f.einsch in EINSCH_ALT) f.einsch = EINSCH_ALT[f.einsch]; if (!EINSCH.some(e => e[0] === f.einsch)) f.einsch = ''; });
     if (!Array.isArray(n.nach.ueb.mit)) n.nach.ueb.mit = [];
     for (const k of ['info', 'zeit', 'ort', 'termin']) if (typeof n.nach.ueb[k] !== 'string') n.nach.ueb[k] = '';
+    if (!/^\d{1,2}:\d{2}$/.test(n.nach.ueb.zeit)) n.nach.ueb.zeit = '';                    // Uhrzeit nur als HH:MM
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(n.nach.ueb.termin)) n.nach.ueb.termin = '';
     if (!(n.prio in PRIO_ORD)) n.prio = 'mittel';
     for (const k of ['titel', 'gliederung', 'beschreibung', 'link', 'pfad']) if (typeof n[k] !== 'string') n[k] = n[k] == null ? '' : String(n[k]);
     n.pfad = unquote(n.pfad);
@@ -171,12 +192,14 @@ function fin(b) {
 }
 // Finanzierung steht, wenn Zusagen und Eigenmittel den Bedarf decken und kein Antrag mehr läuft; nie angegangene Förderer zählen dann nicht mehr.
 // d: was noch fehlt (> 0) oder zu viel ist (< 0) – solange die Finanzierung nicht steht, zählen auch geplante und beantragte Förderer mit
+// Beträge in Cent vergleichen: 1.200,10 + 300,30 ist genau 1.500,40 (mit Kommazahlen käme 1.500,3999… heraus – nie „Finanzierung steht“)
+const ct = x => Math.round((+x || 0) * 100);
 function finState(b) {
   const S = +b.summe || 0, eig = +b.eigenanteil || 0, fs = b.foerderer.filter(f => f.name.trim() || f.betrag);
   const sum = L => L.reduce((a, f) => a + foeAmt(f), 0);
   const zu = sum(fs.filter(f => f.status === 'zugesagt')), plan = sum(fs.filter(f => f.status !== 'abgelehnt'));
-  const done = (S ? zu + eig >= S : zu > 0) && !fs.some(f => f.status === 'beantragt');
-  return { S, eig, fs, zu, done, d: S ? S - (done ? zu : plan) - eig : 0 };
+  const done = (S ? ct(zu) + ct(eig) >= ct(S) : zu > 0) && !fs.some(f => f.status === 'beantragt');
+  return { S, eig, fs, zu, done, d: S ? (ct(S) - ct(done ? zu : plan) - ct(eig)) / 100 : 0 };
 }
 // Wer deckt was: zugesagt (eingegangen zuerst), Eigenmittel, beantragt, geplant – in dieser Reihenfolge im Balken; abgelehnte fehlen
 const KIND_L = { in: 'eingegangen', zu: 'zugesagt', eig: 'Eigenmittel', be: 'beantragt', ge: 'geplant' };
@@ -191,7 +214,7 @@ function finSegs(b) {
 function finText(b) {
   const F = fin(b);
   if (!F.S) return 'Summe fehlt';
-  const gap = F.S - F.gedeckt;
+  const gap = (ct(F.S) - ct(F.gedeckt)) / 100;
   return gap > 0 ? `${Math.round(F.gedeckt / F.S * 100)} % gedeckt · Lücke ${eur(gap)}` : gap < 0 ? `überdeckt um ${eur(-gap)}` : 'voll gedeckt';
 }
 
@@ -226,7 +249,7 @@ function phase(b) {
   if (!FS.done) {
     if (vor.length) return { k: 'antrag', step: 1, t: 'Anträge stellen', sub: names(vor) + (wart.length ? ' · wartet auf ' + names(wart) : ''), bad: false, warn };
     if (wart.length) return { k: 'warten', step: 1, t: 'Warten auf Antwort', sub: names(wart), bad: false, warn };
-    return { k: 'luecke', step: 1, t: 'Finanzierungslücke', sub: (FS.S ? eur(FS.S - FS.zu - FS.eig) + ' offen' : 'keine Zusage') + ', weiteren Förderer suchen', bad: true, warn };
+    return { k: 'luecke', step: 1, t: 'Finanzierungslücke', sub: (FS.S ? eur((ct(FS.S) - ct(FS.zu) - ct(FS.eig)) / 100) + ' offen' : 'keine Zusage') + ', weiteren Förderer suchen', bad: true, warn };
   }
   const geld = zu.filter(f => !(f.eingegangen > 0));
   if (geld.length) return { k: 'geld', step: 1, t: 'Geldeingang offen', sub: names(geld), bad: false, warn };
