@@ -105,7 +105,7 @@ function normalize(d) {
     delete n.stichwort;
     // ab 0.24 sind die Zuständigen Kontakte wie bei den Förderern (Name, Position, E-Mail, Telefon) – bisher nur Namen
     n.zust = (Array.isArray(b.zust) ? b.zust : []).map(z => typeof z === 'string' ? Object.assign(leerZ(), { n: z.trim() })
-      : isObj(z) ? { n: String(z.n ?? ''), rolle: String(z.rolle ?? ''), mail: String(z.mail ?? ''), tel: String(z.tel ?? ''), mobil: String(z.mobil ?? '') } : null).filter(z => z && !kontaktLeer(z));
+      : isObj(z) ? Object.assign({ n: String(z.n ?? ''), rolle: String(z.rolle ?? ''), mail: String(z.mail ?? ''), tel: String(z.tel ?? ''), mobil: String(z.mobil ?? '') }, z.pxl ? { pxl: String(z.pxl) } : {}) : null).filter(z => z && !kontaktLeer(z));   // pxl: zuletzt aus dieser Fassung der Personen-Excel ergänzt
     n.unterlagen = (Array.isArray(b.unterlagen) ? b.unterlagen : []).filter(isObj).map(u => Object.assign(UL('', 'fehlt'), u))
       .map(u => Object.assign(u, { id: gueltigeId(u.id, 'u'), name: String(u.name ?? ''), st: UL_STAENDE.includes(u.st) && (u.st !== 'nn' || (u.fest && u.name === 'Angebot')) ? u.st : 'fehlt' }));
     // ab 0.2 ist das Angebot eine Unterlage (vorher Teil der Freigabe); die drei festen Unterlagen gibt es immer

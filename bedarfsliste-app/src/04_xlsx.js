@@ -68,11 +68,14 @@ async function zipTextHead(z, name, max) {
 
 /* ---------- Excel-Arbeitsmappe lesen: alle Blätter als Zeilen (Arrays); verbundene Zellen tragen überall den Wert der ersten Zelle */
 const xattr = (s, n) => { const q = new RegExp('(?:^|\\s)' + n + '="([^"]*)"').exec(s); return q ? q[1] : null; };
+// Excel schreibt Steuerzeichen als _xHHHH_ (z. B. _x000D_ für einen Zeilenumbruch) – zurückwandeln; „_x005F_“ ist der Unterstrich selbst
+const xcodes = s => s.replace(/_x([0-9a-f]{4})_/gi, (m, c) => String.fromCharCode(parseInt(c, 16)));
 const xunesc = s => s.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&apos;/g, "'")
   .replace(/&#x([0-9a-f]+);/gi, (m, c) => String.fromCodePoint(parseInt(c, 16))).replace(/&#(\d+);/g, (m, c) => String.fromCodePoint(+c)).replace(/&amp;/g, '&');
 const colIdx = ref => { let c = 0; for (const ch of ref.replace(/\d+$/, '')) c = c * 26 + ch.charCodeAt(0) - 64; return c - 1; };
-const tTexts = s => [...s.replace(/<rPh\b[\s\S]*?<\/rPh>/g, '').matchAll(/<t\b[^>]*>([\s\S]*?)<\/t>/g)].map(x => xunesc(x[1])).join('');
-function sheetRows(xml, ss) {
+const tTexts = s => xcodes([...s.replace(/<rPh\b[\s\S]*?<\/rPh>/g, '').matchAll(/<t\b[^>]*?(?:\/>|>([\s\S]*?)<\/t>)/g)].map(x => xunesc(x[1] || '')).join(''));   // auch <t/>
+// links: { 'Zeile,Spalte': Adresse } aus HYPERLINK-Formeln (auch ohne gespeicherten Wert, z. B. von Copilot/Python geschrieben)
+function sheetRows(xml, ss, links = {}) {
   const rows = [], rowRe = /<row\b([^>]*?)(?:\/>|>([\s\S]*?)<\/row>)/g, cellRe = /<c\b([^>]*?)(?:\/>|>([\s\S]*?)<\/c>)/g;
   let m;
   while ((m = rowRe.exec(xml))) {
@@ -82,8 +85,11 @@ function sheetRows(xml, ss) {
       cellRe.lastIndex = 0;
       while ((c = cellRe.exec(m[2]))) {
         const ref = xattr(c[1], 'r'); if (ref) ci = colIdx(ref);
-        const t = xattr(c[1], 't'), inner = c[2] || '', v = (/<v>([\s\S]*?)<\/v>/.exec(inner) || [])[1];
-        cells[ci++] = t === 's' ? (ss[+v] ?? '') : t === 'inlineStr' ? tTexts(inner) : t === 'b' ? v === '1' : t === 'str' || t === 'e' ? (v != null ? xunesc(v) : '') : (v != null && v !== '' ? +v : '');
+        const t = xattr(c[1], 't'), inner = c[2] || '', v = (/<v>([\s\S]*?)<\/v>/.exec(inner) || [])[1], fo = (/<f\b[^>]*>([\s\S]*?)<\/f>/.exec(inner) || [])[1];
+        let w = t === 's' ? (ss[+v] ?? '') : t === 'inlineStr' ? tTexts(inner) : t === 'b' ? v === '1' : t === 'str' || t === 'e' ? (v != null ? xcodes(xunesc(v)) : '') : t === 'd' ? (v || '').slice(0, 10) : (v != null && v !== '' ? +v : '');
+        const hl = fo && /^\s*HYPERLINK\(\s*"([^"]+)"/i.exec(xunesc(fo));
+        if (hl) { links[ri + ',' + ci] = hl[1]; if (w === '' || w == null) w = hl[1]; }
+        cells[ci++] = w;
       }
     }
     rows[ri] = Array.from(cells, x => x ?? '');
@@ -96,27 +102,39 @@ function sheetRows(xml, ss) {
   }
   return Array.from(rows, r => r ? Array.from(r, x => x ?? '') : []);
 }
+// Blätter mit Namen, Zeilen, ausgeblendet ja/nein und Links (echte Hyperlinks und HYPERLINK-Formeln); date1904: ältere Mac-Dateien zählen Tage ab 1904
+const ohnePrefix = s => (s || '').replace(/<(\/?)x:/g, '<$1');               // Dateien aus .NET (OpenXML SDK) schreiben <x:row> statt <row>
 async function xlsxBook(buf, opts = {}) {
   const z = zipIndex(buf), max = opts.max || 4e6;
-  const wbx = await zipText(z, 'xl/workbook.xml') || '', rels = await zipText(z, 'xl/_rels/workbook.xml.rels') || '';
+  const wbx = ohnePrefix(await zipText(z, 'xl/workbook.xml')), rels = await zipText(z, 'xl/_rels/workbook.xml.rels') || '';
   const target = {};
   for (const m of rels.matchAll(/<Relationship\b([^>]*)\/?>/g)) target[xattr(m[1], 'Id')] = xattr(m[1], 'Target');
-  const ssx = await zipText(z, 'xl/sharedStrings.xml'), ss = ssx ? [...ssx.matchAll(/<si>([\s\S]*?)<\/si>/g)].map(x => tTexts(x[1])) : [];
+  const ssx = ohnePrefix(await zipText(z, 'xl/sharedStrings.xml')), ss = ssx ? [...ssx.matchAll(/<si>([\s\S]*?)<\/si>/g)].map(x => tTexts(x[1])) : [];
   const sheets = [];
   for (const m of wbx.matchAll(/<sheet\b([^>]*)\/?>/g)) {
-    const name = xunesc(xattr(m[1], 'name') || ''), t = target[xattr(m[1], 'r:id')];
+    const name = xunesc(xattr(m[1], 'name') || ''), t = target[xattr(m[1], 'r:id')], hidden = /hidden/i.test(xattr(m[1], 'state') || '');
     if (!t) continue;
     const path = t.startsWith('/') ? t.slice(1) : 'xl/' + t.replace(/^\.\//, '');
     const got = await zipTextHead(z, path, max); if (!got) continue;
-    sheets.push({ name, rows: sheetRows(got.text, ss), cut: got.cut });
+    const xml = ohnePrefix(got.text), links = {};
+    // echte Hyperlinks: <hyperlink ref="P16" r:id="rId1"/> → Adresse in den Beziehungen des Blatts
+    const hls = [...xml.matchAll(/<hyperlink\b([^>]*)\/?>/g)];
+    if (hls.length) {
+      const sr = await zipText(z, path.replace(/([^/]+)$/, '_rels/$1.rels')) || '', ziel = {};
+      for (const r of sr.matchAll(/<Relationship\b([^>]*)\/?>/g)) ziel[xattr(r[1], 'Id')] = xunesc(xattr(r[1], 'Target') || '');
+      for (const [, a] of hls) { const ref = xattr(a, 'ref'), id = xattr(a, 'r:id'); if (ref && id && ziel[id]) { const c0 = ref.split(':')[0], rr = +c0.replace(/^[A-Z]+/, '') - 1; links[rr + ',' + colIdx(c0)] = ziel[id]; } }
+    }
+    sheets.push({ name, hidden, rows: sheetRows(xml, ss, links), links, cut: got.cut });
   }
-  return { sheets };
+  return { sheets, date1904: /date1904="(1|true)"/i.test(wbx) };
 }
+// Text einer Zelle mit ihrem Link (Anzeigetext wie „Website“ → die Adresse dahinter)
+const zelleMitLink = (sh, r, c) => { const l = sh.links && sh.links[r + ',' + c], v = cellStr((sh.rows[r] || [])[c]); return l && !/^https?:\/\//i.test(v) ? l : v; };
 
 /* ---------- Excel schreiben
    Zelle: Wert oder { v, t: 'd' (Datum JJJJ-MM-TT), st: { b, i, sz, color, fill, h, v, wrap, border } }
    Blatt: { name, cols: [Breiten], rows: [[Zellen]], merges: ['A1:H1'], heights: { Zeile: pt }, freeze: 'A12', lists: [{ ref: 'B12:B300', items: [...] }] } */
-const xesc = s => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+const xesc = s => String(s).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/g, '').replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(^|[^\uD800-\uDBFF])[\uDC00-\uDFFF]/g, '$1').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 const colName = i => { let s = ''; i++; while (i) { const r = (i - 1) % 26; s = String.fromCharCode(65 + r) + s; i = Math.floor((i - 1) / 26); } return s; };
 const argb = hex => 'FF' + String(hex).replace('#', '').toUpperCase().padStart(6, '0');
 function xlsxBlob(sheets) {
@@ -145,7 +163,7 @@ function xlsxBlob(sheets) {
     const k = JSON.stringify([st.b, st.i, st.sz, st.color, st.fill, st.h, st.v, st.wrap, st.border, t || '']);
     if (!idx.xf.has(k)) {
       const al = st.h || st.v || st.wrap ? '<alignment' + (st.h ? ' horizontal="' + st.h + '"' : '') + (st.v ? ' vertical="' + st.v + '"' : '') + (st.wrap ? ' wrapText="1"' : '') + '/>' : '';
-      const nf = t === 'd' ? 164 : t === 'n' ? 3 : 0;
+      const nf = t === 'd' ? 164 : t === 'n' ? 3 : t === 'txt' ? 49 : 0;       // 49: Text (Telefonnummern behalten die führende 0)
       idx.xf.set(k, xfs.length);
       xfs.push('<xf numFmtId="' + nf + '" fontId="' + fontId(st) + '" fillId="' + fillId(st.fill) + '" borderId="' + borderId(st.border) + '" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1" applyBorder="1"' + (al ? ' applyAlignment="1">' + al + '</xf>' : '/>'));
     }
@@ -159,8 +177,8 @@ function xlsxBlob(sheets) {
     const s = xfId(o.st, empty ? (o.t || null) : o.t || (typeof o.v === 'number' ? 'n' : null));
     if (empty) return o.st ? '<c r="' + ref + '" s="' + s + '"/>' : '';
     if (o.t === 'd') return validIso(o.v) ? '<c r="' + ref + '" s="' + s + '"><v>' + (Date.parse(o.v + 'T00:00:00Z') / 864e5 + 25569) + '</v></c>' : '';
-    if (typeof o.v === 'number') return '<c r="' + ref + '" s="' + s + '"><v>' + o.v + '</v></c>';
-    return '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + xesc(o.v) + '</t></is></c>';
+    if (typeof o.v === 'number') return isFinite(o.v) ? '<c r="' + ref + '" s="' + s + '"><v>' + o.v + '</v></c>' : '';
+    return '<c r="' + ref + '" s="' + s + '" t="inlineStr"><is><t xml:space="preserve">' + xesc(String(o.v).slice(0, 32767)) + '</t></is></c>';   // Excel: höchstens 32.767 Zeichen je Zelle
   };
   const refRC = ref => { const m = ref.match(/^([A-Z]+)(\d+)$/); return [colIdx(m[1]), +m[2] - 1]; };
   const sheetXml = sh => {
@@ -199,7 +217,7 @@ function xlsxBlob(sheets) {
     { name: '_rels/.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
       '<Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
     { name: 'xl/workbook.xml', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
-      sheets.map((s, i) => '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>').join('') + '</sheets></workbook>' },
+      sheets.map((s, i) => '<sheet name="' + xesc(s.name) + '" sheetId="' + (i + 1) + '"' + (s.hidden ? ' state="hidden"' : '') + ' r:id="rId' + (i + 1) + '"/>').join('') + '</sheets></workbook>' },
     { name: 'xl/_rels/workbook.xml.rels', data: '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
       sheets.map((s, i) => '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>').join('') +
       '<Relationship Id="rId' + (sheets.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },

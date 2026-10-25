@@ -5,7 +5,12 @@
 
 const KR = { list: [], byKey: new Map(), name: '', stamp: null, at: null, err: null, cut: false, busy: false, cands: [] };
 const KARTEI_RE = /(bank|banken|stiftung|kartei|f(ö|oe)rderer)/i;
-const kkey = s => norm(s).replace(/[„“"'’]/g, '');
+// Schlüssel für Namen: „e.V.“ = „e. V.“, Striche und Leerzeichen um sie gleich, weiche Trennzeichen und Anführungszeichen weg, Titel (Dr., Prof.) weg
+const kkey = s => norm(String(s ?? '').normalize('NFC').replace(/\u00ad/g, '').replace(/[‐‑‒–—]/g, '-'))
+  .replace(/[„“"'’‚‘]/g, '').replace(/\b(dr|prof)\.\s*/g, '').replace(/\be\.\s*v\.?(?=\s|$)/g, 'ev').replace(/\s*-\s*/g, '-').replace(/\s+/g, ' ').trim();
+// Summen-, Hinweis- und Standzeilen unter einer Tabelle sind keine Einträge
+const KEINE_ZEILE = /^(summe|zwischensumme|gesamt|gesamtsumme|insgesamt|total|hinweis|hinweise|anmerkung|anmerkungen|stand\b|quelle|quellen|fazit|ergebnis|legende)\b/i;
+const istEintrag = name => !!name && name.length <= 150 && !KEINE_ZEILE.test(name);
 const kartei = name => KR.byKey.get(kkey(name)) || null;
 const truthy = v => v === true || v === 1 || /^(x|ja|wahr|true|1|✓)$/i.test(String(v ?? '').trim());
 const cellStr = v => v === true ? 'ja' : v === false ? '' : String(v ?? '').trim();
@@ -22,7 +27,9 @@ async function karteiScan(force) {
     for await (const [n, e] of ST.htmlDir.entries()) if (e.kind === 'file' && /\.xlsx$/i.test(n) && !/^~\$/.test(n)) cands.push([n, e]);
     KR.cands = cands.map(c => c[0]).sort((a, b) => a.localeCompare(b, 'de'));
     const want = D.settings.kartei;
-    let hit = want ? cands.find(([n]) => n === want) : cands.find(([n]) => KARTEI_RE.test(n) && !/vorlage|f(ö|oe)rderplan|recherche/i.test(n));
+    // Konfliktkopien von OneDrive („…-LAPTOP.xlsx“, „… (1).xlsx“) nicht dem Original vorziehen
+    const stem = n => n.replace(/\.xlsx$/i, ''), kopie = n => cands.some(([m]) => m !== n && (stem(n).startsWith(stem(m) + '-') || stem(n).startsWith(stem(m) + ' (')));
+    let hit = want ? cands.find(([n]) => n === want) : cands.filter(([n]) => KARTEI_RE.test(n) && !/vorlage|f(ö|oe)rderplan|recherche/i.test(n)).sort(([a], [c]) => kopie(a) - kopie(c))[0];
     if (!hit) {
       const err = want ? '„' + want + '“ liegt nicht mehr im Ordner' : null;
       if (KR.list.length || KR.err !== err) { karteiSet([]); KR.name = ''; KR.stamp = null; KR.err = err; safeRender(); }
@@ -31,8 +38,10 @@ async function karteiScan(force) {
     const f = await hit[1].getFile();
     if (!force && KR.name === hit[0] && KR.stamp === f.lastModified && !KR.err) return;
     const book = await xlsxBook(await f.arrayBuffer(), { max: 4e6 });
-    karteiSet(parseKartei(book));
-    KR.name = hit[0]; KR.stamp = f.lastModified; KR.at = new Date(); KR.err = null; KR.cut = book.sheets.some(s => s.cut);
+    const L = parseKartei(book);
+    karteiSet(L);
+    KR.name = hit[0]; KR.stamp = f.lastModified; KR.at = new Date(); KR.cut = book.sheets.some(s => s.cut);
+    KR.err = L.length ? null : 'in „' + hit[0] + '“ keine Tabelle mit einer Spalte „Gliederung“ gefunden';   // statt still 0 Förderer
     safeRender();
   } catch (e) {
     console.warn(e);
@@ -43,9 +52,11 @@ async function karteiScan(force) {
 function parseKartei(book) {
   const out = new Map();
   for (const sh of book.sheets) {
-    const rows = sh.rows, hi = rows.findIndex(r => r.some(v => norm(v) === 'gliederung'));
+    if (sh.hidden) continue;                                                       // ausgeblendete Blätter (z. B. ein altes Archiv) nicht mitlesen
+    const istGl = v => /^gliederung/.test(norm(v));                                // auch „Gliederungen“, „Gliederung(en)“
+    const rows = sh.rows, hi = rows.findIndex(r => r.some(istGl));
     if (hi < 0) continue;
-    const head = rows[hi].map(norm), gi = head.indexOf('gliederung');
+    const head = rows[hi].map(norm), gi = head.findIndex(istGl);
     let ni = -1, best = 0;
     for (let c = 0; c < gi; c++) {
       const s = new Set(); for (let r = hi + 1; r < rows.length; r++) { const v = rows[r][c]; if (typeof v === 'string' && v.trim()) s.add(v.trim()); }
@@ -69,7 +80,8 @@ function parseKartei(book) {
     });
     let cur = null;
     for (let r = hi + 1; r < rows.length; r++) {
-      const row = rows[r], name = cellStr(row[ni]), gl = cellStr(row[gi]);
+      const row = rows[r], name = ohnePlatzhalter(cellStr(row[ni])), gl = ohnePlatzhalter(cellStr(row[gi]));
+      if (name && !istEintrag(name)) { cur = null; continue; }                    // Summen-, Hinweis- oder Standzeile
       if (name) {
         const k = kkey(name);
         cur = out.get(k) || { name, blatt: sh.name, gl: [], kontakte: [], hist: {}, weg: [], notiz: '', schwer: '', web: '' };
@@ -80,12 +92,12 @@ function parseKartei(book) {
       if (col.direkt != null && truthy(row[col.direkt]) && !cur.weg.includes('direkt')) cur.weg.push('direkt');
       if (col.perMail != null && truthy(row[col.perMail]) && !cur.weg.includes('per Mail')) cur.weg.push('per Mail');
       if (col.portal != null && truthy(row[col.portal]) && !cur.weg.includes('Portal')) cur.weg.push('Portal');
-      for (const [f, c] of [['notiz', col.notiz], ['schwer', col.schwer], ['web', col.web]]) if (c != null && !cur[f]) cur[f] = cellStr(row[c]);
+      for (const [f, c] of [['notiz', col.notiz], ['schwer', col.schwer]]) if (c != null && !cur[f]) cur[f] = ohnePlatzhalter(cellStr(row[c]));
+      if (col.web != null && !cur.web) cur.web = ohnePlatzhalter(zelleMitLink(sh, r, col.web));
       for (const kc of kontakte) {
-        const n = cellStr(row[kc.n]); if (!n || /^[-–]$/.test(n)) continue;
+        const n = ohnePlatzhalter(cellStr(row[kc.n])); if (!n) continue;
         if (cur.kontakte.some(x => x.n === n)) continue;
-        const m = kc.m != null ? cellStr(row[kc.m]) : '', t = kc.t != null ? cellStr(row[kc.t]) : '';
-        cur.kontakte.push({ n, m: /@/.test(m) ? m : '', t, nicht: /nicht/i.test(kc.hint) });
+        cur.kontakte.push({ n, m: kc.m != null ? mailText(row[kc.m]) : '', t: kc.t != null ? telText(row[kc.t]) : '', nicht: /nicht/i.test(kc.hint) });
       }
       for (const [y, c] of col.years) {
         const v = cellStr(row[c]); if (!v) continue;

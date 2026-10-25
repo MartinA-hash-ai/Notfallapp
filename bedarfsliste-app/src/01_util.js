@@ -16,6 +16,12 @@ function rel(d) {
   if (n < 0) return 'seit ' + (-n) + ' Tagen überfällig';
   return n > 60 ? 'in ' + Math.round(n / 30.4) + ' Monaten' : 'in ' + n + ' Tagen';
 }
+// Platzhalter, wie Copilot sie gern einträgt, gelten als leer („nicht gefunden“, „k. A.“, „–“ …)
+const LEER_RE = /^(nicht gefunden|nicht bekannt|nicht verfügbar|nicht ermittelbar|keine angabe|keine angaben|k\.?\s?a\.?|n\.?\s?a\.?|n\/a|unbekannt|tbd|\?+|[-–—]+)$/i;
+const ohnePlatzhalter = s => { const t = String(s ?? '').trim(); return LEER_RE.test(t) ? '' : t; };
+// Telefonnummer aus Excel: als Zahl gespeichert verliert sie die führende 0 (5251123456 → 05251123456)
+const telText = v => { if (typeof v === 'number') { const s = String(Math.round(v)); return /^[1-9]\d{6,12}$/.test(s) ? '0' + s : s; } const t = ohnePlatzhalter(v); return /\d/.test(t) ? t : ''; };
+const mailText = v => { const t = ohnePlatzhalter(v); return /@/.test(t) ? t : ''; };
 // Datum aus Excel oder Text: Excel-Zahl, „TT.MM.JJJJ“, „TT.MM.JJ“ oder „JJJJ-MM-TT“ → „JJJJ-MM-TT“ (sonst '')
 function anyDate(v) {
   if (typeof v === 'number') return v > 20000 && v < 80000 ? new Date(Math.round((v - 25569) * 864e5)).toISOString().slice(0, 10) : '';

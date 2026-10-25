@@ -11,7 +11,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   let r = await p.evaluate(async () => { const g = await readFoerderplan(await vorlageBlob(cur()).arrayBuffer()); const i = g.items[0]; return [g.items.length, i.name, i.frist, i.betrag, i.einsch, i.warum, g.kennung === cur().id, g.sheet]; });
   ok(r.join('|') === '1|Stiftung A|2027-01-15|5000|w|passt|true|Förderplan', 'Vorlage je Bedarf: Förderplan und Kennung lassen sich zurücklesen: ' + r.join('|'));
   r = await p.evaluate(async () => { const bk = await xlsxBook(await vorlageBlob(cur()).arrayBuffer()), rows = bk.sheets[0].rows, val = k => (rows.find(x => x[0] === k) || [])[1];
-    return [bk.sheets.map(x => x.name).join('+'), val('Summe (€)'), val('Noch offen (€)'), val('Stichwort oder Fördertopf') ?? '', rows.findIndex(x => x[0] === 'Förderer') + 1, rows[FP_HEAD_ROW - 1][1], rows[FP_HEAD_ROW][1],
+    return [bk.sheets.filter(x => !x.hidden).map(x => x.name).join('+'), val('Summe (€)'), val('Noch offen (€)'), val('Stichwort oder Fördertopf') ?? '', rows.findIndex(x => x[0] === 'Förderer') + 1, rows[FP_HEAD_ROW - 1][1], rows[FP_HEAD_ROW][1],
       bk.sheets[1].rows.map(x => x[0]).join(' ').includes('5 bis 8 Förderer')]; });
   ok(r.join('|') === 'Förderplan+Anleitung|20000|20000||15|Stand in der Bedarfsliste|geplant|true', 'Excel beschreibt den Bedarf mit Finanzierung, Förderer mit Stand, Anleitung mit Umfang: ' + r.join('|'));
   ok(await p.evaluate(() => { const f = ff({ name: 'X' }); applyResearch(f, { stand: 'zugesagt', warum: 'w' }, 'all'); return f.stand === undefined && f.warum === 'w'; }), 'Spalte „Stand“ wird nicht eingelesen');

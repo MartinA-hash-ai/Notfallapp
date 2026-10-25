@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.37.0",
+    "date": "2026-10-25T16:00",
+    "items": [
+      "Förderplan aus Copilot: die Spalte „Förderer“ wird auch mit anderer Überschrift oder an anderer Stelle gefunden, ein neues Blatt mit Ergebnissen kommt dazu; das Blatt „Anleitung“ wird nie als Förderplan gelesen",
+      "Summen-, Hinweis- und Standzeilen („Summe“, „Hinweis: …“, „Stand: …“) werden in Förderplan, Kartei und Personen-Excel nicht mehr als Einträge übernommen",
+      "Telefonnummern: die Vorlagen formatieren die Telefonspalten als Text; als Zahl gespeicherte Nummern bekommen ihre führende 0 zurück",
+      "Überschriften-Varianten („Gliederungen“, „Vorname“ + „Name“, „Name, Vorname“) werden erkannt; ohne passende Spalten gibt es eine Meldung statt 0 Einträgen",
+      "Platzhalter von Copilot („nicht gefunden“, „k. A.“, „–“) gelten als leer; E-Mail braucht ein @, Telefon Ziffern",
+      "Personen-Excel ergänzt jeden Zuständigen nur einmal je Fassung der Datei – in der Liste Gelöschtes kommt nicht zurück, erst eine geänderte Excel füllt wieder auf",
+      "Namensabgleich toleranter: „e.V.“ = „e. V.“, Bindestriche, „Dr.“, weiche Trennzeichen und Anführungszeichen machen keine Dubletten mehr",
+      "Förderplan-Übernahme „überschreiben“ übernimmt nur, was in der Excel geändert wurde (ausgeblendetes Blatt „_Stand“); zugesagte und abgelehnte Förderer bleiben unangetastet",
+      "Seltene Excel-Eigenheiten: Zeilenumbruch-Codes (_x000D_), ausgeblendete Blätter, Hyperlinks und HYPERLINK-Formeln, ISO- und 1904-Datum, Dateien aus .NET; beim Schreiben ungültige Zeichen und überlange Zellen; Kartei: Original vor OneDrive-Konfliktkopie"
+    ]
+  },
+  {
     "version": "0.36.0",
     "date": "2026-10-25T13:00",
     "items": [

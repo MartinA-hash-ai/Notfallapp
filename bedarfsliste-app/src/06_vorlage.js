@@ -25,6 +25,11 @@ const FP_COLS = [
   { k: 'notiz', t: 'Notizen', w: 30, wrap: true, help: 'Alles Weitere.' },
 ];
 const fpHeadKey = t => norm(t).replace(/[^a-zäöüß0-9]/g, '');
+// ausgeblendetes Blatt mit dem Stand beim Anlegen der Excel: beim Übernehmen („überschreiben“) gilt nur, was in der Excel geändert wurde
+const FP_STAND = '_Stand';
+const fpWerte = f => ({ art: f.art, weg: f.weg, kontakt: f.kontakte.map(kontaktText).join('\n'), mail: (f.kontakte[0] || {}).mail || '', tel: (f.kontakte[0] || {}).tel || '', web: f.web,
+  frist: f.frist, fristInfo: f.fristInfo, betrag: f.betrag != null && f.betrag !== '' ? +f.betrag : null, hoehe: f.hoehe, eigenInfo: f.eigenInfo, warum: f.warum, knackpunkte: f.knackpunkte,
+  einsch: f.einsch, quellen: f.quellen, notiz: f.notiz });
 
 /* ---------- Auftrag an die Recherche: dieselben Sätze stehen im Blatt „Anleitung“ und im Prompt für Copilot */
 const rechGl = b => b && b.gliederung && !istDio(b.gliederung) ? b.gliederung : '';
@@ -80,7 +85,7 @@ function vorlageBlob(b) {
     else if (k !== 'Kennung') merges.push('B' + (r + 1) + ':D' + (r + 1));
   });
   rows[FP_HEAD_ROW - 1] = FP_COLS.map(c => ({ v: c.t, st: head }));
-  const cell = (c, v) => ({ v: v ?? '', t: c.date ? 'd' : c.num ? 'n' : undefined, st: { border: 'thin', v: 'top', wrap: !!c.wrap } });
+  const cell = (c, v) => ({ v: v ?? '', t: c.date ? 'd' : c.num ? 'n' : c.k === 'tel' ? 'txt' : undefined, st: { border: 'thin', v: 'top', wrap: !!c.wrap } });
   (b ? b.foerderer.filter(f => f.name.trim()) : []).forEach((f, i) => {
     rows[FP_HEAD_ROW + i] = FP_COLS.map(c => {
       let v = f[c.k];
@@ -111,8 +116,9 @@ function vorlageBlob(b) {
   // verbundene Zellen wachsen in Excel nicht mit: lange Absätze bekommen die Höhe für ihre Zeilenzahl (etwa 125 Zeichen je Zeile)
   const amerge = []; A.forEach((r, i) => { if (r.length !== 1) return; amerge.push('A' + (i + 1) + ':B' + (i + 1)); const n = String(r[0].v || '').length; if (n > 125 && ah[i] == null) ah[i] = Math.ceil(n / 125) * 15 + 4; });
   const anl = { name: 'Anleitung', cols: [30, 110], rows: A, merges: amerge, heights: ah, grid: false };
+  const stand = { name: FP_STAND, hidden: true, cols: [30, 100], rows: (b ? b.foerderer.filter(f => f.name.trim()) : []).map(f => [kkeyFp(f.name), JSON.stringify(fpWerte(f)).slice(0, 32000)]) };
   const KL = karteiFuer(b);
-  if (!KL.length) return xlsxBlob([plan, anl]);
+  if (!KL.length) return xlsxBlob(stand.rows.length ? [plan, anl, stand] : [plan, anl]);
   const kh = ['Förderer', 'Bereich', 'Zuständig für', 'Antragsweg', 'Förderschwerpunkte', 'Website', 'Förderhistorie'], kc = { border: 'thin', v: 'top', wrap: true };
   const K = [[{ v: 'Förder-Kartei' + (rechGl(b) ? ': zuständig für ' + rechGl(b) + ' oder für alle' : ''), st: { b: true, sz: 15 } }],
     [{ v: 'Auszug aus der Förder-Kartei, ohne Kontaktdaten und Notizen. Diese Förderer zuerst prüfen; die Förderhistorie zeigt, was sie uns schon gegeben haben. Nur lesen, nichts ändern.', st: note }], [],
@@ -120,8 +126,9 @@ function vorlageBlob(b) {
     ...KL.map(k => [k.name, k.blatt, k.gl.join(', '), k.weg.join(', '), k.schwer, k.web, Object.entries(k.hist).sort((x, y) => y[0].localeCompare(x[0])).map(([y, v]) => y + ': ' + v).join('\n')]
       .map(v => ({ v: v || '', st: kc })))];
   const kart = { name: 'Förder-Kartei', cols: [32, 14, 22, 16, 36, 30, 44], rows: K, merges: ['A1:G1', 'A2:G2'], heights: { 0: 24, 1: 32, 3: 24 }, freeze: 'B5', grid: false };
-  return xlsxBlob([plan, anl, kart]);
+  return xlsxBlob(stand.rows.length ? [plan, anl, kart, stand] : [plan, anl, kart]);
 }
+const kkeyFp = n => typeof kkey === 'function' ? kkey(n) : norm(n);             // (in tools/vorlage.js ohne Kartei)
 // Dateiname ohne Umlaute und Sonderzeichen (manche Browser verwerfen sonst den Namen beim Herunterladen)
 const asciiName = t => String(t).replace(/[äÄöÖüÜß]/g, c => ({ ä: 'ae', Ä: 'Ae', ö: 'oe', Ö: 'Oe', ü: 'ue', Ü: 'Ue', ß: 'ss' }[c])).normalize('NFD').replace(/[^\w.\- ]+/g, ' ').trim().replace(/\s+/g, '_');
 // gekürzt auf n Zeichen an Wortgrenzen, ohne Füllwörter am Ende („…_fuer_den“)
@@ -235,33 +242,48 @@ async function rechDialog(b) {
   await modal('Förderrecherche mit Copilot', body, [['Schließen', null]], { wide: true, expose: c => { close = c; } });
 }
 
-/* ---------- Förderplan aus einer Excel lesen */
+/* ---------- Förderplan aus einer Excel lesen: jedes sichtbare Blatt außer „Anleitung“ und „Förder-Kartei“ mit einer Kopfzeile, in der eine Spalte
+   „Förderer…“ heißt (an beliebiger Stelle, auch „Förderer (Name)“) und weitere Spalten der Vorlage stehen. Schreibt Copilot in ein neues Blatt,
+   kommen dessen Förderer dazu. Summen-, Hinweis- und Standzeilen sowie Platzhalter („nicht gefunden“) werden übergangen. */
 async function readFoerderplan(buf) {
-  const book = await xlsxBook(buf);
-  for (const sh of [...book.sheets].sort((a, c) => (c.name === FP_SHEET) - (a.name === FP_SHEET))) {
-    const hi = sh.rows.findIndex(r => fpHeadKey(r[0]) === 'förderer');
+  const book = await xlsxBook(buf), heads = c => [c.t, ...(c.alias || [])].map(fpHeadKey);
+  const spalte = t => { const k = fpHeadKey(t); if (!k) return null; if (k.startsWith('förderer')) return FP_COLS[0]; return FP_COLS.find(c => heads(c).includes(k)) || FP_COLS.find(c => c.k !== 'name' && heads(c).some(x => k.startsWith(x.slice(0, 8)))) || null; };
+  const stand = new Map(), sst = book.sheets.find(s => s.name === FP_STAND);
+  if (sst) for (const r of sst.rows) { try { if (r[0]) stand.set(String(r[0]), JSON.parse(String(r[1]))); } catch (e) { /* Zeile unbrauchbar */ } }
+  const blaetter = book.sheets.filter(s => !s.hidden && s.name !== FP_STAND && !/^(anleitung|förder-?kartei)$/i.test(s.name.trim())).sort((a, c) => (c.name === FP_SHEET) - (a.name === FP_SHEET));
+  let kennung = '', sheet = '', gefunden = false;
+  const items = [], byKey = new Map();
+  for (const sh of blaetter) {
+    if (!kennung) { const kz = sh.rows.find(r => norm(r[0]) === 'kennung'); if (kz) kennung = cellStr(kz[1]); }
+    let hi = -1, map = null;
+    for (let r = 0; r < Math.min(sh.rows.length, 60) && hi < 0; r++) {
+      const m = {}; (sh.rows[r] || []).forEach((t, i) => { const c = spalte(t); if (c && m[c.k] == null) m[c.k] = i; });
+      if (m.name != null && Object.keys(m).length >= 3) { hi = r; map = m; }
+    }
     if (hi < 0) continue;
-    const map = {};
-    const heads = c => [c.t, ...(c.alias || [])].map(fpHeadKey);
-    sh.rows[hi].forEach((t, i) => { const k = fpHeadKey(t); const c = FP_COLS.find(c => heads(c).includes(k)) || FP_COLS.find(c => k && heads(c).some(x => k.startsWith(x.slice(0, 8)))); if (c && map[c.k] == null) map[c.k] = i; });
-    const kenn = sh.rows.find(r => norm(r[0]) === 'kennung');
-    const items = [];
-    for (const r of sh.rows.slice(hi + 1)) {
-      const name = cellStr(r[map.name]); if (!name) continue;
+    if (!gefunden) sheet = sh.name;
+    gefunden = true;
+    for (let ri = hi + 1; ri < sh.rows.length; ri++) {
+      const r = sh.rows[ri], name = ohnePlatzhalter(cellStr(r[map.name]));
+      if (!istEintrag(name) || fpHeadKey(name).startsWith('förderer')) continue;
       const it = { name };
       for (const c of FP_COLS) {
         if (c.k === 'name' || map[c.k] == null) continue;
         const v = r[map[c.k]];
-        if (c.date) it[c.k] = anyDate(v);
+        if (c.date) it[c.k] = anyDate(book.date1904 && typeof v === 'number' ? v + 1462 : v);
         else if (c.num) { const n = deNum(v); it[c.k] = typeof n === 'number' ? n : null; }
         else if (c.k === 'einsch') it[c.k] = einschKey(v);
-        else it[c.k] = cellStr(v);
+        else if (c.k === 'mail') it[c.k] = mailText(v);
+        else if (c.k === 'tel') it[c.k] = telText(v);
+        else if (c.k === 'web' || c.k === 'quellen') it[c.k] = ohnePlatzhalter(zelleMitLink(sh, ri, map[c.k]));
+        else it[c.k] = ohnePlatzhalter(cellStr(v));
       }
-      items.push(it);
+      const k = kkey(name), da = byKey.get(k);
+      if (da) { for (const [x, v] of Object.entries(it)) if ((da[x] == null || da[x] === '') && v != null && v !== '') da[x] = v; }   // doppelt (z. B. in zwei Blättern): ergänzen
+      else { byKey.set(k, it); items.push(it); }
     }
-    return { items, kennung: kenn ? cellStr(kenn[1]) : '', sheet: sh.name };
   }
-  return null;
+  return gefunden ? { items, kennung, sheet, stand } : null;
 }
 // Einschätzung aus freiem Text (auch ältere Wörter wie „eher nicht“ oder „klappt“)
 function einschKey(v) {
@@ -274,25 +296,27 @@ function einschKey(v) {
   if (/wahrscheinlich|klappt|gut|hoch/.test(s)) return 'w';
   return '';
 }
-// Felder eines Förderers aus der Recherche übernehmen: 'fill' = nur leere Felder füllen, 'all' = überschreiben
-function applyResearch(f, it, mode) {
+// Felder eines Förderers aus der Recherche übernehmen: 'fill' = nur leere Felder füllen, 'all' = überschreiben – aber nur, was in der Excel
+// gegenüber ihrem Stand beim Anlegen (alt) geändert wurde; was du seitdem in der Liste geändert hast, bleibt. Ohne diesen Stand: alles überschreiben
+function applyResearch(f, it, mode, alt) {
+  const geaendert = k => !alt || norm(String(it[k] ?? '')) !== norm(String(alt[k] ?? ''));
   for (const c of FP_COLS) {
     if (c.k === 'name' || c.info || c.k === 'kontakt' || c.k === 'mail' || c.k === 'tel') continue;
     let v = it[c.k]; if (v == null || v === '') continue;
     if (c.k === 'quellen') v = quellenZeilen(v).join('\n');
     const empty = f[c.k] == null || f[c.k] === '';
-    if (mode === 'all' || empty) f[c.k] = v;
+    if (empty || (mode === 'all' && geaendert(c.k))) f[c.k] = v;
   }
   // Kontakte: Zeilen „Name; Funktion; E-Mail; Telefon“; allgemeine E-Mail und Telefon gelten für die erste Person
   const k = kontakteAusText(it.kontakt);
   if (it.mail || it.tel) { if (!k.length) k.push(leerK()); k[0].mail = k[0].mail || it.mail || ''; k[0].tel = k[0].tel || it.tel || ''; }
-  if (k.length && (mode === 'all' || !f.kontakte.length)) f.kontakte = k;
+  if (k.length && (!f.kontakte.length || (mode === 'all' && ['kontakt', 'mail', 'tel'].some(geaendert)))) f.kontakte = k;
 }
 async function importFoerderplan(b, file) {
   file = file || await pickFile('.xlsx'); if (!file) return;
   let got = null;
   try { got = await readFoerderplan(await file.arrayBuffer()); } catch (e) { console.warn(e); }
-  if (!got) { modal('Kein Förderplan gefunden', h('p', null, 'In „' + file.name + '“ steht keine Tabelle mit der Überschrift „Förderer“ in Spalte A. Bitte die Förderplan-Vorlage der Bedarfsliste verwenden.')); return; }
+  if (!got) { modal('Kein Förderplan gefunden', h('p', null, 'In „' + file.name + '“ steht keine Tabelle mit einer Spalte „Förderer“ und weiteren Spalten der Vorlage (z. B. „Antragsfrist“, „Erwartete Summe“). Bitte die Förderplan-Vorlage der Bedarfsliste verwenden.')); return; }
   if (!got.items.length) { modal('Keine Förderer', h('p', null, 'In „' + file.name + '“ ist noch kein Förderer eingetragen.')); return; }
   const other = got.kennung && got.kennung !== b.id ? D.bedarfe.find(x => x.id === got.kennung) : null;
   const byName = n => b.foerderer.find(f => kkey(f.name) === kkey(n));
@@ -321,7 +345,7 @@ async function importFoerderplan(b, file) {
     h('p', null, got.items.length + (got.items.length === 1 ? ' Förderer' : ' Förderer') + ' in „' + file.name + '“. Neue Förderer kommen mit dem Stand „geplant“ in den Förderplan.'),
     h('div', { class: 'tablewrap' }, tbl), sumEl,
     dup ? h('div', { class: 'radios' }, h('p', { class: 'small' }, h('b', null, 'Förderer, die schon im Förderplan stehen:')),
-      ...[['fill', 'nur leere Felder ergänzen'], ['all', 'Angaben aus der Excel übernehmen (überschreibt)'], ['skip', 'nicht anfassen']].map(([v, l]) =>
+      ...[['fill', 'nur leere Felder ergänzen'], ['all', 'in der Excel Geändertes übernehmen (überschreibt – zugesagte und abgelehnte Förderer bleiben, wie sie sind)'], ['skip', 'nicht anfassen']].map(([v, l]) =>
         h('label', { class: 'check' }, h('input', { type: 'radio', name: 'impmode', value: v, checked: v === mode, onchange: () => { mode = v; } }), l))) : null);
   if (!await modal('Vorschläge aus der Recherche', body, [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
   const before = JSON.stringify(D);
@@ -329,7 +353,7 @@ async function importFoerderplan(b, file) {
   got.items.forEach((it, i) => {
     if (!sel[i]) return;
     const f = byName(it.name);
-    if (f) { if (mode !== 'skip') { applyResearch(f, it, mode); erg++; } }
+    if (f) { if (mode !== 'skip') { applyResearch(f, it, mode === 'all' && ['zugesagt', 'abgelehnt'].includes(f.status) ? 'fill' : mode, got.stand.get(kkey(f.name))); erg++; } }
     else { const n = ff({ name: it.name }); applyResearch(n, it, 'all'); b.foerderer.push(n); neu++; }
   });
   if (!neu && !erg) return;

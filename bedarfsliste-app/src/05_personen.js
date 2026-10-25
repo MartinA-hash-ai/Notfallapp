@@ -6,7 +6,7 @@
 const PR = { list: [], byKey: new Map(), files: [], stamp: '', err: null, busy: false };
 const PERS_DATEI = 'Personen.xlsx', PERS_RE = /^personen\b[^/\\]*\.xlsx$/i;
 const PERS_COLS = [
-  { k: 'n', t: 'Name', w: 26, re: /^(vor- und zu)?name$/ },
+  { k: 'n', t: 'Name', w: 26, re: /^((vor- und (zu|nach))?name|name, vorname|vollständiger name|ansprechperson|person)$/ },
   { k: 'rolle', t: 'Position', w: 32, re: /position|funktion|rolle|aufgabe/ },
   { k: 'gl', t: 'Gliederung / Dienststelle', w: 26, re: /gliederung|dienststelle|einheit/ },
   { k: 'mail', t: 'E-Mail', w: 32, re: /mail/ },
@@ -17,19 +17,22 @@ const PERS_COLS = [
 ];
 const person = name => PR.byKey.get(kkey(name)) || null;
 
-// je Blatt die Kopfzeile mit „Name“ und „E-Mail“, „Telefon“ oder „Handy“; „Vorname“ und „Nachname“ in zwei Spalten gehen auch
+// je Blatt die Kopfzeile mit „Name“ und „E-Mail“, „Telefon“ oder „Handy“. Namen auch als „Vorname“ + „Name“/„Nachname“ in zwei Spalten
+// oder als „Mustermann, Max“. Platzhalter („nicht gefunden“, „k. A.“) gelten als leer, E-Mail braucht ein @, Telefon Ziffern (führende 0 bleibt)
 function parsePersonen(book) {
   const out = [];
   for (const sh of book.sheets) {
-    const rows = sh.rows, hi = rows.slice(0, 15).findIndex(r => r.some(v => /name/.test(norm(v))) && r.some(v => /mail|telefon|handy|mobil/.test(norm(v))));
+    if (sh.hidden) continue;
+    const rows = sh.rows, hi = rows.slice(0, 15).findIndex(r => r.some(v => /name|person/.test(norm(v))) && r.some(v => /mail|telefon|handy|mobil/.test(norm(v))));
     if (hi < 0) continue;
-    const head = rows[hi].map(v => norm(v)), ci = {};
-    for (const c of PERS_COLS) { const i = head.findIndex((t, j) => t && c.re.test(t) && !Object.values(ci).includes(j)); if (i >= 0) ci[c.k] = i; }
-    const vi = head.indexOf('vorname'), ni = head.indexOf('nachname');
+    const head = rows[hi].map(v => norm(v)), ci = {}, vi = head.indexOf('vorname');
+    for (const c of PERS_COLS) { const i = head.findIndex((t, j) => t && j !== vi && c.re.test(t) && !Object.values(ci).includes(j)); if (i >= 0) ci[c.k] = i; }
+    const nach = head.indexOf('nachname') >= 0 ? head.indexOf('nachname') : vi >= 0 ? ci.n : -1, umgedreht = head[ci.n] === 'name, vorname';
     for (const r of rows.slice(hi + 1)) {
-      const p = Object.fromEntries(PERS_COLS.map(c => [c.k, ci[c.k] != null ? cellStr(r[ci[c.k]]) : '']));
-      if (!p.n && vi >= 0 && ni >= 0) p.n = (cellStr(r[vi]) + ' ' + cellStr(r[ni])).trim();
-      if (p.n) out.push(p);
+      const p = Object.fromEntries(PERS_COLS.map(c => [c.k, ci[c.k] == null ? '' : c.k === 'mail' ? mailText(r[ci[c.k]]) : c.k === 'tel' || c.k === 'mobil' ? telText(r[ci[c.k]]) : ohnePlatzhalter(cellStr(r[ci[c.k]]))]));
+      if (vi >= 0 && nach != null && nach >= 0) p.n = (ohnePlatzhalter(cellStr(r[vi])) + ' ' + ohnePlatzhalter(cellStr(r[nach]))).trim();
+      const q = /^([^,]+),\s*([^,]+)$/.exec(p.n); if (q && (umgedreht || /^[^\s]+$/.test(q[1].trim()))) p.n = q[2].trim() + ' ' + q[1].trim();   // „Mustermann, Max“
+      if (istEintrag(p.n)) out.push(p);
     }
   }
   return out;
@@ -49,7 +52,10 @@ async function personenScan(force) {
     const stamp = fs.map(f => f.name + '@' + f.lastModified).join('|');
     if (!force && stamp === PR.stamp && !PR.err) return false;
     const L = []; let err = null;
-    for (const f of fs) { try { L.push(...parsePersonen(await xlsxBook(await f.arrayBuffer(), { max: 4e6 }))); } catch (e) { console.warn(e); err = '„' + f.name + '“ gerade nicht lesbar'; } }
+    for (const f of fs) {
+      try { const P = parsePersonen(await xlsxBook(await f.arrayBuffer(), { max: 4e6 })); if (!P.length) err = 'in „' + f.name + '“ keine Spalten „Name“ und „E-Mail“, „Telefon“ oder „Handy“ erkannt'; L.push(...P); }
+      catch (e) { console.warn(e); err = '„' + f.name + '“ gerade nicht lesbar'; }
+    }
     personenSetzen(L); PR.files = fs; PR.stamp = stamp; PR.err = err;
     const n = personenErgaenzen();
     if (n) toast('Aus der Personen-Excel ergänzt: Angaben bei ' + n + ' Zuständigen.', 'ok');
@@ -57,16 +63,18 @@ async function personenScan(force) {
     return true;
   } catch (e) { console.warn(e); PR.err = (e && e.message) || String(e); return false; } finally { PR.busy = false; }
 }
-// leere Position, E-Mail und Telefon der Zuständigen aus der Personen-Excel füllen (in allen Bedarfen); Anzahl der ergänzten Personen
+// leere Position, E-Mail und Telefon der Zuständigen aus der Personen-Excel füllen (in allen Bedarfen); Anzahl der ergänzten Personen.
+// Je Person nur einmal je Fassung der Excel (z.pxl): was du danach in der Liste löschst, bleibt gelöscht – erst eine geänderte Excel füllt wieder auf
 function personenErgaenzen() {
-  let n = 0;
+  let n = 0, mark = false;
   for (const b of D.bedarfe) for (const z of b.zust) {
-    const p = person(z.n); if (!p) continue;
+    const p = person(z.n); if (!p || z.pxl === PR.stamp) continue;
     let neu = false;
     for (const k of ZUST_F) if (!(z[k] || '').trim() && p[k]) { z[k] = p[k]; neu = true; }
+    z.pxl = PR.stamp; mark = true;
     if (neu) n++;
   }
-  if (n) changed();
+  if (mark) changed();
   return n;
 }
 // eine Excel von Copilot, die nicht als „Personen.xlsx“ im Ordner liegt: als Kopie in den Ordner legen (dann gilt sie auch künftig) und einlesen
@@ -80,7 +88,7 @@ async function personenDatei(file) {
     try { const fh = await ST.htmlDir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(file); await w.close(); await personenScan(true); toast('„' + name + '“ im Ordner abgelegt und eingelesen – ' + L.length + ' Personen.', 'ok'); return L.length; }
     catch (e) { console.warn(e); }
   }
-  personenSetzen([...PR.list, ...L]);                                     // ohne Ordner: nur für diese Sitzung
+  personenSetzen([...PR.list, ...L]); PR.stamp = (PR.stamp || '') + '|' + file.name + '@' + file.lastModified;   // ohne Ordner: nur für diese Sitzung
   const n = personenErgaenzen(); safeRender();
   toast(L.length + ' Personen eingelesen' + (n ? ', Angaben bei ' + n + ' Zuständigen ergänzt' : '') + '.', 'ok');
   return L.length;
@@ -101,8 +109,9 @@ function personenBlob() {
     if (!a.gl && b.gliederung) a.gl = istDio(b.gliederung) ? 'Diözese' : b.gliederung;
     bek.set(k, a);
   }
-  const rows = [PERS_COLS.map(c => ({ v: c.t, st: head })), ...[...bek.values()].sort((a, b) => a.n.localeCompare(b.n, 'de')).map(p => PERS_COLS.map(c => ({ v: p[c.k] || '', st: zelle })))];
-  for (let i = 0; i < 40; i++) rows.push(PERS_COLS.map(() => ({ v: '', st: zelle })));
+  const tx = c => c.k === 'tel' || c.k === 'mobil' ? 'txt' : undefined;          // Telefon als Text: Excel behält die führende 0
+  const rows = [PERS_COLS.map(c => ({ v: c.t, st: head })), ...[...bek.values()].sort((a, b) => a.n.localeCompare(b.n, 'de')).map(p => PERS_COLS.map(c => ({ v: p[c.k] || '', st: zelle, t: tx(c) })))];
+  for (let i = 0; i < 40; i++) rows.push(PERS_COLS.map(c => ({ v: '', st: zelle, t: tx(c) })));
   const anl = { name: 'Anleitung', cols: [120], rows: PERS_ANL.map((t, i) => [{ v: t, st: i ? { wrap: true, v: 'top' } : { b: true, sz: 15 } }]), heights: { 0: 24, 1: 34, 2: 48, 3: 48 }, grid: false };
   return xlsxBlob([{ name: 'Personen', cols: PERS_COLS.map(c => c.w), rows, heights: { 0: 22 }, freeze: 'B2', grid: false }, anl]);
 }
