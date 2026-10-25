@@ -98,7 +98,7 @@ function personenBlob() {
     if (!z.n.trim()) continue;
     const k = kkey(z.n), a = bek.get(k) || { n: z.n.trim() };
     for (const x of ZUST_F) if (!a[x] && (z[x] || '').trim()) a[x] = z[x].trim();
-    if (!a.gl && b.gliederung) a.gl = b.gliederung === DIO ? 'Diözese' : b.gliederung;
+    if (!a.gl && b.gliederung) a.gl = istDio(b.gliederung) ? 'Diözese' : b.gliederung;
     bek.set(k, a);
   }
   const rows = [PERS_COLS.map(c => ({ v: c.t, st: head })), ...[...bek.values()].sort((a, b) => a.n.localeCompare(b.n, 'de')).map(p => PERS_COLS.map(c => ({ v: p[c.k] || '', st: zelle })))];

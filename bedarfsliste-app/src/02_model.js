@@ -3,6 +3,7 @@
 let D = null;                  // alle Daten (wird mit der Programmdatei gespeichert)
 let SAVED_JSON = '';           // Stand der Datei (zum Erkennen ungespeicherter Änderungen)
 const DIO = 'Diözese';         // Bedarf ohne Gliederung: Ortsführungskreis entfällt
+const istDio = g => /^diözese(\s|$)/i.test(String(g || '').trim());   // auch „Diözese Paderborn“ oder mit Leerzeichen dahinter
 const isDirty = () => !!D && JSON.stringify(D) !== SAVED_JSON;
 
 const GL_LIST = ['Altenbeken', 'Arnsberg-Meschede', 'Bad Laasphe', 'Balve', 'Borchen', 'Brakel', 'Büren', 'Dortmund', 'Geseke', 'Gütersloh', 'Hagen', 'Herne',
@@ -86,7 +87,7 @@ function mergeSicher(a, b) {
 }
 const zahlOderLeer = v => { if (v == null || v === '') return null; const x = typeof v === 'number' ? v : deNum(v); return typeof x === 'number' && isFinite(x) ? x : null; };
 const gueltigeId = (v, p) => /^[\w.-]{1,80}$/.test(String(v ?? '')) ? String(v) : uid(p);
-const FOE_STAENDE = ['geplant', 'beantragt', 'zugesagt', 'abgelehnt'], FR_STAENDE = ['offen', 'angefragt', 'ok', 'nein'], UL_STAENDE = ['fehlt', 'arbeit', 'da'];
+const FOE_STAENDE = ['geplant', 'beantragt', 'zugesagt', 'abgelehnt'], FR_STAENDE = ['offen', 'angefragt', 'ok', 'nein'], UL_STAENDE = ['fehlt', 'arbeit', 'da', 'nn'];
 // Daten aus der Datei auf den aktuellen Aufbau bringen (fehlende Felder ergänzen, Unbrauchbares verwerfen)
 function normalize(d) {
   const o = mergeSicher(emptyData(), isObj(d) ? d : {});
@@ -106,7 +107,7 @@ function normalize(d) {
     n.zust = (Array.isArray(b.zust) ? b.zust : []).map(z => typeof z === 'string' ? Object.assign(leerZ(), { n: z.trim() })
       : isObj(z) ? { n: String(z.n ?? ''), rolle: String(z.rolle ?? ''), mail: String(z.mail ?? ''), tel: String(z.tel ?? ''), mobil: String(z.mobil ?? '') } : null).filter(z => z && !kontaktLeer(z));
     n.unterlagen = (Array.isArray(b.unterlagen) ? b.unterlagen : []).filter(isObj).map(u => Object.assign(UL('', 'fehlt'), u))
-      .map(u => Object.assign(u, { id: gueltigeId(u.id, 'u'), name: String(u.name ?? ''), st: UL_STAENDE.includes(u.st) ? u.st : 'fehlt' }));
+      .map(u => Object.assign(u, { id: gueltigeId(u.id, 'u'), name: String(u.name ?? ''), st: UL_STAENDE.includes(u.st) && (u.st !== 'nn' || (u.fest && u.name === 'Angebot')) ? u.st : 'fehlt' }));
     // ab 0.2 ist das Angebot eine Unterlage (vorher Teil der Freigabe); die drei festen Unterlagen gibt es immer
     const alt = isObj(b.freigabe) && isObj(b.freigabe.angebot) ? b.freigabe.angebot.st : null;
     FEST_UL.forEach((name, i) => {
@@ -146,7 +147,7 @@ function normalize(d) {
     for (const k of ['info', 'zeit', 'ort', 'termin']) if (typeof n.nach.ueb[k] !== 'string') n.nach.ueb[k] = '';
     if (!/^\d{1,2}:\d{2}$/.test(n.nach.ueb.zeit)) n.nach.ueb.zeit = '';                    // Uhrzeit nur als HH:MM
     if (!/^\d{4}-\d{2}-\d{2}$/.test(n.nach.ueb.termin)) n.nach.ueb.termin = '';
-    if (!(n.prio in PRIO_ORD)) n.prio = 'mittel';
+    if (!(n.prio in PRIO_ORD) || n.prio === 'niedrig') n.prio = 'mittel';         // ab 0.36 nur noch Prio (Stern) oder keine
     for (const k of ['titel', 'gliederung', 'beschreibung', 'link', 'pfad']) if (typeof n[k] !== 'string') n[k] = n[k] == null ? '' : String(n[k]);
     n.pfad = unquote(n.pfad);
     return n;
@@ -164,7 +165,7 @@ const ab1000 = b => (+b.summe || 0) >= 1000;
 function frItems(b) {
   const f = b.freigabe;
   return ['ofk', 'fach', 'verw'].map(k => Object.assign({ k, st: f[k].st, item: f[k],
-    na: k === 'ofk' && b.gliederung === DIO ? 'entfällt, Bedarf der Diözese' : null, opt: (k === 'fach' || k === 'verw') && !ab1000(b) }, FR_DEF[k]));
+    na: k === 'ofk' && istDio(b.gliederung) ? 'entfällt, Bedarf der Diözese' : null, opt: (k === 'fach' || k === 'verw') && !ab1000(b) }, FR_DEF[k]));
 }
 const frNeeded = i => !i.na && !(i.opt && i.st === 'offen');
 const frText = i => i.na ? i.na.split(',')[0] : i.opt && i.st === 'offen' ? 'unter 1.000 € nicht nötig' : i.st === 'angefragt' ? 'angefragt' : i[i.st];
@@ -173,9 +174,9 @@ const angebotUL = b => b.unterlagen.find(u => u.fest && u.name === 'Angebot');
 // was in der Freigabe noch fehlt (Namen), und was abgelehnt wurde
 function frOffen(b) {
   const open = frItems(b).filter(i => frNeeded(i) && i.st !== 'ok'), ang = angebotUL(b);
-  return { names: [...open.map(frName), ...(!ang || ang.st !== 'da' ? ['Angebot'] : [])], rej: open.filter(i => i.st === 'nein') };
+  return { names: [...open.map(frName), ...(!ang || !['da', 'nn'].includes(ang.st) ? ['Angebot'] : [])], rej: open.filter(i => i.st === 'nein') };
 }
-const ulOpts = u => u.fest && u.name === 'Angebot' ? [['fehlt', 'fehlt'], ['arbeit', 'angefragt', 't-warn'], ['da', 'liegt vor', 't-ok']] : [['fehlt', 'fehlt'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'vorhanden', 't-ok']];
+const ulOpts = u => u.fest && u.name === 'Angebot' ? [['fehlt', 'fehlt'], ['arbeit', 'angefragt', 't-warn'], ['da', 'liegt vor', 't-ok'], ['nn', 'nicht nötig']] : [['fehlt', 'fehlt'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'vorhanden', 't-ok']];
 const ulText = u => (ulOpts(u).find(o => o[0] === u.st) || [, u.st])[1];
 
 /* ---------- Finanzierung */
@@ -198,8 +199,11 @@ function finState(b) {
   const S = +b.summe || 0, eig = +b.eigenanteil || 0, fs = b.foerderer.filter(f => f.name.trim() || f.betrag);
   const sum = L => L.reduce((a, f) => a + foeAmt(f), 0);
   const zu = sum(fs.filter(f => f.status === 'zugesagt')), plan = sum(fs.filter(f => f.status !== 'abgelehnt'));
-  const done = (S ? ct(zu) + ct(eig) >= ct(S) : zu > 0) && !fs.some(f => f.status === 'beantragt');
-  return { S, eig, fs, zu, done, d: S ? (ct(S) - ct(done ? zu : plan) - ct(eig)) / 100 : 0 };
+  // gedeckt: Zusagen und Eigenmittel decken die Summe – mit mindestens einer Zusage (nur Eigenmittel gelten nicht als finanziert, Ziel sind Förderer);
+  // ohne Summe ist nichts gedeckt. done: gedeckt und kein Antrag mehr offen
+  const gedeckt = S > 0 && zu > 0 && ct(zu) + ct(eig) >= ct(S), offen = fs.filter(f => f.status === 'beantragt');
+  const done = gedeckt && !offen.length;
+  return { S, eig, fs, zu, gedeckt, offen, done, d: S ? (ct(S) - ct(done ? zu : plan) - ct(eig)) / 100 : 0 };
 }
 // Wer deckt was: zugesagt (eingegangen zuerst), Eigenmittel, beantragt, geplant – in dieser Reihenfolge im Balken; abgelehnte fehlen
 const KIND_L = { in: 'eingegangen', zu: 'zugesagt', eig: 'Eigenmittel', be: 'beantragt', ge: 'geplant' };
@@ -241,12 +245,17 @@ function phase(b) {
   const laufend = fs.filter(f => f.status === 'beantragt' || f.status === 'zugesagt');
   if (fo.names.length && laufend.length) warn.push((laufend.some(f => f.durch === 'gl') ? 'Gliederung hat schon beantragt' : 'Antrag läuft schon') + ', Freigabe ist aber nicht vollständig');
   if (!b.summe) warn.push('Summe fehlt');
+  const ohneBetrag = b.foerderer.filter(f => f.status === 'zugesagt' && !foeAmt(f));
+  if (ohneBetrag.length) warn.push('Zusage ohne Betrag: ' + names(ohneBetrag));
   if (fo.rej.length) return { k: 'stop', step: 0, t: 'Freigabe abgelehnt', sub: fo.rej.map(frName).join(', '), bad: true, warn };
   if (fo.names.length) return { k: 'frei', step: 0, t: 'Es fehlt', sub: fo.names.join(', '), bad: false, warn };
+  if (!b.summe) return { k: 'summe', step: 1, t: 'Summe fehlt', sub: 'erst mit der Summe lässt sich die Finanzierung prüfen', bad: true, warn: warn.filter(w => w !== 'Summe fehlt') };
   if (!fs.length) return { k: 'plan', step: 1, t: 'Förderplan aufstellen', sub: 'noch kein Förderer eingetragen', bad: false, warn };
   const vor = fs.filter(f => f.status === 'geplant'), wart = fs.filter(f => f.status === 'beantragt');
   const FS = finState(b), zu = fs.filter(f => f.status === 'zugesagt');
   if (!FS.done) {
+    if (FS.gedeckt) return { k: 'warten', step: 1, t: 'Finanzierung steht', sub: 'Antrag bei ' + names(wart) + ' noch offen – ggf. zurückziehen', bad: false, warn };
+    if (!FS.zu && FS.eig && ct(FS.eig) >= ct(FS.S) && !vor.length && !wart.length) return { k: 'luecke', step: 1, t: 'Förderer suchen', sub: 'bisher nur Eigenmittel – Ziel ist, sie durch Förderer zu ersetzen', bad: true, warn };
     if (vor.length) return { k: 'antrag', step: 1, t: 'Anträge stellen', sub: names(vor) + (wart.length ? ' · wartet auf ' + names(wart) : ''), bad: false, warn };
     if (wart.length) return { k: 'warten', step: 1, t: 'Warten auf Antwort', sub: names(wart), bad: false, warn };
     return { k: 'luecke', step: 1, t: 'Finanzierungslücke', sub: (FS.S ? eur((ct(FS.S) - ct(FS.zu) - ct(FS.eig)) / 100) + ' offen' : 'keine Zusage') + ', weiteren Förderer suchen', bad: true, warn };
@@ -261,6 +270,16 @@ const phaseName = p => p.step < 0 ? p.t : PHASES[p.step].t;
 const PH_CLS = ['ph-frei', 'ph-foer', 'ph-nach', 'ph-fertig'];
 const phCls = p => p.step < 0 ? 'ph-pause' : PH_CLS[p.step];
 
+// Was vor dem Archivieren noch offen ist: Antworten, Geldeingänge, Verwendungsnachweise, Übergabe, Pressemitteilung
+function archivOffen(b) {
+  const L = [];
+  for (const f of b.foerderer) {
+    if (f.status === 'beantragt') L.push('Antwort von ' + short(f.name));
+    if (f.status === 'zugesagt' && !(f.eingegangen > 0)) L.push('Geldeingang ' + short(f.name));
+    if (f.status === 'zugesagt' && f.vn.noetig && f.vn.st !== 'erledigt') L.push('Verwendungsnachweis ' + short(f.name) + (f.vn.frist ? ' (bis ' + fmtDate(f.vn.frist) + ')' : ''));
+  }
+  return b.foerderer.some(f => f.status === 'zugesagt') ? L.concat(nachOffen(b).filter(x => !/^Verwendungsnachweis /.test(x))) : L;   // Übergabe und Presse erst nach einer Zusage
+}
 /* ---------- Fristen: was steht als Nächstes an? */
 function fristen(b) {
   const p = phase(b), L = [];
@@ -276,3 +295,14 @@ function fristen(b) {
 }
 const nextFrist = b => (b.archiv || b.manuell) ? null : (fristen(b)[0] || null);
 const urg = d => { const n = days(today(), d); return n < 0 ? 'u-over' : n <= 14 ? 'u-soon' : ''; };
+// Fristen aller Bedarfe, die überfällig sind oder in den nächsten 14 Tagen ablaufen – gebündelt oben im Feld „Fristen“.
+// Verwendungsnachweise zählen auch bei zurückgestellten und archivierten Bedarfen (die Pflicht bleibt)
+const FRIST_TAGE = 14;
+function fristenBald() {
+  const L = [];
+  for (const b of D.bedarfe) {
+    const alle = b.archiv || b.manuell ? b.foerderer.filter(f => f.status === 'zugesagt' && f.vn.noetig && f.vn.st !== 'erledigt' && validIso(f.vn.frist)).map(f => ({ d: f.vn.frist, t: 'Verwendungsnachweis ' + short(f.name) })) : fristen(b);
+    for (const x of alle) { const n = days(today(), x.d); if (n <= FRIST_TAGE) L.push(Object.assign({ b, n }, x)); }
+  }
+  return L.sort((x, y) => x.d.localeCompare(y.d));
+}

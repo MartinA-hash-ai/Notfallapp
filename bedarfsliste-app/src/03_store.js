@@ -166,6 +166,7 @@ function undo() {
 }
 function changed() {
   undoMerk();
+  const fc = $('#frist-chip'); if (fc) fc.outerHTML = fristChip();                   // Fristen oben gleich nachführen
   if (DEMO) { try { localStorage.setItem(DEMO_KEY, JSON.stringify(D)); } catch (e) { /* ohne Speicher weiter */ } return; }
   saveDraft(); scheduleAutosave(); updateSaveUI();
 }

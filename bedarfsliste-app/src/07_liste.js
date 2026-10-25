@@ -24,7 +24,7 @@ function lFreigabe(b) {
     return `<div class="ml" data-le="fr" data-k="${k}">${mi(({ ok: 'ok', angefragt: 'run', nein: 'no' })[i.st] || 'off', frText(i))}<span>${lab}</span></div>`;
   });
   const a = angebotUL(b);
-  L.push(`<div class="ml" data-le="ang">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`);
+  L.push(`<div class="ml${a && a.st === 'nn' ? ' nn' : ''}" data-le="ang">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : a && a.st === 'nn' ? 'none' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`);
   return frOffen(b).names.length ? L.join('') : `<div class="done" title="Freigabe vollständig">${L.join('')}</div>`;
 }
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
@@ -91,7 +91,7 @@ const SORT = {
   zust: { t: 'Ansprechperson', w: ['A → Z', 'Z → A'], v: b => norm((b.zust[0] || {}).n) || null },
   deadline: { t: 'Deadline', w: ['früh → spät', 'spät → früh'], v: b => b.deadline || null },
   fr: { t: 'Freigabe', w: ['freigegeben zuerst', 'ohne Freigabe zuerst'], v: b => ({ ok: 0, run: 1, off: 2, no: 3 })[frStand(b)] },
-  fin: { t: 'Finanzierung', w: ['beendet zuerst', 'ohne Finanzierung zuerst'], v: b => ({ ok: 0, run: 1, off: 2 })[finStand(b)] },
+  fin: { t: 'Finanzierung', w: ['beendet zuerst', 'ohne Finanzierung zuerst'], v: b => ({ ok: 0, run: 1, no: 2, off: 3 })[finStand(b)] },
   vn: { t: 'Verwendungsnachweis', w: ['nächste Frist zuerst', 'späteste Frist zuerst'], v: b => {
     const Z = b.foerderer.filter(f => f.status === 'zugesagt'), L = Z.filter(f => f.vn.noetig), auf = L.filter(f => f.vn.st !== 'erledigt');
     return !Z.length ? null : auf.length ? '0' + (auf.map(f => f.vn.frist).filter(Boolean).sort()[0] || '9999') : L.length ? '1' : '2'; } },
@@ -137,9 +137,15 @@ function frStand(b) {
   if (!frOffen(b).names.length) return 'ok';
   return L.every(i => i.st === 'offen') && (!a || a.st === 'fehlt') ? 'off' : 'run';
 }
-const finStand = b => { const F = finState(b); return !F.fs.length && !F.eig ? 'off' : F.done ? 'ok' : 'run'; };
+// Stand der Finanzierung: off (nichts eingetragen), ok (steht), run (Anträge geplant oder offen), no (Lücke: nichts mehr offen, aber nicht gedeckt)
+const finStand = b => { const F = finState(b); return !F.fs.length && !F.eig ? 'off' : F.gedeckt ? 'ok' : F.fs.some(f => f.status === 'geplant' || f.status === 'beantragt') ? 'run' : 'no'; };
 const kFreigabe = b => ({ ok: kz('ok', 'freigegeben', 'k-ok'), no: kz('no', 'keine Freigabe', 'k-no'), off: kz('off', 'keine Freigabe', 'k-off'), run: kz('run', 'in Bearbeitung', 'k-run') })[frStand(b)];
-const kFinanz = b => ({ off: kz('off', 'keine Finanzierung', 'k-off'), ok: kz('ok', 'Finanzierung beendet', 'k-ok'), run: kz('run', 'in Bearbeitung', 'k-run') })[finStand(b)];
+function kFinanz(b) {
+  const s = finStand(b), F = finState(b);
+  if (s === 'ok') return kz('ok', F.done ? 'Finanzierung beendet' : 'Finanzierung steht', 'k-ok');
+  if (s === 'no') return kz('no', !F.zu && F.eig && ct(F.eig) >= ct(F.S) ? 'nur Eigenmittel' : 'Lücke', 'k-no');
+  return s === 'run' ? kz('run', 'in Bearbeitung', 'k-run') : kz('off', 'keine Finanzierung', 'k-off');
+}
 function kNachweis(b) {
   const Z = b.foerderer.filter(f => f.status === 'zugesagt'), L = Z.filter(f => f.vn.noetig);
   if (!Z.length) return kGrau('noch keine Zusage');
@@ -186,9 +192,9 @@ const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gl
 // solange die Freigabe nicht vollständig ist, wird hinter ihr noch nichts angegangen: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
 function row(b) {
   const kl = (b.manuell ? 'paused' : '') + (frOffen(b).names.length ? ' ohne-fg' : '');
-  const fg = frStand(b);                                   // kompakt ohne Freigabe: in Finanzierung nur der Hinweis, Nachweis und Übergabe leer
+  const fg = frStand(b), zeig = fg === 'ok' || b.foerderer.some(f => f.status === 'zugesagt');   // kompakt ohne Freigabe und ohne Zusage: nur der Hinweis
   if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b)}
-    <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-fr">${kFreigabe(b)}</td>${fg === 'ok' ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
+    <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-fr">${kFreigabe(b)}</td>${zeig ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
       : `<td class="k-nach">${kGrau(fg === 'no' ? 'Freigabe abgelehnt' : 'Freigabe ausstehend')}</td><td class="k-nach"></td><td class="k-nach"></td>`}</tr>`;
   const auf = KOMPAKT();                                  // in der kompakten Ansicht aufgeklappt: Finanzierung und Nachweis über zwei Spalten
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}${auf ? ' auf' : ''}">${nameZelle(b)}
@@ -283,6 +289,6 @@ function placePop(m, btn, align) {
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sw-pop"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sw-pop"], [data-act="fristen"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);

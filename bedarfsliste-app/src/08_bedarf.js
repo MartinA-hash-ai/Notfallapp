@@ -97,7 +97,7 @@ function secInfo(b) {
 const CIRC_SYM = { ok: ICO.ok, run: ICO.run, no: ICO.no, off: '', na: ICO.na };
 const circ = (kind, attrs, label) => `<button class="circ c-${kind}" data-act="circ" ${attrs} aria-label="${esc(label)} – nächster Stand" title="Klicken: nächster Stand">${CIRC_SYM[kind]}</button>`;
 const frKind = i => i.na ? 'na' : ({ ok: 'ok', angefragt: 'run', nein: 'no', offen: 'off' })[i.st];
-const ulKind = u => ({ da: 'ok', arbeit: 'run', fehlt: 'no' })[u.st] || 'no';
+const ulKind = u => ({ da: 'ok', arbeit: 'run', fehlt: 'no', nn: 'na' })[u.st] || 'no';
 function freigabeList(b) {
   const rows = frItems(b).map(i => {
     const p = 'freigabe.' + i.k;
@@ -140,7 +140,7 @@ function sidePanel(b) {
 function circNext(btn) {
   const b = cur(); if (!b) return;
   if (btn.dataset.kind === 'fr') { const k = btn.dataset.k, it = b.freigabe[k], alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); }
-  else { const u = b.unterlagen.find(x => x.id === btn.dataset.uid); if (!u) return; u.st = nextOf(ROT_ANG, u.st); }
+  else { const u = b.unterlagen.find(x => x.id === btn.dataset.uid); if (!u) return; u.st = nextOf(u.fest && u.name === 'Angebot' ? ROT_ANG_A : ROT_ANG, u.st); }
   changed();
 }
 
@@ -156,7 +156,8 @@ function foeWarnList(b, f) {
   const k = kartei(f.name), key = kkey(f.name);
   const other = D.bedarfe.filter(x => x !== b && !x.archiv && x.foerderer.some(g => kkey(g.name) === key && g.status !== 'abgelehnt'));
   const L = [];
-  if (k && b.gliederung && b.gliederung !== DIO && k.gl.length && !k.gl.some(g => /^alle$/i.test(g)) && !k.gl.includes(b.gliederung)) L.push('Laut Kartei zuständig für ' + esc(k.gl.join(', ')));
+  if (f.status === 'zugesagt' && !foeAmt(f)) L.push('Zusage ohne Betrag – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).');
+  if (k && b.gliederung && !istDio(b.gliederung) && k.gl.length && !k.gl.some(g => /^alle$/i.test(g)) && !k.gl.includes(b.gliederung)) L.push('Laut Kartei zuständig für ' + esc(k.gl.join(', ')));
   if (other.length) L.push('Auch im Förderplan von: ' + other.map(x => `<button class="link" data-act="open" data-id="${x.id}">${esc(x.titel || '(ohne Namen)')}</button> (${F_ST_L[x.foerderer.find(g => kkey(g.name) === key).status]})`).join(', '));
   return L;
 }
@@ -253,7 +254,7 @@ function foePop(b) {
   return `<div class="pop-back" data-act="det-zu"></div>
     <div class="foe-pop" role="dialog" aria-modal="true" aria-label="Kontakt und Details: ${esc(f.name || 'Förderer')}">
       <header><h3>${esc(f.name || '(ohne Namen)')}</h3>
-        <div class="pe pe-amt" data-act="pe" ${a} data-k="${amtP}" data-art="num" data-lab="${AMT_LAB[f.status]}" title="${AMT_LAB[f.status]} – klicken zum Ändern"><div class="val${amt ? '' : ' leer'}"><span class="pv">${amt ? eur(amt) : 'Summe'}</span></div>${ICON_PEN}</div>
+        <div class="pe pe-amt" data-act="pe" ${a} data-k="${amtP}" data-art="num" data-lab="${AMT_LAB[f.status]}" title="${AMT_LAB[f.status]} – klicken zum Ändern"><div class="val${amt ? '' : ' leer'}"><span class="pv">${amt ? eur(amt) : f.status === 'zugesagt' && f.betrag ? 'wie beantragt (' + eur(f.betrag) + ')' : 'Summe'}</span></div>${ICON_PEN}</div>
         <div class="pop-einsch">${dots(f)}</div>
         <button class="x" data-act="det-zu" aria-label="Schließen" title="Schließen (Esc)">×</button></header>
       <div class="pop-body">
@@ -346,7 +347,7 @@ function fpCard(b, f) {
       <div class="fk-kopf">
         <div class="fp-title"><input type="text" class="inline fp-h" data-p="name" ${a} value="${esc(f.name)}" placeholder="Förderer" aria-label="Förderer" autocomplete="off">
           <button class="rm" data-act="rm-foe" ${a} title="Förderer entfernen" aria-label="Förderer entfernen">${ICON_TRASH}</button><span id="fw-${f.id}">${foeWarn(b, f)}</span></div>
-        <div class="fk-amt"><input type="text" inputmode="decimal" class="inline num amt" data-num data-p="${amtP}" ${a} id="amt-${f.id}" value="${esc(fmtNum(st === 'zugesagt' ? f.zugesagt : f.betrag))}" placeholder="0" aria-label="${AMT_LAB[st]}" title="${AMT_LAB[st]}"><span class="unit">€</span></div>
+        <div class="fk-amt"><input type="text" inputmode="decimal" class="inline num amt" data-num data-p="${amtP}" ${a} id="amt-${f.id}" value="${esc(fmtNum(st === 'zugesagt' ? f.zugesagt : f.betrag))}" placeholder="${st === 'zugesagt' && f.zugesagt == null && f.betrag ? 'wie beantragt (' + esc(fmtNum(f.betrag)) + ')' : '0'}" aria-label="${AMT_LAB[st]}" title="${AMT_LAB[st]}${st === 'zugesagt' && f.zugesagt == null && f.betrag ? ' – leer: wie beantragt, ' + esc(eur(f.betrag)) : ''}"><span class="unit">€</span></div>
       </div>
       ${dots(f)}
     </div>
@@ -452,7 +453,8 @@ function finRows(b) {
   const S = +b.summe || 0, F = finState(b);
   return `<tr class="r-sum"><th>${swa('none')}Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`
     + b.foerderer.filter(f => f.name.trim() || f.betrag).map(f => { const v = foeAmt(f);
-      return `<tr class="${ROW_CLS[f.status]}"><th>${swa(segKind(f))}${esc(f.name || '(ohne Namen)')} <span class="r-st">${F_ST_L[f.status]}${f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : ''}</span></th><td class="num">${eur(v)}</td><td class="num">${f.status === 'abgelehnt' ? '' : pct(v, S)}</td></tr>`; }).join('')
+      const weg = F.done && f.status === 'geplant';                                  // Finanzierung steht: geplante Förderer braucht es nicht mehr
+      return `<tr class="${ROW_CLS[f.status]}${weg ? ' r-weg' : ''}"><th>${swa(segKind(f))}${esc(f.name || '(ohne Namen)')} <span class="r-st">${weg ? 'geplant – nicht mehr nötig' : F_ST_L[f.status]}${f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : ''}</span></th><td class="num">${eur(v)}</td><td class="num">${weg || f.status === 'abgelehnt' ? '' : pct(v, S)}</td></tr>`; }).join('')
     + (F.d ? `<tr class="r-delta"><th>${swa(F.d > 0 ? 'off' : 'none')}${F.d > 0 ? 'Delta <span class="r-st">noch ohne Förderer</span>' : 'Überfinanzierung'}</th><td class="num">${eur(Math.abs(F.d))}</td><td class="num">${pct(Math.abs(F.d), S)}</td></tr>` : '');
 }
 const finEigPct = b => pct(+b.eigenanteil || 0, +b.summe || 0);
@@ -462,9 +464,12 @@ const zuGet = k => { try { return !!(JSON.parse(localStorage.getItem(ZU_KEY) || 
 const zuSet = (k, v) => { try { const o = JSON.parse(localStorage.getItem(ZU_KEY) || '{}'); o[k] = v; localStorage.setItem(ZU_KEY, JSON.stringify(o)); } catch (e) { /* nur in diesem Browser */ } };
 const ICON_CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const zuKopf = (k, titel, zu) => `<h2><button class="sec-zu${zu ? ' zu' : ''}" data-act="zu" data-v="${k}" aria-expanded="${!zu}" title="${zu ? 'Aufklappen' : 'Einklappen'}">${ICON_CHEV}${titel}</button></h2>`;
+// Kurzinfo im eingeklappten Förderplan – sagt dasselbe wie der Stand oben (Phase)
 function foeKurz(b) {
   const F = finState(b), n = F.fs.filter(f => f.status !== 'abgelehnt').length, rest = (ct(F.S) - ct(F.zu) - ct(F.eig)) / 100;
-  return [n + ' Förderer', F.zu ? eur(F.zu) + ' zugesagt' : 'noch keine Zusage', F.S ? (rest > 0 ? eur(rest) + ' noch ohne Zusage' : 'Finanzierung steht') : ''].join(' · ').replace(/ · $/, '');
+  const stand = !F.S ? 'Summe fehlt' : F.gedeckt ? 'Finanzierung steht' + (F.offen.length ? ' – Antrag bei ' + names(F.offen) + ' noch offen' : '')
+    : !F.zu && F.eig && rest <= 0 ? 'bisher nur Eigenmittel' : eur(rest) + ' noch ohne Zusage';
+  return [n + ' Förderer', F.zu ? eur(F.zu) + ' zugesagt' : 'noch keine Zusage', stand].join(' · ');
 }
 function secFoe(b) {
   if (zuGet('foe')) return `<section class="card fp-head zu" id="sec-foe"><div class="sec-head">${zuKopf('foe', 'Förderplan', true)}<p id="foe-kurz">${esc(foeKurz(b))}</p></div></section>`;

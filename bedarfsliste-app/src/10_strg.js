@@ -50,7 +50,7 @@ window.addEventListener('blur', () => strgSet(false));
 const leStop = el => el.addEventListener('click', e => e.stopPropagation());
 
 // je Klick ein Stand weiter
-const ROT_FR = ['offen', 'angefragt', 'ok', 'nein'], ROT_ANG = ['fehlt', 'arbeit', 'da'];
+const ROT_FR = ['offen', 'angefragt', 'ok', 'nein'], ROT_ANG = ['fehlt', 'arbeit', 'da'], ROT_ANG_A = ['fehlt', 'arbeit', 'da', 'nn'];   // Angebot auch „nicht nötig“
 const ROT_FOE = { geplant: 'beantragt', beantragt: 'zugesagt', zugesagt: 'abgelehnt', abgelehnt: 'geplant' };
 const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 
@@ -140,10 +140,10 @@ function strgAct(b, el, then) {
       return editField(b, el, { value: f.status === 'zugesagt' ? f.zugesagt : f.betrag, num: true, right: true, label: 'Betrag in Euro', set: v => { if (f.status === 'zugesagt') f.zugesagt = v; else f.betrag = v; } });
     case 'fr': {
       const k = el.dataset.k, it = b.freigabe[k];
-      if (k === 'ofk' && b.gliederung === DIO) { toast('Bei Bedarfen der Diözese entfällt der Ortsführungskreis.', 'warn'); return; }
+      if (k === 'ofk' && istDio(b.gliederung)) { toast('Bei Bedarfen der Diözese entfällt der Ortsführungskreis.', 'warn'); return; }
       const alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); return done();
     }
-    case 'ang': { const u = angebotUL(b); if (!u) return; u.st = nextOf(ROT_ANG, u.st); return done(); }
+    case 'ang': { const u = angebotUL(b); if (!u) return; u.st = nextOf(ROT_ANG_A, u.st); return done(); }
     case 'foe': { if (!f) return; if (geldDa(f)) return geldDaHinweis(); const alt = f.status, v = ROT_FOE[alt] || 'geplant'; f.status = v; effects(b, f, 'status', v, alt); return done(); }
     case 'vn': {                                                                         // nicht nötig → steht aus → in Arbeit → erledigt → nicht nötig
       if (!f) return; const x = f.vn;

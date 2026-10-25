@@ -27,7 +27,7 @@ const FP_COLS = [
 const fpHeadKey = t => norm(t).replace(/[^a-zäöüß0-9]/g, '');
 
 /* ---------- Auftrag an die Recherche: dieselben Sätze stehen im Blatt „Anleitung“ und im Prompt für Copilot */
-const rechGl = b => b && b.gliederung && b.gliederung !== DIO ? b.gliederung : '';
+const rechGl = b => b && b.gliederung && !istDio(b.gliederung) ? b.gliederung : '';
 const rechOffen = b => { if (!b) return 0; const F = finState(b); return Math.max(0, (ct(F.S) - ct(F.eig) - ct(F.zu)) / 100); };
 // Kartei-Auszug: zuständig für die Gliederung (oder für alle), die eigene Gliederung zuerst; ohne Gliederung die ganze Kartei
 function karteiFuer(b) {
@@ -70,7 +70,7 @@ function vorlageBlob(b) {
   rows[0] = [{ v: 'Förderplan' + (b && b.titel ? ': ' + b.titel : ''), st: { b: true, sz: 15 } }];
   rows[1] = [{ v: 'Je möglichem Förderer eine Zeile ausfüllen. Spaltenüberschriften und Blattnamen nicht ändern. Auftrag, Umfang und was in jede Spalte gehört, stehen im Blatt „Anleitung“. Danach in der Bedarfsliste „Excel übernehmen“ wählen.', st: note }];
   const F = b ? finState(b) : null, num = v => v ? { v, t: 'n' } : '';
-  const info = [['Bedarf', b ? b.titel : ''], ['Gliederung', b ? (b.gliederung === DIO ? 'Diözese (ohne Gliederung)' : b.gliederung) : ''], ['Summe (€)', num(F && F.S)],
+  const info = [['Bedarf', b ? b.titel : ''], ['Gliederung', b ? (istDio(b.gliederung) ? 'Diözese (ohne Gliederung)' : b.gliederung) : ''], ['Summe (€)', num(F && F.S)],
     ['Eigenmittel (€)', num(F && F.eig)], ['Schon zugesagt (€)', num(F && F.zu)], ['Noch offen (€)', num(rechOffen(b))],
     ['Deadline', b && b.deadline ? { v: b.deadline, t: 'd' } : ''], ['Stichworte oder Fördertöpfe', b ? b.stichworte.join(', ') : ''], ['Beschreibung', b ? b.beschreibung : ''], ['Kennung', b ? b.id : '']];
   info.forEach(([k, v], i) => {

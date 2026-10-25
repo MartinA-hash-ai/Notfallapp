@@ -54,6 +54,15 @@ Esc oder ein Klick außerhalb der Liste klappt zu. Strg+Klick geht weiterhin. De
 
 **Priorität:** der Stern ganz vorn in der Liste (und auf der Seite des Bedarfs) – Klick: Prio an (gelb) oder aus. Stern im Spaltenkopf: 1. Klick – Bedarfe mit Prio nach oben (Rand golden), 2. Klick – nur noch Bedarfe mit Prio (ausgefüllt), 3. Klick – wieder normal.
 
+**Fristen:** oben in der Kopfzeile, gebündelt statt in der Liste – ein Dreieck mit der Anzahl (gelb: läuft in den nächsten 14 Tagen ab,
+rot: überfällig). Klick zeigt die Liste (Antragsfristen, erwartete Antworten, Deadlines, Verwendungsnachweise – diese auch im Archiv –,
+Spendenübergaben), ein Eintrag öffnet den Bedarf.
+
+**Finanzierung steht**, wenn Zusagen und Eigenmittel die Summe decken – mit mindestens einer Zusage (nur Eigenmittel gelten nicht als
+finanziert: Ziel sind Förderer). Ohne Summe gilt nichts als fertig, der Stand zeigt „Summe fehlt“. Eine Zusage ohne Betrag wird gemeldet.
+Ins Archiv geht ein Bedarf mit offenen Antworten, Geldeingängen, Nachweisen oder Übergabe erst nach Rückfrage. Das Angebot kennt auch
+„nicht nötig“ (z. B. bei Personal- oder Projektkosten). Als Diözese gilt jede Gliederung, die mit „Diözese“ beginnt.
+
 **Sortieren:** Klick auf einen Spaltenkopf nimmt die Spalte als nächste Stufe dazu (bis zu drei; noch ein Klick: andere Richtung,
 dritter Klick: heraus). Nach Priorität sortiert der Stern im Spaltenkopf.
 

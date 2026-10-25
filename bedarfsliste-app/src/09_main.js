@@ -46,6 +46,23 @@ function karteiChip() {
   if (ST.conn !== 'ok') return '<button class="kchip" data-act="kartei" title="Die Kartei wird aus dem Ordner der Bedarfsliste gelesen">Förder-Kartei: Ordner verbinden</button>';
   return '<button class="kchip warn" data-act="kartei" title="Keine passende Excel im Ordner gefunden – klicken zum Wählen">Förder-Kartei wählen</button>';
 }
+// Fristen gebündelt oben (statt in der ohnehin bunten Liste): Dreieck gelb, wenn etwas in den nächsten 14 Tagen abläuft, rot, wenn etwas überfällig ist;
+// ein Klick zeigt die Liste, ein Eintrag öffnet den Bedarf
+function fristChip() {
+  const L = D ? fristenBald() : [];
+  if (!L.length) return '<span id="frist-chip" hidden></span>';
+  const n = L.length, ueber = L.filter(x => x.n < 0).length, w = n === 1 ? 'Frist' : 'Fristen';
+  return `<button id="frist-chip" class="frist-chip${ueber ? ' over' : ''}" data-act="fristen" aria-haspopup="menu" title="${ueber ? ueber + ' überfällig, ' : ''}${n - ueber} in den nächsten ${FRIST_TAGE} Tagen – klicken für die Liste">${ICON_TRI}<span>${n} ${w}</span></button>`;
+}
+function fristPop(btn) {
+  closeMenus();
+  const L = fristenBald();
+  const zeile = x => h('button', { class: 'fp-row' + (x.n < 0 ? ' over' : ''), role: 'menuitem', 'data-act': 'open', 'data-id': x.b.id },
+    h('span', { class: 'fp-d' }, fmtDate(x.d)), h('span', { class: 'fp-t' }, x.t), h('span', { class: 'fp-r' }, x.n === 0 ? 'heute' : x.n === 1 ? 'morgen' : x.n === -1 ? 'gestern' : x.n < 0 ? 'vor ' + -x.n + ' Tagen' : 'in ' + x.n + ' Tagen'),
+    h('span', { class: 'fp-b' }, (x.b.titel || '(ohne Namen)') + (x.b.archiv ? ' · im Archiv' : x.b.manuell ? ' · ' + x.b.manuell : '')));
+  const grp = (t, M) => M.length ? [h('div', { class: 'fp-h' }, t), ...M.map(zeile)] : [];
+  placePop(h('div', { class: 'menu frist-pop', role: 'menu' }, ...grp('Überfällig', L.filter(x => x.n < 0)), ...grp('In den nächsten ' + FRIST_TAGE + ' Tagen', L.filter(x => x.n >= 0))), btn, 'right');
+}
 const ICON_GEAR = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>';
 // in der Ansicht eines Bedarfs hängt unter der Kopfzeile die Leiste mit Phase und Stand
 function headerHtml() {
@@ -56,7 +73,7 @@ function headerHtml() {
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}</nav>
-    <div class="actions">${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)">↶ Rückgängig</button><button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
+    <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)">↶ Rückgängig</button><button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
     ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : listBar()}
   </header>`;
 }
@@ -162,7 +179,8 @@ function effects(b, base, p, v, alt) {
     if (v === 'beantragt') f.entscheidungAm = '';
     if (ent(v) && (!f.entscheidungAm || ent(alt))) f.entscheidungAm = today();
     if (alt === 'zugesagt') { f.zugesagt = null; f.eingegangen = null; f.eingangAm = ''; b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f.id); }
-    if (v === 'zugesagt') { if (f.zugesagt == null) f.zugesagt = f.betrag; if (b.nach.ueb.noetig && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id); }
+    if (v === 'zugesagt') { if (f.zugesagt == null) f.zugesagt = f.betrag; if (b.nach.ueb.noetig && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id);
+      if (!foeAmt(f)) toast('Zusage ohne Betrag bei „' + (f.name || 'Förderer') + '“ – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).', 'warn'); }
     if (v === 'abgelehnt') b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f.id);
   }
 }
@@ -322,6 +340,7 @@ async function act(k, a, e) {
     case 'theme': applyTheme(a.dataset.v); $$('#mmenu .mini-btn').forEach(x => x.classList.toggle('on', x === a)); return;
     case 'about': closeMenus(); about(); return;
     case 'undo': undo(); return;
+    case 'fristen': if ($('.frist-pop')) closeMenus(); else fristPop(a); return;
     case 'ansicht': UI.ansicht = a.dataset.v === 'kompakt' ? 'kompakt' : 'voll'; keep(renderNow); return;
     case 'fmt-info': closeMenus(); fmtInfo(); return;
     case 'save': closeMenus(); if (FSA && ST.conn === 'none') await connectFolder(); else saveAll({}); renderNow(); return;
@@ -355,7 +374,10 @@ async function act(k, a, e) {
       if (a.dataset.toggle != null && getPath(base, p) === v) v = a.dataset.toggle;   // zweiter Klick auf den gewählten Stand nimmt ihn zurück
       const alt = getPath(base, p); setPath(base, p, v); effects(b, base, p, v, alt); changed(); break;
     }
-    case 'archive': { b.archiv = true; changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe();
+    case 'archive': {
+      const offen = archivOffen(b);
+      if (offen.length && !await confirmBox('Noch nicht alles erledigt', 'Noch offen: ' + offen.join(' · ') + '. Trotzdem ins Archiv?', 'Trotzdem archivieren')) return;
+      b.archiv = true; changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe();
       toast(`„${b.titel || 'Bedarf'}“ liegt jetzt im Archiv`, 'ok', () => { if (D.bedarfe.includes(b) && b.archiv) { b.archiv = false; changed(); ORDER.ids = null; keep(renderNow); } }); return; }
     case 'unarchive': b.archiv = false; changed(); toast('Wieder in der Liste der Bedarfe', 'ok'); break;
     case 'del': {

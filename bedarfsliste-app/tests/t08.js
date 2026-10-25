@@ -107,6 +107,10 @@ const setData = (text, d) => text.replace(/(<script type="application\/json" id=
   // 10. „Rückgängig“ nimmt nur die eine Aktion zurück
   await p.evaluate(() => oeffnen('b1')); await p.waitForTimeout(150);
   await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-act="archive"]').catch(() => p.evaluate(() => act('archive', document.body)));
+  await p.waitForSelector('.modal', { timeout: 2000 }).catch(() => null);
+  r = await p.$eval('.modal', e => e.textContent).catch(() => '');
+  ok(r.includes('Noch offen') && r.includes('Verwendungsnachweis'), 'Archivieren mit offenem Verwendungsnachweis: erst Rückfrage: ' + r.slice(0, 120));
+  await p.click('.modal footer button.primary');
   await p.evaluate(() => { D.bedarfe.find(x => x.id === 'b2').beschreibung = 'danach geändert'; changed(); });
   await p.click('#toasts .toast:last-child button.link');
   r = await p.evaluate(() => [D.bedarfe.find(x => x.id === 'b1').archiv, D.bedarfe.find(x => x.id === 'b2').beschreibung]);
@@ -153,6 +157,7 @@ const setData = (text, d) => text.replace(/(<script type="application\/json" id=
   ok(r.join('|') === 'b-aed|true', 'Doppelklick auf die Freigabe einer zugeklappten Zeile: klappt auf, ändert nichts: ' + r.join('|'));
   await v.keyboard.press('Escape'); await v.click('.seg.ansicht [data-v="voll"]');
   const n0 = await v.evaluate(() => D.bedarfe.find(x => x.id === 'b-kueche').foerderer.length);
+  await v.$eval('#list-body tr[data-id="b-kueche"]', e => e.scrollIntoView({ block: 'center' }));
   const q3 = await (await v.$('#list-body tr[data-id="b-kueche"] td.l-meta')).boundingBox();
   await v.mouse.dblclick(q3.x + 3, q3.y + 3); await v.waitForTimeout(200);
   r = await v.evaluate(n => [UI.view, D.bedarfe.find(x => x.id === 'b-kueche').foerderer.length === n, !document.querySelector('.modal')], n0);

@@ -69,6 +69,7 @@
 :root[data-theme="dark"]:not([data-bl-theme="light"]) .logo.dark, :root[data-bl-theme="dark"] .logo.dark { display: block; }
 
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }                        /* auch bei Knöpfen mit eigener Anzeige (z. B. „Filter löschen“) */
 body { margin: 0; background: var(--bg); color: var(--ink); font: 14px/1.45 var(--font); }
 body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 40; background: var(--card); }
 button, input, select, textarea { font: inherit; color: inherit; }
@@ -123,6 +124,22 @@ nav.tabs { display: flex; gap: 2px; }
 .tab.on { border-bottom-color: var(--red); color: var(--ink); font-weight: 600; }
 .tab .cnt { font-size: 12px; color: var(--muted); font-weight: 400; margin-left: 4px; }
 .actions { margin-left: auto; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding-block: 8px; }
+/* Fristen gebündelt in der Kopfzeile: gelb = läuft bald ab, rot = überfällig */
+.frist-chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12.5px; font-weight: 600; padding: 3px 10px 3px 8px; border-radius: 12px; cursor: pointer;
+  background: var(--ph1bg); color: var(--ph1ink); border: 1px solid var(--ph1line); }
+.frist-chip .tri { width: 15px; height: 15px; color: #e0a800; }
+.frist-chip.over { background: var(--errbg); color: var(--red-d); border-color: transparent; }
+.frist-chip.over .tri { color: var(--red-d); }
+.frist-pop { padding: 6px; min-width: 380px; max-width: 480px; max-height: 70vh; overflow: auto; }
+.frist-pop .fp-h { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); padding: 8px 10px 4px; }
+.frist-pop .fp-row { display: grid; grid-template-columns: 92px minmax(0, 1fr); grid-template-areas: "d t" "r b"; gap: 1px 12px; width: 100%; text-align: left;
+  border: 0; background: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font: inherit; color: var(--ink); }
+.frist-pop .fp-row:hover { background: var(--hover); }
+.fp-d { grid-area: d; font-weight: 600; font-size: 13px; } .fp-r { grid-area: r; font-size: 11.5px; color: var(--muted); }
+.fp-t { grid-area: t; font-size: 13px; } .fp-b { grid-area: b; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fp-row.over .fp-d, .fp-row.over .fp-r { color: var(--red-d); }
+/* Förderplan: steht die Finanzierung, sind geplante Förderer „nicht mehr nötig“ */
+tr.r-weg th, tr.r-weg td { opacity: .5; }
 .kchip { font-size: 12px; padding: 3px 10px; border-radius: 12px; background: var(--chipbg); color: var(--ink2); border: 1px solid transparent; }
 .kchip.ok { background: var(--okbg); color: var(--okink); border-color: var(--okline); }
 .kchip.warn { background: var(--warnbg); color: var(--warn); border-color: var(--warnline); }

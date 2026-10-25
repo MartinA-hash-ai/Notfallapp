@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.36.0",
+    "date": "2026-10-25T13:00",
+    "items": [
+      "Fristen gebündelt oben in der Kopfzeile: ein Dreieck mit der Anzahl (gelb: in den nächsten 14 Tagen, rot: überfällig); Klick zeigt die Liste, ein Eintrag öffnet den Bedarf. Verwendungsnachweise zählen auch im Archiv",
+      "Ins Archiv mit offenen Antworten, Geldeingängen, Nachweisen oder Übergabe nur nach Rückfrage",
+      "Kompakt: ist schon eine Zusage da, stehen Finanzierung, Nachweis und Übergabe auch ohne vollständige Freigabe",
+      "Nur Eigenmittel gelten nicht als finanziert („Förderer suchen“, kompakt „nur Eigenmittel“); alle Förderer abgelehnt: kompakt rot „Lücke“",
+      "Zusage ohne Betrag wird gemeldet – sofort, am Förderer und im Stand",
+      "Ohne Summe gilt nichts als fertig, der Stand zeigt „Summe fehlt“",
+      "Steht die Finanzierung, sagen Stand, Kopf und Liste dasselbe („Finanzierung steht – Antrag bei … noch offen“); geplante Förderer sind dann „nicht mehr nötig“ und ohne Prozent",
+      "„Diözese Paderborn“ u. Ä. gilt als Diözese; Angebot kennt „nicht nötig“; Priorität nur noch Prio oder keine; leere „Zugesagte Summe“ zeigt „wie beantragt“",
+      "„Filter löschen“ ist ohne Filter wirklich ausgeblendet"
+    ]
+  },
+  {
     "version": "0.35.0",
     "date": "2026-10-25T10:00",
     "items": [

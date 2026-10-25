@@ -74,8 +74,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await B('b-aed')).freigabe.verw.angefragt === await p.evaluate(() => today()), 'angefragt: Datum wie auf der Seite des Bedarfs gesetzt');
   const ang = async id => (await B(id)).unterlagen.find(u => u.name === 'Angebot').st;
   seq.length = 0;
-  for (let i = 0; i < 3; i++) { await p.click(R('b-dig-bue') + ' [data-le="ang"]'); seq.push(await ang('b-dig-bue')); }
-  ok(seq.join() === 'da,fehlt,arbeit', 'Angebot: angefragt → liegt vor → fehlt → angefragt: ' + seq.join());
+  for (let i = 0; i < 4; i++) { await p.click(R('b-dig-bue') + ' [data-le="ang"]'); seq.push(await ang('b-dig-bue')); }
+  ok(seq.join() === 'da,nn,fehlt,arbeit', 'Angebot: angefragt → liegt vor → nicht nötig → fehlt → angefragt: ' + seq.join());
   await p.click(R('b-mtw') + ' .fn[data-le="foe"] >> nth=1');
   r = await F('b-mtw', 'Bürgerstiftung Musterstadt');
   ok(r.status === 'zugesagt' && r.zugesagt === 15000 && r.entscheidungAm === await p.evaluate(() => today()), 'Förderer in Bearbeitung → Klick → Zusage (Betrag und Datum übernommen)');
