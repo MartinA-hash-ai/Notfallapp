@@ -102,6 +102,13 @@ Bedarfsliste: F5 übernimmt nichts – sobald die Liste neue Ergebnisse in der A
 Ortsgliederungen\<Gliederung>\<Bedarf>“, Projekte der Diözese unter „…\1601_Diözese_Pojekte“ – beide Prompts nennen das; ist kein Pfad eingetragen, sucht Cowork den Ordner dort und trägt ihn zur Übernahme ein. Umschalten geht.
 Enthält die Excel neue Ergebnisse, meldet die Liste das mit einem Fenster; danach bleiben Hinweis und roter Punkt bis zur Übernahme. Texte (Antrag, Dank …) folgen in einem späteren Update.
 
+**Kontakte-Excel (seit 0.46):** Beim ersten Start ohne Personen-Datei fragt die Liste einmal nach einer Kontakte-Excel (sonst Zahnrad →
+„Kontakte-Excel einlesen …“). Sie wird als `Personen (Import <Datum>).xlsx` neben die Liste gelegt und bleibt unverändert; erkannt werden
+u. a. „Vorname“ + „Zuname“/„Nachname“, „Aufgabe/Referat“, „Telefonnummer“, „2. Telefonnummer“ (als Handy) und „E-Mail“, auf allen Blättern.
+Neue Zuständige und neue Angaben aus den Bedarfen schreibt die Liste etwa jede Minute in `Personen.xlsx` (legt sie an, liest sie vorher neu,
+löscht und überschreibt nichts; ist sie gerade in Excel geöffnet, beim nächsten Mal). Eigene Pflege daher besser in einer anderen
+„Personen …“-Datei – `Personen.xlsx` schreibt die Liste neu.
+
 **Personen-Excel (Kontaktdaten der Zuständigen):** Der Knopf „Kontaktdaten mit Copilot“ bei „Zuständig“ ist seit 0.45 entfallen (Kontaktdaten
 sucht die Aufgabe „Kontaktdaten“ im Copilot-Fenster); die Liste liest `Personen.xlsx` weiter. Der frühere Dialog legte `Personen.xlsx` neben der
 Bedarfsliste an (Blatt „Personen“: Name, Position, Gliederung / Dienststelle, E-Mail, Telefon, Handy, Quelle, Stand – mit allen Personen, die die

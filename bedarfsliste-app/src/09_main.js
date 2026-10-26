@@ -267,6 +267,7 @@ function mainMenu(btn) {
     colwGet(false) || colwGet(true) ? item('colw-reset', 'Spaltenbreiten der Liste zurücksetzen') : null,
     item('vorlage-leer', 'Leere Förderplan-Vorlage (Excel)'),
     DEMO ? null : item('kartei', 'Förder-Kartei wählen oder neu einlesen …'),
+    DEMO ? null : item('pers-import', 'Kontakte-Excel einlesen …'),
     h('hr'),
     DEMO ? null : item('backup', 'Datensicherung herunterladen (.json)'),
     DEMO ? null : item('restore', 'Datensicherung laden …'),
@@ -432,6 +433,7 @@ async function act(k, a, e) {
     case 'backup': closeMenus(); saveBackup(); return;
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
+    case 'pers-import': { closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; const f = await pickFile('.xlsx'); if (f) personenDatei(f); return; }
     case 'update': closeMenus(); updateProgram(); return;
     case 'vorlage-leer': closeMenus(); vorlageDownload(null); return;
     case 'reload': window.__blReload = true; location.reload(); return;

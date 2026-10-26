@@ -9,10 +9,12 @@ const ok = (c, m) => { if (!c) failures++; console.log((c ? 'OK   ' : 'FAIL ') +
 
 // clock: Uhr der Seite steuerbar – mit skip(p, ms) springt sie vor (statt echt auf Speichern/Überwachung zu warten)
 // motion: Animationen zeigen (sonst wie bei „Animationen aus“ in Windows – die Seite wechselt sofort, Tests müssen nicht warten)
-async function open(b, { file = T.HTML, fakefs = true, width = 1500, clock = false, dark = false, motion = false } = {}) {
+// persFrage: die einmalige Frage nach der Kontakte-Excel zeigen (sonst gilt sie als schon gestellt)
+async function open(b, { file = T.HTML, fakefs = true, width = 1500, clock = false, dark = false, motion = false, persFrage = false } = {}) {
   const ctx = await b.newContext({ viewport: { width, height: 950 }, locale: 'de-DE', timezoneId: 'Europe/Berlin', acceptDownloads: true, colorScheme: dark ? 'dark' : 'light', reducedMotion: motion ? 'no-preference' : 'reduce' });
   if (clock) await ctx.clock.install();
   if (fakefs) await ctx.addInitScript({ path: T.FAKEFS });
+  if (!persFrage) await ctx.addInitScript(() => { try { localStorage.setItem('bl-pers-frage', '1'); } catch (e) { /* ohne Speicher */ } });
   const p = await ctx.newPage(); p.setDefaultTimeout(8000); p.errs = []; p.reqs = [];
   p.on('pageerror', e => p.errs.push(e.message));
   p.on('console', m => { if (m.type() === 'error') p.errs.push('console: ' + m.text()); });

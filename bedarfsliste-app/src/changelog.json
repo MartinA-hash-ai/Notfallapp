@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.46.0",
+    "date": "2026-10-27T21:00",
+    "items": [
+      "Kontakte-Excel einlesen: einmalige Frage beim Start und Zahnrad → „Kontakte-Excel einlesen …“; die Datei wird als „Personen (Import …).xlsx“ neben die Liste gelegt",
+      "Spalten „Vorname“ + „Zuname“ und „2. Telefonnummer“ (als Handy) werden erkannt – passend zur Kontaktliste aus Copilot",
+      "Neue Kontakte aus den Bedarfen trägt die Liste etwa jede Minute selbst in „Personen.xlsx“ ein (legt sie an; löscht und überschreibt nichts)",
+      "Beim Eintippen eines Namens schlägt die Liste alle Personen aus den Excel-Dateien und aus allen Bedarfen vor – mit Position, E-Mail und Telefon"
+    ]
+  },
+  {
     "version": "0.45.1",
     "date": "2026-10-27T20:00",
     "items": [

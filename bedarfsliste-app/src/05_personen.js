@@ -11,7 +11,7 @@ const PERS_COLS = [
   { k: 'gl', t: 'Gliederung / Dienststelle', w: 26, re: /gliederung|dienststelle|einheit/ },
   { k: 'mail', t: 'E-Mail', w: 32, re: /mail/ },
   { k: 'tel', t: 'Telefon', w: 20, re: /^(telefon|tel\b|festnetz)(?!.*(\b2\b|mobil|handy))/ },
-  { k: 'mobil', t: 'Handy', w: 18, re: /handy|mobil|telefon 2|tel\.? 2/ },
+  { k: 'mobil', t: 'Handy', w: 18, re: /handy|mobil|telefon 2|tel\.? 2|^2\.? ?tel|zweite tel/ },              // „2. Telefonnummer“: meist das Handy
   { k: 'quelle', t: 'Quelle', w: 40, re: /quelle/ },
   { k: 'stand', t: 'Stand', w: 12, re: /^stand|datum/ },
 ];
@@ -27,7 +27,7 @@ function parsePersonen(book) {
     if (hi < 0) continue;
     const head = rows[hi].map(v => norm(v)), ci = {}, vi = head.indexOf('vorname');
     for (const c of PERS_COLS) { const i = head.findIndex((t, j) => t && j !== vi && c.re.test(t) && !Object.values(ci).includes(j)); if (i >= 0) ci[c.k] = i; }
-    const nach = head.indexOf('nachname') >= 0 ? head.indexOf('nachname') : vi >= 0 ? ci.n : -1, umgedreht = head[ci.n] === 'name, vorname';
+    const ni = head.findIndex(t => /^(nachname|zuname|familienname)$/.test(t)), nach = ni >= 0 ? ni : vi >= 0 ? ci.n : -1, umgedreht = head[ci.n] === 'name, vorname';
     for (const r of rows.slice(hi + 1)) {
       const p = Object.fromEntries(PERS_COLS.map(c => [c.k, ci[c.k] == null ? '' : c.k === 'mail' ? mailText(r[ci[c.k]]) : c.k === 'tel' || c.k === 'mobil' ? telText(r[ci[c.k]]) : ohnePlatzhalter(cellStr(r[ci[c.k]]))]));
       if (vi >= 0 && nach != null && nach >= 0) p.n = (ohnePlatzhalter(cellStr(r[vi])) + ' ' + ohnePlatzhalter(cellStr(r[nach]))).trim();
@@ -49,6 +49,7 @@ async function personenScan(force) {
     const fs = [];
     for await (const [n, e] of ST.htmlDir.entries()) if (e.kind === 'file' && PERS_RE.test(n) && !n.startsWith('~$')) fs.push(await e.getFile());
     fs.sort((a, b) => a.lastModified - b.lastModified);                  // die neueste zuletzt: ihre Angaben gelten
+    if (!fs.length) setTimeout(personenFrage, 0);                          // noch keine Kontakte-Excel: einmal fragen
     const stamp = fs.map(f => f.name + '@' + f.lastModified).join('|');
     if (!force && stamp === PR.stamp && !PR.err) return false;
     const L = []; let err = null;
@@ -84,8 +85,9 @@ async function personenDatei(file) {
   try { L = parsePersonen(await xlsxBook(await file.arrayBuffer(), { max: 4e6 })); } catch (e) { console.warn(e); }
   if (!L.length) { modal('Keine Personen gefunden', h('p', null, 'In „' + file.name + '“ steht keine Tabelle mit den Spalten „Name“ und „E-Mail“ oder „Telefon“.')); return 0; }
   if (rechOrdnerOk()) {
-    const name = PERS_RE.test(file.name) && !PR.files.some(f => f.name === file.name) ? file.name : 'Personen (Copilot ' + today() + ').xlsx';
-    try { const fh = await ST.htmlDir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(file); await w.close(); await personenScan(true); toast('„' + name + '“ im Ordner abgelegt und eingelesen – ' + L.length + ' Personen.', 'ok'); return L.length; }
+    // „Personen.xlsx“ pflegt die Liste selbst (personenPflegen) – eine eingelesene Datei bleibt unter eigenem Namen unangetastet daneben
+    const name = PERS_RE.test(file.name) && norm(file.name) !== norm(PERS_DATEI) && !PR.files.some(f => f.name === file.name) ? file.name : 'Personen (Import ' + today() + ').xlsx';
+    try { const fh = await ST.htmlDir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(file); await w.close(); await personenScan(true); await personenPflegen(); toast('„' + name + '“ im Ordner abgelegt und eingelesen – ' + L.length + ' Personen.', 'ok'); return L.length; }
     catch (e) { console.warn(e); }
   }
   personenSetzen([...PR.list, ...L]); PR.stamp = (PR.stamp || '') + '|' + file.name + '@' + file.lastModified;   // ohne Ordner: nur für diese Sitzung
@@ -99,8 +101,8 @@ const PERS_ANL = ['Personen für die Bedarfsliste',
   'Hier stehen die Zuständigen der Bedarfe (Fundraising, Malteser Hilfsdienst e. V., Diözese Paderborn) mit ihren dienstlichen Kontaktdaten. Die Bedarfsliste liest diese Datei und ergänzt damit fehlende Angaben bei den Zuständigen. Ausgefüllt von Copilot oder von Hand; die Datei wächst mit jedem Bedarf.',
   'Regeln: Je Person genau eine Zeile im Blatt „Personen“. Spaltenüberschriften und Blattnamen nicht ändern. Vorhandene Zeilen nicht löschen und Angaben nicht überschreiben – nur leere Zellen ergänzen und neue Personen unten anfügen. Nur dienstliche Angaben, die tatsächlich gefunden wurden; sonst leer lassen.',
   'Name: Vor- und Nachname. Position: Funktion bei den Maltesern (z. B. Ortsbeauftragter, Referent Fundraising). Gliederung / Dienststelle: z. B. Paderborn oder Diözesangeschäftsstelle. E-Mail, Telefon und Handy: dienstlich, Nummern als Text mit Vorwahl (z. B. 05251 1234-56). Quelle: woher die Angabe stammt (z. B. Outlook-Adressbuch oder Link). Stand: Datum der Angabe.'];
-function personenBlob() {
-  const head = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, zelle = { border: 'thin', v: 'top', wrap: true };
+// alle bekannten Personen: aus den Personen-Excel-Dateien und den Zuständigen aller Bedarfe (Angaben aus der Excel haben Vorrang, Leeres wird ergänzt)
+function personenAlle() {
   const bek = new Map(PR.list.map(p => [kkey(p.n), Object.assign({}, p)]));
   for (const b of D.bedarfe) for (const z of b.zust) {
     if (!z.n.trim()) continue;
@@ -109,11 +111,39 @@ function personenBlob() {
     if (!a.gl && b.gliederung) a.gl = istDio(b.gliederung) ? 'Diözese' : b.gliederung;
     bek.set(k, a);
   }
+  return bek;
+}
+function personenBlob() {
+  const head = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, zelle = { border: 'thin', v: 'top', wrap: true }, bek = personenAlle();
   const tx = c => c.k === 'tel' || c.k === 'mobil' ? 'txt' : undefined;          // Telefon als Text: Excel behält die führende 0
   const rows = [PERS_COLS.map(c => ({ v: c.t, st: head })), ...[...bek.values()].sort((a, b) => a.n.localeCompare(b.n, 'de')).map(p => PERS_COLS.map(c => ({ v: p[c.k] || '', st: zelle, t: tx(c) })))];
   for (let i = 0; i < 40; i++) rows.push(PERS_COLS.map(c => ({ v: '', st: zelle, t: tx(c) })));
   const anl = { name: 'Anleitung', cols: [120], rows: PERS_ANL.map((t, i) => [{ v: t, st: i ? { wrap: true, v: 'top' } : { b: true, sz: 15 } }]), heights: { 0: 24, 1: 34, 2: 48, 3: 48 }, grid: false };
   return xlsxBlob([{ name: 'Personen', cols: PERS_COLS.map(c => c.w), rows, heights: { 0: 22 }, freeze: 'B2', grid: false }, anl]);
+}
+
+// neue Zuständige und neue Angaben aus den Bedarfen in „Personen.xlsx“ eintragen (legt die Datei an) – nie löschen, Vorhandenes nicht überschreiben.
+// Läuft etwa jede Minute; vorher wird die Excel neu gelesen, damit Änderungen von Hand erhalten bleiben
+async function personenPflegen() {
+  if (DEMO || PR.busy || ST.conn !== 'ok' || !ST.htmlDir) return false;
+  await personenScan();
+  if (PR.err || PR.busy) return false;                                     // eine Datei nicht lesbar: lieber nichts schreiben
+  const neu = [...personenAlle().values()].some(a => { const p = PR.byKey.get(kkey(a.n)); return !p || Object.keys(a).some(k => a[k] && !p[k]); });
+  if (!neu) return false;
+  PR.busy = true;
+  try { const fh = await ST.htmlDir.getFileHandle(PERS_DATEI, { create: true }), w = await fh.createWritable(); await w.write(personenBlob()); await w.close(); }
+  catch (e) { console.warn(e); return false; }                             // z. B. in Excel geöffnet – beim nächsten Mal wieder
+  finally { PR.busy = false; }
+  await personenScan(true); return true;
+}
+// einmal fragen, ob eine vorhandene Kontakte-Excel eingelesen werden soll (danach über das Zahnrad)
+function personenFrage() {
+  if (DEMO || $('.modal')) return;
+  try { if (localStorage.getItem('bl-pers-frage')) return; localStorage.setItem('bl-pers-frage', '1'); } catch (e) { return; }
+  modal('Kontakte-Excel einlesen?', h('div', null,
+    h('p', null, 'Die Liste kann Kontakte der Malteser (Name, Position, E-Mail, Telefon, Handy) aus einer Excel übernehmen – etwa einer Kontaktliste aus Copilot. Beim Eintippen eines Namens schlägt sie die Person dann mit allen Angaben vor.'),
+    h('p', { class: 'muted small' }, 'Die Datei bleibt auf deinem Rechner bzw. im OneDrive neben der Bedarfsliste. Neue Kontakte aus den Bedarfen trägt die Liste selbst in „' + PERS_DATEI + '“ ein. Später: Zahnrad → „Kontakte-Excel einlesen …“.')),
+    [['Später', false], ['Excel auswählen …', true, 'primary']]).then(async ja => { if (ja) { const f = await pickFile('.xlsx'); if (f) personenDatei(f); } });
 }
 
 /* ---------- Kontaktdaten mit Copilot: Excel, kurzer Auftrag, Ergebnis übernehmen */

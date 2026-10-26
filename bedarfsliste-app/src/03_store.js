@@ -293,7 +293,7 @@ function startWatch() {
   ST.watch = setInterval(async () => {
     if (ST.conn !== 'ok' || ST.saving || document.hidden) return;
     ST.tick++;
-    if (ST.tick % 4 === 2) scanUpdatePkg();                       // etwa jede Minute: Update-Paket im Ordner?
+    if (ST.tick % 4 === 2) { scanUpdatePkg(); personenPflegen(); }  // etwa jede Minute: Update-Paket im Ordner? Neue Kontakte in die Personen-Excel
     if (ST.tick % 4 === 0) { karteiScan(); personenScan(); }      // etwa jede Minute: Förder-Kartei oder Personen-Excel geändert?
     if (ST.tick % 4 === 1) { kiCheck(); kiScan(); }               // etwa jede Minute: neues Ergebnis von Cowork? (Hinweis auf der Seite, Fenster)
     if (ST.conflict) return;
