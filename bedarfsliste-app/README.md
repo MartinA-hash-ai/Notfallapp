@@ -110,6 +110,14 @@ Bedarfsliste: F5 übernimmt nichts – sobald die Liste neue Ergebnisse in der A
 Ortsgliederungen\<Gliederung>\<Bedarf>“, Projekte der Diözese unter „…\1601_Diözese_Pojekte“ – beide Prompts nennen das; ist kein Pfad eingetragen, sucht Cowork den Ordner dort und trägt ihn zur Übernahme ein. Umschalten geht.
 Enthält die Excel neue Ergebnisse, meldet die Liste das mit einem Fenster; danach bleiben Hinweis und roter Punkt bis zur Übernahme. Texte (Antrag, Dank …) folgen in einem späteren Update.
 
+**UPL einlesen (seit 0.50):** Zahnrad → „UPL einlesen (Investitionsabfrage) …“. Erkannt wird die Kopfzeile mit „OG-Name“ und „Gesamtkosten“,
+die Gruppen („Fundraising“, „Kommentierung Referat“, „… Finanzausschuss und der GF“) in der Zeile darüber. Je Investition ein Bedarf: Name aus dem
+Anfang der Beschreibung (ohne „Investition:“, gern kürzen), Ort (DGS = Diözese), Summe aus „Gesamtkosten“, Beschreibung mit „ ---- “ und der
+Kommentierung des Fundraisings, Stern bei Priorität „hoch“, Stichwort „UPL <Jahr aus dem Dateinamen>“. Freigaben nur, wenn erteilt: Referat
+„genehmigt“ → Fachreferat freigegeben (Name = Dienst, Begründung als Notiz), Finanzausschuss/GF „genehmigt“ → Verwaltung budgetiert. Kommentare
+von Verwaltung und Referat sonst nicht. Vorschau mit Auswahl; ein zweites Einlesen legt nichts doppelt an und trägt nur neu erteilte Freigaben
+und fehlende Summen nach. Legende und Summenzeilen werden übergangen.
+
 **Förderer-Übersicht (seit 0.48):** Die Liste schreibt `Förderer-Übersicht.xlsx` neben sich selbst und hält sie etwa jede Minute aktuell
 (nur bei Änderungen; Zahnrad → „Förderer-Übersicht (Excel) jetzt aktualisieren“). Blatt „Förderer“: je Förderer Art, Website, Antragsweg,
 Kontakt, Anfragen, Zusagen, Ablehnungen, Summe der Zusagen, letzte Anfrage, Bedarfe. Blatt „Anfragen“: je Förderer und Bedarf eine Zeile mit

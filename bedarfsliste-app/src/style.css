@@ -1024,3 +1024,11 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .ki-meldung { display: flex; gap: 14px; align-items: flex-start; }
 .ki-meldung p { margin: 0 0 8px; }
 .ki-meldung-ico svg { width: 30px; height: 30px; display: block; margin-top: 2px; }
+
+/* UPL einlesen: Vorschau der Investitionen */
+.upl-tab { max-height: 55vh; overflow: auto; border: 1px solid var(--line3); border-radius: 6px; }
+.upl-tab table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.upl-tab th, .upl-tab td { padding: 5px 8px; border-bottom: 1px solid var(--line3); text-align: left; vertical-align: top; }
+.upl-tab th { position: sticky; top: 0; background: var(--head); }
+.upl-tab td.num, .upl-tab th.num { text-align: right; white-space: nowrap; }
+.upl-tab tr.muted td { color: var(--faint); }

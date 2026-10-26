@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.50.0",
+    "date": "2026-10-28T12:00",
+    "items": [
+      "UPL einlesen (Zahnrad): die Investitionsabfrage aus Excel als Bedarfe – Name, Ort, Summe, Beschreibung mit „ ---- “ und der Kommentierung des Fundraisings, Stern bei Priorität „hoch“, Stichwort „UPL 2027“",
+      "Freigaben aus der UPL nur, wenn erteilt: Referat „genehmigt“ = Fachreferat freigegeben, Finanzausschuss/GF „genehmigt“ = Verwaltung budgetiert",
+      "Vorschau mit Auswahl vor dem Übernehmen; erneutes Einlesen legt nichts doppelt an und trägt nur neue Freigaben und fehlende Summen nach"
+    ]
+  },
+  {
     "version": "0.49.0",
     "date": "2026-10-28T11:00",
     "items": [

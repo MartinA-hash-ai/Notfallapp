@@ -100,5 +100,18 @@ const { chromium, ok, open, connect, writeBin, finish } = require('./lib');
   r = await p.evaluate(async () => { await karteiScan(true); return KR.err || ''; });
   ok(/keine Tabelle mit einer Spalte „Gliederung“/.test(r), 'Kartei ohne Spalte „Gliederung“: verständliche Meldung statt 0 Förderer: ' + r);
 
+  // UPL (Investitionsabfrage): Gruppen über der Kopfzeile, Legende darunter wird übergangen; Freigaben nur, wenn genehmigt; Fundraising-Kommentar hinten an
+  r = await p.evaluate(async () => {
+    const rows = [['', '', '', '', '', '', '', 'Fundraising', 'Kommentierung Referat', '', 'Kommentierung aus der Beratung des Finanzausschuss und der GF', ''],
+      ['OG-Nr.', 'OG-Name', 'Priorität', 'Art der Investition', 'Investition mit Beschreibung und Begründung', 'Dienst', 'Gesamtkosten', 'Kommentierung', 'Bewertung', 'Begründung', 'Bewertung', 'Begründung'],
+      [160101, 'DGS', 'Hoch', 'Fahrzeug', 'Zugfahrzeug für Anhänger. Wird dringend gebraucht.', 'KATS', 25000, 'FR schwierig', 'abgelehnt', 'nein', 'genehmigt', 'passt'],
+      [161111, 'Büren', '"MITTEL"', 'Ausstattung', 'Investition: AED Pro\nBegründung: fehlt bisher', 'SAND', 1500, '', 'genehmigt', 'notwendig', 'abgelehnt', ''],
+      ['', '', '', 'Legende:', 'optional (sachlich sinnvoll)', '', '', '', '', '', '', ''], [593000, 237000, '', '', '', '', '', '', '', '', '', '']];
+    const L = uplLesen(await xlsxBook(await xlsxBlob([{ name: 'OG & Referate', cols: Array(12).fill(14), rows, merges: ['I1:J1', 'K1:L1'] }]).arrayBuffer()), '2027');
+    const b = blank(), c = blank(); uplAnwenden(b, L[0], true); uplAnwenden(c, L[1], true);
+    return [L.length, [b.titel, b.gliederung, b.summe, b.prio, b.stichworte.join(), b.beschreibung, b.freigabe.fach.st, b.freigabe.verw.st].join('|'), [c.titel, c.prio, c.freigabe.fach.st, c.freigabe.fach.name, c.freigabe.verw.st, c.beschreibung.includes(' ---- ')].join('|')]; });
+  ok(r[0] === 2 && r[1] === 'Zugfahrzeug für Anhänger|Diözese|25000|hoch|UPL 2027|Zugfahrzeug für Anhänger. Wird dringend gebraucht. ---- FR schwierig|offen|ok'
+    && r[2] === 'AED Pro|mittel|ok|SAND|offen|false', 'UPL: Name, Ort, Summe, Stern, Stichwort, Beschreibung mit „ ---- “ Fundraising; Freigaben nur genehmigte: ' + r.join(' / '));
+
   await finish(b, [p]);
 })();
