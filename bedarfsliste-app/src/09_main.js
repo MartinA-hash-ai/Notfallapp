@@ -273,7 +273,8 @@ function mainMenu(btn) {
     colwGet(false) || colwGet(true) ? item('colw-reset', 'Spaltenbreiten der Liste zurücksetzen') : null,
     item('vorlage-leer', 'Leere Förderplan-Vorlage (Excel)'),
     DEMO ? null : item('kartei', 'Förder-Kartei' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : '') + ' wählen, verknüpfen oder neu einlesen …'),
-    DEMO ? null : item('upl', 'UPL einlesen (Investitionsabfrage) …'),
+    DEMO ? null : item('upl', 'UPL einlesen (Investitionsabfrage oder ausgefüllte UPL-Vorlage) …'),
+    item('upl-vorlage', 'UPL-Vorlage für Copilot/Cowork (Excel)'),
     DEMO ? null : item('pers-import', 'Kontakte-Excel einlesen …'),
     DEMO ? null : item('ueb', 'Förderer-Übersicht (Excel) jetzt aktualisieren'),
     h('hr'),
@@ -442,6 +443,7 @@ async function act(k, a, e) {
     case 'backup': closeMenus(); saveBackup(); return;
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
+    case 'upl-vorlage': closeMenus(); download('UPL_Vorlage.xlsx', await uplVorlageBlob()); return;
     case 'upl': { closeMenus(); const f = await pickFile('.xlsx'); if (f) await uplImport(f); return; }
     case 'ueb': closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; toast(await ueSchreiben(true) ? '„' + UEB_DATEI + '“ neben der Liste aktualisiert' : 'Noch keine Förderer – oder die Datei ist gerade in Excel geöffnet.', 'ok'); return;
     case 'pers-import': { closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; const f = await pickFile('.xlsx'); if (f) personenDatei(f); return; }

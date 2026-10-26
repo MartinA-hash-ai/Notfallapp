@@ -118,6 +118,14 @@ Kommentierung des Fundraisings, Stern bei Priorität „hoch“, Stichwort „UP
 von Verwaltung und Referat sonst nicht. Vorschau mit Auswahl; ein zweites Einlesen legt nichts doppelt an und trägt nur neu erteilte Freigaben
 und fehlende Summen nach. Legende und Summenzeilen werden übergangen.
 
+**UPL-Vorlage für Copilot/Cowork (seit 0.51):** `UPL_Vorlage.xlsx` (auch Zahnrad → „UPL-Vorlage für Copilot/Cowork (Excel)“) hat das Blatt
+„UPL-Import“ (OG-Nr., Übernehmen, Bedarf (Kurzname), Gliederung, Summe, Priorität, Deadline, Beschreibung, Einschätzung Fundraising, Dienst,
+Fachreferat freigegeben + Begründung, Verwaltung budgetiert + Begründung, bisherige Spenden, UPL-Zeile, Hinweis), die „Anleitung“ mit Auftrag
+(Prompt), Geschäftsjahr und einer Regel je Spalte, und „Gliederungen“ mit den Namen der Liste. Die KI überträgt die UPL nach diesen Regeln;
+die ausgefüllte Vorlage wird wie die UPL eingelesen. Zusätzlich: Deadline (Ende des genannten Zeitraums), bisherige Spenden als zugesagte und
+eingegangene Spende im Förderplan, „Übernehmen: nein“ ist in der Vorschau abgewählt, Hinweise stehen dort mit ⚠. Die Kennung ist dieselbe wie
+beim direkten Einlesen – beide Wege mischen sich ohne Doppelte.
+
 **Förderer-Übersicht (seit 0.48):** Die Liste schreibt `Förderer-Übersicht.xlsx` neben sich selbst und hält sie etwa jede Minute aktuell
 (nur bei Änderungen; Zahnrad → „Förderer-Übersicht (Excel) jetzt aktualisieren“). Blatt „Förderer“: je Förderer Art, Website, Antragsweg,
 Kontakt, Anfragen, Zusagen, Ablehnungen, Summe der Zusagen, letzte Anfrage, Bedarfe. Blatt „Anfragen“: je Förderer und Bedarf eine Zeile mit

@@ -112,6 +112,18 @@ const { chromium, ok, open, connect, writeBin, finish } = require('./lib');
     return [L.length, [b.titel, b.gliederung, b.summe, b.prio, b.stichworte.join(), b.beschreibung, b.freigabe.fach.st, b.freigabe.verw.st].join('|'), [c.titel, c.prio, c.freigabe.fach.st, c.freigabe.fach.name, c.freigabe.verw.st, c.beschreibung.includes(' ---- ')].join('|')]; });
   ok(r[0] === 2 && r[1] === 'Zugfahrzeug für Anhänger|Diözese|25000|hoch|UPL 2027|Zugfahrzeug für Anhänger. Wird dringend gebraucht. ---- FR schwierig|offen|ok'
     && r[2] === 'AED Pro|mittel|ok|SAND|offen|false', 'UPL: Name, Ort, Summe, Stern, Stichwort, Beschreibung mit „ ---- “ Fundraising; Freigaben nur genehmigte: ' + r.join(' / '));
+  // ausgefüllte UPL-Vorlage (von Copilot/Cowork): Spalten der Vorlage, Geschäftsjahr aus der Anleitung, Deadline, bisherige Spenden, „nein“ und Hinweis
+  r = await p.evaluate(async () => {
+    const head = UPL_V.map(c => c.t), z = o => UPL_V.map(c => o[c.k] ?? '');
+    const bk = await xlsxBook(await xlsxBlob([{ name: 'UPL-Import', cols: head.map(() => 12), rows: [head,
+      z({ kennung: '161212', ueber: 'ja', titel: 'Navioven mit Rollwagen', ort: 'Altenbeken', summe: 7000, prio: 'hoch', deadline: '30.09.2027', text: 'Navioven von Rieber mit Rollwagen.', fr: 'Bingo!', dienst: 'GB', fach: 'ja', fachBeg: 'passt', verw: 'nein', spenden: 2250, hinweis: '' }),
+      z({ kennung: '161313', ueber: 'nein', titel: 'Puppen', ort: 'Castrop-Rauxel', text: 'Puppen für EH-Ausbildung', hinweis: 'Summe 0' })] },
+      { name: 'Anleitung', cols: [20, 20], rows: [['UPL'], ['Geschäftsjahr', '2028']] }]).arrayBuffer());
+    const L = uplVorlageLesen(bk, '2027'), b = blank(); uplAnwenden(b, L[0], true);
+    return [L.length, L[1].aus, L[1].hinweis, [b.titel, b.gliederung, b.summe, b.prio, b.deadline, b.stichworte.join(), b.beschreibung, b.freigabe.fach.st, b.freigabe.verw.st, b.foerderer.map(f => f.name + ':' + f.status + ':' + f.eingegangen).join()].join('|'),
+      L[0].key === uplLesen(await xlsxBook(await xlsxBlob([{ name: 'U', cols: [9, 9, 9], rows: [['OG-Nr.', 'OG-Name', 'Investition mit Beschreibung', 'Gesamtkosten'], [161212, 'Altenbeken', 'Navioven von Rieber mit Rollwagen.', 7000]] }]).arrayBuffer()), '')[0].key]; });
+  ok(r[0] === 2 && r[1] === false && r[2] === 'Summe 0' && r[3] === 'Navioven mit Rollwagen|Altenbeken|7000|hoch|2027-09-30|UPL 2028|Navioven von Rieber mit Rollwagen. ---- Bingo!|ok|offen|Bisherige Spenden (laut UPL):zugesagt:2250' && r[4] === true,
+    'UPL-Vorlage: Kurzname, Deadline, Geschäftsjahr aus der Anleitung, Spenden im Förderplan, „nein“ abgewählt, Hinweis; gleiche Kennung wie beim direkten Einlesen: ' + r.join(' / '));
 
   await finish(b, [p]);
 })();
