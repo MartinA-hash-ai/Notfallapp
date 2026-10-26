@@ -17,6 +17,13 @@ function applyTheme(t = themeGet()) {
   try { localStorage.setItem('bl-theme', t); } catch (e) { /* */ }
 }
 
+// Zuständige fertig bearbeitet: neue oder geänderte Personen (gegenüber dem Stand vor dem Bearbeiten) – dauerhaft in die Personenliste? (fragt nach)
+let ZSNAP = '[]';
+function zustFertig(b) {
+  const vor = JSON.parse(ZSNAP || '[]').map(c => JSON.stringify(c)); ZSNAP = '[]';
+  const L = b.zust.filter(c => !vor.includes(JSON.stringify(c)));
+  if (L.length) personenBestaetigen(L, b.gliederung);
+}
 /* ---------- Kopfzeile */
 // Speicherstand als Symbol: grüne Diskette = gespeichert, gelbes drehendes Rad = speichert gerade; Uhrzeit beim Überfahren.
 // Was einen Klick braucht (Ordner wählen, Konflikt, Fehler), steht weiter als Text da.
@@ -175,6 +182,7 @@ function renderNow() {
     if (UI.zEdit && UI.zEdit !== (b && b.id)) {                                     // Seite verlassen: Zuständige fertig bearbeitet, leere fallen weg
       const z = D.bedarfe.find(x => x.id === UI.zEdit); UI.zEdit = null;
       if (z && z.zust.some(kontaktLeer)) { z.zust = z.zust.filter(c => !kontaktLeer(c)); changed(); }
+      if (z) setTimeout(() => wennFrei(() => zustFertig(z)), 0);
     }
     PIE_HOLD = false;
     app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : listView());
@@ -524,6 +532,7 @@ async function act(k, a, e) {
     case 'k-edit': case 'k-neu': {
       const z = kZiel(b, a); if (!z) return;
       if (k === 'k-neu' && z.o[z.p].length < z.max) { z.o[z.p].push(z.neu()); changed(); }
+      if (z.ui === 'zEdit' && UI.zEdit !== z.id) ZSNAP = JSON.stringify(z.o.zust.filter(c => k === 'k-neu' ? c !== z.o.zust[z.o.zust.length - 1] : true));   // Stand vor dem Bearbeiten
       UI[z.ui] = z.id; keep(renderNow);
       const L = $$(z.box + ' .k-ed'), e = k === 'k-neu' ? L[L.length - 1] : L[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
       return;
@@ -533,7 +542,7 @@ async function act(k, a, e) {
       const [c] = z.o[z.p].splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) z.o[z.p].unshift(c);
       changed(); break;
     }
-    case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; } else UI.kEdit = null; break; }
+    case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; if (z.ui === 'zEdit') zustFertig(b); } else UI.kEdit = null; break; }
     case 'sw-weg': b.stichworte.splice(+a.dataset.i, 1); changed(); break;
     case 'sw-pop': swPop(a); return;
     case 'prio-stern': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); break;     // Stern im Kopf der Seite: Prio an oder aus

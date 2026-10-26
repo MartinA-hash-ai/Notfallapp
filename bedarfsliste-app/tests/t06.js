@@ -113,7 +113,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => !!document.querySelector('#nach-body') && !document.querySelector('#fin-pie')), 'Nacharbeit von Hand aufgeklappt, Förderplan bleibt zu');
   await p.evaluate(() => { renderNow(); });
   ok(await p.evaluate(() => !!document.querySelector('#nach-body') && !document.querySelector('#fin-pie')), 'von Hand geklappt bleibt beim Neuzeichnen');
-  await p.reload(); await p.waitForSelector('#sec-foe'); await p.waitForTimeout(300);          // erst warten, bis die Seite gezeichnet ist
+  await p.reload(); await p.waitForTimeout(300);
   ok(await p.evaluate(() => !!document.querySelector('#fin-pie') && !document.querySelector('#nach-body') && document.querySelectorAll('.fk.fp').length === 3), 'neu geöffnet: wieder je nach Phase (Förderplan offen, Nacharbeit zu)');
   r = await p.evaluate(() => { oeffnen('b-kueche'); return [!document.querySelector('#fin-pie'), !!document.querySelector('#foe-kurz'), !!document.querySelector('#nach-body')]; });
   ok(r.join() === 'true,true,true', 'Bedarf in der Nacharbeit: Förderplan eingeklappt, Nacharbeit offen: ' + r.join());
@@ -292,6 +292,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => { const k = [...document.querySelectorAll('#sec-eck .k-ed')].map(e => e.getBoundingClientRect()); return [k.length, !!document.querySelector('#sec-eck .kadd'), k[0].top === k[1].top, k[2].top > k[0].bottom && Math.abs(k[2].left - k[0].left) < 2]; });
   ok(r.join() === '3,true,true,true', 'dritte Person in der nächsten Zeile, weitere möglich: ' + r.join());
   await p.click('#sec-eck .sub [data-act="k-fertig"]');
+  await p.waitForSelector('.modal'); ok((await p.$eval('.modal', e => e.textContent)).includes('Personenliste'), 'Fertig mit geänderten Angaben: Frage, ob sie dauerhaft in die Personenliste sollen');
+  await p.click('.modal footer button:not(.primary)'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [cur().zust.map(kontaktText).join(' | '), [...document.querySelectorAll('#sec-eck .k1 a')].map(a => a.getAttribute('href') + '=' + a.dataset.tip).join(), document.querySelector('#sec-eck .k1 .star').textContent, document.querySelectorAll('#sec-eck .k1 .kl').length, document.querySelector('#sec-eck .k1 .kr').textContent]);
   ok(r.join(' / ') === 'Thomas Beispiel; Ortsbeauftragter; thomas@malteser.example; 05251 123 | Anna Muster / mailto:thomas@malteser.example=thomas@malteser.example,tel:05251123=05251 123,tel:017055=0170 55 / ★ / 0 / Ortsbeauftragter',
     'Fertig: leere Zeile entfernt; Name und Position, E-Mail und Telefon nur als Knöpfe: ' + r.join(' / '));
@@ -311,6 +313,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('#sec-eck .kadd');
   await p.evaluate(() => { UI.id = 'b-mtw'; renderNow(); });
   ok(await p.evaluate(() => D.bedarfe.find(x => x.id === 'b-aed').zust.length === 2 && !UI.zEdit), 'Seite verlassen: Bearbeiten endet, leere Zeile fällt weg');
+  await p.waitForSelector('.modal'); ok((await p.$eval('.modal', e => e.textContent)).includes('Thomas Beispiel'), 'auch beim Verlassen der Seite: Frage nach der Personenliste');
+  await p.click('.modal footer button:not(.primary)'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const x = { zust: [{ n: 'A', rolle: 'R', mail: '', tel: '' }, { n: 'B', rolle: '', mail: '', tel: '' }] }, t = L => L.map(z => z.n + (z.rolle ? ':' + z.rolle : '')).join(',');
     return [t(zustVorn(x, 'B')), t(zustVorn(x, 'C')), t(zustVorn({ zust: [{ n: 'A', rolle: '', mail: '', tel: '' }] }, 'Thomas Beispiel')), t(zustVorn(x, ''))].join(' / '); });
   ok(r === 'B,A:R / C,A:R,B / Thomas Beispiel:Ortsbeauftragter / B', 'Ansprechperson in der Liste ändern: vorhandene nach vorn, Angaben gehen nicht verloren, bekannte bringt ihre mit: ' + r);

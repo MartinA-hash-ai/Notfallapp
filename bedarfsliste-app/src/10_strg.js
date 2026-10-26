@@ -172,7 +172,7 @@ function strgAct(b, el, then) {
     case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', feld: 'titel', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
     case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', feld: 'summe', then, set: v => { b.summe = v; } });
     case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', feld: 'ort', then, set: v => { b.gliederung = v.trim(); } });
-    case 'zust': return editField(b, el, { value: (b.zust[0] || {}).n || '', src: SRC.zust, label: 'Ansprechperson', feld: 'zust', then, set: v => { b.zust = zustVorn(b, v.trim()); } });
+    case 'zust': return editField(b, el, { value: (b.zust[0] || {}).n || '', src: SRC.zust, label: 'Ansprechperson', feld: 'zust', then, set: v => { const alt = (b.zust[0] || {}).n || ''; b.zust = zustVorn(b, v.trim()); if (v.trim() && norm(v) !== norm(alt)) setTimeout(() => wennFrei(() => personenBestaetigen([b.zust[0]], b.gliederung)), 300); } });   // neue Ansprechperson: dauerhaft in die Personenliste?
     case 'deadline': return calPop(el, b.deadline, v => { b.deadline = v; changed(); relist(b); }, { clear: 'Deadline entfernen' });
     case 'eig': return editField(b, el, { value: b.eigenanteil, num: true, right: true, label: 'Eigenmittel in Euro', set: v => { b.eigenanteil = v; } });
     case 'amt': if (!f) return;

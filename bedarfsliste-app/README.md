@@ -124,6 +124,12 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Personenliste nur mit Bestätigung (seit 0.53):** Die Liste schreibt nicht mehr von selbst in `Personen.xlsx`. Neue oder geänderte Zuständige
+kommen nur nach einer Rückfrage hinein: beim „Fertig“ unter „Zuständig“ (auch beim Verlassen der Seite während des Bearbeitens), beim Eintragen
+einer neuen Ansprechperson in der Liste (die Frage kommt erst, wenn die Eingabe fertig ist) und beim Einpflegen einer Recherche („auch dauerhaft
+in die Personenliste übernehmen“, angehakt). Die Frage zeigt je Person, was neu ist oder was sich ändert (alt → neu); „Nur für diesen Bedarf“
+lässt die Personenliste unverändert.
+
 **UPL-Vorlage für Copilot/Cowork (seit 0.51):** `UPL_Vorlage.xlsx` (auch Zahnrad → „UPL-Vorlage für Copilot/Cowork (Excel)“) hat das Blatt
 „UPL-Import“ (OG-Nr., Übernehmen, Bedarf (Kurzname), Gliederung, Summe, Priorität, Deadline, Beschreibung, Einschätzung Fundraising, Dienst,
 Fachreferat freigegeben + Begründung, Verwaltung budgetiert + Begründung, bisherige Spenden, UPL-Zeile, Hinweis), die „Anleitung“ mit Auftrag

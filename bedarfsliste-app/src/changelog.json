@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.53.0",
+    "date": "2026-10-28T17:00",
+    "items": [
+      "Personenliste nur mit Bestätigung: beim „Fertig“ der Zuständigen fragt die Liste, ob neue oder geänderte Angaben dauerhaft übernommen werden sollen (mit alt → neu)",
+      "Neue Ansprechperson direkt in der Liste: dieselbe Frage, erst wenn die Eingabe fertig ist",
+      "Recherche einpflegen: Häkchen „auch dauerhaft in die Personenliste übernehmen“",
+      "Die Personen-Excel wird nicht mehr automatisch jede Minute ergänzt"
+    ]
+  },
+  {
     "version": "0.52.0",
     "date": "2026-10-28T15:00",
     "items": [

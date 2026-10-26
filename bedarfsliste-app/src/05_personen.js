@@ -114,8 +114,8 @@ function personenAlle() {
   }
   return bek;
 }
-function personenBlob() {
-  const head = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, zelle = { border: 'thin', v: 'top', wrap: true }, bek = personenAlle();
+function personenBlob(bek = personenAlle()) {
+  const head = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, zelle = { border: 'thin', v: 'top', wrap: true };
   const tx = c => c.k === 'tel' || c.k === 'mobil' ? 'txt' : undefined;          // Telefon als Text: Excel behält die führende 0
   const rows = [PERS_COLS.map(c => ({ v: c.t, st: head })), ...[...bek.values()].sort((a, b) => a.n.localeCompare(b.n, 'de')).map(p => PERS_COLS.map(c => ({ v: p[c.k] || '', st: zelle, t: tx(c) })))];
   for (let i = 0; i < 40; i++) rows.push(PERS_COLS.map(c => ({ v: '', st: zelle, t: tx(c) })));
@@ -123,22 +123,49 @@ function personenBlob() {
   return xlsxBlob([{ name: 'Personen', cols: PERS_COLS.map(c => c.w), rows, heights: { 0: 22 }, freeze: 'B2', grid: false }, anl]);
 }
 
-// neue Zuständige und neue Angaben aus den Bedarfen in „Personen.xlsx“ eintragen (legt die Datei an) – nie löschen, Vorhandenes nicht überschreiben.
-// Läuft etwa jede Minute; vorher wird die Excel neu gelesen, damit Änderungen von Hand erhalten bleiben
-async function personenPflegen() {
-  if (DEMO || PR.busy || ST.conn !== 'ok' || !ST.htmlDir) return false;
-  await personenScan();
-  if (PR.err || PR.busy) return false;                                     // eine Datei nicht lesbar: lieber nichts schreiben
-  const neu = [...personenAlle().values()].some(a => { const p = PR.byKey.get(kkey(a.n)); return !p || Object.keys(a).some(k => a[k] && !p[k]); });
-  if (!neu) return false;
-  if (!await personenSchreiben()) return false;
-  await personenScan(true); return true;
+/* ---------- Personenliste dauerhaft ändern – nur mit Bestätigung: beim „Fertig“ der Zuständigen, beim Eintragen einer Ansprechperson in der Liste
+   und beim Einpflegen einer Recherche. Ohne Bestätigung bleiben die Angaben nur beim Bedarf. */
+const PERS_FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy', gl: 'Gliederung' };
+// was an diesen Personen neu ist gegenüber der Personenliste: [{ c, neu, felder: [[k, alt, neu]] }]
+function personenAbweichung(L, gl) {
+  const R = [];
+  for (const c of L) {
+    if (!c || !(c.n || '').trim()) continue;
+    const p = person(c.n), x = Object.assign({}, c, !p && gl ? { gl: istDio(gl) ? 'Diözese' : gl } : {});
+    const felder = Object.keys(PERS_FL).filter(k => (x[k] || '').trim() && (x[k] || '').trim() !== ((p && p[k]) || '').trim()).map(k => [k, (p && p[k]) || '', x[k].trim()]);
+    if (!p || felder.length) R.push({ c: x, neu: !p, felder });
+  }
+  return R;
 }
-// „Personen.xlsx“ schreiben: alle bekannten Personen (personenAlle)
+// in die Personenliste übernehmen (Personen.xlsx); A aus personenAbweichung
+async function personenUebernehmen(A) {
+  if (!A.length) return false;
+  personenSetzen([...PR.list, ...A.map(a => Object.assign({ n: a.c.n.trim() }, Object.fromEntries(a.felder.map(([k, , v]) => [k, v]))))]);   // die neuen Angaben zuletzt: sie gelten
+  if (DEMO || !rechOrdnerOk()) { toast('Personenliste geändert – nur für diese Sitzung (ohne verbundenen Ordner wird keine Datei geschrieben).', 'warn'); safeRender(); return true; }
+  if (await personenSchreiben()) { await personenScan(true); toast('In die Personenliste übernommen: ' + A.map(a => a.c.n.trim()).join(', '), 'ok'); }
+  else toast('„' + PERS_DATEI + '“ konnte nicht geschrieben werden – ist sie gerade in Excel geöffnet?', 'warn');
+  safeRender(); return true;
+}
+// erst fragen, wenn nichts mehr offen ist (Feld in der Liste, Kalender, Fenster) – sonst platzt die Frage mitten in die Eingabe eines neuen Bedarfs
+function wennFrei(fn, bis = Date.now() + 120000) {
+  if ($('.le-edit, .le-new, .cal-pop, .zeit-pop, .modal, .le-sug')) { if (Date.now() < bis) setTimeout(() => wennFrei(fn, bis), 300); return; }
+  fn();
+}
+// fragen, ob neue Personen bzw. geänderte Angaben dauerhaft in die Personenliste sollen
+async function personenBestaetigen(L, gl) {
+  const A = personenAbweichung(L, gl); if (!A.length || $('.modal')) return;
+  const an = A.map(() => true);
+  const body = h('div', { class: 'help' }, h('p', null, 'Diese Angaben stehen noch nicht so in der Personenliste. Sollen sie dauerhaft übernommen werden? Dann schlägt die Liste sie auch bei anderen Bedarfen vor.'),
+    ...A.map((a, i) => h('label', { class: 'imp-f pers-best' }, h('input', { type: 'checkbox', checked: true, onchange: e => { an[i] = e.target.checked; } }), h('span', { class: 'imp-n' }, a.c.n.trim()),
+      h('span', { class: 'imp-pill' }, a.neu ? 'neu' + (a.felder.length ? ': ' + a.felder.map(f => PERS_FL[f[0]]).join(', ') : '') : 'geändert'),
+      a.neu ? null : h('span', { class: 'small muted' }, a.felder.map(([k, alt, neu]) => PERS_FL[k] + ': ' + (alt ? alt + ' → ' : '') + neu).join(' · ')))));
+  if (await modal('In die Personenliste übernehmen?', body, [['Nur für diesen Bedarf', false], ['Dauerhaft übernehmen', true, 'primary']])) await personenUebernehmen(A.filter((a, i) => an[i]));
+}
+// „Personen.xlsx“ schreiben: die Personenliste (PR) – Zuständige aus den Bedarfen nur, wenn sie bestätigt wurden
 async function personenSchreiben() {
   if (PR.busy) return false;
   PR.busy = true;
-  try { const fh = await ST.htmlDir.getFileHandle(PERS_DATEI, { create: true }), w = await fh.createWritable(); await w.write(personenBlob()); await w.close(); return true; }
+  try { const fh = await ST.htmlDir.getFileHandle(PERS_DATEI, { create: true }), w = await fh.createWritable(); await w.write(personenBlob(new Map(PR.list.map(p => [kkey(p.n), p])))); await w.close(); return true; }
   catch (e) { console.warn(e); return false; }                             // z. B. in Excel geöffnet – beim nächsten Mal wieder
   finally { PR.busy = false; }
 }
@@ -148,7 +175,7 @@ function personenFrage() {
   try { if (localStorage.getItem('bl-pers-frage')) return; localStorage.setItem('bl-pers-frage', '1'); } catch (e) { return; }
   modal('Kontakte-Excel einlesen?', h('div', null,
     h('p', null, 'Die Liste kann Kontakte der Malteser (Name, Position, E-Mail, Telefon, Handy) aus einer Excel übernehmen – etwa einer Kontaktliste aus Copilot. Beim Eintippen eines Namens schlägt sie die Person dann mit allen Angaben vor.'),
-    h('p', { class: 'muted small' }, 'Die Datei bleibt auf deinem Rechner bzw. im OneDrive neben der Bedarfsliste. Neue Kontakte aus den Bedarfen trägt die Liste selbst in „' + PERS_DATEI + '“ ein. Später: Zahnrad → „Kontakte-Excel einlesen …“.')),
+    h('p', { class: 'muted small' }, 'Die Datei bleibt auf deinem Rechner bzw. im OneDrive neben der Bedarfsliste. Neue oder geänderte Kontakte aus den Bedarfen kommen nach einer Rückfrage in „' + PERS_DATEI + '“. Später: Zahnrad → „Kontakte-Excel einlesen …“.')),
     [['Später', false], ['Excel auswählen …', true, 'primary']]).then(async ja => { if (ja) { const f = await pickFile('.xlsx'); if (f) personenDatei(f); } });
 }
 

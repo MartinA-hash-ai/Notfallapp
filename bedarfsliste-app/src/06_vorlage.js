@@ -292,10 +292,11 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
     h('b', null, 'Ordner des Bedarfs'), linkNeu ? h('a', { href: linkNeu, target: '_blank', rel: 'noopener', class: 'small' }, 'in SharePoint öffnen ↗') : null),
     h('div', { class: 'imp-neu small' }, ordnerText(linkNeu || pfadNeu) || linkNeu || pfadNeu, b.link ? h('div', { class: 'muted' }, 'bisher: ' + b.link) : null,
       linkNeu ? null : h('div', { class: 'muted' }, 'Den SharePoint-Link trägt die Liste nach, sobald bei einem Bedarf einmal ein SharePoint-Link aus der Adresszeile des Browsers eingefügt ist.'))));
-  const persAn = persNeu.map(() => true), FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy' };
+  const persAn = persNeu.map(() => true), FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy' }; let persDauer = true;
   if (persNeu.length) teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('b', null, 'Kontaktdaten der Zuständigen')),
     persNeu.map((x, i) => h('label', { class: 'imp-f' }, h('input', { type: 'checkbox', checked: true, onchange: e => { persAn[i] = e.target.checked; } }), h('span', { class: 'imp-n' }, x.z.n),
-      h('span', { class: 'imp-pill' }, x.neu.map(k => FL[k]).join(', ') + ' ergänzt')))));
+      h('span', { class: 'imp-pill' }, x.neu.map(k => FL[k]).join(', ') + ' ergänzt'))),
+    h('label', { class: 'check small pers-dauer' }, h('input', { type: 'checkbox', checked: true, onchange: e => { persDauer = e.target.checked; } }), 'auch dauerhaft in die Personenliste übernehmen (dann auch bei anderen Bedarfen)')));
   if (ulVor.length) teile.push(h('section', { class: 'imp-teil' }, h('h3', null, 'Unterlagen'),
     h('div', { class: 'imp-ul' }, ulVor.map(v => v.apply ? h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { v.an = e.target.checked; } }), h('span', null, v.t, v.info ? h('span', { class: 'muted small' }, ' – ' + v.info) : null))
       : h('div', { class: 'imp-nur' }, h('span', null, v.t), v.info ? h('span', { class: 'muted small' }, ' – ' + v.info) : null)))));
@@ -337,6 +338,7 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
   if (beschrNeu && beschrOk) { b.beschreibung = beschrNeu; was.push('Beschreibung'); }
   const nu = ulVor.filter(v => v.apply && v.an); nu.forEach(v => v.apply()); if (nu.length) was.push(nu.length + (nu.length === 1 ? ' Unterlage' : ' Unterlagen'));
   const np = persNeu.filter((x, i) => persAn[i]); np.forEach(x => x.neu.forEach(k => { x.z[k] = x.p[k]; })); if (np.length) was.push('Kontaktdaten bei ' + np.length + (np.length === 1 ? ' Person' : ' Personen'));
+  if (np.length && persDauer) setTimeout(() => personenUebernehmen(personenAbweichung(np.map(x => x.z), b.gliederung)), 0);   // beim Einpflegen bestätigt
   let neu = 0, erg = 0;
   if (zeigFoe) items.forEach((it, i) => {
     if (!sel[i]) return;
