@@ -96,9 +96,9 @@ Förderer eine ausführliche Recherche als Word-Datei „Förderrecherche – <F
 in einen Unterordner je Bedarf unter „Förderrecherche“); in der Liste stehen nur die Essenz
 (Pro und Contra je höchstens drei kurze Punkte) und der Dateiname (Fenster „Weitere Infos“). Wählst du Cowork, kommt alles Angehakte in einen Prompt – auch Ordner (Cowork sucht im OneDrive und trägt den Pfad ein) und Kontaktdaten
 (aus Personen-Excel, Dateien im Ordner und malteser.de; das interne Adressbuch kennt nur Copilot). Cowork schreibt in die Arbeits-Excel, nicht in die
-Bedarfsliste: F5 übernimmt nichts – der rote Punkt am Zeichen zeigt das Ergebnis an, ein Klick darauf öffnet gleich die Vorschau zum Übernehmen. Die Bedarfsordner liegen in der Regel unter „OneDrive - MalteserCloud\Fundraising-Team - Diözese Paderborn - General\
+Bedarfsliste: F5 übernimmt nichts – sobald die Liste neue Ergebnisse in der Arbeits-Excel erkennt (beim Zurückwechseln ins Fenster bzw. regelmäßig im Hintergrund), erscheint ein Fenster „Neues Ergebnis von Cowork“ mit „Ansehen und übernehmen“ oder „Später“. Bei „Später“ bleiben ein Hinweis oben im Bedarf und der rote Punkt am Zeichen stehen. Die Bedarfsordner liegen in der Regel unter „OneDrive - MalteserCloud\Fundraising-Team - Diözese Paderborn - General\
 Ortsgliederungen\<Gliederung>\<Bedarf>“, Projekte der Diözese unter „…\1601_Diözese_Pojekte“ – beide Prompts nennen das; ist kein Pfad eingetragen, sucht Cowork den Ordner dort und trägt ihn zur Übernahme ein. Umschalten geht.
-Ist die Excel nach dem Auftrag geändert, zeigt das Zeichen einen roten Punkt. Texte (Antrag, Dank …) folgen in einem späteren Update.
+Enthält die Excel neue Ergebnisse, meldet die Liste das mit einem Fenster; danach bleiben Hinweis und roter Punkt bis zur Übernahme. Texte (Antrag, Dank …) folgen in einem späteren Update.
 
 **Personen-Excel (Kontaktdaten der Zuständigen):** „Kontaktdaten mit Copilot“ bei „Zuständig“ legt `Personen.xlsx` neben der
 Bedarfsliste an (Blatt „Personen“: Name, Position, Gliederung / Dienststelle, E-Mail, Telefon, Handy, Quelle, Stand – mit allen Personen, die die

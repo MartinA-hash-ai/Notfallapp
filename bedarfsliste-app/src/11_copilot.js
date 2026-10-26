@@ -184,11 +184,40 @@ const kiMerkSet = (id, o) => { try { const M = kiMerk(); M[id] = Object.assign(M
 function kiGesehen(b, file) { if (file && file.lastModified) kiMerkSet(b.id, { gesehen: file.lastModified }); if (KI_NEU[b.id]) { KI_NEU[b.id] = false; kiKnopf(); } }
 const kiKnopf = () => { const b = cur(), x = $('.ki-btn'); if (b && x) { x.classList.toggle('neu', !!KI_NEU[b.id]); x.title = KI_NEU[b.id] ? 'Ergebnis von Copilot oder Cowork liegt vor – ansehen' : 'Mit Copilot oder Cowork weiterarbeiten'; } };
 // liegt zum offenen Bedarf eine Excel, die nach dem Auftrag geändert und noch nicht angesehen wurde? (etwa jede Minute und beim Öffnen)
+// auch ohne Merkzettel (Auftrag in einem anderen Browser angelegt): entscheidend ist, ob die Excel etwas zum Übernehmen enthält
 async function kiCheck() {
   const b = UI.view === 'detail' && cur(); if (!b || !rechOrdnerOk()) return;
-  const m = kiMerk()[b.id]; if (!m || !m.at) return;
-  const f = await rechFile(b), neu = !!(f && f.lastModified > m.at + 2000 && f.lastModified !== m.gesehen);
-  if (KI_NEU[b.id] !== neu) { KI_NEU[b.id] = neu; kiKnopf(); }
+  const m = kiMerk()[b.id] || {}, f = await rechFile(b);
+  const neu = !!(f && f.lastModified !== m.gesehen && (!m.at || f.lastModified > m.at + 2000) && await kiInhalt(b, f));
+  if (KI_NEU[b.id] !== neu) { KI_NEU[b.id] = neu; safeRender(); }                  // Hinweis oben auf der Seite und Punkt am Zeichen
+}
+// alle Arbeits-Excels im Ordner „Förderrecherche“ (etwa jede Minute und beim Zurückkehren ins Fenster): liegt für einen Bedarf ein neues Ergebnis vor,
+// das noch nicht gemeldet wurde, geht ein Fenster auf – „Später“ lässt Hinweis und Punkt stehen, gemeldet wird derselbe Stand nur einmal
+let KI_SCAN = false;
+async function kiScan() {
+  if (KI_SCAN || DEMO || !rechOrdnerOk() || $('.modal') || beschaeftigt()) return;
+  KI_SCAN = true;
+  try {
+    const d = await rechDir(); if (!d) return;
+    const ids = new Set();
+    for await (const [n, e] of d.entries()) {
+      if (e.kind !== 'file' || !/\.xlsx$/i.test(n) || n.startsWith('~$')) continue;
+      const b = D.bedarfe.find(x => n.toLowerCase().includes('_' + rechKurz(x))); if (b) ids.add(b.id);
+    }
+    for (const id of ids) {
+      const b = D.bedarfe.find(x => x.id === id), m = kiMerk()[id] || {}, f = b && await rechFile(b);
+      if (!f || f.lastModified === m.gesehen || f.lastModified === m.gemeldet || (m.at && f.lastModified <= m.at + 2000) || !await kiInhalt(b, f)) continue;
+      kiMerkSet(id, { gemeldet: f.lastModified });
+      if (!KI_NEU[id]) { KI_NEU[id] = true; safeRender(); }
+      if ($('.modal')) return;
+      const ja = await modal('Neues Ergebnis von Cowork', h('div', { class: 'help ki-meldung' }, h('span', { class: 'ki-meldung-ico', html: ICON_KI }),
+        h('div', null, h('p', null, 'Für ', h('b', null, '„' + (b.titel || 'Bedarf') + '“'), ' hat Cowork Ergebnisse in die Arbeits-Excel geschrieben (' + lmText(f) + ' Uhr).'),
+          h('p', { class: 'muted' }, 'Sollen sie jetzt eingepflegt werden? Du siehst vorher, was sich ändert, und wählst aus.'))),
+        [['Später', false], ['Ansehen und übernehmen', true, 'primary']]);
+      if (ja) { if (UI.view !== 'detail' || UI.id !== id) oeffnen(id); importFoerderplan(b, f); }
+      return;                                                                         // je Durchgang höchstens eine Meldung
+    }
+  } catch (e) { console.warn(e); } finally { KI_SCAN = false; }
 }
 // enthält die Excel etwas zum Übernehmen? (neue oder geänderte Förderer, Vorschlag für die Beschreibung, geprüfte Unterlagen)
 async function kiInhalt(b, f) {

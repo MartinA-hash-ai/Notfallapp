@@ -45,6 +45,7 @@ function steps(b) {
 
 function bedarfView(b) {
   return `<main class="bedarf">
+    ${KI_NEU[b.id] ? '<div class="d-flag ki-flag"><span class="ki-ico-s">' + ICON_KI + '</span>Cowork hat Ergebnisse in die Arbeits-Excel geschrieben – noch nicht übernommen. <button class="primary" data-act="ki-erg">Ansehen und übernehmen</button></div>' : ''}
     ${b.archiv ? '<div class="d-flag">Dieser Bedarf liegt im Archiv. <button class="link" data-act="unarchive">Zurück in die Liste holen</button></div>' : ''}
     <div class="d-grid">
     <div class="d-head">

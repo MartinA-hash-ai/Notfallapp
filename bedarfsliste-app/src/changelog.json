@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.44.1",
+    "date": "2026-10-27T17:00",
+    "items": [
+      "Neues Ergebnis von Cowork: ein Fenster geht sofort auf (egal, wo man in der Liste ist) – „Später“ oder „Ansehen und übernehmen“; derselbe Stand wird nur einmal gemeldet",
+      "Ergebnis von Cowork deutlich sichtbar: Hinweis oben auf der Seite des Bedarfs mit „Ansehen und übernehmen“ (statt nur eines Punkts am Zeichen)",
+      "Erkannt wird ein Ergebnis jetzt am Inhalt der Arbeits-Excel – auch wenn der Auftrag in einem anderen Browser angelegt wurde",
+      "Von Cowork gefundener Ordner („OneDrive - MalteserCloud\\…“) wird zum vollen Pfad im Explorer ergänzt"
+    ]
+  },
+  {
     "version": "0.44.0",
     "date": "2026-10-27T15:00",
     "items": [

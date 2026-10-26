@@ -295,7 +295,7 @@ function startWatch() {
     ST.tick++;
     if (ST.tick % 4 === 2) scanUpdatePkg();                       // etwa jede Minute: Update-Paket im Ordner?
     if (ST.tick % 4 === 0) { karteiScan(); personenScan(); }      // etwa jede Minute: Förder-Kartei oder Personen-Excel geändert?
-    if (ST.tick % 4 === 1) kiCheck();                             // etwa jede Minute: Ergebnis von Copilot oder Cowork zum offenen Bedarf?
+    if (ST.tick % 4 === 1) { kiCheck(); kiScan(); }               // etwa jede Minute: neues Ergebnis von Cowork? (Hinweis auf der Seite, Fenster)
     if (ST.conflict) return;
     try {
       const f = await ST.html.getFile();

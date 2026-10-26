@@ -258,7 +258,7 @@ async function importFoerderplan(b, file) {
 // Vorschau und Übernahme – aus einer Excel (Cowork, Recherche-Vorlage) oder aus der eingefügten Antwort von Copilot (pers: Kontaktdaten der Zuständigen)
 async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
   const linkNeu = link && okLink(link) && link.trim() !== (b.link || '').trim() ? link.trim() : ''; let linkOk = !!linkNeu;
-  const pfadNeu = ki && ki.pfad && !(b.pfad || '').trim() ? ki.pfad : ''; let pfadOk = !!pfadNeu;          // von Cowork gefundener Ordner des Bedarfs
+  const pfadNeu = ki && ki.pfad && !(b.pfad || '').trim() ? kiPfadVoll(ki.pfad) : ''; let pfadOk = !!pfadNeu;          // von Cowork gefundener Ordner des Bedarfs
   const P = (pers || []).map(p => { const z = b.zust.find(x => x.n.trim() && kkey(x.n) === kkey(p.n)); return { p, z, neu: z ? ZUST_F.filter(k => !(z[k] || '').trim() && (p[k] || '').trim()) : [] }; });
   const persNeu = P.filter(x => x.neu.length);
   const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length || persNeu.length || linkNeu || pfadNeu);
@@ -382,6 +382,12 @@ function blattUnterlagen(b) {
   for (const n of L) rows.push([{ v: n, st: S.zelle }, { v: '', st: S.zelle }, { v: '', st: S.zelle }, { v: '', st: S.zelle }]);
   for (let i = 0; i < 12; i++) rows.push([0, 1, 2, 3].map(() => ({ v: '', st: S.zelle })));
   return { name: 'Unterlagen', cols: [30, 12, 40, 50], rows, merges: ['A1:D1', 'A2:D2'], heights: { 0: 24, 1: 30 }, freeze: 'A5', grid: false, lists: [{ ref: 'B5:B80', items: ['ja', 'nein'] }] };
+}
+// „OneDrive - MalteserCloud\…“ (so schreibt es Cowork) zum vollen Pfad ergänzen – mit dem Anfang des Pfads, unter dem die Bedarfsliste liegt (C:\Users\…\)
+function kiPfadVoll(p) {
+  if (!p || /^[a-z]:\\|^\\\\/i.test(p)) return p;
+  const L = typeof localPath === 'function' ? localPath() : null, m = L && L.match(/^(.*?\\)(OneDrive - [^\\]+)\\/i), q = p.match(/^(OneDrive - [^\\]+)\\/i);
+  return m && q && m[2].toLowerCase() === q[1].toLowerCase() ? m[1] + p : p;
 }
 function readKiBlaetter(book) {
   const r = { beschr: '', grundlage: '', pfad: '', ul: [], pers: [] }, blatt = re => book.sheets.find(s => !s.hidden && re.test(s.name.trim()));

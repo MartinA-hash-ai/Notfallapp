@@ -616,6 +616,9 @@ input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: 
 .icon-btn { width: 32px; height: 32px; padding: 0; justify-content: center; border-radius: 7px; font-weight: 700; color: var(--ink2); background: var(--head); border-color: var(--line2); }
 .menu > button.gefahr { color: var(--red-d); align-items: center; }
 .menu > button.gefahr svg { flex: none; }
+.d-flag.ki-flag { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; background: var(--ph3bg); color: var(--ph3ink); }
+.d-flag.ki-flag .primary { margin-left: auto; padding: 4px 12px; }
+.ki-ico-s svg { display: block; }
 .d-flag { padding: 8px 12px; border-radius: 8px; background: var(--ph4bg); color: var(--ph4ink); font-size: 13px; margin-bottom: 12px; }
 /* Bedarf oben: links die Zuständigen (wie die Kontakte im Förderer-Fenster), darunter Deadline und Stichwort; rechts, durch eine Linie getrennt, die Beschreibung */
 .eck { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 28px; }
@@ -1005,3 +1008,6 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .imp-ul { display: grid; gap: 4px; font-size: 13.5px; }
 .imp-nur { padding-left: 26px; color: var(--ink2); }
 @media (max-width: 640px) { .ki-kacheln { grid-template-columns: 1fr; } }
+.ki-meldung { display: flex; gap: 14px; align-items: flex-start; }
+.ki-meldung p { margin: 0 0 8px; }
+.ki-meldung-ico svg { width: 30px; height: 30px; display: block; margin-top: 2px; }

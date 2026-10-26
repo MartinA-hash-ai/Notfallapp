@@ -532,6 +532,7 @@ async function act(k, a, e) {
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
     case 'copy-path': copyPath(b); return;
     case 'vorlage': kiDialog(b, ['suchen', 'recherche']); return;
+    case 'ki-erg': kiErgebnis(b); return;
     case 'ki': if (KI_NEU[b.id] && !DEMO) kiErgebnis(b); else kiDialog(b); return;          // roter Punkt: gleich das Ergebnis von Cowork zeigen
     case 'import': if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; } importFoerderplan(b); return;
     default: return;
@@ -638,7 +639,7 @@ function boot() {
   } catch (e) { /* Browser ohne BroadcastChannel */ }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { if (isDirty()) { saveDraft(); if (ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); } }
-    else { karteiScan(); personenScan(); kiCheck(); }
+    else { karteiScan(); personenScan(); kiCheck(); kiScan(); }
   });
   window.addEventListener('beforeunload', e => { if (isDirty() && !window.__blReload) { saveDraft(); e.preventDefault(); e.returnValue = ''; } });
 }
