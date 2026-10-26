@@ -41,6 +41,10 @@ const KI_ESSENZ = '„Pro“ und „Contra“ nur als Essenz: je höchstens 3 Pu
   + '(gut: „- Satzung fördert Katastrophenschutz in der Region“; zu allgemein: „- fördert soziale Zwecke“). Bei Contra kurz dazu, wie der Antrag der Hürde begegnet '
   + '(z. B. „- max. 5.000 € je Antrag – Teilbetrag beantragen“). Stehen schon Pro und Contra da: prüfen, Zutreffendes behalten, Falsches streichen, auf die Essenz kürzen.';
 const KI_KURZ = 'Übliche Fördersumme, Eigenanteil und weitere Fristen je höchstens eine kurze Zeile.';
+// wo die Bedarfsordner in der Regel liegen – für die Suche, wenn noch kein Ordner eingetragen ist
+const kiAblageHinweis = (b, sp) => 'Die Bedarfsordner liegen in der Regel ' + (sp ? 'in der SharePoint-Bibliothek „Fundraising-Team - Diözese Paderborn“ unter General › Ortsgliederungen › <Gliederung> › <Bedarf> (z. B. Ortsgliederungen › Büren › RE - Küche)'
+  : 'in meinem OneDrive unter „' + KI_ABLAGE + '\\<Gliederung>\\<Bedarf>“ (z. B. „…\\Ortsgliederungen\\Büren\\RE - Küche“)') + '. '
+  + (rechGl(b) ? 'Schau zuerst im Ordner der Gliederung „' + rechGl(b) + '“ nach.' : 'Bedarfe der Diözese können auch an anderer Stelle liegen.');
 const kiUnterordner = b => kurzName(b.titel || 'Bedarf', 40) + '_' + rechKurz(b);
 const kiRecherchiertWen = (A, neu) => [A.foe.length ? kiNamen(A.foe) : '', neu ? 'alle neu gefundenen Förderer' : ''].filter(Boolean).join(' sowie ');
 function kiBedarfZeilen(b, T) {
@@ -56,7 +60,8 @@ function kiBedarfZeilen(b, T) {
 // Cowork: Aufgaben – dieselben Sätze stehen im Blatt „Anleitung“ der Excel. A: { auf, foe, neuDazu }
 function kiAufgaben(b, A) {
   // ohne eigenen Ordner des Bedarfs: ein Unterordner je Bedarf neben der Arbeitsdatei („Förderrecherche\<Bedarf>“)
-  const T = A.auf, L = [], neu = T.has('suchen') && A.neuDazu, wohin = b.pfad.trim() ? 'im Ordner des Bedarfs' : 'im Unterordner „' + kiUnterordner(b) + '“ neben der Arbeitsdatei (leg ihn an, falls es ihn nicht gibt)';
+  const T = A.auf, L = [], neu = T.has('suchen') && A.neuDazu, wohin = b.pfad.trim() ? 'im Ordner des Bedarfs'
+    : 'im Ordner des Bedarfs, wenn du ihn gefunden hast – sonst im Unterordner „' + kiUnterordner(b) + '“ neben der Arbeitsdatei (leg ihn an, falls es ihn nicht gibt)';
   if (T.has('beschr')) L.push('Projektbeschreibung. ' + KI_BESCHR + ' Vorgehen: Lies alle Dateien im Ordner des Bedarfs (vor allem Angebot, Kostenplan, Konzept, Projektsteckbrief, Mails); '
     + 'die bisherige Beschreibung ist nur ein Anhaltspunkt. Trag den Text im Blatt „Beschreibung“ bei „Vorschlag“ ein (Absätze durch eine Leerzeile trennen), bei „Grundlage“ die gelesenen Dateien.');
   const R = rechAuftrag(b).slice(0, -1);                                          // ohne „nur leere Zellen ergänzen“ – das regelt die Förderrecherche
@@ -87,9 +92,10 @@ function kiPrompt(b, A) {
   L.push(...kiBedarfZeilen(b, T), '', '## Dateien');
   L.push('- Arbeitsdatei: „' + name + '“ ' + (P.od ? 'in meinem OneDrive unter „' + P.od + '“' : 'im Unterordner „' + RECH_DIR + '“ neben der Bedarfsliste in meinem OneDrive') + (P.lokal ? ' (auf dem PC: ' + P.lokal + ')' : '')
     + '. Bearbeite sie dort und speichere sie am Ende unter demselben Namen am selben Ort. Alle Ergebnisse gehören in diese Datei; was in welches Blatt gehört, steht im Blatt „Anleitung“.');
-  if (T.has('beschr') || T.has('recherche')) L.push('- Ordner des Bedarfs (Angebot, Konzept, Fotos …): ' + (pfad || link || '(noch nicht eingetragen)')
-    + ' – vorhandene Dateien nur lesen: nichts löschen, verschieben oder überschreiben' + (T.has('recherche') && pfad ? '; die neuen Recherche-Dateien legst du hier ab.' : '.')
-    + (!pfad && link ? ' Kannst du diesen Link nicht öffnen, sag es mir; dann nenne ich dir den Pfad.' : ''));
+  if (T.has('beschr') || T.has('recherche')) L.push('- Ordner des Bedarfs (Angebot, Konzept, Fotos …): ' + (pfad
+      ? pfad + ' – vorhandene Dateien nur lesen: nichts löschen, verschieben oder überschreiben' + (T.has('recherche') ? '; die neuen Recherche-Dateien legst du hier ab.' : '.')
+      : 'noch nicht eingetragen' + (link ? ' (Link: ' + link + ')' : '') + '. ' + kiAblageHinweis(b, false)
+        + ' Findest du ihn, trag den Pfad im Blatt „Beschreibung“ bei „Ordner“ ein und arbeite mit ihm; vorhandene Dateien dort nur lesen. Findest du ihn nicht, sag es mir – nicht raten.'));
   L.push('', '## Aufgaben', ...kiAufgaben(b, A), '', '## Regeln', ...KI_REGELN.map(t => '- ' + t), '', '## Vor dem Speichern prüfen', ...KI_PRUEFEN.filter(t => T.has('recherche') || !/Word-Datei/.test(t)).map(t => '- ' + t), '');
   L.push('## Zum Schluss im Chat', 'Je Aufgabe zwei, drei Sätze: was du gefunden hast und was offen blieb' + (T.has('beschr') ? ' (bei der Beschreibung: welche Eckdaten fehlen)' : '') + '.'
     + (foeAuf ? ' Danach die drei aussichtsreichsten Förderer mit je einem Satz Begründung und welcher Teil der offenen Summe realistisch erscheint.' : ''));
@@ -107,7 +113,7 @@ function kiPromptCopilot(b, A, X) {
     + (link ? 'hier: ' + link : X.ordner ? 'in dem Ordner, den du in der ersten Aufgabe findest' : pfad ? 'in diesem Ordner: ' + pfad : 'bei mir')
     + '. Kannst du sie nicht öffnen, sag es mir – dann füge ich sie dir mit „/“ ein.');
   if (X.ordner) A1.push('Ordner finden. Such in SharePoint und OneDrive den Ordner, in dem die Unterlagen zu diesem Bedarf liegen (Angebot, Konzept, Fotos …) – '
-    + 'über den Namen des Bedarfs, die Gliederung und Stichworte wie „Angebot“. Gib den Link zum Ordner an; bei mehreren Treffern den passendsten, die anderen nennst du im Text. Nichts raten.');
+    + 'über den Namen des Bedarfs, die Gliederung und Stichworte wie „Angebot“. ' + kiAblageHinweis(b, true) + ' Gib den Link zum Ordner an; bei mehreren Treffern den passendsten, die anderen nennst du im Text. Nichts raten.');
   if (T.has('beschr')) A1.push('Beschreibung. ' + KI_BESCHR + ' Die bisherige Beschreibung ist nur ein Anhaltspunkt.');
   if (T.has('suchen')) A1.push('Neue Förderer. Ziel: realistische Kandidaten für den noch offenen Betrag. ' + rechAuftrag(b)[0] + ' ' + rechAuftrag(b)[1]
     + (KL.length ? ' Prüf zuerst diese Förderer aus unserer Förder-Kartei, die für die Region zuständig sind: ' + KL.map(k => k.name).join(', ') + '.' : '')
@@ -157,7 +163,7 @@ function kiTextLesen(t) {
   return r;
 }
 // Arbeits-Excel für Cowork: Förderplan (immer), dazu „Beschreibung“, wenn gewählt
-const kiVA = (b, A) => ({ auf: A.auf, zeilen: kiAufgaben(b, A), blaetter: A.auf.has('beschr') ? [blattBeschreibung(b)] : [] });
+const kiVA = (b, A) => ({ auf: A.auf, zeilen: kiAufgaben(b, A), blaetter: A.auf.has('beschr') || !b.pfad.trim() ? [blattBeschreibung(b)] : [] });   // ohne Pfad: Blatt auch für den gefundenen Ordner
 const kiExcel = (b, A) => vorlageBlob(b, kiVA(b, A));
 
 /* ---------- Merkzettel je Bedarf (nur dieser Browser): wann der Auftrag angelegt und welcher Stand der Excel zuletzt angesehen wurde */

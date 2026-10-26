@@ -258,9 +258,10 @@ async function importFoerderplan(b, file) {
 // Vorschau und Übernahme – aus einer Excel (Cowork, Recherche-Vorlage) oder aus der eingefügten Antwort von Copilot (pers: Kontaktdaten der Zuständigen)
 async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
   const linkNeu = link && okLink(link) && link.trim() !== (b.link || '').trim() ? link.trim() : ''; let linkOk = !!linkNeu;
+  const pfadNeu = ki && ki.pfad && !(b.pfad || '').trim() ? ki.pfad : ''; let pfadOk = !!pfadNeu;          // von Cowork gefundener Ordner des Bedarfs
   const P = (pers || []).map(p => { const z = b.zust.find(x => x.n.trim() && kkey(x.n) === kkey(p.n)); return { p, z, neu: z ? ZUST_F.filter(k => !(z[k] || '').trim() && (p[k] || '').trim()) : [] }; });
   const persNeu = P.filter(x => x.neu.length);
-  const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length || persNeu.length || linkNeu);
+  const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length || persNeu.length || linkNeu || pfadNeu);
   if (!got && !extra) { modal('Kein Förderplan gefunden', h('p', null, 'In „' + name + '“ steht keine Tabelle mit einer Spalte „Förderer“ und weiteren Spalten der Vorlage (z. B. „Antragsfrist“, „Erwartete Summe“). Bitte die Förderplan-Vorlage der Bedarfsliste verwenden.')); return; }
   const items = got ? got.items : [], byName = n => b.foerderer.find(f => kkey(f.name) === kkey(n));
   const zeigFoe = items.length > 0 && (!extra || items.some(it => !byName(it.name) || fpGeaendert(it, got.stand.get(kkey(it.name)))));
@@ -281,6 +282,8 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
     teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Neue Beschreibung übernehmen', onchange: e => { beschrOk = e.target.checked; } }),
       h('b', null, 'Neue Beschreibung'), h('button', { type: 'button', class: 'link small', onclick: e => { alt.hidden = !alt.hidden; e.target.textContent = alt.hidden ? 'bisher zeigen' : 'bisher ausblenden'; } }, 'bisher zeigen')),
       h('div', { class: 'imp-neu fmt', html: fmtText(beschrNeu) }), alt, ki.grundlage ? h('div', { class: 'imp-grund muted small' }, 'Grundlage: ' + ki.grundlage) : null)); }
+  if (pfadNeu) teile.unshift(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Pfad übernehmen', onchange: e => { pfadOk = e.target.checked; } }),
+    h('b', null, 'Ordner des Bedarfs (Pfad im Explorer)')), h('div', { class: 'imp-neu small mono' }, pfadNeu)));
   if (linkNeu) teile.unshift(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Ordner übernehmen', onchange: e => { linkOk = e.target.checked; } }),
     h('b', null, 'Ordner des Bedarfs'), h('a', { href: linkNeu, target: '_blank', rel: 'noopener', class: 'small' }, 'öffnen ↗')), h('div', { class: 'imp-neu small' }, linkNeu, b.link ? h('div', { class: 'muted' }, 'bisher: ' + b.link) : null)));
   const persAn = persNeu.map(() => true), FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy' };
@@ -323,6 +326,7 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
   if (!await modal(extra || kompakt ? 'Ergebnis übernehmen' : 'Vorschläge aus der Recherche', h('div', { class: 'help' }, teile), [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
   const before = JSON.stringify(D), was = [];
   if (linkNeu && linkOk) { b.link = linkNeu; was.push('Ordner'); }
+  if (pfadNeu && pfadOk) { b.pfad = pfadNeu; if (!was.includes('Ordner')) was.push('Ordner'); }
   if (beschrNeu && beschrOk) { b.beschreibung = beschrNeu; was.push('Beschreibung'); }
   const nu = ulVor.filter(v => v.apply && v.an); nu.forEach(v => v.apply()); if (nu.length) was.push(nu.length + (nu.length === 1 ? ' Unterlage' : ' Unterlagen'));
   const np = persNeu.filter((x, i) => persAn[i]); np.forEach(x => x.neu.forEach(k => { x.z[k] = x.p[k]; })); if (np.length) was.push('Kontaktdaten bei ' + np.length + (np.length === 1 ? ' Person' : ' Personen'));
@@ -352,13 +356,15 @@ const fpGeaendert = (it, alt) => !alt || FP_COLS.some(c => !c.info && c.k !== 'n
 /* ---------- Zusatzblätter für Copilot und Cowork: „Beschreibung“ (Vorschlag für eine neue Beschreibung) und „Unterlagen“ (was im Ordner liegt) */
 const KI_ST = { head: { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, lab: { b: true, color: '#404040', v: 'top' },
   note: { i: true, sz: 9, color: '#6B6B6B', wrap: true }, val: { border: 'thin', fill: '#FAFAF8', v: 'top', wrap: true }, zelle: { border: 'thin', v: 'top', wrap: true } };
+// Ablage der Bedarfsordner im OneDrive: in der Regel …\Ortsgliederungen\<Gliederung>\<Bedarf>, z. B. …\Ortsgliederungen\Büren\RE - Küche
+const KI_ABLAGE = 'OneDrive - MalteserCloud\\Fundraising-Team - Diözese Paderborn - General\\Ortsgliederungen';
 function blattBeschreibung(b) {
   const S = KI_ST;
   return { name: 'Beschreibung', cols: [16, 110], grid: false, merges: ['A1:B1', 'A2:B2'], heights: { 0: 24, 1: 30, 3: 90, 4: 120, 5: 40 }, rows: [
     [{ v: 'Beschreibung des Bedarfs', st: { b: true, sz: 15 } }],
-    [{ v: 'Bei „Vorschlag“ die neue Beschreibung eintragen (3 bis 5 kurze Sätze), bei „Grundlage“ die Dateien, die dafür gelesen wurden. „Bisher“ nicht ändern. Danach in der Bedarfsliste „Ergebnis übernehmen“ – dort steht beides nebeneinander.', st: S.note }],
+    [{ v: 'Bei „Vorschlag“ die neue Beschreibung eintragen (höchstens zwei kurze Absätze), bei „Grundlage“ die Dateien, die dafür gelesen wurden, bei „Ordner“ den Pfad zum Ordner des Bedarfs, wenn er gefunden wurde. „Bisher“ nicht ändern. Danach in der Bedarfsliste „Ergebnis übernehmen“ – dort steht beides nebeneinander.', st: S.note }],
     [], [{ v: 'Bisher', st: S.lab }, { v: b.beschreibung || '', st: S.val }], [{ v: 'Vorschlag', st: S.lab }, { v: '', st: S.val }], [{ v: 'Grundlage', st: S.lab }, { v: '', st: S.val }],
-    [], [{ v: 'Kennung', st: { sz: 8, color: '#9A9A9A' } }, { v: b.id, st: { sz: 8, color: '#9A9A9A' } }]] };
+    [{ v: 'Ordner', st: S.lab }, { v: b.pfad || '', st: S.val }], [], [{ v: 'Kennung', st: { sz: 8, color: '#9A9A9A' } }, { v: b.id, st: { sz: 8, color: '#9A9A9A' } }]] };
 }
 function blattUnterlagen(b) {
   const S = KI_ST, L = b.unterlagen.map(u => u.name).filter(Boolean), rows = [
@@ -370,9 +376,9 @@ function blattUnterlagen(b) {
   return { name: 'Unterlagen', cols: [30, 12, 40, 50], rows, merges: ['A1:D1', 'A2:D2'], heights: { 0: 24, 1: 30 }, freeze: 'A5', grid: false, lists: [{ ref: 'B5:B80', items: ['ja', 'nein'] }] };
 }
 function readKiBlaetter(book) {
-  const r = { beschr: '', grundlage: '', ul: [] }, blatt = re => book.sheets.find(s => !s.hidden && re.test(s.name.trim()));
+  const r = { beschr: '', grundlage: '', pfad: '', ul: [] }, blatt = re => book.sheets.find(s => !s.hidden && re.test(s.name.trim()));
   const sb = blatt(/^beschreibung/i);
-  if (sb) for (const x of sb.rows) { const k = norm(x[0]); if (k.startsWith('vorschlag')) r.beschr = ohnePlatzhalter(cellStr(x[1])); else if (k.startsWith('grundlage')) r.grundlage = ohnePlatzhalter(cellStr(x[1])); }
+  if (sb) for (const x of sb.rows) { const k = norm(x[0]); if (k.startsWith('vorschlag')) r.beschr = ohnePlatzhalter(cellStr(x[1])); else if (k.startsWith('grundlage')) r.grundlage = ohnePlatzhalter(cellStr(x[1])); else if (k === 'ordner') r.pfad = unquote(ohnePlatzhalter(cellStr(x[1]))).trim(); }
   const su = blatt(/^unterlagen/i), hi = su ? su.rows.findIndex(x => norm(x[0]) === 'unterlage' && /^im ordner/.test(norm(x[1]))) : -1;   // Kopfzeile, nicht die Überschrift darüber
   if (hi >= 0) for (const x of su.rows.slice(hi + 1)) {
     const n = ohnePlatzhalter(cellStr(x[0])), da = norm(x[1]); if (!istEintrag(n) || !da) continue;     // ohne „Im Ordner?“: nicht geprüft

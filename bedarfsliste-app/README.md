@@ -94,7 +94,8 @@ und gibt am Ende einen Textblock in festem Aufbau aus, der hier eingefügt und m
 Förderrecherche dabei ist – es arbeitet in der Arbeits-Excel im Unterordner „Förderrecherche“, nutzt den Skill zur Förderlogik-Analyse und legt je
 Förderer eine ausführliche Recherche als Word-Datei „Förderrecherche – <Förderer>.docx“ in den Ordner des Bedarfs (ohne eingetragenen Pfad:
 in einen Unterordner je Bedarf unter „Förderrecherche“); in der Liste stehen nur die Essenz
-(Pro und Contra je höchstens drei kurze Punkte) und der Dateiname (Fenster „Weitere Infos“). Ordner und Kontaktdaten laufen immer über Copilot. Umschalten geht.
+(Pro und Contra je höchstens drei kurze Punkte) und der Dateiname (Fenster „Weitere Infos“). Ordner und Kontaktdaten laufen immer über Copilot. Die Bedarfsordner liegen in der Regel unter „OneDrive - MalteserCloud\Fundraising-Team - Diözese Paderborn - General\
+Ortsgliederungen\<Gliederung>\<Bedarf>“ – beide Prompts nennen das; ist kein Pfad eingetragen, sucht Cowork den Ordner dort und trägt ihn zur Übernahme ein. Umschalten geht.
 Ist die Excel nach dem Auftrag geändert, zeigt das Zeichen einen roten Punkt. Texte (Antrag, Dank …) folgen in einem späteren Update.
 
 **Personen-Excel (Kontaktdaten der Zuständigen):** „Kontaktdaten mit Copilot“ bei „Zuständig“ legt `Personen.xlsx` neben der

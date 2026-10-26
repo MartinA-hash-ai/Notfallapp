@@ -137,7 +137,7 @@ function sidePanel(b) {
     <h3>Unterlagen</h3><div id="ul-body" class="ci-list">${unterlagenList(b)}</div>
     <h3>Ordner ${infoBtn('ordner')}</h3>
     <div class="o-row"><span class="o-lab">OneDrive / SharePoint</span><div class="row">${tin(b, 'link', 'class="grow" aria-label="Link zum Ordner"', 'Link einfügen (https://…)')}<span id="link-btn">${linkBtn(b)}</span></div></div>
-    <div class="o-row"><span class="o-lab">Pfad im Explorer</span><div class="row">${tin(b, 'pfad', 'class="grow mono" aria-label="Ordnerpfad"', 'C:\\Users\\…\\OneDrive - Malteser\\…')}<span id="copy-btn">${copyBtn(b)}</span></div></div>
+    <div class="o-row"><span class="o-lab">Pfad im Explorer</span><div class="row">${tin(b, 'pfad', 'class="grow mono" aria-label="Ordnerpfad"', 'C:\\Users\\…\\OneDrive - MalteserCloud\\…\\Ortsgliederungen\\<Gliederung>\\<Bedarf>')}<span id="copy-btn">${copyBtn(b)}</span></div></div>
   </section>`;
 }
 // Klick auf den Kreis: ein Stand weiter (Freigabe: offen → angefragt → zugestimmt → abgelehnt; Unterlage: fehlt → in Arbeit → vorhanden)

@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.43.1",
+    "date": "2026-10-27T13:00",
+    "items": [
+      "Copilot und Cowork wissen, wo die Bedarfsordner in der Regel liegen (…\\Ortsgliederungen\\<Gliederung>\\<Bedarf>) und suchen zuerst im Ordner der Gliederung",
+      "Ist kein Pfad eingetragen, sucht Cowork den Ordner selbst; der gefundene Pfad wird mit Vorschau übernommen"
+    ]
+  },
+  {
     "version": "0.43.0",
     "date": "2026-10-27T12:00",
     "items": [
