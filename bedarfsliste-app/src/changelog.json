@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.39.1",
+    "date": "2026-10-26T15:00",
+    "items": [
+      "Tastatur: → öffnet den gewählten Bedarf, ← führt von seiner Seite zurück zur Liste",
+      "Sprung aus dem Feld oben: die Stelle leuchtet zusätzlich mit kräftig roter Kontur auf",
+      "Feld oben zeigt nur noch die dringendste Stufe (ohne „+3“); die anderen stehen im Hinweis beim Überfahren"
+    ]
+  },
+  {
     "version": "0.39.0",
     "date": "2026-10-26T12:00",
     "items": [

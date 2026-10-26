@@ -47,7 +47,7 @@ function karteiChip() {
   return '<button class="kchip warn" data-act="kartei" title="Keine passende Excel im Ordner gefunden – klicken zum Wählen">Förder-Kartei wählen</button>';
 }
 // Feld der Hinweise oben (gebündelt statt in der ohnehin bunten Liste), gestaffelt: rot „jetzt fällig“ (heute oder überfällig),
-// gelb „bald fällig“ (in den nächsten 14 Tagen), grau „Infos“ (Zusage ohne Betrag, Gliederung laut Kartei, Antrag ohne vollständige Freigabe).
+// gelb „bald fällig“ (in den nächsten 14 Tagen), grau „Infos“ – es steht nur die dringendste Stufe da, die anderen im Hinweis beim Überfahren (Zusage ohne Betrag, Gliederung laut Kartei, Antrag ohne vollständige Freigabe).
 // Ein Klick zeigt die Liste; ein Eintrag springt zu der Stelle, die ihn auslöst, und lässt sie kurz aufleuchten
 function infosAlle() {
   const L = [];
@@ -65,7 +65,7 @@ function fristChip() {
   if (!n) return '<span id="frist-chip" hidden></span>';
   const [cls, k, w] = H.jetzt.length ? [' over', H.jetzt.length, 'jetzt fällig'] : H.bald.length ? ['', H.bald.length, 'bald fällig'] : [' nur-info', ni, ni === 1 ? 'Info' : 'Infos'];
   const tip = [H.jetzt.length && H.jetzt.length + ' jetzt fällig', H.bald.length && H.bald.length + ' in den nächsten ' + FRIST_TAGE + ' Tagen fällig', ni && ni + (ni === 1 ? ' Info' : ' Infos')].filter(Boolean).join(', ');
-  return `<button id="frist-chip" class="frist-chip${cls}" data-act="fristen" aria-haspopup="menu" title="${tip} – klicken für die Liste">${ICON_TRI}<span>${k} ${w}</span>${n > k ? `<span class="fc-mehr">+${n - k}</span>` : ''}</button>`;
+  return `<button id="frist-chip" class="frist-chip${cls}" data-act="fristen" aria-haspopup="menu" title="${tip} – klicken für die Liste">${ICON_TRI}<span>${k} ${w}</span></button>`;
 }
 function fristPop(btn) {
   closeMenus();
@@ -253,9 +253,9 @@ function copyPath(b) {
 // Übersicht der Tastaturbefehle („i“ oben rechts in der Liste, Zahnrad → „Tastaturbefehle …“)
 function kuerzelInfo() {
   const G = [['In der Liste', [['↑ / ↓', 'von Bedarf zu Bedarf (Pos1 / Ende: erster / letzter) · kompakt mit aufgeklapptem Bedarf: gleich den nächsten aufklappen'],
-      ['Enter', 'kompakt: aufklappen, noch einmal: öffnen · ausführlich: öffnen'], ['E', 'Namen ändern (F2 geht auch, wo der Browser die Taste nicht selbst belegt – in Vivaldi nicht)'],
+      ['Enter', 'kompakt: aufklappen, noch einmal: öffnen · ausführlich: öffnen'], ['→', 'Bedarf öffnen'], ['E', 'Namen ändern (F2 geht auch, wo der Browser die Taste nicht selbst belegt – in Vivaldi nicht)'],
       ['Leertaste', 'Prio-Stern an / aus'], ['Strg+F', 'in die Suche springen (noch einmal: Suche des Browsers)'], ['Esc', 'aufgeklappten Bedarf zuklappen']]],
-    ['Auf der Seite eines Bedarfs', [['↓ / ↑', 'nächsten / vorigen Bedarf der Liste öffnen'], ['Esc', 'zurück zur Liste']]],
+    ['Auf der Seite eines Bedarfs', [['↓ / ↑', 'nächsten / vorigen Bedarf der Liste öffnen'], ['← / Esc', 'zurück zur Liste']]],
     ['In Feldern', [['Enter / Tab', 'übernehmen (Tab: weiter zum nächsten Feld, Umschalt+Tab: zurück)'], ['Umschalt+Enter', 'in der Liste: übernehmen und gleich den nächsten Bedarf darunter anlegen'],
       ['Esc', 'verwerfen'], ['Kalender', 'Pfeiltasten: Tag · Bild auf / ab: Monat · Enter: übernehmen · Esc: schließen']]],
     ['Überall', [['Strg+Z', 'Rückgängig (außerhalb von Feldern)'], ['Strg+S', 'Speichern']]]];
@@ -370,11 +370,13 @@ function blaettern(d) {
   closeMenus(); UI.id = id; UI.det = null; ZU = null;
   uebergang(d > 0 ? 'runter' : 'hoch', () => { renderNow(); scrollTo(0, 0); });
 }
+// ← führt zurück zur Liste (dort öffnet → wieder einen Bedarf)
 document.addEventListener('keydown', e => {
-  if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || UI.view !== 'detail' || UI.det || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  if (!['ArrowDown', 'ArrowUp', 'ArrowLeft'].includes(e.key) || UI.view !== 'detail' || UI.det || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
   const el = document.activeElement;
   if ($('.menu, .modal, .le-sug, .fmt-bar, .foe-pop') || (el && el.closest && el.closest('input, textarea, select, [contenteditable]'))) return;
-  e.preventDefault(); blaettern(e.key === 'ArrowDown' ? 1 : -1);
+  e.preventDefault();
+  if (e.key === 'ArrowLeft') zurueck(); else blaettern(e.key === 'ArrowDown' ? 1 : -1);
 });
 // Ein Feld übernimmt beim Verlassen und zeichnet neu – passiert das zwischen Drücken und Loslassen der Maus, verwirft der Browser den Klick
 // (sein Ziel gibt es nicht mehr). Dann den Klick an das gleiche Element an derselben Stelle weitergeben, sonst bräuchte es zwei Klicks.

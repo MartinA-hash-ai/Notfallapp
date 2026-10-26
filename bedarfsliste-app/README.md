@@ -56,9 +56,9 @@ Esc oder ein Klick außerhalb der Liste klappt zu. Strg+Klick geht weiterhin. De
 
 **Hinweise (Fristen und Infos):** oben in der Kopfzeile, gebündelt statt in der Liste – ein Dreieck, gestaffelt: rot „jetzt fällig“
 (heute oder überfällig), gelb „bald fällig“ (in den nächsten 14 Tagen), grau „Infos“ (Zusage ohne Betrag, Förderer laut Kartei nicht für die
-Gliederung, Antrag läuft ohne vollständige Freigabe); „+3“ zählt die weiteren. Klick zeigt die Liste (Antragsfristen, erwartete Antworten,
+Gliederung, Antrag läuft ohne vollständige Freigabe); es steht nur die dringendste Stufe da, die anderen beim Überfahren. Klick zeigt die Liste (Antragsfristen, erwartete Antworten,
 Deadlines, Verwendungsnachweise – diese auch im Archiv –, Spendenübergaben, Infos). Ein Eintrag springt zu der Stelle, die ihn auslöst, und
-lässt sie kurz rot aufleuchten: in der Liste in der Zeile des Bedarfs (kompakt: aufgeklappt), sonst auf der Seite des Bedarfs.
+lässt sie kurz rot aufleuchten (mit roter Kontur): in der Liste in der Zeile des Bedarfs (kompakt: aufgeklappt), sonst auf der Seite des Bedarfs.
 
 **Finanzierung steht**, wenn Zusagen und Eigenmittel die Summe decken – mit mindestens einer Zusage (nur Eigenmittel gelten nicht als
 finanziert: Ziel sind Förderer). Ohne Summe gilt nichts als fertig, der Stand zeigt „Summe fehlt“. Eine Zusage ohne Betrag wird gemeldet.
@@ -104,9 +104,9 @@ Einfacher: Wort markieren – darüber erscheinen Knöpfe dafür (auch Strg+B, S
 sofort zu sehen; gespeichert wird der Text mit den Zeichen.
 
 **Tastatur:** In der Liste ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf – kompakt mit aufgeklapptem Bedarf klappen ↑/↓ gleich den nächsten auf;
-Enter klappt auf (kompakt) bzw. öffnet, E ändert den Namen (F2 auch, außer in Vivaldi – dort öffnet F2 die Schnellbefehle), Leertaste schaltet
+Enter klappt auf (kompakt) bzw. öffnet, → öffnet, E ändert den Namen (F2 auch, außer in Vivaldi – dort öffnet F2 die Schnellbefehle), Leertaste schaltet
 den Prio-Stern, Strg+F springt in die Suche (noch einmal: Suche des Browsers), Esc klappt zu. Auf der Seite eines Bedarfs öffnen ↓/↑ den nächsten
-bzw. vorigen Bedarf der Liste, Esc führt zurück. In Feldern: Enter/Tab übernehmen, Esc verwirft. Im Kalender: Pfeiltasten wählen den Tag,
+bzw. vorigen Bedarf der Liste, ← oder Esc führen zurück. In Feldern: Enter/Tab übernehmen, Esc verwirft. Im Kalender: Pfeiltasten wählen den Tag,
 Bild auf/ab den Monat. Alle Tastaturbefehle: das „i“ oben rechts in der Liste oder Zahnrad → „Tastaturbefehle …“.
 
 **Rückgängig:** „↶ Rückgängig“ in der Kopfzeile oder Strg+Z (nicht in einem Eingabefeld – dort gilt das Rückgängig des Browsers).

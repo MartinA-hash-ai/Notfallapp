@@ -18,7 +18,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     renderNow();
     const c = document.querySelector('#frist-chip');
     return [c.textContent, c.classList.contains('over'), fristenBald().map(x => x.b.id + ':' + x.t.split(' ')[0]).join(',')]; });
-  ok(r[0] === '1 jetzt fällig+3' && r[1] && r[2] === 't1:Antragsfrist,t2:Verwendungsnachweis,t1:Antwort', 'Hinweise oben: rot „1 jetzt fällig“, dazu 2 bald fällig und 1 Info; Nachweis auch im Archiv, Zurückgestelltes und Späteres nicht: ' + r.join(' | '));
+  ok(r[0] === '1 jetzt fällig' && r[1] && r[2] === 't1:Antragsfrist,t2:Verwendungsnachweis,t1:Antwort', 'Hinweise oben: rot „1 jetzt fällig“ (2 bald fällig und 1 Info nur im Hinweis); Nachweis auch im Archiv, Zurückgestelltes und Späteres nicht: ' + r.join(' | '));
   await p.click('#frist-chip');
   r = await p.evaluate(() => [...document.querySelectorAll('.frist-pop .fp-h')].map(x => x.textContent).join('/') + ' | ' + [...document.querySelectorAll('.frist-pop .fp-row:not(.fp-info)')].map(x => x.querySelector('.fp-r').textContent).join(',')
     + ' | ' + [...document.querySelectorAll('.frist-pop .fp-info .fp-t')].map(x => x.textContent).join(','));

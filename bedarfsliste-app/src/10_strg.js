@@ -85,7 +85,7 @@ document.addEventListener('keydown', e => {
 });
 // Tastatur in der Liste: ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf – ist in der kompakten Ansicht einer aufgeklappt, klappen ↑/↓ gleich den
 // nächsten bzw. vorigen auf; Enter klappt auf (kompakt) bzw. öffnet, E ändert den Namen (F2 auch – in Vivaldi öffnet F2 aber die Schnellbefehle),
-// Leertaste schaltet den Prio-Stern, Strg+F springt in die Suche (steht man schon darin: die Suche des Browsers). Ist noch keine Zeile gewählt, beginnt ↓ bei der ersten
+// → öffnet den Bedarf (auf seiner Seite führt ← zurück), Leertaste schaltet den Prio-Stern, Strg+F springt in die Suche (steht man schon darin: die Suche des Browsers). Ist noch keine Zeile gewählt, beginnt ↓ bei der ersten
 const zeileEl = id => id && $(`#list-body tr[data-id="${CSS.escape(id)}"]`);
 const zeileFokus = id => { const r = zeileEl(id); if (r) r.focus({ preventScroll: true }); };
 const zeileZeigen = id => { const r = zeileEl(id); if (!r) return; const q = r.getBoundingClientRect(), oben = Math.max(0, ($('header.top') || r).getBoundingClientRect().bottom);
@@ -109,6 +109,7 @@ document.addEventListener('keydown', e => {
     const n = zeileEl(id); if (n) n.scrollIntoView({ block: 'nearest' });
     return;
   }
+  if (e.key === 'ArrowRight') { const z = tr || (UI.ansicht === 'kompakt' && zeileEl(UI.auf)); if (z) { e.preventDefault(); oeffnen(z.dataset.id); } return; }
   if (!tr) return;
   if (e.key === 'Home') return geh(rows[0]);
   if (e.key === 'End') return geh(rows[rows.length - 1]);
