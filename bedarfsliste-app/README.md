@@ -20,6 +20,10 @@ weiter in Excel gepflegt – keine Kopie. Steht ein Förderer in der Kartei, üb
 vorhandene Förderer) Art, Website, Antragsweg, die Kontakte für die Gliederung des Bedarfs (eine Zeile ohne eigenen Kontakt erbt
 den der Zeile darüber; „nicht direkt anschreiben“ nicht) und die Förderhistorie in die Notizen – nur in leere Felder, je Name einmal.
 Einen eigenen Kasten „Aus der Förder-Kartei“ gibt es nicht mehr.
+**Gemeinsame Kartei verknüpfen (seit 0.49):** Zahnrad → Förder-Kartei → „Datei verknüpfen …“ wählt die Excel dort, wo das Team sie pflegt
+(z. B. im SharePoint-Ordner, über OneDrive auf dem PC). Die Liste liest dann immer diese Datei, etwa jede Minute bei Änderungen; eine Kopie im
+Ordner der Liste ist nicht mehr nötig. Der Verweis liegt im Browser; nach einem Neustart fragt der Browser ggf. einmal nach – oben steht dann
+„Förder-Kartei: Zugriff erlauben“. Läuft alles, steht oben kein Feld zur Kartei.
 
 **Förderrecherche mit Copilot:** Das Copilot-Zeichen oben rechts auf der Seite eines Bedarfs öffnet die Aufgaben (ein eigener Knopf im Förderplan entfällt seit 0.45). Ablauf:
 1. Excel zu diesem Bedarf anlegen – mit verbundenem Ordner im Unterordner `Förderrecherche`, sonst als Download.
@@ -115,7 +119,8 @@ Bei abgelehnten Förderern gibt es das Feld „Grund der Ablehnung“. Die Promp
 ähnlichen Bedarfen (gleiches Stichwort oder gleiches Wort im Namen, ohne Ortsnamen), Cowork zusätzlich die Datei.
 
 **Kontakte-Excel (seit 0.46):** Beim ersten Start ohne Personen-Datei fragt die Liste einmal nach einer Kontakte-Excel (sonst Zahnrad →
-„Kontakte-Excel einlesen …“). Sie wird als `Personen (Import <Datum>).xlsx` neben die Liste gelegt und bleibt unverändert; erkannt werden
+„Kontakte-Excel einlesen …“). Seit 0.49 kommen die Personen direkt in `Personen.xlsx` – die eingelesene Datei wird nicht mehr kopiert (ältere
+„Personen (Import …)“- oder „Personen (Copilot …)“-Dateien können gelöscht werden, wenn `Personen.xlsx` danach geschrieben wurde); erkannt werden
 u. a. „Vorname“ + „Zuname“/„Nachname“, „Aufgabe/Referat“, „Telefonnummer“, „2. Telefonnummer“ (als Handy) und „E-Mail“, auf allen Blättern.
 Neue Zuständige und neue Angaben aus den Bedarfen schreibt die Liste etwa jede Minute in `Personen.xlsx` (legt sie an, liest sie vorher neu,
 löscht und überschreibt nichts; ist sie gerade in Excel geöffnet, beim nächsten Mal). Eigene Pflege daher besser in einer anderen

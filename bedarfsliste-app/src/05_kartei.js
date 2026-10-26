@@ -19,10 +19,42 @@ function karteiSet(list) {
   KR.list = list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
   KR.byKey = new Map(list.map(k => [kkey(k.name), k]));
 }
+// verknüpfte Kartei: eine Excel an einem anderen Ort (z. B. die gemeinsame Kartei im SharePoint-Ordner, über OneDrive auf dem PC) –
+// die Liste liest sie dort, wo die Kolleginnen und Kollegen sie pflegen. Der Verweis liegt im Browser (IndexedDB), der Dateiname in den Einstellungen.
+const karteiKey = () => 'kartei:' + (localPath() || location.href);
+async function karteiVerknuepfen() {
+  let fh; try { [fh] = await window.showOpenFilePicker({ id: 'kartei', types: [{ description: 'Excel', accept: { 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'] } }] }); } catch (e) { return false; }
+  await idbSet(karteiKey(), fh); KR.fh = fh; D.settings.karteiLink = fh.name; changed(); KR.stamp = null; await karteiScan(true); renderNow(); return true;
+}
+async function karteiErlauben() {
+  try { if (KR.fh && await KR.fh.requestPermission({ mode: 'read' }) === 'granted') { KR.stamp = null; await karteiScan(true); renderNow(); } } catch (e) { console.warn(e); }
+}
+async function karteiDatei() {                                       // { name, file } der Kartei – verknüpft oder aus dem Ordner; null: keine; 'zugriff': erst erlauben
+  if (D.settings.karteiLink) {
+    if (KR.fh === undefined) KR.fh = await idbGet(karteiKey());
+    if (!KR.fh) { KR.err = '„' + D.settings.karteiLink + '“ ist in diesem Browser nicht verknüpft – Zahnrad → Förder-Kartei, neu verknüpfen'; return null; }
+    let p = 'prompt'; try { p = await KR.fh.queryPermission({ mode: 'read' }); } catch (e) { /* */ }
+    if (p !== 'granted') return 'zugriff';
+    return { name: KR.fh.name, file: await KR.fh.getFile() };
+  }
+  return undefined;                                                  // nicht verknüpft: im Ordner suchen
+}
 async function karteiScan(force) {
   if (DEMO || KR.busy || ST.conn !== 'ok' || !ST.htmlDir) return;
   KR.busy = true;
   try {
+    const vk = await karteiDatei();
+    if (vk === 'zugriff') { if (!KR.zugriff) { KR.zugriff = true; safeRender(); } return; }
+    KR.zugriff = false;
+    if (vk === null) { safeRender(); return; }
+    if (vk) {
+      if (!force && KR.name === vk.name && KR.stamp === vk.file.lastModified && !KR.err) return;
+      const book = await xlsxBook(await vk.file.arrayBuffer(), { max: 4e6 }), L = parseKartei(book);
+      karteiSet(L); KR.name = vk.name; KR.stamp = vk.file.lastModified; KR.at = new Date(); KR.cut = book.sheets.some(s => s.cut);
+      KR.err = L.length ? null : 'in „' + vk.name + '“ keine Tabelle mit einer Spalte „Gliederung“ gefunden';
+      if (karteiErgaenzen()) changed();
+      safeRender(); return;
+    }
     const cands = [];
     for await (const [n, e] of ST.htmlDir.entries()) if (e.kind === 'file' && /\.xlsx$/i.test(n) && !/^~\$/.test(n)) cands.push([n, e]);
     KR.cands = cands.map(c => c[0]).sort((a, b) => a.localeCompare(b, 'de'));
@@ -132,13 +164,19 @@ function parseKartei(book) {
   }
   return [...out.values()];
 }
+const modalZu = () => { const x = $('.modal header .x'); if (x) x.click(); };
 async function karteiChoose() {
   if (ST.conn !== 'ok') { if (!await connectFolder()) return; }
   await karteiScan(true);
   const cands = KR.cands;
   let pick = D.settings.kartei || KR.name || '';
   const body = h('div', { class: 'help' },
-    h('p', null, 'Welche Excel im Ordner ist deine Förder-Kartei? Die Liste liest sie nur – gepflegt wird weiter in Excel.'),
+    h('p', null, 'Welche Excel ist deine Förder-Kartei? Die Liste liest sie nur – gepflegt wird weiter in Excel.'),
+    h('div', { class: 'k-link' }, h('p', null, h('b', null, 'Gemeinsame Kartei verknüpfen: '), D.settings.karteiLink ? 'verknüpft ist „' + D.settings.karteiLink + '“ – die Liste liest sie dort, wo sie gepflegt wird.'
+        : 'Liegt die Kartei woanders (z. B. im SharePoint-Ordner des Teams, über OneDrive auf dem PC), hier die Datei auswählen. Die Liste liest dann immer den aktuellen Stand – keine Kopie im Ordner nötig.'),
+      h('div', { class: 'row' }, h('button', { type: 'button', onclick: async () => { modalZu(); await karteiVerknuepfen(); } }, D.settings.karteiLink ? 'Andere Datei verknüpfen …' : 'Datei verknüpfen …'),
+        D.settings.karteiLink ? h('button', { type: 'button', class: 'link', onclick: async () => { D.settings.karteiLink = ''; KR.fh = null; changed(); modalZu(); KR.stamp = null; await karteiScan(true); renderNow(); } }, 'Verknüpfung lösen') : null)),
+    h('p', { class: 'muted small' }, 'Oder eine Excel im Ordner der Bedarfsliste:'),
     cands.length ? h('div', { class: 'radios' }, ...cands.map(n => h('label', { class: 'check' }, h('input', { type: 'radio', name: 'kartei', value: n, checked: n === pick, onchange: () => { pick = n; } }), n)))
       : h('p', { class: 'muted' }, 'Im Ordner liegt noch keine Excel-Datei. Lege die Kartei in den Ordner der Bedarfsliste und öffne dieses Fenster erneut.'),
     h('label', { class: 'check' }, h('input', { type: 'radio', name: 'kartei', value: '', checked: !D.settings.kartei, onchange: () => { pick = ''; } }), 'automatisch erkennen (Dateiname mit „Bank“, „Stiftung“ oder „Kartei“)'));

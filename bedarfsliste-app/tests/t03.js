@@ -33,7 +33,7 @@ async function writeKartei(p, kontakt) {
   ok(r.pdh && r.pdh.gl.join() === 'Lage,Borchen', 'Sparkasse PDH für Lage und Borchen');
   ok(r.bst && r.bst.weg.join() === 'per Mail' && r.bst.web === 'https://www.bst.example' && r.bst.schwer === 'Bevölkerungsschutz' && r.bst.kontakte[0].m === '' && r.bst.hist['2025'] === '4.800€ - Defis', 'Stiftung: per Mail, Homepage, Schwerpunkte, „Mail“ ohne Adresse ignoriert');
   ok(r.ab && r.ab.weg.join() === 'Portal' && r.ab.kontakte.length === 0 && r.ab.gl.join() === 'alle', 'Aktion: Portal, „-“ ist kein Kontakt');
-  ok((await p.$eval('.kchip', e => e.textContent)) === 'Förder-Kartei · 5 Förderer', 'Kopfzeile zeigt die Kartei');
+  ok(!(await p.$('.kchip')) && await p.evaluate(() => KR.list.length) === 5, 'Kartei gelesen (5 Förderer) – läuft alles, steht oben kein Feld');
   // im Förderplan
   await p.click('button[data-act="new"]'); await p.keyboard.type('Rucksäcke'); await p.keyboard.press('Enter'); await p.keyboard.press('Escape');
   await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });

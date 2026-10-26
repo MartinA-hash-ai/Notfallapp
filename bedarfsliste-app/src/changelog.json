@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.49.0",
+    "date": "2026-10-28T11:00",
+    "items": [
+      "Förder-Kartei verknüpfen: die gemeinsame Excel des Teams dort lesen, wo sie gepflegt wird (Zahnrad → Förder-Kartei → „Datei verknüpfen …“) – Änderungen der Kolleginnen und Kollegen kommen automatisch an",
+      "Kopfzeile: das Feld zur Förder-Kartei steht nur noch da, wenn etwas zu tun ist (Zugriff erlauben, Problem)",
+      "Kontakte-Excel einlesen: die Personen kommen direkt in „Personen.xlsx“, keine zusätzliche Kopie mehr im Ordner"
+    ]
+  },
+  {
     "version": "0.48.0",
     "date": "2026-10-28T10:00",
     "items": [

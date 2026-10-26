@@ -78,17 +78,15 @@ function personenErgaenzen() {
   if (mark) changed();
   return n;
 }
-// eine Excel von Copilot, die nicht als „Personen.xlsx“ im Ordner liegt: als Kopie in den Ordner legen (dann gilt sie auch künftig) und einlesen
+// eine Kontakte-Excel (z. B. aus Copilot) einlesen: die Personen kommen in „Personen.xlsx“ – die Datei selbst wird nicht in den Ordner kopiert
 async function personenDatei(file) {
   if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return 0; }
   let L = [];
   try { L = parsePersonen(await xlsxBook(await file.arrayBuffer(), { max: 4e6 })); } catch (e) { console.warn(e); }
   if (!L.length) { modal('Keine Personen gefunden', h('p', null, 'In „' + file.name + '“ steht keine Tabelle mit den Spalten „Name“ und „E-Mail“ oder „Telefon“.')); return 0; }
-  if (rechOrdnerOk()) {
-    // „Personen.xlsx“ pflegt die Liste selbst (personenPflegen) – eine eingelesene Datei bleibt unter eigenem Namen unangetastet daneben
-    const name = PERS_RE.test(file.name) && norm(file.name) !== norm(PERS_DATEI) && !PR.files.some(f => f.name === file.name) ? file.name : 'Personen (Import ' + today() + ').xlsx';
-    try { const fh = await ST.htmlDir.getFileHandle(name, { create: true }), w = await fh.createWritable(); await w.write(file); await w.close(); await personenScan(true); await personenPflegen(); toast('„' + name + '“ im Ordner abgelegt und eingelesen – ' + L.length + ' Personen.', 'ok'); return L.length; }
-    catch (e) { console.warn(e); }
+  if (rechOrdnerOk()) {                                                    // in „Personen.xlsx“ übernehmen – keine Kopie der Datei, es bleibt bei einer
+    personenSetzen([...PR.list, ...L]);                                      // die eingelesenen Angaben zuletzt: sie gelten
+    if (await personenSchreiben()) { await personenScan(true); toast(L.length + ' Personen aus „' + file.name + '“ in „' + PERS_DATEI + '“ übernommen.', 'ok'); return L.length; }
   }
   personenSetzen([...PR.list, ...L]); PR.stamp = (PR.stamp || '') + '|' + file.name + '@' + file.lastModified;   // ohne Ordner: nur für diese Sitzung
   const n = personenErgaenzen(); safeRender();
@@ -130,11 +128,16 @@ async function personenPflegen() {
   if (PR.err || PR.busy) return false;                                     // eine Datei nicht lesbar: lieber nichts schreiben
   const neu = [...personenAlle().values()].some(a => { const p = PR.byKey.get(kkey(a.n)); return !p || Object.keys(a).some(k => a[k] && !p[k]); });
   if (!neu) return false;
+  if (!await personenSchreiben()) return false;
+  await personenScan(true); return true;
+}
+// „Personen.xlsx“ schreiben: alle bekannten Personen (personenAlle)
+async function personenSchreiben() {
+  if (PR.busy) return false;
   PR.busy = true;
-  try { const fh = await ST.htmlDir.getFileHandle(PERS_DATEI, { create: true }), w = await fh.createWritable(); await w.write(personenBlob()); await w.close(); }
+  try { const fh = await ST.htmlDir.getFileHandle(PERS_DATEI, { create: true }), w = await fh.createWritable(); await w.write(personenBlob()); await w.close(); return true; }
   catch (e) { console.warn(e); return false; }                             // z. B. in Excel geöffnet – beim nächsten Mal wieder
   finally { PR.busy = false; }
-  await personenScan(true); return true;
 }
 // einmal fragen, ob eine vorhandene Kontakte-Excel eingelesen werden soll (danach über das Zahnrad)
 function personenFrage() {

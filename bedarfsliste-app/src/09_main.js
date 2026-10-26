@@ -43,10 +43,12 @@ function updateSaveUI() {
   if (box) box.outerHTML = saveBox(dirty);
   document.title = (dirty ? '● ' : '') + 'Bedarfsliste';
 }
+// Förder-Kartei oben: nur, wenn etwas zu tun ist (Zugriff erlauben, Problem, keine Kartei) – läuft alles, steht nichts da (Zahnrad → Förder-Kartei)
 function karteiChip() {
-  if (DEMO) return `<button class="kchip ok" data-act="kartei-info">Förder-Kartei · ${KR.list.length} Beispiel-Förderer</button>`;
+  if (DEMO) return '';
+  if (KR.zugriff) return `<button class="kchip warn" data-act="kartei-erlauben" title="${esc('Die verknüpfte Kartei „' + D.settings.karteiLink + '“ lesen – ein Klick, der Browser fragt einmal nach')}">Förder-Kartei: Zugriff erlauben</button>`;
   if (KR.err) return `<button class="kchip warn" data-act="kartei" title="${esc(KR.err)}">Förder-Kartei: Problem</button>`;
-  if (KR.list.length) return `<button class="kchip ok" data-act="kartei" title="${esc('aus „' + KR.name + '“, eingelesen ' + (KR.at ? KR.at.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : '') + ' – klicken zum Wählen oder neu Einlesen')}">Förder-Kartei · ${KR.list.length} Förderer</button>`;
+  if (KR.list.length) return '';
   if (ST.conn !== 'ok') return '<button class="kchip" data-act="kartei" title="Die Kartei wird aus dem Ordner der Bedarfsliste gelesen">Förder-Kartei: Ordner verbinden</button>';
   return '<button class="kchip warn" data-act="kartei" title="Keine passende Excel im Ordner gefunden – klicken zum Wählen">Förder-Kartei wählen</button>';
 }
@@ -270,7 +272,7 @@ function mainMenu(btn) {
     h('hr'),
     colwGet(false) || colwGet(true) ? item('colw-reset', 'Spaltenbreiten der Liste zurücksetzen') : null,
     item('vorlage-leer', 'Leere Förderplan-Vorlage (Excel)'),
-    DEMO ? null : item('kartei', 'Förder-Kartei wählen oder neu einlesen …'),
+    DEMO ? null : item('kartei', 'Förder-Kartei' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : '') + ' wählen, verknüpfen oder neu einlesen …'),
     DEMO ? null : item('pers-import', 'Kontakte-Excel einlesen …'),
     DEMO ? null : item('ueb', 'Förderer-Übersicht (Excel) jetzt aktualisieren'),
     h('hr'),
@@ -434,6 +436,7 @@ async function act(k, a, e) {
     case 'save': closeMenus(); if (FSA && ST.conn === 'none') await connectFolder(); else saveAll({}); renderNow(); return;
     case 'connect': await connectFolder(); renderNow(); return;
     case 'kartei': closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; await karteiChoose(); return;
+    case 'kartei-erlauben': await karteiErlauben(); return;
     case 'kartei-info': toast('In der Programmdatei liest die Liste deine Excel „Banken- und Stiftungsübersicht“ aus dem Ordner ein. Hier stehen erfundene Förderer.'); return;
     case 'backup': closeMenus(); saveBackup(); return;
     case 'restore': closeMenus(); openBackup(); return;
