@@ -59,6 +59,8 @@ function kiBedarfZeilen(b, T) {
   if (b.stichworte.length) L.push('Stichworte oder Fördertöpfe: ' + b.stichworte.join(', '));
   if (b.beschreibung.trim()) L.push('Beschreibung (bisher): ' + b.beschreibung.trim().replace(/\s*\n+\s*/g, ' '));
   if ((T.has('suchen') || T.has('recherche')) && kiFoe(b).length) L.push('Schon im Förderplan: ' + kiFoe(b).map(f => f.name.trim() + ' (' + F_ST_L[f.status] + ')').join(', '));
+  const AE = T.has('suchen') || T.has('recherche') ? ueAehnlich(b) : [];
+  if (AE.length) L.push('Erfahrungen bei ähnlichen Bedarfen (Zusagen sprechen für einen erneuten Antrag, Ablehnungsgründe beachten):', ...AE);
   return L;
 }
 
@@ -105,6 +107,7 @@ function kiPrompt(b, A) {
   L.push(...kiBedarfZeilen(b, T), '', '## Dateien');
   L.push('- Arbeitsdatei: „' + name + '“ ' + (P.od ? 'in meinem OneDrive unter „' + P.od + '“' : 'im Unterordner „' + RECH_DIR + '“ neben der Bedarfsliste in meinem OneDrive') + (P.lokal ? ' (auf dem PC: ' + P.lokal + ')' : '')
     + '. Bearbeite sie dort und speichere sie am Ende unter demselben Namen am selben Ort. Alle Ergebnisse gehören in diese Datei; was in welches Blatt gehört, steht im Blatt „Anleitung“.');
+  if (foeAuf && ueAnfragen().length) L.push('- Förderer-Übersicht: „' + UEB_DATEI + '“ neben der Bedarfsliste – alle bisherigen Anfragen mit Stand, Betrag und Ablehnungsgrund (Blatt „Anfragen“). Nur lesen; nutze sie, um bewährte Förderer zu erkennen und abgelehnte nicht ohne neuen Grund erneut vorzuschlagen.');
   if (T.has('beschr') || T.has('recherche') || T.has('ordner') || T.has('zust')) L.push('- Ordner des Bedarfs (Angebot, Konzept, Fotos …): ' + (pfad
       ? pfad + ' – vorhandene Dateien nur lesen: nichts löschen, verschieben oder überschreiben' + (T.has('recherche') ? '; die neuen Recherche-Dateien legst du hier ab.' : '.')
       : 'noch nicht eingetragen' + (link ? ' (Link: ' + link + ')' : '') + '. ' + kiAblageHinweis(b, false)

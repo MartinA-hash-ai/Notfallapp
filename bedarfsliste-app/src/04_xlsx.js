@@ -205,7 +205,7 @@ function xlsxBlob(sheets) {
     return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>\n<worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
       '<sheetViews><sheetView workbookViewId="0"' + (sh.grid === false ? ' showGridLines="0"' : '') + '>' + pane + '</sheetView></sheetViews>' +
       '<sheetFormatPr defaultRowHeight="15"/><cols>' + sh.cols.map((w, i) => '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + w + '" customWidth="1"/>').join('') + '</cols>' +
-      '<sheetData>' + rows + '</sheetData>' +
+      '<sheetData>' + rows + '</sheetData>' + (sh.filter ? '<autoFilter ref="' + sh.filter + '"/>' : '') +
       (sh.merges && sh.merges.length ? '<mergeCells count="' + sh.merges.length + '">' + sh.merges.map(m => '<mergeCell ref="' + m + '"/>').join('') + '</mergeCells>' : '') +
       (lists.length ? '<dataValidations count="' + lists.length + '">' + lists.join('') + '</dataValidations>' : '') +
       '<pageMargins left="0.4" right="0.4" top="0.5" bottom="0.5" header="0.3" footer="0.3"/>' +

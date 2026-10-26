@@ -272,6 +272,7 @@ function mainMenu(btn) {
     item('vorlage-leer', 'Leere Förderplan-Vorlage (Excel)'),
     DEMO ? null : item('kartei', 'Förder-Kartei wählen oder neu einlesen …'),
     DEMO ? null : item('pers-import', 'Kontakte-Excel einlesen …'),
+    DEMO ? null : item('ueb', 'Förderer-Übersicht (Excel) jetzt aktualisieren'),
     h('hr'),
     DEMO ? null : item('backup', 'Datensicherung herunterladen (.json)'),
     DEMO ? null : item('restore', 'Datensicherung laden …'),
@@ -437,6 +438,7 @@ async function act(k, a, e) {
     case 'backup': closeMenus(); saveBackup(); return;
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
+    case 'ueb': closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; toast(await ueSchreiben(true) ? '„' + UEB_DATEI + '“ neben der Liste aktualisiert' : 'Noch keine Förderer – oder die Datei ist gerade in Excel geöffnet.', 'ok'); return;
     case 'pers-import': { closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; const f = await pickFile('.xlsx'); if (f) personenDatei(f); return; }
     case 'update': closeMenus(); updateProgram(); return;
     case 'vorlage-leer': closeMenus(); vorlageDownload(null); return;
@@ -472,7 +474,7 @@ async function act(k, a, e) {
     case 'unarchive': b.archiv = false; changed(); toast('Wieder in der Liste der Bedarfe', 'ok'); break;
     case 'del': {
       closeMenus();
-      if (!await confirmBox('Bedarf löschen?', '„' + (b.titel || 'Neuer Bedarf') + '“ wird mit Förderplan und Nacharbeit gelöscht. Direkt danach lässt sich das noch rückgängig machen.', 'Löschen')) return;
+      if (!await confirmBox('Bedarf löschen?', '„' + (b.titel || 'Neuer Bedarf') + '“ wird mit Förderplan und Nacharbeit gelöscht. Direkt danach lässt sich das noch rückgängig machen. Abgeschlossene Bedarfe lieber archivieren: Gelöschte fehlen auch in der Förderer-Übersicht.', 'Löschen')) return;
       const i = D.bedarfe.indexOf(b); D.bedarfe = D.bedarfe.filter(x => x !== b); changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe();
       toast('Bedarf gelöscht', 'ok', () => { if (!D.bedarfe.includes(b)) { D.bedarfe.splice(Math.min(i, D.bedarfe.length), 0, b); changed(); ORDER.ids = null; keep(renderNow); } }); return;
     }

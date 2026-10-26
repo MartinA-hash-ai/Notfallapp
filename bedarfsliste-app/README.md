@@ -106,6 +106,14 @@ Bedarfsliste: F5 übernimmt nichts – sobald die Liste neue Ergebnisse in der A
 Ortsgliederungen\<Gliederung>\<Bedarf>“, Projekte der Diözese unter „…\1601_Diözese_Pojekte“ – beide Prompts nennen das; ist kein Pfad eingetragen, sucht Cowork den Ordner dort und trägt ihn zur Übernahme ein. Umschalten geht.
 Enthält die Excel neue Ergebnisse, meldet die Liste das mit einem Fenster; danach bleiben Hinweis und roter Punkt bis zur Übernahme. Texte (Antrag, Dank …) folgen in einem späteren Update.
 
+**Förderer-Übersicht (seit 0.48):** Die Liste schreibt `Förderer-Übersicht.xlsx` neben sich selbst und hält sie etwa jede Minute aktuell
+(nur bei Änderungen; Zahnrad → „Förderer-Übersicht (Excel) jetzt aktualisieren“). Blatt „Förderer“: je Förderer Art, Website, Antragsweg,
+Kontakt, Anfragen, Zusagen, Ablehnungen, Summe der Zusagen, letzte Anfrage, Bedarfe. Blatt „Anfragen“: je Förderer und Bedarf eine Zeile mit
+Gliederung, Stichworten, Jahr, Stand, Betrag, Grund der Ablehnung, Pro/Contra, Einschätzung, Recherche-Datei, archiviert – mit Filtern.
+Quelle sind alle Bedarfe einschließlich Archiv; gelöschte fehlen, abgeschlossene daher archivieren. Änderungen in der Datei werden überschrieben.
+Bei abgelehnten Förderern gibt es das Feld „Grund der Ablehnung“. Die Prompts (Neue Förderer, Förderrecherche) nennen die Erfahrungen bei
+ähnlichen Bedarfen (gleiches Stichwort oder gleiches Wort im Namen, ohne Ortsnamen), Cowork zusätzlich die Datei.
+
 **Kontakte-Excel (seit 0.46):** Beim ersten Start ohne Personen-Datei fragt die Liste einmal nach einer Kontakte-Excel (sonst Zahnrad →
 „Kontakte-Excel einlesen …“). Sie wird als `Personen (Import <Datum>).xlsx` neben die Liste gelegt und bleibt unverändert; erkannt werden
 u. a. „Vorname“ + „Zuname“/„Nachname“, „Aufgabe/Referat“, „Telefonnummer“, „2. Telefonnummer“ (als Handy) und „E-Mail“, auf allen Blättern.
