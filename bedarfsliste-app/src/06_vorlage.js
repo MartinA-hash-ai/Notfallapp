@@ -267,15 +267,25 @@ async function importFoerderplan(b, file) {
   };
   const teile = [];
   if (other) teile.push(h('p', { class: 'hint-warn' }, 'Achtung: Diese Excel wurde für einen anderen Bedarf erstellt: „' + (other.titel || 'ohne Namen') + '“' + (other.gliederung ? ' (' + other.gliederung + ')' : '') + '.'));
-  if (beschrNeu) teile.push(h('section', { class: 'imp-teil' }, h('h3', null, 'Beschreibung'),
-    h('div', { class: 'imp-vgl' }, h('div', null, h('div', { class: 'imp-lab' }, 'bisher'), h('div', { class: 'imp-txt fmt', html: fmtText(b.beschreibung) || '<span class="muted">leer</span>' })),
-      h('div', null, h('div', { class: 'imp-lab' }, 'Vorschlag'), h('div', { class: 'imp-txt fmt neu', html: fmtText(beschrNeu) }))),
-    ki.grundlage ? h('p', { class: 'muted small' }, 'Grundlage: ' + ki.grundlage) : null,
-    h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { beschrOk = e.target.checked; } }), 'Vorschlag als neue Beschreibung übernehmen')));
+  // Beschreibung: der neue Text steht da, „bisher zeigen“ klappt den alten dazu auf
+  if (beschrNeu) { const alt = h('div', { class: 'imp-alt fmt', hidden: true, html: '<div class="imp-lab">bisher</div>' + (fmtText(b.beschreibung) || '<span class="muted">leer</span>') });
+    teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Neue Beschreibung übernehmen', onchange: e => { beschrOk = e.target.checked; } }),
+      h('b', null, 'Neue Beschreibung'), h('button', { type: 'button', class: 'link small', onclick: e => { alt.hidden = !alt.hidden; e.target.textContent = alt.hidden ? 'bisher zeigen' : 'bisher ausblenden'; } }, 'bisher zeigen')),
+      h('div', { class: 'imp-neu fmt', html: fmtText(beschrNeu) }), alt, ki.grundlage ? h('div', { class: 'imp-grund muted small' }, 'Grundlage: ' + ki.grundlage) : null)); }
   if (ulVor.length) teile.push(h('section', { class: 'imp-teil' }, h('h3', null, 'Unterlagen'),
     h('div', { class: 'imp-ul' }, ulVor.map(v => v.apply ? h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { v.an = e.target.checked; } }), h('span', null, v.t, v.info ? h('span', { class: 'muted small' }, ' – ' + v.info) : null))
       : h('div', { class: 'imp-nur' }, h('span', null, v.t), v.info ? h('span', { class: 'muted small' }, ' – ' + v.info) : null)))));
-  if (zeigFoe) {
+  // aus einem Copilot-Auftrag: knapp – nur neue und geänderte Förderer, je eine Zeile mit „neu“ bzw. was ergänzt wurde, und dem Betrag
+  const kompakt = !!(got && got.auftrag.length);
+  if (zeigFoe && kompakt) {
+    const L = items.map((it, i) => [it, i, byName(it.name)]).filter(([it, , f]) => !f || fpGeaendert(it, got.stand.get(kkey(it.name))));
+    items.forEach((it, i) => { if (!L.some(x => x[1] === i)) sel[i] = false; });
+    const nNeu = L.filter(x => !x[2]).length, nErg = L.length - nNeu;
+    teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('b', null, 'Förderer'), h('span', { class: 'muted small' }, [nNeu ? nNeu + ' neu' : '', nErg ? nErg + ' ergänzt' : ''].filter(Boolean).join(' · '))),
+      L.map(([it, i, f]) => { const was = f ? fpFelder(it, got.stand.get(kkey(it.name))) : '';
+        return h('label', { class: 'imp-f' }, h('input', { type: 'checkbox', checked: true, onchange: e => { sel[i] = e.target.checked; } }), h('span', { class: 'imp-n' }, it.name),
+          h('span', { class: 'imp-pill' + (f ? '' : ' neu'), title: f ? 'im Förderplan: ' + F_ST_L[f.status] : '' }, f ? (was ? was + ' ergänzt' : 'ergänzt') : 'neu'), h('span', { class: 'imp-s' }, it.betrag ? eur(it.betrag) : '–')); })));
+  } else if (zeigFoe) {
     const tbl = h('table', { class: 'imp' },
       h('thead', null, h('tr', null, h('th', null, ''), h('th', null, 'Förderer'), h('th', { class: 'num' }, 'Summe'), h('th', null, 'Antragsfrist'), h('th', null, 'Einschätzung'), h('th', null, ''))),
       h('tbody', null, items.map((it, i) => { const f = byName(it.name); return h('tr', null,
@@ -295,7 +305,7 @@ async function importFoerderplan(b, file) {
         ...[['fill', 'nur leere Felder ergänzen'], ['all', 'in der Excel Geändertes übernehmen (überschreibt – zugesagte und abgelehnte Förderer bleiben, wie sie sind)'], ['skip', 'nicht anfassen']].map(([v, l]) =>
           h('label', { class: 'check' }, h('input', { type: 'radio', name: 'impmode', value: v, checked: v === mode, onchange: () => { mode = v; } }), l))) : null));
   }
-  if (!await modal(extra ? 'Ergebnis übernehmen' : 'Vorschläge aus der Recherche', h('div', { class: 'help' }, teile), [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
+  if (!await modal(extra || kompakt ? 'Ergebnis übernehmen' : 'Vorschläge aus der Recherche', h('div', { class: 'help' }, teile), [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
   const before = JSON.stringify(D), was = [];
   if (beschrNeu && beschrOk) { b.beschreibung = beschrNeu; was.push('Beschreibung'); }
   const nu = ulVor.filter(v => v.apply && v.an); nu.forEach(v => v.apply()); if (nu.length) was.push(nu.length + (nu.length === 1 ? ' Unterlage' : ' Unterlagen'));
@@ -311,6 +321,13 @@ async function importFoerderplan(b, file) {
   if (!was.length) return;
   changed(); keep(renderNow);
   toast(was.join(', '), 'ok', undoGanz(before));
+}
+// was Copilot an einem Förderer geändert hat, kurz benannt (für die Übernahme)
+const FP_KURZ = { warum: 'Pro', knackpunkte: 'Contra', kontakt: 'Kontakte', web: 'Website', weg: 'Antragsweg', frist: 'Antragsfrist', fristInfo: 'Fristen', hoehe: 'Fördersumme',
+  eigenInfo: 'Eigenanteil', einsch: 'Einschätzung', quellen: 'Quellen', betrag: 'Summe', art: 'Art', notiz: 'Notizen', mail: 'E-Mail', tel: 'Telefon' };
+function fpFelder(it, alt) {
+  const L = FP_COLS.filter(c => !c.info && c.k !== 'name' && it[c.k] != null && it[c.k] !== '' && (!alt || norm(String(it[c.k])) !== norm(String(alt[c.k] ?? '')))).map(c => FP_KURZ[c.k] || c.t);
+  return L.length > 3 ? L.slice(0, 3).join(', ') + ' …' : L.join(', ');
 }
 // hat Copilot an einem Förderer, der schon im Plan stand, etwas geändert? (alt: Stand beim Anlegen der Excel; ohne ihn: ja)
 const fpGeaendert = (it, alt) => !alt || FP_COLS.some(c => !c.info && c.k !== 'name' && it[c.k] != null && it[c.k] !== '' && norm(String(it[c.k])) !== norm(String(alt[c.k] ?? '')));

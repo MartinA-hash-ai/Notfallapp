@@ -69,18 +69,18 @@ async function writeKartei(p, kontakt) {
   ok(r[0] && r[1] && r[2] >= 1, 'großes Blatt: Anfang gelesen, Rest übersprungen (' + r[2] + ' Förderer)');
   // Recherche mit Copilot (öffnet die Auswahl des Copilot-Knopfs mit „Förderer suchen“ und „Förderrecherche“): Excel im Unterordner „Förderrecherche“,
   // mit Kartei-Auszug für die Gliederung (ohne Kontaktdaten); ausgefüllt wieder übernehmen
-  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
-  r = await p.evaluate(() => [document.querySelector('.rech-steps li:first-child button.primary').textContent, document.querySelector('.rech-prompt').value,
-    [...document.querySelectorAll('.ki-auf input:checked')].map(e => e.closest('.ki-auf').dataset.k).join()]);
+  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .ki-kacheln'); await p.click('.ki-fuss .link');
+  r = await p.evaluate(() => [document.querySelector('.ki-los').textContent.replace('Auftrag kopieren', 'Excel anlegen und Prompt kopieren'), document.querySelector('.ki textarea').value,
+    [...document.querySelectorAll('.ki-k.on')].map(e => e.dataset.k).join()]);
   ok(r[0] === 'Excel anlegen und Prompt kopieren' && r[2] === 'suchen,recherche' && r[1].includes('Gliederung: Iserlohn-Menden') && r[1].includes('Bezug zu Iserlohn-Menden') && r[1].includes('Blatt „Förder-Kartei“') && r[1].includes('Unterordner „Förderrecherche“'), 'mit Ordner: „Excel anlegen“, Prompt nennt Gliederung, Kartei-Blatt und die angehängte Datei');
-  await p.click('.rech-steps li:first-child button.primary'); await p.waitForTimeout(200);
+  await p.click('.ki-los'); await p.waitForTimeout(200);
   const RP = '/Ordner/Förderrecherche/' + await p.evaluate(() => vorlageName(cur()));
   r = await p.evaluate(async rp => { const f = __fs.files[rp]; if (!f) return null; const bk = await xlsxBook(f.data.buffer.slice(0)); const k = bk.sheets[2];
-    return [bk.sheets.filter(x => !x.hidden).map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], k.rows[3].includes('Notizen'), document.querySelector('.rech-st').textContent.includes('liegt im Ordner'), document.querySelector('.rech-steps li:first-child button.primary').textContent]; }, RP);
+    return [bk.sheets.filter(x => !x.hidden).map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], k.rows[3].includes('Notizen'), !!document.querySelector('.ki-erg'), document.querySelector('.ki-los').textContent.replace('Auftrag kopieren', 'Excel anlegen und Prompt kopieren')]; }, RP);
   ok(r && r[0] === 'Förderplan+Anleitung+Förder-Kartei' && r[1] === 'Märkische Bank eG,Aktion Beispiel' && !r[2] && r[3] === '2025: 1.000 € Folierung' && !r[4] && r[5] && r[6] === 'Excel anlegen und Prompt kopieren',
     'Excel im Ordner angelegt; Kartei-Blatt nur mit den Zuständigen, eigene Gliederung zuerst, Historie, ohne Kontaktdaten und Notizen: ' + JSON.stringify(r));
   // gleich übernehmen, obwohl Copilot noch nichts eingetragen hat: Hinweis statt leerer Vorschau
-  await p.click('.rech-steps li:nth-child(3) button');
+  await p.click('.ki-erg');
   await p.waitForFunction(() => [...document.querySelectorAll('.modal h2')].some(e => e.textContent === 'Noch kein Ergebnis'));
   t = await p.$eval('.modal', e => e.textContent);
   ok(t.includes('Noch kein Ergebnis') && t.includes('als eigene Datei gespeichert') && t.includes('Andere Datei wählen'), 'unveränderte Excel: Hinweis mit möglichen Gründen und „Andere Datei wählen“');
@@ -91,8 +91,8 @@ async function writeKartei(p, kontakt) {
     const rows = [['Förderplan'], [], ['Kennung', cur().id], [], cols, ['Herner Sparkasse', 'geplant', '', '', ''], ['Stiftung Neu', '', '3000', 'Fördert Ausstattung im Ehrenamt', 'https://neu.example'], ['Lotterie Neu', '', '2.000', 'Regionalbezug', '']];
     __fs.files[rp.replace(/\.xlsx$/, ' (1).xlsx')] = { data: new Uint8Array(await xlsxBlob([{ name: 'Förderplan', cols: cols.map(() => 12), rows }]).arrayBuffer()), lm: 90000 };
   }, RP);
-  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
-  await p.click('.rech-steps li:nth-child(3) button'); await p.waitForSelector('.modal .imp');
+  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .ki-kacheln');
+  await p.click('.ki-erg'); await p.waitForSelector('.modal .imp');
   t = await p.$eval('.modal', e => e.textContent.replace(/\u00a0/g, ' '));
   ok(t.includes('3 Förderer') && t.includes('Neu ausgewählt: 2 Förderer, erwartet zusammen 5.000 €') && t.includes('im Plan: geplant'), '„Excel übernehmen“ liest die Datei aus dem Ordner und zeigt die Vorschläge: ' + t.replace(/\s+/g, ' ').slice(0, 160));
   await p.click('.modal footer button.primary'); await p.waitForTimeout(200);

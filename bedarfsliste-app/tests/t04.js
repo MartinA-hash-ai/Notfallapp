@@ -16,19 +16,19 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join('|') === 'Förderplan+Anleitung|20000|20000||15|Stand in der Bedarfsliste|geplant|true', 'Excel beschreibt den Bedarf mit Finanzierung, Förderer mit Stand, Anleitung mit Umfang: ' + r.join('|'));
   ok(await p.evaluate(() => { const f = ff({ name: 'X' }); applyResearch(f, { stand: 'zugesagt', warum: 'w' }, 'all'); return f.stand === undefined && f.warum === 'w'; }), 'Spalte „Stand“ wird nicht eingelesen');
   // Recherche mit Copilot: Dialog mit drei Schritten, Prompt mit Bedarf und Umfang; ohne Ordner wird die Excel heruntergeladen
-  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
-  r = await p.evaluate(() => [document.querySelectorAll('.rech-steps > li').length, document.querySelector('.rech-steps li:first-child button.primary').textContent, document.querySelector('.rech-prompt').value.replace(/\u00a0/g, ' ')]);
-  ok(r[0] === 3 && r[1] === 'Excel herunterladen und Prompt kopieren' && r[2].includes('Bedarf: Testbedarf / MTW') && r[2].includes('noch offen 20.000 €') && r[2].includes('Deadline: 30.06.2027')
+  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .ki-kacheln'); await p.click('.ki-fuss .link');
+  r = await p.evaluate(() => [document.querySelectorAll('.ki-k').length, document.querySelector('.ki-los').textContent, document.querySelector('.ki textarea').value.replace(/\u00a0/g, ' ')]);
+  ok(r[0] === 4 && r[1] === 'Auftrag kopieren' && r[2].includes('Bedarf: Testbedarf / MTW') && r[2].includes('noch offen 20.000 €') && r[2].includes('Deadline: 30.06.2027')
     && r[2].includes('5 bis 8 Förderer') && !r[2].includes('Doppelte') && r[2].includes('Nicht auf eine Gesamtsumme hinrechnen') && r[2].includes('Arbeitsdatei: „Foerderrecherche_Testbedarf_MTW_Paderborn_')
     && r[2].includes('Recherchiere im Web') && r[2].includes('brich ab') && r[2].includes('tatsächlich geöffnet') && !r[2].includes('Förder-Kartei') && r[2].includes('Zum Schluss im Chat'),
     'Dialog: drei Schritte; Prompt mit Bedarf, offener Summe, gestaffeltem Umfang ohne Zielsumme, angehängter Datei und Pflicht zur Websuche');
-  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.rech-steps li:first-child button.primary')]);
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.ki-los')]);
   ok(/^Foerderrecherche_Testbedarf_MTW_Paderborn_[a-z0-9]{4}\.xlsx$/.test(dl.suggestedFilename()) && dl.suggestedFilename() === await p.evaluate(() => vorlageName(cur())), 'Download der Excel mit Gliederung und Kürzel: ' + dl.suggestedFilename());
   r = await p.evaluate(() => { const a = blank(), c = blank(); Object.assign(a, { titel: 'AED', gliederung: 'Brakel' }); Object.assign(c, { titel: 'AED', gliederung: 'Borchen' });
     const n = s => { const x = blank(); x.summe = s; return rechAnzahl(x); };
     return [vorlageName(a) !== vorlageName(c), /^Foerderrecherche_AED_Brakel_[a-z0-9]{4}\.xlsx$/.test(vorlageName(a)), [n(800), n(15000), n(60000), n(null)].join('|'), kurzName('Mannschaftstransportwagen (MTW) für den Sanitätsdienst', 40)]; });
   ok(r.join() === 'true,true,3 bis 5|5 bis 8|8 bis 12|5 bis 8,Mannschaftstransportwagen_MTW', 'gleicher Titel, andere Gliederung: andere Datei; Umfang nach Betrag gestaffelt; Kurzname ohne Füllwörter am Ende: ' + r.join());
-  await p.click('.modal footer button');
+  await p.click('.modal header .x');
   // Pfad aus „Als Pfad kopieren“: Anführungszeichen fallen weg
   await p.fill('input[data-p="pfad"]', '"C:\\Users\\X\\OneDrive - Malteser\\Bedarfe\\MTW"');
   ok(await p.evaluate(() => cur().pfad) === 'C:\\Users\\X\\OneDrive - Malteser\\Bedarfe\\MTW' && await p.$eval('input[data-p="pfad"]', e => !e.value.includes('"')), 'Pfad ohne Anführungszeichen übernommen');

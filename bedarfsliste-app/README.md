@@ -87,14 +87,14 @@ Kalender, die Uhrzeit mit den Rädern – tippen geht auch. Oben links die Zust�
 beim Überfahren der Knöpfe; dazu ein Handy; ★ = Ansprechperson in der Liste; ein bekannter Name bringt seine Angaben mit), darunter Deadline und
 Stichworte (eintippen, Enter, das nächste), rechts die Beschreibung – anklicken und ändern, bei der Beschreibung irgendwo in die Fläche.
 
-**Copilot und Cowork (Zeichen oben rechts neben „⋯“):** Aufgaben anhaken, auch mehrere auf einmal – Zuständige aus dem Intranet (Copilot),
-Beschreibung aus den Dateien im Ordner neu vorschlagen, Unterlagen-Check, neue Förderer suchen, Förderrecherche je Förderer (Steckbrief, Pro und
-Contra in kurzen Punkten, Einschätzung – mit dem Skill zur Förderlogik-Analyse) und Entwürfe als Word-Datei (Antrag, Bitte um Freigabe, Nachfassen,
-Dank, Pressemitteilung, Sachbericht). „Excel anlegen und Prompt kopieren“ legt die Arbeits-Excel in den Unterordner „Förderrecherche“ (dort kommt Cowork
-über OneDrive heran; Zusatzblätter „Beschreibung“ und „Unterlagen“, wenn gewählt) und kopiert den Prompt – für Cowork oder für Copilot. Die Kontaktdaten
-der Zuständigen laufen über Copilot und die Personen-Excel, weil nur Copilot das Intranet kennt. „Ergebnis ansehen“ zeigt Beschreibung (bisher und
-neu nebeneinander), Unterlagen und Förderer zum Auswählen; ein Schritt lässt sich rückgängig machen. Ist die Excel nach dem Auftrag geändert, zeigt das
-Zeichen einen roten Punkt (die Liste schaut etwa jede Minute nach). „Recherche mit Copilot“ im Förderplan öffnet dieselbe Auswahl.
+**Copilot-Auftrag (Zeichen oben rechts neben „⋯“):** vier Kacheln, auch mehrere auf einmal – Beschreibung (neu aus den Dateien im Ordner,
+mit den Eckdaten des Projekts), Neue Förderer, Förderrecherche (Steckbrief, Pro und Contra in kurzen Punkten, Einschätzung – mit dem Skill zur
+Förderlogik-Analyse; darunter die Förderer zum Anklicken, auch „die neu gefundenen“) und Kontaktdaten der Zuständigen (über Copilot und die
+Personen-Excel, weil nur Copilot das Intranet kennt). Texte (Antrag, Freigabe, Nachfassen, Dank, Pressemitteilung, Sachbericht) folgen in einem
+späteren Update. Unten Cowork oder Copilot, „Prompt ansehen“ und „Auftrag kopieren“: legt die Arbeits-Excel in den Unterordner „Förderrecherche“
+(dort kommt Cowork über OneDrive heran) und kopiert den Prompt. Ist die Excel nach dem Auftrag geändert, zeigt das Zeichen einen roten Punkt;
+„Ergebnis übernehmen“ zeigt die neue Beschreibung („bisher zeigen“ blendet die alte ein) und je Förderer eine Zeile mit „neu“ bzw. was ergänzt wurde.
+„Recherche mit Copilot“ im Förderplan öffnet denselben Auftrag mit Neue Förderer und Förderrecherche.
 
 **Personen-Excel (Kontaktdaten der Zuständigen):** „Kontaktdaten mit Copilot“ bei „Zuständig“ legt `Personen.xlsx` neben der
 Bedarfsliste an (Blatt „Personen“: Name, Position, Gliederung / Dienststelle, E-Mail, Telefon, Handy, Quelle, Stand – mit allen Personen, die die

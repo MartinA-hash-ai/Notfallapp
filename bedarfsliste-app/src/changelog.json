@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.41.0",
+    "date": "2026-10-26T21:00",
+    "items": [
+      "Copilot-Auftrag übersichtlicher: vier Kacheln (Beschreibung, Neue Förderer, Förderrecherche, Kontaktdaten), unten nur Cowork/Copilot, „Prompt ansehen“ und „Auftrag kopieren“",
+      "Förderrecherche: darunter die Förderer zum Anklicken (alle / keine), dazu „die neu gefundenen“",
+      "Texte (Antrag, Freigabe, Nachfassen, Dank, Pressemitteilung, Sachbericht) grau als späteres Update; Unterlagen-Check entfällt",
+      "Prompts überarbeitet: je Aufgabe Ziel, Vorgehen und Ergebnis, Beispiel für konkrete Pro-Punkte, Prüfung vor dem Speichern; die Beschreibung macht die Eckdaten des Projekts erkennbar (etwa 120 bis 220 Wörter)",
+      "Ergebnis übernehmen knapper: neue Beschreibung mit „bisher zeigen“, je Förderer eine Zeile mit „neu“ bzw. was ergänzt wurde"
+    ]
+  },
+  {
     "version": "0.40.0",
     "date": "2026-10-26T18:00",
     "items": [
