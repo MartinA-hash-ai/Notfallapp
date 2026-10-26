@@ -1032,3 +1032,32 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .upl-tab th { position: sticky; top: 0; background: var(--head); }
 .upl-tab td.num, .upl-tab th.num { text-align: right; white-space: nowrap; }
 .upl-tab tr.muted td { color: var(--faint); }
+
+/* Liste: das Angebot unter der Freigabe, abgesetzt – es zählt nicht zur Freigabe */
+.ml.ml-ang { position: relative; }
+.ml.ml-ang::before { content: ''; position: absolute; left: 0; right: 0; top: -1px; border-top: 1px dashed var(--line2); }   /* ohne Abstand: die Zeilen bleiben auf einer Höhe mit dem Finanzierungsplan */
+
+/* Zuständige bearbeiten: jede Person in einem eigenen Kasten */
+.k-ed { border: 1px solid var(--line2); border-radius: 8px; padding: 8px 32px 8px 10px; background: var(--card); }
+.k-ed .x { top: 6px; right: 6px; }
+/* Knopf „Personenliste“ und das Fachreferat unter den Zuständigen */
+.k-pliste { margin-left: auto; border: 1px solid var(--line2); background: var(--card); padding: 2px 9px; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink2); border-radius: 6px; }
+.k-pliste:hover { color: var(--ink); border-color: var(--faint); }
+.k-pliste + .k-pen, .k-pliste + .k-fertig { margin-left: 4px; }
+.fach-kopf { margin-top: 18px; gap: 8px; }
+.fach-kopf .fach-n { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--ink2); }
+.fach-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; }
+.fach-liste .k1 { margin: 0; background: var(--hover); }
+.fach-liste .fach-hw { grid-column: 1 / -1; margin: 2px 0 0; }
+@media (max-width: 520px) { .fach-liste { grid-template-columns: minmax(0, 1fr); } }
+/* Fenster „Personenliste“ */
+.modal.wide:has(.pl) { max-width: 1100px; }
+.pl-kopf { gap: 10px; align-items: center; margin-bottom: 10px; }
+.pl-such { flex: 1 1 220px; }
+.pl-liste { max-height: 58vh; overflow: auto; display: grid; gap: 6px; padding-right: 4px; }
+.pl-z { position: relative; display: grid; grid-template-columns: 1.3fr 1.3fr 1fr 1fr 1.4fr 1fr 1fr; gap: 6px; border: 1px solid var(--line2); border-radius: 8px; padding: 6px 34px 6px 8px; }
+.pl-z.weg { opacity: .45; text-decoration: line-through; }
+.pl-z .x { position: absolute; right: 6px; top: 6px; }
+.pl-f { display: grid; gap: 1px; font-size: 11px; color: var(--muted); }
+.pl-f input { font-size: 13px; padding: 3px 6px; min-width: 0; }
+@media (max-width: 900px) { .pl-z { grid-template-columns: 1fr 1fr; } }

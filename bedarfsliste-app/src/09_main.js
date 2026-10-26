@@ -207,7 +207,7 @@ function refresh() {
   const b = cur();
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b)); swap('d-sw', swHead(b));
-  swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('link-hw', linkHinweis(b));
+  swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('link-hw', linkHinweis(b)); swap('fach-pers', fachBlock(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('fuss-' + f.id, fussKontakt(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b)); swap('foe-kurz', esc(foeKurz(b)));
 }
@@ -443,6 +443,7 @@ async function act(k, a, e) {
     case 'backup': closeMenus(); saveBackup(); return;
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
+    case 'pers-liste': personenListeDialog(); return;
     case 'upl-vorlage': closeMenus(); download('UPL_Vorlage.xlsx', await uplVorlageBlob()); return;
     case 'upl': { closeMenus(); const f = await pickFile('.xlsx'); if (f) await uplImport(f); return; }
     case 'ueb': closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; toast(await ueSchreiben(true) ? '„' + UEB_DATEI + '“ neben der Liste aktualisiert' : 'Noch keine Förderer – oder die Datei ist gerade in Excel geöffnet.', 'ok'); return;

@@ -9,6 +9,7 @@ const PERS_COLS = [
   { k: 'n', t: 'Name', w: 26, re: /^((vor- und (zu|nach))?name|name, vorname|vollständiger name|ansprechperson|person)$/ },
   { k: 'rolle', t: 'Position', w: 32, re: /position|funktion|rolle|aufgabe/ },
   { k: 'gl', t: 'Gliederung / Dienststelle', w: 26, re: /gliederung|dienststelle|einheit/ },
+  { k: 'fach', t: 'Fachreferat', w: 22, re: /^(fachreferat|fachbereich)/ },                 // z. B. „Soziales Ehrenamt“ – die Person erscheint dort beim Bedarf
   { k: 'mail', t: 'E-Mail', w: 32, re: /mail/ },
   { k: 'tel', t: 'Telefon', w: 20, re: /^(telefon|tel\b|festnetz)(?!.*(\b2\b|mobil|handy))/ },
   { k: 'mobil', t: 'Handy', w: 18, re: /handy|mobil|telefon 2|tel\.? 2|^2\.? ?tel|zweite tel/ },              // „2. Telefonnummer“: meist das Handy
@@ -16,6 +17,8 @@ const PERS_COLS = [
   { k: 'stand', t: 'Stand', w: 12, re: /^stand|datum/ },
 ];
 const person = name => PR.byKey.get(kkey(name)) || null;
+// Personen eines Fachreferats: Spalte „Fachreferat“ – oder der Name steht in Position bzw. Dienststelle
+const fachPersonen = name => { const q = norm(name); return q ? PR.list.filter(p => [p.fach, p.rolle, p.gl].some(v => norm(v || '').includes(q))) : []; };
 
 // je Blatt die Kopfzeile mit „Name“ und „E-Mail“, „Telefon“ oder „Handy“. Namen auch als „Vorname“ + „Name“/„Nachname“ in zwei Spalten
 // oder als „Mustermann, Max“. Platzhalter („nicht gefunden“, „k. A.“) gelten als leer, E-Mail braucht ein @, Telefon Ziffern (führende 0 bleibt)
@@ -147,6 +150,36 @@ function personenFrage() {
     h('p', null, 'Die Liste kann Kontakte der Malteser (Name, Position, E-Mail, Telefon, Handy) aus einer Excel übernehmen – etwa einer Kontaktliste aus Copilot. Beim Eintippen eines Namens schlägt sie die Person dann mit allen Angaben vor.'),
     h('p', { class: 'muted small' }, 'Die Datei bleibt auf deinem Rechner bzw. im OneDrive neben der Bedarfsliste. Neue Kontakte aus den Bedarfen trägt die Liste selbst in „' + PERS_DATEI + '“ ein. Später: Zahnrad → „Kontakte-Excel einlesen …“.')),
     [['Später', false], ['Excel auswählen …', true, 'primary']]).then(async ja => { if (ja) { const f = await pickFile('.xlsx'); if (f) personenDatei(f); } });
+}
+
+/* ---------- Personenliste bearbeiten (Knopf „Personenliste“ bei „Zuständig“): Personen der Gliederungen und Fachreferate mit Kontaktdaten.
+   Gespeichert wird in „Personen.xlsx“; daraus kommen die Vorschläge beim Tippen und die Personen beim Fachreferat. */
+async function personenListeDialog() {
+  const F = [['n', 'Name', 'Vorname Nachname'], ['rolle', 'Position', 'z. B. Dienstleitung, Geschäftsführung, Beauftragte'], ['gl', 'Gliederung', 'z. B. Paderborn, Diözese'], ['fach', 'Fachreferat', 'z. B. Soziales Ehrenamt'],
+    ['mail', 'E-Mail', 'name@malteser.org'], ['tel', 'Telefon', '05251 …'], ['mobil', 'Handy', '0171 …']];
+  const L = PR.list.map(p => Object.assign({}, p)), weg = new Set();
+  let q = '';
+  const liste = h('div', { class: 'pl-liste' }), zahl = h('span', { class: 'muted small' });
+  const zeile = p => h('div', { class: 'pl-z' + (weg.has(p) ? ' weg' : '') }, ...F.map(([k, t, ph]) => h('label', { class: 'pl-f pl-' + k }, h('span', null, t),
+      h('input', { type: k === 'mail' ? 'email' : k === 'tel' || k === 'mobil' ? 'tel' : 'text', value: p[k] || '', placeholder: ph, list: k === 'gl' ? 'pl-gl' : k === 'fach' ? 'pl-fach' : null, oninput: e => { p[k] = e.target.value; } }))),
+    h('button', { type: 'button', class: 'x', title: weg.has(p) ? 'doch behalten' : 'aus der Liste entfernen', 'aria-label': 'Person entfernen', onclick: () => { weg.has(p) ? weg.delete(p) : weg.add(p); zeig(); } }, weg.has(p) ? '↺' : '×'));
+  const passt = p => !q || norm(F.map(([k]) => p[k] || '').join(' ')).includes(q);
+  const zeig = () => { const S = L.filter(passt); liste.replaceChildren(...S.map(zeile)); zahl.textContent = L.length + ' Personen' + (q ? ', ' + S.length + ' gefunden' : ''); };
+  const neu = () => { const p = { n: '', rolle: '', gl: '', fach: '', mail: '', tel: '', mobil: '' }; L.unshift(p); q = ''; such.value = ''; zeig(); const i = liste.querySelector('input'); if (i) i.focus(); };
+  const such = h('input', { type: 'search', class: 'pl-such', placeholder: 'Suchen (Name, Gliederung, Fachreferat …)', oninput: e => { q = norm(e.target.value); zeig(); } });
+  zeig();
+  const body = h('div', { class: 'help pl' },
+    h('div', { class: 'row pl-kopf' }, h('button', { type: 'button', class: 'primary', onclick: neu }, '+ Person hinzufügen'), such, zahl),
+    liste, h('datalist', { id: 'pl-gl' }, [DIO, ...GL_LIST].map(g => h('option', { value: g }))), h('datalist', { id: 'pl-fach' }, uniq([...FACH_LIST, ...PR.list.map(p => p.fach).filter(Boolean)]).map(g => h('option', { value: g }))),
+    h('p', { class: 'muted small' }, 'Gespeichert in „' + PERS_DATEI + '“ neben der Bedarfsliste. Beim Tippen eines Namens schlägt die Liste diese Personen vor; wer bei „Fachreferat“ eingetragen ist, erscheint beim Bedarf unter „Fachreferat“. '
+      + 'Entfernte Personen kommen wieder, solange sie noch in einer anderen „Personen …“-Datei im Ordner oder als Zuständige bei einem Bedarf stehen.'));
+  if (!await modal('Personenliste', body, [['Abbrechen', false], ['Speichern', true, 'primary']], { wide: true })) return;
+  const R = L.filter(p => !weg.has(p) && p.n.trim()).map(p => Object.assign(p, { n: p.n.trim(), mail: mailText(p.mail || ''), tel: telText(p.tel || ''), mobil: telText(p.mobil || '') }));
+  personenSetzen(R);
+  if (DEMO || !rechOrdnerOk()) { safeRender(); toast('Personenliste geändert – nur für diese Sitzung (ohne verbundenen Ordner wird keine Datei geschrieben).', 'warn'); return; }
+  if (await personenSchreiben()) { await personenScan(true); toast('Personenliste gespeichert (' + R.length + ' Personen).', 'ok'); }
+  else toast('„' + PERS_DATEI + '“ konnte nicht geschrieben werden – ist sie gerade in Excel geöffnet?', 'warn');
+  safeRender();
 }
 
 /* ---------- Kontaktdaten mit Copilot: Excel, kurzer Auftrag, Ergebnis übernehmen */

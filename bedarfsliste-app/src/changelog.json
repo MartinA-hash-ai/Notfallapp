@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.52.0",
+    "date": "2026-10-28T15:00",
+    "items": [
+      "Angebot ist eine Unterlage, kein Teil der Freigabe mehr – in der Liste abgesetzt unter der Freigabe, auf der Seite bei den Unterlagen",
+      "UPL einlesen: der Ortsführungskreis gilt als zugestimmt",
+      "Unter „Zuständig“: das Fachreferat des Bedarfs mit allen zugehörigen Personen und ihren Kontaktmöglichkeiten",
+      "Knopf „Personenliste“ bei „Zuständig“: Personen der Gliederungen und Fachreferate hinzufügen, ändern, entfernen (gespeichert in Personen.xlsx, neue Spalte „Fachreferat“)",
+      "Zuständige bearbeiten: jede Person in einem eigenen Kasten"
+    ]
+  },
+  {
     "version": "0.51.0",
     "date": "2026-10-28T13:00",
     "items": [

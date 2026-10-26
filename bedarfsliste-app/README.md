@@ -118,6 +118,12 @@ Kommentierung des Fundraisings, Stern bei Priorität „hoch“, Stichwort „UP
 von Verwaltung und Referat sonst nicht. Vorschau mit Auswahl; ein zweites Einlesen legt nichts doppelt an und trägt nur neu erteilte Freigaben
 und fehlende Summen nach. Legende und Summenzeilen werden übergangen.
 
+**Seit 0.52:** Das Angebot ist eine Unterlage und zählt nicht mehr zur Freigabe (in der Liste steht es abgesetzt unter der Freigabe, auf der
+Seite des Bedarfs bei den Unterlagen). Beim Einlesen der UPL gilt der Ortsführungskreis als zugestimmt. Unter „Zuständig“ steht das Fachreferat
+des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die dazugehören (Spalte „Fachreferat“ – oder der Name steht in Position
+bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
+`Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
+
 **UPL-Vorlage für Copilot/Cowork (seit 0.51):** `UPL_Vorlage.xlsx` (auch Zahnrad → „UPL-Vorlage für Copilot/Cowork (Excel)“) hat das Blatt
 „UPL-Import“ (OG-Nr., Übernehmen, Bedarf (Kurzname), Gliederung, Summe, Priorität, Deadline, Beschreibung, Einschätzung Fundraising, Dienst,
 Fachreferat freigegeben + Begründung, Verwaltung budgetiert + Begründung, bisherige Spenden, UPL-Zeile, Hinweis), die „Anleitung“ mit Auftrag

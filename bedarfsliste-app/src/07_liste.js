@@ -15,22 +15,23 @@ const mi = (s, t) => `<span class="mi ${MI[s][0]}"${t ? ` title="${esc(t)}"` : '
 const ICON_CAL = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3.5" width="12" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 7h12M5.5 2v3M10.5 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
 const ICON_TRI = '<svg class="tri" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="currentColor"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12" r=".9" fill="#fff"/></svg>';
 
-// Freigabe: Ortsführungskreis, Verwaltung, Fachreferat, Angebot – ist alles durch, steht nur noch ein Haken „freigegeben“ (Einzelheiten beim Überfahren)
+// Freigabe: Ortsführungskreis, Verwaltung, Fachreferat – ist alles durch, steht nur noch ein Haken „freigegeben“ (Einzelheiten beim Überfahren).
+// Darunter, abgesetzt, das Angebot: eine Unterlage, die für die Freigabe nicht zählt
 function lFreigabe(b) {
   const it = Object.fromEntries(frItems(b).map(i => [i.k, i])), a = angebotUL(b);
   if (!frOffen(b).names.length) {
     const tip = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => { const i = it[k];
       return (k === 'fach' && i.item.name ? 'Fachreferat ' + i.item.name : lab) + ': ' + frText(i) + (i.st === 'ok' && validIso(i.item.erledigt) ? ' am ' + fmtDate(i.item.erledigt) : ''); });
-    return `<div class="ml fr-voll" title="${esc([...tip, 'Angebot: ' + (a ? ulText(a) : 'fehlt')].join('\n'))}">${mi('ok')}<span>freigegeben</span></div>`;
+    return `<div class="ml fr-voll" title="${esc(tip.join('\n'))}">${mi('ok')}<span>freigegeben</span></div>` + angZeile(a);
   }
   const L = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => {
     const i = it[k];
     if (!frNeeded(i)) return `<div class="ml nn" data-le="fr" data-k="${k}" title="${esc(frText(i))}">${mi('none')}<span>${lab}</span></div>`;
     return `<div class="ml" data-le="fr" data-k="${k}">${mi(({ ok: 'ok', angefragt: 'run', nein: 'no' })[i.st] || 'off', frText(i))}<span>${lab}</span></div>`;
   });
-  L.push(`<div class="ml${a && a.st === 'nn' ? ' nn' : ''}" data-le="ang">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : a && a.st === 'nn' ? 'none' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`);
-  return L.join('');
+  return L.join('') + angZeile(a);
 }
+const angZeile = a => `<div class="ml ml-ang${a && a.st === 'nn' ? ' nn' : ''}" data-le="ang">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : a && a.st === 'nn' ? 'none' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`;
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
 const F_SYM = { zugesagt: 'ok', beantragt: 'run', geplant: 'off', abgelehnt: 'no' };
 const EMPTY3 = '<span></span><span></span><span></span>';
@@ -151,10 +152,10 @@ const kz = (s, t, cls = '') => `<span class="kz ${cls}">${mi(s)}<span>${t}</span
 const kGrau = t => `<span class="kz nn">${t}</span>`;
 // Stand der Freigabe: ok (alles da), no (etwas abgelehnt), off (noch nichts angefangen), run (dazwischen)
 function frStand(b) {
-  const L = frItems(b).filter(frNeeded), a = angebotUL(b);
+  const L = frItems(b).filter(frNeeded);
   if (L.some(i => i.st === 'nein')) return 'no';
   if (!frOffen(b).names.length) return 'ok';
-  return L.every(i => i.st === 'offen') && (!a || a.st === 'fehlt') ? 'off' : 'run';
+  return L.every(i => i.st === 'offen') ? 'off' : 'run';
 }
 // Stand der Finanzierung: off (nichts eingetragen), ok (steht), run (Anträge geplant oder offen), no (Lücke: nichts mehr offen, aber nicht gedeckt)
 const finStand = b => { const F = finState(b); return !F.fs.length && !F.eig ? 'off' : F.gedeckt ? 'ok' : F.fs.some(f => f.status === 'geplant' || f.status === 'beantragt') ? 'run' : 'no'; };

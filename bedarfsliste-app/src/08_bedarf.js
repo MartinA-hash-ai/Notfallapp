@@ -20,7 +20,7 @@ const INFO = {
   deadline: 'Bis wann der Bedarf gedeckt sein muss. Ohne Deadline steht in der Liste blass „ohne Deadline“.',
   stichwort: 'Bedarfe mit demselben Stichwort – zum Beispiel einem Fördertopf – lassen sich in der Liste zusammen filtern. Ein Bedarf kann mehrere Stichworte haben: eintippen, Enter, das nächste.',
   recherche: 'Die Excel enthält den Bedarf (Beschreibung, Summe, Gliederung) und den bisherigen Förderplan. Im Blatt „Anleitung“ steht, was in jede Spalte gehört – so kann eine KI sie direkt als Vorlage für die Förderrecherche nehmen. Die ausgefüllte Datei hier wieder übernehmen: neue Förderer kommen dazu, vorhandene werden ergänzt.',
-  freigabe: 'Kreis anklicken, um den Stand zu ändern: gelb = angefragt, grün = zugestimmt, rot = abgelehnt. Ortsführungskreis immer, Fachreferat und Verwaltung ab 1.000 € – darunter nur, wenn sie angefragt wurden. Dazu muss das Angebot vorliegen (bei den Unterlagen).',
+  freigabe: 'Kreis anklicken, um den Stand zu ändern: gelb = angefragt, grün = zugestimmt, rot = abgelehnt. Ortsführungskreis immer, Fachreferat und Verwaltung ab 1.000 € – darunter nur, wenn sie angefragt wurden.',
 };
 const infoBtn = k => `<button class="info" data-act="info" data-v="${k}" aria-label="Hinweis anzeigen" title="Hinweis">i</button>`;
 const okLink = s => /^https?:\/\//i.test((s || '').trim());
@@ -94,8 +94,9 @@ function moreMenu(btn) {
 // Deadline und Stichworte stehen im Kopf der Seite. Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift.
 function secInfo(b) {
   const ed = UI.zEdit === b.id;
+  const pl = `<button class="k-pliste" data-act="pers-liste" title="Personenliste bearbeiten: Personen der Gliederungen und Fachreferate (Dienstleitung, Geschäftsführung, Beauftragte …) mit Kontaktdaten">Personenliste</button>`;
   return `<section class="card info-card eck" id="sec-eck">
-    <div class="eck-l">${kKopf('Zuständig', ed, '')}<div id="zust-liste">${zustListe(b)}</div></div>
+    <div class="eck-l">${kKopf('Zuständig', ed, '', pl)}<div id="zust-liste">${zustListe(b)}</div><div id="fach-pers">${fachBlock(b)}</div></div>
     <div class="eck-r">${pe(b, 'beschreibung', 'Beschreibung ' + FMT_I, 'area', { aria: 'Beschreibung', fmt: true, ph: 'Kurzbeschreibung aus der UPL oder in eigenen Worten' })}</div>
   </section>`;
 }
@@ -116,22 +117,19 @@ function freigabeList(b) {
     return `<div class="ci-row" id="fr-${i.k}">${i.na ? `<span class="circ c-na" aria-hidden="true">${ICO.na}</span>` : circ(frKind(i), `data-kind="fr" data-k="${i.k}"`, i.label)}
       <div class="ci-t">${name}${hint ? `<span class="ci-hint">${hint}</span>` : ''}</div>${date}</div>`;
   }).join('');
-  // das Angebot gehört zur Freigabe (ohne Angebot keine Freigabe) – Daten bleiben eine feste Unterlage
-  const a = angebotUL(b), angebot = a ? `<div class="ci-row" id="fr-ang">${circ(ulKind(a), `data-kind="ul" data-uid="${a.id}"`, 'Angebot')}
-      <div class="ci-t"><span class="ci-n">Angebot</span>${a.st !== 'da' ? `<span class="ci-hint">${esc(ulText(a))}</span>` : ''}</div></div>` : '';
   const fo = frOffen(b);
-  return rows + angebot + (fo.names.length ? `<div class="ci-foot warn">Es fehlt noch: ${esc(fo.names.join(', '))}</div>` : '')
+  return rows + (fo.names.length ? `<div class="ci-foot warn">Es fehlt noch: ${esc(fo.names.join(', '))}</div>` : '')
     + dl('dl-fach', [...FACH_LIST, ...D.bedarfe.map(x => x.freigabe.fach.name)]);
 }
 function unterlagenList(b) {
-  return b.unterlagen.filter(u => !(u.fest && u.name === 'Angebot')).map(u => `<div class="ci-row">${circ(ulKind(u), `data-kind="ul" data-uid="${u.id}"`, u.name || 'Unterlage')}
+  return b.unterlagen.map(u => `<div class="ci-row"${u.fest && u.name === 'Angebot' ? ' id="fr-ang"' : ''}>${circ(ulKind(u), `data-kind="ul" data-uid="${u.id}"`, u.name || 'Unterlage')}
       <div class="ci-t">${u.fest ? `<span class="ci-n">${esc(u.name)}</span>` : tin(u, 'name', `class="inline" data-uid="${u.id}" aria-label="Name der Unterlage"`, 'Unterlage')}<span class="ci-hint">${esc(ulText(u))}</span></div>
       ${u.fest ? '' : `<button class="x" data-act="rm-ul" data-uid="${u.id}" aria-label="${esc(u.name)} entfernen" title="entfernen">×</button>`}</div>`).join('')
     + `<div class="ci-row add"><span class="circ c-add" aria-hidden="true">+</span><input type="text" id="ul-new" class="inline" list="dl-ul" placeholder="weitere Unterlage" aria-label="Weitere Unterlage hinzufügen"></div>`
     + dl('dl-ul', ['Bilder', 'Presseartikel', 'Studien', 'Kostenplan', 'Zeitplan', 'Unterstützerschreiben'].filter(n => !b.unterlagen.some(u => u.name === n)));
 }
 function frBlock(b) {
-  const ok = !frOffen(b).names.length;                    // alle nötigen Freigaben und das Angebot
+  const ok = !frOffen(b).names.length;                    // alle nötigen Freigaben (das Angebot steht bei den Unterlagen)
   return `<div class="fr-blk${ok ? ' ok' : ''}"><h3>Freigaben${ok ? ' <span class="fr-ok">· alle vorhanden</span>' : ''} ${infoBtn('freigabe')}</h3><div id="fr-body" class="ci-list">${freigabeList(b)}</div></div>`;
 }
 function sidePanel(b) {
@@ -219,7 +217,7 @@ function pe(f, k, lab, art = 'line', o = {}) {
 // o: a – Attribute der Knöpfe (data-fid beim Förderer), p – Pfad der Liste, edit, wer, neu – Texte für +, haupt – Texte zum Stern, extra – Zeilen aus der Kartei,
 // max – höchstens so viele, kompakt – E-Mail und Telefon nur als Hinweis an den Knöpfen (beim Überfahren), nicht als Zeilen
 function personen(L, o) {
-  const a = o.a || '', n = L.length, plus = t => n < (o.max || MAX_KONTAKTE) ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>${t}</button>` : '';
+  const a = o.a || '', n = L.length, plus = t => !o.lesen && n < (o.max || MAX_KONTAKTE) ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>${t}</button>` : '';
   if (o.edit) {
     const linie = (i, p, ph) => `<input type="${p === 'mail' ? 'email' : p === 'tel' || p === 'mobil' ? 'tel' : 'text'}" class="k-li k-li-${p}" data-p="${o.p}.${i}.${p}" ${a} value="${esc(L[i][p] || '')}" placeholder="${ph}" aria-label="${ph}" autocomplete="off">`;
     return L.map((c, i) => `<div class="k-ed">${linie(i, 'n', 'Vorname Nachname')}${linie(i, 'rolle', 'Position')}${linie(i, 'mail', 'E-Mail-Adresse')}${linie(i, 'tel', 'Telefonnummer')}${o.mobil ? linie(i, 'mobil', 'Handynummer') : ''}
@@ -229,13 +227,13 @@ function personen(L, o) {
   const zeile = (c, i, ausKartei) => {
     const tel = telNr(c.tel), mob = telNr(c.mobil || ''), links = o.kompakt ? '' : [c.mail && `<div><a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a></div>`,
       tel && `<div><a href="tel:${tel}" data-act="link">${esc(c.tel)}</a></div>`, mob && `<div><a href="tel:${mob}" data-act="link">${esc(c.mobil)}</a></div>`].filter(Boolean).join('');
-    const stern = ausKartei ? '' : i === 0 ? `<span class="star" title="${o.haupt[0]}">★</span>`
+    const stern = ausKartei || o.lesen ? '' : i === 0 ? `<span class="star" title="${o.haupt[0]}">★</span>`
       : `<button class="star off" data-act="k-haupt" data-i="${i}" ${a} title="${o.haupt[1]}" aria-label="${o.haupt[1]}">☆</button>`;
     return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
       + (c.n && c.rolle ? `<div class="kr">${esc(c.rolle)}</div>` : '') + (links ? `<div class="kl">${links}</div>` : '')
       + `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben', c.mail) : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen', c.tel) : ''}${mob ? knopf('tel:' + mob, ICON_HANDY, 'Handy anrufen', c.mobil) : ''}</div></div>`;
   };
-  return L.map((c, i) => zeile(c, i, false)).join('') + (o.extra || []).map(c => zeile(c, 0, true)).join('') + plus(n ? o.neu[0] : o.neu[1]);
+  return L.map((c, i) => zeile(c, i, false)).join('') + (o.extra || []).map(c => zeile(c, 0, true)).join('') + (o.lesen ? '' : plus(n ? o.neu[0] : o.neu[1]));
 }
 // Kontakte des Förderers (die aus der Förder-Kartei sind beim Eintragen schon übernommen – karteiFuellen)
 function kontaktListe(f) {
@@ -243,6 +241,14 @@ function kontaktListe(f) {
     haupt: ['Hauptkontakt – steht in der Kachel', 'Zum Hauptkontakt machen'] });
 }
 const ICON_HANDY = '<svg viewBox="0 0 12 16" width="10" height="14" aria-hidden="true"><rect x="1.5" y="1" width="9" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.8 12.3h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
+// Fachreferat des Bedarfs (Name aus der Freigabe): alle Personen der Personenliste, die dazugehören – nur zum Ansehen und Kontaktieren
+function fachBlock(b) {
+  const name = b.freigabe.fach.name.trim(), L = fachPersonen(name);
+  const inhalt = !name ? '<p class="muted small fach-hw">Welches Fachreferat? In der Freigabe beim Fachreferat den Namen eintragen.</p>'
+    : L.length ? personen(L, { kompakt: true, mobil: true, lesen: true })
+    : `<p class="muted small fach-hw">Noch niemand für „${esc(name)}“ in der Personenliste – über „Personenliste“ ergänzen (Spalte Fachreferat).</p>`;
+  return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}</div><div class="fach-liste">${inhalt}</div>`;
+}
 const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
   haupt: ['Ansprechperson – steht in der Liste', 'Zur Ansprechperson machen'] });
 // Überschrift über Kontakten bzw. Zuständigen: rechts der Stift, beim Bearbeiten „Fertig“

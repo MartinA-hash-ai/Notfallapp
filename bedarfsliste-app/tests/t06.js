@@ -9,11 +9,11 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0] === 'b-mtw' && r[1] === 'b-aed', 'hohe Priorität zuerst, dann nach Frist');
   // je Zeile: Name, Summe, Ort · Zuständig · bis; Freigabe; Finanzierungsplan mit Nachweis; Spendenübergabe
   const L = id => p.evaluate(id => { const tr = document.querySelector(`tr[data-id="${id}"]`), t = e => e ? e.innerText.replace(/[✓✕]/g, '').replace(/\s+/g, ' ').trim() : '';
-    return { name: t(tr.querySelector('.l-name')), sum: t(tr.querySelector('.l-sum')), meta: t(tr.querySelector('.l-meta')), frDone: !!tr.querySelector('.l-fr .fr-voll') && tr.querySelector('.l-fr').innerText.trim() === 'freigegeben',
+    return { name: t(tr.querySelector('.l-name')), sum: t(tr.querySelector('.l-sum')), meta: t(tr.querySelector('.l-meta')), frDone: !!tr.querySelector('.l-fr .fr-voll') && tr.querySelector('.l-fr .fr-voll').innerText.trim() === 'freigegeben' && !tr.querySelector('.l-fr [data-le="fr"]'),
       fr: [...tr.querySelectorAll('.l-fr .mi')].map(m => m.className.replace('mi m-', '')).join(), fin: [...tr.querySelectorAll('.l-fin .fr')].map(r => r.className.replace('fr', '').trim() + ':' + [...r.children].map(t).filter(Boolean).join(' ')).join(' | '),
       sym: [...tr.querySelectorAll('.l-fin .fr > .mi:first-child')].map(m => m.className.replace('mi m-', '')).join(), leads: tr.querySelectorAll('.l-fin .lead').length, ueb: t(tr.querySelector('.l-ueb')) }; }, id);
   r = await L('b-mtw');
-  ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone && r.fr === 'ok', 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig: nur ein Haken „freigegeben“: ' + JSON.stringify(r));
+  ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone && r.fr === 'ok,ok', 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig: nur ein Haken „freigegeben“, darunter das Angebot: ' + JSON.stringify(r));
   ok(r.sym === 'ok,run,off' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Bürgerstiftung Musterstadt 15.000 € | :Beispiel-Soziallotterie 30.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
     'Finanzierung läuft: Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe zeigt nur den Ort: ' + r.fin);
   r = await L('b-aed');
@@ -102,7 +102,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [!!document.querySelector('#fr-blk .fr-blk.ok'), document.querySelector('#fr-blk h3').textContent.replace(/\s+/g, ' ').trim()]);
   ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
   r = await p.evaluate(() => [[...document.querySelectorAll('#fr-body .ci-n')].map(e => e.textContent).join(','), [...document.querySelectorAll('#ul-body .ci-n')].map(e => e.textContent).join(',')]);
-  ok(r.join(' / ') === 'Ortsführungskreis,Fachreferat,Verwaltung,Angebot / Konzept,Projektsteckbrief', 'Angebot bei den Freigaben, nicht mehr bei den Unterlagen: ' + r.join(' / '));
+  ok(r.join(' / ') === 'Ortsführungskreis,Fachreferat,Verwaltung / Konzept,Projektsteckbrief,Angebot', 'Angebot bei den Unterlagen, nicht bei den Freigaben: ' + r.join(' / '));
   // Förderplan und Nacharbeit einklappen – beim Öffnen je nach Phase: Förderung läuft → Förderplan offen, Nacharbeit zu
   r = await p.evaluate(() => [!!document.querySelector('#fin-pie'), !!document.querySelector('#nach-body'), (document.querySelector('#nach-kurz') || {}).textContent]);
   ok(r[0] === true && r[1] === false && /^offen: /.test(r[2]), 'Förderung läuft: Förderplan aufgeklappt, Nacharbeit eingeklappt mit den offenen Punkten: ' + r.join('|'));
@@ -113,7 +113,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => !!document.querySelector('#nach-body') && !document.querySelector('#fin-pie')), 'Nacharbeit von Hand aufgeklappt, Förderplan bleibt zu');
   await p.evaluate(() => { renderNow(); });
   ok(await p.evaluate(() => !!document.querySelector('#nach-body') && !document.querySelector('#fin-pie')), 'von Hand geklappt bleibt beim Neuzeichnen');
-  await p.reload(); await p.waitForTimeout(300);
+  await p.reload(); await p.waitForSelector('#sec-foe'); await p.waitForTimeout(300);          // erst warten, bis die Seite gezeichnet ist
   ok(await p.evaluate(() => !!document.querySelector('#fin-pie') && !document.querySelector('#nach-body') && document.querySelectorAll('.fk.fp').length === 3), 'neu geöffnet: wieder je nach Phase (Förderplan offen, Nacharbeit zu)');
   r = await p.evaluate(() => { oeffnen('b-kueche'); return [!document.querySelector('#fin-pie'), !!document.querySelector('#foe-kurz'), !!document.querySelector('#nach-body')]; });
   ok(r.join() === 'true,true,true', 'Bedarf in der Nacharbeit: Förderplan eingeklappt, Nacharbeit offen: ' + r.join());
@@ -281,7 +281,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     return [Math.abs(l.top - rr.top) <= 6, rr.left > l.right, Math.abs(rr.width - l.width) < 40, be.left >= rr.left - 8, E.querySelectorAll('input, textarea').length,
       [...E.querySelectorAll('.k1 .kn')].map(e => e.textContent).join(), k[0].top === k[1].top && k[1].left > k[0].right, [...E.querySelectorAll('.eck-l > *')].map(e => e.className || e.id).join(),
       document.querySelector('#d-meta').textContent, !!document.querySelector('.d-head #d-sw .sw-plus[data-tip="Stichworte oder Fördertöpfe"]')]; });
-  ok(r.join('|') === 'true|true|true|true|0|Thomas Beispiel,Anna Muster|true|sub,zust-liste|Deadline: 30.06.2027|true', 'Bedarf oben: links nur die Zuständigen nebeneinander, rechts die Beschreibung; im Kopf „Deadline: …“ und das + für Stichworte: ' + r.join('|'));
+  ok(r.join('|') === 'true|true|true|true|0|Thomas Beispiel,Anna Muster|true|sub,zust-liste,fach-pers|Deadline: 30.06.2027|true', 'Bedarf oben: links die Zuständigen nebeneinander und darunter das Fachreferat, rechts die Beschreibung; im Kopf „Deadline: …“ und das + für Stichworte: ' + r.join('|'));
   ok(await p.evaluate(() => [...document.querySelectorAll('#zust-liste .k1')].every(k => getComputedStyle(k).backgroundColor === 'rgb(243, 243, 241)')), 'Zuständige dauerhaft grau hinterlegt');
   // Zuständige bearbeiten wie Kontakte: Linien, zwei je Zeile, auch mehr als drei, Fertig oben rechts
   await p.click('#sec-eck .k-pen');

@@ -174,8 +174,8 @@ const frName = i => i.k === 'fach' && i.item.name ? 'Fachreferat ' + i.item.name
 const angebotUL = b => b.unterlagen.find(u => u.fest && u.name === 'Angebot');
 // was in der Freigabe noch fehlt (Namen), und was abgelehnt wurde
 function frOffen(b) {
-  const open = frItems(b).filter(i => frNeeded(i) && i.st !== 'ok'), ang = angebotUL(b);
-  return { names: [...open.map(frName), ...(!ang || !['da', 'nn'].includes(ang.st) ? ['Angebot'] : [])], rej: open.filter(i => i.st === 'nein') };
+  const open = frItems(b).filter(i => frNeeded(i) && i.st !== 'ok');                // das Angebot ist seit 0.52 eine Unterlage, kein Teil der Freigabe
+  return { names: open.map(frName), rej: open.filter(i => i.st === 'nein') };
 }
 const ulOpts = u => u.fest && u.name === 'Angebot' ? [['fehlt', 'fehlt'], ['arbeit', 'angefragt', 't-warn'], ['da', 'liegt vor', 't-ok'], ['nn', 'nicht nötig']] : [['fehlt', 'fehlt'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'vorhanden', 't-ok']];
 const ulText = u => (ulOpts(u).find(o => o[0] === u.st) || [, u.st])[1];

@@ -86,8 +86,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   for (let i = 0; i < 4; i++) { await p.click(R('b-mtw') + ' .vt[data-le="vn"]'); seq.push(await vn()); }
   ok(seq.join() === 'arbeit,erledigt,nicht nötig,offen', 'Verwendungsnachweis: steht aus → in Arbeit → erledigt → nicht nötig → steht aus: ' + seq.join());
   ok(await order() === before, 'beim Bearbeiten springen die Zeilen nicht (neu sortiert wird beim Zurückkommen in die Liste)');
-  ok(await p.$eval(R('b-klausur') + ' td.l-fr', e => e.innerText.trim() === 'freigegeben' && !e.querySelector('[data-le]')), 'Freigabe vollständig: nur „freigegeben“, nichts zum Weiterschalten');
-  await p.evaluate(() => { angebotUL(D.bedarfe.find(x => x.id === 'b-klausur')).st = 'fehlt'; changed(); keep(renderNow); });
+  ok(await p.$eval(R('b-klausur') + ' td.l-fr', e => e.querySelector('.fr-voll').innerText.trim() === 'freigegeben' && !e.querySelector('[data-le="fr"]')), 'Freigabe vollständig: nur „freigegeben“, nichts zum Weiterschalten (darunter das Angebot)');
+  await p.evaluate(() => { D.bedarfe.find(x => x.id === 'b-klausur').freigabe.verw.st = 'offen'; changed(); keep(renderNow); });   // das Angebot zählt nicht mehr zur Freigabe
   await p.click(R('b-klausur') + ' [data-le="fr"][data-k="ofk"]');
   ok((await B('b-klausur')).freigabe.ofk.st === 'offen' && (await p.$eval('#toasts', e => e.textContent)).includes('entfällt'), 'Diözese: Ortsführungskreis entfällt, bleibt unverändert');
 

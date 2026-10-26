@@ -49,6 +49,7 @@ function uplAnwenden(b, z, neu) {
   const frei = (k, notiz) => { const f = b.freigabe[k]; if (notiz && f.st !== 'ok') { f.st = 'ok'; f.erledigt = f.erledigt || today(); f.notiz = f.notiz || 'laut UPL: ' + notiz; n = true; } };
   if (neu) Object.assign(b, { titel: z.titel, gliederung: z.ort, summe: z.summe, beschreibung: z.beschreibung, prio: z.hoch ? 'hoch' : 'mittel', upl: z.key,
     stichworte: z.jahr ? ['UPL ' + z.jahr] : [], deadline: z.deadline || '' });
+  if (neu) { b.freigabe.ofk.st = 'ok'; b.freigabe.ofk.erledigt = today(); b.freigabe.ofk.notiz = 'laut UPL (Investitionsabfrage)'; }   // in der UPL: der Ortsführungskreis hat zugestimmt
   if (neu && z.spenden > 0) b.foerderer.push(ff({ name: 'Bisherige Spenden (laut UPL)', status: 'zugesagt', betrag: z.spenden, zugesagt: z.spenden, eingegangen: z.spenden }));
   else if (b.summe == null && z.summe) { b.summe = z.summe; n = true; }
   if (z.fach && z.dienst && !b.freigabe.fach.name) b.freigabe.fach.name = z.dienst;

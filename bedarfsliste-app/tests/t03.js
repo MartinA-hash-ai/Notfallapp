@@ -106,8 +106,8 @@ async function writeKartei(p, kontakt) {
     'Kontaktdaten mit Copilot: noch keine Excel; kurzer Auftrag nennt die Zuständigen mit Gliederung (' + r[1].length + ' Zeichen)');
   await p.click('.rech-steps li button'); await p.waitForTimeout(200);
   r = await p.evaluate(async () => { const f = __fs.files['/Ordner/Personen.xlsx']; if (!f) return null; const bk = await xlsxBook(f.data.buffer.slice(0));
-    return [bk.sheets.map(s => s.name).join('+'), bk.sheets[0].rows[0].join('|'), bk.sheets[0].rows.slice(1).filter(x => x[0]).map(x => x[0] + ':' + x[2] + ':' + x[4]).join(','), document.querySelector('.rech-steps li button').disabled]; });
-  ok(r && r[0] === 'Personen+Anleitung' && r[1] === 'Name|Position|Gliederung / Dienststelle|E-Mail|Telefon|Handy|Quelle|Stand' && r[2].includes('Otto Ohne:Iserlohn-Menden:') && r[2].includes('Paula Person:Iserlohn-Menden:0170 eigene') && r[3],
+    return [bk.sheets.map(s => s.name).join('+'), bk.sheets[0].rows[0].join('|'), bk.sheets[0].rows.slice(1).filter(x => x[0]).map(x => x[0] + ':' + x[2] + ':' + x[5]).join(','), document.querySelector('.rech-steps li button').disabled]; });
+  ok(r && r[0] === 'Personen+Anleitung' && r[1] === 'Name|Position|Gliederung / Dienststelle|Fachreferat|E-Mail|Telefon|Handy|Quelle|Stand' && r[2].includes('Otto Ohne:Iserlohn-Menden:') && r[2].includes('Paula Person:Iserlohn-Menden:0170 eigene') && r[3],
     'Personen.xlsx im Ordner angelegt, mit allen Personen, die die Liste kennt; danach nicht noch einmal: ' + JSON.stringify(r));
   // Copilot füllt die Datei; eine zweite, neuere Fassung mit Vor- und Nachname in zwei Spalten – die neueste gilt, Eigenes bleibt
   await pers('Personen.xlsx', [['Name', 'Position', 'Gliederung / Dienststelle', 'E-Mail', 'Telefon', 'Quelle', 'Stand'], ['Paula Person', 'Ortsbeauftragte', 'Iserlohn-Menden', 'paula@malteser.example', '02371 1', 'Outlook', '2026-10-23'],
