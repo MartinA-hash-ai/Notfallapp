@@ -42,9 +42,11 @@ const KI_ESSENZ = '„Pro“ und „Contra“ nur als Essenz: je höchstens 3 Pu
   + '(z. B. „- max. 5.000 € je Antrag – Teilbetrag beantragen“). Stehen schon Pro und Contra da: prüfen, Zutreffendes behalten, Falsches streichen, auf die Essenz kürzen.';
 const KI_KURZ = 'Übliche Fördersumme, Eigenanteil und weitere Fristen je höchstens eine kurze Zeile.';
 // wo die Bedarfsordner in der Regel liegen – für die Suche, wenn noch kein Ordner eingetragen ist
-const kiAblageHinweis = (b, sp) => 'Die Bedarfsordner liegen in der Regel ' + (sp ? 'in der SharePoint-Bibliothek „Fundraising-Team - Diözese Paderborn“ unter General › Ortsgliederungen › <Gliederung> › <Bedarf> (z. B. Ortsgliederungen › Büren › RE - Küche)'
-  : 'in meinem OneDrive unter „' + KI_ABLAGE + '\\<Gliederung>\\<Bedarf>“ (z. B. „…\\Ortsgliederungen\\Büren\\RE - Küche“)') + '. '
-  + (rechGl(b) ? 'Schau zuerst im Ordner der Gliederung „' + rechGl(b) + '“ nach.' : 'Bedarfe der Diözese können auch an anderer Stelle liegen.');
+// Ortsgliederungen\<Gliederung>\<Bedarf>; Projekte der Diözese in „1601_Diözese_Pojekte“ – dort auch suchen, wenn bei den Ortsgliederungen nichts passt
+const kiAblageHinweis = (b, sp) => { const gl = rechGl(b), dio = sp ? 'General › 1601_Diözese_Pojekte' : '„' + KI_ABLAGE_DIO + '“';
+  return 'Die Bedarfsordner liegen in der Regel ' + (sp ? 'in der SharePoint-Bibliothek „Fundraising-Team - Diözese Paderborn“ unter General › Ortsgliederungen › <Gliederung> › <Bedarf> (z. B. Ortsgliederungen › Büren › RE - Küche)'
+    : 'in meinem OneDrive unter „' + KI_ABLAGE + '\\<Gliederung>\\<Bedarf>“ (z. B. „…\\Ortsgliederungen\\Büren\\RE - Küche“)') + '; Projekte der Diözese unter ' + dio + '. '
+    + (gl ? 'Schau zuerst im Ordner der Gliederung „' + gl + '“ nach; findest du dort nichts, such unter ' + dio + '.' : 'Dieser Bedarf gehört zur Diözese: schau zuerst unter ' + dio + ' nach, dann bei den Ortsgliederungen.'); };
 const kiUnterordner = b => kurzName(b.titel || 'Bedarf', 40) + '_' + rechKurz(b);
 const kiRecherchiertWen = (A, neu) => [A.foe.length ? kiNamen(A.foe) : '', neu ? 'alle neu gefundenen Förderer' : ''].filter(Boolean).join(' sowie ');
 function kiBedarfZeilen(b, T) {

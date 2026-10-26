@@ -358,6 +358,7 @@ const KI_ST = { head: { b: true, color: '#FFFFFF', fill: '#404040', v: 'center',
   note: { i: true, sz: 9, color: '#6B6B6B', wrap: true }, val: { border: 'thin', fill: '#FAFAF8', v: 'top', wrap: true }, zelle: { border: 'thin', v: 'top', wrap: true } };
 // Ablage der Bedarfsordner im OneDrive: in der Regel …\Ortsgliederungen\<Gliederung>\<Bedarf>, z. B. …\Ortsgliederungen\Büren\RE - Küche
 const KI_ABLAGE = 'OneDrive - MalteserCloud\\Fundraising-Team - Diözese Paderborn - General\\Ortsgliederungen';
+const KI_ABLAGE_DIO = 'OneDrive - MalteserCloud\\Fundraising-Team - Diözese Paderborn - General\\1601_Diözese_Pojekte';   // Projekte der Diözese (Name so im OneDrive)
 function blattBeschreibung(b) {
   const S = KI_ST;
   return { name: 'Beschreibung', cols: [16, 110], grid: false, merges: ['A1:B1', 'A2:B2'], heights: { 0: 24, 1: 30, 3: 90, 4: 120, 5: 40 }, rows: [
