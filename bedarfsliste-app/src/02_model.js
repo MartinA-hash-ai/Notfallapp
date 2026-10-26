@@ -40,7 +40,7 @@ function ff(o) {
   return Object.assign({
     id: uid('f'), name: '', durch: 'ich', betrag: null, zugesagt: null, eingegangen: null, eingangAm: '', status: 'geplant', beantragtAm: '', entscheidungAm: '',
     frist: '', erwartet: '', warum: '', knackpunkte: '', einsch: '',
-    art: '', weg: '', kontakte: [], web: '', fristInfo: '', hoehe: '', eigenInfo: '', quellen: '', notiz: '',   // kontakte: bis zu drei, der erste ist der Hauptkontakt
+    art: '', weg: '', kontakte: [], web: '', fristInfo: '', hoehe: '', eigenInfo: '', quellen: '', notiz: '', datei: '',   // datei: ausführliche Recherche (Word im Ordner des Bedarfs); kontakte: bis zu drei, der erste ist der Hauptkontakt
     vn: { noetig: true, frist: '', st: 'offen' },                      // ab 0.17: Verwendungsnachweis standardmäßig nötig
   }, o);
 }

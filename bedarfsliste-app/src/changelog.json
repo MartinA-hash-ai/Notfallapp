@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.42.0",
+    "date": "2026-10-27T10:00",
+    "items": [
+      "Copilot-Auftrag: Copilot ist der Standard (Beschreibung, neue Förderer, Kontaktdaten) – seine Antwort endet mit einem Textblock, der hier eingefügt und mit Vorschau übernommen wird; Cowork nur, wenn eine Förderrecherche dabei ist",
+      "Förderrecherche mit Cowork: je Förderer eine ausführliche Recherche als Word-Datei im Ordner des Bedarfs; in der Liste nur die Essenz (Pro und Contra je höchstens drei kurze Punkte) und der Dateiname; vorhandenes Pro und Contra wird geprüft und gekürzt statt neu geschrieben",
+      "Kontaktdaten der Zuständigen direkt aus der Copilot-Antwort (nur leere Angaben werden ergänzt)",
+      "Gewählte Kacheln und Förderer kräftig schwarz statt rot"
+    ]
+  },
+  {
     "version": "0.41.0",
     "date": "2026-10-26T21:00",
     "items": [

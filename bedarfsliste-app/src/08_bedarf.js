@@ -270,7 +270,7 @@ function foePop(b) {
         <div class="pA-box">${kKopf('Kontakte', UI.kEdit === f.id, a)}
           ${kontaktListe(f)}<div class="ksep"></div>
           ${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}</div>
-        <div class="pA-bed">${kartei(f.name) ? `<div id="dk-${f.id}">${detKartei(f)}</div>` : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area', { fmt: true })}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area', { fmt: true })}${pe(f, 'eigenInfo', 'Eigenanteil', 'area', { fmt: true })}</div>
+        <div class="pA-bed">${kartei(f.name) ? `<div id="dk-${f.id}">${detKartei(f)}</div>` : ''}${f.datei ? pe(f, 'datei', 'Ausführliche Recherche (Datei im Ordner des Bedarfs)') : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area', { fmt: true })}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area', { fmt: true })}${pe(f, 'eigenInfo', 'Eigenanteil', 'area', { fmt: true })}</div>
         <div class="pA-q"><div class="sub">Quellen</div>${pe(f, 'quellen', '', 'area', { html: `<span class="ql">${quellenListe(f.quellen)}</span>`, ph: 'Links eintragen, je Link eine Zeile', cls: 'pe-q' })}</div>
         <div class="pA-n"><div class="sub">Notizen ${FMT_I}</div>${pe(f, 'notiz', '', 'area', { ph: 'Notizen eintragen – „* “ am Zeilenanfang macht eine Aufzählung', fmt: true })}</div>
       </div>

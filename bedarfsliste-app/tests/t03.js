@@ -76,8 +76,8 @@ async function writeKartei(p, kontakt) {
   await p.click('.ki-los'); await p.waitForTimeout(200);
   const RP = '/Ordner/Förderrecherche/' + await p.evaluate(() => vorlageName(cur()));
   r = await p.evaluate(async rp => { const f = __fs.files[rp]; if (!f) return null; const bk = await xlsxBook(f.data.buffer.slice(0)); const k = bk.sheets[2];
-    return [bk.sheets.filter(x => !x.hidden).map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], k.rows[3].includes('Notizen'), !!document.querySelector('.ki-erg'), document.querySelector('.ki-los').textContent.replace('Auftrag kopieren', 'Excel anlegen und Prompt kopieren')]; }, RP);
-  ok(r && r[0] === 'Förderplan+Anleitung+Förder-Kartei' && r[1] === 'Märkische Bank eG,Aktion Beispiel' && !r[2] && r[3] === '2025: 1.000 € Folierung' && !r[4] && r[5] && r[6] === 'Excel anlegen und Prompt kopieren',
+    return [bk.sheets.filter(x => !x.hidden).map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], k.rows[3].includes('Notizen'), !!document.querySelector('.ki-erg'), document.querySelector('.ki-erg').textContent]; }, RP);
+  ok(r && r[0] === 'Förderplan+Anleitung+Förder-Kartei' && r[1] === 'Märkische Bank eG,Aktion Beispiel' && !r[2] && r[3] === '2025: 1.000 € Folierung' && !r[4] && r[5] && r[6] === 'Ergebnis von Cowork übernehmen',
     'Excel im Ordner angelegt; Kartei-Blatt nur mit den Zuständigen, eigene Gliederung zuerst, Historie, ohne Kontaktdaten und Notizen: ' + JSON.stringify(r));
   // gleich übernehmen, obwohl Copilot noch nichts eingetragen hat: Hinweis statt leerer Vorschau
   await p.click('.ki-erg');

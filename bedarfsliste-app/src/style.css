@@ -956,14 +956,15 @@ table.kt td a { color: var(--focus); word-break: break-all; }
 .modal.wide:has(.ki) { max-width: 600px; }
 .ki { display: grid; gap: 12px; }
 .ki-kacheln { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.ki-k { display: grid; gap: 6px; text-align: left; padding: 12px 14px; min-height: 84px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); font: inherit; cursor: pointer; }
-.ki-k:hover:not(:disabled) { border-color: var(--line2); background: var(--hover); }
-.ki-k.on { border-color: var(--red); background: color-mix(in srgb, var(--red) 5%, var(--card)); box-shadow: inset 0 0 0 1px var(--red); }
+/* nicht gewählt: dezent grau; gewählt: kräftig schwarz (kein Rot – das wirkt wie ein Fehler) */
+.ki-k { display: grid; gap: 6px; text-align: left; padding: 12px 14px; min-height: 84px; border: 1.5px solid var(--line); border-radius: 10px; background: var(--card); color: var(--muted); font: inherit; cursor: pointer; }
+.ki-k:hover:not(:disabled) { border-color: var(--line2); background: var(--hover); color: var(--ink2); }
+.ki-k.on { border-color: var(--ink); color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
 .ki-k.aus { opacity: .55; cursor: default; }
 .ki-k-top { display: flex; align-items: center; gap: 8px; }
 .ki-k-top b { font-size: 14.5px; }
-.ki-ico { display: grid; color: var(--muted); } .ki-k.on .ki-ico { color: var(--red); }
-.ki-k small { color: var(--muted); font-size: 12.5px; line-height: 1.3; }
+.ki-ico { display: grid; color: var(--faint); } .ki-k.on .ki-ico { color: var(--ink); }
+.ki-k small { color: var(--faint); font-size: 12.5px; line-height: 1.3; } .ki-k.on small { color: var(--ink2); }
 .ki-wer { margin-left: auto; font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 8px; white-space: nowrap; }
 .ki-wer.cowork { background: var(--ph3bg); color: var(--ph3ink); }
 .ki-wer.copilot { background: var(--runbg); color: var(--runink); }
@@ -973,7 +974,7 @@ table.kt td a { color: var(--focus); word-break: break-all; }
 .ki-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ki-chip { display: inline-flex; align-items: baseline; gap: 5px; border: 1px solid var(--line2); border-radius: 15px; padding: 4px 11px; background: var(--card); color: var(--ink2); font: inherit; font-size: 13px; cursor: pointer; }
 .ki-chip small { color: var(--faint); font-size: 11.5px; }
-.ki-chip.on { background: var(--errbg); border-color: var(--errline); color: var(--errink); }
+.ki-chip.on { background: var(--ink); border-color: var(--ink); color: var(--card); } .ki-chip.on small { color: var(--line2); }
 .ki-chip.neu { border-style: dashed; } .ki-chip.neu.on { border-style: solid; }
 .ki-spaeter { background: var(--line3); border: 1px dashed var(--line2); border-radius: 10px; padding: 9px 12px; color: var(--faint); font-size: 13px; }
 .ki-sp-lab { display: inline-block; font-size: 10.5px; font-weight: 700; letter-spacing: .06em; text-transform: uppercase; background: var(--line); color: var(--muted); border-radius: 6px; padding: 2px 8px; margin-bottom: 5px; }
@@ -981,6 +982,9 @@ table.kt td a { color: var(--focus); word-break: break-all; }
 .ki-prompt textarea.rech-prompt { margin-top: 4px; height: 190px; }
 .ki-fuss { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border-top: 1px solid var(--line); padding-top: 12px; }
 .ki-fuss .ki-sp { flex: 1; }
+.ki-antwort { display: grid; gap: 4px; border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; }
+.ki-antwort textarea { width: 100%; margin-top: 4px; font-size: 12.5px; resize: vertical; }
+.ki-fuss-r { display: flex; justify-content: flex-end; margin-top: 4px; }
 .ki-ok { background: var(--okbg); border: 1px solid var(--okline); color: var(--okink); border-radius: 8px; padding: 10px 12px; }
 .ki-zweit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; font-size: 13px; }
 .imp-box { border: 1px solid var(--line); border-radius: 10px; margin-bottom: 12px; overflow: hidden; }

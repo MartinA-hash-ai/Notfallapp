@@ -12,9 +12,9 @@ const kiFoe = b => b.foerderer.filter(f => f.name.trim());
 const kiNamen = L => L.map(f => f.name.trim()).join(', ');
 // Aufgaben als Kacheln: wer – Cowork (Dateien, Recherche, Skills) oder Copilot (Intranet); ok – true oder warum es gerade nicht geht
 const KI_KACHELN = [
-  { k: 'beschr', t: 'Beschreibung', s: 'neu aus den Dateien im Ordner', wer: 'cowork', ok: b => kiOrdner(b) || 'erst rechts unter „Ordner“ den Pfad eintragen' },
-  { k: 'suchen', t: 'Neue Förderer', s: 'passend zum Bedarf suchen', wer: 'cowork' },
-  { k: 'recherche', t: 'Förderrecherche', s: 'Steckbrief, Pro und Contra', wer: 'cowork' },
+  { k: 'beschr', t: 'Beschreibung', s: 'neu aus den Unterlagen zum Bedarf', wer: 'copilot' },
+  { k: 'suchen', t: 'Neue Förderer', s: 'passend zum Bedarf suchen', wer: 'copilot' },
+  { k: 'recherche', t: 'Förderrecherche', s: 'Essenz in der Liste, ausführlich als Datei', wer: 'cowork' },
   { k: 'zust', t: 'Kontaktdaten', s: 'Zuständige aus dem Intranet', wer: 'copilot', ok: b => b.zust.some(z => z.n.trim()) || 'erst eine zuständige Person eintragen' },
 ];
 const KI_SPAETER = ['Antrag / Anschreiben', 'Bitte um Freigabe', 'Nachfass-Mail', 'Dank', 'Pressemitteilung', 'Sachbericht'];
@@ -23,66 +23,129 @@ const kiSvg = d => `<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden=
 const KI_ICO = { beschr: kiSvg('M7 3h7l4 4v14H7zM14 3v4h4M10 12h5M10 15.5h5M10 9h2'), suchen: kiSvg('M10.5 4a6.5 6.5 0 1 1 0 13 6.5 6.5 0 0 1 0-13zM15.5 15.5 20 20'),
   recherche: kiSvg('M4 20V10M10 20V4M16 20v-7M22 20H2'), zust: kiSvg('M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8zM4 21a8 8 0 0 1 16 0') };
 
-/* ---------- Auftrag: dieselben Sätze stehen im Prompt und im Blatt „Anleitung“ der Excel.
-   Aufbau je Aufgabe: Ziel – Vorgehen – Ergebnis (wohin, in welcher Form); dazu ein Beispiel für „gut“ und „zu allgemein“, damit die Punkte konkret werden */
-// A: { auf: Set der Aufgaben, foe: Förderer für die Recherche, neuDazu: auch die neu gefundenen recherchieren }
-function kiAufgaben(b, A) {
-  const T = A.auf, L = [], foe = A.foe, neu = T.has('suchen') && A.neuDazu;
-  if (T.has('beschr')) L.push('Projektbeschreibung. Ziel: Wer sie liest, versteht das Projekt in einer Minute – sie ist Grundlage für alle Anträge. '
-    + 'Vorgehen: Lies alle Dateien im Ordner des Bedarfs (vor allem Angebot, Kostenplan, Konzept, Projektsteckbrief, Mails); die bisherige Beschreibung ist nur ein Anhaltspunkt. '
-    + 'Ergebnis: 2 bis 3 kurze Absätze (etwa 120 bis 220 Wörter), sachlich und ohne Werbesprache, die diese Eckdaten erkennbar machen, soweit sie in den Dateien stehen: '
-    + 'was angeschafft oder umgesetzt wird (Gegenstand, Umfang, Modell); wer es nutzt und wem es hilft (Gliederung, Dienst, Zielgruppe, Zahl der Einsätze oder Menschen); wofür und mit welcher Wirkung; '
-    + 'warum jetzt (Anlass, Zustand des Bisherigen); Kosten laut Angebot (Summe, Anbieter, Datum des Angebots) und Zeitplan. Fehlt eine Eckdate, lass sie weg und nenne sie im Chat – nicht raten. '
-    + 'Trag den Text im Blatt „Beschreibung“ bei „Vorschlag“ ein (Absätze durch eine Leerzeile trennen), bei „Grundlage“ die Namen der Dateien, die du gelesen hast.');
-  const R = rechAuftrag(b).slice(0, -1);                                          // ohne „nur leere Zellen ergänzen“ – das regelt die Förderrecherche
-  if (T.has('suchen')) L.push('Neue Förderer. Ziel: realistische Kandidaten für den noch offenen Betrag. '
-    + 'Vorgehen: ' + R.join(' ') + ' Förderer, die im Blatt „Förderplan“ schon stehen, nicht doppelt anlegen. Umfang: ' + rechUmfang(b) + ' '
-    + 'Ergebnis: je neuem Förderer eine neue Zeile im Blatt „Förderplan“ mit mindestens Förderer, Art, Website, Erwartete Summe, Pro, Einschätzung und Quellen.');
-  if (T.has('recherche') && (foe.length || neu)) L.push('Förderrecherche je Förderer – für ' + [foe.length ? kiNamen(foe) : '', neu ? 'alle neu gefundenen Förderer' : ''].filter(Boolean).join(' sowie ') + '. '
-    + 'Ziel: Je Förderer will ich auf einen Blick sehen, ob sich ein Antrag lohnt und womit ich überzeuge. '
-    + 'Vorgehen: Nutze deinen Skill zur Förderlogik-Analyse (heißt etwa „foerderlogik-analyse“). Prüf auf den eigenen Seiten des Förderers Satzungszweck, Förderrichtlinien, Antragsweg und Fristen; '
-    + 'prüf die Förderhistorie (' + (karteiFuer(b).length ? 'Blatt „Förder-Kartei“, ' : '') + 'Jahres- und Förderberichte); gleich alles mit diesem Bedarf ab: Zweck, Region, Förderhöhe im Verhältnis zum offenen Betrag, Eigenanteil, Zeitplan. '
-    + 'Ergebnis in der Zeile des Förderers im Blatt „Förderplan“: „Pro – warum passt das?“ mit 3 bis 5 Punkten, die konkret auf diesen Bedarf zielen '
-    + '(gut: „- Satzung fördert ausdrücklich Katastrophenschutz in der Region – das Fahrzeug dient genau dem“; zu allgemein: „- fördert soziale Zwecke“); '
-    + '„Contra – Knackpunkte“ mit 2 bis 4 Hürden, je mit dem Hinweis, wie der Antrag ihnen begegnet (z. B. „- max. 5.000 € je Antrag – Teilbetrag beantragen“); '
-    + 'dazu Kontakte, Antragsweg, Antragsfrist (nächster Termin als Datum), Weitere Fristen und Termine (als Punkte), Übliche Fördersumme, Eigenanteil gefordert, Erwartete Summe (realistisch), '
-    + 'Einschätzung, Website und Quellen; die Begründung der Einschätzung in einem Satz unter „Notizen“. '
-    + 'Vorhandene Angaben darfst du verbessern; bei Förderern mit Stand „zugesagt“ oder „abgelehnt“ nur leere Zellen ergänzen.');
-  return L.map((t, i) => (i + 1) + '. ' + t);
-}
-const KI_REGELN = ['Nichts erfinden. Was du nicht belegen kannst, bleibt leer; Unsicheres kennzeichnen (z. B. „laut Website 2025, nicht bestätigt“).',
-  'Als Quellen nur Links, die du tatsächlich geöffnet hast. Kannst du nicht im Web suchen oder eine Datei nicht öffnen, sag es mir, statt weiterzumachen.',
-  'Kurz und schnell erfassbar: in Pro, Contra, Fristen und Notizen je Punkt eine eigene Zeile mit „- “ am Anfang, höchstens ein Satz.',
-  'Blattnamen, Spaltenüberschriften und die Angaben oben (Bedarf, Kennung) nicht ändern; Datum als TT.MM.JJJJ, Beträge nur als Zahl in Euro.'];
-const KI_PRUEFEN = ['Jede Angabe stammt aus einer Datei oder Seite, die du geöffnet hast; jede Förderer-Zeile hat mindestens eine Quelle.',
-  'Pro und Contra sind konkret auf diesen Bedarf bezogen, nicht allgemein; keine Platzhalter wie „k. A.“ oder „n/a“.',
-  'Beträge sind Zahlen, Daten TT.MM.JJJJ, Blattnamen und Überschriften unverändert.'];
-function kiPrompt(b, A, wo) {
-  const F = finState(b), gl = rechGl(b), name = vorlageName(b), P = rechOrdnerOk() ? rechPfad() : { lokal: '', od: '' }, cw = wo === 'cowork', T = A.auf, L = [];
-  const pfad = b.pfad.trim() ? unquote(b.pfad).trim() : '', link = okLink(b.link) ? b.link.trim() : '', foeAuf = T.has('suchen') || T.has('recherche');
-  L.push('Ich bin Fundraiser beim Malteser Hilfsdienst e. V. in der Diözese Paderborn und will den Bedarf unten finanzieren. '
-    + 'Ich brauche belastbare, schnell erfassbare Ergebnisse, die ich ohne Nacharbeit in meine Bedarfsliste übernehme. Erledige die Aufgaben der Reihe nach.', '');
-  L.push('## Der Bedarf', 'Bedarf: ' + (b.titel || '(ohne Namen)'), 'Gliederung: ' + (gl || 'Diözese Paderborn (ohne Gliederung)'));
+/* ---------- Prompts. Bausteine, aus denen beide zusammengesetzt werden:
+   Einleitung (wer, wozu) – der Bedarf – Unterlagen bzw. Dateien – Aufgaben (je Aufgabe Ziel, Vorgehen, Ergebnis) – Regeln – Prüfen bzw. Ausgabe.
+   Cowork arbeitet in der Arbeits-Excel im OneDrive und legt je Förderer eine ausführliche Recherche als Word-Datei an;
+   Copilot antwortet im Chat und gibt das Ergebnis als festen Textblock aus, den man in die Liste einfügt (kiTextLesen). */
+const KI_EINLEITUNG = 'Ich bin Fundraiser beim Malteser Hilfsdienst e. V. in der Diözese Paderborn und will den Bedarf unten finanzieren. '
+  + 'Ich brauche belastbare, schnell erfassbare Ergebnisse, die ich ohne Nacharbeit in meine Bedarfsliste übernehme. Erledige die Aufgaben der Reihe nach.';
+const KI_BESCHR = 'Ziel: Wer sie liest, versteht das Projekt in einer Minute – sie ist Grundlage für alle Anträge. '
+  + 'Ergebnis: 2 bis 3 kurze Absätze (etwa 120 bis 220 Wörter), sachlich und ohne Werbesprache, die diese Eckdaten erkennbar machen, soweit sie in den Unterlagen stehen: '
+  + 'was angeschafft oder umgesetzt wird (Gegenstand, Umfang, Modell); wer es nutzt und wem es hilft (Gliederung, Dienst, Zielgruppe, Zahl der Einsätze oder Menschen); wofür und mit welcher Wirkung; '
+  + 'warum jetzt (Anlass, Zustand des Bisherigen); Kosten laut Angebot (Summe, Anbieter, Datum des Angebots) und Zeitplan. Fehlt eine Eckdate, lass sie weg und nenne sie – nicht raten.';
+const KI_ESSENZ = '„Pro“ und „Contra“ nur als Essenz: je höchstens 3 Punkte, je höchstens 12 Wörter, konkret auf diesen Bedarf '
+  + '(gut: „- Satzung fördert Katastrophenschutz in der Region“; zu allgemein: „- fördert soziale Zwecke“). Bei Contra kurz dazu, wie der Antrag der Hürde begegnet '
+  + '(z. B. „- max. 5.000 € je Antrag – Teilbetrag beantragen“). Stehen schon Pro und Contra da: prüfen, Zutreffendes behalten, Falsches streichen, auf die Essenz kürzen.';
+const KI_KURZ = 'Übliche Fördersumme, Eigenanteil und weitere Fristen je höchstens eine kurze Zeile.';
+const kiRecherchiertWen = (A, neu) => [A.foe.length ? kiNamen(A.foe) : '', neu ? 'alle neu gefundenen Förderer' : ''].filter(Boolean).join(' sowie ');
+function kiBedarfZeilen(b, T) {
+  const F = finState(b), gl = rechGl(b), L = ['## Der Bedarf', 'Bedarf: ' + (b.titel || '(ohne Namen)'), 'Gliederung: ' + (gl || 'Diözese Paderborn (ohne Gliederung)')];
   if (F.S) L.push('Summe: ' + eur(F.S) + (F.eig ? ' · Eigenmittel ' + eur(F.eig) : '') + (F.zu ? ' · schon zugesagt ' + eur(F.zu) : '') + ' · noch offen ' + eur(rechOffen(b)));
   if (b.deadline) L.push('Deadline: ' + fmtDate(b.deadline));
   if (b.stichworte.length) L.push('Stichworte oder Fördertöpfe: ' + b.stichworte.join(', '));
   if (b.beschreibung.trim()) L.push('Beschreibung (bisher): ' + b.beschreibung.trim().replace(/\s*\n+\s*/g, ' '));
-  if (foeAuf && kiFoe(b).length) L.push('Schon im Förderplan: ' + kiFoe(b).map(f => f.name.trim() + ' (' + F_ST_L[f.status] + ')').join(', '));
-  L.push('', '## Dateien');
-  L.push('- Arbeitsdatei: ' + (cw ? '„' + name + '“ ' + (P.od ? 'in meinem OneDrive unter „' + P.od + '“' : 'im Unterordner „' + RECH_DIR + '“ neben der Bedarfsliste in meinem OneDrive') + (P.lokal ? ' (auf dem PC: ' + P.lokal + ')' : '')
-    + '. Bearbeite sie dort und speichere sie am Ende unter demselben Namen am selben Ort.' : 'die angehängte Excel „' + name + '“. Gib sie mir am Ende als Excel-Datei mit genau diesem Aufbau zurück.')
-    + ' Alle Ergebnisse gehören in diese Datei; was in welches Blatt gehört, steht im Blatt „Anleitung“.');
-  if (T.has('beschr')) L.push('- Ordner des Bedarfs (Angebot, Konzept, Fotos …): ' + ((cw ? pfad || link : link || pfad) || '(noch nicht eingetragen)') + ' – dort nur lesen: nichts löschen, verschieben oder überschreiben.'
-    + (cw && !pfad && link ? ' Kannst du diesen Link nicht öffnen, sag es mir; dann nenne ich dir den Pfad.' : '') + (!cw && !link ? ' Den Ordner kannst du nicht öffnen; ich hänge dir die wichtigsten Dateien an.' : ''));
-  L.push('', '## Aufgaben', ...kiAufgaben(b, A), '', '## Regeln', ...KI_REGELN.map(t => '- ' + t), '', '## Vor dem Speichern prüfen', ...KI_PRUEFEN.map(t => '- ' + t), '');
+  if ((T.has('suchen') || T.has('recherche')) && kiFoe(b).length) L.push('Schon im Förderplan: ' + kiFoe(b).map(f => f.name.trim() + ' (' + F_ST_L[f.status] + ')').join(', '));
+  return L;
+}
+
+// Cowork: Aufgaben – dieselben Sätze stehen im Blatt „Anleitung“ der Excel. A: { auf, foe, neuDazu }
+function kiAufgaben(b, A) {
+  const T = A.auf, L = [], neu = T.has('suchen') && A.neuDazu, wohin = b.pfad.trim() ? 'im Ordner des Bedarfs' : 'im selben Ordner wie die Arbeitsdatei';
+  if (T.has('beschr')) L.push('Projektbeschreibung. ' + KI_BESCHR + ' Vorgehen: Lies alle Dateien im Ordner des Bedarfs (vor allem Angebot, Kostenplan, Konzept, Projektsteckbrief, Mails); '
+    + 'die bisherige Beschreibung ist nur ein Anhaltspunkt. Trag den Text im Blatt „Beschreibung“ bei „Vorschlag“ ein (Absätze durch eine Leerzeile trennen), bei „Grundlage“ die gelesenen Dateien.');
+  const R = rechAuftrag(b).slice(0, -1);                                          // ohne „nur leere Zellen ergänzen“ – das regelt die Förderrecherche
+  if (T.has('suchen')) L.push('Neue Förderer. Ziel: realistische Kandidaten für den noch offenen Betrag. Vorgehen: ' + R.join(' ')
+    + ' Förderer, die im Blatt „Förderplan“ schon stehen, nicht doppelt anlegen. Umfang: ' + rechUmfang(b)
+    + ' Ergebnis: je neuem Förderer eine neue Zeile im Blatt „Förderplan“ mit mindestens Förderer, Art, Website, Erwartete Summe, Pro, Einschätzung und Quellen.');
+  if (T.has('recherche') && (A.foe.length || neu)) L.push('Förderrecherche je Förderer – für ' + kiRecherchiertWen(A, neu) + '. '
+    + 'Ziel: In der Liste steht je Förderer nur die Essenz für den schnellen Überblick; alles Ausführliche steht in einer eigenen Datei. '
+    + 'Vorgehen: Nutze deinen Skill zur Förderlogik-Analyse (heißt etwa „foerderlogik-analyse“). Prüf auf den eigenen Seiten des Förderers Satzungszweck, Förderrichtlinien, Antragsweg und Fristen; '
+    + 'prüf die Förderhistorie (' + (karteiFuer(b).length ? 'Blatt „Förder-Kartei“, ' : '') + 'Jahres- und Förderberichte); gleich alles mit diesem Bedarf ab: Zweck, Region, Förderhöhe im Verhältnis zum offenen Betrag, Eigenanteil, Zeitplan. '
+    + 'Ergebnis 1 – ausführlich: je Förderer eine Word-Datei „Förderrecherche – <Förderer>.docx“ ' + wohin + ' mit Förderlogik und Satzungszweck (mit Zitat und Link), Richtlinien und Antragsweg, '
+    + 'Förderhistorie, Argumentationslinie für genau diesen Bedarf, Kontakten, Fristen, offenen Fragen und Quellen. '
+    + 'Ergebnis 2 – Essenz in der Zeile des Förderers im Blatt „Förderplan“: ' + KI_ESSENZ + ' Dazu Kontakte, Antragsweg, Antragsfrist (nächster Termin als Datum), Weitere Fristen und Termine, '
+    + 'Übliche Fördersumme, Eigenanteil gefordert, Erwartete Summe (realistisch), Einschätzung, Website, Quellen und in „Ausführliche Recherche (Datei)“ den Dateinamen. ' + KI_KURZ
+    + ' Bei Förderern mit Stand „zugesagt“ oder „abgelehnt“ nur leere Zellen ergänzen.');
+  return L.map((t, i) => (i + 1) + '. ' + t);
+}
+const KI_REGELN = ['Nichts erfinden. Was du nicht belegen kannst, bleibt leer; Unsicheres kennzeichnen (z. B. „laut Website 2025, nicht bestätigt“).',
+  'Als Quellen nur Links, die du tatsächlich geöffnet hast. Kannst du nicht im Web suchen oder eine Datei nicht öffnen, sag es mir, statt weiterzumachen.',
+  'Kurz und schnell erfassbar: in Pro, Contra und Fristen je Punkt eine eigene Zeile mit „- “ am Anfang.',
+  'Blattnamen, Spaltenüberschriften und die Angaben oben (Bedarf, Kennung) nicht ändern; Datum als TT.MM.JJJJ, Beträge nur als Zahl in Euro.'];
+const KI_PRUEFEN = ['Jede Angabe stammt aus einer Datei oder Seite, die du geöffnet hast; jede Förderer-Zeile hat mindestens eine Quelle.',
+  'Pro und Contra: je höchstens 3 kurze Punkte, konkret auf diesen Bedarf; keine Platzhalter wie „k. A.“ oder „n/a“.',
+  'Je recherchiertem Förderer liegt die Word-Datei im Ordner und ihr Name steht in der Excel.', 'Beträge sind Zahlen, Daten TT.MM.JJJJ, Blattnamen und Überschriften unverändert.'];
+function kiPrompt(b, A) {
+  const name = vorlageName(b), P = rechOrdnerOk() ? rechPfad() : { lokal: '', od: '' }, T = A.auf, L = [KI_EINLEITUNG, ''];
+  const pfad = b.pfad.trim() ? unquote(b.pfad).trim() : '', link = okLink(b.link) ? b.link.trim() : '', foeAuf = T.has('suchen') || T.has('recherche');
+  L.push(...kiBedarfZeilen(b, T), '', '## Dateien');
+  L.push('- Arbeitsdatei: „' + name + '“ ' + (P.od ? 'in meinem OneDrive unter „' + P.od + '“' : 'im Unterordner „' + RECH_DIR + '“ neben der Bedarfsliste in meinem OneDrive') + (P.lokal ? ' (auf dem PC: ' + P.lokal + ')' : '')
+    + '. Bearbeite sie dort und speichere sie am Ende unter demselben Namen am selben Ort. Alle Ergebnisse gehören in diese Datei; was in welches Blatt gehört, steht im Blatt „Anleitung“.');
+  if (T.has('beschr') || T.has('recherche')) L.push('- Ordner des Bedarfs (Angebot, Konzept, Fotos …): ' + (pfad || link || '(noch nicht eingetragen)')
+    + ' – vorhandene Dateien nur lesen: nichts löschen, verschieben oder überschreiben' + (T.has('recherche') && pfad ? '; die neuen Recherche-Dateien legst du hier ab.' : '.')
+    + (!pfad && link ? ' Kannst du diesen Link nicht öffnen, sag es mir; dann nenne ich dir den Pfad.' : ''));
+  L.push('', '## Aufgaben', ...kiAufgaben(b, A), '', '## Regeln', ...KI_REGELN.map(t => '- ' + t), '', '## Vor dem Speichern prüfen', ...KI_PRUEFEN.filter(t => T.has('recherche') || !/Word-Datei/.test(t)).map(t => '- ' + t), '');
   L.push('## Zum Schluss im Chat', 'Je Aufgabe zwei, drei Sätze: was du gefunden hast und was offen blieb' + (T.has('beschr') ? ' (bei der Beschreibung: welche Eckdaten fehlen)' : '') + '.'
     + (foeAuf ? ' Danach die drei aussichtsreichsten Förderer mit je einem Satz Begründung und welcher Teil der offenen Summe realistisch erscheint.' : ''));
   return L.join('\n');
 }
-// Arbeits-Excel: Förderplan (immer), dazu „Beschreibung“, wenn gewählt
+
+// Copilot: alles im Chat, das Ergebnis am Ende als Textblock in festem Aufbau (zum Einfügen in die Liste). zust: Kontaktdaten der Zuständigen dazu
+function kiPromptCopilot(b, A, zust) {
+  const T = A.auf, L = [KI_EINLEITUNG, ''], neu = T.has('suchen') && A.neuDazu, gl = rechGl(b) || 'Diözese Paderborn';
+  const pfad = b.pfad.trim() ? unquote(b.pfad).trim() : '', link = okLink(b.link) ? b.link.trim() : '', KL = karteiFuer(b).slice(0, 30), A1 = [];
+  L.push(...(T.size ? kiBedarfZeilen(b, T) : kiBedarfZeilen(b, T).slice(0, 3)));          // nur Kontaktdaten: Name und Gliederung genügen
+  if (T.has('beschr')) L.push('', '## Unterlagen', 'Die Dateien zum Bedarf (Angebot, Kostenplan, Konzept, Projektsteckbrief …) liegen ' + (link ? 'hier: ' + link : pfad ? 'in diesem Ordner: ' + pfad : 'bei mir')
+    + '. Kannst du sie nicht öffnen, sag es mir – dann füge ich sie dir mit „/“ ein.');
+  if (T.has('beschr')) A1.push('Beschreibung. ' + KI_BESCHR + ' Die bisherige Beschreibung ist nur ein Anhaltspunkt.');
+  if (T.has('suchen')) A1.push('Neue Förderer. Ziel: realistische Kandidaten für den noch offenen Betrag. ' + rechAuftrag(b)[0] + ' ' + rechAuftrag(b)[1]
+    + (KL.length ? ' Prüf zuerst diese Förderer aus unserer Förder-Kartei, die für die Region zuständig sind: ' + KL.map(k => k.name).join(', ') + '.' : '')
+    + ' Förderer, die schon im Förderplan stehen, nicht noch einmal nennen. Umfang: ' + rechUmfang(b));
+  if (T.has('recherche') && (A.foe.length || neu)) A1.push('Kurzrecherche je Förderer – für ' + kiRecherchiertWen(A, neu) + '. Prüf auf den eigenen Seiten des Förderers Satzungszweck, '
+    + 'Förderrichtlinien, Antragsweg und Fristen und gleich sie mit diesem Bedarf ab (Zweck, Region, Förderhöhe, Eigenanteil). ' + KI_ESSENZ + ' ' + KI_KURZ);
+  if (zust) { const P = personenGesucht(b); if (P.length) A1.push('Kontaktdaten. Such im Adressbuch und Organigramm (Outlook, Teams) und im Intranet die dienstlichen Angaben (Position, E-Mail, Telefon, Handy) dieser Personen vom Malteser Hilfsdienst e. V. (' + gl + '): '
+    + P.map(z => z.n.trim()).join(', ') + '. Nur eintragen, was du wirklich findest.'); }
+  const chat = t => t.replace('Trage als Quellen nur Links ein', 'Nenne als Quellen nur Links').replace('die Zelle leer lassen', 'die Summe weglassen');   // Copilot hat keine Excel
+  L.push('', '## Aufgaben', ...A1.map((t, i) => (i + 1) + '. ' + chat(t)), '', '## Regeln', '- ' + KI_REGELN[0], '- ' + KI_REGELN[1], '- Je Punkt eine eigene Zeile mit „- “ am Anfang.', '');
+  const B = ['```text'];
+  if (T.has('beschr')) B.push('#BESCHREIBUNG', '(der Text)');
+  if (T.has('suchen') || T.has('recherche')) B.push('#FÖRDERER', 'Name: …', 'Art: ' + ART.join(' | '), 'Website: …', 'Summe: (erwartete Summe als Zahl in Euro)', 'Antragsfrist: TT.MM.JJJJ', 'Antragsweg: …',
+    'Übliche Fördersumme: …', 'Eigenanteil: …', 'Pro:', '- …', 'Contra:', '- …', 'Einschätzung: ' + EINSCH.map(e => e[1]).join(' | '), 'Quellen:', '- https://…', '(Leerzeile, dann der nächste Förderer, wieder mit „Name:“)');
+  if (zust) B.push('#KONTAKTE', 'Name: …', 'Position: …', 'E-Mail: …', 'Telefon: …', 'Handy: …');
+  B.push('```');
+  L.push('## Ausgabe', 'Schreib zuerst kurz, was du gefunden hast und was offen blieb. Gib danach das Ergebnis in genau einem Codeblock aus, genau in diesem Aufbau – '
+    + 'ich übernehme ihn automatisch, deshalb keine Tabellen und keine anderen Überschriften. Was du nicht weißt: Zeile weglassen.', ...B);
+  return L.join('\n');
+}
+// Antwort von Copilot lesen: der Textblock mit #BESCHREIBUNG, #FÖRDERER und #KONTAKTE (auch mit „##“, Fettschrift oder ohne Codeblock)
+const KI_FELD = { name: 'name', art: 'art', website: 'web', web: 'web', summe: 'betrag', 'erwartete summe': 'betrag', betrag: 'betrag', antragsfrist: 'frist', frist: 'frist', antragsweg: 'weg',
+  'weitere fristen': 'fristInfo', fristen: 'fristInfo', 'übliche fördersumme': 'hoehe', fördersumme: 'hoehe', eigenanteil: 'eigenInfo', pro: 'warum', contra: 'knackpunkte',
+  einschätzung: 'einsch', quellen: 'quellen', quelle: 'quellen', notizen: 'notiz', notiz: 'notiz', kontakt: 'kontakt', kontakte: 'kontakt',
+  position: 'rolle', funktion: 'rolle', 'e-mail': 'mail', email: 'mail', mail: 'mail', telefon: 'tel', handy: 'mobil', mobil: 'mobil' };
+function kiTextLesen(t) {
+  const r = { beschr: '', items: [], pers: [] }, bl = []; let sek = '', cur = null, feld = '';
+  for (const z0 of String(t || '').replace(/\r/g, '').split('\n')) {
+    const z = z0.replace(/\*\*/g, '');
+    if (/^\s*```/.test(z)) continue;
+    const hd = z.match(/^\s*#+\s*(beschreibung|förderer|foerderer|kontakte|kontaktdaten)\b/i);
+    if (hd) { sek = /^b/i.test(hd[1]) ? 'b' : /^k/i.test(hd[1]) ? 'k' : 'f'; cur = null; feld = ''; continue; }
+    if (sek === 'b') { bl.push(z0.trimEnd()); continue; }
+    if (!sek) continue;
+    const m = z.match(/^\s*([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß\- ]{1,24}):\s*(.*)$/), key = m && KI_FELD[norm(m[1])];
+    if (key === 'name') { cur = { name: m[2].trim() }; (sek === 'k' ? r.pers : r.items).push(cur); feld = ''; continue; }
+    if (key && cur) { feld = key; if (m[2].trim()) cur[key] = m[2].trim(); continue; }
+    if (cur && feld && z.trim() && !/^\s*\(.*\)\s*$/.test(z)) cur[feld] = (cur[feld] ? cur[feld] + '\n' : '') + z.trim();
+  }
+  r.beschr = bl.join('\n').replace(/^\s*\(der Text\)\s*$/m, '').trim();
+  r.items = r.items.filter(it => istEintrag(it.name) && it.name !== '…').map(it => Object.assign(it, {
+    betrag: it.betrag != null ? (typeof deNum(it.betrag) === 'number' ? deNum(it.betrag) : null) : null, frist: it.frist ? anyDate(it.frist) || '' : '',
+    einsch: einschKey(it.einsch), art: ART.find(a => norm(a) === norm(it.art || '')) || '', quellen: quellenZeilen((it.quellen || '').replace(/^\s*-\s*/gm, '')).join('\n') }));
+  r.pers = r.pers.filter(p => p.name && p.name !== '…').map(p => ({ n: p.name, rolle: p.rolle || '', mail: mailText(p.mail || ''), tel: telText(p.tel || ''), mobil: telText(p.mobil || '') }));
+  return r;
+}
+// Arbeits-Excel für Cowork: Förderplan (immer), dazu „Beschreibung“, wenn gewählt
 const kiVA = (b, A) => ({ auf: A.auf, zeilen: kiAufgaben(b, A), blaetter: A.auf.has('beschr') ? [blattBeschreibung(b)] : [] });
 const kiExcel = (b, A) => vorlageBlob(b, kiVA(b, A));
-
 
 /* ---------- Merkzettel je Bedarf (nur dieser Browser): wann der Auftrag angelegt und welcher Stand der Excel zuletzt angesehen wurde */
 const KI_KEY = 'bl-ki', KI_NEU = {};
@@ -107,35 +170,38 @@ async function kiInhalt(b, f) {
 
 /* ---------- Dialog: Aufgaben wählen (mehrere), Excel anlegen und Prompt kopieren, Ergebnis übernehmen */
 
-/* ---------- Dialog „Copilot-Auftrag“: vier Kacheln (mehrere wählbar), bei der Förderrecherche darunter die Förderer zum Anklicken;
-   unten Cowork oder Copilot, „Prompt ansehen“ und „Auftrag kopieren“ (legt die Excel an und kopiert den Prompt). Danach: einfügen, Ergebnis übernehmen.
-   Die Texte (Antrag, Dank …) stehen grau als späteres Update da. */
+/* ---------- Dialog „Copilot-Auftrag“: vier Kacheln (mehrere wählbar), bei der Förderrecherche darunter die Förderer zum Anklicken.
+   Wer es macht, schlägt die Liste vor: Copilot (kostet nichts) für Beschreibung, neue Förderer und Kontaktdaten; Cowork, sobald eine Förderrecherche
+   dabei ist (Skill, ausführliche Datei je Förderer). Umschalten geht. Copilot antwortet im Chat – den Textblock am Ende hier einfügen;
+   Cowork schreibt in die Arbeits-Excel – „Ergebnis übernehmen“. Kontaktdaten laufen immer über Copilot. Texte (Antrag, Dank …) folgen später. */
 async function kiDialog(b, vorwahl) {
-  let close = null, datei = await rechFile(b), wo = 'cowork', promptAuf = false, fertig = false, neuDazu = true;
+  let close = null, datei = await rechFile(b), wo = 'copilot', woHand = false, promptAuf = false, fertig = false, neuDazu = true, antwort = '', kopiert = true;
   const ordner = rechOrdnerOk();
   const sel = new Set((vorwahl || []).filter(k => kiOk(b, KI_KACHELN.find(a => a.k === k))));
   const foeSel = new Set(kiFoe(b).filter(f => f.status === 'geplant' || f.status === 'beantragt').map(f => f.id));
   const A = () => ({ auf: new Set([...sel].filter(k => k !== 'zust')), foe: kiFoe(b).filter(f => foeSel.has(f.id)), neuDazu });
   const root = h('div', { class: 'ki' }), closeKi = () => { if (close) close(null); };
+  const setzeInhalt = (...L) => root.replaceChildren(...L.filter(Boolean));          // leere Teile (null) nicht als Text
   const btn = (t, cls, fn, x) => h('button', Object.assign({ type: 'button', class: cls || '', onclick: fn }, x || {}), t);
   const kopiere = text => new Promise(res => { try { navigator.clipboard.writeText(text).then(() => res(true), () => res(false)); } catch (e) { res(false); } });
-  const wem = () => wo === 'cowork' ? 'Cowork' : 'Copilot';
+  // was in welchen Prompt gehört: Cowork bekommt Beschreibung, neue Förderer und Recherche; Copilot alles, was nicht zu Cowork geht, und die Kontaktdaten
+  const plan = () => { const a = A(), cw = wo === 'cowork' && kiAufgaben(b, a).length > 0, zust = sel.has('zust');
+    const co = cw ? zust : kiPromptCopilot(b, a, zust).includes('## Aufgaben\n1.');
+    return { a, cw, co, pCw: cw ? kiPrompt(b, a) : '', pCo: co ? kiPromptCopilot(b, cw ? { auf: new Set(), foe: [], neuDazu: false } : a, zust) : '' }; };
 
   async function los() {
-    const a = A(), cw = kiAufgaben(b, a).length > 0;
-    if (cw) {
+    const P = plan();
+    if (P.cw) {
       if (ordner) {
         if (datei && await kiInhalt(b, datei) && !await confirmBox('Neuen Auftrag anlegen?', 'In „' + datei.name + '“ stehen Ergebnisse, die noch nicht übernommen sind. Sie werden ersetzt.', 'Ersetzen')) return;
-        if (!await rechWrite(b, kiVA(b, a))) { toast('Die Excel konnte nicht im Ordner abgelegt werden. Sie wird stattdessen heruntergeladen.', 'warn'); download(vorlageName(b), kiExcel(b, a)); }
+        if (!await rechWrite(b, kiVA(b, P.a))) { toast('Die Excel konnte nicht im Ordner abgelegt werden. Sie wird stattdessen heruntergeladen.', 'warn'); download(vorlageName(b), kiExcel(b, P.a)); }
         datei = await rechFile(b);
-      } else if (!DEMO) download(vorlageName(b), kiExcel(b, a));
+      } else if (!DEMO) download(vorlageName(b), kiExcel(b, P.a));
       kiMerkSet(b.id, { at: datei ? datei.lastModified : Date.now(), gesehen: datei ? datei.lastModified : 0 }); KI_NEU[b.id] = false; kiKnopf();
     }
-    if (!await kopiere(cw ? kiPrompt(b, a, wo) : personenPrompt(b))) {           // Zwischenablage gesperrt: Prompt zeigen und markieren
-      promptAuf = true; zeichne(); const ta = root.querySelector('textarea'); if (ta) { ta.focus(); ta.select(); }
-      toast('Prompt markiert – jetzt mit Strg+C kopieren'); return;
-    }
+    kopiert = await kopiere(P.cw ? P.pCw : P.pCo);
     fertig = true; zeichne();
+    if (!kopiert) { const ta = root.querySelector('.ki-prompt textarea'); if (ta) { ta.focus(); ta.select(); } }      // Zwischenablage gesperrt: Prompt markiert zeigen
   }
   const ergebnis = async () => {
     if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; }
@@ -144,34 +210,46 @@ async function kiDialog(b, vorwahl) {
     if (f && !await kiInhalt(b, f)) {
       const v = await modal('Noch kein Ergebnis', h('div', { class: 'help' },
         h('p', null, 'In „' + f.name + '“ (zuletzt geändert am ' + lmText(f) + ' Uhr) steht noch nichts Neues: keine neuen oder geänderten Förderer, keine neue Beschreibung.'),
-        h('p', null, 'Mögliche Gründe: Cowork bzw. Copilot ist noch nicht fertig; OneDrive hat die geänderte Datei noch nicht auf diesen PC geholt (kurz warten); oder das Ergebnis wurde als eigene Datei gespeichert – dann diese auswählen.')),
+        h('p', null, 'Mögliche Gründe: Cowork ist noch nicht fertig; OneDrive hat die geänderte Datei noch nicht auf diesen PC geholt (kurz warten); oder das Ergebnis wurde als eigene Datei gespeichert – dann diese auswählen.')),
         [['Schließen', null], ['Trotzdem ansehen', 'show'], ['Andere Datei wählen …', 'pick', 'primary']]);
       if (v === 'pick') { importFoerderplan(b); return; }
       if (v !== 'show') return;
     }
     importFoerderplan(b, f || undefined);
   };
-  const persExcel = () => btn('Personen-Excel …', 'link small', () => { closeKi(); personenDialog(b); }, { title: 'Personen-Excel anlegen oder einlesen' });
+  // Antwort von Copilot einfügen und übernehmen
+  const einfuegen = () => {
+    const r = kiTextLesen(antwort);
+    if (!r.beschr && !r.items.length && !r.pers.length) { toast('Kein Ergebnisblock gefunden – in Copilot beim Textblock am Ende auf „Kopieren“ klicken und hier einfügen.', 'warn'); return; }
+    closeKi();
+    zeigeErgebnis(b, { got: { items: r.items, stand: new Map(), auftrag: [A().auf.has('recherche') ? 'recherche' : 'copilot'], kennung: '' }, ki: { beschr: r.beschr, grundlage: '', ul: [] }, pers: r.pers, name: 'der Antwort von Copilot' });
+  };
+  const antwortFeld = () => h('div', { class: 'ki-antwort' }, h('b', null, 'Antwort von Copilot'),
+    h('div', { class: 'muted small' }, 'Am Ende seiner Antwort steht ein Textblock – dort auf „Kopieren“ klicken und hier einfügen.'),
+    h('textarea', { rows: 5, placeholder: '#BESCHREIBUNG …', 'aria-label': 'Antwort von Copilot', value: antwort, oninput: e => { antwort = e.target.value; } }),
+    h('div', { class: 'ki-fuss-r' }, btn('Übernehmen …', 'primary', einfuegen)));
 
   function zeichne() {
-    const a = A(), zeilen = kiAufgaben(b, a), cw = zeilen.length > 0, zust = sel.has('zust');
+    if (!woHand) wo = sel.has('recherche') ? 'cowork' : 'copilot';
+    const P = plan(), a = P.a;
     if (fertig) {
-      root.replaceChildren(
-        h('div', { class: 'ki-ok' }, h('b', null, '✓ Prompt kopiert'), cw ? ' – in ' + wem() + ' einfügen' + (wo === 'copilot' ? ' und die Excel anhängen.' : '.') : ' – in Copilot einfügen und die Personen-Excel anhängen.'),
-        cw ? h('div', { class: 'ki-datei muted small' }, ordner ? 'Excel: ' + RECH_DIR + ' › ' + vorlageName(b) : DEMO ? 'In der Vorschau wird keine Excel angelegt.' : 'Die Excel liegt in „Downloads“ – für Cowork in den OneDrive legen.') : null,
-        cw && zust ? h('div', { class: 'ki-zweit' }, h('span', null, 'Kontaktdaten laufen über Copilot:'),
-          btn('Zweiten Prompt kopieren', '', async () => { if (await kopiere(personenPrompt(b))) toast('Prompt kopiert – in Copilot einfügen', 'ok'); else { promptAuf = true; fertig = false; zeichne(); } }), persExcel()) : null,
-        !cw ? h('div', { class: 'ki-zweit' }, persExcel()) : null,
-        h('div', { class: 'ki-fuss' }, btn('‹ Zurück zur Auswahl', 'link small', () => { fertig = false; zeichne(); }), h('span', { class: 'ki-sp' }),
-          cw ? btn(ordner ? 'Ergebnis übernehmen' : 'Ergebnis-Excel wählen …', 'primary ki-erg', ergebnis) : null));
+      setzeInhalt(
+        kopiert ? h('div', { class: 'ki-ok' }, h('b', null, '✓ Prompt kopiert'), P.cw ? ' – in Cowork einfügen.' : ' – in Copilot einfügen.')
+          : h('div', { class: 'ki-prompt' }, h('div', { class: 'small' }, h('b', null, 'Prompt markiert'), ' – mit Strg+C kopieren und in ' + (P.cw ? 'Cowork' : 'Copilot') + ' einfügen.'),
+            h('textarea', { class: 'rech-prompt', rows: 8, spellcheck: false, 'aria-label': 'Prompt', value: P.cw ? P.pCw : P.pCo })),
+        P.cw ? h('div', { class: 'ki-datei muted small' }, ordner ? 'Excel: ' + RECH_DIR + ' › ' + vorlageName(b) : DEMO ? 'In der Vorschau wird keine Excel angelegt.' : 'Die Excel liegt in „Downloads“ – für Cowork in den OneDrive legen.') : null,
+        P.cw && P.co ? h('div', { class: 'ki-zweit' }, h('span', null, 'Kontaktdaten laufen über Copilot:'),
+          btn('Zweiten Prompt kopieren', '', async () => { if (await kopiere(P.pCo)) toast('Prompt kopiert – in Copilot einfügen', 'ok'); else { promptAuf = true; fertig = false; zeichne(); } })) : null,
+        P.co ? antwortFeld() : null,
+        h('div', { class: 'ki-fuss' }, btn('‹ Zurück zur Auswahl', 'link small', () => { fertig = false; kopiert = true; zeichne(); }), h('span', { class: 'ki-sp' }),
+          P.cw ? btn(ordner ? 'Ergebnis von Cowork übernehmen' : 'Ergebnis-Excel wählen …', 'ki-erg' + (P.co ? '' : ' primary'), ergebnis) : null));
       return;
     }
     const kachel = x => {
       const ok = x.ok ? x.ok(b) : true, aus = ok !== true, on = sel.has(x.k) && !aus;
       const sub = aus ? ok : x.k === 'recherche' && on ? a.foe.length + ' Förderer' + (sel.has('suchen') && neuDazu ? ' + neu gefundene' : '') + ' ausgewählt' : x.s;
       return h('button', { type: 'button', class: 'ki-k' + (on ? ' on' : '') + (aus ? ' aus' : ''), disabled: aus, 'aria-pressed': String(on), 'data-k': x.k, onclick: () => { on ? sel.delete(x.k) : sel.add(x.k); zeichne(); } },
-        h('span', { class: 'ki-k-top' }, h('span', { class: 'ki-ico', html: KI_ICO[x.k] }), h('b', null, x.t), h('span', { class: 'ki-wer ' + x.wer }, x.wer === 'copilot' ? 'Copilot' : 'Cowork')),
-        h('small', null, sub));
+        h('span', { class: 'ki-k-top' }, h('span', { class: 'ki-ico', html: KI_ICO[x.k] }), h('b', null, x.t)), h('small', null, sub));
     };
     const chip = (t, s, on, fn, cls) => h('button', { type: 'button', class: 'ki-chip' + (on ? ' on' : '') + (cls ? ' ' + cls : ''), 'aria-pressed': String(on), onclick: fn }, on ? '✓ ' : '', t, s ? h('small', null, s) : null);
     const L = kiFoe(b);
@@ -181,17 +259,19 @@ async function kiDialog(b, vorwahl) {
       h('div', { class: 'ki-chips' }, ...L.map(f => chip(f.name.trim(), F_ST_L[f.status], foeSel.has(f.id), () => { foeSel.has(f.id) ? foeSel.delete(f.id) : foeSel.add(f.id); zeichne(); })),
         chip('die neu gefundenen', sel.has('suchen') ? 'aus „Neue Förderer“' : 'sucht auch neue', sel.has('suchen') && neuDazu,
           () => { if (!sel.has('suchen')) { sel.add('suchen'); neuDazu = true; } else neuDazu = !neuDazu; zeichne(); }, 'neu'))) : null;
-    const seg = h('div', { class: 'seg small', role: 'group', 'aria-label': 'Prompt für' }, [['cowork', 'Cowork'], ['copilot', 'Copilot']].map(([v, l]) =>
-      btn(l, v === wo ? 'on' : '', () => { wo = v; zeichne(); }, { title: v === 'cowork' ? 'Cowork arbeitet direkt in der Excel im OneDrive und liest den Ordner – für mehrere Aufgaben' : 'Copilot bekommt die Excel als Anhang und gibt sie ausgefüllt zurück – für kleinere Aufträge' })));
+    const seg = h('div', { class: 'seg small ki-wo', role: 'group', 'aria-label': 'Wer macht es?' }, [['copilot', 'Copilot'], ['cowork', 'Cowork']].map(([v, l]) =>
+      btn(l, v === wo ? 'on' : '', () => { wo = v; woHand = true; zeichne(); }, { title: v === 'cowork' ? 'Cowork: arbeitet direkt in der Excel im OneDrive, nutzt deine Skills und legt je Förderer eine ausführliche Recherche als Datei an – kostet Credits'
+        : 'Copilot: antwortet im Chat, den Textblock am Ende hier einfügen – kostet nichts' })));
+    const empf = sel.size ? h('span', { class: 'muted small' }, wo === (sel.has('recherche') ? 'cowork' : 'copilot') ? 'empfohlen' : '') : null;
     const ta = (v, lab) => h('div', { class: 'ki-prompt' }, lab ? h('div', { class: 'muted small' }, lab) : null, h('textarea', { class: 'rech-prompt', rows: 10, spellcheck: false, 'aria-label': lab || 'Prompt', value: v }));
-    const prompts = promptAuf && (cw || zust) ? [cw ? ta(kiPrompt(b, a, wo), zust ? 'Für ' + wem() + ':' : '') : null, zust ? ta(personenPrompt(b), 'Für Copilot (Kontaktdaten, Personen-Excel anhängen):') : null] : [];
-    root.replaceChildren(
+    const prompts = promptAuf ? [P.cw ? ta(P.pCw, P.co ? 'Für Cowork:' : '') : null, P.co ? ta(P.pCo, P.cw ? 'Für Copilot (Kontaktdaten):' : '') : null] : [];
+    setzeInhalt(
       h('div', { class: 'ki-kacheln' }, KI_KACHELN.map(kachel)), foePanel,
       h('div', { class: 'ki-spaeter', 'aria-disabled': 'true' }, h('span', { class: 'ki-sp-lab' }, 'Späteres Update'), h('ul', null, KI_SPAETER.map(t => h('li', null, t)))),
       ...prompts,
-      h('div', { class: 'ki-fuss' }, cw ? seg : null, cw || zust ? btn(promptAuf ? 'Prompt ausblenden' : 'Prompt ansehen', 'link small', () => { promptAuf = !promptAuf; zeichne(); }) : null, h('span', { class: 'ki-sp' }),
-        ordner && datei ? btn('Ergebnis übernehmen', 'ki-erg' + (KI_NEU[b.id] ? ' primary' : ''), ergebnis) : null,
-        btn('Auftrag kopieren', 'ki-los' + (KI_NEU[b.id] && ordner && datei ? '' : ' primary'), los, { disabled: !(cw || zust), title: cw ? 'Legt die Excel an und kopiert den Prompt' : 'Kopiert den Prompt' })));
+      h('div', { class: 'ki-fuss' }, sel.size ? seg : null, empf, P.cw || P.co ? btn(promptAuf ? 'Prompt ausblenden' : 'Prompt ansehen', 'link small', () => { promptAuf = !promptAuf; zeichne(); }) : null, h('span', { class: 'ki-sp' }),
+        ordner && datei ? btn('Ergebnis von Cowork', 'ki-erg' + (KI_NEU[b.id] ? ' primary' : ''), ergebnis, { title: 'Ergebnis aus der Arbeits-Excel übernehmen' }) : null,
+        btn('Auftrag kopieren', 'ki-los' + (KI_NEU[b.id] && ordner && datei ? '' : ' primary'), los, { disabled: !(P.cw || P.co), title: P.cw ? 'Legt die Excel an und kopiert den Prompt für Cowork' : 'Kopiert den Prompt für Copilot' })));
   }
   zeichne();
   await modal('Copilot-Auftrag', root, [], { wide: true, expose: c => { close = c; } });

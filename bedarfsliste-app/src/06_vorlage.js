@@ -23,13 +23,14 @@ const FP_COLS = [
   { k: 'einsch', t: 'Einschätzung', w: 22, items: EINSCH.map(e => e[1]), help: 'Wie wahrscheinlich eine Förderung ist – nur: ' + EINSCH.map(e => e[1]).join(' · ') + '.' },
   { k: 'quellen', t: 'Quellen', w: 36, wrap: true, help: 'Links zu Satzung, Förderrichtlinien und weiteren Belegen – je Link eine eigene Zeile in der Zelle (Zeilenumbruch), nur die Adresse, keine Trennzeichen wie „;“.' },
   { k: 'notiz', t: 'Notizen', w: 30, wrap: true, help: 'Alles Weitere.' },
+  { k: 'datei', t: 'Ausführliche Recherche (Datei)', w: 34, help: 'Name der Word-Datei mit der ausführlichen Förderrecherche zu diesem Förderer (im Ordner des Bedarfs), z. B. „Förderrecherche – Sparkasse Paderborn.docx“.' },
 ];
 const fpHeadKey = t => norm(t).replace(/[^a-zäöüß0-9]/g, '');
 // ausgeblendetes Blatt mit dem Stand beim Anlegen der Excel: beim Übernehmen („überschreiben“) gilt nur, was in der Excel geändert wurde
 const FP_STAND = '_Stand';
 const fpWerte = f => ({ art: f.art, weg: f.weg, kontakt: f.kontakte.map(kontaktText).join('\n'), mail: (f.kontakte[0] || {}).mail || '', tel: (f.kontakte[0] || {}).tel || '', web: f.web,
   frist: f.frist, fristInfo: f.fristInfo, betrag: f.betrag != null && f.betrag !== '' ? +f.betrag : null, hoehe: f.hoehe, eigenInfo: f.eigenInfo, warum: f.warum, knackpunkte: f.knackpunkte,
-  einsch: f.einsch, quellen: f.quellen, notiz: f.notiz });
+  einsch: f.einsch, quellen: f.quellen, notiz: f.notiz, datei: f.datei });
 
 /* ---------- Auftrag an die Recherche: dieselben Sätze stehen im Blatt „Anleitung“ und im Prompt für Copilot */
 const rechGl = b => b && b.gliederung && !istDio(b.gliederung) ? b.gliederung : '';
@@ -251,11 +252,17 @@ async function importFoerderplan(b, file) {
   file = file || await pickFile('.xlsx'); if (!file) return;
   let got = null, ki = { beschr: '', grundlage: '', ul: [] };
   try { const buf = await file.arrayBuffer(); got = await readFoerderplan(buf); ki = readKiBlaetter(await xlsxBook(buf)); } catch (e) { console.warn(e); }
-  const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length);
-  if (!got && !extra) { modal('Kein Förderplan gefunden', h('p', null, 'In „' + file.name + '“ steht keine Tabelle mit einer Spalte „Förderer“ und weiteren Spalten der Vorlage (z. B. „Antragsfrist“, „Erwartete Summe“). Bitte die Förderplan-Vorlage der Bedarfsliste verwenden.')); return; }
+  return zeigeErgebnis(b, { got, ki, name: file.name, file });
+}
+// Vorschau und Übernahme – aus einer Excel (Cowork, Recherche-Vorlage) oder aus der eingefügten Antwort von Copilot (pers: Kontaktdaten der Zuständigen)
+async function zeigeErgebnis(b, { got, ki, name, file, pers }) {
+  const P = (pers || []).map(p => { const z = b.zust.find(x => x.n.trim() && kkey(x.n) === kkey(p.n)); return { p, z, neu: z ? ZUST_F.filter(k => !(z[k] || '').trim() && (p[k] || '').trim()) : [] }; });
+  const persNeu = P.filter(x => x.neu.length);
+  const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length || persNeu.length);
+  if (!got && !extra) { modal('Kein Förderplan gefunden', h('p', null, 'In „' + name + '“ steht keine Tabelle mit einer Spalte „Förderer“ und weiteren Spalten der Vorlage (z. B. „Antragsfrist“, „Erwartete Summe“). Bitte die Förderplan-Vorlage der Bedarfsliste verwenden.')); return; }
   const items = got ? got.items : [], byName = n => b.foerderer.find(f => kkey(f.name) === kkey(n));
   const zeigFoe = items.length > 0 && (!extra || items.some(it => !byName(it.name) || fpGeaendert(it, got.stand.get(kkey(it.name)))));
-  if (!zeigFoe && !extra) { modal('Keine Förderer', h('p', null, 'In „' + file.name + '“ ist noch kein Förderer eingetragen.')); return; }
+  if (!zeigFoe && !extra) { modal(pers ? 'Nichts Neues' : 'Keine Förderer', h('p', null, pers ? 'In ' + name + ' steht nichts, was noch nicht in der Liste ist.' : 'In „' + name + '“ ist noch kein Förderer eingetragen.')); return; }
   const other = got && got.kennung && got.kennung !== b.id ? D.bedarfe.find(x => x.id === got.kennung) : null;
   const sel = items.map(() => true);
   let mode = got && got.auftrag.includes('recherche') ? 'all' : 'fill', beschrOk = !!beschrNeu;   // Förderrecherche bestellt: Geändertes übernehmen
@@ -272,6 +279,10 @@ async function importFoerderplan(b, file) {
     teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Neue Beschreibung übernehmen', onchange: e => { beschrOk = e.target.checked; } }),
       h('b', null, 'Neue Beschreibung'), h('button', { type: 'button', class: 'link small', onclick: e => { alt.hidden = !alt.hidden; e.target.textContent = alt.hidden ? 'bisher zeigen' : 'bisher ausblenden'; } }, 'bisher zeigen')),
       h('div', { class: 'imp-neu fmt', html: fmtText(beschrNeu) }), alt, ki.grundlage ? h('div', { class: 'imp-grund muted small' }, 'Grundlage: ' + ki.grundlage) : null)); }
+  const persAn = persNeu.map(() => true), FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy' };
+  if (persNeu.length) teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('b', null, 'Kontaktdaten der Zuständigen')),
+    persNeu.map((x, i) => h('label', { class: 'imp-f' }, h('input', { type: 'checkbox', checked: true, onchange: e => { persAn[i] = e.target.checked; } }), h('span', { class: 'imp-n' }, x.z.n),
+      h('span', { class: 'imp-pill' }, x.neu.map(k => FL[k]).join(', ') + ' ergänzt')))));
   if (ulVor.length) teile.push(h('section', { class: 'imp-teil' }, h('h3', null, 'Unterlagen'),
     h('div', { class: 'imp-ul' }, ulVor.map(v => v.apply ? h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: true, onchange: e => { v.an = e.target.checked; } }), h('span', null, v.t, v.info ? h('span', { class: 'muted small' }, ' – ' + v.info) : null))
       : h('div', { class: 'imp-nur' }, h('span', null, v.t), v.info ? h('span', { class: 'muted small' }, ' – ' + v.info) : null)))));
@@ -299,7 +310,7 @@ async function importFoerderplan(b, file) {
     upd();
     const dup = items.some(it => byName(it.name));
     teile.push(h('section', { class: extra ? 'imp-teil' : '' }, extra ? h('h3', null, 'Förderer') : null,
-      h('p', null, items.length + ' Förderer in „' + file.name + '“. Neue Förderer kommen mit dem Stand „geplant“ in den Förderplan.'),
+      h('p', null, items.length + ' Förderer in „' + name + '“. Neue Förderer kommen mit dem Stand „geplant“ in den Förderplan.'),
       h('div', { class: 'tablewrap' }, tbl), sumEl,
       dup ? h('div', { class: 'radios' }, h('p', { class: 'small' }, h('b', null, 'Förderer, die schon im Förderplan stehen:')),
         ...[['fill', 'nur leere Felder ergänzen'], ['all', 'in der Excel Geändertes übernehmen (überschreibt – zugesagte und abgelehnte Förderer bleiben, wie sie sind)'], ['skip', 'nicht anfassen']].map(([v, l]) =>
@@ -309,6 +320,7 @@ async function importFoerderplan(b, file) {
   const before = JSON.stringify(D), was = [];
   if (beschrNeu && beschrOk) { b.beschreibung = beschrNeu; was.push('Beschreibung'); }
   const nu = ulVor.filter(v => v.apply && v.an); nu.forEach(v => v.apply()); if (nu.length) was.push(nu.length + (nu.length === 1 ? ' Unterlage' : ' Unterlagen'));
+  const np = persNeu.filter((x, i) => persAn[i]); np.forEach(x => x.neu.forEach(k => { x.z[k] = x.p[k]; })); if (np.length) was.push('Kontaktdaten bei ' + np.length + (np.length === 1 ? ' Person' : ' Personen'));
   let neu = 0, erg = 0;
   if (zeigFoe) items.forEach((it, i) => {
     if (!sel[i]) return;
@@ -317,14 +329,14 @@ async function importFoerderplan(b, file) {
     else { const n = ff({ name: it.name }); applyResearch(n, it, 'all'); b.foerderer.push(n); neu++; }
   });
   if (neu) was.push(neu + ' Förderer übernommen'); if (erg) was.push(erg + ' ergänzt');
-  if (typeof kiGesehen === 'function') kiGesehen(b, file);
+  if (file && typeof kiGesehen === 'function') kiGesehen(b, file);
   if (!was.length) return;
   changed(); keep(renderNow);
   toast(was.join(', '), 'ok', undoGanz(before));
 }
 // was Copilot an einem Förderer geändert hat, kurz benannt (für die Übernahme)
 const FP_KURZ = { warum: 'Pro', knackpunkte: 'Contra', kontakt: 'Kontakte', web: 'Website', weg: 'Antragsweg', frist: 'Antragsfrist', fristInfo: 'Fristen', hoehe: 'Fördersumme',
-  eigenInfo: 'Eigenanteil', einsch: 'Einschätzung', quellen: 'Quellen', betrag: 'Summe', art: 'Art', notiz: 'Notizen', mail: 'E-Mail', tel: 'Telefon' };
+  eigenInfo: 'Eigenanteil', einsch: 'Einschätzung', quellen: 'Quellen', betrag: 'Summe', art: 'Art', notiz: 'Notizen', mail: 'E-Mail', tel: 'Telefon', datei: 'Recherche-Datei' };
 function fpFelder(it, alt) {
   const L = FP_COLS.filter(c => !c.info && c.k !== 'name' && it[c.k] != null && it[c.k] !== '' && (!alt || norm(String(it[c.k])) !== norm(String(alt[c.k] ?? '')))).map(c => FP_KURZ[c.k] || c.t);
   return L.length > 3 ? L.slice(0, 3).join(', ') + ' …' : L.join(', ');
