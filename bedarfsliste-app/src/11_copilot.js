@@ -64,6 +64,9 @@ function kiAufgaben(b, A) {
   // ohne eigenen Ordner des Bedarfs: ein Unterordner je Bedarf neben der Arbeitsdatei („Förderrecherche\<Bedarf>“)
   const T = A.auf, L = [], neu = T.has('suchen') && A.neuDazu, wohin = b.pfad.trim() ? 'im Ordner des Bedarfs'
     : 'im Ordner des Bedarfs, wenn du ihn gefunden hast – sonst im Unterordner „' + kiUnterordner(b) + '“ neben der Arbeitsdatei (leg ihn an, falls es ihn nicht gibt)';
+  if (T.has('ordner')) L.push('Ordner finden. ' + (b.pfad.trim() ? 'Der Ordner ist schon eingetragen (siehe „Dateien“) – nichts zu tun.'
+    : kiAblageHinweis(b, false) + ' Such dort den Ordner mit den Unterlagen zu diesem Bedarf (Name des Bedarfs, Stichworte wie „Angebot“) und trag seinen Pfad im Blatt „Beschreibung“ bei „Ordner“ ein. '
+      + 'Bei mehreren Treffern den passendsten, die anderen nennst du im Chat. Nichts raten.'));
   if (T.has('beschr')) L.push('Projektbeschreibung. ' + KI_BESCHR + ' Vorgehen: Lies alle Dateien im Ordner des Bedarfs (vor allem Angebot, Kostenplan, Konzept, Projektsteckbrief, Mails); '
     + 'die bisherige Beschreibung ist nur ein Anhaltspunkt. Trag den Text im Blatt „Beschreibung“ bei „Vorschlag“ ein (Absätze durch eine Leerzeile trennen), bei „Grundlage“ die gelesenen Dateien.');
   const R = rechAuftrag(b).slice(0, -1);                                          // ohne „nur leere Zellen ergänzen“ – das regelt die Förderrecherche
@@ -79,6 +82,11 @@ function kiAufgaben(b, A) {
     + 'Ergebnis 2 – Essenz in der Zeile des Förderers im Blatt „Förderplan“: ' + KI_ESSENZ + ' Dazu Kontakte, Antragsweg, Antragsfrist (nächster Termin als Datum), Weitere Fristen und Termine, '
     + 'Übliche Fördersumme, Eigenanteil gefordert, Erwartete Summe (realistisch), Einschätzung, Website, Quellen und in „Ausführliche Recherche (Datei)“ den Dateinamen. ' + KI_KURZ
     + ' Bei Förderern mit Stand „zugesagt“ oder „abgelehnt“ nur leere Zellen ergänzen.');
+  const P = T.has('zust') ? personenGesucht(b) : [];
+  if (P.length) L.push('Kontaktdaten der Zuständigen: ' + P.map(z => z.n.trim()).join(', ') + ' (Malteser Hilfsdienst e. V., ' + (rechGl(b) || 'Diözese Paderborn') + '). '
+    + 'Such ihre dienstliche Position, E-Mail, Telefon und Handy in der Datei „' + PERS_DATEI + '“ neben der Bedarfsliste (falls vorhanden), in den Dateien im Ordner des Bedarfs (z. B. Mail-Signaturen, Konzepte) '
+    + 'und auf malteser.de sowie den Seiten der Gliederung. Auf unser internes Adressbuch hast du keinen Zugriff – was du nicht findest, bleibt leer. '
+    + 'Trag die Angaben im Blatt „Kontakte“ ein, je Person eine Zeile, in „Quelle“ woher sie stammen.');
   return L.map((t, i) => (i + 1) + '. ' + t);
 }
 const KI_REGELN = ['Nichts erfinden. Was du nicht belegen kannst, bleibt leer; Unsicheres kennzeichnen (z. B. „laut Website 2025, nicht bestätigt“).',
@@ -94,7 +102,7 @@ function kiPrompt(b, A) {
   L.push(...kiBedarfZeilen(b, T), '', '## Dateien');
   L.push('- Arbeitsdatei: „' + name + '“ ' + (P.od ? 'in meinem OneDrive unter „' + P.od + '“' : 'im Unterordner „' + RECH_DIR + '“ neben der Bedarfsliste in meinem OneDrive') + (P.lokal ? ' (auf dem PC: ' + P.lokal + ')' : '')
     + '. Bearbeite sie dort und speichere sie am Ende unter demselben Namen am selben Ort. Alle Ergebnisse gehören in diese Datei; was in welches Blatt gehört, steht im Blatt „Anleitung“.');
-  if (T.has('beschr') || T.has('recherche')) L.push('- Ordner des Bedarfs (Angebot, Konzept, Fotos …): ' + (pfad
+  if (T.has('beschr') || T.has('recherche') || T.has('ordner') || T.has('zust')) L.push('- Ordner des Bedarfs (Angebot, Konzept, Fotos …): ' + (pfad
       ? pfad + ' – vorhandene Dateien nur lesen: nichts löschen, verschieben oder überschreiben' + (T.has('recherche') ? '; die neuen Recherche-Dateien legst du hier ab.' : '.')
       : 'noch nicht eingetragen' + (link ? ' (Link: ' + link + ')' : '') + '. ' + kiAblageHinweis(b, false)
         + ' Findest du ihn, trag den Pfad im Blatt „Beschreibung“ bei „Ordner“ ein und arbeite mit ihm; vorhandene Dateien dort nur lesen. Findest du ihn nicht, sag es mir – nicht raten.'));
@@ -165,7 +173,8 @@ function kiTextLesen(t) {
   return r;
 }
 // Arbeits-Excel für Cowork: Förderplan (immer), dazu „Beschreibung“, wenn gewählt
-const kiVA = (b, A) => ({ auf: A.auf, zeilen: kiAufgaben(b, A), blaetter: A.auf.has('beschr') || !b.pfad.trim() ? [blattBeschreibung(b)] : [] });   // ohne Pfad: Blatt auch für den gefundenen Ordner
+const kiVA = (b, A) => ({ auf: A.auf, zeilen: kiAufgaben(b, A), blaetter: [A.auf.has('beschr') || !b.pfad.trim() ? blattBeschreibung(b) : null,   // ohne Pfad: Blatt auch für den gefundenen Ordner
+  A.auf.has('zust') && personenGesucht(b).length ? blattKontakte(b) : null].filter(Boolean) });
 const kiExcel = (b, A) => vorlageBlob(b, kiVA(b, A));
 
 /* ---------- Merkzettel je Bedarf (nur dieser Browser): wann der Auftrag angelegt und welcher Stand der Excel zuletzt angesehen wurde */
@@ -185,11 +194,26 @@ async function kiCheck() {
 async function kiInhalt(b, f) {
   try {
     const buf = await f.arrayBuffer(), g = await readFoerderplan(buf), k = readKiBlaetter(await xlsxBook(buf));
-    return !!((k.beschr && norm(k.beschr) !== norm(b.beschreibung)) || k.ul.length || (g && g.items.some(it => { const x = b.foerderer.find(y => kkey(y.name) === kkey(it.name)); return !x || fpGeaendert(it, g.stand.get(kkey(it.name))); })));
+    return !!((k.beschr && norm(k.beschr) !== norm(b.beschreibung)) || k.ul.length || (k.pfad && !b.pfad.trim())
+      || k.pers.some(p => { const z = b.zust.find(x => x.n.trim() && kkey(x.n) === kkey(p.n)); return z && ZUST_F.some(f => !(z[f] || '').trim() && (p[f] || '').trim()); }) || (g && g.items.some(it => { const x = b.foerderer.find(y => kkey(y.name) === kkey(it.name)); return !x || fpGeaendert(it, g.stand.get(kkey(it.name))); })));
   } catch (e) { return false; }
 }
 
 /* ---------- Dialog: Aufgaben wählen (mehrere), Excel anlegen und Prompt kopieren, Ergebnis übernehmen */
+
+// Ergebnis von Cowork aus der Arbeits-Excel übernehmen (aus dem Dialog oder direkt über das Zeichen mit rotem Punkt)
+async function kiErgebnis(b) {
+  const f = rechOrdnerOk() ? await rechFile(b) : null;
+  if (f && !await kiInhalt(b, f)) {
+    const v = await modal('Noch kein Ergebnis', h('div', { class: 'help' },
+      h('p', null, 'In „' + f.name + '“ (zuletzt geändert am ' + lmText(f) + ' Uhr) steht noch nichts Neues.'),
+      h('p', null, 'Mögliche Gründe: Cowork ist noch nicht fertig; OneDrive hat die geänderte Datei noch nicht auf diesen PC geholt (kurz warten); oder das Ergebnis wurde als eigene Datei gespeichert – dann diese auswählen.')),
+      [['Schließen', null], ['Trotzdem ansehen', 'show'], ['Andere Datei wählen …', 'pick', 'primary']]);
+    if (v === 'pick') { importFoerderplan(b); return; }
+    if (v !== 'show') return;
+  }
+  importFoerderplan(b, f || undefined);
+}
 
 /* ---------- Dialog „Copilot-Auftrag“: vier Kacheln (mehrere wählbar), bei der Förderrecherche darunter die Förderer zum Anklicken.
    Wer es macht, schlägt die Liste vor: Copilot (kostet nichts) für Beschreibung, neue Förderer und Kontaktdaten; Cowork, sobald eine Förderrecherche
@@ -206,8 +230,10 @@ async function kiDialog(b, vorwahl) {
   const btn = (t, cls, fn, x) => h('button', Object.assign({ type: 'button', class: cls || '', onclick: fn }, x || {}), t);
   const kopiere = text => new Promise(res => { try { navigator.clipboard.writeText(text).then(() => res(true), () => res(false)); } catch (e) { res(false); } });
   // was in welchen Prompt gehört: Cowork bekommt Beschreibung, neue Förderer und Recherche; Copilot alles, was nicht zu Cowork geht, und die Kontaktdaten
-  const plan = () => { const a = A(), cw = wo === 'cowork' && kiAufgaben(b, a).length > 0, X = { zust: sel.has('zust'), ordner: sel.has('ordner') };
-    const co = cw ? X.zust || X.ordner : kiPromptCopilot(b, a, X).includes('## Aufgaben\n1.');
+  // Cowork: alles Gewählte in einem Prompt (auch Ordner und Kontaktdaten); Copilot: ebenso, Ordner und Kontaktdaten über sein Intranet
+  const plan = () => { let a = A(); const X = { zust: sel.has('zust'), ordner: sel.has('ordner') };
+    if (wo === 'cowork') a = Object.assign({}, a, { auf: new Set([...a.auf, ...KI_NUR_COPILOT.filter(k => sel.has(k))]) });
+    const cw = wo === 'cowork' && kiAufgaben(b, a).length > 0, co = !cw && kiPromptCopilot(b, a, X).includes('## Aufgaben\n1.');
     return { a, cw, co, pCw: cw ? kiPrompt(b, a) : '', pCo: co ? kiPromptCopilot(b, cw ? { auf: new Set(), foe: [], neuDazu: false } : a, X) : '' }; };
 
   async function los() {
@@ -224,20 +250,7 @@ async function kiDialog(b, vorwahl) {
     fertig = true; zeichne();
     if (!kopiert) { const ta = root.querySelector('.ki-prompt textarea'); if (ta) { ta.focus(); ta.select(); } }      // Zwischenablage gesperrt: Prompt markiert zeigen
   }
-  const ergebnis = async () => {
-    if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; }
-    const f = ordner ? await rechFile(b) : null;
-    closeKi();
-    if (f && !await kiInhalt(b, f)) {
-      const v = await modal('Noch kein Ergebnis', h('div', { class: 'help' },
-        h('p', null, 'In „' + f.name + '“ (zuletzt geändert am ' + lmText(f) + ' Uhr) steht noch nichts Neues: keine neuen oder geänderten Förderer, keine neue Beschreibung.'),
-        h('p', null, 'Mögliche Gründe: Cowork ist noch nicht fertig; OneDrive hat die geänderte Datei noch nicht auf diesen PC geholt (kurz warten); oder das Ergebnis wurde als eigene Datei gespeichert – dann diese auswählen.')),
-        [['Schließen', null], ['Trotzdem ansehen', 'show'], ['Andere Datei wählen …', 'pick', 'primary']]);
-      if (v === 'pick') { importFoerderplan(b); return; }
-      if (v !== 'show') return;
-    }
-    importFoerderplan(b, f || undefined);
-  };
+  const ergebnis = () => { if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; } closeKi(); kiErgebnis(b); };
   // Antwort von Copilot einfügen und übernehmen
   const einfuegen = () => {
     const r = kiTextLesen(antwort);

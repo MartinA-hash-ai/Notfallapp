@@ -185,7 +185,7 @@ async function readFoerderplan(buf) {
   const stand = new Map(), sst = book.sheets.find(s => s.name === FP_STAND);
   if (sst) for (const r of sst.rows) { try { if (r[0]) stand.set(String(r[0]), JSON.parse(String(r[1]))); } catch (e) { /* Zeile unbrauchbar */ } }
   const auftrag = (stand.get(STAND_AUFTRAG) || {}).auf || []; stand.delete(STAND_AUFTRAG);
-  const blaetter = book.sheets.filter(s => !s.hidden && s.name !== FP_STAND && !/^(anleitung|förder-?kartei|beschreibung|unterlagen)$/i.test(s.name.trim())).sort((a, c) => (c.name === FP_SHEET) - (a.name === FP_SHEET));
+  const blaetter = book.sheets.filter(s => !s.hidden && s.name !== FP_STAND && !/^(anleitung|förder-?kartei|beschreibung|unterlagen|kontakte)$/i.test(s.name.trim())).sort((a, c) => (c.name === FP_SHEET) - (a.name === FP_SHEET));
   let kennung = '', sheet = '', gefunden = false;
   const items = [], byKey = new Map();
   for (const sh of blaetter) {
@@ -253,7 +253,7 @@ async function importFoerderplan(b, file) {
   file = file || await pickFile('.xlsx'); if (!file) return;
   let got = null, ki = { beschr: '', grundlage: '', ul: [] };
   try { const buf = await file.arrayBuffer(); got = await readFoerderplan(buf); ki = readKiBlaetter(await xlsxBook(buf)); } catch (e) { console.warn(e); }
-  return zeigeErgebnis(b, { got, ki, name: file.name, file });
+  return zeigeErgebnis(b, { got, ki, name: file.name, file, pers: ki.pers && ki.pers.length ? ki.pers : undefined });
 }
 // Vorschau und Übernahme – aus einer Excel (Cowork, Recherche-Vorlage) oder aus der eingefügten Antwort von Copilot (pers: Kontaktdaten der Zuständigen)
 async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
@@ -367,6 +367,13 @@ function blattBeschreibung(b) {
     [], [{ v: 'Bisher', st: S.lab }, { v: b.beschreibung || '', st: S.val }], [{ v: 'Vorschlag', st: S.lab }, { v: '', st: S.val }], [{ v: 'Grundlage', st: S.lab }, { v: '', st: S.val }],
     [{ v: 'Ordner', st: S.lab }, { v: b.pfad || '', st: S.val }], [], [{ v: 'Kennung', st: { sz: 8, color: '#9A9A9A' } }, { v: b.id, st: { sz: 8, color: '#9A9A9A' } }]] };
 }
+function blattKontakte(b) {
+  const S = KI_ST, rows = [[{ v: 'Kontaktdaten der Zuständigen', st: { b: true, sz: 15 } }],
+    [{ v: 'Je Person eine Zeile: dienstliche Position, E-Mail, Telefon, Handy – nur, was gefunden wurde; in „Quelle“ woher. Namen nicht ändern.', st: S.note }], [],
+    ['Name', 'Position', 'E-Mail', 'Telefon', 'Handy', 'Quelle'].map(v => ({ v, st: S.head }))];
+  for (const z of personenGesucht(b)) rows.push([z.n.trim(), z.rolle, z.mail, z.tel, z.mobil || '', ''].map((v, i) => ({ v: v || '', st: S.zelle, t: i === 3 || i === 4 ? 'txt' : undefined })));
+  return { name: 'Kontakte', cols: [26, 26, 32, 18, 18, 30], rows, merges: ['A1:F1', 'A2:F2'], heights: { 0: 24, 1: 30 }, grid: false };
+}
 function blattUnterlagen(b) {
   const S = KI_ST, L = b.unterlagen.map(u => u.name).filter(Boolean), rows = [
     [{ v: 'Unterlagen im Ordner des Bedarfs', st: { b: true, sz: 15 } }],
@@ -377,9 +384,12 @@ function blattUnterlagen(b) {
   return { name: 'Unterlagen', cols: [30, 12, 40, 50], rows, merges: ['A1:D1', 'A2:D2'], heights: { 0: 24, 1: 30 }, freeze: 'A5', grid: false, lists: [{ ref: 'B5:B80', items: ['ja', 'nein'] }] };
 }
 function readKiBlaetter(book) {
-  const r = { beschr: '', grundlage: '', pfad: '', ul: [] }, blatt = re => book.sheets.find(s => !s.hidden && re.test(s.name.trim()));
+  const r = { beschr: '', grundlage: '', pfad: '', ul: [], pers: [] }, blatt = re => book.sheets.find(s => !s.hidden && re.test(s.name.trim()));
   const sb = blatt(/^beschreibung/i);
   if (sb) for (const x of sb.rows) { const k = norm(x[0]); if (k.startsWith('vorschlag')) r.beschr = ohnePlatzhalter(cellStr(x[1])); else if (k.startsWith('grundlage')) r.grundlage = ohnePlatzhalter(cellStr(x[1])); else if (k === 'ordner') r.pfad = unquote(ohnePlatzhalter(cellStr(x[1]))).trim(); }
+  const sk = blatt(/^kontakte/i), kh = sk ? sk.rows.findIndex(x => norm(x[0]) === 'name') : -1;          // Kontaktdaten der Zuständigen (Cowork)
+  if (kh >= 0) for (const x of sk.rows.slice(kh + 1)) { const n = ohnePlatzhalter(cellStr(x[0])); if (!n) continue;
+    r.pers.push({ n, rolle: ohnePlatzhalter(cellStr(x[1])), mail: mailText(x[2]), tel: telText(x[3]), mobil: telText(x[4]) }); }
   const su = blatt(/^unterlagen/i), hi = su ? su.rows.findIndex(x => norm(x[0]) === 'unterlage' && /^im ordner/.test(norm(x[1]))) : -1;   // Kopfzeile, nicht die Überschrift darüber
   if (hi >= 0) for (const x of su.rows.slice(hi + 1)) {
     const n = ohnePlatzhalter(cellStr(x[0])), da = norm(x[1]); if (!istEintrag(n) || !da) continue;     // ohne „Im Ordner?“: nicht geprüft
