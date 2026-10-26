@@ -1,5 +1,5 @@
 /* ===================================================================== Seite eines Bedarfs
-   Kopf: Name und Gliederung direkt änderbar, rechts die Summe und „⋯“ (zurückstellen, archivieren, löschen); Phase und Stand hängen an der Kopfzeile.
+   Kopf: Name und Gliederung direkt änderbar, rechts die Summe, das Copilot-Zeichen (11_copilot.js) und „⋯“ (zurückstellen, archivieren, löschen); Phase und Stand hängen an der Kopfzeile.
    Links Zuständig/Deadline/Stichwort/Beschreibung, der Förderplan (Übersicht, dann je Förderer eine Karte) und die Nacharbeit; rechts Freigaben, Unterlagen und Ordner.
    Eingabefelder tragen data-p (Pfad im Bedarf), bei Förderern zusätzlich data-fid, bei Unterlagen data-uid.
    Tippen ändert nur die Daten und zeichnet abgeleitete Teile neu (refresh); Knöpfe und Auswahlfelder zeichnen die Seite neu. */
@@ -59,6 +59,7 @@ function bedarfView(b) {
       </div>
     </div>
     <div class="d-actions">
+      <button class="icon-btn ki-btn${KI_NEU[b.id] ? ' neu' : ''}" data-act="ki" aria-label="Mit Copilot oder Cowork weiterarbeiten" title="${KI_NEU[b.id] ? 'Ergebnis von Copilot oder Cowork liegt vor – ansehen' : 'Mit Copilot oder Cowork weiterarbeiten'}">${ICON_KI}</button>
       <button class="icon-btn" data-act="more" aria-label="Weitere Aktionen: zurückstellen, archivieren, löschen" title="Zurückstellen, verwerfen, archivieren, löschen">⋯</button>
     </div>
     <div class="d-left">${secInfo(b)}${secFoe(b)}${secNach(b)}</div>
@@ -490,7 +491,7 @@ function secFoe(b) {
   if (zuGet(b, 'foe')) return `<section class="card fp-head zu" id="sec-foe"><div class="sec-head">${zuKopf('foe', 'Förderplan', true)}<p id="foe-kurz">${esc(foeKurz(b))}</p></div></section>`;
   return `<section class="card fp-head" id="sec-foe">
     <div class="sec-head">${zuKopf('foe', 'Förderplan', false)}
-      <div class="sec-tools"><button class="rech-btn" data-act="vorlage" title="Förderrecherche mit Copilot: Excel zu diesem Bedarf, Auftrag zum Kopieren, Ergebnis übernehmen">Recherche mit Copilot</button>
+      <div class="sec-tools"><button class="rech-btn" data-act="vorlage" title="Förderer suchen und recherchieren mit Copilot oder Cowork – öffnet die Auswahl mit beidem angehakt">Recherche mit Copilot</button>
         <button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – du siehst zuerst die Vorschläge">${ICON_UP}</button></div></div>
     <div class="fin-wrap">
     <table class="fsum"><tbody id="fin-rows">${finRows(b)}</tbody>

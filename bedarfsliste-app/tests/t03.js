@@ -67,21 +67,23 @@ async function writeKartei(p, kontakt) {
   // sehr großes Blatt: nur der Anfang wird gelesen
   r = await p.evaluate(async () => { const f = __fs.files['/Ordner/Banken- und Stiftungsübersicht.xlsx']; const bk = await xlsxBook(f.data.buffer.slice(0), { max: 5000 }); return [bk.sheets[0].cut, bk.sheets[0].rows.length > 3, parseKartei(bk).length]; });
   ok(r[0] && r[1] && r[2] >= 1, 'großes Blatt: Anfang gelesen, Rest übersprungen (' + r[2] + ' Förderer)');
-  // Recherche mit Copilot: Excel im Unterordner „Förderrecherche“, mit Kartei-Auszug für die Gliederung (ohne Kontaktdaten); ausgefüllt wieder übernehmen
+  // Recherche mit Copilot (öffnet die Auswahl des Copilot-Knopfs mit „Förderer suchen“ und „Förderrecherche“): Excel im Unterordner „Förderrecherche“,
+  // mit Kartei-Auszug für die Gliederung (ohne Kontaktdaten); ausgefüllt wieder übernehmen
   await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
-  r = await p.evaluate(() => [document.querySelector('.rech-steps li button').textContent, document.querySelector('.rech-prompt').value]);
-  ok(r[0] === 'Excel anlegen' && r[1].includes('Gliederung: Iserlohn-Menden') && r[1].includes('Bezug zu Iserlohn-Menden') && r[1].includes('Blatt „Förder-Kartei“') && r[1].includes('die angehängte Excel'), 'mit Ordner: „Excel anlegen“, Prompt nennt Gliederung, Kartei-Blatt und die angehängte Datei');
-  await p.click('.rech-steps li button'); await p.waitForTimeout(200);
+  r = await p.evaluate(() => [document.querySelector('.rech-steps li:first-child button.primary').textContent, document.querySelector('.rech-prompt').value,
+    [...document.querySelectorAll('.ki-auf input:checked')].map(e => e.closest('.ki-auf').dataset.k).join()]);
+  ok(r[0] === 'Excel anlegen und Prompt kopieren' && r[2] === 'suchen,recherche' && r[1].includes('Gliederung: Iserlohn-Menden') && r[1].includes('Bezug zu Iserlohn-Menden') && r[1].includes('Blatt „Förder-Kartei“') && r[1].includes('Unterordner „Förderrecherche“'), 'mit Ordner: „Excel anlegen“, Prompt nennt Gliederung, Kartei-Blatt und die angehängte Datei');
+  await p.click('.rech-steps li:first-child button.primary'); await p.waitForTimeout(200);
   const RP = '/Ordner/Förderrecherche/' + await p.evaluate(() => vorlageName(cur()));
   r = await p.evaluate(async rp => { const f = __fs.files[rp]; if (!f) return null; const bk = await xlsxBook(f.data.buffer.slice(0)); const k = bk.sheets[2];
-    return [bk.sheets.filter(x => !x.hidden).map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], k.rows[3].includes('Notizen'), document.querySelector('.rech-st').textContent.includes('liegt im Ordner'), document.querySelector('.rech-steps li button').textContent]; }, RP);
-  ok(r && r[0] === 'Förderplan+Anleitung+Förder-Kartei' && r[1] === 'Märkische Bank eG,Aktion Beispiel' && !r[2] && r[3] === '2025: 1.000 € Folierung' && !r[4] && r[5] && r[6] === 'Neu anlegen',
+    return [bk.sheets.filter(x => !x.hidden).map(x => x.name).join('+'), k.rows.slice(4).map(x => x[0]).join(','), JSON.stringify(k.rows).includes('silke'), k.rows[4][6], k.rows[3].includes('Notizen'), document.querySelector('.rech-st').textContent.includes('liegt im Ordner'), document.querySelector('.rech-steps li:first-child button.primary').textContent]; }, RP);
+  ok(r && r[0] === 'Förderplan+Anleitung+Förder-Kartei' && r[1] === 'Märkische Bank eG,Aktion Beispiel' && !r[2] && r[3] === '2025: 1.000 € Folierung' && !r[4] && r[5] && r[6] === 'Excel anlegen und Prompt kopieren',
     'Excel im Ordner angelegt; Kartei-Blatt nur mit den Zuständigen, eigene Gliederung zuerst, Historie, ohne Kontaktdaten und Notizen: ' + JSON.stringify(r));
   // gleich übernehmen, obwohl Copilot noch nichts eingetragen hat: Hinweis statt leerer Vorschau
   await p.click('.rech-steps li:nth-child(3) button');
-  await p.waitForFunction(() => [...document.querySelectorAll('.modal h2')].some(e => e.textContent === 'Noch keine neuen Förderer'));
+  await p.waitForFunction(() => [...document.querySelectorAll('.modal h2')].some(e => e.textContent === 'Noch kein Ergebnis'));
   t = await p.$eval('.modal', e => e.textContent);
-  ok(t.includes('Noch keine neuen Förderer') && t.includes('als eigene Datei gespeichert') && t.includes('Andere Datei wählen'), 'unveränderte Excel: Hinweis mit möglichen Gründen und „Andere Datei wählen“');
+  ok(t.includes('Noch kein Ergebnis') && t.includes('als eigene Datei gespeichert') && t.includes('Andere Datei wählen'), 'unveränderte Excel: Hinweis mit möglichen Gründen und „Andere Datei wählen“');
   await p.click('.modal footer button:first-child'); await p.waitForTimeout(100);
   // Copilot hat das Ergebnis als Kopie neben die Datei gelegt („… (1).xlsx“) – die neueste passende Datei wird genommen
   await p.evaluate(async rp => {

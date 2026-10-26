@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.40.0",
+    "date": "2026-10-26T18:00",
+    "items": [
+      "Copilot-Zeichen oben rechts auf der Seite eines Bedarfs: Aufgaben anhaken, auch mehrere auf einmal – Zuständige aus dem Intranet, Beschreibung aus dem Ordner, Unterlagen-Check, neue Förderer suchen, Förderrecherche je Förderer, Entwürfe (Antrag, Freigabe, Nachfassen, Dank, Pressemitteilung, Sachbericht)",
+      "Eine Arbeits-Excel für alle Aufgaben (mit Blättern „Beschreibung“ und „Unterlagen“, wenn gewählt) und ein Prompt dazu – für Cowork (arbeitet direkt im OneDrive) oder für Copilot; Kontaktdaten der Zuständigen über Copilot und die Personen-Excel",
+      "Ergebnis übernehmen mit Vorschau: Beschreibung bisher und neu nebeneinander, Unterlagen, Förderer; bei bestellter Förderrecherche wird in der Excel Geändertes übernommen",
+      "Roter Punkt am Copilot-Zeichen, sobald die Excel nach dem Auftrag geändert wurde; „Recherche mit Copilot“ im Förderplan öffnet dieselbe Auswahl"
+    ]
+  },
+  {
     "version": "0.39.1",
     "date": "2026-10-26T15:00",
     "items": [

@@ -17,12 +17,12 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => { const f = ff({ name: 'X' }); applyResearch(f, { stand: 'zugesagt', warum: 'w' }, 'all'); return f.stand === undefined && f.warum === 'w'; }), 'Spalte „Stand“ wird nicht eingelesen');
   // Recherche mit Copilot: Dialog mit drei Schritten, Prompt mit Bedarf und Umfang; ohne Ordner wird die Excel heruntergeladen
   await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .rech-steps');
-  r = await p.evaluate(() => [document.querySelectorAll('.rech-steps > li').length, document.querySelector('.rech-steps li button').textContent, document.querySelector('.rech-prompt').value.replace(/\u00a0/g, ' ')]);
-  ok(r[0] === 3 && r[1] === 'Excel herunterladen' && r[2].includes('Bedarf: Testbedarf / MTW') && r[2].includes('noch offen 20.000 €') && r[2].includes('Deadline: 30.06.2027')
-    && r[2].includes('5 bis 8 Förderer') && !r[2].includes('Doppelte') && r[2].includes('Nicht auf eine Gesamtsumme hinrechnen') && r[2].includes('Datei: die angehängte Excel „Foerderrecherche_Testbedarf_MTW_Paderborn_')
+  r = await p.evaluate(() => [document.querySelectorAll('.rech-steps > li').length, document.querySelector('.rech-steps li:first-child button.primary').textContent, document.querySelector('.rech-prompt').value.replace(/\u00a0/g, ' ')]);
+  ok(r[0] === 3 && r[1] === 'Excel herunterladen und Prompt kopieren' && r[2].includes('Bedarf: Testbedarf / MTW') && r[2].includes('noch offen 20.000 €') && r[2].includes('Deadline: 30.06.2027')
+    && r[2].includes('5 bis 8 Förderer') && !r[2].includes('Doppelte') && r[2].includes('Nicht auf eine Gesamtsumme hinrechnen') && r[2].includes('Arbeitsdatei: „Foerderrecherche_Testbedarf_MTW_Paderborn_')
     && r[2].includes('Recherchiere im Web') && r[2].includes('brich ab') && r[2].includes('tatsächlich geöffnet') && !r[2].includes('Förder-Kartei') && r[2].includes('Zum Schluss im Chat'),
     'Dialog: drei Schritte; Prompt mit Bedarf, offener Summe, gestaffeltem Umfang ohne Zielsumme, angehängter Datei und Pflicht zur Websuche');
-  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.rech-steps li button')]);
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.rech-steps li:first-child button.primary')]);
   ok(/^Foerderrecherche_Testbedarf_MTW_Paderborn_[a-z0-9]{4}\.xlsx$/.test(dl.suggestedFilename()) && dl.suggestedFilename() === await p.evaluate(() => vorlageName(cur())), 'Download der Excel mit Gliederung und Kürzel: ' + dl.suggestedFilename());
   r = await p.evaluate(() => { const a = blank(), c = blank(); Object.assign(a, { titel: 'AED', gliederung: 'Brakel' }); Object.assign(c, { titel: 'AED', gliederung: 'Borchen' });
     const n = s => { const x = blank(); x.summe = s; return rechAnzahl(x); };

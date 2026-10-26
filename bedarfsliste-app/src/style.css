@@ -947,3 +947,38 @@ table.kt td a { color: var(--focus); word-break: break-all; }
   .actions { margin-left: 0; }
   .save { min-width: 0; }
 }
+
+/* ---------- Copilot und Cowork: Zeichen neben „⋯“ (Punkt = Ergebnis liegt vor), Auswahl der Aufgaben, Übernahme mit Vorschau */
+.icon-btn.ki-btn { position: relative; }
+.icon-btn.ki-btn svg { display: block; }
+.icon-btn.ki-btn.neu::after { content: ''; position: absolute; top: -3px; right: -3px; width: 9px; height: 9px; border-radius: 50%; background: var(--red); box-shadow: 0 0 0 2px var(--card); }
+.modal.wide:has(.ki) { max-width: 980px; }                                       /* drei Spalten Aufgaben nebeneinander */
+.ki-auswahl { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px 22px; margin: 10px 0 14px; }
+.ki-gr { display: grid; align-content: start; gap: 2px; }
+.ki-gh { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); margin-bottom: 4px; }
+label.ki-auf { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: start; padding: 5px 6px; border-radius: 6px; cursor: pointer; font-size: 13.5px; line-height: 1.35; }
+label.ki-auf:hover { background: var(--hover); }
+label.ki-auf input { margin-top: 2px; }
+label.ki-auf.aus { cursor: default; color: var(--faint); }
+label.ki-auf.aus:hover { background: none; }
+.ki-grund { display: block; font-size: 11.5px; color: var(--faint); }
+.ki-wer { font-size: 10.5px; font-weight: 600; padding: 1px 6px; border-radius: 8px; white-space: nowrap; margin-top: 1px; }
+.ki-wer.cowork { background: var(--ph3bg); color: var(--ph3ink); }
+.ki-wer.copilot { background: var(--runbg); color: var(--runink); }
+label.ki-auf.aus .ki-wer { opacity: .5; }
+.ki-foe { display: grid; gap: 2px; margin: 0 0 6px 30px; font-size: 13px; }
+.ki-foe label.check { display: flex; align-items: baseline; gap: 6px; }
+.ki-foe label.check input { flex: none; position: relative; top: 2px; }
+.ki .rech-row .seg.ki-wo { margin-left: auto; }
+.ki-wo-t { margin-top: 2px; }
+.ki-leer { margin: 0 0 4px; }
+ol.rech-steps > li.ki-da { background: var(--okbg); border-radius: 8px; padding: 6px 8px; margin-left: -8px; }
+@media (max-width: 900px) { .ki-auswahl { grid-template-columns: minmax(0, 1fr); } }
+.imp-teil { margin-bottom: 16px; }
+.imp-teil > h3 { margin: 0 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .05em; color: var(--faint); }
+.imp-vgl { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; margin-bottom: 6px; }
+.imp-lab { font-size: 11.5px; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
+.imp-txt { border: 1px solid var(--line2); border-radius: 6px; padding: 8px 10px; font-size: 13.5px; line-height: 1.45; max-height: 220px; overflow: auto; }
+.imp-txt.neu { border-color: var(--okline); background: var(--okbg); }
+.imp-ul { display: grid; gap: 4px; font-size: 13.5px; }
+.imp-nur { padding-left: 26px; color: var(--ink2); }

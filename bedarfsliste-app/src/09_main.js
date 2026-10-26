@@ -356,6 +356,7 @@ function oeffnen(id, o = {}) {
   closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; ZU = null;
   const b = D.bedarfe.find(x => x.id === id); if (b && o.offen) { ZU = zuStd(b); ZU[o.offen] = false; }
   uebergang('vor', () => { renderNow(); scrollTo(0, 0); if (o.danach) o.danach(); });
+  setTimeout(kiCheck, 300);                                                        // Ergebnis von Copilot oder Cowork da?
 }
 // zurück: die Liste steht, wo sie war; der Fokus liegt auf dem Bedarf, von dem man kommt (mit ↑/↓ auf der Seite weitergeblättert: er wird ins Bild geholt)
 function zurueck() { closeMenus(); klickRuhe(); const id = UI.id; UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); zeileFokus(id); zeileZeigen(id); }); }
@@ -369,6 +370,7 @@ function blaettern(d) {
   if (!id) { toast(d > 0 ? 'Das ist der letzte Bedarf der Liste.' : 'Das ist der erste Bedarf der Liste.'); return; }
   closeMenus(); UI.id = id; UI.det = null; ZU = null;
   uebergang(d > 0 ? 'runter' : 'hoch', () => { renderNow(); scrollTo(0, 0); });
+  setTimeout(kiCheck, 300);
 }
 // ← führt zurück zur Liste (dort öffnet → wieder einen Bedarf)
 document.addEventListener('keydown', e => {
@@ -529,7 +531,8 @@ async function act(k, a, e) {
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
     case 'copy-path': copyPath(b); return;
-    case 'vorlage': rechDialog(b); return;
+    case 'vorlage': kiDialog(b, ['suchen', 'recherche']); return;
+    case 'ki': kiDialog(b, KI_NEU[b.id] ? [] : undefined); return;
     case 'import': if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; } importFoerderplan(b); return;
     default: return;
   }
@@ -635,7 +638,7 @@ function boot() {
   } catch (e) { /* Browser ohne BroadcastChannel */ }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { if (isDirty()) { saveDraft(); if (ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); } }
-    else { karteiScan(); personenScan(); }
+    else { karteiScan(); personenScan(); kiCheck(); }
   });
   window.addEventListener('beforeunload', e => { if (isDirty() && !window.__blReload) { saveDraft(); e.preventDefault(); e.returnValue = ''; } });
 }
