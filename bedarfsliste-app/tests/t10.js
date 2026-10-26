@@ -18,14 +18,25 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     renderNow();
     const c = document.querySelector('#frist-chip');
     return [c.textContent, c.classList.contains('over'), fristenBald().map(x => x.b.id + ':' + x.t.split(' ')[0]).join(',')]; });
-  ok(r[0] === '3 Fristen' && r[1] && r[2] === 't1:Antragsfrist,t2:Verwendungsnachweis,t1:Antwort', 'Fristen oben: 3 (eine überfällig → rot), Nachweis auch im Archiv, Zurückgestelltes und Späteres nicht: ' + r.join(' | '));
+  ok(r[0] === '1 jetzt fällig+3' && r[1] && r[2] === 't1:Antragsfrist,t2:Verwendungsnachweis,t1:Antwort', 'Hinweise oben: rot „1 jetzt fällig“, dazu 2 bald fällig und 1 Info; Nachweis auch im Archiv, Zurückgestelltes und Späteres nicht: ' + r.join(' | '));
   await p.click('#frist-chip');
-  r = await p.evaluate(() => [...document.querySelectorAll('.frist-pop .fp-h')].map(x => x.textContent).join('/') + ' | ' + [...document.querySelectorAll('.frist-pop .fp-row')].map(x => x.querySelector('.fp-r').textContent).join(','));
-  ok(r === 'Überfällig/In den nächsten 14 Tagen | vor 3 Tagen,in 2 Tagen,in 5 Tagen', 'Liste der Fristen: überfällig und die nächsten 14 Tage: ' + r);
-  await p.click('.frist-pop .fp-row:last-child');
-  ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 't1' && !document.querySelector('.frist-pop')), 'Klick auf eine Frist öffnet den Bedarf');
-  r = await p.evaluate(() => { D.bedarfe.find(x => x.id === 't1').foerderer.forEach(f => { f.frist = ''; f.erwartet = ''; }); D.bedarfe.find(x => x.id === 't2').foerderer[0].vn.st = 'erledigt'; changed(); return document.querySelector('#frist-chip').hidden; });
-  ok(r, 'nichts mehr fällig: kein Fristen-Feld');
+  r = await p.evaluate(() => [...document.querySelectorAll('.frist-pop .fp-h')].map(x => x.textContent).join('/') + ' | ' + [...document.querySelectorAll('.frist-pop .fp-row:not(.fp-info)')].map(x => x.querySelector('.fp-r').textContent).join(',')
+    + ' | ' + [...document.querySelectorAll('.frist-pop .fp-info .fp-t')].map(x => x.textContent).join(','));
+  ok(r === 'Jetzt fällig/Bald fällig · in den nächsten 14 Tagen/Infos | vor 3 Tagen,in 2 Tagen,in 5 Tagen | Antrag läuft, Freigabe noch nicht vollständig', 'Liste: jetzt fällig, bald fällig, Infos: ' + r);
+  await p.click('.frist-pop .fp-row:not(.fp-info) >> nth=2');
+  r = await p.evaluate(() => [UI.view, !document.querySelector('.frist-pop'), [...document.querySelectorAll('.blitz')].map(e => e.closest('tr').dataset.id + ':' + e.textContent.trim()).join()]);
+  ok(r.join('|') === 'list|true|t1:Bank B', 'in der Liste: Klick auf eine Frist springt zur Zeile, der Förderer leuchtet auf: ' + r.join('|'));
+  await p.click('#frist-chip'); await p.click('.frist-pop .fp-row:not(.fp-info) >> nth=1');
+  r = await p.evaluate(() => [UI.view, UI.id, !!document.querySelector('#nach-body'), [...document.querySelectorAll('.blitz')].map(e => e.id).join()]);
+  ok(r.join('|') === 'detail|t2|true|nl-' + await p.evaluate(() => D.bedarfe.find(x => x.id === 't2').foerderer[0].id), 'Nachweis im Archiv (nicht in der Liste): öffnet den Bedarf, die Zeile des Nachweises leuchtet auf: ' + r.join('|'));
+  await p.click('#frist-chip'); await p.click('.frist-pop .fp-row:not(.fp-info) >> nth=0');
+  r = await p.evaluate(() => [UI.view, UI.id, !!document.querySelector('#fin-pie'), [...document.querySelectorAll('.blitz')].map(e => e.dataset.dp).join()]);
+  ok(r.join('|') === 'detail|t1|true|frist', 'auf der Seite eines Bedarfs: Klick öffnet den anderen Bedarf, die Antragsfrist leuchtet auf: ' + r.join('|'));
+  r = await p.evaluate(() => { D.bedarfe.find(x => x.id === 't1').foerderer.forEach(f => { f.frist = ''; f.erwartet = ''; }); D.bedarfe.find(x => x.id === 't2').foerderer[0].vn.st = 'erledigt'; changed();
+    const c = document.querySelector('#frist-chip'); return [c.textContent, c.classList.contains('nur-info')]; });
+  ok(r.join('|') === '1 Info|true', 'nichts mehr fällig, nur noch eine Info: graues Feld „1 Info“: ' + r.join('|'));
+  r = await p.evaluate(() => { D.bedarfe.find(x => x.id === 't1').foerderer[1].status = 'geplant'; changed(); return document.querySelector('#frist-chip').hidden; });
+  ok(r, 'nichts fällig, keine Infos: kein Feld');
 
   // 2. Archivieren ohne Offenes: keine Rückfrage
   await p.evaluate(() => { const x = D.bedarfe.find(y => y.id === 't4'); x.foerderer = []; UI.id = 't4'; UI.view = 'detail'; renderNow(); act('archive', document.body); });

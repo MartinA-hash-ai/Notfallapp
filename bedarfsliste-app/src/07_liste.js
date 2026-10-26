@@ -15,17 +15,21 @@ const mi = (s, t) => `<span class="mi ${MI[s][0]}"${t ? ` title="${esc(t)}"` : '
 const ICON_CAL = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3.5" width="12" height="10.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M2 7h12M5.5 2v3M10.5 2v3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
 const ICON_TRI = '<svg class="tri" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="currentColor"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12" r=".9" fill="#fff"/></svg>';
 
-// Freigabe: Ortsführungskreis, Verwaltung, Fachreferat, Angebot – ist alles durch, wird der Block blass grün
+// Freigabe: Ortsführungskreis, Verwaltung, Fachreferat, Angebot – ist alles durch, steht nur noch ein Haken „freigegeben“ (Einzelheiten beim Überfahren)
 function lFreigabe(b) {
-  const it = Object.fromEntries(frItems(b).map(i => [i.k, i]));
+  const it = Object.fromEntries(frItems(b).map(i => [i.k, i])), a = angebotUL(b);
+  if (!frOffen(b).names.length) {
+    const tip = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => { const i = it[k];
+      return (k === 'fach' && i.item.name ? 'Fachreferat ' + i.item.name : lab) + ': ' + frText(i) + (i.st === 'ok' && validIso(i.item.erledigt) ? ' am ' + fmtDate(i.item.erledigt) : ''); });
+    return `<div class="ml fr-voll" title="${esc([...tip, 'Angebot: ' + (a ? ulText(a) : 'fehlt')].join('\n'))}">${mi('ok')}<span>freigegeben</span></div>`;
+  }
   const L = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => {
     const i = it[k];
     if (!frNeeded(i)) return `<div class="ml nn" data-le="fr" data-k="${k}" title="${esc(frText(i))}">${mi('none')}<span>${lab}</span></div>`;
     return `<div class="ml" data-le="fr" data-k="${k}">${mi(({ ok: 'ok', angefragt: 'run', nein: 'no' })[i.st] || 'off', frText(i))}<span>${lab}</span></div>`;
   });
-  const a = angebotUL(b);
   L.push(`<div class="ml${a && a.st === 'nn' ? ' nn' : ''}" data-le="ang">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : a && a.st === 'nn' ? 'none' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`);
-  return frOffen(b).names.length ? L.join('') : `<div class="done" title="Freigabe vollständig">${L.join('')}</div>`;
+  return L.join('');
 }
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
 const F_SYM = { zugesagt: 'ok', beantragt: 'run', geplant: 'off', abgelehnt: 'no' };
@@ -122,16 +126,17 @@ function filtered() {
   queueMicrotask(() => { FCACHE = null; });
   return L.slice();
 }
-function filterUndSortiere() {
-  const arch = UI.tab === 'archiv', q = norm(UI.q);
+// o.arch: Archiv statt des Reiters; o.alle: ohne Suche und Filter (Reihenfolge für ↑/↓ auf der Seite eines Bedarfs, der in der Liste nicht steht)
+function filterUndSortiere(o = {}) {
+  const arch = o.arch != null ? o.arch : UI.tab === 'archiv', q = o.alle ? '' : norm(UI.q);
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
-  if (UI.fSw) L = L.filter(b => b.stichworte.includes(UI.fSw));
-  if (UI.prioKopf === 2) L = L.filter(b => b.prio === 'hoch');
+  if (UI.fSw && !o.alle) L = L.filter(b => b.stichworte.includes(UI.fSw));
+  if (UI.prioKopf === 2 && !o.alle) L = L.filter(b => b.prio === 'hoch');
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, ...b.stichworte, ...b.zust.map(z => z.n), ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
   const prioVorn = (x, y) => UI.prioKopf ? (x.prio === 'hoch' ? 0 : 1) - (y.prio === 'hoch' ? 0 : 1) : 0;
   SORT_MEMO = new Map();
   try { L.sort((x, y) => prioVorn(x, y) || sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel')); } finally { SORT_MEMO = null; }
-  if (ORDER.ids && ORDER.key === ordKey()) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
+  if (!o.alle && ORDER.ids && ORDER.key === ordKey()) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
   return L;
 }
 // Reihenfolge, solange mit Strg bearbeitet wird (Zeilen springen nicht unter dem Mauszeiger weg)
@@ -225,17 +230,19 @@ function listBody() {
   return { html: L.map(row).join(''), n: L.length };
 }
 // Leiste der Liste: hängt wie auf der Seite eines Bedarfs unter der Kopfzeile – so beginnen beide Seiten gleich hoch und beim Hineinschieben springt nichts
+// ohne eigene Überschrift (der Reiter sagt schon „Bedarfe“ bzw. „Archiv“): links die Zahl, rechts Ansicht, Suche, Stichwort und ganz außen das „i“ für die Tastaturbefehle
+const zahlText = (n, all) => n + ' von ' + all;
 function listBar() {
   const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), n = filtered().length, komp = KOMPAKT();
   const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<div class="subbar list-head">
-      <h2>${arch ? 'Archiv' : 'Bedarfe'}</h2><span class="muted" id="list-count">${n} von ${all.length}</span>${komp ? '<span class="strg-hint" title="Ein Klick auf Name, Summe oder Ort ändert das Wort. Ein Klick daneben klappt den Bedarf auf – dort lässt sich alles bearbeiten; noch ein Klick daneben öffnet ihn. Ein Klick auf eine andere Zeile holt diese nach vorn, Esc oder ein Klick außerhalb der Liste klappt wieder zu.">Klick aufs Wort ändert es, daneben klappt den Bedarf auf</span>'
-        : '<span class="strg-hint" title="Ein Klick auf Name, Summe, Ort, Ansprechperson oder Deadline ändert das Wort; Freigabe, Stand der Förderer und Verwendungsnachweis drehen per Klick einen Stand weiter; + fügt einen Förderer hinzu. Ein Klick daneben öffnet den Bedarf.">Klick aufs Wort ändert es, daneben öffnet den Bedarf</span>'}
+      <span class="muted" id="list-count">${zahlText(n, all.length)}</span>
       <div class="tools">
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
-        <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen">
+        <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen (Strg+F)">
         <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
         <button class="link" data-act="clear"${anyFilter() ? '' : ' hidden'}>Filter löschen</button>
+        <button class="info kz-info" data-act="kuerzel" data-tip="Tastaturbefehle" aria-label="Tastaturbefehle anzeigen">i</button>
       </div>
     </div>`;
 }
@@ -303,6 +310,6 @@ function placePop(m, btn, align) {
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sw-pop"], [data-act="fristen"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], input.dfeld')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sw-pop"], [data-act="fristen"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], [data-act="kuerzel"], input.dfeld, input.zfeld')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);

@@ -53,6 +53,7 @@ const setData = (text, d) => text.replace(/(<script type="application\/json" id=
   ok(r.join('|') === 'list|true', 'Link in den Notizen: Link statt Bedarf (in der Vorschau nur der Hinweis): ' + r.join('|'));
 
   // 5. Text markieren öffnet nichts
+  await p.evaluate(() => scrollTo(0, 0));
   const m = await (await p.$(R('b-mtw') + ' td.l-meta')).boundingBox();
   await p.mouse.move(m.x + 8, m.y + m.height / 2 - 18); await p.mouse.down(); await p.mouse.move(m.x + m.width - 6, m.y + m.height / 2 + 18, { steps: 6 }); await p.mouse.up();
   r = await p.evaluate(() => [UI.view, !document.querySelector('.le-edit'), String(getSelection()).trim().length > 3]);

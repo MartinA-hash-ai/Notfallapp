@@ -1,5 +1,5 @@
 // Tempo und Bedienung (0.38): Rückgängig mit Unterschieden, Entwurf gedrosselt, einmal filtern je Neuzeichnen, Suche bei vielen Bedarfen entprellt,
-// Tastatur (↑/↓, Enter, F2, Leertaste, „/“, Esc, Tab, Kalender), Kürzel-Übersicht, kein 5-px-Scrollbalken, Scrollposition, Mindestbreite nach Verkleinern
+// Tastatur (↑/↓, Enter, F2, Leertaste, Strg+F, Esc, Tab, Kalender), Übersicht der Tastaturbefehle, kein 5-px-Scrollbalken, Scrollposition, Mindestbreite nach Verkleinern
 const { chromium, ok, open, finish, fs, T } = require('./lib');
 (async () => {
   const b = await chromium.launch();
@@ -72,8 +72,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await K.press('Enter'); await K.press('Enter'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'k0'), 'kompakt: Enter, Enter öffnet');
   await K.press('Escape'); await p.waitForTimeout(150);
-  await K.press('/');
-  ok(await p.evaluate(() => document.activeElement.id === 'q'), '„/“ springt in die Suche');
+  await K.press('Control+f');
+  ok(await p.evaluate(() => document.activeElement.id === 'q'), 'Strg+F springt in die Suche');
   await p.evaluate(() => { document.activeElement.blur(); UI.ansicht = 'voll'; renderNow(); });
   // Kalender mit der Tastatur
   await p.click('#list-body tr[data-id="k2"] [data-le="deadline"]');
@@ -82,7 +82,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = [r, await p.evaluate(() => D.bedarfe.find(x => x.id === 'k2').deadline)];
   ok(r.join('|') === '2027-03-12|2027-03-20', 'Kalender: öffnet auf dem Datum, → und ↓ wandern, Enter übernimmt: ' + r.join('|'));
   await p.click('button[data-act="menu"]'); await p.click('#mmenu button[data-act="kuerzel"]');
-  ok((await p.$eval('.modal', e => e.textContent)).includes('F2'), 'Zahnrad → Tastenkürzel: Übersicht');
+  ok((await p.$eval('.modal', e => e.textContent)).includes('Strg+F'), 'Zahnrad → Tastaturbefehle: Übersicht');
   await p.click('.modal footer button');
 
   // kein 5-px-Scrollbalken; waagrechte Scrollposition bleibt beim Neuzeichnen

@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.39.0",
+    "date": "2026-10-26T12:00",
+    "items": [
+      "Seite eines Bedarfs: ↓/↑ öffnen den nächsten bzw. vorigen Bedarf in der Reihenfolge der Liste (er gleitet von unten bzw. oben herein); kompakte Liste: ist ein Bedarf aufgeklappt, klappen ↑/↓ gleich den nächsten auf",
+      "Namen ändern mit E (F2 geht weiter, belegt in Vivaldi aber die Schnellbefehle); Strg+F springt in die Suche statt „/“",
+      "„i“ oben rechts in der Liste: beim Überfahren „Tastaturbefehle“, Klick zeigt sie nach Bereichen geordnet",
+      "Feld oben gestaffelt: rot „jetzt fällig“, gelb „bald fällig“ (14 Tage), grau „Infos“ (Zusage ohne Betrag, Förderer laut Kartei nicht für die Gliederung, Antrag ohne vollständige Freigabe); ein Eintrag springt zur auslösenden Stelle – in der Liste oder auf der Seite des Bedarfs – und lässt sie kurz rot aufleuchten",
+      "Liste: Leiste ohne „Bedarfe“ und ohne Hinweistext; volle Freigabe nur noch als ein Haken „freigegeben“ (Einzelheiten beim Überfahren); Sterne ohne Prio dezenter",
+      "Seite eines Bedarfs: Löschen steckt im „⋯“-Menü; das + der Stichworte ist grau und sitzt unten am Strich vor der Summe; überall der eigene Kalender statt der Datumsfelder des Browsers, die Uhrzeit mit Rädern",
+      "Förderplan und Nacharbeit klappen je nach Phase: vor der Nacharbeit ist der Förderplan offen und die Nacharbeit zu, danach umgekehrt; Dreieck am Förderer grau, wenn er nur auch bei anderen Bedarfen steht",
+      "Datum getippt und mit Tab weiter: der Fokus bleibt im nächsten Feld (auch in den Förderer-Kacheln)"
+    ]
+  },
+  {
     "version": "0.38.0",
     "date": "2026-10-25T19:00",
     "items": [

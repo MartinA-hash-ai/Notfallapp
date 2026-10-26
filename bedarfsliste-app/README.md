@@ -54,9 +54,11 @@ Esc oder ein Klick außerhalb der Liste klappt zu. Strg+Klick geht weiterhin. De
 
 **Priorität:** der Stern ganz vorn in der Liste (und auf der Seite des Bedarfs) – Klick: Prio an (gelb) oder aus. Stern im Spaltenkopf: 1. Klick – Bedarfe mit Prio nach oben (Rand golden), 2. Klick – nur noch Bedarfe mit Prio (ausgefüllt), 3. Klick – wieder normal.
 
-**Fristen:** oben in der Kopfzeile, gebündelt statt in der Liste – ein Dreieck mit der Anzahl (gelb: läuft in den nächsten 14 Tagen ab,
-rot: überfällig). Klick zeigt die Liste (Antragsfristen, erwartete Antworten, Deadlines, Verwendungsnachweise – diese auch im Archiv –,
-Spendenübergaben), ein Eintrag öffnet den Bedarf.
+**Hinweise (Fristen und Infos):** oben in der Kopfzeile, gebündelt statt in der Liste – ein Dreieck, gestaffelt: rot „jetzt fällig“
+(heute oder überfällig), gelb „bald fällig“ (in den nächsten 14 Tagen), grau „Infos“ (Zusage ohne Betrag, Förderer laut Kartei nicht für die
+Gliederung, Antrag läuft ohne vollständige Freigabe); „+3“ zählt die weiteren. Klick zeigt die Liste (Antragsfristen, erwartete Antworten,
+Deadlines, Verwendungsnachweise – diese auch im Archiv –, Spendenübergaben, Infos). Ein Eintrag springt zu der Stelle, die ihn auslöst, und
+lässt sie kurz rot aufleuchten: in der Liste in der Zeile des Bedarfs (kompakt: aufgeklappt), sonst auf der Seite des Bedarfs.
 
 **Finanzierung steht**, wenn Zusagen und Eigenmittel die Summe decken – mit mindestens einer Zusage (nur Eigenmittel gelten nicht als
 finanziert: Ziel sind Förderer). Ohne Summe gilt nichts als fertig, der Stand zeigt „Summe fehlt“. Eine Zusage ohne Betrag wird gemeldet.
@@ -79,7 +81,9 @@ Im Kreisdiagramm auf der Seite eines Bedarfs schaltet ein Klick auf das Stück e
 Finanzierungsplan fügt einen Förderer hinzu (Enter: zum Betrag, Shift+Enter: speichern und nächster Förderer), der Stift am Ende des Förderernamens benennt ihn um; der Kalender beim
 Verwendungsnachweis setzt die Frist; der Kreis mit Stift bei der Spendenübergabe öffnet Ort, Datum, Uhrzeit und Notizen.
 
-**Bedarfsseite:** Unter dem Namen die Deadline (Klick: Kalender), daneben die Stichworte mit kleinem + zum Hinzufügen. Oben links die Zuständigen, je Zeile zwei (Stift: Name, Position, E-Mail, Telefon; E-Mail und Telefon sonst nur
+**Bedarfsseite:** Unter dem Namen die Deadline (Klick: Kalender), daneben die Stichworte mit kleinem grauem + zum Hinzufügen. Ganz rechts „⋯“:
+zurückstellen, verwerfen, archivieren, löschen. Alle Daten (Freigabe angefragt, Spendenübergabe, Nachweisfrist, Pressemitteilung) mit dem eigenen
+Kalender, die Uhrzeit mit den Rädern – tippen geht auch. Oben links die Zuständigen, je Zeile zwei (Stift: Name, Position, E-Mail, Telefon; E-Mail und Telefon sonst nur
 beim Überfahren der Knöpfe; dazu ein Handy; ★ = Ansprechperson in der Liste; ein bekannter Name bringt seine Angaben mit), darunter Deadline und
 Stichworte (eintippen, Enter, das nächste), rechts die Beschreibung – anklicken und ändern, bei der Beschreibung irgendwo in die Fläche.
 
@@ -88,7 +92,8 @@ Bedarfsliste an (Blatt „Personen“: Name, Position, Gliederung / Dienststelle
 Liste kennt) und gibt einen kurzen Auftrag für Copilot. Copilot ergänzt die Datei, sie wächst mit jedem Bedarf; von Hand erweitern geht
 genauso. Die Liste liest alle Dateien, deren Name mit „Personen“ beginnt (bei Abweichungen gilt die neueste), beim Start und etwa jede Minute,
 und ergänzt fehlende Angaben der Zuständigen in allen Bedarfen – Eingetragenes bleibt. Eine Personen-Excel lässt sich auch auf die Seite ziehen.
-Förderplan und Nacharbeit klappen über den Pfeil vor der Überschrift ein (der Browser merkt es sich).
+Förderplan und Nacharbeit klappen über den Pfeil vor der Überschrift ein. Beim Öffnen je nach Phase: läuft die Förderung noch, ist der
+Förderplan offen und die Nacharbeit zu; ab der Nacharbeit umgekehrt. Wechselt die Phase auf der Seite, klappt der Bereich der neuen Phase auf.
 Das Angebot steht bei den Freigaben (es ist Voraussetzung dafür), gespeichert bleibt es als feste Unterlage.
 
 **Förderer-Fenster:** „Weitere Infos →“ unten rechts in der Kachel öffnet es. Angaben anklicken und ändern; Kontakte über den Stift
@@ -98,9 +103,11 @@ einfach formatieren (ebenso die Beschreibung eines Bedarfs): `* ` oder `- ` am Z
 Einfacher: Wort markieren – darüber erscheinen Knöpfe dafür (auch Strg+B, Strg+I, Strg+U). Beim Schreiben ist die Formatierung
 sofort zu sehen; gespeichert wird der Text mit den Zeichen.
 
-**Tastatur:** ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf, Enter klappt auf (kompakt) bzw. öffnet, F2 ändert den Namen, Leertaste schaltet
-den Prio-Stern, „/“ springt in die Suche, Esc klappt zu bzw. führt zurück. In Feldern: Enter/Tab übernehmen, Esc verwirft. Im Kalender:
-Pfeiltasten wählen den Tag, Bild auf/ab den Monat. Alle Kürzel: Zahnrad → „Tastenkürzel …“.
+**Tastatur:** In der Liste ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf – kompakt mit aufgeklapptem Bedarf klappen ↑/↓ gleich den nächsten auf;
+Enter klappt auf (kompakt) bzw. öffnet, E ändert den Namen (F2 auch, außer in Vivaldi – dort öffnet F2 die Schnellbefehle), Leertaste schaltet
+den Prio-Stern, Strg+F springt in die Suche (noch einmal: Suche des Browsers), Esc klappt zu. Auf der Seite eines Bedarfs öffnen ↓/↑ den nächsten
+bzw. vorigen Bedarf der Liste, Esc führt zurück. In Feldern: Enter/Tab übernehmen, Esc verwirft. Im Kalender: Pfeiltasten wählen den Tag,
+Bild auf/ab den Monat. Alle Tastaturbefehle: das „i“ oben rechts in der Liste oder Zahnrad → „Tastaturbefehle …“.
 
 **Rückgängig:** „↶ Rückgängig“ in der Kopfzeile oder Strg+Z (nicht in einem Eingabefeld – dort gilt das Rückgängig des Browsers).
 „Rückgängig“ im Hinweis nach Archivieren, Löschen oder Förderer-Entfernen nimmt nur diese eine Aktion zurück.

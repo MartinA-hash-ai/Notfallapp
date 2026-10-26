@@ -281,27 +281,29 @@ function archivOffen(b) {
   return b.foerderer.some(f => f.status === 'zugesagt') ? L.concat(nachOffen(b).filter(x => !/^Verwendungsnachweis /.test(x))) : L;   // Übergabe und Presse erst nach einer Zusage
 }
 /* ---------- Fristen: was steht als Nächstes an? */
+// z: wo die Frist herkommt (für den Sprung dorthin) – deadline, frist (Antragsfrist), erwartet (Antwort), vn (Verwendungsnachweis), ueb; fid: der Förderer
+const vnFrist = f => ({ d: f.vn.frist, t: 'Verwendungsnachweis ' + short(f.name), z: 'vn', fid: f.id });
 function fristen(b) {
   const p = phase(b), L = [];
-  if ((p.step === 0 || p.step === 1) && b.deadline) L.push({ d: b.deadline, t: 'Deadline des Bedarfs' });
+  if ((p.step === 0 || p.step === 1) && b.deadline) L.push({ d: b.deadline, t: 'Deadline des Bedarfs', z: 'deadline' });
   for (const f of b.foerderer) {
-    if (f.status === 'geplant' && f.frist) L.push({ d: f.frist, t: 'Antragsfrist ' + short(f.name) });
-    if (f.status === 'beantragt' && f.erwartet) L.push({ d: f.erwartet, t: 'Antwort ' + short(f.name) });
-    if (f.status === 'zugesagt' && f.vn.noetig && f.vn.st !== 'erledigt' && f.vn.frist) L.push({ d: f.vn.frist, t: 'Verwendungsnachweis ' + short(f.name) });
+    if (f.status === 'geplant' && f.frist) L.push({ d: f.frist, t: 'Antragsfrist ' + short(f.name), z: 'frist', fid: f.id });
+    if (f.status === 'beantragt' && f.erwartet) L.push({ d: f.erwartet, t: 'Antwort ' + short(f.name), z: 'erwartet', fid: f.id });
+    if (f.status === 'zugesagt' && f.vn.noetig && f.vn.st !== 'erledigt' && f.vn.frist) L.push(vnFrist(f));
   }
   const u = b.nach.ueb;
-  if (u.noetig && u.st !== 'erledigt' && u.termin) L.push({ d: u.termin, t: 'Spendenübergabe' });
+  if (u.noetig && u.st !== 'erledigt' && u.termin) L.push({ d: u.termin, t: 'Spendenübergabe', z: 'ueb' });
   return L.filter(x => validIso(x.d)).sort((x, y) => x.d.localeCompare(y.d));
 }
 const nextFrist = b => (b.archiv || b.manuell) ? null : (fristen(b)[0] || null);
 const urg = d => { const n = days(today(), d); return n < 0 ? 'u-over' : n <= 14 ? 'u-soon' : ''; };
-// Fristen aller Bedarfe, die überfällig sind oder in den nächsten 14 Tagen ablaufen – gebündelt oben im Feld „Fristen“.
+// Fristen aller Bedarfe, die überfällig sind oder in den nächsten 14 Tagen ablaufen – gebündelt oben im Feld der Hinweise.
 // Verwendungsnachweise zählen auch bei zurückgestellten und archivierten Bedarfen (die Pflicht bleibt)
 const FRIST_TAGE = 14;
 function fristenBald() {
   const L = [];
   for (const b of D.bedarfe) {
-    const alle = b.archiv || b.manuell ? b.foerderer.filter(f => f.status === 'zugesagt' && f.vn.noetig && f.vn.st !== 'erledigt' && validIso(f.vn.frist)).map(f => ({ d: f.vn.frist, t: 'Verwendungsnachweis ' + short(f.name) })) : fristen(b);
+    const alle = b.archiv || b.manuell ? b.foerderer.filter(f => f.status === 'zugesagt' && f.vn.noetig && f.vn.st !== 'erledigt' && validIso(f.vn.frist)).map(vnFrist) : fristen(b);
     for (const x of alle) { const n = days(today(), x.d); if (n <= FRIST_TAGE) L.push(Object.assign({ b, n }, x)); }
   }
   return L.sort((x, y) => x.d.localeCompare(y.d));

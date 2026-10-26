@@ -13,11 +13,10 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await view() === 'detail', 'Strg + Klick öffnet den Bedarf');
   await p.click('button[data-act="back"]');
 
-  let r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('.strg-hint')).backgroundColor === 'rgba(0, 0, 0, 0)', document.querySelector('.strg-hint').textContent]);
-  ok(r.join() === 'true,true,Klick aufs Wort ändert es, daneben öffnet den Bedarf', 'ohne Strg: Bearbeiten aktiv, Hinweis unauffällig: ' + r.join());
+  let r = await p.evaluate(() => [document.body.classList.contains('strg'), !document.querySelector('.strg-hint, .list-head h2'), document.querySelector('#list-count').textContent]);
+  ok(r.join() === 'true,true,8 von 8', 'ohne Strg: Bearbeiten aktiv; Leiste ohne Überschrift und ohne Hinweistext, nur die Zahl: ' + r.join());
   await K.down('Control');
-  r = await p.evaluate(() => [document.body.classList.contains('strg'), getComputedStyle(document.querySelector('.strg-hint')).backgroundColor !== 'rgba(0, 0, 0, 0)']);
-  ok(r.join() === 'false,true', 'Strg gedrückt: Bearbeiten aus, der Hinweis leuchtet');
+  ok(await p.evaluate(() => !document.body.classList.contains('strg')), 'Strg gedrückt: Bearbeiten aus');
   await K.up('Control');
   await p.hover(R('b-aed') + ' td.l-fin');
   ok(await p.$eval(R('b-aed') + ' .le-plus', e => getComputedStyle(e).display) === 'grid' && await p.$eval(R('b-mtw') + ' .le-plus', e => getComputedStyle(e).display) === 'none', '+ erscheint nur über dem Finanzierungsplan, den die Maus berührt');
@@ -87,6 +86,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   for (let i = 0; i < 4; i++) { await p.click(R('b-mtw') + ' .vt[data-le="vn"]'); seq.push(await vn()); }
   ok(seq.join() === 'arbeit,erledigt,nicht nötig,offen', 'Verwendungsnachweis: steht aus → in Arbeit → erledigt → nicht nötig → steht aus: ' + seq.join());
   ok(await order() === before, 'beim Bearbeiten springen die Zeilen nicht (neu sortiert wird beim Zurückkommen in die Liste)');
+  ok(await p.$eval(R('b-klausur') + ' td.l-fr', e => e.innerText.trim() === 'freigegeben' && !e.querySelector('[data-le]')), 'Freigabe vollständig: nur „freigegeben“, nichts zum Weiterschalten');
+  await p.evaluate(() => { angebotUL(D.bedarfe.find(x => x.id === 'b-klausur')).st = 'fehlt'; changed(); keep(renderNow); });
   await p.click(R('b-klausur') + ' [data-le="fr"][data-k="ofk"]');
   ok((await B('b-klausur')).freigabe.ofk.st === 'offen' && (await p.$eval('#toasts', e => e.textContent)).includes('entfällt'), 'Diözese: Ortsführungskreis entfällt, bleibt unverändert');
 

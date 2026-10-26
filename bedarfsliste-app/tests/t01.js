@@ -42,7 +42,7 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   ok(r.join() === '2,4,true', 'unter 1.000 €: vier Kreise (mit Angebot), Fachreferat und Verwaltung „nicht nötig“, keine Notizfelder');
   ok((await status(p)) === 'Es fehlt: Ortsführungskreis, Angebot', 'unter 1.000 €: es fehlen nur Ortsführungskreis und Angebot');
   await setCirc(p, '#fr-ofk .circ', 'angefragt');
-  r = await p.evaluate(() => [D.bedarfe[0].freigabe.ofk.angefragt === today(), document.querySelector('#fr-ofk .circ').className, !!document.querySelector('#fr-ofk input[type=date]')]);
+  r = await p.evaluate(() => [D.bedarfe[0].freigabe.ofk.angefragt === today(), document.querySelector('#fr-ofk .circ').className, document.querySelector('#fr-ofk input.dfeld').value === fmtDate(today())]);
   ok(r.join() === 'true,circ c-run,true', 'angefragt: gelber Kreis, Datum gesetzt und sichtbar: ' + r.join());
   await setCirc(p, '#fr-ofk .circ', 'offen');
   ok(await p.evaluate(() => D.bedarfe[0].freigabe.ofk.st === 'offen'), 'zurück auf „noch nicht angefragt“');
@@ -89,8 +89,8 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   ok((await status(p)).includes('Alles erledigt'), 'Nacharbeit erledigt → abgeschlossen');
   await p.click('button[data-act="back"]');
   r = await p.evaluate(() => { const tr = document.querySelector('#list-body tr[data-id]'), td = [...tr.querySelectorAll('td')].map(e => e.innerText.replace(/\s+/g, ' ').trim());
-    return [td.length, td[1], td[2], td[3], !!tr.querySelector('.l-fr .done'), tr.querySelector('.l-fin .fr.z .fn').textContent, tr.querySelector('.l-fin .vt').textContent, !!tr.querySelector('.l-fin .fr.z .lead'), td[6], !tr.querySelector('.phase, button.prio')]; });
-  ok(r.join('|') === '7|Defibrillator Test|800 €|Paderborn Ansprechperson ohne Deadline|true|Sparkasse X|erledigt|true|erledigt|true', 'Liste: Name, Summe, Ort; Freigabe blass grün; Förderer blass grün, Nachweis erledigt; Übergabe erledigt: ' + r.join('|'));
+    return [td.length, td[1], td[2], td[3], tr.querySelector('.l-fr').innerText.trim() === 'freigegeben', tr.querySelector('.l-fin .fr.z .fn').textContent, tr.querySelector('.l-fin .vt').textContent, !!tr.querySelector('.l-fin .fr.z .lead'), td[6], !tr.querySelector('.phase, button.prio')]; });
+  ok(r.join('|') === '7|Defibrillator Test|800 €|Paderborn Ansprechperson ohne Deadline|true|Sparkasse X|erledigt|true|erledigt|true', 'Liste: Name, Summe, Ort; Freigabe nur „freigegeben“; Förderer blass grün, Nachweis erledigt; Übergabe erledigt: ' + r.join('|'));
   await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
   ok(await p.evaluate(() => !document.querySelector('.d-head .prio, .d-head [data-act="prio-menu"]') && !document.querySelector('.d-head .d-star').classList.contains('on')), 'Seite des Bedarfs: nur ein Stern statt Balken');
   await p.click('.d-head .d-star');
@@ -109,9 +109,11 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   ok(await p.evaluate(() => D.bedarfe[0].archiv && !document.querySelector('#list-body tr[data-id]')), '„⋯“: archiviert, aus der Liste verschwunden');
   await p.click('#toasts button.link');
   ok(await p.evaluate(() => !D.bedarfe[0].archiv && !!document.querySelector('#list-body tr[data-id]')), 'Rückgängig holt ihn zurück');
-  await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] }); await p.click('button[data-act="del"]');
+  await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
+  ok(!(await p.$('.d-actions [data-act="del"]')) && await p.$$eval('.d-actions button', L => L.length) === 1, 'Kopf: nur noch „⋯“, Löschen steckt darin');
+  await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-act="del"]');
   await p.waitForSelector('.modal'); await p.click('.modal footer button.primary');
-  ok(await p.evaluate(() => D.bedarfe.length === 0 && UI.view === 'list'), 'roter Knopf: nach Rückfrage gelöscht');
+  ok(await p.evaluate(() => D.bedarfe.length === 0 && UI.view === 'list'), '„⋯“ → Bedarf löschen: nach Rückfrage gelöscht');
   await p.click('#toasts button.link');
   ok(await p.evaluate(() => D.bedarfe.length === 1), 'Löschen rückgängig gemacht');
   // ab 0.17: Verwendungsnachweis standardmäßig nötig (gespeicherte Daten einmalig umgestellt, Archiv und Fälle mit Frist nicht), „in Vorbereitung“ → geplant

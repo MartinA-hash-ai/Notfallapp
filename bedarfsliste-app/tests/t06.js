@@ -9,11 +9,11 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0] === 'b-mtw' && r[1] === 'b-aed', 'hohe Priorität zuerst, dann nach Frist');
   // je Zeile: Name, Summe, Ort · Zuständig · bis; Freigabe; Finanzierungsplan mit Nachweis; Spendenübergabe
   const L = id => p.evaluate(id => { const tr = document.querySelector(`tr[data-id="${id}"]`), t = e => e ? e.innerText.replace(/[✓✕]/g, '').replace(/\s+/g, ' ').trim() : '';
-    return { name: t(tr.querySelector('.l-name')), sum: t(tr.querySelector('.l-sum')), meta: t(tr.querySelector('.l-meta')), frDone: !!tr.querySelector('.l-fr .done'),
+    return { name: t(tr.querySelector('.l-name')), sum: t(tr.querySelector('.l-sum')), meta: t(tr.querySelector('.l-meta')), frDone: !!tr.querySelector('.l-fr .fr-voll') && tr.querySelector('.l-fr').innerText.trim() === 'freigegeben',
       fr: [...tr.querySelectorAll('.l-fr .mi')].map(m => m.className.replace('mi m-', '')).join(), fin: [...tr.querySelectorAll('.l-fin .fr')].map(r => r.className.replace('fr', '').trim() + ':' + [...r.children].map(t).filter(Boolean).join(' ')).join(' | '),
       sym: [...tr.querySelectorAll('.l-fin .fr > .mi:first-child')].map(m => m.className.replace('mi m-', '')).join(), leads: tr.querySelectorAll('.l-fin .lead').length, ueb: t(tr.querySelector('.l-ueb')) }; }, id);
   r = await L('b-mtw');
-  ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone, 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig blass: ' + JSON.stringify(r));
+  ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone && r.fr === 'ok', 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig: nur ein Haken „freigegeben“: ' + JSON.stringify(r));
   ok(r.sym === 'ok,run,off' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Bürgerstiftung Musterstadt 15.000 € | :Beispiel-Soziallotterie 30.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
     'Finanzierung läuft: Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe zeigt nur den Ort: ' + r.fin);
   r = await L('b-aed');
@@ -103,17 +103,21 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
   r = await p.evaluate(() => [[...document.querySelectorAll('#fr-body .ci-n')].map(e => e.textContent).join(','), [...document.querySelectorAll('#ul-body .ci-n')].map(e => e.textContent).join(',')]);
   ok(r.join(' / ') === 'Ortsführungskreis,Fachreferat,Verwaltung,Angebot / Konzept,Projektsteckbrief', 'Angebot bei den Freigaben, nicht mehr bei den Unterlagen: ' + r.join(' / '));
-  // Förderplan und Nacharbeit einklappen
+  // Förderplan und Nacharbeit einklappen – beim Öffnen je nach Phase: Förderung läuft → Förderplan offen, Nacharbeit zu
+  r = await p.evaluate(() => [!!document.querySelector('#fin-pie'), !!document.querySelector('#nach-body'), (document.querySelector('#nach-kurz') || {}).textContent]);
+  ok(r[0] === true && r[1] === false && /^offen: /.test(r[2]), 'Förderung läuft: Förderplan aufgeklappt, Nacharbeit eingeklappt mit den offenen Punkten: ' + r.join('|'));
   await p.click('#sec-foe .sec-zu');
   r = await p.evaluate(() => [!!document.querySelector('#fin-pie'), document.querySelectorAll('.fk.fp').length, document.querySelector('#foe-kurz').textContent.replace(/\u00a0/g, ' '), document.querySelector('#sec-foe .sec-zu').getAttribute('aria-expanded')]);
   ok(r.join('|') === 'false|0|3 Förderer · 10.000 € zugesagt · 45.000 € noch ohne Zusage|false', 'Förderplan eingeklappt: Kreis, Tabelle und alle Förderer weg, eine Zeile Zusammenfassung: ' + r.join('|'));
   await p.click('#sec-nach .sec-zu');
-  r = await p.evaluate(() => [!!document.querySelector('#nach-body'), document.querySelector('#nach-kurz').textContent]);
-  ok(r[0] === false && r[1].startsWith('offen: '), 'Nacharbeit eingeklappt, offene Punkte in einer Zeile: ' + r[1]);
+  ok(await p.evaluate(() => !!document.querySelector('#nach-body') && !document.querySelector('#fin-pie')), 'Nacharbeit von Hand aufgeklappt, Förderplan bleibt zu');
+  await p.evaluate(() => { renderNow(); });
+  ok(await p.evaluate(() => !!document.querySelector('#nach-body') && !document.querySelector('#fin-pie')), 'von Hand geklappt bleibt beim Neuzeichnen');
   await p.reload(); await p.waitForTimeout(300);
-  ok(await p.evaluate(() => !document.querySelector('#fin-pie') && !document.querySelector('#nach-body')), 'bleibt eingeklappt (merkt sich der Browser)');
-  await p.click('#sec-foe .sec-zu'); await p.click('#sec-nach .sec-zu');
-  ok(await p.evaluate(() => !!document.querySelector('#fin-pie') && !!document.querySelector('#nach-body') && document.querySelectorAll('.fk.fp').length === 3), 'wieder aufgeklappt');
+  ok(await p.evaluate(() => !!document.querySelector('#fin-pie') && !document.querySelector('#nach-body') && document.querySelectorAll('.fk.fp').length === 3), 'neu geöffnet: wieder je nach Phase (Förderplan offen, Nacharbeit zu)');
+  r = await p.evaluate(() => { oeffnen('b-kueche'); return [!document.querySelector('#fin-pie'), !!document.querySelector('#foe-kurz'), !!document.querySelector('#nach-body')]; });
+  ok(r.join() === 'true,true,true', 'Bedarf in der Nacharbeit: Förderplan eingeklappt, Nacharbeit offen: ' + r.join());
+  await p.evaluate(() => oeffnen('b-mtw'));
   // Kreisdiagramm: beim Überfahren alle Beschriftungen (Name, Betrag, Anteil), ohne Überlappung
   const pl = () => p.evaluate(() => [...document.querySelectorAll('#fin-pie .pl')].map(g => getComputedStyle(g).opacity).join());
   r = await p.evaluate(() => [getComputedStyle(document.querySelector('#fin-pie .pl-n')).fill, getComputedStyle(document.querySelector('.d-head')).color]);
@@ -377,7 +381,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [cur().foerderer.find(f => f.id === 'f-mtw-lot').warum, document.querySelector('#foe-f-mtw-lot .pc .pro .pv').innerHTML]);
   ok(r[0] === 'Starker *Regionalbezug*\n• Fahrzeug sichtbar' && r[1].includes('<b>Regionalbezug</b>') && r[1].includes('<li>Fahrzeug sichtbar</li>'), 'Pro mit Formatierung gespeichert und angezeigt: ' + JSON.stringify(r[0]));
   // Notizen zur Spendenübergabe: ebenfalls mit Formatierung
-  await p.evaluate(() => { zuSet('nach', false); cur().nach.ueb.noetig = true; changed(); renderNow(); });
+  await p.evaluate(() => { zuSet(cur(), 'nach', false); cur().nach.ueb.noetig = true; changed(); renderNow(); });
   await p.click('#sec-nach .pe[data-k="nach.ueb.info"]');
   await p.keyboard.press('Control+A'); await p.keyboard.type('Mit _Presse_'); await p.keyboard.press('Control+Enter');
   r = await p.evaluate(() => [cur().nach.ueb.info, document.querySelector('#sec-nach .pe[data-k="nach.ueb.info"] .pv').innerHTML]);

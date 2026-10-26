@@ -46,22 +46,67 @@ function karteiChip() {
   if (ST.conn !== 'ok') return '<button class="kchip" data-act="kartei" title="Die Kartei wird aus dem Ordner der Bedarfsliste gelesen">Förder-Kartei: Ordner verbinden</button>';
   return '<button class="kchip warn" data-act="kartei" title="Keine passende Excel im Ordner gefunden – klicken zum Wählen">Förder-Kartei wählen</button>';
 }
-// Fristen gebündelt oben (statt in der ohnehin bunten Liste): Dreieck gelb, wenn etwas in den nächsten 14 Tagen abläuft, rot, wenn etwas überfällig ist;
-// ein Klick zeigt die Liste, ein Eintrag öffnet den Bedarf
+// Feld der Hinweise oben (gebündelt statt in der ohnehin bunten Liste), gestaffelt: rot „jetzt fällig“ (heute oder überfällig),
+// gelb „bald fällig“ (in den nächsten 14 Tagen), grau „Infos“ (Zusage ohne Betrag, Gliederung laut Kartei, Antrag ohne vollständige Freigabe).
+// Ein Klick zeigt die Liste; ein Eintrag springt zu der Stelle, die ihn auslöst, und lässt sie kurz aufleuchten
+function infosAlle() {
+  const L = [];
+  for (const b of D.bedarfe) {
+    if (b.archiv || b.manuell) continue;
+    if (phase(b).warn.some(w => /Freigabe ist aber nicht vollständig/.test(w))) L.push({ b, z: 'frei', t: 'Antrag läuft, Freigabe noch nicht vollständig' });
+    for (const f of b.foerderer) for (const x of foeHinweise(b, f))
+      L.push({ b, z: x.k, fid: f.id, t: x.k === 'amt' ? 'Zusage ohne Betrag: ' + short(f.name) : short(f.name) + ' – laut Kartei nicht für ' + b.gliederung });
+  }
+  return L;
+}
+function hinweise() { const F = D ? fristenBald() : []; return { jetzt: F.filter(x => x.n <= 0), bald: F.filter(x => x.n > 0), infos: D ? infosAlle() : [] }; }
 function fristChip() {
-  const L = D ? fristenBald() : [];
-  if (!L.length) return '<span id="frist-chip" hidden></span>';
-  const n = L.length, ueber = L.filter(x => x.n < 0).length, w = n === 1 ? 'Frist' : 'Fristen';
-  return `<button id="frist-chip" class="frist-chip${ueber ? ' over' : ''}" data-act="fristen" aria-haspopup="menu" title="${ueber ? ueber + ' überfällig, ' : ''}${n - ueber} in den nächsten ${FRIST_TAGE} Tagen – klicken für die Liste">${ICON_TRI}<span>${n} ${w}</span></button>`;
+  const H = hinweise(), n = H.jetzt.length + H.bald.length + H.infos.length, ni = H.infos.length;
+  if (!n) return '<span id="frist-chip" hidden></span>';
+  const [cls, k, w] = H.jetzt.length ? [' over', H.jetzt.length, 'jetzt fällig'] : H.bald.length ? ['', H.bald.length, 'bald fällig'] : [' nur-info', ni, ni === 1 ? 'Info' : 'Infos'];
+  const tip = [H.jetzt.length && H.jetzt.length + ' jetzt fällig', H.bald.length && H.bald.length + ' in den nächsten ' + FRIST_TAGE + ' Tagen fällig', ni && ni + (ni === 1 ? ' Info' : ' Infos')].filter(Boolean).join(', ');
+  return `<button id="frist-chip" class="frist-chip${cls}" data-act="fristen" aria-haspopup="menu" title="${tip} – klicken für die Liste">${ICON_TRI}<span>${k} ${w}</span>${n > k ? `<span class="fc-mehr">+${n - k}</span>` : ''}</button>`;
 }
 function fristPop(btn) {
   closeMenus();
-  const L = fristenBald();
-  const zeile = x => h('button', { class: 'fp-row' + (x.n < 0 ? ' over' : ''), role: 'menuitem', 'data-act': 'open', 'data-id': x.b.id },
-    h('span', { class: 'fp-d' }, fmtDate(x.d)), h('span', { class: 'fp-t' }, x.t), h('span', { class: 'fp-r' }, x.n === 0 ? 'heute' : x.n === 1 ? 'morgen' : x.n === -1 ? 'gestern' : x.n < 0 ? 'vor ' + -x.n + ' Tagen' : 'in ' + x.n + ' Tagen'),
-    h('span', { class: 'fp-b' }, (x.b.titel || '(ohne Namen)') + (x.b.archiv ? ' · im Archiv' : x.b.manuell ? ' · ' + x.b.manuell : '')));
-  const grp = (t, M) => M.length ? [h('div', { class: 'fp-h' }, t), ...M.map(zeile)] : [];
-  placePop(h('div', { class: 'menu frist-pop', role: 'menu' }, ...grp('Überfällig', L.filter(x => x.n < 0)), ...grp('In den nächsten ' + FRIST_TAGE + ' Tagen', L.filter(x => x.n >= 0))), btn, 'right');
+  const H = hinweise(), rel = n => n === 0 ? 'heute' : n === 1 ? 'morgen' : n === -1 ? 'gestern' : n < 0 ? 'vor ' + -n + ' Tagen' : 'in ' + n + ' Tagen';
+  const ziel = (x, cls) => ({ class: 'fp-row' + cls, role: 'menuitem', 'data-act': 'ziel', 'data-id': x.b.id, 'data-z': x.z, 'data-fid': x.fid || null });
+  const bed = x => h('span', { class: 'fp-b' }, (x.b.titel || '(ohne Namen)') + (x.b.archiv ? ' · im Archiv' : x.b.manuell ? ' · ' + x.b.manuell : ''));
+  const frist = x => h('button', ziel(x, x.n <= 0 ? ' over' : ''), h('span', { class: 'fp-d' }, fmtDate(x.d)), h('span', { class: 'fp-t' }, x.t), h('span', { class: 'fp-r' }, rel(x.n)), bed(x));
+  const info = x => h('button', ziel(x, ' fp-info'), h('span', { class: 'fp-d', html: '<i class="fp-i">i</i>' }), h('span', { class: 'fp-t' }, x.t), bed(x));
+  const grp = (t, M, f) => M.length ? [h('div', { class: 'fp-h' }, t), ...M.map(f)] : [];
+  placePop(h('div', { class: 'menu frist-pop', role: 'menu' }, ...grp('Jetzt fällig', H.jetzt, frist), ...grp('Bald fällig · in den nächsten ' + FRIST_TAGE + ' Tagen', H.bald, frist), ...grp('Infos', H.infos, info)), btn, 'right');
+}
+// Eintrag im Feld der Hinweise: zur Stelle, die ihn auslöst, und sie kurz aufleuchten lassen. In der Liste in der Zeile des Bedarfs (kompakt:
+// aufgeklappt); steht er dort nicht (Suche, Filter, Archiv, zurückgestellt) oder ist man auf der Seite eines Bedarfs: auf seiner Seite
+const ZIEL_LISTE = { deadline: '[data-le="deadline"]', frist: '.fn[data-fid="§"]', erwartet: '.fn[data-fid="§"]', kartei: '.fn[data-fid="§"]', amt: '.fa[data-fid="§"]', vn: '.vt[data-fid="§"]', ueb: 'td.l-ueb > :first-child', frei: 'td.l-fr .ml' };
+const ZIEL_SEITE = { deadline: '#d-meta .d-dl', frist: '#foe-§ [data-dp="frist"]', erwartet: '#foe-§ [data-dp="erwartet"]', kartei: '#foe-§ .fp-title', amt: '#amt-§', vn: '#nl-§', ueb: '#sec-nach .ue-termin', frei: '#fr-blk' };
+const ZIEL_BEREICH = { frist: 'foe', erwartet: 'foe', kartei: 'foe', amt: 'foe', vn: 'nach', ueb: 'nach' };
+function springZu(id, z, fid) {
+  const b = D.bedarfe.find(x => x.id === id); if (!b) return;
+  closeMenus();
+  const sel = S => (S[z] || ':not(*)').replace(/§/g, CSS.escape(fid || ''));
+  if (UI.view === 'list' && filtered().some(x => x.id === id)) {
+    if (KOMPAKT() && UI.auf !== id) aufklappen(id);
+    const tr = zeileEl(id); if (!tr) return;
+    const L = [...tr.querySelectorAll(sel(ZIEL_LISTE))];
+    blitz(L.length ? L : [tr.querySelector('.l-name .le-w')]); zeileFokus(id);
+    return;
+  }
+  const ber = ZIEL_BEREICH[z], los = () => blitz([$(sel(ZIEL_SEITE)) || $('#f-titel')]);
+  if (UI.view !== 'detail' || UI.id !== id) return oeffnen(id, { offen: ber, danach: los });
+  if (ber && zuGet(b, ber)) { zuSet(b, ber, false); keep(renderNow); }
+  los();
+}
+// kurz aufleuchten lassen: rot hinterlegt, springt kurz hervor – nach dem Hinscrollen
+function blitz(els) {
+  els = els.filter(Boolean); if (!els.length) return;
+  els[0].scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  for (const el of els) {
+    el.classList.remove('blitz'); void el.offsetWidth; el.classList.add('blitz');
+    const weg = e => { if (e.target === el) { el.classList.remove('blitz'); el.removeEventListener('animationend', weg); } };
+    el.addEventListener('animationend', weg);
+  }
 }
 const ICON_GEAR = '<svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.49.49 0 0 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>';
 // in der Ansicht eines Bedarfs hängt unter der Kopfzeile die Leiste mit Phase und Stand
@@ -109,7 +154,8 @@ function renderNow() {
   try {
     closeMenus();
     const ae = document.activeElement;
-    const fk = ae && ae.closest && ae.closest('#app') ? (ae.id ? '#' + CSS.escape(ae.id) : ae.dataset && ae.dataset.p ? `[data-p="${ae.dataset.p}"]` + (ae.dataset.fid ? `[data-fid="${ae.dataset.fid}"]` : '') + (ae.dataset.uid ? `[data-uid="${ae.dataset.uid}"]` : '') : null) : null;
+    const pk = ae && ae.dataset && ['p', 'dp', 'zp'].find(x => ae.dataset[x]);                 // Feld mit Pfad (auch Datum und Uhrzeit)
+    const fk = ae && ae.closest && ae.closest('#app') ? (ae.id ? '#' + CSS.escape(ae.id) : pk ? `[data-${pk}="${ae.dataset[pk]}"]` + (ae.dataset.fid ? `[data-fid="${ae.dataset.fid}"]` : '') + (ae.dataset.uid ? `[data-uid="${ae.dataset.uid}"]` : '') : null) : null;
     let sel = null; try { sel = ae && 'selectionStart' in ae ? [ae.selectionStart, ae.selectionEnd] : null; } catch (e) { /* */ }
     const b = UI.view === 'detail' ? cur() : null;
     if (UI.view === 'detail' && !b) UI.view = 'list';
@@ -204,13 +250,17 @@ function copyPath(b) {
   const fail = () => { const el = $('input[data-p="pfad"]'); if (el) { el.focus(); el.select(); } toast('Pfad markiert – jetzt mit Strg+C kopieren'); };
   try { navigator.clipboard.writeText(p).then(done, fail); } catch (e) { fail(); }
 }
-// Übersicht der Tastenkürzel (Zahnrad → „Tastenkürzel …“)
+// Übersicht der Tastaturbefehle („i“ oben rechts in der Liste, Zahnrad → „Tastaturbefehle …“)
 function kuerzelInfo() {
-  const K = [['↑ / ↓', 'von Bedarf zu Bedarf (Pos1 / Ende: erster / letzter)'], ['Enter', 'kompakt: aufklappen, noch einmal: öffnen · ausführlich: öffnen'],
-    ['F2', 'Namen ändern'], ['Leertaste', 'Prio-Stern an / aus'], ['/', 'in die Suche springen'], ['Esc', 'zuklappen · zurück zur Liste · Feld verwerfen'],
-    ['Enter / Tab', 'im Feld: übernehmen (Tab: weiter zum nächsten Feld, Umschalt+Tab: zurück)'], ['Umschalt+Enter', 'im Feld: übernehmen und gleich den nächsten Bedarf darunter anlegen'],
-    ['Kalender', 'Pfeiltasten: Tag · Bild auf / ab: Monat · Enter: übernehmen · Esc: schließen'], ['Strg+Z', 'Rückgängig (außerhalb von Feldern)'], ['Strg+S', 'Speichern']];
-  modal('Tastenkürzel', h('table', { class: 'kuerzel' }, h('tbody', null, K.map(([k, t]) => h('tr', null, h('th', null, k), h('td', null, t))))));
+  const G = [['In der Liste', [['↑ / ↓', 'von Bedarf zu Bedarf (Pos1 / Ende: erster / letzter) · kompakt mit aufgeklapptem Bedarf: gleich den nächsten aufklappen'],
+      ['Enter', 'kompakt: aufklappen, noch einmal: öffnen · ausführlich: öffnen'], ['E', 'Namen ändern (F2 geht auch, wo der Browser die Taste nicht selbst belegt – in Vivaldi nicht)'],
+      ['Leertaste', 'Prio-Stern an / aus'], ['Strg+F', 'in die Suche springen (noch einmal: Suche des Browsers)'], ['Esc', 'aufgeklappten Bedarf zuklappen']]],
+    ['Auf der Seite eines Bedarfs', [['↓ / ↑', 'nächsten / vorigen Bedarf der Liste öffnen'], ['Esc', 'zurück zur Liste']]],
+    ['In Feldern', [['Enter / Tab', 'übernehmen (Tab: weiter zum nächsten Feld, Umschalt+Tab: zurück)'], ['Umschalt+Enter', 'in der Liste: übernehmen und gleich den nächsten Bedarf darunter anlegen'],
+      ['Esc', 'verwerfen'], ['Kalender', 'Pfeiltasten: Tag · Bild auf / ab: Monat · Enter: übernehmen · Esc: schließen']]],
+    ['Überall', [['Strg+Z', 'Rückgängig (außerhalb von Feldern)'], ['Strg+S', 'Speichern']]]];
+  closeMenus();
+  modal('Tastaturbefehle', h('table', { class: 'kuerzel' }, G.map(([t, K]) => h('tbody', null, h('tr', { class: 'kz-g' }, h('th', { colspan: 2 }, t)), K.map(([k, x]) => h('tr', null, h('th', null, k), h('td', null, x)))))));
 }
 function mainMenu(btn) {
   closeMenus();
@@ -226,7 +276,7 @@ function mainMenu(btn) {
     h('hr'),
     DEMO ? null : item('backup', 'Datensicherung herunterladen (.json)'),
     DEMO ? null : item('restore', 'Datensicherung laden …'),
-    item('kuerzel', 'Tastenkürzel …'),
+    item('kuerzel', 'Tastaturbefehle …'),
     DEMO ? null : item('update', 'Programm-Update einspielen …'),
     h('hr'),
     item('fmt-info', 'Texte formatieren (Aufzählung, fett, kursiv …)'),
@@ -300,8 +350,32 @@ function uebergang(r, fn) {
   const html = document.documentElement; html.dataset.vt = r;
   document.startViewTransition(fn).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; });
 }
-function oeffnen(id) { if (UI.view === 'list') LISTE_Y = scrollY; closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; uebergang('vor', () => { renderNow(); scrollTo(0, 0); }); }
-function zurueck() { closeMenus(); klickRuhe(); const id = UI.id; UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); zeileFokus(id); }); }   // Fokus auf dem Bedarf, von dem man kommt
+// o.offen: Förderplan bzw. Nacharbeit gleich aufgeklappt ('foe', 'nach'); o.danach: nach dem Zeichnen (z. B. zur Stelle springen)
+function oeffnen(id, o = {}) {
+  if (UI.view === 'list') { LISTE_Y = scrollY; NAV = filtered().map(x => x.id); }
+  closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; ZU = null;
+  const b = D.bedarfe.find(x => x.id === id); if (b && o.offen) { ZU = zuStd(b); ZU[o.offen] = false; }
+  uebergang('vor', () => { renderNow(); scrollTo(0, 0); if (o.danach) o.danach(); });
+}
+// zurück: die Liste steht, wo sie war; der Fokus liegt auf dem Bedarf, von dem man kommt (mit ↑/↓ auf der Seite weitergeblättert: er wird ins Bild geholt)
+function zurueck() { closeMenus(); klickRuhe(); const id = UI.id; UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); zeileFokus(id); zeileZeigen(id); }); }
+// Seite eines Bedarfs: ↓ / ↑ öffnen den nächsten bzw. vorigen Bedarf – in der Reihenfolge, die die Liste beim Öffnen hatte
+// (steht er dort nicht, z. B. aus den Hinweisen geöffnet: die Liste mit Suche und Filtern, sonst alle Bedarfe seines Reiters)
+let NAV = [];
+function blaettern(d) {
+  const b = cur(); if (!b) return;
+  if (!NAV.includes(b.id)) { const L = filtered().map(x => x.id); NAV = L.includes(b.id) ? L : filterUndSortiere({ arch: !!b.archiv, alle: true }).map(x => x.id); }
+  const L = NAV.filter(id => D.bedarfe.some(x => x.id === id)), id = L[L.indexOf(b.id) + d];
+  if (!id) { toast(d > 0 ? 'Das ist der letzte Bedarf der Liste.' : 'Das ist der erste Bedarf der Liste.'); return; }
+  closeMenus(); UI.id = id; UI.det = null; ZU = null;
+  uebergang(d > 0 ? 'runter' : 'hoch', () => { renderNow(); scrollTo(0, 0); });
+}
+document.addEventListener('keydown', e => {
+  if ((e.key !== 'ArrowDown' && e.key !== 'ArrowUp') || UI.view !== 'detail' || UI.det || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  const el = document.activeElement;
+  if ($('.menu, .modal, .le-sug, .fmt-bar, .foe-pop') || (el && el.closest && el.closest('input, textarea, select, [contenteditable]'))) return;
+  e.preventDefault(); blaettern(e.key === 'ArrowDown' ? 1 : -1);
+});
 // Ein Feld übernimmt beim Verlassen und zeichnet neu – passiert das zwischen Drücken und Loslassen der Maus, verwirft der Browser den Klick
 // (sein Ziel gibt es nicht mehr). Dann den Klick an das gleiche Element an derselben Stelle weitergeben, sonst bräuchte es zwei Klicks.
 const KLICK = { el: null, sig: '' };
@@ -350,6 +424,7 @@ async function act(k, a, e) {
     case 'about': closeMenus(); about(); return;
     case 'undo': undo(); return;
     case 'fristen': if ($('.frist-pop')) closeMenus(); else fristPop(a); return;
+    case 'ziel': springZu(a.dataset.id, a.dataset.z, a.dataset.fid); return;
     case 'ansicht': UI.ansicht = a.dataset.v === 'kompakt' ? 'kompakt' : 'voll'; keep(renderNow); return;
     case 'fmt-info': closeMenus(); fmtInfo(); return;
     case 'save': closeMenus(); if (FSA && ST.conn === 'none') await connectFolder(); else saveAll({}); renderNow(); return;
@@ -385,12 +460,14 @@ async function act(k, a, e) {
       const alt = getPath(base, p); setPath(base, p, v); effects(b, base, p, v, alt); changed(); break;
     }
     case 'archive': {
+      closeMenus();
       const offen = archivOffen(b);
       if (offen.length && !await confirmBox('Noch nicht alles erledigt', 'Noch offen: ' + offen.join(' · ') + '. Trotzdem ins Archiv?', 'Trotzdem archivieren')) return;
       b.archiv = true; changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe();
       toast(`„${b.titel || 'Bedarf'}“ liegt jetzt im Archiv`, 'ok', () => { if (D.bedarfe.includes(b) && b.archiv) { b.archiv = false; changed(); ORDER.ids = null; keep(renderNow); } }); return; }
     case 'unarchive': b.archiv = false; changed(); toast('Wieder in der Liste der Bedarfe', 'ok'); break;
     case 'del': {
+      closeMenus();
       if (!await confirmBox('Bedarf löschen?', '„' + (b.titel || 'Neuer Bedarf') + '“ wird mit Förderplan und Nacharbeit gelöscht. Direkt danach lässt sich das noch rückgängig machen.', 'Löschen')) return;
       const i = D.bedarfe.indexOf(b); D.bedarfe = D.bedarfe.filter(x => x !== b); changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe();
       toast('Bedarf gelöscht', 'ok', () => { if (!D.bedarfe.includes(b)) { D.bedarfe.splice(Math.min(i, D.bedarfe.length), 0, b); changed(); ORDER.ids = null; keep(renderNow); } }); return;
@@ -418,7 +495,7 @@ async function act(k, a, e) {
       if (pie && !pie.dataset.wart) { pie.dataset.wart = '1'; pie.addEventListener('mouseleave', () => { PIE_HOLD = false; keep(renderNow); }, { once: true }); }
       return;
     }
-    case 'zu': zuSet(a.dataset.v, !zuGet(a.dataset.v)); break;
+    case 'zu': zuSet(b, a.dataset.v, !zuGet(b, a.dataset.v)); break;
     case 'pe': popEdit(a); return;
     case 'det': UI.det = a.dataset.v; break;
     case 'det-zu': kAufraeumen(b); UI.det = null; UI.kEdit = null; break;
@@ -481,7 +558,7 @@ document.addEventListener('input', e => {
     if (UI.auf) aufklappen(null);
     UI.q = el.value;
     const zeig = () => { Q_T = null; const r = listBody(); swap('list-body', r.html, true);
-      const c = $('#list-count'); if (c) c.textContent = r.n + ' von ' + D.bedarfe.filter(b => !!b.archiv === (UI.tab === 'archiv')).length;
+      const c = $('#list-count'); if (c) c.textContent = zahlText(r.n, D.bedarfe.filter(b => !!b.archiv === (UI.tab === 'archiv')).length);
       const x = $('.list-head [data-act="clear"]'); if (x) x.hidden = !anyFilter(); };
     clearTimeout(Q_T); if (D.bedarfe.length > 150) Q_T = setTimeout(zeig, 150); else zeig();   // viele Bedarfe: erst nach einer kurzen Tipp-Pause
     return;

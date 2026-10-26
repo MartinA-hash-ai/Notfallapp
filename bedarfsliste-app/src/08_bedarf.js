@@ -1,5 +1,5 @@
 /* ===================================================================== Seite eines Bedarfs
-   Kopf: Name und Gliederung direkt änderbar, rechts die Summe mit „⋯“ (zurückstellen, archivieren) und Löschen; Phase und Stand hängen an der Kopfzeile.
+   Kopf: Name und Gliederung direkt änderbar, rechts die Summe und „⋯“ (zurückstellen, archivieren, löschen); Phase und Stand hängen an der Kopfzeile.
    Links Zuständig/Deadline/Stichwort/Beschreibung, der Förderplan (Übersicht, dann je Förderer eine Karte) und die Nacharbeit; rechts Freigaben, Unterlagen und Ordner.
    Eingabefelder tragen data-p (Pfad im Bedarf), bei Förderern zusätzlich data-fid, bei Unterlagen data-uid.
    Tippen ändert nur die Daten und zeichnet abgeleitete Teile neu (refresh); Knöpfe und Auswahlfelder zeichnen die Seite neu. */
@@ -7,7 +7,9 @@
 const fld = (lab, inner, cls = '', info = '') => `<div class="fld ${cls}"><span class="lab">${lab}${info ? ' ' + infoBtn(info) : ''}</span>${inner}</div>`;
 const tin = (o, p, x = '', ph = '') => `<input type="text" data-p="${p}" ${x} value="${esc(getPath(o, p) ?? '')}" placeholder="${esc(ph)}">`;
 const nin = (o, p, x = '', ph = '0') => `<input type="text" inputmode="decimal" class="num" data-num data-p="${p}" ${x} value="${esc(fmtNum(getPath(o, p)))}" placeholder="${esc(ph)}">`;
-const din = (o, p, x = '') => `<input type="date" data-p="${p}" ${x} value="${esc(getPath(o, p) || '')}">`;
+// Datum und Uhrzeit: Textfeld mit dem eigenen Kalender bzw. den Rädern der Uhrzeit (wie in der Liste) – tippen geht auch (05.10.2026, 1530)
+const dfeld = (o, p, x = '', cls = '') => `<input type="text" class="dfeld${cls ? ' ' + cls : ''}" data-dp="${p}" ${x} value="${esc(fmtDate(getPath(o, p)))}" placeholder="tt.mm.jjjj" autocomplete="off">`;
+const zfeld = (o, p, x = '') => `<input type="text" class="zfeld" data-zp="${p}" ${x} value="${esc(getPath(o, p) || '')}" placeholder="hh:mm" inputmode="numeric" autocomplete="off">`;
 const tarea = (o, p, x = '', ph = '', rows = 2) => `<textarea data-p="${p}" ${x} rows="${rows}" placeholder="${esc(ph)}">${esc(getPath(o, p) ?? '')}</textarea>`;
 const cbx = (o, p, lab, x = '') => `<label class="check"><input type="checkbox" data-p="${p}" ${x} ${getPath(o, p) ? 'checked' : ''}> ${lab}</label>`;
 const seg = (opts, cur, attrs, cls = '') => `<div class="seg ${cls}" role="group">` + opts.map(([v, l, tone]) =>
@@ -57,8 +59,7 @@ function bedarfView(b) {
       </div>
     </div>
     <div class="d-actions">
-      <button class="icon-btn" data-act="more" aria-label="Weitere Aktionen: zurückstellen, archivieren" title="Zurückstellen, verwerfen, archivieren">⋯</button>
-      <button class="icon-btn trash" data-act="del" aria-label="Bedarf löschen" title="Bedarf löschen">${ICON_TRASH}</button>
+      <button class="icon-btn" data-act="more" aria-label="Weitere Aktionen: zurückstellen, archivieren, löschen" title="Zurückstellen, verwerfen, archivieren, löschen">⋯</button>
     </div>
     <div class="d-left">${secInfo(b)}${secFoe(b)}${secNach(b)}</div>
     <aside class="d-right">${sidePanel(b)}</aside>
@@ -67,17 +68,19 @@ function bedarfView(b) {
     ${dl('dl-gl', [DIO, ...GL_LIST, ...D.bedarfe.map(x => x.gliederung)])}
   </main>`;
 }
-// Menü hinter „⋯“: zurückstellen, verwerfen, wieder aufnehmen, archivieren
+// Menü hinter „⋯“: zurückstellen, verwerfen, wieder aufnehmen, archivieren, löschen
 function moreMenu(btn) {
   closeMenus();
   const b = cur(); if (!b) return;
-  const item = (act, label, v) => h('button', { role: 'menuitem', 'data-act': act, 'data-p': v != null ? 'manuell' : null, 'data-v': v != null ? v : null }, label);
+  const item = (act, label, v, cls) => h('button', { role: 'menuitem', class: cls || null, 'data-act': act, 'data-p': v != null ? 'manuell' : null, 'data-v': v != null ? v : null }, label);
   const m = h('div', { class: 'menu', id: 'mmenu', role: 'menu' },
     b.manuell ? item('set', 'Wieder aufnehmen', '') : null,
     b.manuell !== 'zurückgestellt' ? item('set', 'Zurückstellen', 'zurückgestellt') : null,
     b.manuell !== 'verworfen' ? item('set', 'Verwerfen', 'verworfen') : null,
     h('hr'),
-    b.archiv ? item('unarchive', 'Aus dem Archiv holen') : item('archive', 'Archivieren'));
+    b.archiv ? item('unarchive', 'Aus dem Archiv holen') : item('archive', 'Archivieren'),
+    h('hr'),
+    h('button', { role: 'menuitem', class: 'gefahr', 'data-act': 'del', html: ICON_TRASH + '<span>Bedarf löschen …</span>' }));
   placePop(m, btn, 'right');
   m.querySelector('button').focus();
 }
@@ -105,7 +108,7 @@ function freigabeList(b) {
       : `<span class="ci-n" title="${esc(i.label)}">${i.k === 'verw' ? 'Verwaltung' : esc(i.label)}</span>`;
     const hint = i.na ? 'entfällt' : i.opt && i.st === 'offen' ? 'nicht nötig' : i.st === 'offen' ? 'noch nicht angefragt' : '';
     const since = i.st === 'angefragt' && validIso(i.item.angefragt) ? 'angefragt am ' + fmtDate(i.item.angefragt) + ', seit ' + days(i.item.angefragt, today()) + ' Tagen' : 'angefragt am';
-    const date = !i.na && (i.st === 'angefragt' || i.st === 'nein') ? `<input type="date" class="inline date" data-p="${p}.angefragt" value="${esc(i.item.angefragt || '')}" aria-label="angefragt am" title="${esc(since)}">` : '';
+    const date = !i.na && (i.st === 'angefragt' || i.st === 'nein') ? dfeld(b, p + '.angefragt', `aria-label="angefragt am" title="${esc(since)}"`, 'inline date') : '';
     return `<div class="ci-row" id="fr-${i.k}">${i.na ? `<span class="circ c-na" aria-hidden="true">${ICO.na}</span>` : circ(frKind(i), `data-kind="fr" data-k="${i.k}"`, i.label)}
       <div class="ci-t">${name}${hint ? `<span class="ci-hint">${hint}</span>` : ''}</div>${date}</div>`;
   }).join('');
@@ -150,18 +153,23 @@ const F_ST = [['geplant', 'geplant'], ['beantragt', 'beantragt', 't-run'], ['zug
 const F_ST_L = Object.fromEntries(F_ST.map(([v, l]) => [v, l]));
 const LVL = ['suw', 'uw', 'u', 'w', 'sw'];                 // Einschätzung als Punkte 1 (rot) … 5 (grün)
 const artFromKartei = (k, name) => /stiftung/i.test(name) || /stift/i.test(k.blatt) ? 'Stiftung' : /sparkasse/i.test(name) ? 'Sparkasse' : /bank/i.test(name) ? 'Volksbank / Bank' : '';
-// Hinweise, die immer zu sehen sind: andere Region laut Kartei, derselbe Förderer bei anderen Bedarfen
+// Hinweise am Förderer: k 'amt' (Zusage ohne Betrag) und 'kartei' (andere Gliederung laut Kartei) brauchen Aufmerksamkeit – rotes Dreieck,
+// sie stehen auch oben im Feld der Hinweise; 'auch' (derselbe Förderer bei anderen Bedarfen) ist nur zur Kenntnis – graues Dreieck
+function foeHinweise(b, f) {
+  if (!f.name.trim()) return [];
+  const k = kartei(f.name), L = [];
+  if (f.status === 'zugesagt' && !foeAmt(f)) L.push({ k: 'amt', t: 'Zusage ohne Betrag – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).' });
+  if (k && b.gliederung && !istDio(b.gliederung) && k.gl.length && !k.gl.some(g => /^alle$/i.test(g)) && !k.gl.includes(b.gliederung)) L.push({ k: 'kartei', t: 'Laut Kartei zuständig für ' + esc(k.gl.join(', ')) });
+  return L;
+}
 function foeWarnList(b, f) {
   if (!f.name.trim()) return [];
-  const k = kartei(f.name), key = kkey(f.name);
-  const other = D.bedarfe.filter(x => x !== b && !x.archiv && x.foerderer.some(g => kkey(g.name) === key && g.status !== 'abgelehnt'));
-  const L = [];
-  if (f.status === 'zugesagt' && !foeAmt(f)) L.push('Zusage ohne Betrag – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).');
-  if (k && b.gliederung && !istDio(b.gliederung) && k.gl.length && !k.gl.some(g => /^alle$/i.test(g)) && !k.gl.includes(b.gliederung)) L.push('Laut Kartei zuständig für ' + esc(k.gl.join(', ')));
+  const key = kkey(f.name), other = D.bedarfe.filter(x => x !== b && !x.archiv && x.foerderer.some(g => kkey(g.name) === key && g.status !== 'abgelehnt'));
+  const L = foeHinweise(b, f).map(x => x.t);
   if (other.length) L.push('Auch im Förderplan von: ' + other.map(x => `<button class="link" data-act="open" data-id="${x.id}">${esc(x.titel || '(ohne Namen)')}</button> (${F_ST_L[x.foerderer.find(g => kkey(g.name) === key).status]})`).join(', '));
   return L;
 }
-const foeWarn = (b, f) => foeWarnList(b, f).length ? `<button class="fw-tri" data-act="fw" data-fid="${f.id}" aria-label="Hinweise anzeigen">${ICON_TRI}</button>` : '';
+const foeWarn = (b, f) => !foeWarnList(b, f).length ? '' : `<button class="fw-tri${foeHinweise(b, f).length ? '' : ' grau'}" data-act="fw" data-fid="${f.id}" aria-label="Hinweise anzeigen">${ICON_TRI}</button>`;
 function fwPop(btn) {
   closeMenus();
   const b = cur(), f = b && b.foerderer.find(x => x.id === btn.dataset.fid); if (!f) return;
@@ -458,10 +466,17 @@ function finRows(b) {
     + (F.d ? `<tr class="r-delta"><th>${swa(F.d > 0 ? 'off' : 'none')}${F.d > 0 ? 'Delta <span class="r-st">noch ohne Förderer</span>' : 'Überfinanzierung'}</th><td class="num">${eur(Math.abs(F.d))}</td><td class="num">${pct(Math.abs(F.d), S)}</td></tr>` : '');
 }
 const finEigPct = b => pct(+b.eigenanteil || 0, +b.summe || 0);
-// Förderplan und Nacharbeit lassen sich einklappen (merkt sich der Browser, für alle Bedarfe gleich)
-const ZU_KEY = 'bl-zu';
-const zuGet = k => { try { return !!(JSON.parse(localStorage.getItem(ZU_KEY) || '{}'))[k]; } catch (e) { return false; } };
-const zuSet = (k, v) => { try { const o = JSON.parse(localStorage.getItem(ZU_KEY) || '{}'); o[k] = v; localStorage.setItem(ZU_KEY, JSON.stringify(o)); } catch (e) { /* nur in diesem Browser */ } };
+// Förderplan und Nacharbeit lassen sich einklappen. Beim Öffnen eines Bedarfs je nach Phase: steht die Finanzierung (Nacharbeit, abgeschlossen),
+// ist der Förderplan zu und die Nacharbeit offen – sonst umgekehrt. Von Hand umgeklappt gilt, solange man auf der Seite bleibt.
+// Wechselt unterwegs die Phase (z. B. letzter Geldeingang bestätigt), klappt der Bereich der neuen Phase auf – zugeklappt wird dabei nichts
+let ZU = null;
+const zuStd = b => { const nach = phase(b).step >= 2; return { id: b.id, n: nach, foe: nach, nach: !nach }; };
+const zuGet = (b, k) => {
+  const n = phase(b).step >= 2;
+  if (!ZU || ZU.id !== b.id) ZU = zuStd(b); else if (ZU.n !== n) { ZU.n = n; ZU[n ? 'nach' : 'foe'] = false; }
+  return ZU[k];
+};
+const zuSet = (b, k, v) => { zuGet(b, k); ZU[k] = v; };
 const ICON_CHEV = '<svg class="chev" viewBox="0 0 16 16" aria-hidden="true"><path d="M4 6l4 4 4-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const zuKopf = (k, titel, zu) => `<h2><button class="sec-zu${zu ? ' zu' : ''}" data-act="zu" data-v="${k}" aria-expanded="${!zu}" title="${zu ? 'Aufklappen' : 'Einklappen'}">${ICON_CHEV}${titel}</button></h2>`;
 // Kurzinfo im eingeklappten Förderplan – sagt dasselbe wie der Stand oben (Phase)
@@ -472,7 +487,7 @@ function foeKurz(b) {
   return [n + ' Förderer', F.zu ? eur(F.zu) + ' zugesagt' : 'noch keine Zusage', stand].join(' · ');
 }
 function secFoe(b) {
-  if (zuGet('foe')) return `<section class="card fp-head zu" id="sec-foe"><div class="sec-head">${zuKopf('foe', 'Förderplan', true)}<p id="foe-kurz">${esc(foeKurz(b))}</p></div></section>`;
+  if (zuGet(b, 'foe')) return `<section class="card fp-head zu" id="sec-foe"><div class="sec-head">${zuKopf('foe', 'Förderplan', true)}<p id="foe-kurz">${esc(foeKurz(b))}</p></div></section>`;
   return `<section class="card fp-head" id="sec-foe">
     <div class="sec-head">${zuKopf('foe', 'Förderplan', false)}
       <div class="sec-tools"><button class="rech-btn" data-act="vorlage" title="Förderrecherche mit Copilot: Excel zu diesem Bedarf, Auftrag zum Kopieren, Ergebnis übernehmen">Recherche mit Copilot</button>
@@ -488,19 +503,19 @@ function secFoe(b) {
 /* ---------- Nacharbeit: Übergabe und Pressemitteilung einmal je Bedarf, Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */
 function nachLine(f) {
   const a = `data-fid="${f.id}"`, x = f.vn;
-  return `<div class="nl ${x.noetig && x.st !== 'erledigt' ? 'open' : ''}">${cbx(f, 'vn.noetig', 'Verwendungsnachweis', a)}${x.noetig ? `<label class="inl">Frist ${din(f, 'vn.frist', a + ' aria-label="Frist Verwendungsnachweis"')}</label>${seg(VN_ST, x.st, `data-p="vn.st" ${a}`, 'small')}` : '<span class="muted small">nicht nötig</span>'}</div>`;
+  return `<div class="nl ${x.noetig && x.st !== 'erledigt' ? 'open' : ''}" id="nl-${f.id}">${cbx(f, 'vn.noetig', 'Verwendungsnachweis', a)}${x.noetig ? `<label class="inl">Frist ${dfeld(f, 'vn.frist', a + ' aria-label="Frist Verwendungsnachweis"')}</label>${seg(VN_ST, x.st, `data-p="vn.st" ${a}`, 'small')}` : '<span class="muted small">nicht nötig</span>'}</div>`;
 }
 function nachBody(b) {
   const zu = b.foerderer.filter(f => f.status === 'zugesagt'), cand = b.foerderer.filter(f => f.status !== 'abgelehnt' && f.name.trim()), n = b.nach;
   return `<div class="grid two">
     <div><h3>Gemeinsam für den Bedarf</h3>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.ueb.noetig', 'Spendenübergabe')}${n.ueb.noetig ? seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], n.ueb.st, 'data-p="nach.ueb.st"', 'small') : ''}</div>
-        ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', `<span class="row nowrap">${din(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}<input type="time" data-p="nach.ueb.zeit" value="${esc(n.ueb.zeit)}" aria-label="Uhrzeit der Spendenübergabe"></span>`)}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus'))}</div>
+        ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', `<span class="row nowrap">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}</span>`, 'ue-termin')}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus'))}</div>
           ${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}
           ${fld('Wer ist dabei?', `<div class="mit">${cand.length ? cand.map(f => `<label class="check"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${n.ueb.mit.includes(f.id) ? 'checked' : ''}> ${esc(f.name)} <span class="muted small">${F_ST_L[f.status]}</span></label>`).join('') : '<span class="muted small">Noch keine Förderer im Förderplan</span>'}</div>`)}` : ''}
       </div>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.pm.noetig', 'Pressemitteilung')}${n.pm.noetig ? seg([['offen', 'offen'], ['arbeit', 'in Arbeit', 't-warn'], ['veroeff', 'veröffentlicht', 't-ok']], n.pm.st, 'data-p="nach.pm.st"', 'small') : ''}</div>
-        ${n.pm.noetig && n.pm.st === 'veroeff' ? `<div class="grid2">${fld('veröffentlicht am', din(b, 'nach.pm.datum', 'aria-label="Pressemitteilung veröffentlicht am"'))}</div>` : ''}
+        ${n.pm.noetig && n.pm.st === 'veroeff' ? `<div class="grid2">${fld('veröffentlicht am', dfeld(b, 'nach.pm.datum', 'aria-label="Pressemitteilung veröffentlicht am"'))}</div>` : ''}
       </div>
     </div>
     <div><h3>Je Förderer</h3>
@@ -509,7 +524,7 @@ function nachBody(b) {
   </div>`;
 }
 function secNach(b) {
-  if (zuGet('nach')) { const L = nachOffen(b);
+  if (zuGet(b, 'nach')) { const L = nachOffen(b);
     return `<section class="card zu" id="sec-nach"><div class="sec-head">${zuKopf('nach', 'Nacharbeit', true)}<p id="nach-kurz">${esc(L.length ? 'offen: ' + L.join(', ') : 'nichts offen')}</p></div></section>`; }
   return `<section class="card" id="sec-nach"><div class="sec-head">${zuKopf('nach', 'Nacharbeit', false)}<p>Spendenübergabe und Pressemitteilung einmal für den ganzen Bedarf, der Verwendungsnachweis (Sach- und Finanzbericht) je Förderer.</p></div>
     <div id="nach-body">${nachBody(b)}</div></section>`;

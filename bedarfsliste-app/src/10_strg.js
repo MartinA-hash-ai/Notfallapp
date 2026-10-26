@@ -83,23 +83,37 @@ document.addEventListener('keydown', e => {
   const el = document.activeElement; if (el && el.closest && el.closest('input, textarea, select, [contenteditable]')) return;
   const id = UI.auf; aufklappen(null); zeileFokus(id);
 });
-// Tastatur in der Liste: ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf, Enter klappt auf (kompakt) bzw. öffnet, F2 ändert den Namen,
-// Leertaste schaltet den Prio-Stern, „/“ springt in die Suche. Ist noch keine Zeile gewählt, beginnt ↓ bei der ersten
-const zeileFokus = id => { const r = id && $(`#list-body tr[data-id="${CSS.escape(id)}"]`); if (r) r.focus({ preventScroll: true }); };
+// Tastatur in der Liste: ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf – ist in der kompakten Ansicht einer aufgeklappt, klappen ↑/↓ gleich den
+// nächsten bzw. vorigen auf; Enter klappt auf (kompakt) bzw. öffnet, E ändert den Namen (F2 auch – in Vivaldi öffnet F2 aber die Schnellbefehle),
+// Leertaste schaltet den Prio-Stern, Strg+F springt in die Suche (steht man schon darin: die Suche des Browsers). Ist noch keine Zeile gewählt, beginnt ↓ bei der ersten
+const zeileEl = id => id && $(`#list-body tr[data-id="${CSS.escape(id)}"]`);
+const zeileFokus = id => { const r = zeileEl(id); if (r) r.focus({ preventScroll: true }); };
+const zeileZeigen = id => { const r = zeileEl(id); if (!r) return; const q = r.getBoundingClientRect(), oben = Math.max(0, ($('header.top') || r).getBoundingClientRect().bottom);
+  if (q.top < oben || q.bottom > innerHeight) r.scrollIntoView({ block: 'center' }); };
 document.addEventListener('keydown', e => {
-  if (UI.view !== 'list' || e.ctrlKey || e.metaKey || e.altKey || e.defaultPrevented || $('.modal')) return;
+  if (UI.view !== 'list' || e.defaultPrevented || $('.modal')) return;
   const el = document.activeElement;
+  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'f') {
+    const q = $('#q'); if (q && el !== q) { e.preventDefault(); closeMenus(); q.focus(); q.select(); }
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (el && el.closest && el.closest('input, textarea, select, [contenteditable], .menu')) return;
   const rows = $$('#list-body tr[data-id]'), tr = el && el.closest && el.closest('#list-body tr[data-id]');
   const geh = r => { e.preventDefault(); if (!r) return; r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); };
-  if (e.key === '/') { const q = $('#q'); if (q) { e.preventDefault(); q.focus(); q.select(); } return; }
-  if (e.key === 'ArrowDown') return geh(tr ? rows[rows.indexOf(tr) + 1] : rows[0]);
-  if (e.key === 'ArrowUp') return geh(tr ? rows[rows.indexOf(tr) - 1] : rows[rows.length - 1]);
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    const d = e.key === 'ArrowDown' ? 1 : -1, auf = UI.ansicht === 'kompakt' && UI.auf && (!tr || tr.dataset.id === UI.auf) ? zeileEl(UI.auf) : null;
+    const von = tr || auf, r = von ? rows[rows.indexOf(von) + d] : d > 0 ? rows[0] : rows[rows.length - 1];
+    if (!auf || !r) return geh(r);
+    e.preventDefault(); const id = r.dataset.id; aufklappen(id); zeileFokus(id);
+    const n = zeileEl(id); if (n) n.scrollIntoView({ block: 'nearest' });
+    return;
+  }
   if (!tr) return;
   if (e.key === 'Home') return geh(rows[0]);
   if (e.key === 'End') return geh(rows[rows.length - 1]);
   const b = D.bedarfe.find(x => x.id === tr.dataset.id); if (!b) return;
-  if (e.key === 'F2') { e.preventDefault(); const w = tr.querySelector('[data-le="titel"]'); if (w) strgAct(b, w); return; }
+  if (e.key === 'F2' || e.key === 'e' || e.key === 'E') { e.preventDefault(); const w = tr.querySelector('[data-le="titel"]'); if (w) strgAct(b, w); return; }
   if (e.key === ' ') { e.preventDefault(); b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); relist(b); zeileFokus(b.id); return; }
   if (e.key === 'Enter') { e.preventDefault(); if (UI.ansicht === 'kompakt' && UI.auf !== b.id) { aufklappen(b.id); zeileFokus(b.id); } else oeffnen(b.id); }
 });
@@ -476,15 +490,38 @@ document.addEventListener('mouseover', e => {
   if (e.target.closest && e.target.closest('.fw-pop')) { clearTimeout(fwZu); return; }
   clearTimeout(fwZu); fwZu = setTimeout(() => { const q = $('.fw-pop'); if (q && !q.matches(':hover')) q.remove(); }, 250);
 });
-// Datumsfeld ohne Kalendersymbol (Förderer-Kacheln): Klick öffnet den eigenen Kalender, tippen geht auch (05.10.2026)
+// Datumsfeld ohne Kalendersymbol (Förderer-Kacheln, Freigabe, Nacharbeit): Klick öffnet den eigenen Kalender, tippen geht auch (05.10.2026).
+// data-dp: Pfad im Förderer (mit data-fid) bzw. im Bedarf
 function dfeldSet(el, iso) {
-  const b = cur(), f = b && b.foerderer.find(x => x.id === el.dataset.fid); if (!f || (f[el.dataset.dp] || '') === iso) return;
-  f[el.dataset.dp] = iso; changed(); keep(renderNow);
+  const b = cur(), base = b && (el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : b), p = el.dataset.dp;
+  if (!base || (getPath(base, p) || '') === iso) return;
+  setPath(base, p, iso);
+  if (p === 'nach.ueb.termin') { const u = b.nach.ueb; if (iso && u.st === 'offen') u.st = 'terminiert'; if (!iso && u.st === 'terminiert') u.st = 'offen'; }   // wie in der Liste
+  changed(); gleichNeu();
 }
+// getippt und mit Tab weiter: erst neu zeichnen, wenn der Fokus im nächsten Feld ist (er bleibt dort)
+const gleichNeu = () => setTimeout(() => keep(renderNow), 0);
 const dfeldAuf = el => { const p = $('.cal-pop'); if (p && p.feld === el) return; calPop(el, anyDate(el.value), v => dfeldSet(el, v), { clear: 'Datum entfernen' }).feld = el; };
 document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('input.dfeld'); if (el) dfeldAuf(el); });
 document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('input.dfeld')) dfeldAuf(e.target); });
 document.addEventListener('input', e => { if (e.target.matches && e.target.matches('input.dfeld')) closeMenus(); });
+// mit Tab weiter: Kalender des Felds zu
+document.addEventListener('focusout', e => { const el = e.target; if (el.matches && el.matches('input.dfeld')) setTimeout(() => { const p = $('.cal-pop'); if (p && p.feld === el && !p.contains(document.activeElement)) p.remove(); }, 0); });
+document.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.matches && e.target.matches('input.dfeld, input.zfeld')) { e.preventDefault(); e.target.blur(); } });
+// Uhrzeit (Spendenübergabe auf der Seite des Bedarfs): Räder wie in der Liste, tippen geht auch (1530 → 15:30)
+function zfeldSet(el) {
+  const b = cur(); if (!b) return;
+  const p = el.dataset.zp, v = el.value.trim(), t = v ? normZeit(v) : '';
+  if (v && !t) { toast('„' + v + '“ ist keine Uhrzeit – nicht übernommen (z. B. 15:30).', 'warn'); el.value = getPath(b, p) || ''; return; }
+  el.value = t;
+  if ((getPath(b, p) || '') === t) return;
+  setPath(b, p, t); changed(); gleichNeu();
+}
+const zfeldAuf = el => { if (!$('.zeit-pop')) zeitPop(el, () => zfeldSet(el)); };
+document.addEventListener('click', e => { const el = e.target.closest && e.target.closest('input.zfeld'); if (el) zfeldAuf(el); });
+document.addEventListener('focusin', e => { if (e.target.matches && e.target.matches('input.zfeld')) zfeldAuf(e.target); });
+document.addEventListener('input', e => { if (e.target.matches && e.target.matches('input.zfeld')) closeMenus(); });
+document.addEventListener('focusout', e => { if (e.target.matches && e.target.matches('input.zfeld')) { closeMenus(); zfeldSet(e.target); } });
 document.addEventListener('change', e => {
   const el = e.target; if (!el.matches || !el.matches('input.dfeld')) return;
   const v = el.value.trim(), iso = v ? anyDate(v) : '';
