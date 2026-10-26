@@ -18,7 +18,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // Recherche mit Copilot: Dialog mit drei Schritten, Prompt mit Bedarf und Umfang; ohne Ordner wird die Excel heruntergeladen
   await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .ki-kacheln'); await p.click('.ki-fuss .link');
   r = await p.evaluate(() => [document.querySelectorAll('.ki-k').length, document.querySelector('.ki-los').textContent, document.querySelector('.ki textarea').value.replace(/\u00a0/g, ' ')]);
-  ok(r[0] === 4 && r[1] === 'Auftrag kopieren' && r[2].includes('Bedarf: Testbedarf / MTW') && r[2].includes('noch offen 20.000 €') && r[2].includes('Deadline: 30.06.2027')
+  ok(r[0] === 5 && r[1] === 'Auftrag kopieren' && r[2].includes('Bedarf: Testbedarf / MTW') && r[2].includes('noch offen 20.000 €') && r[2].includes('Deadline: 30.06.2027')
     && r[2].includes('5 bis 8 Förderer') && !r[2].includes('Doppelte') && r[2].includes('Nicht auf eine Gesamtsumme hinrechnen') && r[2].includes('Arbeitsdatei: „Foerderrecherche_Testbedarf_MTW_Paderborn_')
     && r[2].includes('Recherchiere im Web') && r[2].includes('brich ab') && r[2].includes('tatsächlich geöffnet') && !r[2].includes('Förder-Kartei') && r[2].includes('Zum Schluss im Chat'),
     'Dialog: drei Schritte; Prompt mit Bedarf, offener Summe, gestaffeltem Umfang ohne Zielsumme, angehängter Datei und Pflicht zur Websuche');

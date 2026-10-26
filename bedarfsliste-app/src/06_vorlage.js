@@ -46,7 +46,8 @@ function rechAuftrag(b) {
   const gl = rechGl(b);
   return [
     'Finde Förderer, die zu diesem Bedarf passen: Stiftungen, Sparkassen und Volksbanken, Unternehmen, Soziallotterien sowie öffentliche und kirchliche Förderprogramme. '
-      + (gl ? 'Förderer mit Bezug zu ' + gl + ' und Umgebung zuerst, danach Erzbistum Paderborn und NRW, zuletzt bundesweit.' : 'Förderer mit Bezug zum Erzbistum Paderborn und zu NRW zuerst, danach bundesweit.'),
+      + (gl ? 'Förderer mit Bezug zu ' + gl + ' und Umgebung zuerst, danach im ganzen Gebiet des Erzbistums Paderborn (z. B. Dortmund, Hagen, Siegen, Höxter) und in NRW, zuletzt bundesweit.'
+        : 'Förderer mit Bezug zum ganzen Gebiet des Erzbistums Paderborn (z. B. Paderborn, Dortmund, Hagen, Siegen, Höxter) und zu NRW zuerst, danach bundesweit.'),
     'Recherchiere im Web und prüfe jeden Förderer auf seinen eigenen Seiten: Satzungszweck, Förderrichtlinien, Antragsfristen, übliche Förderhöhe, geforderter Eigenanteil und Antragsweg. '
       + 'Trage als Quellen nur Links ein, die du dabei tatsächlich geöffnet hast. Wenn du nicht im Web suchen kannst, brich ab und sag es mir.',
     karteiFuer(b).length ? 'Das Blatt „Förder-Kartei“ enthält Förderer, mit denen wir schon arbeiten, mit ihrer Förderhistorie. Prüfe sie zuerst – sie sind meist die besten Kandidaten.' : '',
@@ -255,10 +256,11 @@ async function importFoerderplan(b, file) {
   return zeigeErgebnis(b, { got, ki, name: file.name, file });
 }
 // Vorschau und Übernahme – aus einer Excel (Cowork, Recherche-Vorlage) oder aus der eingefügten Antwort von Copilot (pers: Kontaktdaten der Zuständigen)
-async function zeigeErgebnis(b, { got, ki, name, file, pers }) {
+async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
+  const linkNeu = link && okLink(link) && link.trim() !== (b.link || '').trim() ? link.trim() : ''; let linkOk = !!linkNeu;
   const P = (pers || []).map(p => { const z = b.zust.find(x => x.n.trim() && kkey(x.n) === kkey(p.n)); return { p, z, neu: z ? ZUST_F.filter(k => !(z[k] || '').trim() && (p[k] || '').trim()) : [] }; });
   const persNeu = P.filter(x => x.neu.length);
-  const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length || persNeu.length);
+  const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length || persNeu.length || linkNeu);
   if (!got && !extra) { modal('Kein Förderplan gefunden', h('p', null, 'In „' + name + '“ steht keine Tabelle mit einer Spalte „Förderer“ und weiteren Spalten der Vorlage (z. B. „Antragsfrist“, „Erwartete Summe“). Bitte die Förderplan-Vorlage der Bedarfsliste verwenden.')); return; }
   const items = got ? got.items : [], byName = n => b.foerderer.find(f => kkey(f.name) === kkey(n));
   const zeigFoe = items.length > 0 && (!extra || items.some(it => !byName(it.name) || fpGeaendert(it, got.stand.get(kkey(it.name)))));
@@ -279,6 +281,8 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers }) {
     teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Neue Beschreibung übernehmen', onchange: e => { beschrOk = e.target.checked; } }),
       h('b', null, 'Neue Beschreibung'), h('button', { type: 'button', class: 'link small', onclick: e => { alt.hidden = !alt.hidden; e.target.textContent = alt.hidden ? 'bisher zeigen' : 'bisher ausblenden'; } }, 'bisher zeigen')),
       h('div', { class: 'imp-neu fmt', html: fmtText(beschrNeu) }), alt, ki.grundlage ? h('div', { class: 'imp-grund muted small' }, 'Grundlage: ' + ki.grundlage) : null)); }
+  if (linkNeu) teile.unshift(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Ordner übernehmen', onchange: e => { linkOk = e.target.checked; } }),
+    h('b', null, 'Ordner des Bedarfs'), h('a', { href: linkNeu, target: '_blank', rel: 'noopener', class: 'small' }, 'öffnen ↗')), h('div', { class: 'imp-neu small' }, linkNeu, b.link ? h('div', { class: 'muted' }, 'bisher: ' + b.link) : null)));
   const persAn = persNeu.map(() => true), FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy' };
   if (persNeu.length) teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('b', null, 'Kontaktdaten der Zuständigen')),
     persNeu.map((x, i) => h('label', { class: 'imp-f' }, h('input', { type: 'checkbox', checked: true, onchange: e => { persAn[i] = e.target.checked; } }), h('span', { class: 'imp-n' }, x.z.n),
@@ -318,6 +322,7 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers }) {
   }
   if (!await modal(extra || kompakt ? 'Ergebnis übernehmen' : 'Vorschläge aus der Recherche', h('div', { class: 'help' }, teile), [['Abbrechen', false], ['Übernehmen', true, 'primary']], { wide: true })) return;
   const before = JSON.stringify(D), was = [];
+  if (linkNeu && linkOk) { b.link = linkNeu; was.push('Ordner'); }
   if (beschrNeu && beschrOk) { b.beschreibung = beschrNeu; was.push('Beschreibung'); }
   const nu = ulVor.filter(v => v.apply && v.an); nu.forEach(v => v.apply()); if (nu.length) was.push(nu.length + (nu.length === 1 ? ' Unterlage' : ' Unterlagen'));
   const np = persNeu.filter((x, i) => persAn[i]); np.forEach(x => x.neu.forEach(k => { x.z[k] = x.p[k]; })); if (np.length) was.push('Kontaktdaten bei ' + np.length + (np.length === 1 ? ' Person' : ' Personen'));

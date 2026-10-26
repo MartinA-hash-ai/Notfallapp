@@ -87,13 +87,14 @@ Kalender, die Uhrzeit mit den Rädern – tippen geht auch. Oben links die Zust�
 beim Überfahren der Knöpfe; dazu ein Handy; ★ = Ansprechperson in der Liste; ein bekannter Name bringt seine Angaben mit), darunter Deadline und
 Stichworte (eintippen, Enter, das nächste), rechts die Beschreibung – anklicken und ändern, bei der Beschreibung irgendwo in die Fläche.
 
-**Copilot-Auftrag (Zeichen oben rechts neben „⋯“):** vier Kacheln, auch mehrere auf einmal – Beschreibung (neu aus den Unterlagen, mit den
-Eckdaten des Projekts), Neue Förderer, Förderrecherche (darunter die Förderer zum Anklicken, auch „die neu gefundenen“) und Kontaktdaten der
-Zuständigen. Wer es macht, schlägt die Liste vor: **Copilot** (kostet nichts) für Beschreibung, neue Förderer und Kontaktdaten – er antwortet im Chat
+**Copilot-Auftrag (Zeichen oben rechts neben „⋯“):** fünf Kacheln, auch mehrere auf einmal – Beschreibung (neu aus den Unterlagen, höchstens zwei
+Absätze mit den Eckdaten, ohne Wiederholung dessen, was die Liste ohnehin zeigt), Neue Förderer, Förderrecherche (darunter die Förderer zum Anklicken,
+auch „die neu gefundenen“), Ordner finden (SharePoint-Ordner des Bedarfs, wird als Link eingetragen) und Kontaktdaten der Zuständigen. Wer es macht, schlägt die Liste vor: **Copilot** (kostet nichts) für Beschreibung, neue Förderer und Kontaktdaten – er antwortet im Chat
 und gibt am Ende einen Textblock in festem Aufbau aus, der hier eingefügt und mit Vorschau übernommen wird; **Cowork** (kostet Credits), sobald eine
 Förderrecherche dabei ist – es arbeitet in der Arbeits-Excel im Unterordner „Förderrecherche“, nutzt den Skill zur Förderlogik-Analyse und legt je
-Förderer eine ausführliche Recherche als Word-Datei „Förderrecherche – <Förderer>.docx“ in den Ordner des Bedarfs; in der Liste stehen nur die Essenz
-(Pro und Contra je höchstens drei kurze Punkte) und der Dateiname (Fenster „Weitere Infos“). Kontaktdaten laufen immer über Copilot. Umschalten geht.
+Förderer eine ausführliche Recherche als Word-Datei „Förderrecherche – <Förderer>.docx“ in den Ordner des Bedarfs (ohne eingetragenen Pfad:
+in einen Unterordner je Bedarf unter „Förderrecherche“); in der Liste stehen nur die Essenz
+(Pro und Contra je höchstens drei kurze Punkte) und der Dateiname (Fenster „Weitere Infos“). Ordner und Kontaktdaten laufen immer über Copilot. Umschalten geht.
 Ist die Excel nach dem Auftrag geändert, zeigt das Zeichen einen roten Punkt. Texte (Antrag, Dank …) folgen in einem späteren Update.
 
 **Personen-Excel (Kontaktdaten der Zuständigen):** „Kontaktdaten mit Copilot“ bei „Zuständig“ legt `Personen.xlsx` neben der
