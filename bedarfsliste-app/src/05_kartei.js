@@ -42,6 +42,7 @@ async function karteiScan(force) {
     karteiSet(L);
     KR.name = hit[0]; KR.stamp = f.lastModified; KR.at = new Date(); KR.cut = book.sheets.some(s => s.cut);
     KR.err = L.length ? null : 'in „' + hit[0] + '“ keine Tabelle mit einer Spalte „Gliederung“ gefunden';   // statt still 0 Förderer
+    if (karteiErgaenzen()) changed();
     safeRender();
   } catch (e) {
     console.warn(e);
@@ -49,6 +50,26 @@ async function karteiScan(force) {
     if (KR.err !== msg) { KR.err = msg; safeRender(); }
   } finally { KR.busy = false; }
 }
+// Angaben aus der Kartei in die Felder des Förderers übernehmen – nur leere Felder, je Förderer und Name einmal (f.kx): was du danach löschst, bleibt gelöscht.
+// Kontakte: die für die Gliederung des Bedarfs (oder für alle); „nicht direkt anschreiben“ nicht. Die Förderhistorie kommt in die Notizen.
+const KARTEI_WEG = { 'per Mail': 'E-Mail' };
+function karteiFuellen(b, f) {
+  const k = f.name.trim() && f.kx !== kkey(f.name) && kartei(f.name); if (!k) return false;
+  f.kx = kkey(f.name);                                                             // je Name einmal – umbenannt in einen anderen Kartei-Eintrag: neu ergänzen
+  if (!f.art) f.art = artFromKartei(k, f.name);
+  if (!f.web.trim() && k.web) f.web = k.web;
+  if (!f.weg.trim() && (k.weg || []).length) f.weg = k.weg.map(w => KARTEI_WEG[w] || w).join(' oder ');
+  const gl = norm(b.gliederung || ''), passt = c => !(c.gl || []).length || c.gl.some(g => /^alle$/i.test(g) || (gl && norm(g) === gl));
+  if (!f.kontakte.some(c => c.n.trim() || c.mail.trim() || c.tel.trim())) {
+    const L = (k.kontakte || []).filter(c => !c.nicht && passt(c)).slice(0, MAX_KONTAKTE).map(c => ({ n: c.n, rolle: '', mail: c.m, tel: c.t }));
+    if (L.length) f.kontakte = L;
+  }
+  const hist = Object.entries(k.hist || {}).sort((a, c) => c[0] - a[0]);
+  if (!f.notiz.trim() && hist.length) f.notiz = 'Laut Förder-Kartei bisher gefördert:\n' + hist.map(([y, v]) => '- ' + y + ': ' + v.replace(/\n/g, ', ')).join('\n');
+  return true;
+}
+// alle Förderer aller Bedarfe, die in der Kartei stehen und noch nicht gefüllt wurden (beim Einlesen der Kartei)
+function karteiErgaenzen() { let n = 0; for (const b of D.bedarfe) for (const f of b.foerderer) if (karteiFuellen(b, f)) n++; return n; }
 function parseKartei(book) {
   const out = new Map();
   for (const sh of book.sheets) {
@@ -94,10 +115,14 @@ function parseKartei(book) {
       if (col.portal != null && truthy(row[col.portal]) && !cur.weg.includes('Portal')) cur.weg.push('Portal');
       for (const [f, c] of [['notiz', col.notiz], ['schwer', col.schwer]]) if (c != null && !cur[f]) cur[f] = ohnePlatzhalter(cellStr(row[c]));
       if (col.web != null && !cur.web) cur.web = ohnePlatzhalter(zelleMitLink(sh, r, col.web));
+      // Zeile ohne eigenen Kontakt (weitere Gliederung desselben Förderers): es gelten die Kontakte der Zeile darüber
+      if (gl && kontakte.length && !kontakte.some(kc => ohnePlatzhalter(cellStr(row[kc.n])))) for (const c of cur.letzte || []) if (!c.gl.includes(gl)) c.gl.push(gl);
+      const zk = kontakte.some(kc => ohnePlatzhalter(cellStr(row[kc.n]))) ? (cur.letzte = []) : null;
       for (const kc of kontakte) {
         const n = ohnePlatzhalter(cellStr(row[kc.n])); if (!n) continue;
-        if (cur.kontakte.some(x => x.n === n)) continue;
-        cur.kontakte.push({ n, m: kc.m != null ? mailText(row[kc.m]) : '', t: kc.t != null ? telText(row[kc.t]) : '', nicht: /nicht/i.test(kc.hint) });
+        const da = cur.kontakte.find(x => x.n === n); if (da) { if (gl && !da.gl.includes(gl)) da.gl.push(gl); zk.push(da); continue; }
+        const neu = { n, m: kc.m != null ? mailText(row[kc.m]) : '', t: kc.t != null ? telText(row[kc.t]) : '', nicht: /nicht/i.test(kc.hint), gl: gl ? [gl] : [] };
+        cur.kontakte.push(neu); zk.push(neu);
       }
       for (const [y, c] of col.years) {
         const v = cellStr(row[c]); if (!v) continue;

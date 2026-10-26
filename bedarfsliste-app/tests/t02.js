@@ -9,7 +9,7 @@ const setData = (text, d) => text.replace(/(<script type="application\/json" id=
   await skip(p, 2600);
   let t = await readF(p);
   ok(dataOf(t).bedarfe[0].titel === 'MTW' && verOf(t) === T.VERSION, 'automatisch gespeichert (Version ' + verOf(t) + ')');
-  ok((await p.$eval('#savebox', e => e.textContent)).startsWith('✓ Gespeichert'), 'Knopf zeigt „Gespeichert“');
+  ok(await p.$eval('#savebox', e => e.classList.contains('ok') && e.title.startsWith('Gespeichert')), 'Diskette zeigt „Gespeichert“');
   fs.writeFileSync('Bedarfsliste.html', t);
   const q = await open(b, { file: process.cwd() + '/Bedarfsliste.html', fakefs: false });
   ok(await q.evaluate(() => D.bedarfe[0].titel) === 'MTW', 'gespeicherte Datei öffnet mit den Daten');

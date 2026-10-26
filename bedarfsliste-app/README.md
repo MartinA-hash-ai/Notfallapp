@@ -14,8 +14,12 @@ Aufgaben bleiben in Teams. Die Datei enthält Programm **und** Daten; sie speich
 
 Es werden keine Daten ins Internet gesendet und nichts nachgeladen.
 
-**Förder-Kartei:** Erkannt wird je Blatt die Kopfzeile mit „Gliederung“. Ist die Excel bis zur letzten Zeile
-durchformatiert, liest die Liste nur den vorderen Teil – die leeren Zeilen unter der Tabelle in Excel löschen.
+**Förder-Kartei:** Erkannt wird je Blatt die Kopfzeile mit „Gliederung“. Seit 0.47 wird auch eine bis zur letzten Zeile
+durchformatierte Excel ganz gelesen (leere Zeilen werden beim Entpacken übersprungen). Die Kartei bleibt die Quelle und wird
+weiter in Excel gepflegt – keine Kopie. Steht ein Förderer in der Kartei, übernimmt die Liste beim Eintragen (und einmal für
+vorhandene Förderer) Art, Website, Antragsweg, die Kontakte für die Gliederung des Bedarfs (eine Zeile ohne eigenen Kontakt erbt
+den der Zeile darüber; „nicht direkt anschreiben“ nicht) und die Förderhistorie in die Notizen – nur in leere Felder, je Name einmal.
+Einen eigenen Kasten „Aus der Förder-Kartei“ gibt es nicht mehr.
 
 **Förderrecherche mit Copilot:** Das Copilot-Zeichen oben rechts auf der Seite eines Bedarfs öffnet die Aufgaben (ein eigener Knopf im Förderplan entfällt seit 0.45). Ablauf:
 1. Excel zu diesem Bedarf anlegen – mit verbundenem Ordner im Unterordner `Förderrecherche`, sonst als Download.

@@ -54,14 +54,24 @@ async function zipText(z, name) {
   if (r.e.meth !== 8) throw new Error('Excel-Datei mit unbekannter Komprimierung');
   return new Response(new Blob([r.data]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text();
 }
-// nur den Anfang entpacken (sehr große Blätter, z. B. bis Zeile 1.048.576 durchformatiert): { text, cut }
+// große Blätter (z. B. bis Zeile 1.048.576 durchformatiert): beim Entpacken die Zeilen ohne Wert weglassen – so bleibt der Text klein und
+// die Tabelle wird trotzdem ganz gelesen (auch verbundene Zellen und Links dahinter). Abgeschnitten (cut) nur, wenn die Werte selbst mehr als max sind
+const LEERE_ZEILEN = /<(?:x:)?row\b[^>]*?(?:\/>|>([\s\S]*?)<\/(?:x:)?row>)/g;
+const ohneLeereZeilen = t => t.replace(LEERE_ZEILEN, (m, innen) => innen && /<(?:x:)?(?:v[ >]|is>|f[ >])/.test(innen) ? m : '');
 async function zipTextHead(z, name, max) {
   const r = zipRaw(z, name); if (!r) return null;
-  if (r.e.meth === 0) { const t = new TextDecoder().decode(r.data); return { text: t.slice(0, max), cut: t.length > max }; }
+  if (r.e.meth === 0) { const t = ohneLeereZeilen(new TextDecoder().decode(r.data)); return { text: t.slice(0, max), cut: t.length > max }; }
   if (r.e.meth !== 8) throw new Error('Excel-Datei mit unbekannter Komprimierung');
   const rd = new Blob([r.data]).stream().pipeThrough(new DecompressionStream('deflate-raw')).pipeThrough(new TextDecoderStream()).getReader();
-  let text = '', cut = false;
-  for (;;) { const { value, done } = await rd.read(); if (done) break; text += value; if (text.length > max) { cut = true; break; } }
+  let text = '', rest = '', cut = false;
+  for (;;) {
+    const { value, done } = await rd.read();
+    if (done) { text += ohneLeereZeilen(rest); break; }
+    rest += value;
+    const i = Math.max(rest.lastIndexOf('<row'), rest.lastIndexOf('<x:row'));                                    // alles davor sind fertige Zeilen
+    if (i > 0) { text += ohneLeereZeilen(rest.slice(0, i)); rest = rest.slice(i); }
+    if (text.length > max) { cut = true; break; }
+  }
   if (cut) { rd.cancel().catch(() => {}); text = text.slice(0, text.lastIndexOf('</row>') + 6); }
   return { text, cut };
 }

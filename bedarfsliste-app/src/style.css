@@ -92,6 +92,9 @@ input[type=date] { width: 140px; }
 textarea { width: 100%; resize: vertical; field-sizing: content; min-height: 2.7em; line-height: 1.45; }
 input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); outline-offset: -1px; }
 button:focus-visible, .btn:focus-visible, tr:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+/* Bedarf in der Liste, den die Pfeiltasten gewählt haben: grau hinterlegt statt blau umrahmt */
+#list-body tr:focus-visible { outline: none; }
+#list-body tr:focus-visible > td { background: var(--hover); }
 label.check { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
 .muted { color: var(--muted); }
 .faint { color: var(--faint); }
@@ -160,6 +163,12 @@ table.kuerzel tbody:first-child tr.kz-g th { padding-top: 0; }
 .kchip.ok { background: var(--okbg); color: var(--okink); border-color: var(--okline); }
 .kchip.warn { background: var(--warnbg); color: var(--warn); border-color: var(--warnline); }
 .save { min-width: 132px; justify-content: center; }
+.save.sym { min-width: 0; width: 34px; padding: 0; border-color: transparent; background: transparent; }
+.save.sym.ok { color: var(--okink); }
+.save.sym.laeuft { color: #c99a06; }
+.save.sym .rad { animation: rad-dreh .9s linear infinite; }
+@keyframes rad-dreh { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .save.sym .rad { animation: none; } }
 .save.ok { color: var(--okink); }
 .banners .banner { display: flex; align-items: center; gap: 8px 12px; flex-wrap: wrap; padding-block: 7px;
   padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
@@ -303,6 +312,11 @@ tr.ohne-fg td > :is(.blitz, :has(.blitz)) { filter: none; opacity: 1; }        /
 .th-sort .so { font-size: 10px; font-weight: 700; color: var(--card); background: var(--ink2); border-radius: 8px; padding: 0 5px; line-height: 15px; letter-spacing: 0; }
 .seg.ansicht button { padding: 4px 11px; }
 table.list td.l-name { font-size: 14.5px; font-weight: 700; color: var(--ink); line-height: 1.35; min-width: 180px; }
+/* Pfeil hinter dem Namen: erscheint beim Überfahren der Zeile, öffnet die Seite des Bedarfs */
+.zu-det { visibility: hidden; margin-left: 6px; padding: 0 6px; height: 20px; border: 0; border-radius: 5px; background: var(--chipbg); color: var(--ink2); font-size: 13px; line-height: 20px; vertical-align: 1px; cursor: pointer; }
+#list-body tr:hover .zu-det, #list-body tr:focus-visible .zu-det { visibility: visible; }
+.zu-det:hover { background: var(--ink); color: var(--card); }
+.zu-det::before { content: '→'; }                    /* als Inhalt per CSS: der Name in der Zelle bleibt reiner Text */
 table.list td.l-sum { font-size: 14.5px; font-weight: 700; text-align: left; white-space: nowrap; line-height: 1.35; }
 td.l-sum .le-edit.num { text-align: left; }
 table.list td.l-meta { color: var(--muted); white-space: nowrap; width: 1%; }
@@ -887,7 +901,7 @@ span.st-btn { display: inline-block; }
 .ff-mehr:hover { color: var(--focus); }
 .tip-pop { position: fixed; z-index: 95; pointer-events: none; background: var(--card); color: var(--ink); border: 1px solid var(--line); border-radius: 7px; box-shadow: 0 6px 18px rgba(0,0,0,.14); padding: 5px 9px; font-size: 12.5px; white-space: nowrap; }
 /* Rückgängig in der Kopfzeile */
-.undo-btn { font-size: 13px; color: var(--ink2); }
+.undo-btn { font-size: 17px; color: var(--ink2); width: 34px; padding: 0; justify-content: center; }
 .pe { position: relative; padding: 5px 26px 5px 8px; margin: 0 -8px 4px; border-radius: 6px; cursor: text; }
 .pe:hover { background: var(--hover); }
 .pe > svg { position: absolute; right: 7px; top: 8px; color: var(--faint); visibility: hidden; }

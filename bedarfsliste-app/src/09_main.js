@@ -18,20 +18,24 @@ function applyTheme(t = themeGet()) {
 }
 
 /* ---------- Kopfzeile */
+// Speicherstand als Symbol: grüne Diskette = gespeichert, gelbes drehendes Rad = speichert gerade; Uhrzeit beim Überfahren.
+// Was einen Klick braucht (Ordner wählen, Konflikt, Fehler), steht weiter als Text da.
+const ICON_DISK = '<svg viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><path d="M5 3.5h11.5L20.5 7.5V19a1.5 1.5 0 0 1-1.5 1.5H5A1.5 1.5 0 0 1 3.5 19V5A1.5 1.5 0 0 1 5 3.5z" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M7.5 3.5v5h8v-5M7.5 20.5v-6h9v6" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/></svg>';
+const ICON_RAD = '<svg class="rad" viewBox="0 0 24 24" width="17" height="17" aria-hidden="true"><circle cx="12" cy="12" r="8" fill="none" stroke="currentColor" stroke-opacity=".25" stroke-width="2.4"/><path d="M12 4a8 8 0 0 1 8 8" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></svg>';
 function saveBox(dirty = isDirty()) {
   if (DEMO) return '';
   const t = ST.lastSave ? ST.lastSave.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : null;
   let label, cls = 'save', tip;
   if (!FSA) { label = dirty ? '● Speichern' : '✓ Gespeichert'; cls += dirty ? ' primary' : ''; tip = 'Speichern lädt die Datei herunter (Browser ohne Ordnerzugriff)'; }
-  else if (ST.saving) { label = 'Speichert …'; tip = 'wird gespeichert'; }
+  else if (ST.saving) return `<button id="savebox" class="save sym laeuft" data-act="save" title="Wird gespeichert …" aria-label="Wird gespeichert">${ICON_RAD}</button>`;
   else if (BROKEN) { label = '⚠ Speichern gesperrt'; cls += ' primary'; tip = 'Die Daten dieser Datei waren beschädigt – siehe Hinweis oben'; }
   else if (ST.newer) { label = '⚠ Neustart nötig'; cls += ' primary'; tip = 'Im Ordner liegt eine neuere Programmversion – siehe Hinweis oben'; }
   else if (ST.conflict) { label = '⚠ Zwei Stände'; cls += ' primary'; tip = 'Die Datei wurde woanders geändert – siehe Hinweis oben'; }
   else if (ST.conn === 'none') { label = 'Speichern …'; cls += ' primary'; tip = 'Einmal den Ordner wählen – danach speichert die Liste automatisch'; }
   else if (ST.conn === 'needs-permission') { label = 'Speichern aktivieren'; cls += ' primary'; tip = 'Ein Klick: der Browser fragt, ob die Liste den Ordner bearbeiten darf'; }
   else if (ST.fail && dirty) { label = '⚠ Nicht gespeichert'; cls += ' primary'; tip = 'Speichern fehlgeschlagen: ' + ST.fail.msg + '. Neuer Versuch läuft automatisch – oder hier klicken.'; }
-  else if (dirty) { label = '● wird gespeichert …'; tip = 'Jetzt speichern (Strg+S)'; }
-  else { label = '✓ Gespeichert' + (t ? ' ' + t : ''); cls += ' ok'; tip = 'Alles gespeichert'; }
+  else if (dirty) return `<button id="savebox" class="save sym laeuft" data-act="save" title="Wird gespeichert … (Strg+S speichert sofort)" aria-label="Wird gespeichert">${ICON_RAD}</button>`;
+  else return `<button id="savebox" class="save sym ok" data-act="save" title="${esc('Gespeichert' + (t ? ' um ' + t + ' Uhr' : ''))}" aria-label="Gespeichert">${ICON_DISK}</button>`;
   return `<button id="savebox" class="${cls}" data-act="save" title="${esc(tip)}">${esc(label)}</button>`;
 }
 function updateSaveUI() {
@@ -118,7 +122,7 @@ function headerHtml() {
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}</nav>
-    <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)">↶ Rückgängig</button><button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
+    <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button><button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
     ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : listBar()}
   </header>`;
 }
@@ -202,7 +206,7 @@ function refresh() {
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b)); swap('d-sw', swHead(b));
   swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('link-hw', linkHinweis(b));
-  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('fuss-' + f.id, fussKontakt(f)); swap('sh-' + f.id, foeShare(b, f)); });
+  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('fuss-' + f.id, fussKontakt(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b)); swap('foe-kurz', esc(foeKurz(b)));
 }
 
@@ -331,7 +335,7 @@ function swPop(btn) {
     const v = inp.value.trim(); inp.value = ''; if (!v) return;
     if (!b.stichworte.some(s => norm(s) === norm(v))) { b.stichworte.push(v); changed(); swap('d-sw', swHead(b), true); }
   };
-  const key = suggest(inp, () => SRC.stichwort().filter(s => !b.stichworte.includes(s)), dazu);
+  const key = suggest(inp, () => SRC.stichwort().filter(s => !b.stichworte.includes(s)), dazu, { erster: false });
   inp.addEventListener('keydown', e => { if (key(e)) { e.preventDefault(); return; } if (e.key === 'Enter') { e.preventDefault(); dazu(); } else if (e.key === 'Escape') { dazu(); closeMenus(); } });
   inp.addEventListener('blur', () => dazu());
   placePop(h('div', { class: 'menu sw-pop' }, inp, h('div', { class: 'muted small' }, 'Enter fügt hinzu – gleich das nächste eintippen')), btn, 'right');
@@ -573,10 +577,6 @@ document.addEventListener('input', e => {
     // SharePoint-Link aus der Adresszeile: daraus lernt die Liste, wo „Ortsgliederungen“ liegt, und trägt fehlende Links bei anderen Bedarfen nach
     if (el.dataset.p === 'link' && !el.dataset.fid && spLernen(el.value)) { const n = spNachziehen(); if (n) toast('SharePoint-Link bei ' + n + (n === 1 ? ' weiterem Bedarf' : ' weiteren Bedarfen') + ' nachgetragen', 'ok'); }
   }
-  if (el.dataset.p === 'name' && el.dataset.fid && !base.art) {               // Förderer aus der Kartei: Art gleich mit eintragen
-    const k = kartei(base.name), art = k ? artFromKartei(k, base.name) : '';
-    if (art) { base.art = art; const s = $('#art-' + base.id); if (s) { s.value = art; s.classList.remove('empty'); } }
-  }
   UNDO.tipp = b.id + '|' + (el.dataset.fid || el.dataset.uid || '') + '|' + el.dataset.p;      // Tippen im selben Feld = ein Rückgängig-Schritt
   changed(); refresh();
 });
@@ -584,6 +584,7 @@ document.addEventListener('change', e => {
   const el = e.target;
   if (!el.closest || !el.closest('#app')) return;
   if (el.id === 'ul-new') { addUl(false); return; }
+  if (el.dataset.p === 'name' && el.dataset.fid) { const b = cur(), f = b && b.foerderer.find(x => x.id === el.dataset.fid); if (f && karteiFuellen(b, f)) { changed(); keep(renderNow); } return; }   // fertig getippt: Angaben aus der Kartei
   if (el.dataset.ui && el.dataset.ui !== 'q') { UI[el.dataset.ui] = el.type === 'checkbox' ? el.checked : el.value; keep(renderNow); return; }
   if (!el.dataset.p || !(el.type === 'checkbox' || el.tagName === 'SELECT')) return;
   const b = cur(); if (!b) return;

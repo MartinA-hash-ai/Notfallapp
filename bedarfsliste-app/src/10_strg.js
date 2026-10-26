@@ -65,6 +65,7 @@ document.addEventListener('click', e => {
   const tr = e.target.closest('#list-body tr[data-id]'), id = tr && tr.dataset.id, komp = UI.ansicht === 'kompakt';
   const sel = getSelection();
   if (tr && sel && !sel.isCollapsed && String(sel).trim() && tr.contains(sel.anchorNode)) { e.preventDefault(); e.stopPropagation(); return; }   // Text markiert (zum Kopieren): nichts auslösen
+  if (tr && e.target.closest('.zu-det')) { e.preventDefault(); e.stopPropagation(); oeffnen(id); return; }   // Pfeil hinter dem Namen: gleich die Seite des Bedarfs
   if (komp && UI.auf && id !== UI.auf && !e.target.closest(AUF_POPS)) {
     if (tr) { e.preventDefault(); e.stopPropagation(); aufklappen(id); return; }
     aufklappen(null);
@@ -165,7 +166,9 @@ function aufGleiten(vorher, alt, id) {
 function strgAct(b, el, then) {
   const f = el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : null, done = () => { changed(); relist(b); };
   switch (el.dataset.le) {
-    case 'prio': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; return done();             // Stern: Prio an oder aus
+    case 'prio': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch';                        // Stern: Prio an oder aus – bei Prio-Sortierung gleich an den richtigen Platz
+      if (UI.prioKopf) { ORDER.ids = null; changed(); keep(renderNow); return; }
+      return done();
     case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', feld: 'titel', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
     case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', feld: 'summe', then, set: v => { b.summe = v; } });
     case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', feld: 'ort', then, set: v => { b.gliederung = v.trim(); } });
@@ -197,12 +200,13 @@ function strgAct(b, el, then) {
   }
 }
 
-// Vorschläge beim Tippen: schlichtes Fenster unter dem Feld, gefiltert nach dem Eingegebenen; Pfeiltasten wählen, Enter oder Klick übernimmt.
+// Vorschläge beim Tippen: schlichtes Fenster unter dem Feld, gefiltert nach dem Eingegebenen; beim Tippen ist der erste Vorschlag gewählt –
+// Enter übernimmt ihn, Pfeiltasten wählen einen anderen, Esc schließt (dann bleibt das Getippte). o.erster: false – nichts vorwählen (freie Eingaben wie Stichworte)
 // o.all: schon beim Hineinklicken die ganze Liste (scrollbar, zum Wert gescrollt); o.match: eigener Abgleich
 function suggest(inp, source, onPick, o = {}) {
   let box = null, hi = -1, items = [];
   const close = () => { if (box) box.remove(); box = null; hi = -1; };
-  const draw = () => {
+  const draw = tippen => {
     close();
     const raw = inp.value.trim(), q = norm(raw); if (!q && !o.all) return;
     items = o.match ? source().filter(v => o.match(raw, v))
@@ -215,10 +219,11 @@ function suggest(inp, source, onPick, o = {}) {
     Object.assign(box.style, { left: r.left + 'px', top: (r.bottom + 3) + 'px', minWidth: Math.max(r.width, o.all ? 80 : 160) + 'px' });
     const cur = box.querySelector('.le-opt.on') || (o.near && box.children[Math.max(0, items.indexOf(o.near()))]);
     if (cur) box.scrollTop = cur.offsetTop - box.clientHeight / 2 + cur.offsetHeight / 2;
+    if (tippen && raw && o.erster !== false) { hi = 0; mark(); }
   };
   const mark = () => [...box.children].forEach((c, i) => c.classList.toggle('on', i === hi));
-  inp.addEventListener('input', draw);
-  if (o.all) inp.addEventListener('focus', draw);
+  inp.addEventListener('input', () => draw(true));
+  if (o.all) inp.addEventListener('focus', () => draw(false));
   inp.addEventListener('blur', close);
   return e => {                                                   // Tastendruck: true, wenn er nur die Vorschläge betraf
     if (!box) return false;
@@ -407,8 +412,8 @@ function addFoeForm(el, b) {
     const name = nm.value.trim(), v = deNum(am.value);
     if (ok && name) {
       if (v === null) toast('„' + am.value + '“ ist keine Zahl – Förderer ohne Betrag angelegt.', 'warn');
-      const nf = ff({ name, betrag: v === null || v === '' ? null : v }), k = kartei(name), art = k ? artFromKartei(k, name) : '';
-      if (art) nf.art = art;
+      const nf = ff({ name, betrag: v === null || v === '' ? null : v });
+      karteiFuellen(b, nf);                                                         // Angaben aus der Förder-Kartei
       b.foerderer.push(nf); changed();
     } else weiter = false;
     relist(b);
@@ -455,7 +460,7 @@ function uebForm(b, el) {
     }
     relist(b);
   };
-  const sug = suggest(ort, SRC.uebOrt, () => dat.focus());
+  const sug = suggest(ort, SRC.uebOrt, () => dat.focus(), { erster: false });
   const kal = () => { if (!$('.cal-pop')) calPop(dat, anyDate(dat.value), v => { dat.value = fmtDate(v); zeit.focus(); }); };
   const rad = () => { if (!$('.zeit-pop')) zeitPop(zeit, () => info.focus()); };
   zeit.addEventListener('focus', rad); zeit.addEventListener('click', rad);

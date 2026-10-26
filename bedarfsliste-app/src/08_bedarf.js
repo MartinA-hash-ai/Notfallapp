@@ -191,16 +191,6 @@ function fussKontakt(f) {
     hk && hk.mail && `<a class="fi" href="mailto:${esc(hk.mail)}" data-act="link" data-tip="${esc(hk.mail)}" aria-label="E-Mail an ${esc(hk.mail)}">✉</a>`].filter(Boolean).join('');
   return `${name}${sym}<button class="ff-mehr" data-act="det" data-v="${f.id}" aria-haspopup="dialog">Weitere Infos <span aria-hidden="true">→</span></button>`;
 }
-function detKartei(f) {
-  const k = kartei(f.name);
-  if (!k) return KR.list.length && f.name.trim() ? '<p class="muted small">Nicht in der Förder-Kartei.</p>' : '';
-  const hist = Object.entries(k.hist).sort((a, c) => c[0] - a[0]);
-  const row = (t, v) => v ? `<dt>${t}</dt><dd>${v}</dd>` : '';
-  return `<div class="det-k"><h4>Aus der Förder-Kartei <span class="badge k">${esc(k.blatt)}</span></h4>
-    <dl class="dl">${row('Antragsweg', esc(k.weg.join(' oder ')))}${row('Website', k.web ? `<a href="${esc(/^https?:/i.test(k.web) ? k.web : 'https://' + k.web)}" target="_blank" rel="noopener" data-act="link">${esc(k.web.replace(/^https?:\/\//, '').slice(0, 60))}</a>` : '')}
-      ${row('Gliederungen', esc(k.gl.join(', ')))}${row('Schwerpunkte', esc(k.schwer))}${row('Notiz', esc(k.notiz))}
-      ${row('Bisher gefördert', hist.length ? hist.map(([y, v]) => `<div>${y}: ${esc(v.replace(/\n/g, ', '))}</div>`).join('') : '<span class="muted">nichts eingetragen</span>')}</dl></div>`;
-}
 // Kontakt und Details eines Förderers als Fenster (Entwurf A „Steckbrief“): links der Kontakt, rechts die Bedingungen, darunter Quellen und Notizen.
 // Keine Eingabefelder: die Angaben stehen als Text da, ein Klick macht sie bearbeitbar (Enter bzw. Klick daneben übernimmt, Esc verwirft).
 // Feste Höhe; was nicht passt, scrollt im Fenster.
@@ -247,11 +237,10 @@ function personen(L, o) {
   };
   return L.map((c, i) => zeile(c, i, false)).join('') + (o.extra || []).map(c => zeile(c, 0, true)).join('') + plus(n ? o.neu[0] : o.neu[1]);
 }
-// Kontakte des Förderers; die aus der Förder-Kartei stehen darunter, mit Vermerk und nicht bearbeitbar
+// Kontakte des Förderers (die aus der Förder-Kartei sind beim Eintragen schon übernommen – karteiFuellen)
 function kontaktListe(f) {
-  const k = kartei(f.name);
   return personen(f.kontakte, { a: `data-fid="${f.id}"`, p: 'kontakte', edit: UI.kEdit === f.id, wer: 'Kontakt', neu: ['weiterer Kontakt', 'Kontakt eintragen'],
-    haupt: ['Hauptkontakt – steht in der Kachel', 'Zum Hauptkontakt machen'], extra: k ? k.kontakte.map(c => ({ n: c.n, rolle: c.nicht ? 'nicht direkt anschreiben' : '', mail: c.m, tel: c.t })) : [] });
+    haupt: ['Hauptkontakt – steht in der Kachel', 'Zum Hauptkontakt machen'] });
 }
 const ICON_HANDY = '<svg viewBox="0 0 12 16" width="10" height="14" aria-hidden="true"><rect x="1.5" y="1" width="9" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.8 12.3h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
@@ -273,7 +262,7 @@ function foePop(b) {
         <div class="pA-box">${kKopf('Kontakte', UI.kEdit === f.id, a)}
           ${kontaktListe(f)}<div class="ksep"></div>
           ${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}</div>
-        <div class="pA-bed">${kartei(f.name) ? `<div id="dk-${f.id}">${detKartei(f)}</div>` : ''}${f.datei ? pe(f, 'datei', 'Ausführliche Recherche (Datei im Ordner des Bedarfs)') : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area', { fmt: true })}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area', { fmt: true })}${pe(f, 'eigenInfo', 'Eigenanteil', 'area', { fmt: true })}</div>
+        <div class="pA-bed">${f.datei ? pe(f, 'datei', 'Ausführliche Recherche (Datei im Ordner des Bedarfs)') : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area', { fmt: true })}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area', { fmt: true })}${pe(f, 'eigenInfo', 'Eigenanteil', 'area', { fmt: true })}</div>
         <div class="pA-q"><div class="sub">Quellen</div>${pe(f, 'quellen', '', 'area', { html: `<span class="ql">${quellenListe(f.quellen)}</span>`, ph: 'Links eintragen, je Link eine Zeile', cls: 'pe-q' })}</div>
         <div class="pA-n"><div class="sub">Notizen ${FMT_I}</div>${pe(f, 'notiz', '', 'area', { ph: 'Notizen eintragen – „* “ am Zeilenanfang macht eine Aufzählung', fmt: true })}</div>
       </div>
@@ -306,7 +295,7 @@ function popEdit(el) {
     if (ok) {
       let v = k === 'quellen' ? quellenZeilen(wert()).join('\n') : wert().trim();
       if (art === 'num') { v = deNum(v); if (v === null) { toast('„' + wert() + '“ ist keine Zahl – nicht übernommen.', 'warn'); v = alt; } else if (v === '') v = null; }
-      if (v !== (alt ?? (art === 'num' ? null : ''))) { setPath(f, k, v); changed(); }
+      if (v !== (alt ?? (art === 'num' ? null : ''))) { setPath(f, k, v); if (k === 'name' && el.dataset.fid) karteiFuellen(b, f); changed(); }
     }
     const y = ($('.foe-pop .pop-body') || {}).scrollTop || 0;
     keep(renderNow);

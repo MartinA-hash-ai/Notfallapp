@@ -165,7 +165,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await p.$eval('.info-pop', e => e.textContent)).includes('Adresszeile'), 'Hinweis zum Ordner hinter dem „i“');
   await p.mouse.click(5, 300);
   await p.click('button[data-act="det"][data-v="f-mtw-spk"]');
-  ok((await p.$$eval('.foe-pop .k1.kartei', e => e.map(x => x.textContent).join())).includes('Erika Beispiel') && !(await p.$('#foe-f-mtw-spk .foe-pop')), 'Kontakt als Fenster über der Seite: Kontakte aus der Kartei in der Liste');
+  ok(!!(await p.$('.foe-pop')) && !(await p.$('.foe-pop .k1.kartei, .foe-pop .det-k')) && !(await p.$('#foe-f-mtw-spk .foe-pop')), 'Kontakt als Fenster über der Seite, ohne eigenen Kasten „Aus der Förder-Kartei“ (Angaben stehen in den Feldern)');
   await p.click('.pop-back', { position: { x: 10, y: 10 } });
   ok(!(await p.$('.foe-pop')), 'Klick daneben schließt das Fenster');
   await p.click('button[data-act="det"][data-v="f-mtw-lot"]');

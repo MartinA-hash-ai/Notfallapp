@@ -205,7 +205,7 @@ const ICON_STERN = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden=
 const sternZelle = b => `<td class="l-star"><button class="star-p${b.prio === 'hoch' ? ' on' : ''}" data-le="prio" aria-pressed="${b.prio === 'hoch'}" title="${b.prio === 'hoch' ? 'Prio – klicken: keine Prio' : 'keine Prio – klicken: Prio'}" aria-label="Priorität">${ICON_STERN}</button></td>`;
 // Name, Summe, Ort, Ansprechperson und Deadline: anklickbar ist nur das Wort selbst – ein Klick daneben klappt den Bedarf auf bzw. öffnet ihn
 const wort = (k, t) => `<span class="le-w" data-le="${k}">${t}</span>`;
-const nameZelle = b => `${sternZelle(b)}<td class="l-name">${wort('titel', b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>')}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : ''}</td>
+const nameZelle = b => `${sternZelle(b)}<td class="l-name">${wort('titel', b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>')}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : ''}<button class="zu-det" tabindex="-1" title="Bedarf öffnen" aria-label="Bedarf öffnen"></button></td>
     <td class="l-sum">${wort('summe', b.summe ? eur(b.summe) : '<span class="ph">Summe</span>')}</td>`;
 const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
 // solange die Freigabe nicht vollständig ist, wird hinter ihr noch nichts angegangen: Finanzierung, Nachweis und Übergabe grau (ohne Farben)

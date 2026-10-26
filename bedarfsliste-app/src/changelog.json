@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.47.0",
+    "date": "2026-10-27T23:00",
+    "items": [
+      "Förder-Kartei: kein eigener Kasten mehr im Förderer-Fenster – Art, Website, Antragsweg, Kontakte für die Gliederung und die Förderhistorie (in den Notizen) werden in die Felder übernommen, nur in leere",
+      "Förder-Kartei wird auch bis ganz unten durchformatiert vollständig gelesen – die Warnung „nur der vordere Teil“ entfällt",
+      "Vorschläge beim Tippen: der erste ist gleich gewählt, Enter übernimmt ihn (Esc behält das Getippte; bei Stichworten und Orten der Übergabe nicht)",
+      "Kopfzeile: Speicherstand als Symbol – grüne Diskette, gelbes drehendes Rad beim Speichern, Uhrzeit beim Überfahren; Rückgängig nur als Pfeil",
+      "Liste: der mit den Pfeiltasten gewählte Bedarf ist grau hinterlegt statt blau umrahmt",
+      "Prio-Sortierung an: ein Stern bringt den Bedarf sofort an seinen Platz",
+      "Pfeil hinter dem Namen beim Überfahren einer Zeile: öffnet gleich die Seite des Bedarfs"
+    ]
+  },
+  {
     "version": "0.46.0",
     "date": "2026-10-27T21:00",
     "items": [

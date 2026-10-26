@@ -41,13 +41,12 @@ async function writeKartei(p, kontakt) {
   await p.click('button[data-act="add-foe"]'); await p.keyboard.type('Märkische Bank eG');
   r = await p.$eval('.fp .fk-fuss', e => [e.querySelector('.ff-n').textContent, [...e.querySelectorAll('a.fi')].map(a => a.getAttribute('href') + '=' + a.dataset.tip).join(), e.querySelector('.ff-mehr').textContent]);
   ok(!(await p.$('.foe-pop')) && r.join('|') === 'Silke S|tel:023311=02331 1,mailto:silke@mb.example=silke@mb.example|Weitere Infos →', 'Kachel unten: Ansprechperson aus der Kartei mit Telefon- und E-Mail-Symbol, rechts „Weitere Infos →“: ' + r.join('|'));
+  await p.evaluate(() => document.activeElement.blur()); await p.waitForTimeout(100);                 // fertig getippt: Angaben aus der Kartei
   ok(await p.evaluate(() => cur().foerderer[0].art === 'Volksbank / Bank' && !document.querySelector('select.art')), 'Art aus der Kartei übernommen (nur in den Daten, kein Auswahlfeld mehr)');
   await p.click('button[data-act="det"]');
-  let t = await p.$eval('.foe-pop .det-k', e => e.textContent);
-  ok(t.includes('Aus der Förder-Kartei') && t.includes('Antragswegdirekt') && t.includes('Hagen, Iserlohn-Menden')
-    , 'Fenster mit Kartei-Angaben: ' + t.replace(/\s+/g, ' ').slice(0, 140));
-  ok(await p.$eval('.foe-pop .k1.kartei', e => e.textContent.includes('Silke S') && e.textContent.includes('Kartei')) && await p.$eval('.foe-pop .k1.kartei a[href^="mailto:"]', e => e.getAttribute('href')) === 'mailto:silke@mb.example',
-    'Kontakte aus der Kartei in der Kontaktliste, mit Vermerk, E-Mail als Link');
+  let t = await p.evaluate(() => { const f = cur().foerderer[0]; return [f.weg, f.kontakte.map(k => k.n + '/' + k.mail + '/' + k.tel).join(), f.notiz, !!document.querySelector('.foe-pop .det-k, .foe-pop .k1.kartei'), document.querySelector('.foe-pop').textContent.includes('Silke S')].join(' | '); });
+  ok(t === 'direkt | Silke S/silke@mb.example/02331 1 | Laut Förder-Kartei bisher gefördert:\n- 2025: 1.000 € Folierung | false | true',
+    'Angaben aus der Kartei stehen in den Feldern (Antragsweg, Kontakt, Historie in den Notizen) – kein eigener Kasten: ' + t);
   await p.keyboard.press('Escape');
   ok(!(await p.$('.foe-pop')), 'Esc schließt das Fenster');
   ok(!(await p.$('.fp .fw-tri')), 'passende Region: kein Hinweis-Dreieck');
@@ -55,7 +54,7 @@ async function writeKartei(p, kontakt) {
   await p.hover('.fp .fw-tri');
   t = await p.$eval('.fw-pop', e => e.textContent);
   await p.click('button[data-act="det"]');
-  ok(t.includes('Laut Kartei zuständig für Herne') && (await p.$$eval('.foe-pop .k1.kartei', e => e.map(x => x.textContent).join())).includes('nicht direkt anschreiben'), 'andere Region: rotes Dreieck hinter dem Namen, beim Überfahren der Hinweis; Kartei-Angaben wechseln mit');
+  ok(t.includes('Laut Kartei zuständig für Herne') && !(await p.$('.foe-pop .det-k')), 'andere Region: rotes Dreieck hinter dem Namen, beim Überfahren der Hinweis');
   await p.click('.foe-pop button.x');
   // Kartei in Excel geändert → nach etwa einer Minute neu gelesen
   await writeKartei(p, 'Silke Neu');
