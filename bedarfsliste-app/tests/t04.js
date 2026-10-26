@@ -16,7 +16,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join('|') === 'Förderplan+Anleitung|20000|20000||15|Stand in der Bedarfsliste|geplant|true', 'Excel beschreibt den Bedarf mit Finanzierung, Förderer mit Stand, Anleitung mit Umfang: ' + r.join('|'));
   ok(await p.evaluate(() => { const f = ff({ name: 'X' }); applyResearch(f, { stand: 'zugesagt', warum: 'w' }, 'all'); return f.stand === undefined && f.warum === 'w'; }), 'Spalte „Stand“ wird nicht eingelesen');
   // Recherche mit Copilot: Dialog mit drei Schritten, Prompt mit Bedarf und Umfang; ohne Ordner wird die Excel heruntergeladen
-  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .ki-kacheln'); await p.click('.ki-fuss .link');
+  await p.evaluate(() => { kiDialog(cur(), ['suchen', 'recherche']); }); await p.waitForSelector('.modal .ki-kacheln'); await p.click('.ki-fuss .link');
   r = await p.evaluate(() => [document.querySelectorAll('.ki-k').length, document.querySelector('.ki-los').textContent, document.querySelector('.ki textarea').value.replace(/\u00a0/g, ' ')]);
   ok(r[0] === 5 && r[1] === 'Auftrag kopieren' && r[2].includes('Bedarf: Testbedarf / MTW') && r[2].includes('noch offen 20.000 €') && r[2].includes('Deadline: 30.06.2027')
     && r[2].includes('5 bis 8 Förderer') && !r[2].includes('Doppelte') && r[2].includes('Nicht auf eine Gesamtsumme hinrechnen') && r[2].includes('Arbeitsdatei: „Foerderrecherche_Testbedarf_MTW_Paderborn_')
@@ -29,9 +29,12 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     return [vorlageName(a) !== vorlageName(c), /^Foerderrecherche_AED_Brakel_[a-z0-9]{4}\.xlsx$/.test(vorlageName(a)), [n(800), n(15000), n(60000), n(null)].join('|'), kurzName('Mannschaftstransportwagen (MTW) für den Sanitätsdienst', 40)]; });
   ok(r.join() === 'true,true,3 bis 5|5 bis 8|8 bis 12|5 bis 8,Mannschaftstransportwagen_MTW', 'gleicher Titel, andere Gliederung: andere Datei; Umfang nach Betrag gestaffelt; Kurzname ohne Füllwörter am Ende: ' + r.join());
   await p.click('.modal header .x');
-  // Pfad aus „Als Pfad kopieren“: Anführungszeichen fallen weg
-  await p.fill('input[data-p="pfad"]', '"C:\\Users\\X\\OneDrive - Malteser\\Bedarfe\\MTW"');
-  ok(await p.evaluate(() => cur().pfad) === 'C:\\Users\\X\\OneDrive - Malteser\\Bedarfe\\MTW' && await p.$eval('input[data-p="pfad"]', e => !e.value.includes('"')), 'Pfad ohne Anführungszeichen übernommen');
+  // Ordner nur als SharePoint-Link: aus der Adresszeile lernt die Liste, wo „Ortsgliederungen“ liegt, und baut Links für bekannte Ordner
+  await p.evaluate(() => { const o = Object.assign(blank(), { titel: 'Küche' }); D.bedarfe.push(o); o.pfad = 'OneDrive - MalteserCloud\\Fundraising-Team - Diözese Paderborn - General\\Ortsgliederungen\\Büren\\RE - Küche'; o.link = ''; window.__o = o.id; });
+  await p.fill('input[data-p="link"]', 'https://malteser.sharepoint.com/sites/FT/Freigegebene%20Dokumente/Forms/AllItems.aspx?id=%2Fsites%2FFT%2FFreigegebene%20Dokumente%2FGeneral%2FOrtsgliederungen%2FIserlohn%2FMTW&viewid=1');
+  r = await p.evaluate(() => [!!document.querySelector('input[data-p="pfad"]'), D.bedarfe.find(x => x.id === window.__o).link, kiOrdnerPfad(cur())]);
+  ok(!r[0] && r[1] === 'https://malteser.sharepoint.com/sites/FT/Freigegebene%20Dokumente/Forms/AllItems.aspx?id=%2Fsites%2FFT%2FFreigegebene%20Dokumente%2FGeneral%2FOrtsgliederungen%2FB%C3%BCren%2FRE%20-%20K%C3%BCche'
+    && r[2] === 'OneDrive - MalteserCloud\\Fundraising-Team - Diözese Paderborn - General\\Ortsgliederungen\\Iserlohn\\MTW', 'kein Pfadfeld; SharePoint-Adresse gelernt, Link nachgetragen, für Cowork zurückgerechnet: ' + r.join(' | '));
   r = await p.evaluate(() => ['sehr wahrscheinlich', 'Wahrscheinlich', 'klappt', 'unsicher', 'eher nicht', 'unwahrscheinlich', 'sehr unwahrscheinlich', 'unmöglich', ''].map(einschKey).join());
   ok(r === 'sw,w,w,u,uw,uw,suw,suw,', 'Einschätzung aus Text in fünf Stufen: ' + r);
   // leere Vorlage aus dem Build

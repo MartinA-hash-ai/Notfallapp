@@ -201,7 +201,7 @@ function refresh() {
   const b = cur();
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b)); swap('d-sw', swHead(b));
-  swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('copy-btn', copyBtn(b));
+  swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('link-hw', linkHinweis(b));
   b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('dk-' + f.id, detKartei(f)); swap('fuss-' + f.id, fussKontakt(f)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b)); swap('foe-kurz', esc(foeKurz(b)));
 }
@@ -243,12 +243,6 @@ function addUl(refocus) {
   if (!b || !v) return;
   b.unterlagen.push(UL(v, 'fehlt')); el.value = ''; changed(); swap('ul-body', unterlagenList(b), true);
   if (refocus) { const n = $('#ul-new'); if (n) n.focus(); }
-}
-function copyPath(b) {
-  const p = unquote(b.pfad || '').trim(); if (!p) return;
-  const done = () => toast('Pfad kopiert. Im Explorer: Strg+L, dann Strg+V', 'ok');
-  const fail = () => { const el = $('input[data-p="pfad"]'); if (el) { el.focus(); el.select(); } toast('Pfad markiert – jetzt mit Strg+C kopieren'); };
-  try { navigator.clipboard.writeText(p).then(done, fail); } catch (e) { fail(); }
 }
 // Übersicht der Tastaturbefehle („i“ oben rechts in der Liste, Zahnrad → „Tastaturbefehle …“)
 function kuerzelInfo() {
@@ -500,7 +494,8 @@ async function act(k, a, e) {
       return;
     }
     case 'zu': zuSet(b, a.dataset.v, !zuGet(b, a.dataset.v)); break;
-    case 'pe': popEdit(a); return;
+    case 'pe': { const v = a.querySelector(':scope > .val');               // Klick auf den Scrollbalken (lange Beschreibung) ist kein Bearbeiten
+      if (v && e && e.target === v && e.offsetX >= v.clientWidth) return; popEdit(a); return; }
     case 'det': UI.det = a.dataset.v; break;
     case 'det-zu': kAufraeumen(b); UI.det = null; UI.kEdit = null; break;
     case 'web': {                                                                   // Website öffnen – mit dem, was gerade eingetragen ist
@@ -527,10 +522,8 @@ async function act(k, a, e) {
     case 'sw-pop': swPop(a); return;
     case 'prio-stern': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); break;     // Stern im Kopf der Seite: Prio an oder aus
     case 'deadline': calPop(a, b.deadline, v => { b.deadline = v || ''; changed(); keep(renderNow); }, { clear: 'Deadline entfernen' }); return;
-    case 'pers-cop': personenDialog(b); return;
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
-    case 'copy-path': copyPath(b); return;
     case 'vorlage': kiDialog(b, ['suchen', 'recherche']); return;
     case 'ki-erg': kiErgebnis(b); return;
     case 'ki': if (KI_NEU[b.id] && !DEMO) kiErgebnis(b); else kiDialog(b); return;          // roter Punkt: gleich das Ergebnis von Cowork zeigen
@@ -574,9 +567,9 @@ document.addEventListener('input', e => {
   const base = baseOf(el, b);
   if ('num' in el.dataset) { liveNum(el); const v = deNum(el.value); if (v === null) return; setPath(base, el.dataset.p, v === '' ? null : v); }
   else {
-    // „Als Pfad kopieren“ (Strg+Umschalt+C) setzt Anführungszeichen – die braucht der Explorer nicht
-    if (el.dataset.p === 'pfad' && /^\s*"|"\s*$/.test(el.value)) el.value = unquote(el.value);
     setPath(base, el.dataset.p, el.value);
+    // SharePoint-Link aus der Adresszeile: daraus lernt die Liste, wo „Ortsgliederungen“ liegt, und trägt fehlende Links bei anderen Bedarfen nach
+    if (el.dataset.p === 'link' && !el.dataset.fid && spLernen(el.value)) { const n = spNachziehen(); if (n) toast('SharePoint-Link bei ' + n + (n === 1 ? ' weiterem Bedarf' : ' weiteren Bedarfen') + ' nachgetragen', 'ok'); }
   }
   if (el.dataset.p === 'name' && el.dataset.fid && !base.art) {               // Förderer aus der Kartei: Art gleich mit eintragen
     const k = kartei(base.name), art = k ? artFromKartei(k, base.name) : '';

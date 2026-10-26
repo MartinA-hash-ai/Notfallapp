@@ -17,7 +17,7 @@ Es werden keine Daten ins Internet gesendet und nichts nachgeladen.
 **Förder-Kartei:** Erkannt wird je Blatt die Kopfzeile mit „Gliederung“. Ist die Excel bis zur letzten Zeile
 durchformatiert, liest die Liste nur den vorderen Teil – die leeren Zeilen unter der Tabelle in Excel löschen.
 
-**Förderrecherche mit Copilot:** Auf der Seite eines Bedarfs öffnet „Recherche mit Copilot“ oben rechts im Förderplan drei Schritte:
+**Förderrecherche mit Copilot:** Das Copilot-Zeichen oben rechts auf der Seite eines Bedarfs öffnet die Aufgaben (ein eigener Knopf im Förderplan entfällt seit 0.45). Ablauf:
 1. Excel zu diesem Bedarf anlegen – mit verbundenem Ordner im Unterordner `Förderrecherche`, sonst als Download.
    Name: `Foerderrecherche_<Titel>_<Gliederung>_<Kürzel>.xlsx`; über das Kürzel der Kennung findet die Liste die Datei
    auch nach einer Umbenennung und nimmt die neueste passende (auch Kopien wie „… (1).xlsx“).
@@ -38,11 +38,11 @@ Festgelegte Regeln: (1) Doppeltes erkennt die Liste selbst – stimmt der Vorsch
 (2) Die Kennung eines Hinweises bildet die Liste aus Absender, Datum (vereinheitlicht) und Betreff, nicht Copilot; übernommene
 und verworfene Hinweise merkt sie sich. (3) Hinweise, die einen Stand zurücksetzen würden (z. B. „beantragt“, obwohl schon
 „zugesagt“), werden unterdrückt. (4) Nichts wird ohne Klick übernommen.
-Explorer-Pfad aus einem SharePoint-Link umrechnen geht nur bei direkten Adressen (`…/sites/…/Shared Documents/…`) mit
-einmaliger Zuordnung, nicht bei Freigabelinks – zurückgestellt.
-
-**Ordner-Pfad:** Im Explorer den Ordner markieren, Strg+Umschalt+C („Als Pfad kopieren“) und ins Feld einfügen –
-die Anführungszeichen entfernt die Liste.
+**Ordner des Bedarfs (nur SharePoint-Link, seit 0.45):** Das Feld „Pfad im Explorer“ ist entfallen. Den Ordner in SharePoint im Browser
+öffnen und die Adresse aus der Adresszeile einfügen. Aus so einem Link (direkte Adresse oder `…/Forms/AllItems.aspx?id=…`, nicht Freigabelinks
+`/:f:/s/…`) merkt sich die Liste in den Einstellungen, wo „Ortsgliederungen“ bzw. „1601_Diözese_Pojekte“ in SharePoint liegen, und baut
+daraus die Links für Ordner, die Cowork (Pfad im OneDrive) oder Copilot finden – auch rückwirkend für Bedarfe, deren Ordner schon bekannt ist.
+Für Cowork rechnet sie den Link in den Pfad im OneDrive zurück.
 
 **Ansicht der Liste:** „Ausführlich“ zeigt alles (Förderer einzeln, Ansprechperson, Deadline); „Kompakt“ je Bedarf eine Zeile mit
 Name, Summe, Ort und je Bereich nur dem Stand – grün durch, gelb in Bearbeitung, rot abgelehnt, leerer Kreis noch nichts, grau nicht nötig.
@@ -100,7 +100,8 @@ Bedarfsliste: F5 übernimmt nichts – sobald die Liste neue Ergebnisse in der A
 Ortsgliederungen\<Gliederung>\<Bedarf>“, Projekte der Diözese unter „…\1601_Diözese_Pojekte“ – beide Prompts nennen das; ist kein Pfad eingetragen, sucht Cowork den Ordner dort und trägt ihn zur Übernahme ein. Umschalten geht.
 Enthält die Excel neue Ergebnisse, meldet die Liste das mit einem Fenster; danach bleiben Hinweis und roter Punkt bis zur Übernahme. Texte (Antrag, Dank …) folgen in einem späteren Update.
 
-**Personen-Excel (Kontaktdaten der Zuständigen):** „Kontaktdaten mit Copilot“ bei „Zuständig“ legt `Personen.xlsx` neben der
+**Personen-Excel (Kontaktdaten der Zuständigen):** Der Knopf „Kontaktdaten mit Copilot“ bei „Zuständig“ ist seit 0.45 entfallen (Kontaktdaten
+sucht die Aufgabe „Kontaktdaten“ im Copilot-Fenster); die Liste liest `Personen.xlsx` weiter. Der frühere Dialog legte `Personen.xlsx` neben der
 Bedarfsliste an (Blatt „Personen“: Name, Position, Gliederung / Dienststelle, E-Mail, Telefon, Handy, Quelle, Stand – mit allen Personen, die die
 Liste kennt) und gibt einen kurzen Auftrag für Copilot. Copilot ergänzt die Datei, sie wächst mit jedem Bedarf; von Hand erweitern geht
 genauso. Die Liste liest alle Dateien, deren Name mit „Personen“ beginnt (bei Abweichungen gilt die neueste), beim Start und etwa jede Minute,

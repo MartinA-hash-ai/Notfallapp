@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.45.0",
+    "date": "2026-10-27T19:00",
+    "items": [
+      "Beschreibung auf der Seite eines Bedarfs höchstens 11 Zeilen hoch, der Rest mit Scrollbalken (auch beim Schreiben)",
+      "Knöpfe „Recherche mit Copilot“ (Förderplan) und „Kontaktdaten mit Copilot“ (Zuständig) entfallen – alles über das Copilot-Zeichen oben rechts",
+      "Ordner nur noch als SharePoint-Link: das Feld „Pfad im Explorer“ entfällt; aus einem eingefügten SharePoint-Link lernt die Liste, wo „Ortsgliederungen“ liegt, und baut die Links für von Cowork oder Copilot gefundene Ordner selbst – auch rückwirkend",
+      "Copilot soll beim Ordner den SharePoint-Link liefern; nennt er nur den Pfad, wird daraus der Link",
+      "Copilot und Cowork dürfen in Beschreibung, Pro/Contra, Fristen, Fördersumme und Eigenanteil formatieren (*fett*, _kursiv_, Aufzählung); **fett** aus Markdown wird umgewandelt"
+    ]
+  },
+  {
     "version": "0.44.1",
     "date": "2026-10-27T17:00",
     "items": [

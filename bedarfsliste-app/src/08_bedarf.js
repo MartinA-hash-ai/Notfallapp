@@ -16,7 +16,7 @@ const seg = (opts, cur, attrs, cls = '') => `<div class="seg ${cls}" role="group
   `<button type="button" class="${v === cur ? 'on ' + (tone || '') : ''}" data-act="set" data-v="${esc(v)}" ${attrs} aria-pressed="${v === cur}">${l}</button>`).join('') + '</div>';
 const dl = (id, vals) => `<datalist id="${id}">${uniq(vals).map(v => `<option value="${esc(v)}"></option>`).join('')}</datalist>`;
 const INFO = {
-  ordner: 'Link: in OneDrive beim Ordner „Link kopieren“ wählen und hier einfügen – „Öffnen“ zeigt den Ordner im Browser, Word-Dateien gehen von dort in der Desktop-App auf. Pfad: aus der Adresszeile des Explorers kopieren. „Kopieren“ legt ihn in die Zwischenablage, im Explorer dann Strg+L und Strg+V. Direkt öffnen kann der Browser den Explorer nicht.',
+  ordner: 'Den Ordner in SharePoint im Browser öffnen und die Adresse aus der Adresszeile hier einfügen – „Öffnen“ zeigt ihn dann im Browser, Word-Dateien gehen von dort in der Desktop-App auf. Aus so einem Link merkt sich die Liste, wo „Ortsgliederungen“ in SharePoint liegt, und baut die Links für die Ordner, die Cowork oder Copilot finden, selbst.',
   deadline: 'Bis wann der Bedarf gedeckt sein muss. Ohne Deadline steht in der Liste blass „ohne Deadline“.',
   stichwort: 'Bedarfe mit demselben Stichwort – zum Beispiel einem Fördertopf – lassen sich in der Liste zusammen filtern. Ein Bedarf kann mehrere Stichworte haben: eintippen, Enter, das nächste.',
   recherche: 'Die Excel enthält den Bedarf (Beschreibung, Summe, Gliederung) und den bisherigen Förderplan. Im Blatt „Anleitung“ steht, was in jede Spalte gehört – so kann eine KI sie direkt als Vorlage für die Förderrecherche nehmen. Die ausgefüllte Datei hier wieder übernehmen: neue Förderer kommen dazu, vorhandene werden ergänzt.',
@@ -24,8 +24,9 @@ const INFO = {
 };
 const infoBtn = k => `<button class="info" data-act="info" data-v="${k}" aria-label="Hinweis anzeigen" title="Hinweis">i</button>`;
 const okLink = s => /^https?:\/\//i.test((s || '').trim());
+// Ordner bekannt (von Cowork), aber noch kein Link: die Liste kennt die SharePoint-Adresse noch nicht
+const linkHinweis = b => !okLink(b.link) && (b.pfad || '').trim() && spRel(b.pfad) ? `<p class="muted small o-hw">Ordner gefunden: ${esc(spRel(b.pfad).join(' › '))}. Den Link trägt die Liste ein, sobald bei einem Bedarf einmal ein SharePoint-Link aus der Adresszeile des Browsers steht.</p>` : '';
 const linkBtn = b => okLink(b.link) ? `<a class="btn" href="${esc(b.link.trim())}" target="_blank" rel="noopener" data-act="link">Öffnen ↗</a>` : `<span class="btn disabled" aria-disabled="true" title="Erst einen Link einfügen (https://…)">Öffnen ↗</span>`;
-const copyBtn = b => `<button data-act="copy-path" ${b.pfad ? '' : 'disabled'}>Kopieren</button>`;
 // unter dem Namen: die Deadline (Klick öffnet den Kalender); wann der Bedarf angelegt wurde, steht im Hinweis
 const metaRest = b => `<button class="d-dl${b.deadline ? '' : ' leer'}" data-act="deadline" title="Deadline ändern${b.angelegt ? ' · angelegt am ' + fmtDate(b.angelegt) : ''}">Deadline: <b>${b.deadline ? fmtDate(b.deadline) : 'keine'}</b></button>`;
 // Stichworte oben neben dem Namen: Marken mit ×, dahinter ein kleines + (beim Überfahren „Stichworte oder Fördertöpfe“)
@@ -91,9 +92,9 @@ function moreMenu(btn) {
 // oben: links nur die Zuständigen (je Zeile zwei, wie die Kontakte im Förderer-Fenster), rechts die Beschreibung (die ganze Fläche ist anklickbar).
 // Deadline und Stichworte stehen im Kopf der Seite. Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift.
 function secInfo(b) {
-  const ed = UI.zEdit === b.id, cop = !ed && b.zust.some(z => z.n.trim()) ? `<button class="k-cop" data-act="pers-cop" title="Fehlende Kontaktdaten der Zuständigen von Copilot suchen lassen">Kontaktdaten mit Copilot</button>` : '';
+  const ed = UI.zEdit === b.id;
   return `<section class="card info-card eck" id="sec-eck">
-    <div class="eck-l">${kKopf('Zuständig', ed, '', cop)}<div id="zust-liste">${zustListe(b)}</div></div>
+    <div class="eck-l">${kKopf('Zuständig', ed, '')}<div id="zust-liste">${zustListe(b)}</div></div>
     <div class="eck-r">${pe(b, 'beschreibung', 'Beschreibung ' + FMT_I, 'area', { aria: 'Beschreibung', fmt: true, ph: 'Kurzbeschreibung aus der UPL oder in eigenen Worten' })}</div>
   </section>`;
 }
@@ -137,8 +138,8 @@ function sidePanel(b) {
     <div id="fr-blk">${frBlock(b)}</div>
     <h3>Unterlagen</h3><div id="ul-body" class="ci-list">${unterlagenList(b)}</div>
     <h3>Ordner ${infoBtn('ordner')}</h3>
-    <div class="o-row"><span class="o-lab">OneDrive / SharePoint</span><div class="row">${tin(b, 'link', 'class="grow" aria-label="Link zum Ordner"', 'Link einfügen (https://…)')}<span id="link-btn">${linkBtn(b)}</span></div></div>
-    <div class="o-row"><span class="o-lab">Pfad im Explorer</span><div class="row">${tin(b, 'pfad', 'class="grow mono" aria-label="Ordnerpfad"', 'C:\\Users\\…\\OneDrive - MalteserCloud\\…\\Ortsgliederungen\\<Gliederung>\\<Bedarf>')}<span id="copy-btn">${copyBtn(b)}</span></div></div>
+    <div class="o-row"><span class="o-lab">OneDrive / SharePoint</span><div class="row">${tin(b, 'link', 'class="grow" aria-label="Link zum Ordner"', 'SharePoint-Link einfügen (https://…)')}<span id="link-btn">${linkBtn(b)}</span></div>
+      <div id="link-hw">${linkHinweis(b)}</div></div>
   </section>`;
 }
 // Klick auf den Kreis: ein Stand weiter (Freigabe: offen → angefragt → zugestimmt → abgelehnt; Unterlage: fehlt → in Arbeit → vorhanden)
@@ -492,8 +493,7 @@ function secFoe(b) {
   if (zuGet(b, 'foe')) return `<section class="card fp-head zu" id="sec-foe"><div class="sec-head">${zuKopf('foe', 'Förderplan', true)}<p id="foe-kurz">${esc(foeKurz(b))}</p></div></section>`;
   return `<section class="card fp-head" id="sec-foe">
     <div class="sec-head">${zuKopf('foe', 'Förderplan', false)}
-      <div class="sec-tools"><button class="rech-btn" data-act="vorlage" title="Förderer suchen und recherchieren mit Copilot oder Cowork – öffnet die Auswahl mit beidem angehakt">Recherche mit Copilot</button>
-        <button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – du siehst zuerst die Vorschläge">${ICON_UP}</button></div></div>
+      <div class="sec-tools"><button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – du siehst zuerst die Vorschläge">${ICON_UP}</button></div></div>
     <div class="fin-wrap">
     <table class="fsum"><tbody id="fin-rows">${finRows(b)}</tbody>
       <tbody><tr class="r-eig"><th>${swa('eig')}Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>

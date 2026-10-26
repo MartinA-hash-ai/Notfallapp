@@ -257,8 +257,12 @@ async function importFoerderplan(b, file) {
 }
 // Vorschau und Übernahme – aus einer Excel (Cowork, Recherche-Vorlage) oder aus der eingefügten Antwort von Copilot (pers: Kontaktdaten der Zuständigen)
 async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
-  const linkNeu = link && okLink(link) && link.trim() !== (b.link || '').trim() ? link.trim() : ''; let linkOk = !!linkNeu;
-  const pfadNeu = ki && ki.pfad && !(b.pfad || '').trim() ? kiPfadVoll(ki.pfad) : ''; let pfadOk = !!pfadNeu;          // von Cowork gefundener Ordner des Bedarfs
+  if (got) for (const it of got.items) for (const k of ['warum', 'knackpunkte', 'fristInfo', 'hoehe', 'eigenInfo', 'notiz']) if (typeof it[k] === 'string') it[k] = kiMd(it[k]);   // **fett** → *fett*
+  if (ki && ki.beschr) ki.beschr = kiMd(ki.beschr);
+  const pfadNeu = ki && ki.pfad && !kiOrdnerPfad(b) ? kiPfadVoll(ki.pfad) : '';                  // von Cowork (oder Copilot) gefundener Ordner des Bedarfs
+  if (link && okLink(link)) spLernen(link);                                                       // ein echter SharePoint-Link verrät die Adresse von „General“
+  const linkVon = link && okLink(link) ? link.trim() : pfadNeu && !okLink(b.link) ? spLink(pfadNeu) : '';
+  const linkNeu = linkVon && linkVon !== (b.link || '').trim() ? linkVon : ''; let linkOk = !!linkNeu, pfadOk = !!pfadNeu;
   const P = (pers || []).map(p => { const z = b.zust.find(x => x.n.trim() && kkey(x.n) === kkey(p.n)); return { p, z, neu: z ? ZUST_F.filter(k => !(z[k] || '').trim() && (p[k] || '').trim()) : [] }; });
   const persNeu = P.filter(x => x.neu.length);
   const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length || persNeu.length || linkNeu || pfadNeu);
@@ -282,10 +286,12 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
     teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Neue Beschreibung übernehmen', onchange: e => { beschrOk = e.target.checked; } }),
       h('b', null, 'Neue Beschreibung'), h('button', { type: 'button', class: 'link small', onclick: e => { alt.hidden = !alt.hidden; e.target.textContent = alt.hidden ? 'bisher zeigen' : 'bisher ausblenden'; } }, 'bisher zeigen')),
       h('div', { class: 'imp-neu fmt', html: fmtText(beschrNeu) }), alt, ki.grundlage ? h('div', { class: 'imp-grund muted small' }, 'Grundlage: ' + ki.grundlage) : null)); }
-  if (pfadNeu) teile.unshift(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Pfad übernehmen', onchange: e => { pfadOk = e.target.checked; } }),
-    h('b', null, 'Ordner des Bedarfs (Pfad im Explorer)')), h('div', { class: 'imp-neu small mono' }, pfadNeu)));
-  if (linkNeu) teile.unshift(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Ordner übernehmen', onchange: e => { linkOk = e.target.checked; } }),
-    h('b', null, 'Ordner des Bedarfs'), h('a', { href: linkNeu, target: '_blank', rel: 'noopener', class: 'small' }, 'öffnen ↗')), h('div', { class: 'imp-neu small' }, linkNeu, b.link ? h('div', { class: 'muted' }, 'bisher: ' + b.link) : null)));
+  // Ordner: als SharePoint-Link, sobald die Liste die Adresse kennt – sonst nur der Ordner, der Link kommt nach (spNachziehen)
+  const ordnerText = x => { const r = spRel(x) || spRelLink(x); return r ? r.join(' › ') : ''; };
+  if (linkNeu || pfadNeu) teile.unshift(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('input', { type: 'checkbox', checked: true, 'aria-label': 'Ordner übernehmen', onchange: e => { linkOk = pfadOk = e.target.checked; } }),
+    h('b', null, 'Ordner des Bedarfs'), linkNeu ? h('a', { href: linkNeu, target: '_blank', rel: 'noopener', class: 'small' }, 'in SharePoint öffnen ↗') : null),
+    h('div', { class: 'imp-neu small' }, ordnerText(linkNeu || pfadNeu) || linkNeu || pfadNeu, b.link ? h('div', { class: 'muted' }, 'bisher: ' + b.link) : null,
+      linkNeu ? null : h('div', { class: 'muted' }, 'Den SharePoint-Link trägt die Liste nach, sobald bei einem Bedarf einmal ein SharePoint-Link aus der Adresszeile des Browsers eingefügt ist.'))));
   const persAn = persNeu.map(() => true), FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy' };
   if (persNeu.length) teile.push(h('section', { class: 'imp-box' }, h('div', { class: 'imp-kopf' }, h('b', null, 'Kontaktdaten der Zuständigen')),
     persNeu.map((x, i) => h('label', { class: 'imp-f' }, h('input', { type: 'checkbox', checked: true, onchange: e => { persAn[i] = e.target.checked; } }), h('span', { class: 'imp-n' }, x.z.n),
@@ -327,6 +333,7 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
   const before = JSON.stringify(D), was = [];
   if (linkNeu && linkOk) { b.link = linkNeu; was.push('Ordner'); }
   if (pfadNeu && pfadOk) { b.pfad = pfadNeu; if (!was.includes('Ordner')) was.push('Ordner'); }
+  if (D.settings.sp) spNachziehen();
   if (beschrNeu && beschrOk) { b.beschreibung = beschrNeu; was.push('Beschreibung'); }
   const nu = ulVor.filter(v => v.apply && v.an); nu.forEach(v => v.apply()); if (nu.length) was.push(nu.length + (nu.length === 1 ? ' Unterlage' : ' Unterlagen'));
   const np = persNeu.filter((x, i) => persAn[i]); np.forEach(x => x.neu.forEach(k => { x.z[k] = x.p[k]; })); if (np.length) was.push('Kontaktdaten bei ' + np.length + (np.length === 1 ? ' Person' : ' Personen'));
@@ -365,7 +372,7 @@ function blattBeschreibung(b) {
     [{ v: 'Beschreibung des Bedarfs', st: { b: true, sz: 15 } }],
     [{ v: 'Bei „Vorschlag“ die neue Beschreibung eintragen (höchstens zwei kurze Absätze), bei „Grundlage“ die Dateien, die dafür gelesen wurden, bei „Ordner“ den Pfad zum Ordner des Bedarfs, wenn er gefunden wurde. „Bisher“ nicht ändern. Danach in der Bedarfsliste „Ergebnis übernehmen“ – dort steht beides nebeneinander.', st: S.note }],
     [], [{ v: 'Bisher', st: S.lab }, { v: b.beschreibung || '', st: S.val }], [{ v: 'Vorschlag', st: S.lab }, { v: '', st: S.val }], [{ v: 'Grundlage', st: S.lab }, { v: '', st: S.val }],
-    [{ v: 'Ordner', st: S.lab }, { v: b.pfad || '', st: S.val }], [], [{ v: 'Kennung', st: { sz: 8, color: '#9A9A9A' } }, { v: b.id, st: { sz: 8, color: '#9A9A9A' } }]] };
+    [{ v: 'Ordner', st: S.lab }, { v: kiOrdnerPfad(b), st: S.val }], [], [{ v: 'Kennung', st: { sz: 8, color: '#9A9A9A' } }, { v: b.id, st: { sz: 8, color: '#9A9A9A' } }]] };
 }
 function blattKontakte(b) {
   const S = KI_ST, rows = [[{ v: 'Kontaktdaten der Zuständigen', st: { b: true, sz: 15 } }],
@@ -383,6 +390,45 @@ function blattUnterlagen(b) {
   for (let i = 0; i < 12; i++) rows.push([0, 1, 2, 3].map(() => ({ v: '', st: S.zelle })));
   return { name: 'Unterlagen', cols: [30, 12, 40, 50], rows, merges: ['A1:D1', 'A2:D2'], heights: { 0: 24, 1: 30 }, freeze: 'A5', grid: false, lists: [{ ref: 'B5:B80', items: ['ja', 'nein'] }] };
 }
+/* ---------- SharePoint-Link zum Ordner eines Bedarfs. Die Ordner liegen unter „General“ in „Ortsgliederungen“ oder „1601_Diözese_Pojekte“ –
+   im OneDrive genauso wie in SharePoint. Die Adresse von „General“ lernt die Liste aus einem SharePoint-Link, der bei einem Bedarf eingefügt wird
+   (Adresszeile im Browser), und speichert sie in den Einstellungen; daraus baut sie den Link für jeden Ordner, den Cowork oder Copilot findet. */
+const SP_WURZEL = ['Ortsgliederungen', '1601_Diözese_Pojekte'];
+const spWurzelAb = seg => seg.findIndex(x => SP_WURZEL.some(w => norm(w) === norm(x)));
+// Link zerlegen: Adresse, Bibliothek (bei „…/Forms/AllItems.aspx?id=…“) und Pfad des Ordners auf dem Server (lesbar); Freigabe-Links („/:f:/s/…“) sagen nichts über den Ordner
+function spTeile(url) {
+  let u; try { u = new URL(String(url || '').trim()); } catch (e) { return null; }
+  if (!/\.sharepoint\.com$/i.test(u.hostname)) return null;
+  const id = u.searchParams.get('id') || u.searchParams.get('RootFolder'), f = u.pathname.match(/^(.*?)\/Forms\/[^/]+\.aspx$/i);
+  if (id) return { origin: u.origin, lib: f ? f[1] : '', pfad: id.replace(/\/$/, '') };
+  let p = u.pathname; const r = p.match(/^\/:[a-z]:\/r(\/.*)$/i); if (r) p = r[1]; else if (/^\/:[a-z]:\//i.test(p)) return null;
+  try { p = decodeURIComponent(p); } catch (e) { return null; }
+  return { origin: u.origin, lib: '', pfad: p.replace(/\/$/, '') };
+}
+// aus einem Link die Adresse von „General“ lernen – true, wenn sie neu ist
+function spLernen(url) {
+  const t = spTeile(url); if (!t) return false;
+  const seg = t.pfad.split('/'), i = spWurzelAb(seg); if (i < 1) return false;
+  const basis = { origin: t.origin, lib: t.lib, pfad: seg.slice(0, i).join('/') };
+  if (JSON.stringify(D.settings.sp || null) === JSON.stringify(basis)) return false;
+  D.settings.sp = basis; return true;
+}
+// Ordner ab „Ortsgliederungen“ bzw. „1601_Diözese_Pojekte“ – aus einem Pfad (Explorer, OneDrive, relativ) oder einem SharePoint-Link
+const spRel = p => { const seg = unquote(String(p || '')).split(/[\\/]+/).filter(Boolean), i = spWurzelAb(seg); return i < 0 ? null : seg.slice(i); };
+const spRelLink = url => { const t = spTeile(url); return t ? spRel(t.pfad) : null; };
+function spLink(p) {
+  const s = D.settings.sp, rel = spRel(p); if (!s || !rel) return '';
+  const voll = s.pfad + '/' + rel.join('/');
+  return s.lib ? s.origin + s.lib + '/Forms/AllItems.aspx?id=' + encodeURIComponent(voll) : s.origin + voll.split('/').map(encodeURIComponent).join('/');
+}
+// Ordner des Bedarfs im OneDrive (für Cowork): gefundener Pfad oder aus dem SharePoint-Link zurückgerechnet
+function kiOrdnerPfad(b) {
+  if ((b.pfad || '').trim()) return unquote(b.pfad).trim();
+  const rel = okLink(b.link) && spRelLink(b.link);
+  return rel ? kiPfadVoll(KI_ABLAGE.replace(/\\Ortsgliederungen$/, '') + '\\' + rel.join('\\')) : '';
+}
+// Bedarfe mit bekanntem Ordner, aber ohne Link: Link nachtragen (nachdem die Adresse gelernt ist)
+function spNachziehen() { let n = 0; for (const b of D.bedarfe) if (!okLink(b.link) && (b.pfad || '').trim()) { const l = spLink(b.pfad); if (l) { b.link = l; n++; } } return n; }
 // „OneDrive - MalteserCloud\…“ (so schreibt es Cowork) zum vollen Pfad ergänzen – mit dem Anfang des Pfads, unter dem die Bedarfsliste liegt (C:\Users\…\)
 function kiPfadVoll(p) {
   if (!p || /^[a-z]:\\|^\\\\/i.test(p)) return p;

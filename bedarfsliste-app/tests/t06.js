@@ -66,14 +66,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join('|') === 'r-sum:Gesamtbedarf:100 %|r-zu:Sparkasse Musterstadt:15 %|r-be:Bürgerstiftung Musterstadt:22 %|r-ge:Beispiel-Soziallotterie:44 %', 'Förderplan-Tabelle: Gesamtbedarf, Förderer farbig nach Stand mit Anteil: ' + r.join('|'));
   r = await p.evaluate(() => [document.querySelector('#fin-eig').textContent, [...document.querySelectorAll('#sec-foe .sec-tools button')].map(x => x.className + ':' + x.textContent.trim()).join('+'), document.querySelectorAll('.card.fp').length, document.querySelectorAll('.fp .fbar, .fp select').length,
     getComputedStyle(document.querySelector('.fp .pro')).borderTopStyle, getComputedStyle(document.querySelector('.fp .pro')).backgroundColor]);
-  ok(r.join() === '19 %,rech-btn:Recherche mit Copilot+icon-btn:,3,0,none,rgba(0, 0, 0, 0)', 'Eigenmittel mit Anteil, Knopf „Recherche mit Copilot“ und Upload-Symbol, je Förderer eine Karte ohne Balken und Art-Feld, Pro ohne Rahmen: ' + r.join());
+  ok(r.join() === '19 %,icon-btn:,3,0,none,rgba(0, 0, 0, 0)', 'Eigenmittel mit Anteil, nur das Upload-Symbol, je Förderer eine Karte ohne Balken und Art-Feld, Pro ohne Rahmen: ' + r.join());
   r = await p.evaluate(() => [document.querySelectorAll('#fin-pie svg.pie .ps').length, [...document.querySelectorAll('#fin-pie .ps')].map(x => x.getAttribute('class').replace('ps ', '')).join(),
     [...document.querySelectorAll('#sec-foe .fsum .swa')].map(x => x.className.replace('swa ', '')).join(), !!document.querySelector('#sec-foe .fbar'), !!document.querySelector('.ci-foot.ok'),
     Math.round(document.querySelector('#sec-foe .fsum').getBoundingClientRect().width) <= 580, document.querySelector('#fin-pie').getBoundingClientRect().left > document.querySelector('#sec-foe .fsum').getBoundingClientRect().right]);
   ok(r.join('|') === '4|zu,eig,be,ge|none,zu,be,ge,eig|false|false|true|true', 'Förderplan: Kreisdiagramm neben der schmaleren Tabelle, Farbfelder als Legende; kein Balken, kein grüner Kasten „Freigabe vollständig“: ' + r.join('|'));
   r = await p.evaluate(() => [...document.querySelectorAll('.d-right .circ')].map(c => c.className.replace('circ c-', '')).join());
   ok(r === 'ok,ok,ok,ok,ok,ok,ok,run,add', 'rechts: Freigaben und Unterlagen als Kreise: ' + r);
-  ok(!!(await p.$('.d-right input[data-p="link"]')) && !!(await p.$('.d-right input[data-p="pfad"]')), 'Ordner rechts unter den Unterlagen');
+  ok(!!(await p.$('.d-right input[data-p="link"]')) && !(await p.$('input[data-p="pfad"]')), 'Ordner rechts unter den Unterlagen, nur als Link');
   // Klick auf einen Kreis: gleich der nächste Stand, kein Menü
   const ulSt = () => p.evaluate(() => cur().unterlagen.find(u => u.name === 'Kostenplan').st);
   const kp = '.d-right .ci-row:has(input[value="Kostenplan"]) .circ';
@@ -162,7 +162,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join() === '34px,56.55px,14px', 'Summe oben größer; Pro und Contra mit drei Zeilen Vorschau und mehr Abstand: ' + r.join());
   ok(await p.evaluate(() => F_ST.map(x => x[0]).join()) === 'geplant,beantragt,zugesagt,abgelehnt', 'Stände der Förderer: geplant, beantragt, zugesagt, abgelehnt (ohne „in Vorbereitung“)');
   await p.click('button[data-act="info"][data-v="ordner"]');
-  ok((await p.$eval('.info-pop', e => e.textContent)).includes('Link kopieren'), 'Hinweis zum Ordner hinter dem „i“');
+  ok((await p.$eval('.info-pop', e => e.textContent)).includes('Adresszeile'), 'Hinweis zum Ordner hinter dem „i“');
   await p.mouse.click(5, 300);
   await p.click('button[data-act="det"][data-v="f-mtw-spk"]');
   ok((await p.$$eval('.foe-pop .k1.kartei', e => e.map(x => x.textContent).join())).includes('Erika Beispiel') && !(await p.$('#foe-f-mtw-spk .foe-pop')), 'Kontakt als Fenster über der Seite: Kontakte aus der Kartei in der Liste');

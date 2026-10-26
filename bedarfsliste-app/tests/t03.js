@@ -69,7 +69,7 @@ async function writeKartei(p, kontakt) {
   ok(r[0] && r[1] && r[2] >= 1, 'großes Blatt: Anfang gelesen, Rest übersprungen (' + r[2] + ' Förderer)');
   // Recherche mit Copilot (öffnet die Auswahl des Copilot-Knopfs mit „Förderer suchen“ und „Förderrecherche“): Excel im Unterordner „Förderrecherche“,
   // mit Kartei-Auszug für die Gliederung (ohne Kontaktdaten); ausgefüllt wieder übernehmen
-  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .ki-kacheln'); await p.click('.ki-fuss .link');
+  await p.evaluate(() => { kiDialog(cur(), ['suchen', 'recherche']); }); await p.waitForSelector('.modal .ki-kacheln'); await p.click('.ki-fuss .link');
   r = await p.evaluate(() => [document.querySelector('.ki-los').textContent.replace('Auftrag kopieren', 'Excel anlegen und Prompt kopieren'), document.querySelector('.ki textarea').value,
     [...document.querySelectorAll('.ki-k.on')].map(e => e.dataset.k).join()]);
   ok(r[0] === 'Excel anlegen und Prompt kopieren' && r[2] === 'suchen,recherche' && r[1].includes('Gliederung: Iserlohn-Menden') && r[1].includes('Bezug zu Iserlohn-Menden') && r[1].includes('Blatt „Förder-Kartei“') && r[1].includes('Unterordner „Förderrecherche“'), 'mit Ordner: „Excel anlegen“, Prompt nennt Gliederung, Kartei-Blatt und die angehängte Datei');
@@ -91,7 +91,7 @@ async function writeKartei(p, kontakt) {
     const rows = [['Förderplan'], [], ['Kennung', cur().id], [], cols, ['Herner Sparkasse', 'geplant', '', '', ''], ['Stiftung Neu', '', '3000', 'Fördert Ausstattung im Ehrenamt', 'https://neu.example'], ['Lotterie Neu', '', '2.000', 'Regionalbezug', '']];
     __fs.files[rp.replace(/\.xlsx$/, ' (1).xlsx')] = { data: new Uint8Array(await xlsxBlob([{ name: 'Förderplan', cols: cols.map(() => 12), rows }]).arrayBuffer()), lm: 90000 };
   }, RP);
-  await p.click('button[data-act="vorlage"]'); await p.waitForSelector('.modal .ki-kacheln');
+  await p.evaluate(() => { kiDialog(cur(), ['suchen', 'recherche']); }); await p.waitForSelector('.modal .ki-kacheln');
   await p.click('.ki-erg'); await p.waitForSelector('.modal .imp');
   t = await p.$eval('.modal', e => e.textContent.replace(/\u00a0/g, ' '));
   ok(t.includes('3 Förderer') && t.includes('Neu ausgewählt: 2 Förderer, erwartet zusammen 5.000 €') && t.includes('im Plan: geplant'), '„Excel übernehmen“ liest die Datei aus dem Ordner und zeigt die Vorschläge: ' + t.replace(/\s+/g, ' ').slice(0, 160));
@@ -101,7 +101,7 @@ async function writeKartei(p, kontakt) {
   // Personen-Excel: Kontaktdaten der Zuständigen, von Copilot oder von Hand gepflegt; die Liste liest alle „Personen…xlsx“ im Ordner
   const pers = (name, rows, lm) => p.evaluate(async ([name, rows, lm]) => { __fs.files['/Ordner/' + name] = { data: new Uint8Array(await xlsxBlob([{ name: 'Personen', cols: rows[0].map(() => 14), rows }]).arrayBuffer()), lm }; }, [name, rows, lm]);
   await p.evaluate(() => { cur().zust = [{ n: 'Paula Person', rolle: '', mail: '', tel: '0170 eigene' }, { n: 'Otto Ohne', rolle: '', mail: '', tel: '' }]; changed(); renderNow(); });
-  await p.click('#sec-eck .k-cop'); await p.waitForSelector('.modal .rech-steps');
+  await p.evaluate(() => { personenDialog(cur()); }); await p.waitForSelector('.modal .rech-steps');
   r = await p.evaluate(() => [document.querySelector('.rech-steps li button').textContent, document.querySelector('.rech-prompt').value]);
   ok(r[0] === 'Excel anlegen' && r[1].includes('- Paula Person (Iserlohn-Menden)\n- Otto Ohne (Iserlohn-Menden)') && r[1].includes('die angehängte Excel „Personen.xlsx“') && r[1].length < 1100,
     'Kontaktdaten mit Copilot: noch keine Excel; kurzer Auftrag nennt die Zuständigen mit Gliederung (' + r[1].length + ' Zeichen)');
