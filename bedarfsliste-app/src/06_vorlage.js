@@ -394,6 +394,9 @@ function blattUnterlagen(b) {
    im OneDrive genauso wie in SharePoint. Die Adresse von „General“ lernt die Liste aus einem SharePoint-Link, der bei einem Bedarf eingefügt wird
    (Adresszeile im Browser), und speichert sie in den Einstellungen; daraus baut sie den Link für jeden Ordner, den Cowork oder Copilot findet. */
 const SP_WURZEL = ['Ortsgliederungen', '1601_Diözese_Pojekte'];
+// Standard: „General“ im Team „Fundraising-Team - Diözese Paderborn“ (aus einem Link zu Ortsgliederungen › Büren › RE - Küche)
+const SP_STANDARD = { origin: 'https://maltesercloud.sharepoint.com', lib: '/sites/Fundraising-Team-DizesePaderborn/Freigegebene%20Dokumente', pfad: '/sites/Fundraising-Team-DizesePaderborn/Freigegebene Dokumente/General' };
+const spBasis = () => (typeof D !== 'undefined' && D && D.settings && D.settings.sp) || SP_STANDARD;
 const spWurzelAb = seg => seg.findIndex(x => SP_WURZEL.some(w => norm(w) === norm(x)));
 // Link zerlegen: Adresse, Bibliothek (bei „…/Forms/AllItems.aspx?id=…“) und Pfad des Ordners auf dem Server (lesbar); Freigabe-Links („/:f:/s/…“) sagen nichts über den Ordner
 function spTeile(url) {
@@ -409,15 +412,17 @@ function spTeile(url) {
 function spLernen(url) {
   const t = spTeile(url); if (!t) return false;
   const seg = t.pfad.split('/'), i = spWurzelAb(seg); if (i < 1) return false;
-  const basis = { origin: t.origin, lib: t.lib, pfad: seg.slice(0, i).join('/') };
-  if (JSON.stringify(D.settings.sp || null) === JSON.stringify(basis)) return false;
+  // Bibliothek: aus „…/Forms/AllItems.aspx“, sonst /sites/<Website>/<Bibliothek> – die Links baut die Liste immer in der Form „AllItems.aspx?id=…“
+  const lib = t.lib || (/^(sites|teams)$/i.test(seg[1] || '') && i > 3 ? seg.slice(0, 4).map(encodeURIComponent).join('/') : '');
+  const basis = { origin: t.origin, lib, pfad: seg.slice(0, i).join('/') };
+  if (JSON.stringify(spBasis()) === JSON.stringify(basis)) return false;
   D.settings.sp = basis; return true;
 }
 // Ordner ab „Ortsgliederungen“ bzw. „1601_Diözese_Pojekte“ – aus einem Pfad (Explorer, OneDrive, relativ) oder einem SharePoint-Link
 const spRel = p => { const seg = unquote(String(p || '')).split(/[\\/]+/).filter(Boolean), i = spWurzelAb(seg); return i < 0 ? null : seg.slice(i); };
 const spRelLink = url => { const t = spTeile(url); return t ? spRel(t.pfad) : null; };
-function spLink(p) {
-  const s = D.settings.sp, rel = spRel(p); if (!s || !rel) return '';
+function spLink(p, s = spBasis()) {
+  const rel = spRel(p); if (!s || !rel) return '';
   const voll = s.pfad + '/' + rel.join('/');
   return s.lib ? s.origin + s.lib + '/Forms/AllItems.aspx?id=' + encodeURIComponent(voll) : s.origin + voll.split('/').map(encodeURIComponent).join('/');
 }

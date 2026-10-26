@@ -43,6 +43,8 @@ und verworfene Hinweise merkt sie sich. (3) Hinweise, die einen Stand zurückset
 `/:f:/s/…`) merkt sich die Liste in den Einstellungen, wo „Ortsgliederungen“ bzw. „1601_Diözese_Pojekte“ in SharePoint liegen, und baut
 daraus die Links für Ordner, die Cowork (Pfad im OneDrive) oder Copilot finden – auch rückwirkend für Bedarfe, deren Ordner schon bekannt ist.
 Für Cowork rechnet sie den Link in den Pfad im OneDrive zurück.
+Seit 0.45.1 ist die Adresse fest eingetragen (`maltesercloud.sharepoint.com/sites/Fundraising-Team-DizesePaderborn/Freigegebene Dokumente/General`);
+ein eingefügter Link einer anderen Ablage ersetzt sie. Freigabelinks (`/:f:/s/…`) öffnen den Ordner, verraten aber den Pfad nicht – Links mit `/:f:/r/` schon.
 
 **Ansicht der Liste:** „Ausführlich“ zeigt alles (Förderer einzeln, Ansprechperson, Deadline); „Kompakt“ je Bedarf eine Zeile mit
 Name, Summe, Ort und je Bereich nur dem Stand – grün durch, gelb in Bearbeitung, rot abgelehnt, leerer Kreis noch nichts, grau nicht nötig.

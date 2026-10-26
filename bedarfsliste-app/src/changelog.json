@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.45.1",
+    "date": "2026-10-27T20:00",
+    "items": [
+      "SharePoint-Adresse des Fundraising-Teams fest eingetragen: Links zu Ordnern, die Cowork oder Copilot finden, entstehen sofort – auch für Bedarfe, deren Ordner schon bekannt ist",
+      "Freigabelinks („/:f:/s/…“): Hinweis, dass Cowork den Ordner darüber nicht findet – besser die Adresse aus der Adresszeile oder einen Link mit „/:f:/r/“"
+    ]
+  },
+  {
     "version": "0.45.0",
     "date": "2026-10-27T19:00",
     "items": [

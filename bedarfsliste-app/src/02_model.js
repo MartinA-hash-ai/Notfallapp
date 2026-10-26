@@ -150,6 +150,7 @@ function normalize(d) {
     if (!(n.prio in PRIO_ORD) || n.prio === 'niedrig') n.prio = 'mittel';         // ab 0.36 nur noch Prio (Stern) oder keine
     for (const k of ['titel', 'gliederung', 'beschreibung', 'link', 'pfad']) if (typeof n[k] !== 'string') n[k] = n[k] == null ? '' : String(n[k]);
     n.pfad = unquote(n.pfad);
+    if (!/^https?:\/\//i.test(n.link.trim()) && n.pfad.trim()) n.link = spLink(n.pfad, (isObj(o.settings) && o.settings.sp) || SP_STANDARD);   // Ordner bekannt: SharePoint-Link dazu
     return n;
   });
   return o;

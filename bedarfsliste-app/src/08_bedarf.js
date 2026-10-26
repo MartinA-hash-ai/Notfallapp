@@ -25,7 +25,8 @@ const INFO = {
 const infoBtn = k => `<button class="info" data-act="info" data-v="${k}" aria-label="Hinweis anzeigen" title="Hinweis">i</button>`;
 const okLink = s => /^https?:\/\//i.test((s || '').trim());
 // Ordner bekannt (von Cowork), aber noch kein Link: die Liste kennt die SharePoint-Adresse noch nicht
-const linkHinweis = b => !okLink(b.link) && (b.pfad || '').trim() && spRel(b.pfad) ? `<p class="muted small o-hw">Ordner gefunden: ${esc(spRel(b.pfad).join(' › '))}. Den Link trägt die Liste ein, sobald bei einem Bedarf einmal ein SharePoint-Link aus der Adresszeile des Browsers steht.</p>` : '';
+// Freigabelink („/:f:/s/…“): öffnet den Ordner, verrät aber nicht, wo er liegt – Cowork findet ihn darüber nicht
+const linkHinweis = b => okLink(b.link) && /\/:[a-z]:\/[sgu]\//i.test(b.link) && !(b.pfad || '').trim() ? '<p class="muted small o-hw">Freigabelink: öffnet den Ordner, aber Cowork findet ihn darüber nicht. Besser in SharePoint die Adresse aus der Adresszeile oder einen Link mit „/:f:/r/“ einfügen.</p>' : '';
 const linkBtn = b => okLink(b.link) ? `<a class="btn" href="${esc(b.link.trim())}" target="_blank" rel="noopener" data-act="link">Öffnen ↗</a>` : `<span class="btn disabled" aria-disabled="true" title="Erst einen Link einfügen (https://…)">Öffnen ↗</span>`;
 // unter dem Namen: die Deadline (Klick öffnet den Kalender); wann der Bedarf angelegt wurde, steht im Hinweis
 const metaRest = b => `<button class="d-dl${b.deadline ? '' : ' leer'}" data-act="deadline" title="Deadline ändern${b.angelegt ? ' · angelegt am ' + fmtDate(b.angelegt) : ''}">Deadline: <b>${b.deadline ? fmtDate(b.deadline) : 'keine'}</b></button>`;
