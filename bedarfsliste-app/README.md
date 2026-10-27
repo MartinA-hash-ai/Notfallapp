@@ -124,6 +124,14 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.54:** Förderer stehen überall (Förderplan, Kacheln, Liste, Übernahme-Vorschau) in dieser Reihenfolge: zugesagt, dann nach Einschätzung
+von „sehr wahrscheinlich“ bis „sehr unwahrscheinlich“ (ohne Einschätzung wie „unsicher“), abgelehnt ganz unten. Das Angebot steht nicht mehr in
+der Liste; auf der Seite des Bedarfs ist es die erste Unterlage, danach die neue feste Unterlage „Interview“ (offen / vereinbart / geführt), dann
+Konzept und Projektsteckbrief. „+ weitere Person“ bei den Zuständigen ist ein gestrichelter Kasten im Raster (bei ungerader Zahl daneben, sonst
+in der nächsten Zeile). Das Zahnrad-Menü ist gegliedert: Darstellung, Programm-Update (fett), Excel einlesen, Vorlagen, Datensicherung und
+„Über die Bedarfsliste und Tastaturbefehle“; „Texte formatieren“ (steht als „i“ an den Feldern) und „Förderer-Übersicht aktualisieren“
+(läuft von selbst) sind entfallen.
+
 **Personenliste nur mit Bestätigung (seit 0.53):** Die Liste schreibt nicht mehr von selbst in `Personen.xlsx`. Neue oder geänderte Zuständige
 kommen nur nach einer Rückfrage hinein: beim „Fertig“ unter „Zuständig“ (auch beim Verlassen der Seite während des Bearbeitens), beim Eintragen
 einer neuen Ansprechperson in der Liste (die Frage kommt erst, wenn die Eingabe fertig ist) und beim Einpflegen einer Recherche („auch dauerhaft

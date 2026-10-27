@@ -18,7 +18,7 @@ const EINSCH = [['sw', 'sehr wahrscheinlich', 't-e5'], ['w', 'wahrscheinlich', '
 const EINSCH_ALT = { gut: 'w', unsicher: 'u', schwierig: 'uw' };
 // Verwendungsnachweis (Sach- und Finanzbericht in einem Abwasch)
 const VN_ST = [['offen', 'steht aus'], ['arbeit', 'in Arbeit', 't-warn'], ['erledigt', 'erledigt', 't-ok']];
-const FEST_UL = ['Konzept', 'Projektsteckbrief', 'Angebot'];
+const FEST_UL = ['Angebot', 'Interview', 'Konzept', 'Projektsteckbrief'];        // feste Unterlagen in dieser Reihenfolge (Interview: Gespräch mit den Leuten vor Ort, ab 0.54)
 
 function emptyData() { return { meta: { savedAt: null, rev: 0 }, settings: { kartei: '' }, bedarfe: [] }; }
 function blank() {
@@ -114,6 +114,8 @@ function normalize(d) {
       if (n.unterlagen.some(u => u.fest && u.name === name)) return;
       n.unterlagen.splice(Math.min(i, n.unterlagen.length), 0, UL(name, name === 'Angebot' && alt ? ({ ok: 'da', angefragt: 'arbeit' })[alt] || 'fehlt' : 'fehlt', true));
     });
+    // feste Unterlagen vorn in der Reihenfolge von FEST_UL (Angebot zuerst), danach die eigenen
+    n.unterlagen = [...FEST_UL.map(name => n.unterlagen.find(u => u.fest && u.name === name)), ...n.unterlagen.filter(u => !(u.fest && FEST_UL.includes(u.name)))];
     delete n.freigabe.angebot; delete n.freigabe.trotzdem;
     n.foerderer = (Array.isArray(b.foerderer) ? b.foerderer : []).filter(isObj).map(f0 => {
       const f = mergeSicher(ff({}), f0), v = f.vn, v0 = isObj(f0.vn) ? f0.vn : {}, sb = isObj(f0.sb) ? f0.sb : null;
@@ -177,7 +179,7 @@ function frOffen(b) {
   const open = frItems(b).filter(i => frNeeded(i) && i.st !== 'ok');                // das Angebot ist seit 0.52 eine Unterlage, kein Teil der Freigabe
   return { names: open.map(frName), rej: open.filter(i => i.st === 'nein') };
 }
-const ulOpts = u => u.fest && u.name === 'Angebot' ? [['fehlt', 'fehlt'], ['arbeit', 'angefragt', 't-warn'], ['da', 'liegt vor', 't-ok'], ['nn', 'nicht nötig']] : [['fehlt', 'fehlt'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'vorhanden', 't-ok']];
+const ulOpts = u => u.fest && u.name === 'Interview' ? [['fehlt', 'offen'], ['arbeit', 'vereinbart', 't-warn'], ['da', 'geführt', 't-ok']] : u.fest && u.name === 'Angebot' ? [['fehlt', 'fehlt'], ['arbeit', 'angefragt', 't-warn'], ['da', 'liegt vor', 't-ok'], ['nn', 'nicht nötig']] : [['fehlt', 'fehlt'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'vorhanden', 't-ok']];
 const ulText = u => (ulOpts(u).find(o => o[0] === u.st) || [, u.st])[1];
 
 /* ---------- Finanzierung */
@@ -196,8 +198,13 @@ function fin(b) {
 // d: was noch fehlt (> 0) oder zu viel ist (< 0) – solange die Finanzierung nicht steht, zählen auch geplante und beantragte Förderer mit
 // Beträge in Cent vergleichen: 1.200,10 + 300,30 ist genau 1.500,40 (mit Kommazahlen käme 1.500,3999… heraus – nie „Finanzierung steht“)
 const ct = x => Math.round((+x || 0) * 100);
+// Reihenfolge der Förderer überall: zugesagt oben, dann nach Einschätzung (sehr wahrscheinlich … sehr unwahrscheinlich; ohne Einschätzung wie
+// „unsicher“), abgelehnt ganz unten; Gleiches bleibt in der eingetragenen Reihenfolge
+const EINSCH_RANG = { sw: 1, w: 2, u: 3, uw: 4, suw: 5 };
+const foeRang = f => f.status === 'zugesagt' ? 0 : f.status === 'abgelehnt' ? 9 : EINSCH_RANG[f.einsch] || 3;
+const foeSortiert = L => L.map((f, i) => [f, i]).sort((a, c) => foeRang(a[0]) - foeRang(c[0]) || a[1] - c[1]).map(x => x[0]);
 function finState(b) {
-  const S = +b.summe || 0, eig = +b.eigenanteil || 0, fs = b.foerderer.filter(f => f.name.trim() || f.betrag);
+  const S = +b.summe || 0, eig = +b.eigenanteil || 0, fs = foeSortiert(b.foerderer.filter(f => f.name.trim() || f.betrag));
   const sum = L => L.reduce((a, f) => a + foeAmt(f), 0);
   const zu = sum(fs.filter(f => f.status === 'zugesagt')), plan = sum(fs.filter(f => f.status !== 'abgelehnt'));
   // gedeckt: Zusagen und Eigenmittel decken die Summe – mit mindestens einer Zusage (nur Eigenmittel gelten nicht als finanziert, Ziel sind Förderer);

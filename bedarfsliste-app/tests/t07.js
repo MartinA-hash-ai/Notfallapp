@@ -76,13 +76,12 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await B('b-aed')).freigabe.verw.angefragt === await p.evaluate(() => today()), 'angefragt: Datum wie auf der Seite des Bedarfs gesetzt');
   const ang = async id => (await B(id)).unterlagen.find(u => u.name === 'Angebot').st;
   seq.length = 0;
-  for (let i = 0; i < 4; i++) { await p.click(R('b-dig-bue') + ' [data-le="ang"]'); seq.push(await ang('b-dig-bue')); }
-  ok(seq.join() === 'da,nn,fehlt,arbeit', 'Angebot: angefragt → liegt vor → nicht nötig → fehlt → angefragt: ' + seq.join());
-  await p.click(R('b-mtw') + ' .fn[data-le="foe"] >> nth=1');
+  ok(!(await p.$(R('b-dig-bue') + ' [data-le="ang"]')) && await ang('b-dig-bue') === 'arbeit', 'das Angebot steht nicht mehr in der Liste (Unterlage auf der Seite des Bedarfs)');
+  await p.click(R('b-mtw') + ' .fn[data-le="foe"][data-fid="f-mtw-bst"]');
   r = await F('b-mtw', 'Bürgerstiftung Musterstadt');
   ok(r.status === 'zugesagt' && r.zugesagt === 15000 && r.entscheidungAm === await p.evaluate(() => today()), 'Förderer in Bearbeitung → Klick → Zusage (Betrag und Datum übernommen)');
   seq.length = 0;
-  for (let i = 0; i < 3; i++) { await p.click(R('b-mtw') + ' .fn[data-le="foe"] >> nth=1'); seq.push((await F('b-mtw', 'Bürgerstiftung Musterstadt')).status); }
+  for (let i = 0; i < 3; i++) { await p.click(R('b-mtw') + ' .fn[data-le="foe"][data-fid="f-mtw-bst"]'); seq.push((await F('b-mtw', 'Bürgerstiftung Musterstadt')).status); }
   ok(seq.join() === 'abgelehnt,geplant,beantragt', 'Förderer: Zusage → Absage → geplant → beantragt: ' + seq.join());
   seq.length = 0;
   const vn = async () => { const f = await F('b-mtw', 'Sparkasse Musterstadt'); return f.vn.noetig ? f.vn.st : 'nicht nötig'; };
@@ -95,7 +94,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok((await B('b-klausur')).freigabe.ofk.st === 'offen' && (await p.$eval('#toasts', e => e.textContent)).includes('entfällt'), 'Diözese: Ortsführungskreis entfällt, bleibt unverändert');
 
   // Beträge und Eigenmittel
-  await edit(R('b-mtw') + ' .fa[data-le="amt"] >> nth=2', '25.000');
+  await edit(R('b-mtw') + ' .fa[data-le="amt"][data-fid="f-mtw-lot"]', '25.000');
   await edit(R('b-aed') + ' [data-le="eig"]', '400');
   ok((await F('b-mtw', 'Beispiel-Soziallotterie')).betrag === 25000 && (await B('b-aed')).eigenanteil === 400, 'Betrag eines Förderers und Eigenmittel geändert');
 
@@ -120,13 +119,13 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r === 'Sparkasse Musterstadt:1000,Stadt Lippstadt:500,Kreis Soest:250' && !(await p.$('.le-new')), 'drei Förderer nacheinander nur mit der Tastatur; Enter schließt ab: ' + r);
 
   // Stift ganz rechts: Förderer umbenennen
-  await p.hover(R('b-mtw') + ' .fn[data-le="foe"] >> nth=1');
+  await p.hover(R('b-mtw') + ' .fn[data-le="foe"][data-fid="f-mtw-bst"]');
   r = await p.$$eval(R('b-mtw') + ' .le-pen', b => b.map(x => getComputedStyle(x).visibility).join());
-  ok(r === 'hidden,visible,hidden', 'Stift erscheint nur am Förderer unter der Maus: ' + r);
-  r = await p.evaluate(sel => { const pen = document.querySelectorAll(sel + ' .le-pen')[1].getBoundingClientRect(), nm = document.querySelectorAll(sel + ' .fn-t')[1].getBoundingClientRect(),
-    amt = document.querySelectorAll(sel + ' .fa[data-le="amt"]')[1].getBoundingClientRect(); return [Math.abs(pen.top + pen.height / 2 - (nm.top + 10)) < 4, pen.left >= nm.right, pen.right <= amt.left]; }, R('b-mtw'));
+  ok(r === 'hidden,hidden,visible', 'Stift erscheint nur am Förderer unter der Maus (Bürgerstiftung steht nach der Einschätzung an dritter Stelle): ' + r);
+  r = await p.evaluate(sel => { const pen = document.querySelectorAll(sel + ' .le-pen')[2].getBoundingClientRect(), nm = document.querySelectorAll(sel + ' .fn-t')[2].getBoundingClientRect(),
+    amt = document.querySelectorAll(sel + ' .fa[data-le="amt"]')[2].getBoundingClientRect(); return [Math.abs(pen.top + pen.height / 2 - (nm.top + 10)) < 4, pen.left >= nm.right, pen.right <= amt.left]; }, R('b-mtw'));
   ok(r.join() === 'true,true,true', 'Stift in der Zeile des Namens, rechts davon und vor dem Betrag: ' + r.join());
-  await p.click(R('b-mtw') + ' .le-pen >> nth=1');
+  await p.click(R('b-mtw') + ' .le-pen >> nth=2');
   r = await p.evaluate(sel => { const e = document.activeElement, a = document.querySelector(sel + ' .fa[data-le="amt"]').getBoundingClientRect(); return [e.value, e.placeholder, e.getBoundingClientRect().right <= a.left]; }, R('b-mtw'));
   ok(r.join('|') === 'Bürgerstiftung Musterstadt|Förderer|true', 'Stift: Name zum Ändern, Feld endet vor den Beträgen: ' + r.join('|'));
   await p.fill('.le-edit', 'Bürgerstiftung Beispielstadt'); await p.press('.le-edit', 'Enter');

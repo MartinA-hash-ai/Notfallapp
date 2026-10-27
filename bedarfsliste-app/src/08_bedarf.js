@@ -459,7 +459,7 @@ document.addEventListener('mouseover', e => {
 function finRows(b) {
   const S = +b.summe || 0, F = finState(b);
   return `<tr class="r-sum"><th>${swa('none')}Gesamtbedarf</th><td class="num">${S ? eur(S) : '–'}</td><td class="num">${S ? '100 %' : ''}</td></tr>`
-    + b.foerderer.filter(f => f.name.trim() || f.betrag).map(f => { const v = foeAmt(f);
+    + foeSortiert(b.foerderer.filter(f => f.name.trim() || f.betrag)).map(f => { const v = foeAmt(f);
       const weg = F.done && f.status === 'geplant';                                  // Finanzierung steht: geplante Förderer braucht es nicht mehr
       return `<tr class="${ROW_CLS[f.status]}${weg ? ' r-weg' : ''}"><th>${swa(segKind(f))}${esc(f.name || '(ohne Namen)')} <span class="r-st">${weg ? 'geplant – nicht mehr nötig' : F_ST_L[f.status]}${f.status === 'zugesagt' && f.eingegangen > 0 ? ', eingegangen' : ''}</span></th><td class="num">${eur(v)}</td><td class="num">${weg || f.status === 'abgelehnt' ? '' : pct(v, S)}</td></tr>`; }).join('')
     + (F.d ? `<tr class="r-delta"><th>${swa(F.d > 0 ? 'off' : 'none')}${F.d > 0 ? 'Delta <span class="r-st">noch ohne Förderer</span>' : 'Überfinanzierung'}</th><td class="num">${eur(Math.abs(F.d))}</td><td class="num">${pct(Math.abs(F.d), S)}</td></tr>` : '');
@@ -495,7 +495,7 @@ function secFoe(b) {
       <tbody><tr class="r-eig"><th>${swa('eig')}Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
     <div id="fin-pie" class="fin-pie">${finPie(b)}</div></div>
   </section>
-  <div class="fk-grid">${b.foerderer.map(f => fpCard(b, f)).join('')}<button class="fk-neu" data-act="add-foe" title="Förderer hinzufügen – viele auf einmal über die Recherche-Excel (Symbol oben rechts im Förderplan)"><span class="fk-plus" aria-hidden="true">+</span>Förderer hinzufügen</button></div>`;
+  <div class="fk-grid">${foeSortiert(b.foerderer).map(f => fpCard(b, f)).join('')}<button class="fk-neu" data-act="add-foe" title="Förderer hinzufügen – viele auf einmal über die Recherche-Excel (Symbol oben rechts im Förderplan)"><span class="fk-plus" aria-hidden="true">+</span>Förderer hinzufügen</button></div>`;
 }
 
 /* ---------- Nacharbeit: Übergabe und Pressemitteilung einmal je Bedarf, Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */

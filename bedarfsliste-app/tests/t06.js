@@ -13,14 +13,14 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
       fr: [...tr.querySelectorAll('.l-fr .mi')].map(m => m.className.replace('mi m-', '')).join(), fin: [...tr.querySelectorAll('.l-fin .fr')].map(r => r.className.replace('fr', '').trim() + ':' + [...r.children].map(t).filter(Boolean).join(' ')).join(' | '),
       sym: [...tr.querySelectorAll('.l-fin .fr > .mi:first-child')].map(m => m.className.replace('mi m-', '')).join(), leads: tr.querySelectorAll('.l-fin .lead').length, ueb: t(tr.querySelector('.l-ueb')) }; }, id);
   r = await L('b-mtw');
-  ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone && r.fr === 'ok,ok', 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig: nur ein Haken „freigegeben“, darunter das Angebot: ' + JSON.stringify(r));
-  ok(r.sym === 'ok,run,off' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Bürgerstiftung Musterstadt 15.000 € | :Beispiel-Soziallotterie 30.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
-    'Finanzierung läuft: Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe zeigt nur den Ort: ' + r.fin);
+  ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone && r.fr === 'ok', 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig: nur ein Haken „freigegeben“ (das Angebot steht nicht in der Liste): ' + JSON.stringify(r));
+  ok(r.sym === 'ok,off,run' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Beispiel-Soziallotterie 30.000 € | :Bürgerstiftung Musterstadt 15.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
+    'Finanzierung läuft: Zusage oben, dann nach Einschätzung; Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe zeigt nur den Ort: ' + r.fin);
   r = await L('b-aed');
-  ok(!r.frDone && r.fr === 'ok,off,run,ok' && r.fin.includes('sum:Delta 2.400 €') && r.sym === 'off', 'AED: Freigabe offen (Kreise), Delta 2.400 €: ' + r.fr + ' / ' + r.fin);
-  ok((await L('b-rucksack')).fr === 'ok,no,off,ok', 'Rucksäcke: Verwaltung abgelehnt als roter Kreis');
+  ok(!r.frDone && r.fr === 'ok,off,run' && r.fin.includes('sum:Delta 2.400 €') && r.sym === 'off', 'AED: Freigabe offen (Kreise), Delta 2.400 €: ' + r.fr + ' / ' + r.fin);
+  ok((await L('b-rucksack')).fr === 'ok,no,off', 'Rucksäcke: Verwaltung abgelehnt als roter Kreis');
   r = await L('b-waerme');
-  ok(r.fin === 'strong:Beispiel-Soziallotterie 12.000 € bis 30.04.2027 | x ab:Volksbank Beispielland eG 2.000 € | x:Stadtwerke Hagen (Beispiel) 1.500 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.ueb === 'erledigt am 05.10.2026 Hauptbahnhof Hagen',
+  ok(r.fin === 'strong:Beispiel-Soziallotterie 12.000 € bis 30.04.2027 | x:Stadtwerke Hagen (Beispiel) 1.500 € | x ab:Volksbank Beispielland eG 2.000 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.ueb === 'erledigt am 05.10.2026 Hauptbahnhof Hagen',
     'Finanzierung steht: Zusage kräftig mit Nachweis, Absage und nie Angegangene blass, kein Delta: ' + r.fin);
   r = await L('b-kueche');
   ok(r.fin === 'z:Bürgerstiftung Musterstadt 5.000 € erledigt | z:Sparkasse Musterstadt 3.000 € nicht nötig | sum:Überfinanzierung 500 € | sum:Eigenmittel 2.000 €' && r.leads === 2 && r.meta.endsWith('ohne Deadline')
@@ -63,16 +63,16 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     !!document.querySelector('#d-steps li.done .st-k svg')]);
   ok(r.join() === 'true,false,true,false,light,false,d-head,true,true,true,true,true', 'Schritte an der Kopfzeile, Stand nur als Hinweis, ohne Schätzung/Angebot; Summe bündig mit dem linken Block, ⋯ und Löschen rechts über dem Freigabe-Block, der oben mit dem ersten Abschnitt abschließt; Haken als Grafik: ' + r.join());
   r = await p.evaluate(() => [...document.querySelectorAll('#fin-rows tr')].map(t => t.className + ':' + [...t.querySelector('th').childNodes].find(n => n.nodeType === 3 && n.textContent.trim()).textContent.trim() + ':' + t.querySelector('td:last-child').textContent));
-  ok(r.join('|') === 'r-sum:Gesamtbedarf:100 %|r-zu:Sparkasse Musterstadt:15 %|r-be:Bürgerstiftung Musterstadt:22 %|r-ge:Beispiel-Soziallotterie:44 %', 'Förderplan-Tabelle: Gesamtbedarf, Förderer farbig nach Stand mit Anteil: ' + r.join('|'));
+  ok(r.join('|') === 'r-sum:Gesamtbedarf:100 %|r-zu:Sparkasse Musterstadt:15 %|r-ge:Beispiel-Soziallotterie:44 %|r-be:Bürgerstiftung Musterstadt:22 %', 'Förderplan-Tabelle: Gesamtbedarf, Förderer farbig nach Stand mit Anteil, Zusage oben, dann nach Einschätzung: ' + r.join('|'));
   r = await p.evaluate(() => [document.querySelector('#fin-eig').textContent, [...document.querySelectorAll('#sec-foe .sec-tools button')].map(x => x.className + ':' + x.textContent.trim()).join('+'), document.querySelectorAll('.card.fp').length, document.querySelectorAll('.fp .fbar, .fp select').length,
     getComputedStyle(document.querySelector('.fp .pro')).borderTopStyle, getComputedStyle(document.querySelector('.fp .pro')).backgroundColor]);
   ok(r.join() === '19 %,icon-btn:,3,0,none,rgba(0, 0, 0, 0)', 'Eigenmittel mit Anteil, nur das Upload-Symbol, je Förderer eine Karte ohne Balken und Art-Feld, Pro ohne Rahmen: ' + r.join());
   r = await p.evaluate(() => [document.querySelectorAll('#fin-pie svg.pie .ps').length, [...document.querySelectorAll('#fin-pie .ps')].map(x => x.getAttribute('class').replace('ps ', '')).join(),
     [...document.querySelectorAll('#sec-foe .fsum .swa')].map(x => x.className.replace('swa ', '')).join(), !!document.querySelector('#sec-foe .fbar'), !!document.querySelector('.ci-foot.ok'),
     Math.round(document.querySelector('#sec-foe .fsum').getBoundingClientRect().width) <= 580, document.querySelector('#fin-pie').getBoundingClientRect().left > document.querySelector('#sec-foe .fsum').getBoundingClientRect().right]);
-  ok(r.join('|') === '4|zu,eig,be,ge|none,zu,be,ge,eig|false|false|true|true', 'Förderplan: Kreisdiagramm neben der schmaleren Tabelle, Farbfelder als Legende; kein Balken, kein grüner Kasten „Freigabe vollständig“: ' + r.join('|'));
+  ok(r.join('|') === '4|zu,eig,be,ge|none,zu,ge,be,eig|false|false|true|true', 'Förderplan: Kreisdiagramm neben der schmaleren Tabelle, Farbfelder als Legende; kein Balken, kein grüner Kasten „Freigabe vollständig“: ' + r.join('|'));
   r = await p.evaluate(() => [...document.querySelectorAll('.d-right .circ')].map(c => c.className.replace('circ c-', '')).join());
-  ok(r === 'ok,ok,ok,ok,ok,ok,ok,run,add', 'rechts: Freigaben und Unterlagen als Kreise: ' + r);
+  ok(r === 'ok,ok,ok,ok,no,ok,ok,ok,run,add', 'rechts: Freigaben und Unterlagen als Kreise (Angebot oben, dann das neue Interview, noch offen): ' + r);
   ok(!!(await p.$('.d-right input[data-p="link"]')) && !(await p.$('input[data-p="pfad"]')), 'Ordner rechts unter den Unterlagen, nur als Link');
   // Klick auf einen Kreis: gleich der nächste Stand, kein Menü
   const ulSt = () => p.evaluate(() => cur().unterlagen.find(u => u.name === 'Kostenplan').st);
@@ -87,7 +87,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     return [getComputedStyle(n).fontSize === getComputedStyle(a).fontSize, a.getBoundingClientRect().top - n.getBoundingClientRect().bottom <= 3, Math.round(n.getBoundingClientRect().left) === Math.round(a.getBoundingClientRect().left),
       d.map(x => x.type + ':' + x.value).join(), pc[1].top - pc[0].bottom >= 6, !!k.querySelector('.fp-title .fw-tri')]; });
   ok(r.join('|') === 'true|true|true|text:15.09.2026,text:30.11.2026|true|true', 'Name so groß wie die Summe, direkt darüber; Datum ohne Kalendersymbol; Abstand zwischen Pro und Contra; Hinweis als Dreieck: ' + r.join('|'));
-  await p.hover('#foe-f-mtw-bst .fw-tri');
+  await p.$eval('#foe-f-mtw-bst', e => e.scrollIntoView({ block: 'center' })); await p.waitForTimeout(150);   // erst scrollen (Scrollen schließt Hinweise), dann überfahren
+  await p.mouse.move(5, 5); await p.hover('#foe-f-mtw-bst .fw-tri');
   ok((await p.$eval('.fw-pop', e => e.textContent)).includes('Auch im Förderplan von'), 'Dreieck überfahren: der Hinweis erscheint');
   await p.mouse.move(5, 5); await p.waitForTimeout(400);
   ok(!(await p.$('.fw-pop')), 'Maus weg: Hinweis verschwindet');
@@ -102,7 +103,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [!!document.querySelector('#fr-blk .fr-blk.ok'), document.querySelector('#fr-blk h3').textContent.replace(/\s+/g, ' ').trim()]);
   ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
   r = await p.evaluate(() => [[...document.querySelectorAll('#fr-body .ci-n')].map(e => e.textContent).join(','), [...document.querySelectorAll('#ul-body .ci-n')].map(e => e.textContent).join(',')]);
-  ok(r.join(' / ') === 'Ortsführungskreis,Fachreferat,Verwaltung / Konzept,Projektsteckbrief,Angebot', 'Angebot bei den Unterlagen, nicht bei den Freigaben: ' + r.join(' / '));
+  ok(r.join(' / ') === 'Ortsführungskreis,Fachreferat,Verwaltung / Angebot,Interview,Konzept,Projektsteckbrief', 'Angebot oben bei den Unterlagen, dann das Interview; nicht bei den Freigaben: ' + r.join(' / '));
   // Förderplan und Nacharbeit einklappen – beim Öffnen je nach Phase: Förderung läuft → Förderplan offen, Nacharbeit zu
   r = await p.evaluate(() => [!!document.querySelector('#fin-pie'), !!document.querySelector('#nach-body'), (document.querySelector('#nach-kurz') || {}).textContent]);
   ok(r[0] === true && r[1] === false && /^offen: /.test(r[2]), 'Förderung läuft: Förderplan aufgeklappt, Nacharbeit eingeklappt mit den offenen Punkten: ' + r.join('|'));

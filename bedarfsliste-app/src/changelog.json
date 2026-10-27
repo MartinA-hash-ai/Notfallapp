@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.54.0",
+    "date": "2026-10-27T12:00",
+    "items": [
+      "Förderer sortiert: zugesagt oben, dann nach Einschätzung (wahrscheinliche oben, unwahrscheinliche unten), abgelehnt ganz unten – im Förderplan, in den Kacheln, in der Liste und in der Übernahme-Vorschau",
+      "Liste: das Angebot steht nicht mehr unter der Freigabe",
+      "Unterlagen: Angebot ganz oben, danach die neue feste Unterlage „Interview“ (offen, vereinbart, geführt)",
+      "Zuständig: „+ weitere Person“ als dezenter gestrichelter Kasten – bei ungerader Zahl daneben, sonst in der nächsten Zeile",
+      "Zahnrad-Menü aufgeräumt: gegliedert, Programm-Update fett; „Über die Bedarfsliste“ und „Tastaturbefehle“ zusammengelegt; „Texte formatieren“ und „Förderer-Übersicht aktualisieren“ entfallen"
+    ]
+  },
+  {
     "version": "0.53.0",
     "date": "2026-10-28T17:00",
     "items": [

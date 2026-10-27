@@ -267,7 +267,7 @@ async function zeigeErgebnis(b, { got, ki, name, file, pers, link }) {
   const persNeu = P.filter(x => x.neu.length);
   const beschrNeu = ki.beschr && norm(ki.beschr) !== norm(b.beschreibung) ? ki.beschr : '', ulVor = ulVorschlaege(b, ki.ul), extra = !!(beschrNeu || ulVor.length || persNeu.length || linkNeu || pfadNeu);
   if (!got && !extra) { modal('Kein Förderplan gefunden', h('p', null, 'In „' + name + '“ steht keine Tabelle mit einer Spalte „Förderer“ und weiteren Spalten der Vorlage (z. B. „Antragsfrist“, „Erwartete Summe“). Bitte die Förderplan-Vorlage der Bedarfsliste verwenden.')); return; }
-  const items = got ? got.items : [], byName = n => b.foerderer.find(f => kkey(f.name) === kkey(n));
+  const items = got ? foeSortiert(got.items) : [], byName = n => b.foerderer.find(f => kkey(f.name) === kkey(n));
   const zeigFoe = items.length > 0 && (!extra || items.some(it => !byName(it.name) || fpGeaendert(it, got.stand.get(kkey(it.name)))));
   if (!zeigFoe && !extra) { modal(pers ? 'Nichts Neues' : 'Keine Förderer', h('p', null, pers ? 'In ' + name + ' steht nichts, was noch nicht in der Liste ist.' : 'In „' + name + '“ ist noch kein Förderer eingetragen.')); return; }
   const other = got && got.kennung && got.kennung !== b.id ? D.bedarfe.find(x => x.id === got.kennung) : null;

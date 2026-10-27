@@ -182,6 +182,8 @@ table.kuerzel tbody:first-child tr.kz-g th { padding-top: 0; }
 .menu hr { border: 0; border-top: 1px solid var(--line); margin: 4px 0; }
 .menu-row { display: flex; align-items: center; gap: 6px; padding: 6px 12px; font-size: 13px; }
 .menu-row > span { margin-right: auto; color: var(--muted); }
+.menu-kopf { padding: 8px 12px 2px; font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--faint); }
+.menu > button.dick { font-weight: 700; }
 .mini-btn { padding: 2px 8px; font-size: 12px; }
 .mini-btn.on { background: var(--ink2); color: var(--card); border-color: var(--ink2); }
 #toasts { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); z-index: 95; display: flex; flex-direction: column; gap: 6px; align-items: center; max-width: calc(100vw - 32px); }
@@ -639,7 +641,9 @@ input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: 
 .eck .sub { margin-bottom: 6px; }
 /* Zuständige: je Zeile zwei, E-Mail und Telefon stehen nur als Hinweis an den Knöpfen */
 #zust-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: stretch; }
-#zust-liste > .kadd { grid-column: 1 / -1; }
+/* „+ weitere Person“ als dezenter gestrichelter Platzhalter-Kasten: bei ungerader Zahl rechts daneben, bei gerader in der nächsten Zeile */
+#zust-liste > .kadd { justify-content: center; min-height: 46px; padding: 6px 10px; border: 1.5px dashed var(--line2); border-radius: 7px; background: var(--soft); color: var(--muted); font-weight: 600; }
+#zust-liste > .kadd:hover { background: var(--head); color: var(--ink); border-color: var(--faint); }
 #zust-liste .k1 { margin: 0; background: var(--hover); }                         /* jede Person als graue Karte */
 #zust-liste .k1:hover { background: var(--line3); }
 /* Stichworte als Marken, dahinter das Feld für das nächste */
@@ -1033,9 +1037,6 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .upl-tab td.num, .upl-tab th.num { text-align: right; white-space: nowrap; }
 .upl-tab tr.muted td { color: var(--faint); }
 
-/* Liste: das Angebot unter der Freigabe, abgesetzt – es zählt nicht zur Freigabe */
-.ml.ml-ang { position: relative; }
-.ml.ml-ang::before { content: ''; position: absolute; left: 0; right: 0; top: -1px; border-top: 1px dashed var(--line2); }   /* ohne Abstand: die Zeilen bleiben auf einer Höhe mit dem Finanzierungsplan */
 
 /* Zuständige bearbeiten: jede Person in einem eigenen Kasten */
 .k-ed { border: 1px solid var(--line2); border-radius: 8px; padding: 8px 32px 8px 10px; background: var(--card); }

@@ -16,22 +16,21 @@ const ICON_CAL = '<svg viewBox="0 0 16 16" aria-hidden="true"><rect x="2" y="3.5
 const ICON_TRI = '<svg class="tri" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5 15 14H1z" fill="currentColor"/><path d="M8 6v4" stroke="#fff" stroke-width="1.6" stroke-linecap="round"/><circle cx="8" cy="12" r=".9" fill="#fff"/></svg>';
 
 // Freigabe: Ortsführungskreis, Verwaltung, Fachreferat – ist alles durch, steht nur noch ein Haken „freigegeben“ (Einzelheiten beim Überfahren).
-// Darunter, abgesetzt, das Angebot: eine Unterlage, die für die Freigabe nicht zählt
+// Das Angebot ist eine Unterlage (Seite des Bedarfs) und steht hier nicht
 function lFreigabe(b) {
-  const it = Object.fromEntries(frItems(b).map(i => [i.k, i])), a = angebotUL(b);
+  const it = Object.fromEntries(frItems(b).map(i => [i.k, i]));
   if (!frOffen(b).names.length) {
     const tip = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => { const i = it[k];
       return (k === 'fach' && i.item.name ? 'Fachreferat ' + i.item.name : lab) + ': ' + frText(i) + (i.st === 'ok' && validIso(i.item.erledigt) ? ' am ' + fmtDate(i.item.erledigt) : ''); });
-    return `<div class="ml fr-voll" title="${esc(tip.join('\n'))}">${mi('ok')}<span>freigegeben</span></div>` + angZeile(a);
+    return `<div class="ml fr-voll" title="${esc(tip.join('\n'))}">${mi('ok')}<span>freigegeben</span></div>`;
   }
   const L = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => {
     const i = it[k];
     if (!frNeeded(i)) return `<div class="ml nn" data-le="fr" data-k="${k}" title="${esc(frText(i))}">${mi('none')}<span>${lab}</span></div>`;
     return `<div class="ml" data-le="fr" data-k="${k}">${mi(({ ok: 'ok', angefragt: 'run', nein: 'no' })[i.st] || 'off', frText(i))}<span>${lab}</span></div>`;
   });
-  return L.join('') + angZeile(a);
+  return L.join('');
 }
-const angZeile = a => `<div class="ml ml-ang${a && a.st === 'nn' ? ' nn' : ''}" data-le="ang">${mi(a && a.st === 'da' ? 'ok' : a && a.st === 'arbeit' ? 'run' : a && a.st === 'nn' ? 'none' : 'off', a ? 'Angebot ' + ulText(a) : 'Angebot fehlt')}<span>Angebot</span></div>`;
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
 const F_SYM = { zugesagt: 'ok', beantragt: 'run', geplant: 'off', abgelehnt: 'no' };
 const EMPTY3 = '<span></span><span></span><span></span>';

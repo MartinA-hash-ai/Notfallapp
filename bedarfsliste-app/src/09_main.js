@@ -259,7 +259,7 @@ function addUl(refocus) {
   if (refocus) { const n = $('#ul-new'); if (n) n.focus(); }
 }
 // Übersicht der Tastaturbefehle („i“ oben rechts in der Liste, Zahnrad → „Tastaturbefehle …“)
-function kuerzelInfo() {
+function kuerzelTabelle() {
   const G = [['In der Liste', [['↑ / ↓', 'von Bedarf zu Bedarf (Pos1 / Ende: erster / letzter) · kompakt mit aufgeklapptem Bedarf: gleich den nächsten aufklappen'],
       ['Enter', 'kompakt: aufklappen, noch einmal: öffnen · ausführlich: öffnen'], ['→', 'Bedarf öffnen'], ['E', 'Namen ändern (F2 geht auch, wo der Browser die Taste nicht selbst belegt – in Vivaldi nicht)'],
       ['Leertaste', 'Prio-Stern an / aus'], ['Strg+F', 'in die Suche springen (noch einmal: Suche des Browsers)'], ['Esc', 'aufgeklappten Bedarf zuklappen']]],
@@ -267,32 +267,30 @@ function kuerzelInfo() {
     ['In Feldern', [['Enter / Tab', 'übernehmen (Tab: weiter zum nächsten Feld, Umschalt+Tab: zurück)'], ['Umschalt+Enter', 'in der Liste: übernehmen und gleich den nächsten Bedarf darunter anlegen'],
       ['Esc', 'verwerfen'], ['Kalender', 'Pfeiltasten: Tag · Bild auf / ab: Monat · Enter: übernehmen · Esc: schließen']]],
     ['Überall', [['Strg+Z', 'Rückgängig (außerhalb von Feldern)'], ['Strg+S', 'Speichern']]]];
-  closeMenus();
-  modal('Tastaturbefehle', h('table', { class: 'kuerzel' }, G.map(([t, K]) => h('tbody', null, h('tr', { class: 'kz-g' }, h('th', { colspan: 2 }, t)), K.map(([k, x]) => h('tr', null, h('th', null, k), h('td', null, x)))))));
+  return h('table', { class: 'kuerzel' }, G.map(([t, K]) => h('tbody', null, h('tr', { class: 'kz-g' }, h('th', { colspan: 2 }, t)), K.map(([k, x]) => h('tr', null, h('th', null, k), h('td', null, x))))));
 }
+function kuerzelInfo() { closeMenus(); modal('Tastaturbefehle', kuerzelTabelle()); }
 function mainMenu(btn) {
   closeMenus();
-  const item = (act, label, v) => h('button', { role: 'menuitem', 'data-act': act, 'data-v': v || '' }, label);
+  const item = (act, label, v, cls) => h('button', { role: 'menuitem', 'data-act': act, 'data-v': v || '', class: cls || null }, label), kopf = t => h('div', { class: 'menu-kopf' }, t);
   const th = themeGet();
   const m = h('div', { class: 'menu', id: 'mmenu', role: 'menu' },
     h('div', { class: 'menu-row' }, h('span', null, 'Darstellung'), ...[['light', 'hell'], ['dark', 'dunkel'], ['system', 'wie Windows']].map(([v, l]) =>
       h('button', { class: 'mini-btn' + (th === v ? ' on' : ''), 'data-act': 'theme', 'data-v': v }, l))),
-    h('hr'),
     colwGet(false) || colwGet(true) ? item('colw-reset', 'Spaltenbreiten der Liste zurücksetzen') : null,
-    item('vorlage-leer', 'Leere Förderplan-Vorlage (Excel)'),
-    DEMO ? null : item('kartei', 'Förder-Kartei' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : '') + ' wählen, verknüpfen oder neu einlesen …'),
-    DEMO ? null : item('upl', 'UPL einlesen (Investitionsabfrage oder ausgefüllte UPL-Vorlage) …'),
-    item('upl-vorlage', 'UPL-Vorlage für Copilot/Cowork (Excel)'),
-    DEMO ? null : item('pers-import', 'Kontakte-Excel einlesen …'),
-    DEMO ? null : item('ueb', 'Förderer-Übersicht (Excel) jetzt aktualisieren'),
+    DEMO ? null : h('hr'), DEMO ? null : item('update', 'Programm-Update einspielen …', '', 'dick'),
+    h('hr'), kopf('Excel einlesen'),
+    DEMO ? null : item('upl', 'UPL (Investitionsabfrage) …'),
+    DEMO ? null : item('pers-import', 'Kontakte für die Personenliste …'),
+    DEMO ? null : item('kartei', 'Förder-Kartei' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : '') + ' – wählen oder verknüpfen …'),
+    h('hr'), kopf('Vorlagen herunterladen'),
+    item('upl-vorlage', 'UPL-Vorlage für Copilot/Cowork'),
+    item('vorlage-leer', 'Förderplan-Vorlage (leer)'),
+    DEMO ? null : h('hr'), DEMO ? null : kopf('Datensicherung'),
+    DEMO ? null : item('backup', 'Herunterladen (.json)'),
+    DEMO ? null : item('restore', 'Laden …'),
     h('hr'),
-    DEMO ? null : item('backup', 'Datensicherung herunterladen (.json)'),
-    DEMO ? null : item('restore', 'Datensicherung laden …'),
-    item('kuerzel', 'Tastaturbefehle …'),
-    DEMO ? null : item('update', 'Programm-Update einspielen …'),
-    h('hr'),
-    item('fmt-info', 'Texte formatieren (Aufzählung, fett, kursiv …)'),
-    item('about', 'Über die Bedarfsliste (Version ' + APP_INFO.version + ')'));
+    item('about', 'Über die Bedarfsliste und Tastaturbefehle (Version ' + APP_INFO.version + ')'));
   document.body.append(m);
   const r = btn.getBoundingClientRect();
   m.style.top = (r.bottom + 4) + 'px'; m.style.right = Math.max(8, innerWidth - r.right) + 'px';
@@ -313,6 +311,7 @@ function fmtInfo() {
 function about() {
   modal('Bedarfsliste ' + APP_INFO.version, h('div', { class: 'help' },
     h('p', null, 'Strategischer Überblick über die Bedarfe der Diözese: Freigabe, Unterlagen, Förderplan und Nacharbeit. Programm und Daten stecken zusammen in dieser einen Datei; es wird nichts ins Internet gesendet.'),
+    h('h3', null, 'Tastaturbefehle'), kuerzelTabelle(), h('h3', null, 'Was zuletzt neu ist'),
     ...CHANGELOG.slice(0, 5).map(c => h('div', null, h('h3', null, 'Version ' + c.version + (c.date ? ' · ' + fmtDate(c.date.slice(0, 10)) : '')), h('ul', null, c.items.map(i => h('li', null, i)))))), null, { wide: true });
 }
 
