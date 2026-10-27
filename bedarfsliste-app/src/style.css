@@ -1047,6 +1047,10 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .k-pliste + .k-pen, .k-pliste + .k-fertig { margin-left: 4px; }
 .eck .sub.fach-kopf { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line3); gap: 8px; }   /* deutlich abgesetzt von den Zuständigen (.eck .sub setzt sonst margin-top 0) */
 .fach-kopf .fach-pen { margin-left: auto; }
+/* „+“ links neben „Personenliste“: Person hinzufügen */
+.k-pliste.k-plus { width: 24px; padding: 0; font-size: 16px; font-weight: 500; line-height: 20px; text-align: center; }
+.k-plus + .k-pliste { margin-left: 4px; }
+#zust-liste .z-leer { grid-column: 1 / -1; margin: 0; }
 .fach-kopf .fach-plus { margin-left: 6px; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--faint); }
 /* Position unter dem Namen mit Abstand zu den Symbolen (E-Mail, Telefon, Handy) rechts oben */
 /* Karten bei „Zuständig“ und „Fachreferat“: die Symbole schweben rechts oben – der Name nutzt den Platz daneben,

@@ -94,7 +94,7 @@ function moreMenu(btn) {
 // Deadline und Stichworte stehen im Kopf der Seite. Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift.
 function secInfo(b) {
   const ed = UI.zEdit === b.id;
-  const pl = `<button class="k-pliste" data-act="pers-liste" title="Personenliste bearbeiten: Personen der Gliederungen und Fachreferate (Dienstleitung, Geschäftsführung, Beauftragte …) mit Kontaktdaten">Personenliste</button>`;
+  const pl = `<button class="k-pliste k-plus" data-act="k-neu" title="Person hinzufügen – in der Personenliste suchen oder neu eintragen" aria-label="Person hinzufügen">+</button><button class="k-pliste" data-act="pers-liste" title="Personenliste bearbeiten: Personen der Gliederungen und Fachreferate (Dienstleitung, Geschäftsführung, Beauftragte …) mit Kontaktdaten">Personenliste</button>`;
   return `<section class="card info-card eck" id="sec-eck">
     <div class="eck-l">${kKopf('Zuständig', ed, '', pl)}<div id="zust-liste">${zustListe(b)}</div><div id="fach-pers">${fachBlock(b)}</div></div>
     <div class="eck-r">${pe(b, 'beschreibung', 'Beschreibung ' + FMT_I, 'area', { aria: 'Beschreibung', fmt: true, ph: 'Kurzbeschreibung aus der UPL oder in eigenen Worten' })}</div>
@@ -217,7 +217,7 @@ function pe(f, k, lab, art = 'line', o = {}) {
 // o: a – Attribute der Knöpfe (data-fid beim Förderer), p – Pfad der Liste, edit, wer, neu – Texte für +, haupt – Texte zum Stern, extra – Zeilen aus der Kartei,
 // max – höchstens so viele, kompakt – E-Mail und Telefon nur als Hinweis an den Knöpfen (beim Überfahren), nicht als Zeilen
 function personen(L, o) {
-  const a = o.a || '', n = L.length, plus = t => !o.lesen && n < (o.max || MAX_KONTAKTE) ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>${t}</button>` : '';
+  const a = o.a || '', n = L.length, plus = t => !o.lesen && !o.ohnePlus && n < (o.max || MAX_KONTAKTE) ? `<button class="kadd" data-act="k-neu" ${a}><i>+</i>${t}</button>` : '';
   if (o.edit) {
     const linie = (i, p, ph) => `<input type="${p === 'mail' ? 'email' : p === 'tel' || p === 'mobil' ? 'tel' : 'text'}" class="k-li k-li-${p}" data-p="${o.p}.${i}.${p}" ${a} value="${esc(L[i][p] || '')}" placeholder="${ph}" aria-label="${ph}" autocomplete="off">`;
     return L.map((c, i) => `<div class="k-ed">${linie(i, 'n', 'Vorname Nachname')}${linie(i, 'rolle', 'Position')}${linie(i, 'mail', 'E-Mail-Adresse')}${linie(i, 'tel', 'Telefonnummer')}${o.mobil ? linie(i, 'mobil', 'Handynummer') : ''}
@@ -265,8 +265,9 @@ function fachBlock(b) {
     : `<button class="k-pen fach-pen" data-act="fach-edit" title="Festlegen, wer aus dem Fachreferat bei diesem Bedarf angezeigt wird" aria-label="Personen des Fachreferats auswählen">${ICON_PEN}</button>`;
   return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}${!ed && weg ? `<span class="fach-plus" title="${weg} weitere im Fachreferat ausgeblendet – über den Stift ändern">(+${weg})</span>` : ''}${knopf}</div><div class="fach-liste${ed ? ' wahl' : ''}">${inhalt}</div>`;
 }
-const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
-  haupt: ['Ansprechperson – steht in der Liste', 'Zur Ansprechperson machen'] });
+// Zuständige: hinzufügen über das „+“ oben neben „Personenliste“ (öffnet die Suche) – kein Plus-Kasten in der Liste
+const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: [], ohnePlus: true,
+  haupt: ['Ansprechperson – steht in der Liste', 'Zur Ansprechperson machen'] }) + (b.zust.length ? '' : '<p class="muted small z-leer">Noch niemand eingetragen – über „+“ oben hinzufügen.</p>');
 // Überschrift über Kontakten bzw. Zuständigen: rechts der Stift, beim Bearbeiten „Fertig“
 const kKopf = (titel, edit, a = '', extra = '') => `<div class="sub">${titel}${extra}${edit ? `<button class="k-fertig" data-act="k-fertig" ${a}>Fertig</button>`
   : `<button class="k-pen" data-act="k-edit" ${a} title="${titel} bearbeiten" aria-label="${titel} bearbeiten">${ICON_PEN}</button>`}</div>`;
