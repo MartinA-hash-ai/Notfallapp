@@ -124,6 +124,9 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.57:** Beim Fachreferat steht dauerhaft ein Stift (wie bei „Zuständig“) statt „auswählen“ beim Überfahren. In der Personensuche setzt der
+Stern rechts die Ansprechperson (sie rückt nach vorn); ohne Stern bleibt die bisherige Ansprechperson.
+
 **Seit 0.56:** Bei „Zuständig“ sucht der Knopf „Suchen“ in der Personenliste (Name, Position, Gliederung, Fachreferat, E-Mail, Telefon; jedes
 Wort muss vorkommen, z. B. „Brakel“); angehakte Personen kommen mit ihren Angaben als Zuständige dazu. Beim Fachreferat stehen zunächst alle
 Personen; beim Überfahren der Überschrift erscheint „auswählen“ bzw. „ändern“ – wer angeklickt ist, wird bei diesem Bedarf angezeigt, die

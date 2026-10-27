@@ -214,14 +214,16 @@ async function personenListeDialog() {
 /* ---------- Personen suchen (Knopf „Suchen“ bei „Zuständig“): in Name, Position, Gliederung, Fachreferat, E-Mail und Telefon –
    jedes eingegebene Wort muss vorkommen (z. B. „Brakel“ zeigt alle aus Brakel). Ausgewählte kommen als Zuständige mit ihren Angaben dazu. */
 async function personenSuche(b) {
-  const da = new Set(b.zust.map(z => kkey(z.n))), wahl = new Set();
+  const da = new Set(b.zust.map(z => kkey(z.n))), wahl = new Set(); let stern = '';   // stern: wird Ansprechperson (vorn, mit Stern)
   const liste = h('div', { class: 'ps-liste' }), zahl = h('span', { class: 'muted small' });
   const text = p => norm([p.n, p.rolle, p.gl, p.fach, p.mail, p.tel, p.mobil].filter(Boolean).join(' '));
   let q = [];
   const zeig = () => {
     const S = PR.list.filter(p => q.every(w => text(p).includes(w))).slice(0, 60);
     liste.replaceChildren(...(S.length ? S.map(p => { const k = kkey(p.n), schon = da.has(k);
-      return h('label', { class: 'ps-z' + (schon ? ' schon' : '') }, h('input', { type: 'checkbox', checked: schon || wahl.has(k), disabled: schon, onchange: e => { e.target.checked ? wahl.add(k) : wahl.delete(k); los.textContent = wahl.size ? wahl.size + ' übernehmen' : 'Übernehmen'; } }),
+      const st = h('button', { type: 'button', class: 'ps-st' + (stern === k ? ' on' : ''), title: stern === k ? 'Ansprechperson (steht in der Liste) – noch einmal: zurücknehmen' : 'Zur Ansprechperson machen', 'aria-label': 'Ansprechperson', 'aria-pressed': String(stern === k),
+        onclick: e => { e.preventDefault(); stern = stern === k ? '' : k; if (stern && !schon) wahl.add(k); zaehl(); zeig(); } }, stern === k ? '★' : '☆');
+      return h('label', { class: 'ps-z' + (schon ? ' schon' : '') }, h('input', { type: 'checkbox', checked: schon || wahl.has(k), disabled: schon, onchange: e => { if (e.target.checked) wahl.add(k); else { wahl.delete(k); if (stern === k) stern = ''; } zaehl(); zeig(); } }), st,
         h('span', { class: 'ps-n' }, p.n, schon ? h('span', { class: 'muted small' }, ' · schon zuständig') : null),
         h('span', { class: 'ps-i small muted' }, [p.rolle, p.gl, p.fach && 'Fachreferat ' + p.fach].filter(Boolean).join(' · ')),
         h('span', { class: 'ps-k small muted' }, [p.mail, p.tel || p.mobil].filter(Boolean).join(' · '))); })
@@ -229,13 +231,14 @@ async function personenSuche(b) {
     zahl.textContent = q.length ? S.length + (S.length === 60 ? '+' : '') + ' gefunden' : PR.list.length + ' Personen';
   };
   const such = h('input', { type: 'search', class: 'ps-such', placeholder: 'Name, Position, Gliederung, Fachreferat, E-Mail …', oninput: e => { q = norm(e.target.value).split(/\s+/).filter(Boolean); zeig(); } });
-  const los = h('span', null, 'Übernehmen');
+  const los = h('span', null, 'Übernehmen'), zaehl = () => { los.textContent = wahl.size ? wahl.size + ' übernehmen' : stern ? 'Übernehmen' : 'Übernehmen'; };
   zeig();
   const ok = await modal('Personen suchen', h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such, zahl), liste),
     [['Abbrechen', false], [los, true, 'primary']], { wide: true, expose: () => setTimeout(() => such.focus(), 80) });   // nach dem Fokus auf „Übernehmen“
-  if (!ok || !wahl.size) return;
+  if (!ok || (!wahl.size && !stern)) return;
   for (const p of PR.list) if (wahl.has(kkey(p.n)) && !da.has(kkey(p.n)) && b.zust.length < MAX_ZUST) b.zust.push(Object.assign(leerZ(), { n: p.n, rolle: p.rolle || '', mail: p.mail || '', tel: p.tel || '', mobil: p.mobil || '' }));
-  changed(); keep(renderNow); toast(wahl.size === 1 ? 'Als zuständig übernommen.' : wahl.size + ' Personen als zuständig übernommen.', 'ok');
+  const i = stern ? b.zust.findIndex(z => kkey(z.n) === stern) : -1; if (i > 0) b.zust.unshift(...b.zust.splice(i, 1));   // mit Stern: wird Ansprechperson
+  changed(); keep(renderNow); toast((wahl.size ? (wahl.size === 1 ? 'Als zuständig übernommen' : wahl.size + ' Personen als zuständig übernommen') : 'Ansprechperson geändert') + (i >= 0 ? ' – ' + b.zust[0].n + ' ist Ansprechperson.' : '.'), 'ok');
 }
 
 /* ---------- Kontaktdaten mit Copilot: Excel, kurzer Auftrag, Ergebnis übernehmen */

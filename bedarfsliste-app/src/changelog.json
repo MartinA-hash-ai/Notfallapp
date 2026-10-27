@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.57.0",
+    "date": "2026-10-27T17:00",
+    "items": [
+      "Fachreferat: dauerhaft ein Stift zum Auswählen statt „auswählen“ beim Überfahren; lange Positionen brechen in der Auswahl um",
+      "Personen suchen: rechts ein Stern – wer ihn bekommt, wird Ansprechperson (steht vorn und in der Liste)",
+      "Personen suchen: kein blauer Rahmen mehr über die ganze Zeile beim Anklicken des Häkchens"
+    ]
+  },
+  {
     "version": "0.56.0",
     "date": "2026-10-27T16:00",
     "items": [

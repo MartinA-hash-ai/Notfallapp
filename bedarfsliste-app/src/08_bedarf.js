@@ -243,7 +243,7 @@ function kontaktListe(f) {
 const ICON_HANDY = '<svg viewBox="0 0 12 16" width="10" height="14" aria-hidden="true"><rect x="1.5" y="1" width="9" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.8 12.3h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 // Fachreferat des Bedarfs (Name aus der Freigabe): alle Personen der Personenliste, die dazugehören – nur zum Ansehen und Kontaktieren
 // Ist eine Auswahl getroffen (b.freigabe.fach.wahl: Schlüssel der Namen), stehen nur diese Personen da, die übrigen sind ausgeblendet;
-// „auswählen“ bzw. „ändern“ erscheint beim Überfahren der Überschrift. Beim Auswählen: Karte anklicken schaltet sie an oder aus, keine = alle.
+// der Stift rechts neben der Überschrift öffnet die Auswahl: Karte anklicken schaltet sie an oder aus, keine = alle.
 const fachWahl = (b, L) => (b.freigabe.fach.wahl || []).filter(k => L.some(p => kkey(p.n) === k));
 function fachBlock(b) {
   const name = b.freigabe.fach.name.trim(), L = fachPersonen(name), W = fachWahl(b, L), ed = UI.fachEdit === b.id && L.length > 0;
@@ -255,7 +255,7 @@ function fachBlock(b) {
     : ed ? L.map(karte).join('') + '<p class="muted small fach-hw">Anklicken, wer bei diesem Bedarf angezeigt wird – die anderen werden ausgeblendet. Niemand gewählt: alle.</p>'
     : personen(zeig, { kompakt: true, mobil: true, lesen: true }) + (weg ? `<button type="button" class="link small fach-mehr" data-act="fach-edit">${weg} weitere im Fachreferat ausgeblendet – ändern</button>` : '');
   const knopf = !L.length ? '' : ed ? '<button class="k-fertig" data-act="fach-fertig">Fertig</button>'
-    : `<button class="fach-bt" data-act="fach-edit" title="Festlegen, wer aus dem Fachreferat bei diesem Bedarf angezeigt wird">${W.length ? 'ändern' : 'auswählen'}</button>`;
+    : `<button class="k-pen fach-pen" data-act="fach-edit" title="Festlegen, wer aus dem Fachreferat bei diesem Bedarf angezeigt wird" aria-label="Personen des Fachreferats auswählen">${ICON_PEN}</button>`;
   return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}${knopf}</div><div class="fach-liste${ed ? ' wahl' : ''}">${inhalt}</div>`;
 }
 const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
