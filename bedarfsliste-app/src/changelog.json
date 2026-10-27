@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.56.0",
+    "date": "2026-10-27T16:00",
+    "items": [
+      "Zuständig: Knopf „Suchen“ – Personenliste nach Name, Position, Gliederung, Fachreferat oder E-Mail durchsuchen und mehrere Personen auf einmal übernehmen",
+      "Fachreferat: festlegen, wer bei diesem Bedarf angezeigt wird („auswählen“ / „ändern“ beim Überfahren der Überschrift) – die übrigen werden ausgeblendet",
+      "Zuständig: die Linie vor „Fachreferat“ sitzt mit Abstand unter den Personen"
+    ]
+  },
+  {
     "version": "0.55.0",
     "date": "2026-10-27T14:00",
     "items": [

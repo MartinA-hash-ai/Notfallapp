@@ -1045,7 +1045,25 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .k-pliste { margin-left: auto; border: 1px solid var(--line2); background: var(--card); padding: 2px 9px; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink2); border-radius: 6px; }
 .k-pliste:hover { color: var(--ink); border-color: var(--faint); }
 .k-pliste + .k-pen, .k-pliste + .k-fertig { margin-left: 4px; }
-.fach-kopf { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line3); gap: 8px; }   /* deutlich abgesetzt von den Zuständigen */
+.eck .sub.fach-kopf { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line3); gap: 8px; }   /* deutlich abgesetzt von den Zuständigen (.eck .sub setzt sonst margin-top 0) */
+.fach-kopf .fach-bt { margin-left: auto; visibility: hidden; border: 1px solid var(--line2); background: var(--card); padding: 1px 8px; font-size: 11.5px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink2); border-radius: 6px; }
+.fach-kopf:hover .fach-bt, .fach-kopf .fach-bt:focus-visible { visibility: visible; }
+.fach-kopf .k-fertig { margin-left: auto; }
+.fach-liste .fach-mehr { grid-column: 1 / -1; justify-self: start; }
+.fach-liste.wahl .fach-w { position: relative; display: block; text-align: left; width: 100%; border: 1.5px solid transparent; cursor: pointer; padding-left: 30px; opacity: .6; }
+.fach-liste.wahl .fach-w.on { opacity: 1; border-color: var(--ink2); }
+.fach-w .fw-h { position: absolute; left: 8px; top: 8px; width: 15px; height: 15px; border: 1.5px solid var(--line2); border-radius: 4px; font-size: 11px; line-height: 13px; text-align: center; color: var(--card); }
+.fach-w.on .fw-h { background: var(--ink2); border-color: var(--ink2); }
+/* Personen suchen */
+.k-such + .k-pliste { margin-left: 4px; }
+.ps-kopf { gap: 10px; align-items: center; margin-bottom: 10px; }
+.ps-such { flex: 1 1 260px; }
+.ps-liste { max-height: 56vh; overflow: auto; display: grid; gap: 4px; }
+.ps-z { display: grid; grid-template-columns: 20px minmax(0, 1fr); column-gap: 8px; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
+.ps-z:hover { background: var(--hover); }
+.ps-z input { grid-row: span 3; margin-top: 3px; }
+.ps-z .ps-n { font-weight: 600; }
+.ps-z.schon { opacity: .6; cursor: default; }
 .fach-kopf .fach-n { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--ink2); }
 .fach-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; }
 .fach-liste .k1 { margin: 0; background: var(--hover); }

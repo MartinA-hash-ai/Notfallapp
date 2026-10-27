@@ -124,6 +124,11 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.56:** Bei „Zuständig“ sucht der Knopf „Suchen“ in der Personenliste (Name, Position, Gliederung, Fachreferat, E-Mail, Telefon; jedes
+Wort muss vorkommen, z. B. „Brakel“); angehakte Personen kommen mit ihren Angaben als Zuständige dazu. Beim Fachreferat stehen zunächst alle
+Personen; beim Überfahren der Überschrift erscheint „auswählen“ bzw. „ändern“ – wer angeklickt ist, wird bei diesem Bedarf angezeigt, die
+übrigen sind ausgeblendet (gespeichert in `freigabe.fach.wahl`; niemand gewählt = alle). Linie vor „Fachreferat“ mit Abstand.
+
 **Seit 0.55:** Welche Personen zu einem Fachreferat gehören, entscheidet allein die Spalte „Fachreferat“ der Personenliste (mehrere durch Komma
 getrennt möglich). In der UPL-Vorlage heißt die Spalte „Dienst“ jetzt „Fachreferat“ (ältere Vorlagen mit „Dienst“ werden weiter gelesen); beim
 Einlesen wird das Fachreferat beim Bedarf eingetragen – unter „Zuständig“ erscheinen dann dessen Ansprechpersonen. Mehr Abstand und eine feine

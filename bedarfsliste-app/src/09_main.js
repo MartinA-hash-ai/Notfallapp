@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { fachEdit: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -451,6 +451,7 @@ async function act(k, a, e) {
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
     case 'pers-liste': personenListeDialog(); return;
+    case 'pers-such': { const b0 = cur(); if (b0) personenSuche(b0); return; }
     case 'upl-vorlage': closeMenus(); download('UPL_Vorlage.xlsx', await uplVorlageBlob()); return;
     case 'upl': { closeMenus(); const f = await pickFile('.xlsx'); if (f) await uplImport(f); return; }
     case 'ueb': closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; toast(await ueSchreiben(true) ? '„' + UEB_DATEI + '“ neben der Liste aktualisiert' : 'Noch keine Förderer – oder die Datei ist gerade in Excel geöffnet.', 'ok'); return;
@@ -536,6 +537,11 @@ async function act(k, a, e) {
       const L = $$(z.box + ' .k-ed'), e = k === 'k-neu' ? L[L.length - 1] : L[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
       return;
     }
+    // Fachreferat: wer bei diesem Bedarf angezeigt wird (Auswahl – die übrigen ausgeblendet)
+    case 'fach-edit': UI.fachEdit = b.id; swap('fach-pers', fachBlock(b), true); return;
+    case 'fach-fertig': UI.fachEdit = null; swap('fach-pers', fachBlock(b), true); return;
+    case 'fach-wahl': { const f = b.freigabe.fach, k2 = a.dataset.k, W = (f.wahl || []).slice(), i = W.indexOf(k2);
+      if (i >= 0) W.splice(i, 1); else W.push(k2); f.wahl = W; changed(); swap('fach-pers', fachBlock(b), true); return; }
     case 'k-weg': case 'k-haupt': {
       const z = kZiel(b, a); if (!z) return;
       const [c] = z.o[z.p].splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) z.o[z.p].unshift(c);

@@ -211,6 +211,33 @@ async function personenListeDialog() {
   safeRender();
 }
 
+/* ---------- Personen suchen (Knopf „Suchen“ bei „Zuständig“): in Name, Position, Gliederung, Fachreferat, E-Mail und Telefon –
+   jedes eingegebene Wort muss vorkommen (z. B. „Brakel“ zeigt alle aus Brakel). Ausgewählte kommen als Zuständige mit ihren Angaben dazu. */
+async function personenSuche(b) {
+  const da = new Set(b.zust.map(z => kkey(z.n))), wahl = new Set();
+  const liste = h('div', { class: 'ps-liste' }), zahl = h('span', { class: 'muted small' });
+  const text = p => norm([p.n, p.rolle, p.gl, p.fach, p.mail, p.tel, p.mobil].filter(Boolean).join(' '));
+  let q = [];
+  const zeig = () => {
+    const S = PR.list.filter(p => q.every(w => text(p).includes(w))).slice(0, 60);
+    liste.replaceChildren(...(S.length ? S.map(p => { const k = kkey(p.n), schon = da.has(k);
+      return h('label', { class: 'ps-z' + (schon ? ' schon' : '') }, h('input', { type: 'checkbox', checked: schon || wahl.has(k), disabled: schon, onchange: e => { e.target.checked ? wahl.add(k) : wahl.delete(k); los.textContent = wahl.size ? wahl.size + ' übernehmen' : 'Übernehmen'; } }),
+        h('span', { class: 'ps-n' }, p.n, schon ? h('span', { class: 'muted small' }, ' · schon zuständig') : null),
+        h('span', { class: 'ps-i small muted' }, [p.rolle, p.gl, p.fach && 'Fachreferat ' + p.fach].filter(Boolean).join(' · ')),
+        h('span', { class: 'ps-k small muted' }, [p.mail, p.tel || p.mobil].filter(Boolean).join(' · '))); })
+      : [h('p', { class: 'muted small' }, PR.list.length ? 'Niemand gefunden.' : 'Die Personenliste ist noch leer – über „Personenliste“ oder Zahnrad → „Kontakte für die Personenliste …“ füllen.')]));
+    zahl.textContent = q.length ? S.length + (S.length === 60 ? '+' : '') + ' gefunden' : PR.list.length + ' Personen';
+  };
+  const such = h('input', { type: 'search', class: 'ps-such', placeholder: 'Name, Position, Gliederung, Fachreferat, E-Mail …', oninput: e => { q = norm(e.target.value).split(/\s+/).filter(Boolean); zeig(); } });
+  const los = h('span', null, 'Übernehmen');
+  zeig();
+  const ok = await modal('Personen suchen', h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such, zahl), liste),
+    [['Abbrechen', false], [los, true, 'primary']], { wide: true, expose: () => setTimeout(() => such.focus(), 80) });   // nach dem Fokus auf „Übernehmen“
+  if (!ok || !wahl.size) return;
+  for (const p of PR.list) if (wahl.has(kkey(p.n)) && !da.has(kkey(p.n)) && b.zust.length < MAX_ZUST) b.zust.push(Object.assign(leerZ(), { n: p.n, rolle: p.rolle || '', mail: p.mail || '', tel: p.tel || '', mobil: p.mobil || '' }));
+  changed(); keep(renderNow); toast(wahl.size === 1 ? 'Als zuständig übernommen.' : wahl.size + ' Personen als zuständig übernommen.', 'ok');
+}
+
 /* ---------- Kontaktdaten mit Copilot: Excel, kurzer Auftrag, Ergebnis übernehmen */
 // gesucht werden die Zuständigen dieses Bedarfs, bei denen etwas fehlt (sonst alle)
 const personenGesucht = b => { const L = b.zust.filter(z => z.n.trim()), f = L.filter(z => !z.rolle.trim() || !z.mail.trim() || !z.tel.trim()); return f.length ? f : L; };
