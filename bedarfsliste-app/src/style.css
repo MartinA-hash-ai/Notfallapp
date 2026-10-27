@@ -642,8 +642,8 @@ input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: 
 /* Zuständige: je Zeile zwei, E-Mail und Telefon stehen nur als Hinweis an den Knöpfen */
 #zust-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: stretch; }
 /* „+ weitere Person“ als dezenter gestrichelter Platzhalter-Kasten: bei ungerader Zahl rechts daneben, bei gerader in der nächsten Zeile */
-#zust-liste > .kadd { justify-content: center; min-height: 46px; padding: 6px 10px; border: 1.5px dashed var(--line2); border-radius: 7px; background: var(--soft); color: var(--muted); font-weight: 600; }
-#zust-liste > .kadd:hover { background: var(--head); color: var(--ink); border-color: var(--faint); }
+#zust-liste > .kadd { justify-content: center; min-height: 46px; padding: 6px 10px; border: 1px dashed var(--line3); border-radius: 7px; background: transparent; color: var(--faint); font-weight: 500; opacity: .75; transition: opacity .15s, border-color .15s, background .15s; }
+#zust-liste > .kadd:hover, #zust-liste > .kadd:focus-visible { opacity: 1; background: var(--soft); color: var(--ink2); border-color: var(--faint); }   /* erst beim Überfahren deutlicher */
 #zust-liste .k1 { margin: 0; background: var(--hover); }                         /* jede Person als graue Karte */
 #zust-liste .k1:hover { background: var(--line3); }
 /* Stichworte als Marken, dahinter das Feld für das nächste */
@@ -1047,17 +1047,20 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .k-pliste + .k-pen, .k-pliste + .k-fertig { margin-left: 4px; }
 .eck .sub.fach-kopf { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line3); gap: 8px; }   /* deutlich abgesetzt von den Zuständigen (.eck .sub setzt sonst margin-top 0) */
 .fach-kopf .fach-pen { margin-left: auto; }
+.fach-kopf .fach-plus { margin-left: 6px; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--faint); }
+/* Position unter dem Namen mit Abstand zu den Symbolen (E-Mail, Telefon, Handy) rechts oben */
+#zust-liste .k1 .kr, .fach-liste .k1 .kr { margin-top: 12px; }
 .fach-kopf .k-fertig { margin-left: auto; }
-.fach-liste .fach-mehr { grid-column: 1 / -1; justify-self: start; }
 .fach-liste.wahl .fach-w { position: relative; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; text-align: left; width: 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere; height: auto; border: 1.5px solid transparent; cursor: pointer; padding-left: 30px; opacity: .6; }
 .fach-liste.wahl .fach-w.on { opacity: 1; border-color: var(--ink2); }
 .fach-w .fw-h { position: absolute; left: 8px; top: 8px; width: 15px; height: 15px; border: 1.5px solid var(--line2); border-radius: 4px; font-size: 11px; line-height: 13px; text-align: center; color: var(--card); }
 .fach-w.on .fw-h { background: var(--ink2); border-color: var(--ink2); }
 /* Personen suchen */
-.k-such + .k-pliste { margin-left: 4px; }
+.modal:has(.ps) { max-width: 560px; }
+.modal footer .ps-neu { margin-right: auto; }
 .ps-kopf { gap: 10px; align-items: center; margin-bottom: 10px; }
 .ps-such { flex: 1 1 260px; }
-.ps-liste { max-height: 56vh; overflow: auto; display: grid; gap: 4px; }
+.ps-liste { max-height: 46vh; overflow: auto; display: grid; gap: 4px; }
 .ps-z { display: grid; grid-template-columns: 20px minmax(0, 1fr) auto; column-gap: 8px; padding: 6px 8px; border-radius: 7px; cursor: pointer; }
 .ps-z:hover { background: var(--hover); }
 .ps-z input { grid-column: 1; grid-row: 1; align-self: start; width: 16px; height: 16px; margin: 2px 0 0; }   /* nur so hoch wie das Häkchen – sonst zieht sich der Fokusrahmen über die ganze Zeile */

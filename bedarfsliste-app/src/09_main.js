@@ -451,7 +451,6 @@ async function act(k, a, e) {
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
     case 'pers-liste': personenListeDialog(); return;
-    case 'pers-such': { const b0 = cur(); if (b0) personenSuche(b0); return; }
     case 'upl-vorlage': closeMenus(); download('UPL_Vorlage.xlsx', await uplVorlageBlob()); return;
     case 'upl': { closeMenus(); const f = await pickFile('.xlsx'); if (f) await uplImport(f); return; }
     case 'ueb': closeMenus(); if (ST.conn !== 'ok' && !await connectFolder()) return; toast(await ueSchreiben(true) ? '„' + UEB_DATEI + '“ neben der Liste aktualisiert' : 'Noch keine Förderer – oder die Datei ist gerade in Excel geöffnet.', 'ok'); return;
@@ -531,6 +530,7 @@ async function act(k, a, e) {
     // Kontakte im Fenster und Zuständige oben auf der Seite: Stift → bearbeiten, + → weiterer (höchstens drei), × → entfernen, ☆ → nach vorn, Fertig → leere entfernen
     case 'k-edit': case 'k-neu': {
       const z = kZiel(b, a); if (!z) return;
+      if (k === 'k-neu' && z.ui === 'zEdit' && !a.dataset.leer) { personenSuche(b); return; }   // weitere Zuständige: erst in der Personenliste suchen
       if (k === 'k-neu' && z.o[z.p].length < z.max) { z.o[z.p].push(z.neu()); changed(); }
       if (z.ui === 'zEdit' && UI.zEdit !== z.id) ZSNAP = JSON.stringify(z.o.zust.filter(c => k === 'k-neu' ? c !== z.o.zust[z.o.zust.length - 1] : true));   // Stand vor dem Bearbeiten
       UI[z.ui] = z.id; keep(renderNow);
@@ -540,6 +540,7 @@ async function act(k, a, e) {
     // Fachreferat: wer bei diesem Bedarf angezeigt wird (Auswahl – die übrigen ausgeblendet)
     case 'fach-edit': UI.fachEdit = b.id; swap('fach-pers', fachBlock(b), true); return;
     case 'fach-fertig': UI.fachEdit = null; swap('fach-pers', fachBlock(b), true); return;
+    case 'fach-stern': { const f = b.freigabe.fach; f.stern = f.stern === a.dataset.k ? '' : a.dataset.k; changed(); swap('fach-pers', fachBlock(b), true); return; }
     case 'fach-wahl': { const f = b.freigabe.fach, k2 = a.dataset.k, W = (f.wahl || []).slice(), i = W.indexOf(k2);
       if (i >= 0) W.splice(i, 1); else W.push(k2); f.wahl = W; changed(); swap('fach-pers', fachBlock(b), true); return; }
     case 'k-weg': case 'k-haupt': {

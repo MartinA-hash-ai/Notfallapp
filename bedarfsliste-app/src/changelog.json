@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.58.0",
+    "date": "2026-10-27T18:00",
+    "items": [
+      "Zuständig: „+ weitere Person“ dezenter, deutlicher erst beim Überfahren – und öffnet gleich die Suche in der Personenliste (schmaleres Fenster); „Neue Person eintragen …“ für alle, die nicht in der Liste stehen",
+      "Zuständig: eigener Knopf „Suchen“ entfällt",
+      "Fachreferat: „(+3)“ hinter dem Namen statt der Zeile „3 weitere ausgeblendet“; Stern für die Hauptansprechperson im Fachreferat",
+      "Position mit Abstand unter den Symbolen für E-Mail, Telefon und Handy"
+    ]
+  },
+  {
     "version": "0.57.0",
     "date": "2026-10-27T17:00",
     "items": [

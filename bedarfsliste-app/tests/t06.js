@@ -289,7 +289,11 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   r = await p.evaluate(() => [document.querySelectorAll('#sec-eck .k-ed').length, [...document.querySelectorAll('#zust-liste > .k-ed:first-child input')].map(e => e.placeholder).join(','), !!document.querySelector('#sec-eck .sub [data-act="k-fertig"]')]);
   ok(r.join('|') === '2|Vorname Nachname,Position,E-Mail-Adresse,Telefonnummer,Handynummer|true', 'Stift: Zuständige als Linien mit Handy, „Fertig“ oben rechts: ' + r.join('|'));
   await p.fill('#sec-eck [data-p="zust.0.rolle"]', 'Ortsbeauftragter'); await p.fill('#sec-eck [data-p="zust.0.mail"]', 'thomas@malteser.example'); await p.fill('#sec-eck [data-p="zust.0.tel"]', '05251 123'); await p.fill('#sec-eck [data-p="zust.0.mobil"]', '0170 55');
-  await p.click('#sec-eck .kadd');
+  // „+ weitere Person“ öffnet die Suche in der Personenliste; „Neue Person eintragen …“ gibt eine leere Zeile
+  const neuePerson = async () => { await p.click('#sec-eck .kadd'); await p.waitForSelector('.modal .ps-such'); await p.click('.modal footer .ps-neu'); await p.waitForTimeout(150); };
+  await p.click('#sec-eck .kadd'); await p.waitForSelector('.modal .ps-such');
+  ok(await p.$eval('.modal h2', e => e.textContent) === 'Person hinzufügen' && !!(await p.$('.modal footer .ps-neu')), '„+ weitere Person“ öffnet die Suche mit „Neue Person eintragen …“');
+  await p.click('.modal footer .ps-neu'); await p.waitForTimeout(150);
   r = await p.evaluate(() => { const k = [...document.querySelectorAll('#sec-eck .k-ed')].map(e => e.getBoundingClientRect()); return [k.length, !!document.querySelector('#sec-eck .kadd'), k[0].top === k[1].top, k[2].top > k[0].bottom && Math.abs(k[2].left - k[0].left) < 2]; });
   ok(r.join() === '3,true,true,true', 'dritte Person in der nächsten Zeile, weitere möglich: ' + r.join());
   await p.click('#sec-eck .sub [data-act="k-fertig"]');
@@ -306,12 +310,12 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('#sec-eck .k1 .star.off');
   // ein bekannter Name bringt in einem anderen Bedarf Position, E-Mail und Telefon mit
   await p.evaluate(() => { UI.id = 'b-aed'; renderNow(); });
-  await p.click('#sec-eck .k-pen'); await p.click('#sec-eck .kadd'); await p.keyboard.type('thomas b');
+  await p.click('#sec-eck .k-pen'); await neuePerson(); await p.keyboard.type('thomas b');
   const sug = await p.$$eval('.le-sug .le-opt', o => o.map(x => x.textContent).join());
   await p.keyboard.press('ArrowDown'); await p.keyboard.press('Enter');
   r = await p.evaluate(() => [cur().zust.map(kontaktText).join(' | '), [...document.querySelectorAll('#sec-eck .k-ed')].at(-1).querySelector('.k-li-mail').value]);
   ok(sug === 'Thomas Beispiel' && r.join(' / ') === 'Klaus Exempel | Thomas Beispiel; Ortsbeauftragter; thomas@malteser.example; 05251 123 / thomas@malteser.example', 'Vorschlag beim Namen, Angaben aus dem anderen Bedarf ergänzt: ' + sug + ' / ' + r.join(' / '));
-  await p.click('#sec-eck .kadd');
+  await neuePerson();
   await p.evaluate(() => { UI.id = 'b-mtw'; renderNow(); });
   ok(await p.evaluate(() => D.bedarfe.find(x => x.id === 'b-aed').zust.length === 2 && !UI.zEdit), 'Seite verlassen: Bearbeiten endet, leere Zeile fällt weg');
   await p.waitForSelector('.modal'); ok((await p.$eval('.modal', e => e.textContent)).includes('Thomas Beispiel'), 'auch beim Verlassen der Seite: Frage nach der Personenliste');

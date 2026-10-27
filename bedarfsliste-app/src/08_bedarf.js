@@ -94,7 +94,7 @@ function moreMenu(btn) {
 // Deadline und Stichworte stehen im Kopf der Seite. Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift.
 function secInfo(b) {
   const ed = UI.zEdit === b.id;
-  const pl = `<button class="k-pliste k-such" data-act="pers-such" title="In der Personenliste suchen (Name, Position, Gliederung, Fachreferat, E-Mail …) und Personen als Zuständige übernehmen">⌕ Suchen</button><button class="k-pliste" data-act="pers-liste" title="Personenliste bearbeiten: Personen der Gliederungen und Fachreferate (Dienstleitung, Geschäftsführung, Beauftragte …) mit Kontaktdaten">Personenliste</button>`;
+  const pl = `<button class="k-pliste" data-act="pers-liste" title="Personenliste bearbeiten: Personen der Gliederungen und Fachreferate (Dienstleitung, Geschäftsführung, Beauftragte …) mit Kontaktdaten">Personenliste</button>`;
   return `<section class="card info-card eck" id="sec-eck">
     <div class="eck-l">${kKopf('Zuständig', ed, '', pl)}<div id="zust-liste">${zustListe(b)}</div><div id="fach-pers">${fachBlock(b)}</div></div>
     <div class="eck-r">${pe(b, 'beschreibung', 'Beschreibung ' + FMT_I, 'area', { aria: 'Beschreibung', fmt: true, ph: 'Kurzbeschreibung aus der UPL oder in eigenen Worten' })}</div>
@@ -227,7 +227,9 @@ function personen(L, o) {
   const zeile = (c, i, ausKartei) => {
     const tel = telNr(c.tel), mob = telNr(c.mobil || ''), links = o.kompakt ? '' : [c.mail && `<div><a href="mailto:${esc(c.mail)}" data-act="link">${esc(c.mail)}</a></div>`,
       tel && `<div><a href="tel:${tel}" data-act="link">${esc(c.tel)}</a></div>`, mob && `<div><a href="tel:${mob}" data-act="link">${esc(c.mobil)}</a></div>`].filter(Boolean).join('');
-    const stern = ausKartei || o.lesen ? '' : i === 0 ? `<span class="star" title="${o.haupt[0]}">★</span>`
+    const fk = o.fachStern != null && kkey(c.n), fs = fk && fk === o.fachStern;
+    const stern = fk ? `<button class="star${fs ? '' : ' off'}" data-act="fach-stern" data-k="${esc(fk)}" title="${fs ? 'Hauptansprechperson im Fachreferat – noch einmal: zurücknehmen' : 'Zur Hauptansprechperson im Fachreferat machen'}" aria-pressed="${fs}">${fs ? '★' : '☆'}</button>`
+      : ausKartei || o.lesen ? '' : i === 0 ? `<span class="star" title="${o.haupt[0]}">★</span>`
       : `<button class="star off" data-act="k-haupt" data-i="${i}" ${a} title="${o.haupt[1]}" aria-label="${o.haupt[1]}">☆</button>`;
     return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
       + (c.n && c.rolle ? `<div class="kr">${esc(c.rolle)}</div>` : '') + (links ? `<div class="kl">${links}</div>` : '')
@@ -244,19 +246,22 @@ const ICON_HANDY = '<svg viewBox="0 0 12 16" width="10" height="14" aria-hidden=
 // Fachreferat des Bedarfs (Name aus der Freigabe): alle Personen der Personenliste, die dazugehören – nur zum Ansehen und Kontaktieren
 // Ist eine Auswahl getroffen (b.freigabe.fach.wahl: Schlüssel der Namen), stehen nur diese Personen da, die übrigen sind ausgeblendet;
 // der Stift rechts neben der Überschrift öffnet die Auswahl: Karte anklicken schaltet sie an oder aus, keine = alle.
+// Stern beim Fachreferat: Hauptansprechperson (b.freigabe.fach.stern) – steht vorn
+const fachSternK = (b, L) => { const k = b.freigabe.fach.stern || ''; return k && L.some(p => kkey(p.n) === k) ? k : ''; };
 const fachWahl = (b, L) => (b.freigabe.fach.wahl || []).filter(k => L.some(p => kkey(p.n) === k));
 function fachBlock(b) {
   const name = b.freigabe.fach.name.trim(), L = fachPersonen(name), W = fachWahl(b, L), ed = UI.fachEdit === b.id && L.length > 0;
-  const zeig = W.length ? L.filter(p => W.includes(kkey(p.n))) : L, weg = L.length - zeig.length;
+  const zeig0 = W.length ? L.filter(p => W.includes(kkey(p.n))) : L, weg = L.length - zeig0.length, sk = fachSternK(b, zeig0);
+  const zeig = sk ? [...zeig0.filter(p => kkey(p.n) === sk), ...zeig0.filter(p => kkey(p.n) !== sk)] : zeig0;   // mit Stern: vorn
   const karte = p => { const on = W.includes(kkey(p.n));
     return `<button type="button" class="k1 fach-w${on ? ' on' : ''}" data-act="fach-wahl" data-k="${esc(kkey(p.n))}" aria-pressed="${on}"><span class="fw-h" aria-hidden="true">${on ? '✓' : ''}</span><div class="kn">${esc(p.n)}</div>${p.rolle ? `<div class="kr">${esc(p.rolle)}</div>` : ''}</button>`; };
   const inhalt = !name ? '<p class="muted small fach-hw">Welches Fachreferat? In der Freigabe beim Fachreferat den Namen eintragen.</p>'
     : !L.length ? `<p class="muted small fach-hw">Noch niemand mit dem Fachreferat „${esc(name)}“ in der Personenliste – dort in der Spalte „Fachreferat“ eintragen (Knopf „Personenliste“).</p>`
     : ed ? L.map(karte).join('') + '<p class="muted small fach-hw">Anklicken, wer bei diesem Bedarf angezeigt wird – die anderen werden ausgeblendet. Niemand gewählt: alle.</p>'
-    : personen(zeig, { kompakt: true, mobil: true, lesen: true }) + (weg ? `<button type="button" class="link small fach-mehr" data-act="fach-edit">${weg} weitere im Fachreferat ausgeblendet – ändern</button>` : '');
+    : personen(zeig, { kompakt: true, mobil: true, lesen: true, fachStern: fachSternK(b, zeig) });
   const knopf = !L.length ? '' : ed ? '<button class="k-fertig" data-act="fach-fertig">Fertig</button>'
     : `<button class="k-pen fach-pen" data-act="fach-edit" title="Festlegen, wer aus dem Fachreferat bei diesem Bedarf angezeigt wird" aria-label="Personen des Fachreferats auswählen">${ICON_PEN}</button>`;
-  return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}${knopf}</div><div class="fach-liste${ed ? ' wahl' : ''}">${inhalt}</div>`;
+  return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}${!ed && weg ? `<span class="fach-plus" title="${weg} weitere im Fachreferat ausgeblendet – über den Stift ändern">(+${weg})</span>` : ''}${knopf}</div><div class="fach-liste${ed ? ' wahl' : ''}">${inhalt}</div>`;
 }
 const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],
   haupt: ['Ansprechperson – steht in der Liste', 'Zur Ansprechperson machen'] });

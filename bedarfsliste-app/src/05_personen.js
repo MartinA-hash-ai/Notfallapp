@@ -211,7 +211,7 @@ async function personenListeDialog() {
   safeRender();
 }
 
-/* ---------- Personen suchen (Knopf „Suchen“ bei „Zuständig“): in Name, Position, Gliederung, Fachreferat, E-Mail und Telefon –
+/* ---------- Person hinzufügen („+ weitere Person“ bei „Zuständig“) – erst suchen; „Neue Person eintragen …“ für jemanden, der nicht in der Liste steht: in Name, Position, Gliederung, Fachreferat, E-Mail und Telefon –
    jedes eingegebene Wort muss vorkommen (z. B. „Brakel“ zeigt alle aus Brakel). Ausgewählte kommen als Zuständige mit ihren Angaben dazu. */
 async function personenSuche(b) {
   const da = new Set(b.zust.map(z => kkey(z.n))), wahl = new Set(); let stern = '';   // stern: wird Ansprechperson (vorn, mit Stern)
@@ -233,8 +233,11 @@ async function personenSuche(b) {
   const such = h('input', { type: 'search', class: 'ps-such', placeholder: 'Name, Position, Gliederung, Fachreferat, E-Mail …', oninput: e => { q = norm(e.target.value).split(/\s+/).filter(Boolean); zeig(); } });
   const los = h('span', null, 'Übernehmen'), zaehl = () => { los.textContent = wahl.size ? wahl.size + ' übernehmen' : stern ? 'Übernehmen' : 'Übernehmen'; };
   zeig();
-  const ok = await modal('Personen suchen', h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such, zahl), liste),
-    [['Abbrechen', false], [los, true, 'primary']], { wide: true, expose: () => setTimeout(() => such.focus(), 80) });   // nach dem Fokus auf „Übernehmen“
+  const ok = await modal('Person hinzufügen', h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such, zahl), liste),
+    [['Neue Person eintragen …', 'neu', 'link ps-neu'], ['Abbrechen', false], [los, true, 'primary']], { expose: () => setTimeout(() => such.focus(), 80) });   // nach dem Fokus auf „Übernehmen“
+  if (ok === 'neu') { if (UI.zEdit !== b.id) ZSNAP = JSON.stringify(b.zust); b.zust.push(leerZ());   // Stand vor dem Bearbeiten nur setzen, wenn noch nicht bearbeitet wird
+    changed(); UI.zEdit = b.id; keep(renderNow);   // nicht in der Liste: von Hand eintragen
+    const L = $$('#sec-eck .k-ed'), inp = L.length && L[L.length - 1].querySelector('input'); if (inp) inp.focus(); return; }
   if (!ok || (!wahl.size && !stern)) return;
   for (const p of PR.list) if (wahl.has(kkey(p.n)) && !da.has(kkey(p.n)) && b.zust.length < MAX_ZUST) b.zust.push(Object.assign(leerZ(), { n: p.n, rolle: p.rolle || '', mail: p.mail || '', tel: p.tel || '', mobil: p.mobil || '' }));
   const i = stern ? b.zust.findIndex(z => kkey(z.n) === stern) : -1; if (i > 0) b.zust.unshift(...b.zust.splice(i, 1));   // mit Stern: wird Ansprechperson
