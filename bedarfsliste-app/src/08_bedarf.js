@@ -119,7 +119,7 @@ function freigabeList(b) {
   }).join('');
   const fo = frOffen(b);
   return rows + (fo.names.length ? `<div class="ci-foot warn">Es fehlt noch: ${esc(fo.names.join(', '))}</div>` : '')
-    + dl('dl-fach', [...FACH_LIST, ...D.bedarfe.map(x => x.freigabe.fach.name)]);
+    + dl('dl-fach', [...fachNamen(), ...D.bedarfe.map(x => x.freigabe.fach.name)]);
 }
 function unterlagenList(b) {
   return b.unterlagen.map(u => `<div class="ci-row"${u.fest && u.name === 'Angebot' ? ' id="fr-ang"' : ''}>${circ(ulKind(u), `data-kind="ul" data-uid="${u.id}"`, u.name || 'Unterlage')}
@@ -246,7 +246,7 @@ function fachBlock(b) {
   const name = b.freigabe.fach.name.trim(), L = fachPersonen(name);
   const inhalt = !name ? '<p class="muted small fach-hw">Welches Fachreferat? In der Freigabe beim Fachreferat den Namen eintragen.</p>'
     : L.length ? personen(L, { kompakt: true, mobil: true, lesen: true })
-    : `<p class="muted small fach-hw">Noch niemand für „${esc(name)}“ in der Personenliste – über „Personenliste“ ergänzen (Spalte Fachreferat).</p>`;
+    : `<p class="muted small fach-hw">Noch niemand mit dem Fachreferat „${esc(name)}“ in der Personenliste – dort in der Spalte „Fachreferat“ eintragen (Knopf „Personenliste“).</p>`;
   return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}</div><div class="fach-liste">${inhalt}</div>`;
 }
 const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: ['weitere Person', 'Zuständige Person eintragen'],

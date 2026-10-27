@@ -1045,7 +1045,7 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .k-pliste { margin-left: auto; border: 1px solid var(--line2); background: var(--card); padding: 2px 9px; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink2); border-radius: 6px; }
 .k-pliste:hover { color: var(--ink); border-color: var(--faint); }
 .k-pliste + .k-pen, .k-pliste + .k-fertig { margin-left: 4px; }
-.fach-kopf { margin-top: 18px; gap: 8px; }
+.fach-kopf { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line3); gap: 8px; }   /* deutlich abgesetzt von den Zuständigen */
 .fach-kopf .fach-n { text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--ink2); }
 .fach-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; }
 .fach-liste .k1 { margin: 0; background: var(--hover); }

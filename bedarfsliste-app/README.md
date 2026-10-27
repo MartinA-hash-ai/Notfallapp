@@ -124,6 +124,11 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.55:** Welche Personen zu einem Fachreferat gehören, entscheidet allein die Spalte „Fachreferat“ der Personenliste (mehrere durch Komma
+getrennt möglich). In der UPL-Vorlage heißt die Spalte „Dienst“ jetzt „Fachreferat“ (ältere Vorlagen mit „Dienst“ werden weiter gelesen); beim
+Einlesen wird das Fachreferat beim Bedarf eingetragen – unter „Zuständig“ erscheinen dann dessen Ansprechpersonen. Mehr Abstand und eine feine
+Linie zwischen den Zuständigen und „Fachreferat“.
+
 **Seit 0.54:** Förderer stehen überall (Förderplan, Kacheln, Liste, Übernahme-Vorschau) in dieser Reihenfolge: zugesagt, dann nach Einschätzung
 von „sehr wahrscheinlich“ bis „sehr unwahrscheinlich“ (ohne Einschätzung wie „unsicher“), abgelehnt ganz unten. Das Angebot steht nicht mehr in
 der Liste; auf der Seite des Bedarfs ist es die erste Unterlage, danach die neue feste Unterlage „Interview“ (offen / vereinbart / geführt), dann

@@ -17,8 +17,10 @@ const PERS_COLS = [
   { k: 'stand', t: 'Stand', w: 12, re: /^stand|datum/ },
 ];
 const person = name => PR.byKey.get(kkey(name)) || null;
-// Personen eines Fachreferats: Spalte „Fachreferat“ – oder der Name steht in Position bzw. Dienststelle
-const fachPersonen = name => { const q = norm(name); return q ? PR.list.filter(p => [p.fach, p.rolle, p.gl].some(v => norm(v || '').includes(q))) : []; };
+// Personen eines Fachreferats: ausschlaggebend ist die Spalte „Fachreferat“ der Personenliste (mehrere durch Komma, Semikolon oder / getrennt)
+const fachTeile = v => String(v || '').split(/\s*[,;/]\s*/).map(norm).filter(Boolean);
+const fachPersonen = name => { const q = norm(name); return q ? PR.list.filter(p => fachTeile(p.fach).includes(q)) : []; };
+const fachNamen = () => uniq([...FACH_LIST, ...PR.list.flatMap(p => String(p.fach || '').split(/\s*[,;/]\s*/).map(x => x.trim()))]);
 
 // je Blatt die Kopfzeile mit „Name“ und „E-Mail“, „Telefon“ oder „Handy“. Namen auch als „Vorname“ + „Name“/„Nachname“ in zwei Spalten
 // oder als „Mustermann, Max“. Platzhalter („nicht gefunden“, „k. A.“) gelten als leer, E-Mail braucht ein @, Telefon Ziffern (führende 0 bleibt)

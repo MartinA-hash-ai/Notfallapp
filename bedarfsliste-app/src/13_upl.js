@@ -52,7 +52,7 @@ function uplAnwenden(b, z, neu) {
   if (neu) { b.freigabe.ofk.st = 'ok'; b.freigabe.ofk.erledigt = today(); b.freigabe.ofk.notiz = 'laut UPL (Investitionsabfrage)'; }   // in der UPL: der Ortsführungskreis hat zugestimmt
   if (neu && z.spenden > 0) b.foerderer.push(ff({ name: 'Bisherige Spenden (laut UPL)', status: 'zugesagt', betrag: z.spenden, zugesagt: z.spenden, eingegangen: z.spenden }));
   else if (b.summe == null && z.summe) { b.summe = z.summe; n = true; }
-  if (z.fach && z.dienst && !b.freigabe.fach.name) b.freigabe.fach.name = z.dienst;
+  if (z.dienst && !b.freigabe.fach.name) { b.freigabe.fach.name = z.dienst; n = true; }   // Fachreferat des Bedarfs – darüber kommen seine Ansprechpersonen (Personenliste)
   frei('fach', z.fach); frei('verw', z.verw);
   return neu || n;
 }
@@ -68,7 +68,7 @@ const UPL_V = [
   { k: 'deadline', t: 'Deadline', w: 12, help: 'Aus „geplanter Zeitpunkt der Anschaffung“ als Datum TT.MM.JJJJ – immer das Ende des Zeitraums: „3. Quartal 2027“ = 30.09.2027, „Oktober 2027“ = 31.10.2027, „Start April 2027“ = 30.04.2027, „1. bis 2. Quartal“ = 30.06. des Geschäftsjahrs. Ohne Jahr: das Geschäftsjahr. Unbestimmt („so schnell wie möglich“, „im Laufe des Jahres“): leer.' },
   { k: 'text', t: 'Beschreibung', w: 60, help: 'Der Text aus „Investition mit Beschreibung und Begründung“ – vollständig und unverändert (auch Anmerkungen wie „Anmerkung NF: …“).' },
   { k: 'fr', t: 'Einschätzung Fundraising', w: 40, help: 'Der Text aus „Fundraising › Kommentierung“, unverändert. Leer, wenn dort nichts steht.' },
-  { k: 'dienst', t: 'Dienst', w: 10, help: 'Aus „Dienst“, unverändert (z. B. KATS, SAND, AU).' },
+  { k: 'dienst', t: 'Fachreferat', alt: ['Dienst'], w: 16, help: 'Das Fachreferat, zu dem der Bedarf gehört (in der UPL in der Spalte „Dienst“), z. B. Notfallvorsorge oder Soziales Ehrenamt – genau so geschrieben wie in der Personenliste in der Spalte „Fachreferat“; darüber ordnet die Bedarfsliste die Ansprechpersonen des Fachreferats zu. Steht in der UPL nur ein Kürzel (z. B. KATS, SAND) und ist das Fachreferat nicht eindeutig: Kürzel übernehmen und in „Hinweis“ vermerken.' },
   { k: 'fach', t: 'Fachreferat freigegeben', w: 12, items: ['ja', 'nein', 'offen'], help: 'Aus „Kommentierung Referat › Bewertung“: „genehmigt“ = ja, „abgelehnt“ = nein, alles andere (auch „optional“ oder leer) = offen.' },
   { k: 'fachBeg', t: 'Begründung Fachreferat', w: 34, help: 'Nur bei „ja“: der Text aus „Kommentierung Referat › Begründung“, unverändert. Sonst leer.' },
   { k: 'verw', t: 'Verwaltung budgetiert', w: 12, items: ['ja', 'nein', 'offen'], help: 'Aus „Kommentierung aus der Beratung des Finanzausschuss und der GF › Bewertung“: „genehmigt“ = ja, „abgelehnt“ = nein, sonst offen.' },
@@ -103,7 +103,7 @@ function uplVorlageLesen(book, jahr0) {
   const anl = book.sheets.find(s => /^anleitung/i.test(s.name)), gj = anl && (anl.rows.find(r => /^gesch(ä|ae)ftsjahr/.test(norm(r[0]))) || [])[1];
   const jahr = (String(gj || '').match(/20\d\d/) || [jahr0 || ''])[0];
   const hi = sh.rows.findIndex(r => r.some(v => /^bedarf \(kurzname\)/.test(norm(v)))), head = sh.rows[hi].map(norm), ci = {};
-  for (const c of UPL_V) ci[c.k] = head.indexOf(norm(c.t));
+  for (const c of UPL_V) ci[c.k] = [c.t, ...(c.alt || [])].map(t => head.indexOf(norm(t))).find(i => i >= 0) ?? -1;   // „Dienst“: frühere Vorlagen
   const v = (r, k) => ci[k] >= 0 ? cellStr(r[ci[k]]) : '', zahl = (r, k) => { const x = ci[k] >= 0 ? r[ci[k]] : ''; const n = typeof x === 'number' ? x : deNum(cellStr(x)); return typeof n === 'number' && n > 0 ? n : null; };
   const ja = (r, k) => /^ja\b/i.test(v(r, k));
   return sh.rows.slice(hi + 1).filter(r => v(r, 'text')).map(r => {
