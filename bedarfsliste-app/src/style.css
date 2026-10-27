@@ -642,7 +642,7 @@ input.inline.sum { width: 210px; font-size: 34px; font-weight: 700; text-align: 
 /* Zuständige: je Zeile zwei, E-Mail und Telefon stehen nur als Hinweis an den Knöpfen */
 #zust-liste { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 10px; align-items: stretch; }
 /* „+ weitere Person“ als dezenter gestrichelter Platzhalter-Kasten: bei ungerader Zahl rechts daneben, bei gerader in der nächsten Zeile */
-#zust-liste > .kadd { justify-content: center; min-height: 46px; padding: 6px 10px; border: 1px dashed var(--line3); border-radius: 7px; background: transparent; color: var(--faint); font-weight: 500; opacity: .75; transition: opacity .15s, border-color .15s, background .15s; }
+#zust-liste > .kadd { justify-content: center; justify-self: start; min-height: 30px; padding: 3px 16px; border: 1px dashed var(--line3); border-radius: 7px; background: transparent; color: var(--faint); font-weight: 500; opacity: .75; transition: opacity .15s, border-color .15s, background .15s; }
 #zust-liste > .kadd:hover, #zust-liste > .kadd:focus-visible { opacity: 1; background: var(--soft); color: var(--ink2); border-color: var(--faint); }   /* erst beim Überfahren deutlicher */
 #zust-liste .k1 { margin: 0; background: var(--hover); }                         /* jede Person als graue Karte */
 #zust-liste .k1:hover { background: var(--line3); }
@@ -1045,11 +1045,16 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .k-pliste { margin-left: auto; border: 1px solid var(--line2); background: var(--card); padding: 2px 9px; font-size: 12px; font-weight: 600; text-transform: none; letter-spacing: 0; color: var(--ink2); border-radius: 6px; }
 .k-pliste:hover { color: var(--ink); border-color: var(--faint); }
 .k-pliste + .k-pen, .k-pliste + .k-fertig { margin-left: 4px; }
-.eck .sub.fach-kopf { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--line3); gap: 8px; }   /* deutlich abgesetzt von den Zuständigen (.eck .sub setzt sonst margin-top 0) */
+.eck .sub.fach-kopf { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line3); gap: 8px; }   /* deutlich abgesetzt von den Zuständigen (.eck .sub setzt sonst margin-top 0) */
 .fach-kopf .fach-pen { margin-left: auto; }
 .fach-kopf .fach-plus { margin-left: 6px; text-transform: none; letter-spacing: 0; font-weight: 600; color: var(--faint); }
 /* Position unter dem Namen mit Abstand zu den Symbolen (E-Mail, Telefon, Handy) rechts oben */
-#zust-liste .k1 .kr, .fach-liste .k1 .kr { margin-top: 12px; }
+/* Karten bei „Zuständig“ und „Fachreferat“: die Symbole schweben rechts oben – der Name nutzt den Platz daneben,
+   die Position steht darunter (mit Abstand zu den Symbolen) über die ganze Breite */
+#zust-liste .k1, .fach-liste .k1 { padding-right: 8px; }
+#zust-liste .k1 .acts, .fach-liste .k1 .acts { position: static; float: right; margin: 0 0 2px 8px; }
+#zust-liste .k1 .kr, .fach-liste .k1 .kr { clear: right; margin-top: 6px; }
+#zust-liste .k1::after, .fach-liste .k1::after { content: ''; display: block; clear: both; }
 .fach-kopf .k-fertig { margin-left: auto; }
 .fach-liste.wahl .fach-w { position: relative; display: flex; flex-direction: column; justify-content: flex-start; align-items: stretch; text-align: left; width: 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere; height: auto; border: 1.5px solid transparent; cursor: pointer; padding-left: 30px; opacity: .6; }
 .fach-liste.wahl .fach-w.on { opacity: 1; border-color: var(--ink2); }

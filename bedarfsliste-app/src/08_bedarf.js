@@ -231,9 +231,11 @@ function personen(L, o) {
     const stern = fk ? `<button class="star${fs ? '' : ' off'}" data-act="fach-stern" data-k="${esc(fk)}" title="${fs ? 'Hauptansprechperson im Fachreferat – noch einmal: zurücknehmen' : 'Zur Hauptansprechperson im Fachreferat machen'}" aria-pressed="${fs}">${fs ? '★' : '☆'}</button>`
       : ausKartei || o.lesen ? '' : i === 0 ? `<span class="star" title="${o.haupt[0]}">★</span>`
       : `<button class="star off" data-act="k-haupt" data-i="${i}" ${a} title="${o.haupt[1]}" aria-label="${o.haupt[1]}">☆</button>`;
-    return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
-      + (c.n && c.rolle ? `<div class="kr">${esc(c.rolle)}</div>` : '') + (links ? `<div class="kl">${links}</div>` : '')
-      + `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben', c.mail) : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen', c.tel) : ''}${mob ? knopf('tel:' + mob, ICON_HANDY, 'Handy anrufen', c.mobil) : ''}</div></div>`;
+    const acts = `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben', c.mail) : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen', c.tel) : ''}${mob ? knopf('tel:' + mob, ICON_HANDY, 'Handy anrufen', c.mobil) : ''}</div>`;
+    // die Symbole stehen vorn (rechts schwebend): der Name nutzt den Platz daneben, die Position darunter die ganze Breite
+    return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}${acts}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
+      + (c.n && c.rolle ? `<div class="kr">${c.rolle.split(/\s*;\s*/).filter(Boolean).map(esc).join('<br>')}</div>` : '')   // „;“ in der Position: neue Zeile
+      + (links ? `<div class="kl">${links}</div>` : '') + '</div>';
   };
   return L.map((c, i) => zeile(c, i, false)).join('') + (o.extra || []).map(c => zeile(c, 0, true)).join('') + (o.lesen ? '' : plus(n ? o.neu[0] : o.neu[1]));
 }
