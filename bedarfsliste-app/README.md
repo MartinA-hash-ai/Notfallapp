@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.66:** Förderer lassen sich schnell eintippen: Name, Enter, Summe, Enter – dann steht die Schreibmarke schon im nächsten Förderer.
+
 **Seit 0.65:** In der Vorschau „Neuen Bedarf anlegen?“ lässt sich jede Angabe anklicken und ändern, Stichworte und andere Einträge entfernt man mit ×. Die offenen Punkte und Quellen der KI können unter die Beschreibung. Beim Ordner darf man einen Pfad aus dem Explorer einfügen – die Liste macht daraus den SharePoint-Link.
 
 **Seit 0.64:** Oben in der Liste, links neben „+ Bedarf“, sitzt ein KI-Knopf. Die erste Aufgabe „Bedarf aus Daten erstellen“ macht aus einer E-Mail, einem Interview-Transkript oder einer Teams-Unterhaltung genau einen neuen Bedarf: Bei einer Quelle den Prompt in Copilot einfügen und dessen Textblock hier einlesen; bei mehreren Quellen füllt Cowork eine Datei im Ordner „Förderrecherche“, und die Liste meldet sich, sobald sie ausgefüllt ist. Vor dem Anlegen zeigt eine Vorschau, was erkannt wurde, was fehlt und was auffällt – ergänzt wird nichts.

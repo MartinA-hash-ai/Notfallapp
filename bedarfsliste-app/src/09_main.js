@@ -439,6 +439,16 @@ async function manuellSetzen(b, v, nurGrund) {
   if (t == null) return;
   b.manuell = v; b.grundM = t.trim(); changed(); keep(renderNow);
 }
+function foeWeiter(el) {
+  const b = cur(), fid = el.dataset.fid, zurSumme = el.matches('.fp-h'); if (!b) return;
+  if (document.activeElement === el) el.blur();                                  // übernimmt (neu zeichnen nach der Sortierung)
+  setTimeout(() => {
+    if (zurSumme) { const a = $('#amt-' + CSS.escape(fid)); if (a) { a.focus(); a.select(); } return; }
+    let f = b.foerderer.find(x => !x.name.trim() && x.betrag == null && x.zugesagt == null);
+    if (!f) { f = ff({}); b.foerderer.push(f); changed(); keep(renderNow); }
+    const n = $(`#foe-${CSS.escape(f.id)} input[data-p="name"]`); if (n) { n.focus(); n.scrollIntoView({ block: 'center' }); }
+  }, 0);
+}
 function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit); if (f && f.kontakte.some(kontaktLeer)) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } }
 async function act(k, a, e) {
   const b = cur();
@@ -616,6 +626,8 @@ document.addEventListener('keydown', e => {
   // Strg+Z außerhalb von Eingabefeldern: letzte Änderung zurück (in Feldern macht der Browser das Tippen rückgängig)
   if (taste(e, 'g-undo') && !(el.closest && el.closest('input, textarea, select, [contenteditable]'))) { e.preventDefault(); undo(); return; }
   if (e.key === 'Escape' && UI.det && !$('.menu, .modal, .cal-pop')) { kAufraeumen(cur()); UI.det = null; UI.kEdit = null; keep(renderNow); return; }
+  // Förderer schnell eintippen: Name, Enter → Summe, Enter → nächster Förderer (ein leerer wird wiederverwendet)
+  if (e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey && el.matches && el.matches('#sec-foe ~ .fk-grid input.fp-h[data-p="name"], #sec-foe ~ .fk-grid input.amt') && el.dataset.fid) { e.preventDefault(); foeWeiter(el); return; }
   if (e.key === 'Enter' && el.id === 'ul-new') { e.preventDefault(); addUl(true); }
   if (e.key === 'Enter' && el.id === 'f-titel') { e.preventDefault(); el.blur(); }
   if (e.key === 'Enter' && el.classList && el.classList.contains('inline') && el.tagName === 'INPUT' && el.type !== 'date') { e.preventDefault(); el.blur(); }

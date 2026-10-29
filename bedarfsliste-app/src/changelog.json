@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.66.0",
+    "date": "2026-10-30T09:00",
+    "items": [
+      "Förderer schnell eintippen: Name, Enter → Summe, Enter → gleich der nächste Förderer (ein noch leerer wird wiederverwendet)"
+    ]
+  },
+  {
     "version": "0.65.0",
     "date": "2026-10-29T23:00",
     "items": [
