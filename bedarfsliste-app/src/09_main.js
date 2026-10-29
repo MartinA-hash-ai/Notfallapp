@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { fEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -180,6 +180,10 @@ function renderNow() {
     if (UI.view !== 'list' || UI.ansicht !== 'kompakt') UI.auf = null;              // aufgeklappter Bedarf der kompakten Liste
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
     if (UI.kEdit !== UI.det) UI.kEdit = null;
+    if (UI.fEdit && UI.fEdit !== (b && b.id)) {                                     // Seite verlassen: Fachreferat fertig bearbeitet
+      const z = D.bedarfe.find(x => x.id === UI.fEdit); UI.fEdit = null;
+      if (z) { const f = z.freigabe.fach; if ((f.pers || []).some(kontaktLeer)) { f.pers = f.pers.filter(c => !kontaktLeer(c)); changed(); } setTimeout(() => wennFrei(() => fachFertig(z)), 0); }
+    }
     if (UI.zEdit && UI.zEdit !== (b && b.id)) {                                     // Seite verlassen: Zuständige fertig bearbeitet, leere fallen weg
       const z = D.bedarfe.find(x => x.id === UI.zEdit); UI.zEdit = null;
       if (z && z.zust.some(kontaktLeer)) { z.zust = z.zust.filter(c => !kontaktLeer(c)); changed(); }
@@ -282,6 +286,7 @@ function mainMenu(btn) {
     DEMO ? null : item('restore', 'Laden …'),
     h('hr'), kopf('Einstellungen'),
     item('vorlagen', 'E-Mail-Vorlagen (Rundmail) …'),
+    item('pers-liste', 'Personenliste bearbeiten …'),
     item('fach-haupt', 'Hauptansprechpersonen der Fachreferate …'),
     item('tasten', 'Tastaturbefehle …'),
     item('about', 'Über die Bedarfsliste und Tastaturbefehle (Version ' + APP_INFO.version + ')'));
@@ -312,6 +317,7 @@ function about() {
 // leer gebliebene Kontakte entfernen, wenn das Fenster beim Bearbeiten geschlossen wird
 // wessen Kontakte: die eines Förderers (Knopf mit data-fid, im Fenster) oder die Zuständigen des Bedarfs (oben auf der Seite)
 function kZiel(b, a) {
+  if (a.dataset.fach) return { o: b.freigabe.fach, p: 'pers', ui: 'fEdit', id: b.id, box: '#fach-pers', max: 30, neu: leerZ };   // Personen beim Fachreferat
   if (!a.dataset.fid) return { o: b, p: 'zust', ui: 'zEdit', id: b.id, box: '#sec-eck', max: MAX_ZUST, neu: leerZ };
   const f = b.foerderer.find(x => x.id === a.dataset.fid);
   return f && { o: f, p: 'kontakte', ui: 'kEdit', id: f.id, box: '.foe-pop', max: MAX_KONTAKTE, neu: leerK };
@@ -322,7 +328,7 @@ document.addEventListener('focusin', e => {
   if (!inp.matches || !inp.matches('#sec-eck .k-li-n') || inp.dataset.sug) return;
   inp.dataset.sug = '1';
   const ergaenzen = () => {
-    const b = cur(), z = b && b.zust[+inp.dataset.p.split('.')[1]], v = z && zustVorbild(z.n, z); if (!v) return;
+    const b = cur(), z = b && getPath(b, inp.dataset.p.replace(/\.n$/, '')), v = z && zustVorbild(z.n, z); if (!v) return;   // Zuständige oder Fachreferat
     let neu = false;
     for (const p of ZUST_F) if (!(z[p] || '').trim() && v[p]) { z[p] = v[p]; neu = true; const x = inp.parentNode.querySelector('.k-li-' + p); if (x) x.value = v[p]; }
     if (neu) changed();
@@ -357,7 +363,20 @@ function uebergang(r, fn) {
   document.startViewTransition(fn).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; });
 }
 // o.offen: Förderplan bzw. Nacharbeit gleich aufgeklappt ('foe', 'nach'); o.danach: nach dem Zeichnen (z. B. zur Stelle springen)
+// „+ Bedarf“ auf der Seite eines Bedarfs: gleich eine leere Seite zum Ausfüllen; bleibt sie unberührt, verschwindet sie beim Verlassen wieder
+let NEU_LEER = null;
+function neuerBedarfSeite() {
+  const nb = blank(); D.bedarfe.unshift(nb); UI.tab = 'aktiv'; changed(); heuteDazu(nb.id);
+  leerWeg(); NEU_LEER = { id: nb.id, s: JSON.stringify(nb) };
+  oeffnen(nb.id, { danach: () => { const t = $('#f-titel'); if (t) t.focus(); } });
+}
+function leerWeg(bleibt) {
+  const n = NEU_LEER; if (!n || n.id === bleibt) return;
+  NEU_LEER = null; const i = D.bedarfe.findIndex(x => x.id === n.id);
+  if (i >= 0 && JSON.stringify(D.bedarfe[i]) === n.s) { D.bedarfe.splice(i, 1); changed(); }
+}
 function oeffnen(id, o = {}) {
+  leerWeg(id);
   if (UI.view === 'list') { LISTE_Y = scrollY; NAV = filtered().map(x => x.id); }
   closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; ZU = null;
   const b = D.bedarfe.find(x => x.id === id); if (b && o.offen) { ZU = zuStd(b); ZU[o.offen] = false; }
@@ -365,7 +384,7 @@ function oeffnen(id, o = {}) {
   setTimeout(kiCheck, 300);                                                        // Ergebnis von Copilot oder Cowork da?
 }
 // zurück: die Liste steht, wo sie war; der Fokus liegt auf dem Bedarf, von dem man kommt (mit ↑/↓ auf der Seite weitergeblättert: er wird ins Bild geholt)
-function zurueck() { closeMenus(); klickRuhe(); const id = UI.id; UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); zeileFokus(id); zeileZeigen(id); }); }
+function zurueck() { leerWeg(); closeMenus(); klickRuhe(); const id = UI.id; UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); zeileFokus(id); zeileZeigen(id); }); }
 // Seite eines Bedarfs: ↓ / ↑ öffnen den nächsten bzw. vorigen Bedarf – in der Reihenfolge, die die Liste beim Öffnen hatte
 // (steht er dort nicht, z. B. aus den Hinweisen geöffnet: die Liste mit Suche und Filtern, sonst alle Bedarfe seines Reiters)
 let NAV = [];
@@ -374,7 +393,7 @@ function blaettern(d) {
   if (!NAV.includes(b.id)) { const L = filtered().map(x => x.id); NAV = L.includes(b.id) ? L : filterUndSortiere({ arch: !!b.archiv, alle: true }).map(x => x.id); }
   const L = NAV.filter(id => D.bedarfe.some(x => x.id === id)), id = L[L.indexOf(b.id) + d];
   if (!id) { toast(d > 0 ? 'Das ist der letzte Bedarf der Liste.' : 'Das ist der erste Bedarf der Liste.'); return; }
-  closeMenus(); UI.id = id; UI.det = null; ZU = null;
+  leerWeg(id); closeMenus(); UI.id = id; UI.det = null; ZU = null;
   uebergang(d > 0 ? 'runter' : 'hoch', () => { renderNow(); scrollTo(0, 0); });
   setTimeout(kiCheck, 300);
 }
@@ -424,11 +443,11 @@ function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit
 async function act(k, a, e) {
   const b = cur();
   switch (k) {
-    case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
+    case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; UI.paketWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
     case 'open': oeffnen(a.dataset.id); return;
     case 'back': zurueck(); return;
     case 'sort-th': sortSpalte(a.dataset.k); return;
-    case 'new': neuerBedarf(); return;
+    case 'new': if (UI.view === 'detail') neuerBedarfSeite(); else neuerBedarf(); return;   // auf der Seite eines Bedarfs: gleich eine leere Seite
     case 'clear': Object.assign(UI, { q: '', fSw: [], prioKopf: 0 }); ORDER.ids = null; keep(renderNow); return;
     case 'prio-kopf': UI.prioKopf = ((UI.prioKopf || 0) + 1) % 3; ORDER.ids = null; keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
@@ -455,7 +474,11 @@ async function act(k, a, e) {
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
     case 'tasten': tastenDialog(); return;
     case 'sw-filter': if ($('.swf-pop')) closeMenus(); else swFilterPop(a); return;
-    case 'heute-wahl': heuteWaehlen(); return;
+    case 'heute-wahl': UI.paketWahl = null; heuteWaehlen(); return;
+    case 'paket-wahl': paketWaehlen(true); return;
+    case 'paket-ende': paketWaehlen(false); return;
+    case 'paket-leer': if (UI.paketWahl) { UI.paketWahl.clear(); keep(renderNow); } return;
+    case 'paket-los': paketDialog(); return;
     case 'heute-fertig': heuteFertig(true); return;
     case 'heute-abbr': heuteFertig(false); return;
     case 'heute-leer': if (UI.heuteWahl) { UI.heuteWahl.clear(); keep(renderNow); } return;
@@ -544,6 +567,7 @@ async function act(k, a, e) {
     // Kontakte im Fenster und Zuständige oben auf der Seite: Stift → bearbeiten, + → weiterer (höchstens drei), × → entfernen, ☆ → nach vorn, Fertig → leere entfernen
     case 'k-edit': case 'k-neu': {
       const z = kZiel(b, a); if (!z) return;
+      if (z.ui === 'fEdit') { if (k === 'k-neu') fachDialog(b); else fachBearbeiten(b); return; }   // Fachreferat: „+“ sucht, Stift bearbeitet
       if (k === 'k-neu' && z.ui === 'zEdit' && !a.dataset.leer) { personenSuche(b); return; }   // weitere Zuständige: erst in der Personenliste suchen
       if (k === 'k-neu' && z.o[z.p].length < z.max) { z.o[z.p].push(z.neu()); changed(); }
       if (z.ui === 'zEdit' && UI.zEdit !== z.id) ZSNAP = JSON.stringify(z.o.zust.filter(c => k === 'k-neu' ? c !== z.o.zust[z.o.zust.length - 1] : true));   // Stand vor dem Bearbeiten
@@ -552,7 +576,6 @@ async function act(k, a, e) {
       return;
     }
     // Fachreferat: Stift → Personen beim Bedarf; Stern je Bedarf; einmalige Frage nach der Hauptansprechperson des Fachreferats
-    case 'fach-edit': fachDialog(b); return;
     case 'fach-stern': { const f = b.freigabe.fach; f.stern = f.stern === a.dataset.k ? '' : a.dataset.k; changed(); swap('fach-pers', fachBlock(b), true); return; }
     case 'fach-std': fachHauptSetzen(b.freigabe.fach.name, a.dataset.k); swap('fach-pers', fachBlock(b), true); return;
     case 'rundmail': rundmail(b, a.dataset.v); return;
@@ -563,7 +586,7 @@ async function act(k, a, e) {
       const [c] = z.o[z.p].splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) z.o[z.p].unshift(c);
       changed(); break;
     }
-    case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; if (z.ui === 'zEdit') zustFertig(b); } else UI.kEdit = null; break; }
+    case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; if (z.ui === 'zEdit') zustFertig(b); if (z.ui === 'fEdit') fachFertig(b); } else UI.kEdit = null; break; }
     case 'sw-weg': b.stichworte.splice(+a.dataset.i, 1); changed(); break;
     case 'sw-pop': swPop(a); return;
     case 'prio-stern': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); break;     // Stern im Kopf der Seite: Prio an oder aus

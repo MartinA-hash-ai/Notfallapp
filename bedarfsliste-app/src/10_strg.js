@@ -59,7 +59,7 @@ const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 // Ist ein Bedarf aufgeklappt, holt ein Klick auf eine andere Zeile diese nach vorn; ein Klick außerhalb der Liste (oder Esc) klappt ihn zu.
 const AUF_POPS = '.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new, #peek, .fmt-bar';
 document.addEventListener('click', e => {
-  if (UI.view !== 'list' || UI.heuteWahl) return;                                    // „Heute“ wählen: Klick markiert (16_heute.js)
+  if (UI.view !== 'list' || pickSet()) return;                                    // „Heute“ wählen: Klick markiert (16_heute.js)
   if (e.target.closest('.le-edit, .le-new, .ue-form')) return;                         // offene Felder halten ihre Klicks selbst zurück (le-stop)
   if (e.target.closest('#list-body a[href]')) return;                               // Link (z. B. in den Übergabe-Notizen): öffnet den Link, nicht den Bedarf
   const tr = e.target.closest('#list-body tr[data-id]'), id = tr && tr.dataset.id, komp = UI.ansicht === 'kompakt';
@@ -374,7 +374,7 @@ function feldWeiter(b, k, wie, then) {
 // Esc oder Klick daneben hört auf. Bleibt der Name leer, verschwindet die neue Zeile wieder.
 function neuerBedarf(nach) {
   const nb = blank(); D.bedarfe.unshift(nb); changed();
-  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: [], heuteWahl: null, prioKopf: UI.prioKopf === 2 ? 0 : UI.prioKopf }); heuteDazu(nb.id);
+  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: [], heuteWahl: null, paketWahl: null, prioKopf: UI.prioKopf === 2 ? 0 : UI.prioKopf }); heuteDazu(nb.id);
   const L = (ORDER.ids && ORDER.key === ordKey() ? ORDER.ids : (ORDER.ids = null, filtered().map(x => x.id))).filter(id => id !== nb.id), at = nach ? L.indexOf(nach) : -1;
   ORDER.ids = at >= 0 ? [...L.slice(0, at + 1), nb.id, ...L.slice(at + 1)] : [nb.id, ...L]; ORDER.key = ordKey();
   renderNow(); strgSet(false);

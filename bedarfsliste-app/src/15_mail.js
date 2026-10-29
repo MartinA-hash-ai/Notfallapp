@@ -163,13 +163,39 @@ async function vorlagenDialog(o = {}) {
 /* ---------- Fachreferat beim Bedarf: alle Personen mit diesem Fachreferat, ohne die ausgeblendeten (fach.aus), dazu weitere aus der Personenliste (fach.dazu).
    Hauptansprechperson: je Bedarf (fach.stern), sonst die des Fachreferats (D.settings.fachHaupt, einmal gefragt) */
 const FACH_HAUPT_STD = { notfallvorsorge: 'Thorsten Heß' };          // vom Fundraising genannt – gilt, bis jemand anderes gewählt ist
+// fach.pers: Personen, die beim Bedarf feststehen (mit ihren Angaben – über den Stift änderbar); dazu kommen die übrigen des Fachreferats aus der
+// Personenliste, außer den ausgeblendeten (fach.aus). Fehlende Angaben ergänzt die Personenliste.
+const fachKopie = p => Object.assign(leerZ(), { n: p.n || '', rolle: p.rolle || '', mail: p.mail || '', tel: p.tel || '', mobil: p.mobil || '' });
 function fachZeig(b) {
   const f = b.freigabe.fach, name = f.name.trim(), L = fachPersonen(name);
-  if (Array.isArray(f.wahl) && f.wahl.length && L.length) { f.aus = L.map(p => kkey(p.n)).filter(k => !f.wahl.includes(k)); delete f.wahl; }   // Auswahl bis 0.60 → ausgeblendete
-  const gilt = !f.fuer || f.fuer === norm(name);                    // anderes Fachreferat eingetragen: die Auswahl galt dem alten
-  const aus = new Set(gilt ? f.aus || [] : []), drin = L.filter(p => !aus.has(kkey(p.n)));
-  const dazu = (gilt ? f.dazu || [] : []).map(k => PR.list.find(p => kkey(p.n) === k)).filter(p => p && !L.includes(p));
-  return { name, L, Z: [...drin, ...dazu], weg: L.length - drin.length };
+  if (f.fuer && f.fuer !== norm(name)) { f.aus = []; f.pers = []; f.dazu = []; f.fuer = ''; }   // anderes Fachreferat eingetragen: die Auswahl galt dem alten
+  if (Array.isArray(f.wahl) && f.wahl.length && L.length) { f.aus = L.map(p => kkey(p.n)).filter(k => !f.wahl.includes(k)); }   // Auswahl bis 0.60 → ausgeblendete
+  delete f.wahl;
+  if (Array.isArray(f.dazu) && f.dazu.length) { f.pers = [...(f.pers || []), ...f.dazu.map(k => PR.list.find(p => kkey(p.n) === k)).filter(Boolean).map(fachKopie)]; f.dazu = []; }   // 0.61 → 0.62
+  const aus = new Set(f.aus || []), P = (f.pers || []).filter(c => !kontaktLeer(c)), pk = new Map(P.map(c => [kkey(c.n), c]));
+  const voll = c => { const p = person(c.n); return p ? Object.assign({}, c, ...['rolle', 'mail', 'tel', 'mobil'].map(k => (c[k] || '').trim() ? {} : { [k]: p[k] || '' })) : c; };
+  const Z = [...L.filter(p => !aus.has(kkey(p.n))).map(p => pk.has(kkey(p.n)) ? voll(pk.get(kkey(p.n))) : p), ...P.filter(c => !L.some(p => kkey(p.n) === kkey(c.n))).map(voll)];
+  return { name, L, Z, weg: L.filter(p => aus.has(kkey(p.n)) && !pk.has(kkey(p.n))).length };
+}
+// alle, die gerade beim Fachreferat stehen, als feste Personen übernehmen (vor dem Bearbeiten und nach der Auswahl)
+function fachFest(b, Z) {
+  const f = b.freigabe.fach, { name, L } = fachZeig(b);
+  f.pers = Z.map(fachKopie); f.aus = L.map(p => kkey(p.n)).filter(k => !f.pers.some(c => kkey(c.n) === k)); f.fuer = norm(name);
+}
+let FSNAP = '[]';
+// Stift: die Personen beim Fachreferat direkt bearbeiten (wie bei „Zuständig“); „Fertig“ fragt, ob Neues in die Personenliste soll
+function fachBearbeiten(b, neu) {
+  if (UI.fEdit !== b.id) { fachFest(b, fachZeig(b).Z); FSNAP = JSON.stringify(b.freigabe.fach.pers); }
+  if (neu) b.freigabe.fach.pers.push(leerZ());
+  changed(); UI.fEdit = b.id; keep(renderNow);
+  const E = $$('#fach-pers .k-ed'), e = neu ? E[E.length - 1] : E[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
+}
+function fachFertig(b) {
+  const f = b.freigabe.fach, name = f.name.trim(), L = fachPersonen(name);
+  f.pers = (f.pers || []).filter(c => !kontaktLeer(c)); f.aus = L.map(p => kkey(p.n)).filter(k => !f.pers.some(c => kkey(c.n) === k)); f.fuer = norm(name);
+  const vor = JSON.parse(FSNAP || '[]').map(c => JSON.stringify(c)); FSNAP = '[]';
+  const N = f.pers.filter(c => !vor.includes(JSON.stringify(c))).map(c => person(c.n) ? c : Object.assign({}, c, { fach: name }));   // Neue gehören zum Fachreferat
+  if (N.length) setTimeout(() => wennFrei(() => personenBestaetigen(N, '')), 0);
 }
 // Schlüssel der Standard-Hauptansprechperson; '' = bewusst niemand; undefined = noch nicht gefragt (oder nicht mehr im Fachreferat)
 function fachHauptStd(name, L) {
@@ -187,7 +213,7 @@ async function fachDialog(b) {
   const text = p => norm([p.n, p.rolle, p.gl, p.fach, p.mail].filter(Boolean).join(' '));
   let q = [];
   const zeig = () => {
-    const S = q.length ? PR.list.filter(p => q.every(w => text(p).includes(w))).slice(0, 60) : [...L, ...Z.filter(p => !imF.has(kkey(p.n)))];
+    const S = q.length ? PR.list.filter(p => q.every(w => text(p).includes(w))).slice(0, 60) : [...L, ...Z.filter(p => !imF.has(kkey(p.n)))];   // Z: auch von Hand Eingetragene
     liste.replaceChildren(...(S.length ? S.map(p => { const k = kkey(p.n);
       return h('label', { class: 'ps-z' }, h('input', { type: 'checkbox', checked: an.has(k), onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); } }),
         h('span', { class: 'ps-n' }, p.n, h('span', { class: 'muted small' }, ' · ' + (imF.has(k) ? name : p.fach || p.gl || 'Personenliste')))); })   // nur der Name, dahinter das Fachreferat
@@ -196,10 +222,11 @@ async function fachDialog(b) {
   const such = h('input', { type: 'search', class: 'ps-such', placeholder: 'Weitere Person suchen: Name, Position, Gliederung …', oninput: e => { q = norm(e.target.value).split(/\s+/).filter(Boolean); zeig(); } });
   zeig();
   const ok = await modal('Fachreferat ' + name, h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such), liste),
-    [['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: () => setTimeout(() => such.focus(), 80) });
+    [['Neue Person eintragen …', 'neu', 'link ps-neu'], ['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: () => setTimeout(() => such.focus(), 80) });
+  if (ok === 'neu') { fachBearbeiten(b, true); return; }                    // nicht in der Personenliste: von Hand eintragen
   if (!ok) return;
-  f.aus = L.map(p => kkey(p.n)).filter(k => !an.has(k)); f.dazu = [...an].filter(k => !imF.has(k)); f.fuer = norm(name); delete f.wahl;
-  changed(); swap('fach-pers', fachBlock(b), true);
+  const nach = [...Z.filter(p => an.has(kkey(p.n))), ...PR.list.filter(p => an.has(kkey(p.n)) && !Z.some(z => kkey(z.n) === kkey(p.n)))];
+  fachFest(b, nach); changed(); swap('fach-pers', fachBlock(b), true);
 }
 // Zahnrad → „Hauptansprechpersonen der Fachreferate …“: je Fachreferat die Standard-Hauptansprechperson
 async function fachHauptDialog() {

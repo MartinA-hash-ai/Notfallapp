@@ -1,5 +1,6 @@
 // 0.61: Tastaturbefehle selbst belegen, Zurückstellen mit Begründung (kompakt nur der Grund, immer unten), Fachreferat (Stift als Auswahl mit Suche,
 // Standard-Hauptansprechperson, einmalige Frage), Rundmail und Vorlagen, Kalendereintrag, Presse bei der Spendenübergabe, „Heute“, Stichwort-Filter
+// 0.63: Fachreferat mit „+“ (Suche) und Stift (direkt bearbeiten), Papierkorb im Stichwort-Fenster, „+ Bedarf“ auf der Seite, Bedarfe zusammenführen
 const { chromium, ok, open, finish } = require('./lib');
 (async () => {
   const b = await chromium.launch();
@@ -76,15 +77,28 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('#fach-pers .k1:has(.kn:text-is("Nora Vogt")) .star');
   r = await p.evaluate(() => [cur().freigabe.fach.stern, document.querySelector('#fach-pers .k1 .kn').textContent]);
   ok(r.join('|') === 'nora vogt|Nora Vogt', 'beim Bedarf jemand anderes per Stern: ' + r.join('|'));
-  await p.click('.fach-pen');
+  await p.click('#fach-pers [data-act="k-neu"]');
   r = await p.$$eval('.modal .ps-z', L => L.map(l => l.querySelector('.ps-n').textContent + (l.querySelector('input').checked ? '+' : '-')).join(','));
-  ok(r === 'Nora Vogt · Notfallvorsorge+,Thorsten Heß · Notfallvorsorge+', 'Stift: nur Namen, dahinter das Fachreferat: ' + r);
+  ok(r === 'Nora Vogt · Notfallvorsorge+,Thorsten Heß · Notfallvorsorge+', '„+“ beim Fachreferat: Suche, nur Namen, dahinter das Fachreferat: ' + r);
   ok(await p.evaluate(() => !document.querySelector('.modal .ps-i, .modal .ps-k') && !document.querySelector('.modal').textContent.includes('Haken:')), 'ohne Position, Kontaktdaten und Hinweis oben rechts');
   await p.click('.modal .ps-z:has-text("Thorsten") input');
   await p.fill('.modal .ps-such', 'brakel'); await p.click('.modal .ps-z:has-text("Gerd Gast") input');
   await p.click('.modal footer button.primary');
-  r = await p.evaluate(() => [JSON.stringify(cur().freigabe.fach.aus), JSON.stringify(cur().freigabe.fach.dazu), [...document.querySelectorAll('#fach-pers .k1 .kn')].map(e => e.textContent).join(','), document.querySelector('.fach-plus').textContent]);
-  ok(r.join('|') === '["thorsten heß"]|["gerd gast"]|Nora Vogt,Gerd Gast|(+1)', 'ausgeblendet und dazugenommen: ' + r.join('|'));
+  r = await p.evaluate(() => [JSON.stringify(cur().freigabe.fach.aus), cur().freigabe.fach.pers.map(c => c.n).join(','), [...document.querySelectorAll('#fach-pers .k1 .kn')].map(e => e.textContent).join(','), document.querySelector('.fach-plus').textContent]);
+  ok(r.join('|') === '["thorsten heß"]|Nora Vogt,Gerd Gast|Nora Vogt,Gerd Gast|(+1)', 'ausgeblendet und dazugenommen: ' + r.join('|'));
+  // Stift: direkt bearbeiten wie bei „Zuständig“; „Fertig“ fragt nach der Personenliste
+  await p.click('#fach-pers .fach-pen');
+  r = await p.evaluate(() => [document.querySelectorAll('#fach-pers .k-ed').length, document.querySelector('#fach-pers .k-ed input').dataset.p, !!document.querySelector('#fach-pers [data-act="k-fertig"]')]);
+  ok(r.join('|') === '2|freigabe.fach.pers.0.n|true', 'Stift: Zeilen zum Bearbeiten, „Fertig“: ' + r.join('|'));
+  await p.fill('#fach-pers .k-ed:nth-child(1) .k-li-mail', 'nora.neu@x.example');
+  await p.click('#fach-pers .k-ed:nth-child(2) [data-act="k-weg"]');
+  await p.click('#fach-pers [data-act="k-fertig"]'); await p.waitForTimeout(200);
+  r = await p.evaluate(() => [cur().freigabe.fach.pers.map(c => c.n + ':' + c.mail).join(','), document.querySelector('.modal h2').textContent, document.querySelector('.modal .pb-f').textContent]);
+  ok(r.join('|') === 'Nora Vogt:nora.neu@x.example|In die Personenliste übernehmen?|E-Mailnv@x.examplenora.neu@x.example', 'geändert und entfernt, Rückfrage zur Personenliste: ' + r.join('|'));
+  await p.click('.modal footer button:text-is("Nur für diesen Bedarf")');
+  r = await p.evaluate(() => [...document.querySelectorAll('#fach-pers .k1')].map(e => e.querySelector('.kn').textContent).join(','));
+  ok(r === 'Nora Vogt', 'danach nur noch Nora Vogt: ' + r);
+  await p.evaluate(() => { const f = cur().freigabe.fach; f.pers.push(fachKopie(person('Gerd Gast'))); changed(); renderNow(); });
   await p.evaluate(() => { cur().freigabe.fach.name = 'Soziales Ehrenamt'; cur().freigabe.fach.stern = ''; changed(); renderNow(); });
   r = await p.evaluate(() => { const q = document.querySelector('.fach-frage'); return q ? [...q.querySelectorAll('button')].map(x => x.textContent).join(',') : '-'; });
   ok(r === 'Sara Sozial,Tim Sozial,niemand', 'anderes Fachreferat ohne Hauptansprechperson: einmalige Frage: ' + r);
@@ -159,7 +173,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await sw('Küche');
   r = [await p.evaluate(() => UI.fSw.join()), await ids(), await p.$eval('button[data-act="sw-filter"]', e => e.textContent)];
   ok(r.join('|') === 'Küche|k2|Küche▾', 'Klick: Haken: ' + r.join('|'));
-  ok(await p.evaluate(() => !document.querySelector('.swf-hw') && !!document.querySelector('.list-head .filter-weg svg') && !document.querySelector('.list-head .filter-weg').hidden), 'kein Hinweistext, Papierkorb statt „Filter löschen“');
+  ok(await p.evaluate(() => !document.querySelector('.swf-hw') && !document.querySelector('.list-head [data-act="clear"]') && !!document.querySelector('.swf-pop .swf-kopf .swf-weg svg') && !document.querySelector('.swf-weg').disabled), 'Papierkorb im Stichwort-Fenster, kein „Filter löschen“ mehr');
   await sw('MTW');
   r = [await p.evaluate(() => UI.fSw.join()), await ids()];
   ok(r.join('|') === 'Küche,MTW|k0,k1,k2', 'weiterer Klick: dazu: ' + r.join('|'));
@@ -203,6 +217,57 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(r.join() === '3,3', 'neuer Bedarf, während „Heute“ an ist, gehört dazu: ' + r.join());
   r = await p.evaluate(() => { HEUTE.datum = '2020-01-01'; ORDER.ids = null; renderNow(); return [document.querySelectorAll('#list-body tr[data-id]').length, !!document.querySelector('.heute-btn')]; });
   ok(r.join() === '5,true', 'am nächsten Tag: wieder alle, Knopf „Heute“: ' + r.join());
+
+  // 9. Papierkorb im Stichwort-Fenster löscht die Auswahl
+  await p.evaluate(() => { UI.fSw = ['AED']; ORDER.ids = null; renderNow(); });
+  await p.click('button[data-act="sw-filter"]'); await p.click('.swf-pop .swf-weg'); await p.waitForTimeout(50);
+  r = await p.evaluate(() => [UI.fSw.length, document.querySelector('button[data-act="sw-filter"]').textContent, document.querySelector('.swf-weg').disabled]);
+  ok(r.join('|') === '0|Stichwort: alle▾|true', 'Papierkorb: Stichwort-Auswahl weg: ' + r.join('|'));
+  await p.evaluate(() => closeMenus());
+
+  // 10. „+ Bedarf“ auf der Seite eines Bedarfs: gleich eine leere Seite; unberührt verschwindet sie wieder
+  await p.evaluate(() => oeffnen(D.bedarfe.find(x => x.titel === 'Anna').id)); await p.waitForTimeout(150);
+  const vor = await p.evaluate(() => D.bedarfe.length);
+  await p.click('button[data-act="new"]'); await p.waitForTimeout(200);
+  r = await p.evaluate(() => [UI.view, cur().titel === '' , document.activeElement.id, D.bedarfe.length]);
+  ok(r.join('|') === 'detail|true|f-titel|' + (vor + 1), '„+ Bedarf“ auf der Seite: neue leere Seite, Schreibmarke im Namen: ' + r.join('|'));
+  await p.evaluate(() => { document.activeElement.blur(); zurueck(); }); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => D.bedarfe.length) === vor, 'unberührt verlassen: die leere Seite ist wieder weg');
+  await p.evaluate(() => oeffnen(D.bedarfe[0].id)); await p.click('button[data-act="new"]'); await p.waitForTimeout(200);
+  await p.keyboard.type('Ganz neu'); await p.keyboard.press('Enter'); await p.evaluate(() => zurueck()); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => D.bedarfe.some(x => x.titel === 'Ganz neu')), 'mit Namen bleibt er');
+
+  // 11. Bedarfe zusammenführen
+  await p.evaluate(() => {
+    personenSetzen([{ n: 'Thorsten Heß', fach: 'Notfallvorsorge', mail: 'th@x.example' }, { n: 'Sara Sozial', fach: 'Soziales Ehrenamt', mail: 's1@x.example' }]);
+    const fr = (o, f, v) => ({ ofk: { st: o }, fach: { st: f }, verw: { st: v } });
+    const B = (id, titel, summe, gl, fach, st, x) => Object.assign(blank(), { id, titel, summe, gliederung: gl, freigabe: Object.assign(blank().freigabe, { ofk: Object.assign(blank().freigabe.ofk, { st: st[0] }), fach: Object.assign(blank().freigabe.fach, { name: fach, st: st[1] }), verw: Object.assign(blank().freigabe.verw, { st: st[2] }) }) }, x);
+    D = normalize({ bedarfe: [
+      B('pA', 'Zelt', 1000, 'Brakel', 'Notfallvorsorge', ['ok', 'ok', 'ok'], { zust: [Object.assign(leerZ(), { n: 'Anna A' })], stichworte: ['KatS'], deadline: '2027-05-01', beschreibung: 'Text A', foerderer: [ff({ name: 'Stiftung X', status: 'zugesagt', betrag: 500 })], link: 'https://x.example/a' }),
+      B('pB', 'Pavillon', 2000, 'Höxter', 'Soziales Ehrenamt', ['angefragt', 'ok', 'ok'], { zust: [Object.assign(leerZ(), { n: 'Anna A', mail: 'anna@x.example' }), Object.assign(leerZ(), { n: 'Bert B' })], stichworte: ['katS', 'UPL 2027'], deadline: '2027-03-01', beschreibung: 'Text B',
+        foerderer: [ff({ name: 'Stiftung X', status: 'geplant', betrag: 800 }), ff({ name: 'Bank Y', status: 'abgelehnt', betrag: 300 })] }),
+      B('pC', 'Tisch', 500, 'Brakel', 'Notfallvorsorge', ['ok', 'angefragt', 'ok'], {}), B('pD', 'Anderes', 100, 'Paderborn', '', ['offen', 'offen', 'offen'], {})] });
+    SAVED_JSON = JSON.stringify(D); undoReset(); UI.view = 'list'; UI.tab = 'aktiv'; UI.ansicht = 'voll'; UI.sort = [{ k: 'titel', d: 'auf' }]; ORDER.ids = null; renderNow();
+  });
+  await p.click('button[data-act="paket-wahl"]');
+  for (const id of ['pA', 'pB', 'pC']) await p.click(`#list-body tr[data-id="${id}"] .l-sum`);
+  r = await p.evaluate(() => [UI.view, [...UI.paketWahl].join(), document.querySelector('[data-act="paket-los"]').textContent, document.querySelectorAll('#list-body tr.heute-w').length]);
+  ok(r.join('|') === 'list|pA,pB,pC|3 zusammenführen …|3', 'Zusammenführen: Bedarfe anklicken: ' + r.join('|'));
+  await p.click('[data-act="paket-los"]'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [[...document.querySelectorAll('.modal .pk-orte label')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(','),
+    [...document.querySelectorAll('.modal .pk-foe label')].map(l => l.querySelector('b').textContent + (l.querySelector('input').checked ? '+' : '-')).join(',')]);
+  ok(r.join('|') === 'Höxter+,Brakel-|Stiftung X-,Bank Y-,Stiftung X+', 'fragt Ort (größte Summe vorgewählt) und Förderer (doppelte und abgelehnte nicht angehakt): ' + r.join('|'));
+  await p.fill('.modal .pk-name', 'Paket KatS'); await p.click('.modal .pk-orte label:has-text("Brakel") input'); await p.click('.modal footer button.primary'); await p.waitForTimeout(250);
+  r = await p.evaluate(() => { const n = cur(), F = n.freigabe;
+    return [UI.view, n.titel, n.gliederung, n.summe, n.zust.map(z => z.n + (z.mail ? ':' + z.mail : '')).join(','), n.stichworte.join(','), n.deadline, F.ofk.st + '/' + F.fach.st + '/' + F.verw.st, F.fach.name,
+      fachZeig(n).Z.map(x => x.n).join(','), n.foerderer.map(f => f.name + ':' + f.status).join(','), n.link, n.prio]; });
+  ok(r.join('|') === 'detail|Paket KatS|Brakel|3500|Anna A:anna@x.example,Bert B|katS,UPL 2027|2027-03-01|angefragt/angefragt/ok|Soziales Ehrenamt|Sara Sozial,Thorsten Heß|Stiftung X:zugesagt||mittel',
+    'neuer Bedarf: Name, Ort, Summe, Zuständige je einmal, Stichworte, früheste Deadline, Freigaben am wenigsten weit, Fachreferat mit der größten Summe (die anderen dabei), Förderer, kein Link: ' + r.join('|'));
+  r = await p.evaluate(() => cur().beschreibung);
+  ok(r === ['* Pavillon, 2.000\u00a0€ (Höxter)', '* Tisch, 500\u00a0€ (Brakel)', '* Zelt, 1.000\u00a0€ (Brakel)', '', '*Pavillon, 2.000\u00a0€ (Höxter)*', 'Text B', '---------------', '*Tisch, 500\u00a0€ (Brakel)*', '(ohne Beschreibung)', '---------------', '*Zelt, 1.000\u00a0€ (Brakel)*', 'Text A'].join('\n'),
+    'Beschreibung: oben die Aufzählung, darunter je Bedarf Name, Summe, Text und Linie: ' + JSON.stringify(r));
+  r = await p.evaluate(() => ['pA', 'pB', 'pC', 'pD'].map(id => { const x = D.bedarfe.find(y => y.id === id); return x.manuell + (x.grundM ? ':' + x.grundM : ''); }).join(' / '));
+  ok(r === 'zurückgestellt:wurde in Bedarf „Paket KatS“ zusammengeführt / zurückgestellt:wurde in Bedarf „Paket KatS“ zusammengeführt / zurückgestellt:wurde in Bedarf „Paket KatS“ zusammengeführt / ', 'die alten zurückgestellt mit Begründung, die übrigen nicht: ' + r);
 
   await finish(b, [p]);
 })();

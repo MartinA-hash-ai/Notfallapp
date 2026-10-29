@@ -127,7 +127,7 @@ function personenBlob(bek = personenAlle()) {
 
 /* ---------- Personenliste dauerhaft ändern – nur mit Bestätigung: beim „Fertig“ der Zuständigen, beim Eintragen einer Ansprechperson in der Liste
    und beim Einpflegen einer Recherche. Ohne Bestätigung bleiben die Angaben nur beim Bedarf. */
-const PERS_FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy', gl: 'Gliederung' };
+const PERS_FL = { rolle: 'Position', mail: 'E-Mail', tel: 'Telefon', mobil: 'Handy', gl: 'Gliederung', fach: 'Fachreferat' };   // fach nur bei Neuen aus dem Fachreferat
 // was an diesen Personen neu ist gegenüber der Personenliste: [{ c, neu, felder: [[k, alt, neu]] }]
 function personenAbweichung(L, gl) {
   const R = [];

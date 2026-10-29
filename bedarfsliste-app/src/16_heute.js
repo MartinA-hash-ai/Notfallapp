@@ -31,19 +31,19 @@ function heuteLeiste() {
 }
 const ICON_SONNE = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"><circle cx="8" cy="8" r="3"/><path d="M8 1v1.6M8 13.4V15M1 8h1.6M13.4 8H15M3 3l1.1 1.1M11.9 11.9L13 13M3 13l1.1-1.1M11.9 4.1L13 3"/></g></svg>';
 // beim Auswählen: Klick auf eine Zeile wählt sie (statt sie zu öffnen); Enter bzw. Leertaste auf der Zeile ebenso
-function heuteKlick(tr) {
-  const id = tr.dataset.id; if (UI.heuteWahl.has(id)) UI.heuteWahl.delete(id); else UI.heuteWahl.add(id);
-  tr.classList.toggle('heute-w', UI.heuteWahl.has(id));
+function heuteKlick(tr) {                                             // auch beim Zusammenführen (pickSet: 17_paket.js)
+  const S = pickSet(), id = tr.dataset.id; if (S.has(id)) S.delete(id); else S.add(id);
+  tr.classList.toggle('heute-w', S.has(id)); if (UI.paketWahl) paketZahl();
 }
 document.addEventListener('click', e => {
-  if (!UI.heuteWahl || UI.view !== 'list') return;
+  if (!pickSet() || UI.view !== 'list') return;
   const tr = e.target.closest && e.target.closest('#list-body tr[data-id]'); if (!tr) return;
   e.preventDefault(); e.stopPropagation(); heuteKlick(tr);
 }, true);
 document.addEventListener('keydown', e => {
-  if (!UI.heuteWahl || UI.view !== 'list') return;
+  if (!pickSet() || UI.view !== 'list') return;
   const tr = document.activeElement && document.activeElement.matches && document.activeElement.matches('#list-body tr[data-id]') ? document.activeElement : null;
-  if (e.key === 'Escape' && !$('.menu, .modal')) { e.preventDefault(); e.stopPropagation(); heuteFertig(false); return; }
+  if (e.key === 'Escape' && !$('.menu, .modal')) { e.preventDefault(); e.stopPropagation(); if (UI.paketWahl) paketWaehlen(false); else heuteFertig(false); return; }
   if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); heuteKlick(tr); }
 }, true);
 
@@ -66,7 +66,8 @@ function swFilterPop(btn) {
   const A = swAlle(), W = UI.fSw, alle = !W.length;
   const zeile = (s, on, t) => h('button', { role: 'menuitemcheckbox', class: 'swf-z' + (on ? ' on' : ''), 'aria-checked': String(on), onclick: () => swFilterKlick(s) },
     h('span', { class: 'swf-h', 'aria-hidden': 'true' }, on ? '✓' : ''), t);
-  const m = h('div', { class: 'menu swf-pop', role: 'menu' }, zeile(null, alle, 'Alle'), h('hr'),
+  const weg = h('button', { class: 'swf-weg', title: 'Stichwort-Auswahl löschen', 'aria-label': 'Stichwort-Auswahl löschen', disabled: alle, html: ICON_TRASH, onclick: () => swFilterKlick(null) });
+  const m = h('div', { class: 'menu swf-pop', role: 'menu' }, h('div', { class: 'swf-kopf' }, zeile(null, alle, 'Alle'), weg), h('hr'),
     A.length ? A.map(s => zeile(s, W.includes(s), s)) : h('div', { class: 'muted small swf-leer' }, 'Noch keine Stichworte vergeben.'));
   placePop(m, btn, 'right');
 }

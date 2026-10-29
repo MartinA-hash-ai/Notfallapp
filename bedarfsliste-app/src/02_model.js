@@ -26,7 +26,7 @@ function blank() {
     id: uid('b'), titel: '', gliederung: '', zust: [], prio: 'mittel', beschreibung: '', summe: null, summeArt: 'Schätzung', deadline: '', stichworte: [], link: '', pfad: '',
     freigabe: {
       ofk: { st: 'offen', angefragt: '', erledigt: '', notiz: '' },
-      fach: { name: '', st: 'offen', angefragt: '', erledigt: '', notiz: '', stern: '', aus: [], dazu: [] },   // aus/dazu: Personen beim Bedarf (ab 0.61)
+      fach: { name: '', st: 'offen', angefragt: '', erledigt: '', notiz: '', stern: '', aus: [], pers: [] },   // pers: Personen beim Bedarf, aus: ausgeblendete (ab 0.62)
       verw: { st: 'offen', angefragt: '', erledigt: '', notiz: '' },
     },
     unterlagen: FEST_UL.map(n => UL(n, 'fehlt', true)),

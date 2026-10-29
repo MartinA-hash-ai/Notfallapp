@@ -37,9 +37,8 @@ const setData = (text, d) => text.replace(/(<script type="application\/json" id=
 
   // 10. „Filter löschen“ erscheint beim Tippen; Stichwort-Filter wirkt nicht unsichtbar im Archiv weiter
   await p.fill('#q', 'kü');
-  ok(await p.evaluate(() => !document.querySelector('.list-head [data-act="clear"]').hidden), 'beim Tippen in die Suche erscheint „Filter löschen“');
+  ok(await p.evaluate(() => !document.querySelector('.list-head [data-act="clear"]')), 'kein „Filter löschen“ mehr (ab 0.63: Papierkorb im Stichwort-Fenster)');
   await p.fill('#q', '');
-  ok(await p.evaluate(() => document.querySelector('.list-head [data-act="clear"]').hidden), 'Suche leer: „Filter löschen“ wieder weg');
   await p.evaluate(() => { UI.fSw = [D.bedarfe.find(x => x.stichworte.length).stichworte[0]]; renderNow(); });
   await p.click('button[data-act="tab"][data-v="archiv"]');
   r = await p.evaluate(() => [UI.fSw.join(), document.querySelectorAll('#list-body tr[data-id]').length]);

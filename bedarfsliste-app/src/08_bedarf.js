@@ -94,7 +94,7 @@ function moreMenu(btn) {
 // Deadline und Stichworte stehen im Kopf der Seite. Keine Eingabefelder – Angaben anklicken und ändern, die Zuständigen über den Stift.
 function secInfo(b) {
   const ed = UI.zEdit === b.id;
-  const pl = (b.zust.some(z => z.mail.trim()) ? rundKnopf('zust', 'Rundmail an die Zuständigen') : '') + `<button class="k-pliste k-plus" data-act="k-neu" title="Person hinzufügen – in der Personenliste suchen oder neu eintragen" aria-label="Person hinzufügen">+</button><button class="k-pliste" data-act="pers-liste" title="Personenliste bearbeiten: Personen der Gliederungen und Fachreferate (Dienstleitung, Geschäftsführung, Beauftragte …) mit Kontaktdaten">Personenliste</button>`;
+  const pl = (b.zust.some(z => z.mail.trim()) ? rundKnopf('zust', 'Rundmail an die Zuständigen') : '') + `<button class="k-pliste k-plus" data-act="k-neu" title="Person hinzufügen – in der Personenliste suchen oder neu eintragen" aria-label="Person hinzufügen">+</button>`;   // Personenliste: Zahnrad
   return `<section class="card info-card eck" id="sec-eck">
     <div class="eck-l">${kKopf('Zuständig', ed, '', pl)}<div id="zust-liste">${zustListe(b)}</div><div id="fach-pers">${fachBlock(b)}</div></div>
     <div class="eck-r">${pe(b, 'beschreibung', 'Beschreibung ' + FMT_I, 'area', { aria: 'Beschreibung', fmt: true, ph: 'Kurzbeschreibung aus der UPL oder in eigenen Worten' })}</div>
@@ -254,12 +254,16 @@ function fachBlock(b) {
   const zeig = sk ? [...Z.filter(p => kkey(p.n) === sk), ...Z.filter(p => kkey(p.n) !== sk)] : Z;   // mit Stern: vorn
   const frage = name && L.length >= 2 && std === undefined && !eig ? `<div class="fach-frage"><span>Wer ist im Fachreferat die Hauptansprechperson? Gilt dann für alle Bedarfe mit „${esc(name)}“ – je Bedarf bleibt jede andere wählbar.</span>
     <span class="ff-k">${L.map(p => `<button class="mini-btn" data-act="fach-std" data-k="${esc(kkey(p.n))}">${esc(p.n)}</button>`).join('')}<button class="link small" data-act="fach-std" data-k="">niemand</button></span></div>` : '';
+  const ed = UI.fEdit === b.id && !!name;
   const inhalt = !name ? '<p class="muted small fach-hw">Welches Fachreferat? In der Freigabe beim Fachreferat den Namen eintragen.</p>'
-    : !Z.length ? `<p class="muted small fach-hw">${L.length ? 'Alle ausgeblendet – über den Stift wieder zeigen.' : `Noch niemand mit dem Fachreferat „${esc(name)}“ in der Personenliste – dort in der Spalte „Fachreferat“ eintragen oder über den Stift jemanden dazunehmen.`}</p>`
+    : ed ? personen(f.pers, { edit: true, p: 'freigabe.fach.pers', a: 'data-fach="1"', kompakt: true, mobil: true, max: 30, wer: 'Person', neu: [], ohnePlus: true })
+    : !Z.length ? `<p class="muted small fach-hw">${L.length ? 'Alle ausgeblendet – über „+“ wieder dazunehmen.' : `Noch niemand mit dem Fachreferat „${esc(name)}“ in der Personenliste – über „+“ jemanden dazunehmen oder eintragen.`}</p>`
     : personen(zeig, { kompakt: true, mobil: true, lesen: true, fachStern: sk, fachStd: !!sk && !eig });
-  const knopf = !name ? '' : (Z.length ? rundKnopf('fach', 'Rundmail an das Fachreferat') : '')
-    + `<button class="k-pen fach-pen" data-act="fach-edit" title="Personen beim Fachreferat: ausblenden oder weitere aus der Personenliste dazunehmen" aria-label="Personen des Fachreferats bearbeiten">${ICON_PEN}</button>`;
-  return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}${weg ? `<span class="fach-plus" title="${weg} weitere im Fachreferat ausgeblendet – über den Stift ändern">(+${weg})</span>` : ''}${knopf}</div>${frage}<div class="fach-liste">${inhalt}</div>`;
+  const knopf = !name ? '' : ed ? '<button class="k-fertig" data-act="k-fertig" data-fach="1">Fertig</button>'
+    : (Z.length ? rundKnopf('fach', 'Rundmail an das Fachreferat') : '')
+    + `<button class="k-pliste k-plus" data-act="k-neu" data-fach="1" title="Person hinzufügen – in der Personenliste suchen oder neu eintragen" aria-label="Person zum Fachreferat hinzufügen">+</button>`
+    + `<button class="k-pen fach-pen" data-act="k-edit" data-fach="1" title="Personen und Kontaktdaten beim Fachreferat bearbeiten" aria-label="Fachreferat bearbeiten">${ICON_PEN}</button>`;
+  return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}${weg && !ed ? `<span class="fach-plus" title="${weg} weitere im Fachreferat ausgeblendet – über den Stift ändern">(+${weg})</span>` : ''}${knopf}</div>${ed ? '' : frage}<div class="fach-liste${ed ? ' fach-ed' : ''}">${inhalt}</div>`;
 }
 // Zuständige: hinzufügen über das „+“ oben neben „Personenliste“ (öffnet die Suche) – kein Plus-Kasten in der Liste
 const zustListe = b => personen(b.zust, { p: 'zust', edit: UI.zEdit === b.id, kompakt: true, mobil: true, max: MAX_ZUST, wer: 'Person', neu: [], ohnePlus: true,

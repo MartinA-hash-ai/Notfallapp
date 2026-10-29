@@ -1171,9 +1171,6 @@ table.list tbody tr.heute-w > td:first-child, table.list tbody tr.heute-m > td:f
 
 /* 0.62: Haken und Auswahlknöpfe in Malteser-Rot; Papierkorb statt „Filter löschen“ */
 input[type=checkbox], input[type=radio] { accent-color: var(--red); }
-.filter-weg { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); color: var(--red); }
-.filter-weg:hover { border-color: var(--red); background: var(--errbg); }
-.filter-weg[hidden] { display: none; }
 .swf-z.on .swf-h { background: var(--red); border-color: var(--red); }
 /* In die Personenliste übernehmen: je Angabe die Art fett, daneben bündig alt (durchgestrichen) und neu */
 label.imp-f.pers-best { align-items: flex-start; }
@@ -1201,3 +1198,18 @@ label.imp-f.pers-best { align-items: flex-start; }
 .rm .rm-g { background: var(--hover); border-radius: 8px; padding: 8px 12px; }
 @media (max-width: 560px) { .rm-kacheln { grid-template-columns: minmax(0, 1fr); } }
 .fd-liste .ps-z { padding: 5px 8px; }
+/* Papierkorb im Stichwort-Fenster; Zusammenführen */
+.swf-kopf { display: flex; align-items: center; gap: 4px; }
+.swf-kopf .swf-z { flex: 1; }
+.swf-weg { display: inline-grid; place-items: center; width: 28px; height: 28px; padding: 0; margin-right: 4px; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); color: var(--red); }
+.swf-weg:hover:not(:disabled) { border-color: var(--red); background: var(--errbg); }
+.swf-weg:disabled { color: var(--faint); opacity: .5; }
+.paket-btn { margin-left: 2px; }
+.list-head .heute .primary:disabled { opacity: .5; }
+.pk h4 { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pk-name { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; padding: 6px 8px; }
+.pk-orte, .pk-foe { display: grid; gap: 4px; }
+.pk-foe { max-height: 260px; overflow-y: auto; }
+.fach-kopf .k-plus + .fach-pen, .fach-kopf .k-rund + .k-plus { margin-left: 4px; }
+.fach-kopf .k-plus:first-of-type { margin-left: auto; }
+.fach-kopf .k-rund ~ .k-plus { margin-left: 4px; }

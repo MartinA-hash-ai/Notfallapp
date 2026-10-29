@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.63.0",
+    "date": "2026-10-29T18:00",
+    "items": [
+      "Bedarfe zusammenführen: Knopf oben in der Liste, Bedarfe anklicken – fragt Namen, Ort und Förderer; Summe, Zuständige, Stichworte, früheste Deadline, Freigaben (am wenigsten weit), Fachreferat mit der größten Summe und alle Beschreibungen kommen in den neuen Bedarf, die alten werden zurückgestellt",
+      "„+ Bedarf“ auf der Seite eines Bedarfs legt gleich eine leere Seite an (unberührt verschwindet sie wieder)",
+      "Fachreferat: „+“ sucht in der Personenliste, der Stift bearbeitet Personen und Kontaktdaten direkt wie bei „Zuständig“ (danach Rückfrage zur Personenliste)",
+      "Knopf „Personenliste“ wandert ins Zahnrad",
+      "Stichwort-Filter: Papierkorb im Auswahlfenster"
+    ]
+  },
+  {
     "version": "0.62.0",
     "date": "2026-10-29T15:00",
     "items": [
