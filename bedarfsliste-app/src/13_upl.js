@@ -143,6 +143,6 @@ async function uplImport(file) {
     const b = blank(); uplAnwenden(b, z, true); D.bedarfe.push(b); da.set(z.key, b); neu++;
   });
   if (!neu && !nach) { toast('Nichts Neues in der UPL.'); return; }
-  changed(); ORDER.ids = null; Object.assign(UI, { view: 'list', tab: 'aktiv', q: '', fSw: jahr && neu ? 'UPL ' + jahr : UI.fSw }); renderNow();
+  changed(); ORDER.ids = null; Object.assign(UI, { view: 'list', tab: 'aktiv', q: '', fSw: jahr && neu ? ['UPL ' + jahr] : UI.fSw }); renderNow();
   toast([neu && neu + ' Bedarfe aus der UPL angelegt', nach && nach + ' vorhandene ergänzt'].filter(Boolean).join(', ') + '.', 'ok', undoGanz(before));
 }

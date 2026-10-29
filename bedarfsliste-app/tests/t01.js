@@ -9,7 +9,7 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   const b = await chromium.launch();
   const p = await open(b, { fakefs: false });
   ok(await p.$eval('#list-body', e => e.textContent.includes('Noch keine Bedarfe')), 'leere Liste mit Hinweis');
-  ok(await p.$$eval('.tools select', s => s.map(x => x.getAttribute('aria-label')).join()) === 'Stichwort' && !!(await p.$('#q')), 'über der Liste nur Suche und Stichwort');
+  ok(!(await p.$('.tools select')) && !!(await p.$('.tools .sw-filter')) && !!(await p.$('#q')), 'über der Liste nur Suche und Stichwort');
   // „+ Bedarf“: neue Zeile in der Liste, der Reihe nach Name → Summe → …; Strg + Klick öffnet den Bedarf
   await p.click('button[data-act="new"]');
   let r = await p.evaluate(() => [UI.view, document.querySelectorAll('#list-body tr[data-id]').length, document.activeElement.classList.contains('le-edit'), document.activeElement.placeholder,
@@ -98,7 +98,7 @@ const setCirc = async (p, sel, v) => { for (let i = 0; i < 5 && (await p.$eval(s
   await p.click('button[data-act="back"]');
   ok(await p.evaluate(() => D.bedarfe[0].prio === 'hoch' && document.querySelector('#list-body tr[data-id="' + D.bedarfe[0].id + '"] .l-star .star-p').classList.contains('on') && !document.querySelector('.prio-t')), 'Stern auf der Seite des Bedarfs → gelber Stern vorn in der Liste');
   await p.click('#list-body tr[data-id] .l-name', { modifiers: ['Control'] });
-  await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-v="zurückgestellt"]');
+  await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-v="zurückgestellt"]'); await p.click('.modal footer button.primary');
   ok(await p.evaluate(() => D.bedarfe[0].manuell === 'zurückgestellt'), '„⋯“: zurückgestellt');
   await p.click('button[data-act="back"]');
   ok(await p.evaluate(() => document.querySelector('#list-body tr.paused .pause-t').textContent === '(zurückgestellt)'), 'Liste: zurückgestellt steht hinter dem Namen');

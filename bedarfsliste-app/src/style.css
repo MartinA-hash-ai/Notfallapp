@@ -244,7 +244,10 @@ main { padding-block: 16px 64px; padding-left: max(16px, env(safe-area-inset-lef
 .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-left: auto; }
 .tools input[type=search] { width: 190px; }
 .tools select { max-width: 190px; }
-.tools select.on { border-color: var(--ink2); font-weight: 600; }
+.sw-filter { display: inline-flex; align-items: center; gap: 6px; max-width: 220px; padding: 4px 9px; font-size: 13px; }
+.sw-filter span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sw-filter .dd { font-size: 10px; color: var(--muted); }
+.sw-filter.on { border-color: var(--ink2); font-weight: 600; }
 .tablewrap { overflow-x: auto; margin-bottom: 12px; }
 table.list { width: 100%; border-collapse: collapse; }
 table.list th { text-align: left; font-weight: 600; border-bottom: 1px solid var(--line); white-space: nowrap; }
@@ -252,7 +255,10 @@ table.list th.r { text-align: right; }
 table.list td { border-bottom: 1px solid var(--line); vertical-align: top; }
 table.list tbody tr[data-act] { cursor: pointer; }
 table.list tbody tr[data-act]:hover { background: var(--hover); }
-table.list tbody tr.paused { opacity: .6; }
+table.list tbody tr.paused { opacity: .4; }
+table.list tbody tr.paused:hover, table.list tbody tr.paused:focus, table.list tbody tr.paused.auf { opacity: .75; }
+td.k-pause { color: var(--muted); font-size: 12.5px; font-style: italic; }
+td.k-pause .pg { font-style: normal; }
 /* Zeile: Kerninfo mittig in der Höhe, dann Freigabe, Finanzierungsplan ⋯ Verwendungsnachweis, Spendenübergabe – je Block ein feiner Strich */
 table.list { min-width: 1180px; }
 /* Spaltenbreiten selbst gezogen: feste Breiten, rechts davon rücken die Spalten mit (wie in Excel) */
@@ -963,7 +969,7 @@ table.kt td a { color: var(--focus); word-break: break-all; }
   textarea.title { font-size: 22px; }
   header.top { position: static; }
   .tools { margin-left: 0; }
-  .tools input[type=search], .tools select { width: 100%; max-width: none; }
+  .tools input[type=search], .tools select, .tools .sw-filter { width: 100%; max-width: none; }
   .actions { margin-left: 0; }
   .save { min-width: 0; }
 }
@@ -1095,3 +1101,74 @@ label.imp-f { display: flex; align-items: center; gap: 10px; padding: 8px 12px; 
 .pl-f { display: grid; gap: 1px; font-size: 11px; color: var(--muted); }
 .pl-f input { font-size: 13px; padding: 3px 6px; min-width: 0; }
 @media (max-width: 900px) { .pl-z { grid-template-columns: 1fr 1fr; } }
+
+/* Tastaturbefehle anpassen */
+.modal.wide:has(.tasten) { max-width: 760px; }
+table.tasten { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.tasten td { padding: 4px 6px; border-bottom: 1px solid var(--line3); vertical-align: middle; }
+table.tasten tr.kz-g th { text-align: left; padding: 10px 6px 4px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+table.tasten tr.doppelt .ta-k:not(.leer) { border-color: var(--red-d); color: var(--red-d); }
+.ta-f { display: inline-flex; align-items: center; gap: 2px; }
+.ta-k { min-width: 96px; padding: 3px 8px; border: 1px solid var(--line2); border-radius: 6px; background: var(--input); font-family: inherit; font-size: 12.5px; }
+.ta-k.leer { color: var(--faint); border-style: dashed; }
+.ta-k.warte { border-color: var(--focus); color: var(--focus); }
+
+/* Frage mit Textfeld (z. B. Grund fürs Zurückstellen) */
+.tf { display: grid; gap: 6px; min-width: min(440px, 80vw); }
+.tf-l { font-weight: 600; font-size: 13px; }
+.tf-feld { width: 100%; box-sizing: border-box; font: inherit; font-size: 13.5px; padding: 6px 8px; border: 1px solid var(--line2); border-radius: 6px; resize: vertical; }
+.pause-grund { margin-left: 10px; background: none; border: 0; padding: 0; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; text-align: left; }
+.pause-grund:hover { color: var(--ink); text-decoration: underline; }
+.pause-grund.leer { font-style: italic; color: var(--faint); }
+
+/* Rundmail, Vorlagen, Spendenübergabe (0.61) */
+.k-pliste.k-rund { display: inline-flex; align-items: center; justify-content: center; width: 27px; height: 21px; padding: 0; }
+.k-rund + .k-plus, .k-rund + .k-pen { margin-left: 4px; }
+.fach-kopf .k-rund { margin-left: auto; }
+.fach-kopf .k-rund + .fach-pen { margin-left: 2px; }
+.fach-frage { display: grid; gap: 6px; margin: 2px 0 10px; padding: 8px 10px; border: 1px dashed var(--line2); border-radius: 8px; font-size: 12.5px; color: var(--ink2); }
+.fach-frage .ff-k { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.ue-acts { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.ue-acts button { display: inline-flex; align-items: center; gap: 6px; }
+.ue-acts button svg { flex: none; }
+.presse { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 6px 8px; }
+.presse .fach-w { position: relative; display: flex; flex-direction: column; align-items: stretch; text-align: left; width: 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere; height: auto; margin: 0; padding: 6px 8px 6px 30px; border: 1.5px solid transparent; background: var(--hover); cursor: pointer; opacity: .55; }
+.presse .fach-w.on { opacity: 1; border-color: var(--ink2); }
+@media (max-width: 520px) { .presse { grid-template-columns: minmax(0, 1fr); } }
+.rm h4 { margin: 12px 0 6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.rm h4:first-child { margin-top: 0; }
+.rm-emp { display: grid; gap: 10px; }
+.rm-gt { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
+.rm-p { display: inline-flex; margin: 2px 14px 2px 0; }
+.rm-p.ohne { color: var(--faint); }
+.rm-arten { display: grid; gap: 4px; }
+.rm-arten .rm-a { display: block; line-height: 1.45; }
+.rm-arten .rm-a input { margin: 0 4px 0 0; vertical-align: -2px; }
+.vl-kopf { gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
+.vl-sel { min-width: 260px; }
+.vl-feld { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px 10px; }
+.vl-feld label, .vl-feld .vl-w { display: grid; gap: 3px; }
+.vl-feld .vl-w { grid-column: 1 / -1; }
+.vl-feld .lab { font-size: 12px; color: var(--muted); }
+.vl-feld input, .vl-feld select, .vl-feld textarea { font: inherit; font-size: 13.5px; }
+.vl-text { resize: vertical; min-height: 180px; }
+.vl-platz { display: flex; flex-wrap: wrap; gap: 4px; }
+.fh-tab td { padding: 4px 8px 4px 0; }
+.fh-tab select { min-width: 220px; }
+
+/* Stichwort-Filter (Mehrfachauswahl) */
+.swf-pop { min-width: 220px; max-height: min(420px, 70vh); overflow-y: auto; }
+.swf-pop .swf-z { display: flex; align-items: center; gap: 8px; }
+.swf-h { flex: none; width: 15px; height: 15px; border: 1.5px solid var(--line2); border-radius: 4px; font-size: 11px; line-height: 13px; text-align: center; color: var(--card); }
+.swf-z.on .swf-h { background: var(--ink2); border-color: var(--ink2); }
+.swf-hw, .swf-leer { padding: 6px 10px 4px; max-width: 240px; }
+/* Für heute */
+.list-head .heute { display: flex; align-items: center; gap: 6px; }
+.heute-btn { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; font-size: 13px; }
+.heute-seg button { display: inline-flex; align-items: center; gap: 5px; }
+.heute-hw { font-size: 13px; color: var(--ink2); }
+table.list.heute-modus tbody tr[data-id] { cursor: pointer; }
+table.list.heute-modus tbody tr[data-id]:not(.heute-w) { opacity: .55; }
+table.list tbody tr.heute-w { opacity: 1; }
+table.list tbody tr.heute-w > td { background: var(--okbg); }
+table.list tbody tr.heute-w > td:first-child, table.list tbody tr.heute-m > td:first-child { box-shadow: inset 3px 0 0 var(--okline); }

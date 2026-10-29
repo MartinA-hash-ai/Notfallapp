@@ -40,9 +40,9 @@ const setData = (text, d) => text.replace(/(<script type="application\/json" id=
   ok(await p.evaluate(() => !document.querySelector('.list-head [data-act="clear"]').hidden), 'beim Tippen in die Suche erscheint „Filter löschen“');
   await p.fill('#q', '');
   ok(await p.evaluate(() => document.querySelector('.list-head [data-act="clear"]').hidden), 'Suche leer: „Filter löschen“ wieder weg');
-  await p.evaluate(() => { UI.fSw = D.bedarfe.find(x => x.stichworte.length).stichworte[0]; renderNow(); });
+  await p.evaluate(() => { UI.fSw = [D.bedarfe.find(x => x.stichworte.length).stichworte[0]]; renderNow(); });
   await p.click('button[data-act="tab"][data-v="archiv"]');
-  r = await p.evaluate(() => [UI.fSw, document.querySelectorAll('#list-body tr[data-id]').length]);
+  r = await p.evaluate(() => [UI.fSw.join(), document.querySelectorAll('#list-body tr[data-id]').length]);
   ok(r[0] === '' && r[1] > 0, 'Wechsel ins Archiv: Stichwort-Filter zurückgesetzt, Archiv sichtbar: ' + r.join('|'));
   await p.click('button[data-act="tab"][data-v="aktiv"]');
 

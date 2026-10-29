@@ -19,9 +19,9 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.hover('.list-head .kz-info');
   ok(await p.evaluate(() => (document.querySelector('.tip-pop') || {}).textContent === 'Tastaturbefehle'), 'beim Überfahren des „i“: „Tastaturbefehle“');
   await p.click('.list-head .kz-info');
-  r = await p.$eval('.modal', e => [e.querySelector('h2, h3, header').textContent, e.textContent.includes('Strg+F'), e.textContent.includes('nächsten / vorigen Bedarf'), [...e.querySelectorAll('tr.kz-g')].map(x => x.textContent).join('/')]);
+  r = await p.$eval('.modal', e => [e.querySelector('h2, h3, header').textContent, e.textContent.includes('Strg+F'), e.textContent.includes('nächsten Bedarf der Liste öffnen'), [...e.querySelectorAll('tr.kz-g')].map(x => x.textContent).join('/')]);
   ok(r[0].includes('Tastaturbefehle') && r[1] && r[2] && r[3] === 'In der Liste/Auf der Seite eines Bedarfs/In Feldern/Überall', 'Klick aufs „i“: Tastaturbefehle nach Bereichen: ' + r.join('|'));
-  await p.click('.modal footer button');
+  await p.click('.modal footer button.primary');
 
   // Sterne ohne Prio ganz dezent
   r = await p.evaluate(() => { const c = q => getComputedStyle(document.querySelector(q)).color, ghost = getComputedStyle(document.documentElement).getPropertyValue('--ghost').trim();

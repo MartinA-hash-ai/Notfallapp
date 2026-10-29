@@ -280,6 +280,16 @@ function modal(title, body, buttons, opts = {}) {
     if (f) setTimeout(() => f.focus(), 30);
   });
 }
+// eine Frage mit Textfeld: Enter übernimmt (Umschalt+Enter: neue Zeile), Esc bricht ab → Text oder null
+function textFrage(title, label, wert = '', ph = '', ja = 'Übernehmen') {
+  const ta = h('textarea', { rows: 3, class: 'tf-feld', placeholder: ph, 'aria-label': label });
+  ta.value = wert;
+  let zu = null;
+  ta.addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); zu && zu(ta.value); } });
+  const p = modal(title, h('div', { class: 'tf' }, h('label', { class: 'tf-l' }, label), ta), [['Abbrechen', null], [ja, () => ta.value, 'primary']], { expose: c => { zu = c; } });
+  setTimeout(() => { ta.focus(); ta.select(); }, 80);
+  return p;
+}
 const confirmBox = (title, text, yes = 'Ja', no = 'Abbrechen') => modal(title, h('p', null, text), [[no, false], [yes, true, 'primary']]).then(v => v === true);
 function download(filename, blob) {
   if (DEMO) { toast('In der Vorschau lassen sich keine Dateien herunterladen. In der Programmdatei geht das.', 'warn'); return; }

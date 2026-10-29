@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { fachEdit: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: '', prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort'];
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -259,17 +259,7 @@ function addUl(refocus) {
   if (refocus) { const n = $('#ul-new'); if (n) n.focus(); }
 }
 // Übersicht der Tastaturbefehle („i“ oben rechts in der Liste, Zahnrad → „Tastaturbefehle …“)
-function kuerzelTabelle() {
-  const G = [['In der Liste', [['↑ / ↓', 'von Bedarf zu Bedarf (Pos1 / Ende: erster / letzter) · kompakt mit aufgeklapptem Bedarf: gleich den nächsten aufklappen'],
-      ['Enter', 'kompakt: aufklappen, noch einmal: öffnen · ausführlich: öffnen'], ['→', 'Bedarf öffnen'], ['E', 'Namen ändern (F2 geht auch, wo der Browser die Taste nicht selbst belegt – in Vivaldi nicht)'],
-      ['Leertaste', 'Prio-Stern an / aus'], ['Strg+F', 'in die Suche springen (noch einmal: Suche des Browsers)'], ['Esc', 'aufgeklappten Bedarf zuklappen']]],
-    ['Auf der Seite eines Bedarfs', [['↓ / ↑', 'nächsten / vorigen Bedarf der Liste öffnen'], ['← / Esc', 'zurück zur Liste']]],
-    ['In Feldern', [['Enter / Tab', 'übernehmen (Tab: weiter zum nächsten Feld, Umschalt+Tab: zurück)'], ['Umschalt+Enter', 'in der Liste: übernehmen und gleich den nächsten Bedarf darunter anlegen'],
-      ['Esc', 'verwerfen'], ['Kalender', 'Pfeiltasten: Tag · Bild auf / ab: Monat · Enter: übernehmen · Esc: schließen']]],
-    ['Überall', [['Strg+Z', 'Rückgängig (außerhalb von Feldern)'], ['Strg+S', 'Speichern']]]];
-  return h('table', { class: 'kuerzel' }, G.map(([t, K]) => h('tbody', null, h('tr', { class: 'kz-g' }, h('th', { colspan: 2 }, t)), K.map(([k, x]) => h('tr', null, h('th', null, k), h('td', null, x))))));
-}
-function kuerzelInfo() { closeMenus(); modal('Tastaturbefehle', kuerzelTabelle()); }
+function kuerzelInfo() { closeMenus(); modal('Tastaturbefehle', h('div', null, kuerzelTabelle()), [['Tasten anpassen …', 'anp', 'link'], ['Schließen', false, 'primary']]).then(v => { if (v === 'anp') tastenDialog(); }); }
 function mainMenu(btn) {
   closeMenus();
   const item = (act, label, v, cls) => h('button', { role: 'menuitem', 'data-act': act, 'data-v': v || '', class: cls || null }, label), kopf = t => h('div', { class: 'menu-kopf' }, t);
@@ -289,7 +279,10 @@ function mainMenu(btn) {
     DEMO ? null : h('hr'), DEMO ? null : kopf('Datensicherung'),
     DEMO ? null : item('backup', 'Herunterladen (.json)'),
     DEMO ? null : item('restore', 'Laden …'),
-    h('hr'),
+    h('hr'), kopf('Einstellungen'),
+    item('vorlagen', 'E-Mail-Vorlagen (Rundmail) …'),
+    item('fach-haupt', 'Hauptansprechpersonen der Fachreferate …'),
+    item('tasten', 'Tastaturbefehle …'),
     item('about', 'Über die Bedarfsliste und Tastaturbefehle (Version ' + APP_INFO.version + ')'));
   document.body.append(m);
   const r = btn.getBoundingClientRect();
@@ -346,8 +339,9 @@ function swPop(btn) {
   const dazu = () => {
     const v = inp.value.trim(); inp.value = ''; if (!v) return;
     if (!b.stichworte.some(s => norm(s) === norm(v))) { b.stichworte.push(v); changed(); swap('d-sw', swHead(b), true); }
+    setTimeout(() => { if (document.activeElement === inp) inp.dispatchEvent(new Event('focus')); });   // Liste wieder zeigen: gleich das nächste anklicken
   };
-  const key = suggest(inp, () => SRC.stichwort().filter(s => !b.stichworte.includes(s)), dazu, { erster: false });
+  const key = suggest(inp, () => SRC.stichwort().filter(s => !b.stichworte.includes(s)), dazu, { erster: false, all: true });   // gleich beim Öffnen alle vorhandenen
   inp.addEventListener('keydown', e => { if (key(e)) { e.preventDefault(); return; } if (e.key === 'Enter') { e.preventDefault(); dazu(); } else if (e.key === 'Escape') { dazu(); closeMenus(); } });
   inp.addEventListener('blur', () => dazu());
   placePop(h('div', { class: 'menu sw-pop' }, inp, h('div', { class: 'muted small' }, 'Enter fügt hinzu – gleich das nächste eintippen')), btn, 'right');
@@ -385,11 +379,11 @@ function blaettern(d) {
 }
 // ← führt zurück zur Liste (dort öffnet → wieder einen Bedarf)
 document.addEventListener('keydown', e => {
-  if (!['ArrowDown', 'ArrowUp', 'ArrowLeft'].includes(e.key) || UI.view !== 'detail' || UI.det || e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || e.shiftKey) return;
+  const d = taste(e, 'd-naechster') ? 1 : taste(e, 'd-voriger') ? -1 : 0;           // Tasten: Zahnrad → Tastaturbefehle
+  if (!d || UI.view !== 'detail' || UI.det || e.defaultPrevented) return;
   const el = document.activeElement;
   if ($('.menu, .modal, .le-sug, .fmt-bar, .foe-pop') || (el && el.closest && el.closest('input, textarea, select, [contenteditable]'))) return;
-  e.preventDefault();
-  if (e.key === 'ArrowLeft') zurueck(); else blaettern(e.key === 'ArrowDown' ? 1 : -1);
+  e.preventDefault(); blaettern(d);
 });
 // Ein Feld übernimmt beim Verlassen und zeichnet neu – passiert das zwischen Drücken und Loslassen der Maus, verwirft der Browser den Klick
 // (sein Ziel gibt es nicht mehr). Dann den Klick an das gleiche Element an derselben Stelle weitergeben, sonst bräuchte es zwei Klicks.
@@ -412,21 +406,29 @@ function klickRuhe() { KLICK_RUHE = performance.now() + 600; }
 window.addEventListener('click', e => { if (e.detail > 1 && performance.now() < KLICK_RUHE) { e.preventDefault(); e.stopPropagation(); } }, true);
 // Esc auf der Seite eines Bedarfs (nicht in einem Feld, Fenster oder Menü): zurück zur Liste
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || UI.view !== 'detail' || UI.det || e.defaultPrevented) return;
+  if (!taste(e, 'd-zurueck') || UI.view !== 'detail' || UI.det || e.defaultPrevented) return;
   const el = document.activeElement;
   if ($('.menu, .modal, .cal-pop, .zeit-pop, .le-sug, .fmt-bar, .foe-pop') || (el && el.closest && el.closest('input, textarea, select, [contenteditable]'))) return;
-  zurueck();
+  e.preventDefault(); zurueck();
 }, true);
+// zurückstellen bzw. verwerfen: fragt nach dem Grund (darf leer bleiben); „Wieder aufnehmen“ vergisst ihn
+async function manuellSetzen(b, v, nurGrund) {
+  if (!v) { b.manuell = ''; b.grundM = ''; changed(); keep(renderNow); return; }
+  const w = v === 'verworfen' ? 'Verworfen' : 'Zurückgestellt';
+  const t = await textFrage(nurGrund ? 'Begründung ändern' : v === 'verworfen' ? 'Bedarf verwerfen' : 'Bedarf zurückstellen', w + ', weil …', nurGrund ? b.grundM : '', 'Begründung – erscheint in der Liste (kann leer bleiben)', nurGrund ? 'Übernehmen' : v === 'verworfen' ? 'Verwerfen' : 'Zurückstellen');
+  if (t == null) return;
+  b.manuell = v; b.grundM = t.trim(); changed(); keep(renderNow);
+}
 function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit); if (f && f.kontakte.some(kontaktLeer)) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } }
 async function act(k, a, e) {
   const b = cur();
   switch (k) {
-    case 'tab': if (UI.tab !== a.dataset.v) UI.fSw = ''; UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
+    case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
     case 'open': oeffnen(a.dataset.id); return;
     case 'back': zurueck(); return;
     case 'sort-th': sortSpalte(a.dataset.k); return;
     case 'new': neuerBedarf(); return;
-    case 'clear': Object.assign(UI, { q: '', fSw: '', prioKopf: 0 }); ORDER.ids = null; keep(renderNow); return;
+    case 'clear': Object.assign(UI, { q: '', fSw: [], prioKopf: 0 }); ORDER.ids = null; keep(renderNow); return;
     case 'prio-kopf': UI.prioKopf = ((UI.prioKopf || 0) + 1) % 3; ORDER.ids = null; keep(renderNow); return;
     case 'info': if ($('.info-pop')) { closeMenus(); return; } infoPop(a, INFO[a.dataset.v] || ''); return;
     case 'fw': if ($('.fw-pop')) closeMenus(); else fwPop(a); return;
@@ -450,6 +452,15 @@ async function act(k, a, e) {
     case 'backup': closeMenus(); saveBackup(); return;
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
+    case 'tasten': tastenDialog(); return;
+    case 'sw-filter': if ($('.swf-pop')) closeMenus(); else swFilterPop(a); return;
+    case 'heute-wahl': heuteWaehlen(); return;
+    case 'heute-fertig': heuteFertig(true); return;
+    case 'heute-abbr': heuteFertig(false); return;
+    case 'heute-an': heuteZeigen(true); return;
+    case 'heute-alle': heuteZeigen(false); return;
+    case 'vorlagen': vorlagenDialog(); return;
+    case 'fach-haupt': fachHauptDialog(); return;
     case 'pers-liste': personenListeDialog(); return;
     case 'upl-vorlage': closeMenus(); download('UPL_Vorlage.xlsx', await uplVorlageBlob()); return;
     case 'upl': { closeMenus(); const f = await pickFile('.xlsx'); if (f) await uplImport(f); return; }
@@ -478,6 +489,7 @@ async function act(k, a, e) {
       const base = baseOf(a, b), p = a.dataset.p; let v = a.dataset.v;
       if (v === 'true') v = true; else if (v === 'false') v = false;
       if (a.dataset.toggle != null && getPath(base, p) === v) v = a.dataset.toggle;   // zweiter Klick auf den gewählten Stand nimmt ihn zurück
+      if (p === 'manuell') { closeMenus(); manuellSetzen(b, v); return; }
       const alt = getPath(base, p); setPath(base, p, v); effects(b, base, p, v, alt); changed(); break;
     }
     case 'archive': {
@@ -537,12 +549,13 @@ async function act(k, a, e) {
       const L = $$(z.box + ' .k-ed'), e = k === 'k-neu' ? L[L.length - 1] : L[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
       return;
     }
-    // Fachreferat: wer bei diesem Bedarf angezeigt wird (Auswahl – die übrigen ausgeblendet)
-    case 'fach-edit': UI.fachEdit = b.id; swap('fach-pers', fachBlock(b), true); return;
-    case 'fach-fertig': UI.fachEdit = null; swap('fach-pers', fachBlock(b), true); return;
+    // Fachreferat: Stift → Personen beim Bedarf; Stern je Bedarf; einmalige Frage nach der Hauptansprechperson des Fachreferats
+    case 'fach-edit': fachDialog(b); return;
     case 'fach-stern': { const f = b.freigabe.fach; f.stern = f.stern === a.dataset.k ? '' : a.dataset.k; changed(); swap('fach-pers', fachBlock(b), true); return; }
-    case 'fach-wahl': { const f = b.freigabe.fach, k2 = a.dataset.k, W = (f.wahl || []).slice(), i = W.indexOf(k2);
-      if (i >= 0) W.splice(i, 1); else W.push(k2); f.wahl = W; changed(); swap('fach-pers', fachBlock(b), true); return; }
+    case 'fach-std': fachHauptSetzen(b.freigabe.fach.name, a.dataset.k); swap('fach-pers', fachBlock(b), true); return;
+    case 'rundmail': rundmail(b, a.dataset.v); return;
+    case 'ics': icsLaden(b); return;
+    case 'presse-wahl': { const u = b.nach.ueb, L = (u.presseAus || []).slice(), i = L.indexOf(a.dataset.k); if (i >= 0) L.splice(i, 1); else L.push(a.dataset.k); u.presseAus = L; changed(); break; }
     case 'k-weg': case 'k-haupt': {
       const z = kZiel(b, a); if (!z) return;
       const [c] = z.o[z.p].splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) z.o[z.p].unshift(c);
@@ -552,6 +565,7 @@ async function act(k, a, e) {
     case 'sw-weg': b.stichworte.splice(+a.dataset.i, 1); changed(); break;
     case 'sw-pop': swPop(a); return;
     case 'prio-stern': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); break;     // Stern im Kopf der Seite: Prio an oder aus
+    case 'grund-m': manuellSetzen(b, b.manuell, true); return;
     case 'deadline': calPop(a, b.deadline, v => { b.deadline = v || ''; changed(); keep(renderNow); }, { clear: 'Deadline entfernen' }); return;
     case 'geld': geldPop(a); return;
     case 'mit': { const m = b.nach.ueb.mit, i = m.indexOf(a.dataset.fid); if (i >= 0) m.splice(i, 1); else m.push(a.dataset.fid); changed(); break; }
@@ -572,9 +586,9 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('keydown', e => {
   const el = e.target;
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') { e.preventDefault(); if (!DEMO) saveAll({}); return; }
+  if (taste(e, 'g-save')) { e.preventDefault(); if (!DEMO) saveAll({}); return; }
   // Strg+Z außerhalb von Eingabefeldern: letzte Änderung zurück (in Feldern macht der Browser das Tippen rückgängig)
-  if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'z' && !(el.closest && el.closest('input, textarea, select, [contenteditable]'))) { e.preventDefault(); undo(); return; }
+  if (taste(e, 'g-undo') && !(el.closest && el.closest('input, textarea, select, [contenteditable]'))) { e.preventDefault(); undo(); return; }
   if (e.key === 'Escape' && UI.det && !$('.menu, .modal, .cal-pop')) { kAufraeumen(cur()); UI.det = null; UI.kEdit = null; keep(renderNow); return; }
   if (e.key === 'Enter' && el.id === 'ul-new') { e.preventDefault(); addUl(true); }
   if (e.key === 'Enter' && el.id === 'f-titel') { e.preventDefault(); el.blur(); }

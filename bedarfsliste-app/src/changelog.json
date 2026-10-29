@@ -1,5 +1,20 @@
 [
   {
+    "version": "0.61.0",
+    "date": "2026-10-29T12:00",
+    "items": [
+      "Tastaturbefehle selbst belegen: Zahnrad → „Tastaturbefehle …“ – je Funktion zwei Tasten oder Kombinationen wie Strg+F (gilt für diesen Browser)",
+      "Zurückstellen und Verwerfen fragen nach dem Grund; zurückgestellte Bedarfe stehen immer ganz unten (untereinander nur nach Prio), noch blasser – kompakt ab der Freigabe nur „Zurückgestellt, weil: …“",
+      "Spendenübergabe: Kalendereintrag für Outlook (.ics), Presse und Öffentlichkeit aus der Personenliste (anklickbar, anfangs alle gewählt), Rundmail mit Vorlage „Absprache für Spendenübergabe“",
+      "Rundmail (Knopf mit drei Umschlägen) auch bei „Zuständig“ und beim Fachreferat: Empfänger anhaken, Blanko oder Vorlage; Vorlagen im Zahnrad → „E-Mail-Vorlagen …“",
+      "Fachreferat: Stift öffnet die Auswahl mit Suche – ausblenden und weitere Mitarbeiterinnen und Mitarbeiter dazunehmen; Hinweissatz entfällt",
+      "Fachreferat: Hauptansprechperson wird einmal je Fachreferat gefragt und gilt dann für alle Bedarfe (Notfallvorsorge: Thorsten Heß), je Bedarf per Stern änderbar",
+      "Liste: „Heute“ – morgens Bedarfe anklicken, dann zeigt die Liste nur diese (die übrigen über „Alle“)",
+      "Stichwort-Filter mit Mehrfachauswahl: Klick nur dieses, weiterer Klick dazu, Strg+Klick alle außer diesem",
+      "Stichwort „+“ auf der Seite eines Bedarfs: gleich alle vorhandenen Stichworte zum Anklicken"
+    ]
+  },
+  {
     "version": "0.60.1",
     "date": "2026-10-27T20:30",
     "items": [

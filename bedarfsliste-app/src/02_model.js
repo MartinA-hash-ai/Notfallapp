@@ -26,12 +26,13 @@ function blank() {
     id: uid('b'), titel: '', gliederung: '', zust: [], prio: 'mittel', beschreibung: '', summe: null, summeArt: 'Schätzung', deadline: '', stichworte: [], link: '', pfad: '',
     freigabe: {
       ofk: { st: 'offen', angefragt: '', erledigt: '', notiz: '' },
-      fach: { name: '', st: 'offen', angefragt: '', erledigt: '', notiz: '' }, verw: { st: 'offen', angefragt: '', erledigt: '', notiz: '' },
+      fach: { name: '', st: 'offen', angefragt: '', erledigt: '', notiz: '', stern: '', aus: [], dazu: [] },   // aus/dazu: Personen beim Bedarf (ab 0.61)
+      verw: { st: 'offen', angefragt: '', erledigt: '', notiz: '' },
     },
     unterlagen: FEST_UL.map(n => UL(n, 'fehlt', true)),
     foerderer: [], eigenanteil: null,
-    nach: { ueb: { noetig: true, st: 'offen', termin: '', zeit: '', ort: '', mit: [], info: '' }, pm: { noetig: true, st: 'offen', datum: '' } },
-    manuell: '', archiv: false, angelegt: today(),
+    nach: { ueb: { noetig: true, st: 'offen', termin: '', zeit: '', ort: '', mit: [], info: '', presseAus: [] }, pm: { noetig: true, st: 'offen', datum: '' } },
+    manuell: '', grundM: '', archiv: false, angelegt: today(),         // grundM: warum zurückgestellt bzw. verworfen (ab 0.61)
   };
 }
 function UL(name, st, fest) { return { id: uid('u'), name, st: st || 'fehlt', fest: !!fest }; }

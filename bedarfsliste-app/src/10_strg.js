@@ -59,7 +59,7 @@ const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 // Ist ein Bedarf aufgeklappt, holt ein Klick auf eine andere Zeile diese nach vorn; ein Klick außerhalb der Liste (oder Esc) klappt ihn zu.
 const AUF_POPS = '.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new, #peek, .fmt-bar';
 document.addEventListener('click', e => {
-  if (UI.view !== 'list') return;
+  if (UI.view !== 'list' || UI.heuteWahl) return;                                    // „Heute“ wählen: Klick markiert (16_heute.js)
   if (e.target.closest('.le-edit, .le-new, .ue-form')) return;                         // offene Felder halten ihre Klicks selbst zurück (le-stop)
   if (e.target.closest('#list-body a[href]')) return;                               // Link (z. B. in den Übergabe-Notizen): öffnet den Link, nicht den Bedarf
   const tr = e.target.closest('#list-body tr[data-id]'), id = tr && tr.dataset.id, komp = UI.ansicht === 'kompakt';
@@ -80,7 +80,7 @@ document.addEventListener('click', e => {
   oeffnen(id);
 }, true);
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape' || UI.view !== 'list' || !UI.auf || e.defaultPrevented || $('.menu, .cal-pop, .le-sug, .modal, .ue-form, .le-edit, .fmt-bar')) return;
+  if (!taste(e, 'l-zu') || UI.view !== 'list' || !UI.auf || e.defaultPrevented || $('.menu, .cal-pop, .le-sug, .modal, .ue-form, .le-edit, .fmt-bar')) return;
   const el = document.activeElement; if (el && el.closest && el.closest('input, textarea, select, [contenteditable]')) return;
   const id = UI.auf; aufklappen(null); zeileFokus(id);
 });
@@ -94,30 +94,30 @@ const zeileZeigen = id => { const r = zeileEl(id); if (!r) return; const q = r.g
 document.addEventListener('keydown', e => {
   if (UI.view !== 'list' || e.defaultPrevented || $('.modal')) return;
   const el = document.activeElement;
-  if ((e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === 'f') {
+  if (taste(e, 'l-suche')) {                                                        // Tasten: Zahnrad → Tastaturbefehle (14_tasten.js)
     const q = $('#q'); if (q && el !== q) { e.preventDefault(); closeMenus(); q.focus(); q.select(); }
     return;
   }
-  if (e.ctrlKey || e.metaKey || e.altKey) return;
   if (el && el.closest && el.closest('input, textarea, select, [contenteditable], .menu')) return;
   const rows = $$('#list-body tr[data-id]'), tr = el && el.closest && el.closest('#list-body tr[data-id]');
   const geh = r => { e.preventDefault(); if (!r) return; r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); };
-  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-    const d = e.key === 'ArrowDown' ? 1 : -1, auf = UI.ansicht === 'kompakt' && UI.auf && (!tr || tr.dataset.id === UI.auf) ? zeileEl(UI.auf) : null;
+  const runter = taste(e, 'l-runter'), hoch = !runter && taste(e, 'l-hoch');
+  if (runter || hoch) {
+    const d = runter ? 1 : -1, auf = UI.ansicht === 'kompakt' && UI.auf && (!tr || tr.dataset.id === UI.auf) ? zeileEl(UI.auf) : null;
     const von = tr || auf, r = von ? rows[rows.indexOf(von) + d] : d > 0 ? rows[0] : rows[rows.length - 1];
     if (!auf || !r) return geh(r);
     e.preventDefault(); const id = r.dataset.id; aufklappen(id); zeileFokus(id);
     const n = zeileEl(id); if (n) n.scrollIntoView({ block: 'nearest' });
     return;
   }
-  if (e.key === 'ArrowRight') { const z = tr || (UI.ansicht === 'kompakt' && zeileEl(UI.auf)); if (z) { e.preventDefault(); oeffnen(z.dataset.id); } return; }
+  if (taste(e, 'l-oeffnen')) { const z = tr || (UI.ansicht === 'kompakt' && zeileEl(UI.auf)); if (z) { e.preventDefault(); oeffnen(z.dataset.id); } return; }
   if (!tr) return;
-  if (e.key === 'Home') return geh(rows[0]);
-  if (e.key === 'End') return geh(rows[rows.length - 1]);
+  if (taste(e, 'l-erster')) return geh(rows[0]);
+  if (taste(e, 'l-letzter')) return geh(rows[rows.length - 1]);
   const b = D.bedarfe.find(x => x.id === tr.dataset.id); if (!b) return;
-  if (e.key === 'F2' || e.key === 'e' || e.key === 'E') { e.preventDefault(); const w = tr.querySelector('[data-le="titel"]'); if (w) strgAct(b, w); return; }
-  if (e.key === ' ') { e.preventDefault(); b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); relist(b); zeileFokus(b.id); return; }
-  if (e.key === 'Enter') { e.preventDefault(); if (UI.ansicht === 'kompakt' && UI.auf !== b.id) { aufklappen(b.id); zeileFokus(b.id); } else oeffnen(b.id); }
+  if (taste(e, 'l-name')) { e.preventDefault(); const w = tr.querySelector('[data-le="titel"]'); if (w) strgAct(b, w); return; }
+  if (taste(e, 'l-prio')) { e.preventDefault(); b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); relist(b); zeileFokus(b.id); return; }
+  if (taste(e, 'l-enter')) { e.preventDefault(); if (UI.ansicht === 'kompakt' && UI.auf !== b.id) { aufklappen(b.id); zeileFokus(b.id); } else oeffnen(b.id); }
 });
 // Spaltenbreiten bleiben beim Aufklappen stehen: vorher gemessen (Anteil an der Tabelle), solange ein Bedarf offen ist, fest
 let AUF_W = null;
@@ -210,7 +210,7 @@ function suggest(inp, source, onPick, o = {}) {
     close();
     const raw = inp.value.trim(), q = norm(raw); if (!q && !o.all) return;
     items = o.match ? source().filter(v => o.match(raw, v))
-      : uniq(source().filter(Boolean)).filter(v => norm(v).includes(q) && norm(v) !== q).sort((a, c) => (norm(c).startsWith(q) - norm(a).startsWith(q)) || a.localeCompare(c, 'de')).slice(0, 7);
+      : uniq(source().filter(Boolean)).filter(v => norm(v).includes(q) && norm(v) !== q).sort((a, c) => (norm(c).startsWith(q) - norm(a).startsWith(q)) || a.localeCompare(c, 'de')).slice(0, o.all && !q ? 300 : 7);
     if (!items.length) return;
     box = h('div', { class: 'le-sug' + (o.all ? ' lang' : ''), role: 'listbox' }, items.map((v, i) => h('div', { class: 'le-opt' + (v === raw ? ' on' : ''), role: 'option', 'data-i': i }, v)));
     box.addEventListener('mousedown', e => { e.preventDefault(); const x = e.target.closest('.le-opt'); if (!x) return; inp.value = items[+x.dataset.i]; close(); onPick(); });
@@ -374,7 +374,7 @@ function feldWeiter(b, k, wie, then) {
 // Esc oder Klick daneben hört auf. Bleibt der Name leer, verschwindet die neue Zeile wieder.
 function neuerBedarf(nach) {
   const nb = blank(); D.bedarfe.unshift(nb); changed();
-  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: '', prioKopf: UI.prioKopf === 2 ? 0 : UI.prioKopf });
+  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: [], heuteWahl: null, prioKopf: UI.prioKopf === 2 ? 0 : UI.prioKopf }); heuteDazu(nb.id);
   const L = (ORDER.ids && ORDER.key === ordKey() ? ORDER.ids : (ORDER.ids = null, filtered().map(x => x.id))).filter(id => id !== nb.id), at = nach ? L.indexOf(nach) : -1;
   ORDER.ids = at >= 0 ? [...L.slice(0, at + 1), nb.id, ...L.slice(at + 1)] : [nb.id, ...L]; ORDER.key = ordKey();
   renderNow(); strgSet(false);

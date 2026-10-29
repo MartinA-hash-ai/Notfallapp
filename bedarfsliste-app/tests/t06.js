@@ -342,7 +342,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => cur().stichworte.at(-1) === 'Ohne Enter' && !document.querySelector('.sw-pop')), 'Getipptes Stichwort ohne Enter geht beim Wegklicken nicht verloren');
   await p.evaluate(() => { cur().stichworte.pop(); changed(); renderNow(); });
   await p.click('#d-sw .pchip .x');
-  r = await p.evaluate(() => { const alt = UI.fSw; UI.fSw = 'Aktion Mensch'; const n = filtered().some(x => x.id === 'b-mtw'); UI.fSw = alt; return [cur().stichworte.join('|'), n, JSON.stringify(normalize({ bedarfe: [{ id: 'x', stichwort: 'Alt' }] }).bedarfe[0].stichworte)]; });
+  r = await p.evaluate(() => { const alt = UI.fSw; UI.fSw = ['Aktion Mensch']; const n = filtered().some(x => x.id === 'b-mtw'); UI.fSw = alt; return [cur().stichworte.join('|'), n, JSON.stringify(normalize({ bedarfe: [{ id: 'x', stichwort: 'Alt' }] }).bedarfe[0].stichworte)]; });
   ok(r.join(' / ') === 'Aktion Mensch / true / ["Alt"]', '× entfernt ein Stichwort; Filter der Liste findet den Bedarf; bisheriges Stichwort wird übernommen: ' + r.join(' / '));
   // Beschreibung: irgendwo in die Fläche klicken; Aufzählung sofort, Umschalt+Enter = nächster Punkt, Enter = Zeile ohne Punkt
   const er = await p.$eval('#sec-eck .eck-r', e => { const q = e.getBoundingClientRect(); return [q.left + 30, q.bottom - 12]; });

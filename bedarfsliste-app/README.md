@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.61:** Tastaturbefehle lassen sich im Zahnrad unter „Tastaturbefehle …“ selbst belegen (je Funktion zwei Tasten, auch Kombinationen wie Strg+F; gilt für diesen Browser). Wer einen Bedarf zurückstellt oder verwirft, wird nach dem Grund gefragt; zurückgestellte stehen immer unten, in der kompakten Ansicht steht hinter dem Ort nur „Zurückgestellt, weil: …“. Bei der Spendenübergabe gibt es einen Kalendereintrag für Outlook (.ics), die Personen aus „Presse und Öffentlichkeit“ (anklickbar) und eine Rundmail mit der Vorlage „Absprache für Spendenübergabe“. Die Rundmail (drei Umschläge) gibt es auch bei „Zuständig“ und beim Fachreferat; Vorlagen bearbeitet man im Zahnrad unter „E-Mail-Vorlagen …“. Der Stift beim Fachreferat öffnet eine Auswahl mit Suche, um Personen auszublenden oder weitere dazuzunehmen. Die Hauptansprechperson eines Fachreferats wird einmal gefragt und gilt dann für alle Bedarfe; ändern lässt sie sich im Zahnrad unter „Hauptansprechpersonen der Fachreferate …“ oder je Bedarf über den Stern. In der Liste wählt „Heute“ die Bedarfe für den Tag aus. Der Stichwort-Filter erlaubt eine Mehrfachauswahl (Strg+Klick: alle außer diesem).
+
 **Seit 0.60:** Den Kasten „+ weitere Person“ gibt es nicht mehr; Zuständige kommen über das kleine „+“ links neben „Personenliste“ dazu
 (öffnet die Suche, dort auch „Neue Person eintragen …“).
 

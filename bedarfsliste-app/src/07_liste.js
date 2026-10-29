@@ -130,20 +130,24 @@ function filtered() {
 function filterUndSortiere(o = {}) {
   const arch = o.arch != null ? o.arch : UI.tab === 'archiv', q = o.alle ? '' : norm(UI.q);
   let L = D.bedarfe.filter(b => !!b.archiv === arch);
-  if (UI.fSw && !o.alle) L = L.filter(b => b.stichworte.includes(UI.fSw));
+  if (UI.fSw.length && !o.alle) L = L.filter(b => b.stichworte.some(s => UI.fSw.includes(s)));
+  if (heuteAktiv() && !o.alle && !o.arch) L = L.filter(b => HEUTE.ids.includes(b.id));          // nur die für heute gewählten
   if (UI.prioKopf === 2 && !o.alle) L = L.filter(b => b.prio === 'hoch');
   if (q) L = L.filter(b => norm([b.titel, b.gliederung, b.beschreibung, ...b.stichworte, ...b.zust.map(z => z.n), ...b.foerderer.map(f => f.name)].join(' ')).includes(q));
   const prioVorn = (x, y) => UI.prioKopf ? (x.prio === 'hoch' ? 0 : 1) - (y.prio === 'hoch' ? 0 : 1) : 0;
   SORT_MEMO = new Map();
   try { L.sort((x, y) => prioVorn(x, y) || sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel')); } finally { SORT_MEMO = null; }
   if (!o.alle && ORDER.ids && ORDER.key === ordKey()) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
+  // zurückgestellte und verworfene immer ganz unten – untereinander nur grob: erst die mit Prio, dann zurückgestellt vor verworfen, sonst nach Namen
+  const Z = L.filter(b => b.manuell);
+  if (Z.length) L = L.filter(b => !b.manuell).concat(Z.sort((x, y) => (x.prio === 'hoch' ? 0 : 1) - (y.prio === 'hoch' ? 0 : 1) || (x.manuell === 'verworfen') - (y.manuell === 'verworfen') || x.titel.localeCompare(y.titel, 'de')));
   return L;
 }
 // Reihenfolge, solange mit Strg bearbeitet wird (Zeilen springen nicht unter dem Mauszeiger weg)
 // gilt nur für die Suche, Filter und Sortierung, mit denen sie entstand – ändert sich davon etwas, wird neu geordnet
 const ORDER = { ids: null, key: '' };
-const ordKey = () => JSON.stringify([UI.tab, UI.q, UI.fSw, UI.prioKopf, UI.sort]);
-const anyFilter = () => !!(UI.q || UI.fSw || UI.prioKopf === 2);
+const ordKey = () => JSON.stringify([UI.tab, UI.q, UI.fSw, UI.prioKopf, UI.sort, heuteKey()]);
+const anyFilter = () => !!(UI.q || UI.fSw.length || UI.prioKopf === 2);
 
 /* ---------- kompakte Ansicht: je Bedarf eine Zeile – Name, Summe, Ort und je Bereich nur der Stand als Kreis mit Wort.
    Grün: durch · Gelb: in Bearbeitung · Rot: abgelehnt · leerer Kreis: noch nichts · grau: nicht nötig */
@@ -205,13 +209,16 @@ const ICON_STERN = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden=
 const sternZelle = b => `<td class="l-star"><button class="star-p${b.prio === 'hoch' ? ' on' : ''}" data-le="prio" aria-pressed="${b.prio === 'hoch'}" title="${b.prio === 'hoch' ? 'Prio – klicken: keine Prio' : 'keine Prio – klicken: Prio'}" aria-label="Priorität">${ICON_STERN}</button></td>`;
 // Name, Summe, Ort, Ansprechperson und Deadline: anklickbar ist nur das Wort selbst – ein Klick daneben klappt den Bedarf auf bzw. öffnet ihn
 const wort = (k, t) => `<span class="le-w" data-le="${k}">${t}</span>`;
-const nameZelle = b => `${sternZelle(b)}<td class="l-name">${wort('titel', b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>')}${b.manuell ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : ''}<button class="zu-det" tabindex="-1" title="Bedarf öffnen" aria-label="Bedarf öffnen"></button></td>
+const nameZelle = (b, ohnePause) => `${sternZelle(b)}<td class="l-name">${wort('titel', b.titel ? esc(b.titel) : '<span class="ph">Name des Bedarfs</span>')}${b.manuell && !ohnePause ? ` <span class="pause-t">(${esc(b.manuell)})</span>` : ''}<button class="zu-det" tabindex="-1" title="Bedarf öffnen" aria-label="Bedarf öffnen"></button></td>
     <td class="l-sum">${wort('summe', b.summe ? eur(b.summe) : '<span class="ph">Summe</span>')}</td>`;
+const pauseText = b => (b.manuell === 'verworfen' ? 'Verworfen' : 'Zurückgestellt') + (b.grundM ? ', weil: <span class="pg">' + esc(b.grundM.replace(/\s*\n+\s*/g, ' ')) + '</span>' : '');
 const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
 // solange die Freigabe nicht vollständig ist, wird hinter ihr noch nichts angegangen: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
 function row(b) {
-  const kl = (b.manuell ? 'paused' : '') + (frOffen(b).names.length ? ' ohne-fg' : '');
+  const kl = (b.manuell ? 'paused' : '') + (frOffen(b).names.length ? ' ohne-fg' : '') + (UI.heuteWahl ? (UI.heuteWahl.has(b.id) ? ' heute-w' : '') : heuteHat(b.id) && !heuteAktiv() ? ' heute-m' : '');
   const fg = frStand(b), zeig = fg === 'ok' || b.foerderer.some(f => f.status === 'zugesagt');   // kompakt ohne Freigabe und ohne Zusage: nur der Hinweis
+  if (KOMPAKT() && UI.auf !== b.id && b.manuell) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b, true)}
+    <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-pause" colspan="4">${pauseText(b)}</td></tr>`;   // zurückgestellt: hinter dem Ort nur der Grund
   if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b)}
     <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-fr">${kFreigabe(b)}</td>${zeig ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
       : `<td class="k-nach">${kGrau(fg === 'no' ? 'Freigabe abgelehnt' : 'Freigabe ausstehend')}</td><td class="k-nach"></td><td class="k-nach"></td>`}</tr>`;
@@ -234,13 +241,13 @@ function listBody() {
 const zahlText = (n, all) => n + ' von ' + all;
 function listBar() {
   const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), n = filtered().length, komp = KOMPAKT();
-  const sws = uniq(all.flatMap(b => b.stichworte)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<div class="subbar list-head">
       <span class="muted" id="list-count">${zahlText(n, all.length)}</span>
+      <div class="heute">${heuteLeiste()}</div>
       <div class="tools">
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen (Strg+F)">
-        <select data-ui="fSw" class="${UI.fSw ? 'on' : ''}" aria-label="Stichwort"><option value="">Stichwort: alle</option>${sws.map(v => `<option value="${esc(v)}" ${UI.fSw === v ? 'selected' : ''}>${esc(v)}</option>`).join('')}</select>
+        <button class="sw-filter${UI.fSw.length ? ' on' : ''}" data-act="sw-filter" aria-haspopup="menu" title="Nach Stichwort filtern – Klick: nur dieses, weiterer Klick: dazu, Strg+Klick: alle außer diesem"><span>${esc(swFilterText())}</span><span class="dd" aria-hidden="true">▾</span></button>
         <button class="link" data-act="clear"${anyFilter() ? '' : ' hidden'}>Filter löschen</button>
         <button class="info kz-info" data-act="kuerzel" data-tip="Tastaturbefehle" aria-label="Tastaturbefehle anzeigen">i</button>
       </div>
@@ -250,7 +257,7 @@ function listView() {
   const body = listBody(), komp = KOMPAKT(), colw = colwGet(komp);
   if (!komp || !UI.auf || colw) AUF_W = null;
   return `<main><section class="card list-card">
-    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}${komp && UI.auf ? ' hat-auf' : ''}${AUF_W ? ' auf-fest' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : AUF_W && AUF_W.min ? ` style="min-width:${AUF_W.min}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : AUF_W ? aufCols() : ''}<thead><tr>
+    <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}${UI.heuteWahl ? ' heute-modus' : ''}${komp && UI.auf ? ' hat-auf' : ''}${AUF_W ? ' auf-fest' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : AUF_W && AUF_W.min ? ` style="min-width:${AUF_W.min}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : AUF_W ? aufCols() : ''}<thead><tr>
       ${(komp ? ['<th class="l-star">' + kopfStern(), ...[['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => '<th>' + sk(k, t))]
         : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')])
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
@@ -310,6 +317,6 @@ function placePop(m, btn, align) {
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, [data-act="sw-pop"], [data-act="fristen"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], [data-act="kuerzel"], input.dfeld, input.zfeld')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, .le-sug, [data-act="sw-pop"], [data-act="sw-filter"], [data-act="fristen"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], [data-act="kuerzel"], input.dfeld, input.zfeld')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);
