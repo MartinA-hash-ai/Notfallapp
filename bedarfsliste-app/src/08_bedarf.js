@@ -233,7 +233,9 @@ function personen(L, o) {
       : `<button class="star off" data-act="k-haupt" data-i="${i}" ${a} title="${o.haupt[1]}" aria-label="${o.haupt[1]}">☆</button>`;
     const acts = `<div class="acts">${c.mail ? knopf('mailto:' + c.mail, '✉', 'E-Mail schreiben', c.mail) : ''}${tel ? knopf('tel:' + tel, '☎', 'Anrufen', c.tel) : ''}${mob ? knopf('tel:' + mob, ICON_HANDY, 'Handy anrufen', c.mobil) : ''}</div>`;
     // die Symbole stehen vorn (rechts schwebend): der Name nutzt den Platz daneben, die Position darunter die ganze Breite
-    return `<div class="k1${ausKartei ? ' kartei' : ''}">${stern}${acts}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
+    const w = o.wahl && !ausKartei, wk = w && kkey(c.n), won = w && o.wahl.an.has(wk);   // Karte anklickbar (Presse: wer dabei ist); niemand gewählt: alle normal
+    const wa = w ? ` data-act="${o.wahl.act}" data-k="${esc(wk)}" role="button" tabindex="0" aria-pressed="${won}" title="${won ? o.wahl.t[0] : o.wahl.t[1]}"` : '';
+    return `<div class="k1${ausKartei ? ' kartei' : ''}${w ? ' k-wahl' + (won ? ' on' : o.wahl.an.size ? ' dezent' : '') : ''}"${wa}>${stern}${acts}<div class="kn">${esc(c.n || c.rolle || '(ohne Namen)')}${ausKartei ? ' <span class="badge k">Kartei</span>' : ''}</div>`
       + (c.n && c.rolle ? `<div class="kr">${c.rolle.split(/\s*;\s*/).filter(Boolean).map(esc).join('<br>')}</div>` : '')   // „;“ in der Position: neue Zeile
       + (links ? `<div class="kl">${links}</div>` : '') + '</div>';
   };
@@ -529,7 +531,7 @@ function nachBody(b) {
           ${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}
           <div class="ue-acts"><button data-act="ics"${validIso(n.ueb.termin) ? '' : ' disabled title="Erst den Termin eintragen"'}>${ICON_KAL}<span>In Outlook eintragen (.ics)</span></button><button data-act="rundmail" data-v="foe" title="Förderer zur Spendenübergabe einladen – gemeinsam (BCC) oder einzeln mit persönlicher Anrede">${ICON_RUND}<span>Förderer einladen …</span></button><button data-act="rundmail" data-v="ueb" title="Rundmail an Zuständige und Presse (Absprache)">${ICON_RUND}<span>Rundmail intern …</span></button></div>
           <div class="ue-presse" id="presse-pers">${presseBlock(b)}</div>
-          ${fld('Wer ist dabei?', `<div class="mit">${cand.length ? cand.map(f => `<label class="check"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${n.ueb.mit.includes(f.id) ? 'checked' : ''}> ${esc(f.name)} <span class="muted small">${F_ST_L[f.status]}</span></label>`).join('') : '<span class="muted small">Noch keine Förderer im Förderplan</span>'}</div>`)}` : ''}
+          ${fld('Wer ist dabei?', `<div class="mit">${cand.length ? cand.map(f => { const v = vorOrt(b, f); return `<div class="mit-z"><label class="check"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${n.ueb.mit.includes(f.id) ? 'checked' : ''}> ${esc(f.name)} <span class="muted small">${F_ST_L[f.status]}</span></label><button type="button" class="link small vo-n${v ? '' : ' leer'}" data-act="vor-ort" data-fid="${f.id}" title="Wer vom Förderer dabei ist – klicken zum Ändern">${v ? esc(v.n) : 'Person wählen'}</button></div>`; }).join('') : '<span class="muted small">Noch keine Förderer im Förderplan</span>'}</div>`)}` : ''}
       </div>
     </div>
     <div><h3>Je Förderer</h3>

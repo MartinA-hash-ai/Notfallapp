@@ -125,7 +125,7 @@ const { chromium, ok, open, finish } = require('./lib');
     x.foerderer[x.foerderer.length - 2].kontakte = [Object.assign(leerK(), { n: 'Anna Albers', mail: 'aa@stiftung.example' })]; x.foerderer[x.foerderer.length - 1].kontakte = [Object.assign(leerK(), { n: 'Bernd Bank', mail: 'bb@bank.example' })];
     Object.assign(x.nach.ueb, { termin: '2026-11-13', zeit: '15:00', ort: 'Wache, Paderborn' }); changed(); zuSet(x, 'nach', false); renderNow(); });
   // 0.67: Presse als Karten mit E-Mail und Telefon, „+“ wählt aus bzw. trägt neu ein, Stift ändert; Pressemitteilung und Hinweistext entfallen
-  r = await p.evaluate(() => [[...document.querySelectorAll('#presse-pers .k1 .kn')].map(e => e.textContent).join(','), document.querySelector('#presse-pers').textContent.includes('pp@x.example'), !!document.querySelector('#presse-pers .k-rund'),
+  r = await p.evaluate(() => [[...document.querySelectorAll('#presse-pers .k1 .kn')].map(e => e.textContent).join(','), !!document.querySelector('#presse-pers a[href="mailto:pp@x.example"]') && !document.querySelector('#presse-pers').textContent.includes('pp@x.example'), !!document.querySelector('#presse-pers .k-rund'),
     !document.querySelector('[data-p="nach.pm.noetig"]') && !document.querySelector('#sec-nach .sec-head p')]);
   ok(r.join('|') === 'Olaf Öffentlich,Petra Presse|true|true|true', 'Presse und Öffentlichkeit als Karten mit E-Mail, Rundmail-Knopf; keine Pressemitteilung, kein Hinweistext: ' + r.join('|'));
   await p.click('#presse-pers [data-act="k-neu"]'); await p.click('.modal .ps-z:has-text("Olaf") input'); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
@@ -138,8 +138,8 @@ const { chromium, ok, open, finish } = require('./lib');
   r = await p.evaluate(() => [...document.querySelectorAll('#presse-pers .k1 .kn')].map(e => e.textContent).join(','));
   ok(r === 'Petra Presse,Vera Vorort', 'jemand vor Ort neu eingetragen: ' + r);
   await p.click('button[data-act="ics"]'); await p.waitForTimeout(150);
-  r = await p.evaluate(() => DL.pop());
-  ok(r && r[0] === 'Spendenübergabe Anna.ics' && r[1].includes('DTSTART:20261113T150000\r\nDTEND:20261113T160000') && r[1].includes('SUMMARY:Spendenübergabe: Anna') && r[1].includes('LOCATION:Wache\\, Paderborn')
+  r = await p.evaluate(() => DL.pop()); if (r) r[1] = r[1].replace(/\r\n /g, '');   // gefaltete Zeilen zusammensetzen
+  ok(r && r[0] === 'Spendenübergabe Anna.ics' && r[1].includes('DTSTART:20261113T150000\r\nDTEND:20261113T160000') && r[1].includes('SUMMARY:Spendenübergabe Paderborn – Anna') && r[1].includes('CATEGORIES:Außentermin') && r[1].includes('X-MICROSOFT-CDO-BUSYSTATUS:OOF') && r[1].includes('LOCATION:Wache\\, Paderborn')
     && r[1].includes('Stiftung A: 5.000'), 'Kalendereintrag (.ics) mit Termin, Ort und Spendern: ' + (r ? r[0] : '-'));
   await p.click('.ue-acts button[data-act="rundmail"][data-v="ueb"]');
   r = await p.evaluate(() => [...document.querySelectorAll('.modal .rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(','));

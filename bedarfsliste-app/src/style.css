@@ -1268,3 +1268,14 @@ textarea.nv-in { resize: vertical; }
 .ad-excel { gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
 .ad-heim { display: grid; gap: 4px; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
 .ue-route { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 4px; }
+/* 0.69: Presse anklicken (wer dabei ist), Person je Förderer bei „Wer ist dabei?“ */
+.k1.k-wahl { cursor: pointer; border: 1.5px solid transparent; }
+.k1.k-wahl.on { border-color: var(--red); }
+.k1.k-wahl.dezent { opacity: .45; }
+.k1.k-wahl.dezent:hover { opacity: .75; }
+.mit-z { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.vo-n { white-space: nowrap; }
+.vo-n.leer { color: var(--faint); font-style: italic; }
+.vo-pop button .muted { margin-left: 2px; }
+.vo-leer { padding: 6px 10px; }
+.rm-ics { margin-top: 10px; font-size: 12.5px; }

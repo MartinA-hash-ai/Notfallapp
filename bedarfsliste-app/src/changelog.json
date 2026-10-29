@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.69.0",
+    "date": "2026-10-30T15:00",
+    "items": [
+      "„Wer ist dabei?“: hinter jedem Förderer die Person, die zur Übergabe kommt – vorgeschlagen ist der Hauptkontakt (meist aus der Förder-Kartei), per Klick änderbar (anderer Kontakt, andere Person, niemand)",
+      "Presse und Öffentlichkeit: Person anklicken = ist dabei, die anderen werden blass; Kontaktdaten nur noch als Symbole",
+      "Kalendereintrag: Titel „Spendenübergabe Ort – Bedarf“, Kategorie „Außentermin“, als abwesend; in der Beschreibung Förderer mit Summe und Person vor Ort, Presse, Notizen",
+      "Rundmail intern: Vorlage „Einladung zur Spendenübergabe (intern)“ an Zuständige und die gewählte Presse-Person, Kalendereintrag wird zum Anhängen mit heruntergeladen",
+      "Förderer einladen: vorgewählt ist die Person, die bei „Wer ist dabei?“ steht",
+      "Route: „Route ab DGS“ / „Route ab zu Hause“ ohne zusätzlichen Hinweistext"
+    ]
+  },
+  {
     "version": "0.68.0",
     "date": "2026-10-30T13:00",
     "items": [

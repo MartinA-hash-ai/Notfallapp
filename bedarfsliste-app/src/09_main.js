@@ -454,6 +454,20 @@ async function manuellSetzen(b, v, nurGrund) {
   if (t == null) return;
   b.manuell = v; b.grundM = t.trim(); changed(); keep(renderNow);
 }
+// „Wer ist dabei?“: Person des Förderers wählen – seine Kontakte (meist aus der Förder-Kartei), jemand anderes oder niemand
+function vorOrtMenu(btn, b) {
+  closeMenus();
+  const f = b.foerderer.find(x => x.id === btn.dataset.fid); if (!f) return;
+  const setze = v => { b.nach.ueb.vorOrt = Object.assign({}, b.nach.ueb.vorOrt, { [f.id]: v }); if (v && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id); changed(); closeMenus(); keep(renderNow); };
+  const K = f.kontakte.filter(c => (c.n || '').trim()), cur0 = vorOrt(b, f);
+  const m = h('div', { class: 'menu vo-pop', role: 'menu' },
+    K.length ? K.map(c => h('button', { role: 'menuitem', class: cur0 && kkey(cur0.n) === kkey(c.n) ? 'on' : '', onclick: () => setze({ n: c.n.trim(), mail: (c.mail || '').trim() }) },
+      c.n.trim(), c.rolle ? h('span', { class: 'muted small' }, ' · ' + c.rolle) : null)) : h('div', { class: 'muted small vo-leer' }, 'Beim Förderer sind noch keine Kontakte eingetragen.'),
+    h('hr'), h('button', { role: 'menuitem', onclick: async () => { closeMenus(); const t = await textFrage('Wer ist dabei?', 'Name (für ' + f.name.trim() + ')', cur0 ? cur0.n : '', 'Vorname Nachname', 'Übernehmen');
+      if (t && t.trim()) { const c = K.find(k => kkey(k.n) === kkey(t)); setze({ n: t.trim(), mail: c ? (c.mail || '').trim() : '' }); } } }, 'Andere Person …'),
+    h('button', { role: 'menuitem', onclick: () => setze(null) }, 'Niemand'));
+  placePop(m, btn);
+}
 function foeWeiter(el) {
   const b = cur(), fid = el.dataset.fid, zurSumme = el.matches('.fp-h'); if (!b) return;
   if (document.activeElement === el) el.blur();                                  // übernimmt (neu zeichnen nach der Sortierung)
@@ -607,6 +621,8 @@ async function act(k, a, e) {
     case 'fach-std': fachHauptSetzen(b.freigabe.fach.name, a.dataset.k); swap('fach-pers', fachBlock(b), true); return;
     case 'rundmail': rundmail(b, a.dataset.v); return;
     case 'ics': icsLaden(b); return;
+    case 'presse-wahl': { const f = GRP.presse.obj(b), W = (f.wahl || []).slice(), i = W.indexOf(a.dataset.k); if (i >= 0) W.splice(i, 1); else W.push(a.dataset.k); f.wahl = W; changed(); swap('presse-pers', presseBlock(b), true); return; }
+    case 'vor-ort': vorOrtMenu(a, b); return;
     case 'ort-vorschlag': b.nach.ueb.ort = glAdresse(b.gliederung); changed(); break;
     case 'ort-merken': adresseMerken(b.gliederung, b.nach.ueb.ort); swap('nach-body', nachBody(b), true); return;
     case 'adressen': adressenDialog(b.gliederung); return;

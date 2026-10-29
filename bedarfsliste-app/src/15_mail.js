@@ -13,6 +13,8 @@ const VL_FUER = [['ueb', 'Spendenübergabe intern'], ['foe', 'Förderer einladen
 const VL_STD = [
   { id: 'v-ueb', name: 'Absprache für Spendenübergabe', fuer: 'ueb', betreff: 'Spendenübergabe „{bedarf}“ – Absprache',
     text: 'Hallo zusammen,\n\nfür „{bedarf}“ ({gliederung}) planen wir die Spendenübergabe:\n\nWann: {wann}\nWo: {ort}\n\nGespendet haben:\n{spender}\n\nBitte gebt mir kurz Bescheid, wer von euch an der Übergabe teilnimmt.\n\nViele Grüße' },
+  { id: 'v-ueb-einl', name: 'Einladung zur Spendenübergabe (intern)', fuer: 'ueb', betreff: 'Einladung: Spendenübergabe {ortkurz} – {bedarf}',
+    text: 'Hallo zusammen,\n\nherzliche Einladung zur Spendenübergabe für „{bedarf}“:\n\nWann: {wann}\nWo: {ort}\n\nGespendet haben:\n{spender}\n\nVon den Förderern vor Ort:\n{vorort}\n\nPresse und Öffentlichkeit: {presse}\n\n{notizen}\n\nDen Kalendereintrag hänge ich an – einfach öffnen, dann steht der Termin im Kalender.\n\nViele Grüße' },
   { id: 'v-ueb-presse', name: 'Pressetermin zur Spendenübergabe', fuer: 'presse', betreff: 'Pressetermin: Spendenübergabe „{bedarf}“',
     text: 'Hallo zusammen,\n\nam {wann} findet in {ort} die Spendenübergabe für „{bedarf}“ ({gliederung}) statt.\n\nGespendet haben:\n{spender}\n\nKönnt ihr die Presse einladen bzw. Fotos und einen kurzen Bericht für unsere Kanäle übernehmen? Gebt mir bitte Bescheid, wer von euch dabei ist.\n\nViele Grüße' },
   { id: 'v-foe-einl', name: 'Einladung zur Spendenübergabe', fuer: 'foe', betreff: 'Einladung zur Spendenübergabe: „{bedarf}“',
@@ -31,7 +33,7 @@ const VL_STD = [
     text: 'Hallo zusammen,\n\nzur Info: Die Finanzierung für „{bedarf}“ ({gliederung}) steht. Gespendet haben:\n{spender}\n\nDie Spendenübergabe stimmen wir mit der Gliederung ab – wenn ihr dabei sein möchtet, gebt mir kurz Bescheid.\n\nViele Grüße' },
 ];
 const VL_PLATZ = [['bedarf', 'Name des Bedarfs'], ['gliederung', 'Gliederung'], ['summe', 'Summe des Bedarfs'], ['wann', 'Termin der Spendenübergabe mit Uhrzeit'], ['ort', 'Ort der Spendenübergabe'],
-  ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner'], ['beschreibung', 'Beschreibung des Bedarfs'], ['anrede', 'Förderer: einzeln „Guten Tag Name,“, gemeinsam „Sehr geehrte Damen und Herren,“'], ['malteser', '„der Malteser in Brakel“ bzw. „… in der Diözese Paderborn“'], ['ihre_foerderung', 'einzeln: „ in Höhe von 5.000 €“, gemeinsam leer'], ['foerderer', 'einzeln: Name des Förderers'], ['fehlt', 'Unterlagen, die noch fehlen, je Zeile eine']];
+  ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner'], ['beschreibung', 'Beschreibung des Bedarfs'], ['anrede', 'Förderer: einzeln „Guten Tag Name,“, gemeinsam „Sehr geehrte Damen und Herren,“'], ['malteser', '„der Malteser in Brakel“ bzw. „… in der Diözese Paderborn“'], ['ihre_foerderung', 'einzeln: „ in Höhe von 5.000 €“, gemeinsam leer'], ['foerderer', 'einzeln: Name des Förderers'], ['ortkurz', 'Gliederung bzw. Ort ohne Adresse (z. B. Paderborn)'], ['vorort', 'je Förderer, wer bei der Übergabe dabei ist'], ['presse', 'die angeklickte Person aus Presse und Öffentlichkeit'], ['notizen', 'Notizen zur Übergabe (mit Überschrift, sonst leer)'], ['fehlt', 'Unterlagen, die noch fehlen, je Zeile eine']];
 const vorlagen = () => { const S = D.settings, eig = Array.isArray(S.vorlagen) ? S.vorlagen : [], weg = new Set(S.vorlagenWeg || []);
   return [...eig, ...VL_STD.filter(v => !weg.has(v.id) && !eig.some(e => e.id === v.id))]; };   // neue mitgelieferte kommen dazu
 const WTAG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -43,9 +45,24 @@ function vlWerte(b) {
     ansprechperson: (b.zust[0] && b.zust[0].n) || '', fachreferat: b.freigabe.fach.name.trim(), link: okLink(b.link) ? b.link.trim() : '',
     beschreibung: String(b.beschreibung || '').replace(/\*\*|__|~~/g, '').replace(/^\s*[*•]\s+/gm, '- ').trim() || '(noch keine Beschreibung)',
     anrede: 'Sehr geehrte Damen und Herren,', ihre_foerderung: '', foerderer: '', malteser: !b.gliederung || b.gliederung === DIO ? 'der Malteser in der Diözese Paderborn' : 'der Malteser in ' + b.gliederung,
-    fehlt: b.unterlagen.filter(u => u.st === 'fehlt' || u.st === 'arbeit').map(u => '- ' + u.name).join('\n') || '- (alles da)' };
+    fehlt: b.unterlagen.filter(u => u.st === 'fehlt' || u.st === 'arbeit').map(u => '- ' + u.name).join('\n') || '- (alles da)',
+    ortkurz: ortKurz(b), vorort: dabeiListe(b).map(({ f, p }) => '- ' + f.name.trim() + ': ' + (p ? p.n : 'noch offen')).join('\n') || '- (noch niemand ausgewählt)',
+    presse: presseGewaehlt(b).map(p => p.n).join(', ') || 'noch offen', notizen: u.info.trim() ? 'Notizen:\n' + u.info.trim() : '' };
 }
-const vlFuellen = (t, W) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => W[k] != null ? W[k] : m).replace(/\u00a0/g, ' ');
+// Ort für Titel und Kalender: die Gliederung (bei der Diözese der Ort aus der Adresse, sonst „Diözese“)
+const ortKurz = b => b.gliederung && b.gliederung !== DIO ? b.gliederung : (b.nach.ueb.ort.match(/\b\d{5}\s+([^,]+)/) || [])[1] || 'Diözese';
+// wer vom Förderer bei der Übergabe dabei ist: von Hand gewählt (nach.ueb.vorOrt), sonst der Hauptkontakt aus dem Förderer (meist aus der Förder-Kartei)
+function vorOrt(b, f) {
+  const V = b.nach.ueb.vorOrt || {};
+  if (f.id in V) return V[f.id] && V[f.id].n ? V[f.id] : null;                       // null: bewusst niemand
+  const c = f.kontakte.find(k => (k.n || '').trim()); return c ? { n: c.n.trim(), mail: (c.mail || '').trim() } : null;
+}
+// die Förderer der Übergabe: bei „Wer ist dabei?“ angehakt, sonst alle mit Zusage
+const dabeiListe = b => { const Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), M = b.foerderer.filter(f => b.nach.ueb.mit.includes(f.id) && f.name.trim());
+  return (M.length ? M : Z).map(f => ({ f, p: vorOrt(b, f) })); };
+// Presse und Öffentlichkeit: angeklickt = dabei (nach.ueb.presse.wahl); niemand angeklickt = noch offen
+const presseGewaehlt = b => { const W = GRP.presse.obj(b).wahl || []; return grpZeig(b, 'presse').Z.filter(p => W.includes(kkey(p.n))); };
+const vlFuellen = (t, W) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => W[k] != null ? W[k] : m).replace(/\u00a0/g, ' ').replace(/\n{3,}/g, '\n\n');   // leere Platzhalter: keine Lücken
 
 /* ---------- Presse und Öffentlichkeit: Personen mit diesem Fachreferat in der Personenliste; bei der Spendenübergabe anklickbar, anfangs alle gewählt */
 const PRESSE_RE = /presse|öffentlichkeit|oeffentlichkeit|kommunikation/;
@@ -54,7 +71,7 @@ const pressePersonen = () => PR.list.filter(p => PRESSE_RE.test(norm(p.fach)));
 function presseBlock(b) {
   const ed = UI.pEdit === b.id, f = GRP.presse.obj(b), { Z, weg } = grpZeig(b, 'presse');
   const inhalt = ed ? personen(f.pers, { edit: true, p: 'nach.ueb.presse.pers', a: 'data-grp="presse"', mobil: true, max: 30, wer: 'Person', neu: [], ohnePlus: true })
-    : Z.length ? personen(Z, { mobil: true, lesen: true }) : '<p class="muted small fach-hw">Niemand eingetragen – über „+“ aus der Personenliste dazunehmen (Spalte „Fachreferat“: Presse und Öffentlichkeit) oder jemanden vor Ort eintragen.</p>';
+    : Z.length ? personen(Z, { kompakt: true, mobil: true, lesen: true, wahl: { an: new Set(f.wahl || []), act: 'presse-wahl', t: ['Ist dabei – klicken: nicht mehr', 'Klicken: ist bei der Übergabe dabei (für Rundmail und Kalender)'] } }) : '<p class="muted small fach-hw">Niemand eingetragen – über „+“ aus der Personenliste dazunehmen (Spalte „Fachreferat“: Presse und Öffentlichkeit) oder jemanden vor Ort eintragen.</p>';
   const knopf = ed ? '<button class="k-fertig" data-act="k-fertig" data-grp="presse">Fertig</button>'
     : (Z.some(p => p.mail) ? rundKnopf('presse', 'Rundmail an Presse und Öffentlichkeit') : '')
     + `<button class="k-pliste k-plus" data-act="k-neu" data-grp="presse" title="Person hinzufügen – aus der Personenliste oder neu eintragen (z. B. jemand vor Ort)" aria-label="Person zu Presse und Öffentlichkeit hinzufügen">+</button>`
@@ -70,14 +87,18 @@ function icsBlob(b) {
   const u = b.nach.ueb, W = vlWerte(b), tag = u.termin.replace(/-/g, ''), m = /^(\d{1,2}):(\d{2})/.exec(u.zeit || '');
   const st = m ? new Date(u.termin + 'T' + m[1].padStart(2, '0') + ':' + m[2] + ':00') : null, jetzt = new Date();
   const ende = st ? new Date(st.getTime() + 36e5) : null, morgen = new Date(u.termin + 'T12:00'); morgen.setDate(morgen.getDate() + 1);
-  const beschr = ['Spendenübergabe für „' + W.bedarf + '“' + (W.gliederung ? ' (' + W.gliederung + ')' : ''), '', 'Gespendet haben:', W.spender,
-    W.ansprechperson ? '\nAnsprechperson: ' + W.ansprechperson : '', u.info.trim() ? '\n' + u.info.trim() : ''].join('\n');
-  const Z = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Malteser Dioezese Paderborn//Bedarfsliste//DE', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
+  // Beschreibung: Bedarf, Förderer mit Summe und wer von ihnen vor Ort ist, Presse und Öffentlichkeit, Notizen
+  const Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), dabei = new Map(dabeiListe(b).map(x => [x.f.id, x.p]));
+  const beschr = ['Bedarf: ' + W.bedarf + (b.summe ? ' (' + eur(b.summe) + ')' : '') + (W.gliederung ? ' – ' + W.gliederung : ''), '',
+    'Förderer:', ...(Z.length ? Z.map(f => '- ' + f.name.trim() + (foeAmt(f) ? ': ' + eur(foeAmt(f)) : '') + (dabei.has(f.id) ? ' – vor Ort: ' + (dabei.get(f.id) ? dabei.get(f.id).n : 'noch offen') : '')) : ['- (noch keine Zusage)']),
+    '', 'Presse und Öffentlichkeit: ' + W.presse, W.ansprechperson ? 'Ansprechperson der Gliederung: ' + W.ansprechperson : '', u.info.trim() ? '\nNotizen:\n' + u.info.trim() : ''].filter(x => x !== null).join('\n').replace(/\u00a0/g, ' ');
+  const K = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Malteser Dioezese Paderborn//Bedarfsliste//DE', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
     'UID:' + b.id + '-uebergabe@bedarfsliste', 'DTSTAMP:' + jetzt.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
     st ? 'DTSTART:' + icsZeit(st) : 'DTSTART;VALUE=DATE:' + tag, st ? 'DTEND:' + icsZeit(ende) : 'DTEND;VALUE=DATE:' + icsZeit(morgen).slice(0, 8),
-    'SUMMARY:' + icsText('Spendenübergabe: ' + W.bedarf), u.ort.trim() ? 'LOCATION:' + icsText(u.ort.trim()) : null, 'DESCRIPTION:' + icsText(beschr),
-    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Spendenübergabe', 'TRIGGER:-P1D', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'].filter(Boolean);
-  return new Blob([Z.map(icsFalten).join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' });
+    'SUMMARY:' + icsText('Spendenübergabe ' + W.ortkurz + ' – ' + W.bedarf), u.ort.trim() ? 'LOCATION:' + icsText(u.ort.trim()) : null, 'DESCRIPTION:' + icsText(beschr),
+    'CATEGORIES:' + icsText('Außentermin'), 'TRANSP:OPAQUE', 'X-MICROSOFT-CDO-BUSYSTATUS:OOF', 'X-MICROSOFT-CDO-INTENDEDSTATUS:OOF',   // Outlook: Kategorie „Außentermin“, „Abwesend“
+    'BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:Spendenübergabe', 'TRIGGER:-P1D', 'END:VALARM', 'END:VEVENT', 'END:VCALENDAR'];
+  return new Blob([K.filter(Boolean).map(icsFalten).join('\r\n') + '\r\n'], { type: 'text/calendar;charset=utf-8' });
 }
 function icsLaden(b) {
   if (!validIso(b.nach.ueb.termin)) { toast('Erst den Termin der Spendenübergabe eintragen.', 'warn'); return; }
@@ -93,9 +114,13 @@ function rundGruppen(b) {
   return G.filter(g => g[2].length);
 }
 // Förderer zur Spendenübergabe: die Kontakte der zugesagten Förderer (bei „Wer ist dabei?“ angehakt: nur diese vorgewählt)
+// vorgewählt ist je Förderer die Person, die bei „Wer ist dabei?“ steht (auch wenn sie nicht unter den Kontakten ist)
 function foeGruppen(b) {
   const Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), mit = b.nach.ueb.mit;
-  return Z.map(f => ['f-' + f.id, f.name.trim(), f.kontakte.filter(c => (c.n || '').trim() || (c.mail || '').trim()).map(c => Object.assign({}, c, { n: c.n.trim() || c.mail.trim(), f })), !mit.length || mit.includes(f.id)]);
+  return Z.map(f => { const v = vorOrt(b, f), L = f.kontakte.filter(c => (c.n || '').trim() || (c.mail || '').trim()).map(c => Object.assign({}, c, { n: c.n.trim() || c.mail.trim(), f }));
+    if (v && !L.some(c => kkey(c.n) === kkey(v.n))) L.unshift(Object.assign(leerK(), { n: v.n, mail: v.mail || '', f }));
+    L.forEach(c => { c.vor = v ? kkey(c.n) === kkey(v.n) : true; });
+    return ['f-' + f.id, f.name.trim(), L, !mit.length || mit.includes(f.id)]; });
 }
 // je Empfänger die Platzhalter: einzeln persönlich angesprochen, gemeinsam (BCC) ohne Namen
 const foeWerte = (W, p) => p ? Object.assign({}, W, { anrede: p.n && !/@/.test(p.n) ? 'Guten Tag ' + p.n + ',' : W.anrede, foerderer: p.f.name.trim(), ihre_foerderung: foeAmt(p.f) ? ' in Höhe von ' + eur(foeAmt(p.f)).replace(/ /g, ' ') : '' }) : W;
@@ -107,7 +132,8 @@ async function rundmail(b, art, wahl = '', modus0) {
   const foe = art === 'foe', G = foe ? foeGruppen(b) : rundGruppen(b);
   const vor = { zust: ['zust'], fach: ['fach'], ueb: ['zust', 'presse'], presse: ['presse'] }[art] || ['zust'];
   const an = new Set();
-  G.forEach(([g, , L, ja]) => L.forEach(p => { if (p.mail && (foe ? ja : vor.includes(g))) an.add(g + '|' + kkey(p.n)); }));
+  const pw = new Set((GRP.presse.obj(b).wahl || []));                          // Presse: angeklickte vorwählen (niemand angeklickt: alle)
+  G.forEach(([g, , L, ja]) => L.forEach(p => { if (p.mail && (foe ? ja && p.vor : vor.includes(g) && (g !== 'presse' || !pw.size || pw.has(kkey(p.n))))) an.add(g + '|' + kkey(p.n)); }));
   const V = vorlagen().filter(v => v.fuer === art || v.fuer === 'alle'), W = vlWerte(b);
   if (wahl === undefined || (wahl && !V.some(v => v.id === wahl))) wahl = '';
   if (foe && wahl === '' && !modus0) wahl = (V.find(v => v.fuer === 'foe') || { id: '' }).id;   // Förderer: gleich die Einladung vorgewählt
@@ -132,8 +158,11 @@ async function rundmail(b, art, wahl = '', modus0) {
     h('button', { type: 'button', class: v === modus ? 'on' : '', title: t, onclick: e => { modus = v; [...e.target.parentNode.children].forEach(x => x.classList.toggle('on', x === e.target)); zaehl(); } }, l))) : null;
   zeigK(); zaehl();
   const leer = foe ? 'Noch keine zugesagten Förderer.' : 'Noch niemand mit E-Mail-Adresse – erst Personen eintragen.';
+  // intern zur Übergabe: die Kalenderdatei gleich mit herunterladen (eine E-Mail aus dem Browser kann keinen Anhang mitbringen)
+  const mitIcs = art === 'ueb' && validIso(b.nach.ueb.termin) ? h('input', { type: 'checkbox', checked: true }) : null;
   const v = await modal(foe ? 'Förderer zur Spendenübergabe einladen' : 'Rundmail', h('div', { class: 'help rm' }, h('h4', null, 'Worum geht es?'), kacheln,
-    h('h4', null, 'An'), modusSeg, G.length ? emp : h('p', { class: 'muted' }, leer)),
+    h('h4', null, 'An'), modusSeg, G.length ? emp : h('p', { class: 'muted' }, leer),
+    mitIcs ? h('label', { class: 'check rm-ics' }, mitIcs, ' Kalendereintrag (.ics) dazu herunterladen – in Outlook an die E-Mail anhängen') : null),
     [['Abbrechen', false], [zahl, true, 'primary']], { wide: true, expose: c => { zu = c; } });
   if (v === 'neu') { if (await vorlagenDialog({ neu: art })) rundmail(b, art, (vorlagen().filter(x => x.fuer === art).pop() || {}).id, modus); return; }
   if (v && v.edit) { await vorlagenDialog({ id: v.edit }); rundmail(b, art, v.edit, modus); return; }
@@ -144,6 +173,7 @@ async function rundmail(b, art, wahl = '', modus0) {
   const betreff = Wx => vl ? vlFuellen(vl.betreff, Wx) : (art === 'ueb' || foe ? 'Spendenübergabe ' : '') + '„' + Wx.bedarf + '“' + (Wx.gliederung ? ' (' + Wx.gliederung + ')' : '');
   if (foe && modus === 'einzeln') { einzelnSchreiben(P, p => mailUrl([p.mail.trim()], false, betreff(foeWerte(W, p)), vl ? vlFuellen(vl.text, foeWerte(W, p)) : null)); return; }
   // Outlook trennt Empfänger mit „;“ (andere Programme mit „,“ – Outlook ist hier der Standard); Förderer gemeinsam: alle in BCC
+  if (mitIcs && mitIcs.checked) { download('Spendenübergabe ' + dateiName(b.titel || 'Bedarf') + '.ics', icsBlob(b)); if (!DEMO) toast('Kalendereintrag liegt in „Downloads“ – in Outlook an die E-Mail anhängen.', 'ok'); }
   mailOeffnen(mailUrl(M, foe, betreff(W), vl ? vlFuellen(vl.text, W) : null));
 }
 // einzeln, persönlich: je Kontakt ein Knopf – Outlook öffnet je Klick eine E-Mail (mehrere auf einmal blockiert der Browser)
