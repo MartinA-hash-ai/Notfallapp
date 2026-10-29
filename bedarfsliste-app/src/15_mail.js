@@ -168,14 +168,20 @@ function ortVorschlag(b) {
 function adresseMerken(gl, a) { if (!gl || !a.trim()) return; D.settings.adressen = Object.assign({}, D.settings.adressen, { [gl]: a.trim() }); changed(); toast('Adresse ' + (gl === DIO ? 'der Diözese' : 'von ' + gl) + ' gemerkt – wird künftig vorgeschlagen.', 'ok'); }
 async function adressenDialog(fokus) {
   closeMenus();
-  const N = uniq([DIO, ...GL_LIST, ...D.bedarfe.map(b => b.gliederung.trim()).filter(Boolean)]), W = Object.assign({}, D.settings.adressen);
+  const N = uniq([DIO, ...GL_LIST, ...D.bedarfe.map(b => b.gliederung.trim()).filter(Boolean), ...Object.keys(D.settings.adressen || {})]), W = Object.assign({}, D.settings.adressen);   // auch Dienststellen aus der Excel
   const rows = N.map(gl => { const inp = h('input', { type: 'text', class: 'ad-in', value: W[gl] || '', placeholder: 'z. B. Malteser Hilfsdienst e. V., Musterstraße 1, 33098 Paderborn', 'aria-label': 'Adresse ' + glName(gl), 'data-gl': gl, oninput: e => { W[gl] = e.target.value; } });
-    return h('tr', null, h('td', null, glName(gl)), h('td', null, inp)); });
+    return h('tr', null, h('td', null, gl === DIO ? 'Diözesangeschäftsstelle' : gl), h('td', null, inp)); });
+  let zu = null;
+  const heim = h('input', { type: 'text', class: 'ad-in', value: heimAdresse(), placeholder: 'Straße Nr, PLZ Ort', 'aria-label': 'Meine Startadresse zu Hause' });
   const ok = await modal('Adressen der Gliederungen', h('div', { class: 'help' },
     h('p', { class: 'muted small' }, 'Für den Ort der Spendenübergabe: die Adresse der Gliederung wird vorgeschlagen, aber nicht von selbst eingetragen. Gilt für alle, die mit dieser Bedarfsliste arbeiten.'),
-    h('div', { class: 'ad-wrap' }, h('table', { class: 'fh-tab ad-tab' }, rows))), [['Abbrechen', false], ['Speichern', true, 'primary']],
-    { wide: true, expose: () => setTimeout(() => { const i = fokus && $$('.ad-in').find(x => x.dataset.gl === fokus); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } }, 80) });
+    h('div', { class: 'row ad-excel' }, h('button', { type: 'button', onclick: () => download(ADR_DATEI, adressenBlob()) }, 'Als Excel herunterladen'),
+      h('button', { type: 'button', onclick: () => { if (zu) zu(false); adressenEinlesen(); } }, 'Excel einlesen …'), h('span', { class: 'muted small' }, 'zum Ausfüllen aller Adressen auf einmal')),
+    h('div', { class: 'ad-wrap' }, h('table', { class: 'fh-tab ad-tab' }, rows)),
+    h('label', { class: 'ad-heim' }, h('span', { class: 'lab' }, 'Meine Startadresse für die Route (zu Hause) – nur in diesem Browser'), heim)), [['Abbrechen', false], ['Speichern', true, 'primary']],
+    { wide: true, expose: c => { zu = c; setTimeout(() => { const i = fokus && $$('.ad-in').find(x => x.dataset.gl === fokus); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } }, 80); } });
   if (!ok) return;
+  heimSetzen(heim.value.trim());
   D.settings.adressen = Object.fromEntries(Object.entries(W).map(([k, v]) => [k, String(v || '').trim()]).filter(([, v]) => v)); changed(); keep(renderNow); toast('Adressen gespeichert', 'ok');
 }
 

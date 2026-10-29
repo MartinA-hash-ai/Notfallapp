@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.68.0",
+    "date": "2026-10-30T13:00",
+    "items": [
+      "Stichwort „+“: Feld und vorhandene Stichworte in einem Fenster",
+      "Adressen als Excel: Zahnrad → „Adressen der Gliederungen …“ → „Als Excel herunterladen“ / „Excel einlesen …“ – Gliederungen, Dienststellen und die DGS auf einmal",
+      "Route zur Spendenübergabe: „ab DGS“ oder „ab zu Hause“ öffnet Google Maps mit Strecke und Fahrzeit (die Heimadresse bleibt nur in diesem Browser)"
+    ]
+  },
+  {
     "version": "0.67.0",
     "date": "2026-10-30T11:00",
     "items": [

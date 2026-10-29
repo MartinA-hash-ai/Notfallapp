@@ -1260,3 +1260,11 @@ textarea.nv-in { resize: vertical; }
 .sub.presse-kopf { display: flex; align-items: center; gap: 4px; margin: 14px 0 8px; font-size: 13px; font-weight: 600; color: var(--ink2); }
 .sub.presse-kopf .k-rund { margin-left: auto; }
 .sub.presse-kopf .fach-plus { margin-left: 6px; }
+/* Stichwort „+“: Feld und vorhandene Stichworte in einem Fenster (0.68) */
+.sw-liste { max-height: 240px; overflow-y: auto; margin: 0 -4px; }
+.sw-opt { padding: 5px 8px; border-radius: 6px; cursor: pointer; font-size: 13.5px; }
+.sw-opt:hover, .sw-opt.on { background: var(--hover); }
+/* Adressen-Excel, Route (0.68) */
+.ad-excel { gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.ad-heim { display: grid; gap: 4px; margin-top: 12px; font-size: 12.5px; color: var(--muted); }
+.ue-route { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 4px; }

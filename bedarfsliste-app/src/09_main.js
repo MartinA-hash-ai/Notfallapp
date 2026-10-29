@@ -343,16 +343,30 @@ document.addEventListener('focusin', e => {
 function swPop(btn) {
   closeMenus();
   const b = cur(); if (!b) return;
+  // ein Fenster: oben das Feld, darunter die vorhandenen Stichworte (gefiltert beim Tippen) – Klick oder Enter fügt hinzu, das Fenster bleibt offen
   const inp = h('input', { type: 'text', class: 'sw-in', placeholder: 'Stichwort oder Fördertopf', 'aria-label': 'Stichwort oder Fördertopf hinzufügen', autocomplete: 'off' });
-  const dazu = () => {
-    const v = inp.value.trim(); inp.value = ''; if (!v) return;
-    if (!b.stichworte.some(s => norm(s) === norm(v))) { b.stichworte.push(v); changed(); swap('d-sw', swHead(b), true); }
-    setTimeout(() => { if (document.activeElement === inp) inp.dispatchEvent(new Event('focus')); });   // Liste wieder zeigen: gleich das nächste anklicken
+  const liste = h('div', { class: 'sw-liste', role: 'listbox' }); let hi = -1, L = [];
+  const zeig = () => {
+    const q = norm(inp.value);
+    L = uniq(SRC.stichwort()).filter(s => !b.stichworte.some(x => norm(x) === norm(s)) && (!q || norm(s).includes(q))).sort((a, c) => (norm(c).startsWith(q) - norm(a).startsWith(q)) || a.localeCompare(c, 'de'));
+    if (hi >= L.length) hi = L.length - 1;
+    liste.replaceChildren(...L.map((v, i) => h('div', { class: 'sw-opt' + (i === hi ? ' on' : ''), role: 'option', onmousedown: e => { e.preventDefault(); nimm(v); } }, v)));
+    liste.hidden = !L.length;
   };
-  const key = suggest(inp, () => SRC.stichwort().filter(s => !b.stichworte.includes(s)), dazu, { erster: false, all: true });   // gleich beim Öffnen alle vorhandenen
-  inp.addEventListener('keydown', e => { if (key(e)) { e.preventDefault(); return; } if (e.key === 'Enter') { e.preventDefault(); dazu(); } else if (e.key === 'Escape') { dazu(); closeMenus(); } });
-  inp.addEventListener('blur', () => dazu());
-  placePop(h('div', { class: 'menu sw-pop' }, inp, h('div', { class: 'muted small' }, 'Enter fügt hinzu – gleich das nächste eintippen')), btn, 'right');
+  const nimm = v => {
+    v = String(v || '').trim(); inp.value = ''; hi = -1;
+    if (v && !b.stichworte.some(s => norm(s) === norm(v))) { b.stichworte.push(v); changed(); swap('d-sw', swHead(b), true); }
+    zeig(); inp.focus();
+  };
+  inp.addEventListener('input', () => { hi = -1; zeig(); });
+  inp.addEventListener('keydown', e => {
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); hi = Math.max(-1, Math.min(L.length - 1, hi + (e.key === 'ArrowDown' ? 1 : -1))); zeig(); const o = liste.children[hi]; if (o) o.scrollIntoView({ block: 'nearest' }); }
+    else if (e.key === 'Enter') { e.preventDefault(); nimm(hi >= 0 ? L[hi] : inp.value); }
+    else if (e.key === 'Escape') { e.preventDefault(); nimm(inp.value); closeMenus(); }
+  });
+  inp.addEventListener('blur', () => { if (inp.value.trim()) nimm(inp.value); });
+  zeig();
+  placePop(h('div', { class: 'menu sw-pop' }, inp, liste, h('div', { class: 'muted small' }, 'Anklicken oder eintippen und Enter – gleich das nächste')), btn, 'right');
   inp.focus();
 }
 // Wechsel Liste ↔ Bedarf: der Bedarf gleitet von rechts über die Liste und beim Zurückgehen wieder hinaus (ohne Bewegung, wenn der
@@ -596,6 +610,7 @@ async function act(k, a, e) {
     case 'ort-vorschlag': b.nach.ueb.ort = glAdresse(b.gliederung); changed(); break;
     case 'ort-merken': adresseMerken(b.gliederung, b.nach.ueb.ort); swap('nach-body', nachBody(b), true); return;
     case 'adressen': adressenDialog(b.gliederung); return;
+    case 'route': routeOeffnen(b, a.dataset.v); return;
     case 'k-weg': case 'k-haupt': {
       const z = kZiel(b, a); if (!z) return;
       const [c] = z.o[z.p].splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) z.o[z.p].unshift(c);

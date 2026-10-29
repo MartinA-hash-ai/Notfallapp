@@ -196,10 +196,10 @@ const { chromium, ok, open, finish } = require('./lib');
 
   // 6. Stichwort beim „+“: gleich alle vorhandenen
   await p.click('button.sw-plus');
-  r = await p.evaluate(() => [...document.querySelectorAll('.le-sug .le-opt')].map(e => e.textContent).join(','));
-  ok(r === 'Küche,MTW', 'Stichwort „+“: vor dem Tippen alle vorhandenen (ohne die schon gesetzten): ' + r);
-  await p.click('.le-sug .le-opt:text-is("MTW")'); await p.waitForTimeout(100);
-  r = await p.evaluate(() => [cur().stichworte.join(','), !!document.querySelector('.sw-pop'), [...document.querySelectorAll('.le-sug .le-opt')].map(e => e.textContent).join(',')]);
+  r = await p.evaluate(() => [[...document.querySelectorAll('.sw-pop .sw-opt')].map(e => e.textContent).join(','), document.querySelectorAll('.le-sug').length]);
+  ok(r.join('|') === 'Küche,MTW|0', 'Stichwort „+“: vor dem Tippen alle vorhandenen im selben Fenster (kein zweites): ' + r.join('|'));
+  await p.click('.sw-pop .sw-opt:text-is("MTW")'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [cur().stichworte.join(','), !!document.querySelector('.sw-pop'), [...document.querySelectorAll('.sw-pop .sw-opt')].map(e => e.textContent).join(',')]);
   ok(r.join('|') === 'AED,MTW|true|Küche', 'Klick fügt hinzu, Liste bleibt für das nächste: ' + r.join('|'));
   await K.press('Escape'); await p.evaluate(() => { closeMenus(); zurueck(); });
 
