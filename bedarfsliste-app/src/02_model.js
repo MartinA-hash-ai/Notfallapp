@@ -31,7 +31,7 @@ function blank() {
     },
     unterlagen: FEST_UL.map(n => UL(n, 'fehlt', true)),
     foerderer: [], eigenanteil: null,
-    nach: { ueb: { noetig: true, st: 'offen', termin: '', zeit: '', ort: '', mit: [], info: '', presseAus: [] }, pm: { noetig: true, st: 'offen', datum: '' } },
+    nach: { ueb: { noetig: true, st: 'offen', termin: '', zeit: '', ort: '', mit: [], info: '', presse: { pers: [], aus: [], fuer: '' } }, pm: { noetig: true, st: 'offen', datum: '' } },
     manuell: '', grundM: '', archiv: false, angelegt: today(),         // grundM: warum zurückgestellt bzw. verworfen (ab 0.61)
   };
 }
@@ -242,7 +242,6 @@ function nachOffen(b) {
     if (f.vn.noetig && f.vn.st !== 'erledigt') L.push('Verwendungsnachweis ' + short(f.name));
   }
   if (b.nach.ueb.noetig && b.nach.ueb.st !== 'erledigt' && b.foerderer.some(f => f.status === 'zugesagt')) L.push('Spendenübergabe');
-  if (b.nach.pm.noetig && b.nach.pm.st !== 'veroeff') L.push('Pressemitteilung');
   return L;
 }
 // step: 0 Freigabe · 1 Förderung · 2 Nacharbeit · 3 Abgeschlossen · -1 zurückgestellt/verworfen; bad: braucht Aufmerksamkeit

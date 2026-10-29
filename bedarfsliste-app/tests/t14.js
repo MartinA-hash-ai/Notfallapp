@@ -122,23 +122,59 @@ const { chromium, ok, open, finish } = require('./lib');
 
   // 5. Spendenübergabe: Presse, Kalendereintrag, Vorlage
   await p.evaluate(() => { const x = cur(); x.foerderer.push(ff({ name: 'Stiftung A', status: 'zugesagt', betrag: 5000 }), ff({ name: 'Bank B', status: 'zugesagt', betrag: 1200, zugesagt: 1000 }));
+    x.foerderer[x.foerderer.length - 2].kontakte = [Object.assign(leerK(), { n: 'Anna Albers', mail: 'aa@stiftung.example' })]; x.foerderer[x.foerderer.length - 1].kontakte = [Object.assign(leerK(), { n: 'Bernd Bank', mail: 'bb@bank.example' })];
     Object.assign(x.nach.ueb, { termin: '2026-11-13', zeit: '15:00', ort: 'Wache, Paderborn' }); changed(); zuSet(x, 'nach', false); renderNow(); });
-  r = await p.evaluate(() => [...document.querySelectorAll('.ue-presse .fach-w')].map(e => e.querySelector('.kn').textContent + (e.classList.contains('on') ? '+' : '-')).join(','));
-  ok(r === 'Olaf Öffentlich+,Petra Presse+', 'Presse und Öffentlichkeit bei der Übergabe, anfangs alle gewählt: ' + r);
-  await p.click('.ue-presse .fach-w:has-text("Olaf")');
-  ok(await p.evaluate(() => JSON.stringify(cur().nach.ueb.presseAus)) === '["olaf öffentlich"]', 'Klick wählt ab');
+  // 0.67: Presse als Karten mit E-Mail und Telefon, „+“ wählt aus bzw. trägt neu ein, Stift ändert; Pressemitteilung und Hinweistext entfallen
+  r = await p.evaluate(() => [[...document.querySelectorAll('#presse-pers .k1 .kn')].map(e => e.textContent).join(','), document.querySelector('#presse-pers').textContent.includes('pp@x.example'), !!document.querySelector('#presse-pers .k-rund'),
+    !document.querySelector('[data-p="nach.pm.noetig"]') && !document.querySelector('#sec-nach .sec-head p')]);
+  ok(r.join('|') === 'Olaf Öffentlich,Petra Presse|true|true|true', 'Presse und Öffentlichkeit als Karten mit E-Mail, Rundmail-Knopf; keine Pressemitteilung, kein Hinweistext: ' + r.join('|'));
+  await p.click('#presse-pers [data-act="k-neu"]'); await p.click('.modal .ps-z:has-text("Olaf") input'); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [JSON.stringify(cur().nach.ueb.presse.aus), [...document.querySelectorAll('#presse-pers .k1 .kn')].map(e => e.textContent).join(',')]);
+  ok(r.join('|') === '["olaf öffentlich"]|Petra Presse', '„+“: abgewählt und ausgeblendet: ' + r.join('|'));
+  await p.click('#presse-pers [data-act="k-neu"]'); await p.click('.modal footer button:text-is("Neue Person eintragen …")'); await p.waitForTimeout(100);
+  await p.fill('#presse-pers .k-ed:last-child .k-li-n', 'Vera Vorort'); await p.fill('#presse-pers .k-ed:last-child .k-li-mail', 'vv@x.example');
+  await p.click('#presse-pers [data-act="k-fertig"]'); await p.waitForSelector('.modal h2:text-is("In die Personenliste übernehmen?")');
+  await p.click('.modal footer button:text-is("Nur für diesen Bedarf")');
+  r = await p.evaluate(() => [...document.querySelectorAll('#presse-pers .k1 .kn')].map(e => e.textContent).join(','));
+  ok(r === 'Petra Presse,Vera Vorort', 'jemand vor Ort neu eingetragen: ' + r);
   await p.click('button[data-act="ics"]'); await p.waitForTimeout(150);
   r = await p.evaluate(() => DL.pop());
   ok(r && r[0] === 'Spendenübergabe Anna.ics' && r[1].includes('DTSTART:20261113T150000\r\nDTEND:20261113T160000') && r[1].includes('SUMMARY:Spendenübergabe: Anna') && r[1].includes('LOCATION:Wache\\, Paderborn')
     && r[1].includes('Stiftung A: 5.000'), 'Kalendereintrag (.ics) mit Termin, Ort und Spendern: ' + (r ? r[0] : '-'));
-  await p.click('.ue-acts button[data-act="rundmail"]');
+  await p.click('.ue-acts button[data-act="rundmail"][data-v="ueb"]');
   r = await p.evaluate(() => [...document.querySelectorAll('.modal .rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(','));
-  ok(r === 'Gerd Gast+,Sara Sozial-,Tim Sozial-,Olaf Öffentlich-,Petra Presse+', 'Rundmail Übergabe: Zuständige und gewählte Presse angehakt: ' + r);
+  ok(r === 'Gerd Gast+,Sara Sozial-,Tim Sozial-,Petra Presse+,Vera Vorort+', 'Rundmail intern: Zuständige und Presse angehakt: ' + r);
   await p.click('.modal .rm-k:has-text("Absprache für Spendenübergabe")');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const u = new URL(MAILS.pop()); return [decodeURIComponent(u.pathname), u.searchParams.get('subject'), u.searchParams.get('body')]; });
-  ok(r[0] === 'gg@x.example;pp@x.example' && r[1] === 'Spendenübergabe „Anna“ – Absprache' && r[2].includes('Wann: Freitag, 13.11.2026, 15:00 Uhr') && r[2].includes('Wo: Wache, Paderborn')
+  ok(r[0] === 'gg@x.example;pp@x.example;vv@x.example' && r[1] === 'Spendenübergabe „Anna“ – Absprache' && r[2].includes('Wann: Freitag, 13.11.2026, 15:00 Uhr') && r[2].includes('Wo: Wache, Paderborn')
     && r[2].includes('- Stiftung A: 5.000 €') && r[2].includes('- Bank B: 1.000 €') && r[2].includes('wer von euch an der Übergabe teilnimmt'), 'Vorlage „Absprache für Spendenübergabe“ ausgefüllt: ' + r.join(' | ').replace(/\r?\n/g, '⏎'));
+  // Förderer einladen: gemeinsam in BCC ohne persönliche Anrede, oder einzeln mit Namen und Betrag
+  await p.click('.ue-acts button[data-v="foe"]'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelector('.modal .rm-k.on b').textContent, document.querySelector('.modal .rm-modus .on').textContent,
+    [...document.querySelectorAll('.modal .rm-g')].map(g => g.querySelector('.rm-gt').textContent + ':' + [...g.querySelectorAll('.rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(',')).join(' / ')]);
+  ok(r.join('|') === 'Förderer zur Spendenübergabe einladen|Einladung zur Spendenübergabe|Gemeinsam (BCC)|Stiftung A:Anna Albers+ / Bank B:Bernd Bank+', 'Förderer einladen: Einladung vorgewählt, gemeinsam per BCC, Kontakte der Förderer: ' + r.join('|'));
+  await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const u = MAILS.pop(), q = new URLSearchParams(u.split('?')[1]); return [u.split('?')[0], q.get('bcc'), q.get('body').split('\r\n')[0], q.get('body').includes('im Namen der Malteser in Paderborn'), q.get('body').includes('Höhe')]; });
+  ok(r.join('|') === 'mailto:|aa@stiftung.example;bb@bank.example|Sehr geehrte Damen und Herren,|true|false', 'gemeinsam: alle in BCC, ohne Namen und Betrag: ' + r.join('|'));
+  await p.click('.ue-acts button[data-v="foe"]'); await p.waitForTimeout(100);
+  await p.click('.modal .rm-modus button:text-is("Einzeln, persönlich")'); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelectorAll('.modal .rm-ez').length]);
+  ok(r.join('|') === 'Einzeln schreiben|2', 'einzeln: je Kontakt ein Knopf: ' + r.join('|'));
+  await p.click('.modal .rm-ez:has-text("Anna Albers") button'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const u = MAILS.pop(), q = new URLSearchParams(u.split('?')[1]); return [decodeURIComponent(u.split('?')[0]), q.get('body').split('\r\n')[0], q.get('body').includes('Unterstützung in Höhe von 5.000 €')]; });
+  ok(r.join('|') === 'mailto:aa@stiftung.example|Guten Tag Anna Albers,|true', 'einzeln: persönliche Anrede und Betrag: ' + r.join('|'));
+  await p.click('.modal footer button.primary');
+  // Ort der Übergabe: Adresse der Gliederung wird vorgeschlagen, nicht eingetragen
+  await p.evaluate(() => { cur().nach.ueb.ort = ''; changed(); renderNow(); });
+  await p.click('#sec-nach [data-act="adressen"]'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.activeElement.dataset.gl]);
+  ok(r.join('|') === 'Adressen der Gliederungen|Paderborn', 'ohne Adresse: Link „hinterlegen“ öffnet die Liste bei Paderborn: ' + r.join('|'));
+  await p.keyboard.type('Malteser Hilfsdienst, Kilianstraße 26, 33098 Paderborn'); await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [cur().nach.ueb.ort, document.querySelector('#sec-nach .ort-vor').textContent]);
+  ok(r.join('|') === '|Vorschlag: Malteser Hilfsdienst, Kilianstraße 26, 33098 Paderborn', 'Vorschlag unter dem Ort, Feld bleibt leer: ' + r.join('|'));
+  await p.click('#sec-nach .ort-vor'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => cur().nach.ueb.ort === 'Malteser Hilfsdienst, Kilianstraße 26, 33098 Paderborn' && !document.querySelector('#sec-nach .ort-vor')), 'Klick übernimmt den Vorschlag');
   // neue Vorlage aus der Rundmail heraus, dann steht sie zur Wahl
   await p.click('#sec-eck .eck-l > .sub .k-rund');
   await p.click('.modal .rm-k.rm-neu');

@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { fEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -180,9 +180,9 @@ function renderNow() {
     if (UI.view !== 'list' || UI.ansicht !== 'kompakt') UI.auf = null;              // aufgeklappter Bedarf der kompakten Liste
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
     if (UI.kEdit !== UI.det) UI.kEdit = null;
-    if (UI.fEdit && UI.fEdit !== (b && b.id)) {                                     // Seite verlassen: Fachreferat fertig bearbeitet
-      const z = D.bedarfe.find(x => x.id === UI.fEdit); UI.fEdit = null;
-      if (z) { const f = z.freigabe.fach; if ((f.pers || []).some(kontaktLeer)) { f.pers = f.pers.filter(c => !kontaktLeer(c)); changed(); } setTimeout(() => wennFrei(() => fachFertig(z)), 0); }
+    for (const g of Object.keys(GRP)) if (UI[GRP[g].ui] && UI[GRP[g].ui] !== (b && b.id)) {     // Seite verlassen: Fachreferat bzw. Presse fertig bearbeitet
+      const z = D.bedarfe.find(x => x.id === UI[GRP[g].ui]); UI[GRP[g].ui] = null;
+      if (z) { const f = GRP[g].obj(z); if ((f.pers || []).some(kontaktLeer)) { f.pers = f.pers.filter(c => !kontaktLeer(c)); changed(); } setTimeout(() => wennFrei(() => grpFertig(z, g)), 0); }
     }
     if (UI.zEdit && UI.zEdit !== (b && b.id)) {                                     // Seite verlassen: Zuständige fertig bearbeitet, leere fallen weg
       const z = D.bedarfe.find(x => x.id === UI.zEdit); UI.zEdit = null;
@@ -288,6 +288,7 @@ function mainMenu(btn) {
     item('vorlagen', 'E-Mail-Vorlagen (Rundmail) …'),
     item('pers-liste', 'Personenliste bearbeiten …'),
     item('fach-haupt', 'Hauptansprechpersonen der Fachreferate …'),
+    item('adressen-alle', 'Adressen der Gliederungen …'),
     item('tasten', 'Tastaturbefehle …'),
     item('about', 'Über die Bedarfsliste und Tastaturbefehle (Version ' + APP_INFO.version + ')'));
   document.body.append(m);
@@ -317,7 +318,7 @@ function about() {
 // leer gebliebene Kontakte entfernen, wenn das Fenster beim Bearbeiten geschlossen wird
 // wessen Kontakte: die eines Förderers (Knopf mit data-fid, im Fenster) oder die Zuständigen des Bedarfs (oben auf der Seite)
 function kZiel(b, a) {
-  if (a.dataset.fach) return { o: b.freigabe.fach, p: 'pers', ui: 'fEdit', id: b.id, box: '#fach-pers', max: 30, neu: leerZ };   // Personen beim Fachreferat
+  if (a.dataset.grp && GRP[a.dataset.grp]) { const G = GRP[a.dataset.grp]; return { o: G.obj(b), p: 'pers', ui: G.ui, grp: a.dataset.grp, id: b.id, box: G.box, max: 30, neu: leerZ }; }   // Fachreferat, Presse
   if (!a.dataset.fid) return { o: b, p: 'zust', ui: 'zEdit', id: b.id, box: '#sec-eck', max: MAX_ZUST, neu: leerZ };
   const f = b.foerderer.find(x => x.id === a.dataset.fid);
   return f && { o: f, p: 'kontakte', ui: 'kEdit', id: f.id, box: '.foe-pop', max: MAX_KONTAKTE, neu: leerK };
@@ -325,7 +326,7 @@ function kZiel(b, a) {
 // Zuständige bearbeiten: beim Namen Vorschläge aus allen Bedarfen; ein bekannter Name bringt Position, E-Mail und Telefon mit (nur in leere Zeilen)
 document.addEventListener('focusin', e => {
   const inp = e.target;
-  if (!inp.matches || !inp.matches('#sec-eck .k-li-n') || inp.dataset.sug) return;
+  if (!inp.matches || !inp.matches('#sec-eck .k-li-n, #presse-pers .k-li-n') || inp.dataset.sug) return;
   inp.dataset.sug = '1';
   const ergaenzen = () => {
     const b = cur(), z = b && getPath(b, inp.dataset.p.replace(/\.n$/, '')), v = z && zustVorbild(z.n, z); if (!v) return;   // Zuständige oder Fachreferat
@@ -483,6 +484,7 @@ async function act(k, a, e) {
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
     case 'tasten': tastenDialog(); return;
+    case 'adressen-alle': adressenDialog(); return;
     case 'ki-liste': kiListeDialog(); return;
     case 'sw-filter': if ($('.swf-pop')) closeMenus(); else swFilterPop(a); return;
     case 'heute-wahl': UI.paketWahl = null; heuteWaehlen(); return;
@@ -578,7 +580,7 @@ async function act(k, a, e) {
     // Kontakte im Fenster und Zuständige oben auf der Seite: Stift → bearbeiten, + → weiterer (höchstens drei), × → entfernen, ☆ → nach vorn, Fertig → leere entfernen
     case 'k-edit': case 'k-neu': {
       const z = kZiel(b, a); if (!z) return;
-      if (z.ui === 'fEdit') { if (k === 'k-neu') fachDialog(b); else fachBearbeiten(b); return; }   // Fachreferat: „+“ sucht, Stift bearbeitet
+      if (z.grp) { if (k === 'k-neu') grpDialog(b, z.grp); else grpBearbeiten(b, z.grp); return; }   // Fachreferat, Presse: „+“ sucht, Stift bearbeitet
       if (k === 'k-neu' && z.ui === 'zEdit' && !a.dataset.leer) { personenSuche(b); return; }   // weitere Zuständige: erst in der Personenliste suchen
       if (k === 'k-neu' && z.o[z.p].length < z.max) { z.o[z.p].push(z.neu()); changed(); }
       if (z.ui === 'zEdit' && UI.zEdit !== z.id) ZSNAP = JSON.stringify(z.o.zust.filter(c => k === 'k-neu' ? c !== z.o.zust[z.o.zust.length - 1] : true));   // Stand vor dem Bearbeiten
@@ -591,13 +593,15 @@ async function act(k, a, e) {
     case 'fach-std': fachHauptSetzen(b.freigabe.fach.name, a.dataset.k); swap('fach-pers', fachBlock(b), true); return;
     case 'rundmail': rundmail(b, a.dataset.v); return;
     case 'ics': icsLaden(b); return;
-    case 'presse-wahl': { const u = b.nach.ueb, L = (u.presseAus || []).slice(), i = L.indexOf(a.dataset.k); if (i >= 0) L.splice(i, 1); else L.push(a.dataset.k); u.presseAus = L; changed(); break; }
+    case 'ort-vorschlag': b.nach.ueb.ort = glAdresse(b.gliederung); changed(); break;
+    case 'ort-merken': adresseMerken(b.gliederung, b.nach.ueb.ort); swap('nach-body', nachBody(b), true); return;
+    case 'adressen': adressenDialog(b.gliederung); return;
     case 'k-weg': case 'k-haupt': {
       const z = kZiel(b, a); if (!z) return;
       const [c] = z.o[z.p].splice(+a.dataset.i, 1); if (k === 'k-haupt' && c) z.o[z.p].unshift(c);
       changed(); break;
     }
-    case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; if (z.ui === 'zEdit') zustFertig(b); if (z.ui === 'fEdit') fachFertig(b); } else UI.kEdit = null; break; }
+    case 'k-fertig': { const z = kZiel(b, a); if (z) { z.o[z.p] = z.o[z.p].filter(c => !kontaktLeer(c)); changed(); UI[z.ui] = null; if (z.ui === 'zEdit') zustFertig(b); if (z.grp) grpFertig(b, z.grp); } else UI.kEdit = null; break; }
     case 'sw-weg': b.stichworte.splice(+a.dataset.i, 1); changed(); break;
     case 'sw-pop': swPop(a); return;
     case 'prio-stern': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); break;     // Stern im Kopf der Seite: Prio an oder aus

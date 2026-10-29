@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.67.0",
+    "date": "2026-10-30T11:00",
+    "items": [
+      "Nacharbeit: Hinweistext in der Überschrift und die Pressemitteilung entfallen",
+      "Ort der Spendenübergabe: die Adresse der Gliederung wird vorgeschlagen (ein Klick übernimmt, nichts wird vorausgefüllt); Adressen einmal hinterlegen – direkt dort oder im Zahnrad → „Adressen der Gliederungen …“",
+      "Presse und Öffentlichkeit: Karten mit E-Mail und Telefon, Rundmail, „+“ nimmt weitere dazu (auch jemanden vor Ort neu eintragen), der Stift ändert direkt",
+      "„Förderer einladen …“: Einladung zur Spendenübergabe an die Kontakte der zugesagten Förderer – gemeinsam in BCC ohne persönliche Anrede oder einzeln mit Namen und Betrag; Vorlage im Zahnrad änderbar",
+      "Rundmail an Zuständige und Presse heißt jetzt „Rundmail intern …“"
+    ]
+  },
+  {
     "version": "0.66.0",
     "date": "2026-10-30T09:00",
     "items": [

@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.67:** In der Nacharbeit entfällt die Pressemitteilung. Beim Ort der Spendenübergabe schlägt die Liste die Adresse der Gliederung vor (einmal hinterlegen: Zahnrad → „Adressen der Gliederungen …“). Presse und Öffentlichkeit erscheinen als Karten mit Kontaktdaten und lassen sich wie beim Fachreferat ergänzen und ändern. „Förderer einladen …“ schreibt die Einladung zur Spendenübergabe an die Kontakte der Förderer – gemeinsam in BCC oder einzeln mit persönlicher Anrede.
+
 **Seit 0.66:** Förderer lassen sich schnell eintippen: Name, Enter, Summe, Enter – dann steht die Schreibmarke schon im nächsten Förderer.
 
 **Seit 0.65:** In der Vorschau „Neuen Bedarf anlegen?“ lässt sich jede Angabe anklicken und ändern, Stichworte und andere Einträge entfernt man mit ×. Die offenen Punkte und Quellen der KI können unter die Beschreibung. Beim Ordner darf man einen Pfad aus dem Explorer einfügen – die Liste macht daraus den SharePoint-Link.

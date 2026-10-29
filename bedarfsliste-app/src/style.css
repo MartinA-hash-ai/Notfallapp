@@ -1243,3 +1243,20 @@ textarea.nv-in { resize: vertical; }
 .nv-q { margin-top: 10px; }
 .modal .nv-dl dd input.nv-sw { width: 130px; flex: none; }
 .nv-q .nv-mit, .nv-offen .nv-mit { display: flex; }
+/* 0.67: Presse und Öffentlichkeit als Karten, Ort-Vorschlag, Förderer einladen */
+.ue-presse { margin: 4px 0 12px; }
+.presse-liste .k1 { margin: 0; background: var(--hover); }
+.ort-vor { display: block; margin-top: 4px; padding: 3px 8px; border: 1px dashed var(--line2); border-radius: 6px; background: transparent; font: inherit; font-size: 12.5px; color: var(--muted); text-align: left; cursor: pointer; }
+.ort-vor:hover { border-color: var(--red); color: var(--ink); }
+.ort-vor0 { display: block; margin-top: 4px; text-align: left; }
+.rm-modus { margin-bottom: 8px; }
+.rm-einzeln { display: grid; gap: 6px; }
+.rm-ez { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 6px 10px; background: var(--hover); border-radius: 8px; }
+.ad-wrap { max-height: 60vh; overflow-y: auto; }
+.ad-tab { width: 100%; }
+.ad-tab td:first-child { white-space: nowrap; padding-right: 12px; }
+.ad-in { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 4px 6px; }
+.ort-vor { white-space: normal; max-width: 100%; box-sizing: border-box; overflow-wrap: anywhere; }
+.sub.presse-kopf { display: flex; align-items: center; gap: 4px; margin: 14px 0 8px; font-size: 13px; font-weight: 600; color: var(--ink2); }
+.sub.presse-kopf .k-rund { margin-left: auto; }
+.sub.presse-kopf .fach-plus { margin-left: 6px; }

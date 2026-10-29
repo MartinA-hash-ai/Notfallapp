@@ -246,7 +246,7 @@ function kontaktListe(f) {
 }
 const ICON_HANDY = '<svg viewBox="0 0 12 16" width="10" height="14" aria-hidden="true"><rect x="1.5" y="1" width="9" height="14" rx="2" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M4.8 12.3h2.4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>';
 // Fachreferat des Bedarfs (Name aus der Freigabe): die Personen der Personenliste mit diesem Fachreferat – zum Ansehen und Kontaktieren.
-// Der Stift öffnet die Auswahl (fachDialog): ausblenden und weitere Personen dazunehmen. Stern: Hauptansprechperson – je Bedarf (fach.stern),
+// „+“ öffnet die Auswahl (grpDialog), der Stift bearbeitet direkt (grpBearbeiten, 15_mail.js). Stern: Hauptansprechperson – je Bedarf (fach.stern),
 // sonst die des Fachreferats (einmal gefragt, Zahnrad → Hauptansprechpersonen). Daneben die Rundmail an alle, die hier stehen.
 function fachBlock(b) {
   const f = b.freigabe.fach, { name, L, Z, weg } = fachZeig(b), std = name ? fachHauptStd(name, L) : '';
@@ -256,13 +256,13 @@ function fachBlock(b) {
     <span class="ff-k">${L.map(p => `<button class="mini-btn" data-act="fach-std" data-k="${esc(kkey(p.n))}">${esc(p.n)}</button>`).join('')}<button class="link small" data-act="fach-std" data-k="">niemand</button></span></div>` : '';
   const ed = UI.fEdit === b.id && !!name;
   const inhalt = !name ? '<p class="muted small fach-hw">Welches Fachreferat? In der Freigabe beim Fachreferat den Namen eintragen.</p>'
-    : ed ? personen(f.pers, { edit: true, p: 'freigabe.fach.pers', a: 'data-fach="1"', kompakt: true, mobil: true, max: 30, wer: 'Person', neu: [], ohnePlus: true })
+    : ed ? personen(f.pers, { edit: true, p: 'freigabe.fach.pers', a: 'data-grp="fach"', kompakt: true, mobil: true, max: 30, wer: 'Person', neu: [], ohnePlus: true })
     : !Z.length ? `<p class="muted small fach-hw">${L.length ? 'Alle ausgeblendet – über „+“ wieder dazunehmen.' : `Noch niemand mit dem Fachreferat „${esc(name)}“ in der Personenliste – über „+“ jemanden dazunehmen oder eintragen.`}</p>`
     : personen(zeig, { kompakt: true, mobil: true, lesen: true, fachStern: sk, fachStd: !!sk && !eig });
-  const knopf = !name ? '' : ed ? '<button class="k-fertig" data-act="k-fertig" data-fach="1">Fertig</button>'
+  const knopf = !name ? '' : ed ? '<button class="k-fertig" data-act="k-fertig" data-grp="fach">Fertig</button>'
     : (Z.length ? rundKnopf('fach', 'Rundmail an das Fachreferat') : '')
-    + `<button class="k-pliste k-plus" data-act="k-neu" data-fach="1" title="Person hinzufügen – in der Personenliste suchen oder neu eintragen" aria-label="Person zum Fachreferat hinzufügen">+</button>`
-    + `<button class="k-pen fach-pen" data-act="k-edit" data-fach="1" title="Personen und Kontaktdaten beim Fachreferat bearbeiten" aria-label="Fachreferat bearbeiten">${ICON_PEN}</button>`;
+    + `<button class="k-pliste k-plus" data-act="k-neu" data-grp="fach" title="Person hinzufügen – in der Personenliste suchen oder neu eintragen" aria-label="Person zum Fachreferat hinzufügen">+</button>`
+    + `<button class="k-pen fach-pen" data-act="k-edit" data-grp="fach" title="Personen und Kontaktdaten beim Fachreferat bearbeiten" aria-label="Fachreferat bearbeiten">${ICON_PEN}</button>`;
   return `<div class="sub fach-kopf">Fachreferat${name ? ' <span class="fach-n">' + esc(name) + '</span>' : ''}${weg && !ed ? `<span class="fach-plus" title="${weg} weitere im Fachreferat ausgeblendet – über den Stift ändern">(+${weg})</span>` : ''}${knopf}</div>${ed ? '' : frage}<div class="fach-liste${ed ? ' fach-ed' : ''}">${inhalt}</div>`;
 }
 // Zuständige: hinzufügen über das „+“ oben neben „Personenliste“ (öffnet die Suche) – kein Plus-Kasten in der Liste
@@ -515,7 +515,7 @@ function secFoe(b) {
   <div class="fk-grid">${foeSortiert(b.foerderer).map(f => fpCard(b, f)).join('')}<button class="fk-neu" data-act="add-foe" title="Förderer hinzufügen – viele auf einmal über die Recherche-Excel (Symbol oben rechts im Förderplan)"><span class="fk-plus" aria-hidden="true">+</span>Förderer hinzufügen</button></div>`;
 }
 
-/* ---------- Nacharbeit: Übergabe und Pressemitteilung einmal je Bedarf, Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */
+/* ---------- Nacharbeit: Spendenübergabe einmal je Bedarf (Pressemitteilung entfällt ab 0.67), Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */
 function nachLine(f) {
   const a = `data-fid="${f.id}"`, x = f.vn;
   return `<div class="nl ${x.noetig && x.st !== 'erledigt' ? 'open' : ''}" id="nl-${f.id}">${cbx(f, 'vn.noetig', 'Verwendungsnachweis', a)}${x.noetig ? `<label class="inl">Frist ${dfeld(f, 'vn.frist', a + ' aria-label="Frist Verwendungsnachweis"')}</label>${seg(VN_ST, x.st, `data-p="vn.st" ${a}`, 'small')}` : '<span class="muted small">nicht nötig</span>'}</div>`;
@@ -525,14 +525,11 @@ function nachBody(b) {
   return `<div class="grid two">
     <div><h3>Gemeinsam für den Bedarf</h3>
       <div class="na-block"><div class="na-head">${cbx(b, 'nach.ueb.noetig', 'Spendenübergabe')}${n.ueb.noetig ? seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], n.ueb.st, 'data-p="nach.ueb.st"', 'small') : ''}</div>
-        ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', `<span class="row nowrap">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}</span>`, 'ue-termin')}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus'))}</div>
+        ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', `<span class="row nowrap">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}</span>`, 'ue-termin')}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus') + ortVorschlag(b))}</div>
           ${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}
-          ${fld('Presse und Öffentlichkeit', presseBlock(b), 'ue-presse')}
-          <div class="ue-acts"><button data-act="ics"${validIso(n.ueb.termin) ? '' : ' disabled title="Erst den Termin eintragen"'}>${ICON_KAL}<span>In Outlook eintragen (.ics)</span></button><button data-act="rundmail" data-v="ueb">${ICON_RUND}<span>Rundmail …</span></button></div>
+          <div class="ue-acts"><button data-act="ics"${validIso(n.ueb.termin) ? '' : ' disabled title="Erst den Termin eintragen"'}>${ICON_KAL}<span>In Outlook eintragen (.ics)</span></button><button data-act="rundmail" data-v="foe" title="Förderer zur Spendenübergabe einladen – gemeinsam (BCC) oder einzeln mit persönlicher Anrede">${ICON_RUND}<span>Förderer einladen …</span></button><button data-act="rundmail" data-v="ueb" title="Rundmail an Zuständige und Presse (Absprache)">${ICON_RUND}<span>Rundmail intern …</span></button></div>
+          <div class="ue-presse" id="presse-pers">${presseBlock(b)}</div>
           ${fld('Wer ist dabei?', `<div class="mit">${cand.length ? cand.map(f => `<label class="check"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${n.ueb.mit.includes(f.id) ? 'checked' : ''}> ${esc(f.name)} <span class="muted small">${F_ST_L[f.status]}</span></label>`).join('') : '<span class="muted small">Noch keine Förderer im Förderplan</span>'}</div>`)}` : ''}
-      </div>
-      <div class="na-block"><div class="na-head">${cbx(b, 'nach.pm.noetig', 'Pressemitteilung')}${n.pm.noetig ? seg([['offen', 'offen'], ['arbeit', 'in Arbeit', 't-warn'], ['veroeff', 'veröffentlicht', 't-ok']], n.pm.st, 'data-p="nach.pm.st"', 'small') : ''}</div>
-        ${n.pm.noetig && n.pm.st === 'veroeff' ? `<div class="grid2">${fld('veröffentlicht am', dfeld(b, 'nach.pm.datum', 'aria-label="Pressemitteilung veröffentlicht am"'))}</div>` : ''}
       </div>
     </div>
     <div><h3>Je Förderer</h3>
@@ -543,6 +540,6 @@ function nachBody(b) {
 function secNach(b) {
   if (zuGet(b, 'nach')) { const L = nachOffen(b);
     return `<section class="card zu" id="sec-nach"><div class="sec-head">${zuKopf('nach', 'Nacharbeit', true)}<p id="nach-kurz">${esc(L.length ? 'offen: ' + L.join(', ') : 'nichts offen')}</p></div></section>`; }
-  return `<section class="card" id="sec-nach"><div class="sec-head">${zuKopf('nach', 'Nacharbeit', false)}<p>Spendenübergabe und Pressemitteilung einmal für den ganzen Bedarf, der Verwendungsnachweis (Sach- und Finanzbericht) je Förderer.</p></div>
+  return `<section class="card" id="sec-nach"><div class="sec-head">${zuKopf('nach', 'Nacharbeit', false)}</div>
     <div id="nach-body">${nachBody(b)}</div></section>`;
 }

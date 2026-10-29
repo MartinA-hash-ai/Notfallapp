@@ -8,13 +8,15 @@ const ICON_RUND = '<svg viewBox="0 0 24 20" width="19" height="16" aria-hidden="
 const ICON_KAL = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4"><rect x="1.7" y="2.7" width="12.6" height="11.6" rx="1.5"/><path d="M1.7 6.3h12.6M5 1v3M11 1v3"/></g></svg>';
 const rundKnopf = (art, t) => `<button class="k-pliste k-rund" data-act="rundmail" data-v="${art}" title="${esc(t)}" aria-label="${esc(t)}">${ICON_RUND}</button>`;
 
-const VL_FUER = [['ueb', 'Spendenübergabe'], ['zust', 'Zuständige'], ['fach', 'Fachreferat'], ['alle', 'überall']];
+const VL_FUER = [['ueb', 'Spendenübergabe intern'], ['foe', 'Förderer einladen'], ['presse', 'Presse und Öffentlichkeit'], ['zust', 'Zuständige'], ['fach', 'Fachreferat'], ['alle', 'überall']];
 // mitgelieferte Vorlagen je Bereich; gelöschte merkt sich D.settings.vorlagenWeg, damit sie nicht wiederkommen
 const VL_STD = [
   { id: 'v-ueb', name: 'Absprache für Spendenübergabe', fuer: 'ueb', betreff: 'Spendenübergabe „{bedarf}“ – Absprache',
     text: 'Hallo zusammen,\n\nfür „{bedarf}“ ({gliederung}) planen wir die Spendenübergabe:\n\nWann: {wann}\nWo: {ort}\n\nGespendet haben:\n{spender}\n\nBitte gebt mir kurz Bescheid, wer von euch an der Übergabe teilnimmt.\n\nViele Grüße' },
-  { id: 'v-ueb-presse', name: 'Pressetermin zur Spendenübergabe', fuer: 'ueb', betreff: 'Pressetermin: Spendenübergabe „{bedarf}“',
+  { id: 'v-ueb-presse', name: 'Pressetermin zur Spendenübergabe', fuer: 'presse', betreff: 'Pressetermin: Spendenübergabe „{bedarf}“',
     text: 'Hallo zusammen,\n\nam {wann} findet in {ort} die Spendenübergabe für „{bedarf}“ ({gliederung}) statt.\n\nGespendet haben:\n{spender}\n\nKönnt ihr die Presse einladen bzw. Fotos und einen kurzen Bericht für unsere Kanäle übernehmen? Gebt mir bitte Bescheid, wer von euch dabei ist.\n\nViele Grüße' },
+  { id: 'v-foe-einl', name: 'Einladung zur Spendenübergabe', fuer: 'foe', betreff: 'Einladung zur Spendenübergabe: „{bedarf}“',
+    text: '{anrede}\n\nim Namen {malteser} danken wir Ihnen noch einmal herzlich für Ihre Unterstützung{ihre_foerderung}. Mit Ihrer Hilfe wird „{bedarf}“ möglich – darüber freuen wir uns sehr.\n\nGern möchten wir Sie zur offiziellen Spendenübergabe einladen:\n\nWann: {wann}\nWo: {ort}\n\nBei der Übergabe möchten wir auch einige Fotos machen. Bitte geben Sie uns kurz Bescheid, ob und mit wie vielen Personen Sie teilnehmen können.\n\nWir freuen uns auf Sie!\n\nMit freundlichen Grüßen' },
   { id: 'v-z-interview', name: 'Terminvereinbarung zum Interview', fuer: 'zust', betreff: 'Kurzes Gespräch zu „{bedarf}“',
     text: 'Hallo zusammen,\n\nfür die Förderanträge zu „{bedarf}“ möchte ich gern ein kurzes Gespräch (ca. 30 Minuten) mit euch führen: Wofür wird es gebraucht, wer profitiert davon, was ändert sich dadurch? Damit kann ich die Anträge gut begründen.\n\nWann passt es euch in den nächsten zwei Wochen? Gern auch per Teams.\n\nViele Grüße' },
   { id: 'v-z-unterlagen', name: 'Unterlagen anfragen', fuer: 'zust', betreff: 'Unterlagen für „{bedarf}“',
@@ -29,7 +31,7 @@ const VL_STD = [
     text: 'Hallo zusammen,\n\nzur Info: Die Finanzierung für „{bedarf}“ ({gliederung}) steht. Gespendet haben:\n{spender}\n\nDie Spendenübergabe stimmen wir mit der Gliederung ab – wenn ihr dabei sein möchtet, gebt mir kurz Bescheid.\n\nViele Grüße' },
 ];
 const VL_PLATZ = [['bedarf', 'Name des Bedarfs'], ['gliederung', 'Gliederung'], ['summe', 'Summe des Bedarfs'], ['wann', 'Termin der Spendenübergabe mit Uhrzeit'], ['ort', 'Ort der Spendenübergabe'],
-  ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner'], ['beschreibung', 'Beschreibung des Bedarfs'], ['fehlt', 'Unterlagen, die noch fehlen, je Zeile eine']];
+  ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner'], ['beschreibung', 'Beschreibung des Bedarfs'], ['anrede', 'Förderer: einzeln „Guten Tag Name,“, gemeinsam „Sehr geehrte Damen und Herren,“'], ['malteser', '„der Malteser in Brakel“ bzw. „… in der Diözese Paderborn“'], ['ihre_foerderung', 'einzeln: „ in Höhe von 5.000 €“, gemeinsam leer'], ['foerderer', 'einzeln: Name des Förderers'], ['fehlt', 'Unterlagen, die noch fehlen, je Zeile eine']];
 const vorlagen = () => { const S = D.settings, eig = Array.isArray(S.vorlagen) ? S.vorlagen : [], weg = new Set(S.vorlagenWeg || []);
   return [...eig, ...VL_STD.filter(v => !weg.has(v.id) && !eig.some(e => e.id === v.id))]; };   // neue mitgelieferte kommen dazu
 const WTAG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -40,6 +42,7 @@ function vlWerte(b) {
     spender: (mit.length ? mit : Z).map(f => '- ' + f.name.trim() + (foeAmt(f) ? ': ' + eur(foeAmt(f)) : '')).join('\n') || '- (noch keine Zusage eingetragen)',
     ansprechperson: (b.zust[0] && b.zust[0].n) || '', fachreferat: b.freigabe.fach.name.trim(), link: okLink(b.link) ? b.link.trim() : '',
     beschreibung: String(b.beschreibung || '').replace(/\*\*|__|~~/g, '').replace(/^\s*[*•]\s+/gm, '- ').trim() || '(noch keine Beschreibung)',
+    anrede: 'Sehr geehrte Damen und Herren,', ihre_foerderung: '', foerderer: '', malteser: !b.gliederung || b.gliederung === DIO ? 'der Malteser in der Diözese Paderborn' : 'der Malteser in ' + b.gliederung,
     fehlt: b.unterlagen.filter(u => u.st === 'fehlt' || u.st === 'arbeit').map(u => '- ' + u.name).join('\n') || '- (alles da)' };
 }
 const vlFuellen = (t, W) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => W[k] != null ? W[k] : m).replace(/\u00a0/g, ' ');
@@ -47,12 +50,16 @@ const vlFuellen = (t, W) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => W[k]
 /* ---------- Presse und Öffentlichkeit: Personen mit diesem Fachreferat in der Personenliste; bei der Spendenübergabe anklickbar, anfangs alle gewählt */
 const PRESSE_RE = /presse|öffentlichkeit|oeffentlichkeit|kommunikation/;
 const pressePersonen = () => PR.list.filter(p => PRESSE_RE.test(norm(p.fach)));
-const presseWahl = b => { const aus = new Set(b.nach.ueb.presseAus || []); return pressePersonen().filter(p => !aus.has(kkey(p.n))); };
+// bei der Spendenübergabe: Karten mit E-Mail und Telefon, „+“ nimmt weitere dazu (z. B. jemanden vor Ort), der Stift ändert direkt, dazu die Rundmail
 function presseBlock(b) {
-  const L = pressePersonen(), aus = new Set(b.nach.ueb.presseAus || []);
-  if (!L.length) return '<p class="muted small">Noch niemand mit dem Fachreferat „Presse und Öffentlichkeit“ in der Personenliste – dort in der Spalte „Fachreferat“ eintragen.</p>';
-  return `<div class="presse">${L.map(p => { const k = kkey(p.n), on = !aus.has(k);
-    return `<button type="button" class="k1 fach-w${on ? ' on' : ''}" data-act="presse-wahl" data-k="${esc(k)}" aria-pressed="${on}" title="${on ? 'Bekommt die Rundmail – klicken: nicht' : 'Klicken: bekommt die Rundmail'}"><span class="fw-h" aria-hidden="true">${on ? '✓' : ''}</span><div class="kn">${esc(p.n)}</div>${p.rolle ? `<div class="kr">${esc(p.rolle)}</div>` : ''}</button>`; }).join('')}</div>`;
+  const ed = UI.pEdit === b.id, f = GRP.presse.obj(b), { Z, weg } = grpZeig(b, 'presse');
+  const inhalt = ed ? personen(f.pers, { edit: true, p: 'nach.ueb.presse.pers', a: 'data-grp="presse"', mobil: true, max: 30, wer: 'Person', neu: [], ohnePlus: true })
+    : Z.length ? personen(Z, { mobil: true, lesen: true }) : '<p class="muted small fach-hw">Niemand eingetragen – über „+“ aus der Personenliste dazunehmen (Spalte „Fachreferat“: Presse und Öffentlichkeit) oder jemanden vor Ort eintragen.</p>';
+  const knopf = ed ? '<button class="k-fertig" data-act="k-fertig" data-grp="presse">Fertig</button>'
+    : (Z.some(p => p.mail) ? rundKnopf('presse', 'Rundmail an Presse und Öffentlichkeit') : '')
+    + `<button class="k-pliste k-plus" data-act="k-neu" data-grp="presse" title="Person hinzufügen – aus der Personenliste oder neu eintragen (z. B. jemand vor Ort)" aria-label="Person zu Presse und Öffentlichkeit hinzufügen">+</button>`
+    + `<button class="k-pen fach-pen" data-act="k-edit" data-grp="presse" title="Personen und Kontaktdaten bearbeiten" aria-label="Presse und Öffentlichkeit bearbeiten">${ICON_PEN}</button>`;
+  return `<div class="sub fach-kopf presse-kopf">Presse und Öffentlichkeit${weg && !ed ? `<span class="fach-plus" title="${weg} ausgeblendet – über „+“ wieder dazunehmen">(+${weg})</span>` : ''}${knopf}</div><div class="fach-liste presse-liste${ed ? ' fach-ed' : ''}">${inhalt}</div>`;
 }
 
 /* ---------- Kalendereintrag für Outlook (.ics): Doppelklick auf die Datei trägt den Termin ein (1 Stunde; ohne Uhrzeit ganztägig) */
@@ -82,20 +89,32 @@ const dateiName = s => String(s).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, 
 /* ---------- Rundmail: Empfänger nach Gruppen (angehakt je nach Knopf), Art: Blanko oder Vorlage → Outlook */
 function rundGruppen(b) {
   const G = [['zust', 'Zuständig', b.zust.filter(z => z.n.trim() || z.mail.trim())], ['fach', 'Fachreferat' + (b.freigabe.fach.name.trim() ? ' ' + b.freigabe.fach.name.trim() : ''), fachZeig(b).Z],
-    ['presse', 'Presse und Öffentlichkeit', pressePersonen()]];
+    ['presse', 'Presse und Öffentlichkeit', grpZeig(b, 'presse').Z]];
   return G.filter(g => g[2].length);
 }
-async function rundmail(b, art, wahl = '') {
+// Förderer zur Spendenübergabe: die Kontakte der zugesagten Förderer (bei „Wer ist dabei?“ angehakt: nur diese vorgewählt)
+function foeGruppen(b) {
+  const Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), mit = b.nach.ueb.mit;
+  return Z.map(f => ['f-' + f.id, f.name.trim(), f.kontakte.filter(c => (c.n || '').trim() || (c.mail || '').trim()).map(c => Object.assign({}, c, { n: c.n.trim() || c.mail.trim(), f })), !mit.length || mit.includes(f.id)]);
+}
+// je Empfänger die Platzhalter: einzeln persönlich angesprochen, gemeinsam (BCC) ohne Namen
+const foeWerte = (W, p) => p ? Object.assign({}, W, { anrede: p.n && !/@/.test(p.n) ? 'Guten Tag ' + p.n + ',' : W.anrede, foerderer: p.f.name.trim(), ihre_foerderung: foeAmt(p.f) ? ' in Höhe von ' + eur(foeAmt(p.f)).replace(/ /g, ' ') : '' }) : W;
+const mailUrl = (an, bcc, betreff, text) => 'mailto:' + (bcc ? '?bcc=' : '') + an.map(encodeURIComponent).join(';').replace(/%40/g, '@') + (bcc ? '&' : '?') + 'subject=' + encodeURIComponent(betreff)
+  + (text != null ? '&body=' + encodeURIComponent(text.replace(/\r?\n/g, '\r\n')) : '');
+const mailOeffnen = url => { if (url.length > 1900) toast('Sehr lange E-Mail – falls Outlook sie abschneidet, die Vorlage kürzen.', 'warn'); const a = h('a', { href: url }); document.body.append(a); a.click(); a.remove(); };
+async function rundmail(b, art, wahl = '', modus0) {
   closeMenus();
-  const G = rundGruppen(b), presseAn = new Set(presseWahl(b).map(p => kkey(p.n)));
-  const vor = { zust: ['zust'], fach: ['fach'], ueb: ['zust', 'presse'] }[art] || ['zust'];
+  const foe = art === 'foe', G = foe ? foeGruppen(b) : rundGruppen(b);
+  const vor = { zust: ['zust'], fach: ['fach'], ueb: ['zust', 'presse'], presse: ['presse'] }[art] || ['zust'];
   const an = new Set();
-  G.forEach(([g, , L]) => L.forEach(p => { if (p.mail && vor.includes(g) && (g !== 'presse' || presseAn.has(kkey(p.n)))) an.add(g + '|' + kkey(p.n)); }));
+  G.forEach(([g, , L, ja]) => L.forEach(p => { if (p.mail && (foe ? ja : vor.includes(g))) an.add(g + '|' + kkey(p.n)); }));
   const V = vorlagen().filter(v => v.fuer === art || v.fuer === 'alle'), W = vlWerte(b);
-  if (!V.some(v => v.id === wahl)) wahl = '';
-  let zu = null;
+  if (wahl === undefined || (wahl && !V.some(v => v.id === wahl))) wahl = '';
+  if (foe && wahl === '' && !modus0) wahl = (V.find(v => v.fuer === 'foe') || { id: '' }).id;   // Förderer: gleich die Einladung vorgewählt
+  let zu = null, modus = modus0 || (an.size > 1 ? 'bcc' : 'einzeln');
   const zahl = h('span');
-  const zaehl = () => { const M = new Set(G.flatMap(([g, , L]) => L.filter(p => an.has(g + '|' + kkey(p.n))).map(p => p.mail.trim().toLowerCase()))); zahl.textContent = M.size ? 'E-Mail an ' + M.size + ' öffnen' : 'E-Mail öffnen'; };
+  const empf = () => G.flatMap(([g, , L]) => L.filter(p => p.mail && an.has(g + '|' + kkey(p.n))));
+  const zaehl = () => { const M = new Set(empf().map(p => p.mail.trim().toLowerCase())); zahl.textContent = foe && modus === 'einzeln' ? 'Einzeln schreiben' + (M.size ? ' (' + M.size + ') …' : ' …') : M.size ? 'E-Mail an ' + M.size + (foe ? ' (BCC)' : '') + ' öffnen' : 'E-Mail öffnen'; };
   // je Vorlage eine Kachel (zwei je Reihe): Klick wählt, Doppelklick öffnet gleich die E-Mail, Stift bearbeitet die Vorlage
   const kacheln = h('div', { class: 'rm-kacheln' });
   const zeigK = () => kacheln.replaceChildren(...[['', 'Blanko', 'nur Empfänger und Betreff']].concat(V.map(v => [v.id, v.name, vlFuellen(v.betreff, W)])).map(([id, t, x]) =>
@@ -105,24 +124,59 @@ async function rundmail(b, art, wahl = '') {
       id ? h('button', { type: 'button', class: 'rm-pen', title: 'Vorlage bearbeiten', 'aria-label': 'Vorlage bearbeiten', html: ICON_PEN, onclick: e => { e.stopPropagation(); zu && zu({ edit: id }); } }) : null))
     .concat(h('button', { type: 'button', class: 'rm-k rm-neu', onclick: () => zu && zu('neu') }, h('span', { class: 'rm-plus', 'aria-hidden': 'true' }, '+'), 'Neue Vorlage')));
   const emp = h('div', { class: 'rm-emp' }, G.map(([g, t, L]) => h('div', { class: 'rm-g' }, h('div', { class: 'rm-gt' }, t),
-    L.map(p => { const k = g + '|' + kkey(p.n);
+    L.length ? L.map(p => { const k = g + '|' + kkey(p.n);
       return h('label', { class: 'check rm-p' + (p.mail ? '' : ' ohne'), title: p.mail || 'keine E-Mail-Adresse eingetragen' }, h('input', { type: 'checkbox', checked: an.has(k), disabled: !p.mail,
-        onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); zaehl(); } }), ' ' + (p.n || p.mail), h('span', { class: 'muted small' }, p.mail ? '' : ' · ohne E-Mail')); }))));
+        onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); zaehl(); } }), ' ' + (p.n || p.mail), h('span', { class: 'muted small' }, p.mail ? '' : ' · ohne E-Mail')); })
+      : h('span', { class: 'muted small' }, 'Kein Kontakt eingetragen – beim Förderer unter „Kontakte“ ergänzen.'))));
+  const modusSeg = foe ? h('div', { class: 'seg small rm-modus', role: 'group', 'aria-label': 'Wie verschicken?' }, [['bcc', 'Gemeinsam (BCC)', 'eine E-Mail, alle Förderer in BCC, ohne persönliche Anrede'], ['einzeln', 'Einzeln, persönlich', 'je Kontakt eine eigene E-Mail mit Namen und Betrag']].map(([v, l, t]) =>
+    h('button', { type: 'button', class: v === modus ? 'on' : '', title: t, onclick: e => { modus = v; [...e.target.parentNode.children].forEach(x => x.classList.toggle('on', x === e.target)); zaehl(); } }, l))) : null;
   zeigK(); zaehl();
-  const v = await modal('Rundmail', h('div', { class: 'help rm' }, h('h4', null, 'Worum geht es?'), kacheln,
-    h('h4', null, 'An'), G.length ? emp : h('p', { class: 'muted' }, 'Noch niemand mit E-Mail-Adresse – erst Personen eintragen.')),
+  const leer = foe ? 'Noch keine zugesagten Förderer.' : 'Noch niemand mit E-Mail-Adresse – erst Personen eintragen.';
+  const v = await modal(foe ? 'Förderer zur Spendenübergabe einladen' : 'Rundmail', h('div', { class: 'help rm' }, h('h4', null, 'Worum geht es?'), kacheln,
+    h('h4', null, 'An'), modusSeg, G.length ? emp : h('p', { class: 'muted' }, leer)),
     [['Abbrechen', false], [zahl, true, 'primary']], { wide: true, expose: c => { zu = c; } });
-  if (v === 'neu') { if (await vorlagenDialog({ neu: art })) rundmail(b, art, (vorlagen().filter(x => x.fuer === art).pop() || {}).id); return; }
-  if (v && v.edit) { await vorlagenDialog({ id: v.edit }); rundmail(b, art, v.edit); return; }
+  if (v === 'neu') { if (await vorlagenDialog({ neu: art })) rundmail(b, art, (vorlagen().filter(x => x.fuer === art).pop() || {}).id, modus); return; }
+  if (v && v.edit) { await vorlagenDialog({ id: v.edit }); rundmail(b, art, v.edit, modus); return; }
   if (!v) return;
-  const M = uniq(G.flatMap(([g, , L]) => L.filter(p => p.mail && an.has(g + '|' + kkey(p.n))).map(p => p.mail.trim())));
+  const P = empf(), M = uniq(P.map(p => p.mail.trim()));
   if (!M.length) { toast('Niemand mit E-Mail-Adresse angehakt.', 'warn'); return; }
   const vl = V.find(x => x.id === wahl);
-  const betreff = vl ? vlFuellen(vl.betreff, W) : (art === 'ueb' ? 'Spendenübergabe ' : '') + '„' + W.bedarf + '“' + (W.gliederung ? ' (' + W.gliederung + ')' : '');
-  // Outlook trennt Empfänger mit „;“ (andere Programme mit „,“ – Outlook ist hier der Standard)
-  const url = 'mailto:' + M.map(encodeURIComponent).join(';').replace(/%40/g, '@') + '?subject=' + encodeURIComponent(betreff) + (vl ? '&body=' + encodeURIComponent(vlFuellen(vl.text, W).replace(/\r?\n/g, '\r\n')) : '');
-  if (url.length > 1900) toast('Sehr lange E-Mail – falls Outlook sie abschneidet, die Vorlage kürzen.', 'warn');
-  const a = h('a', { href: url }); document.body.append(a); a.click(); a.remove();
+  const betreff = Wx => vl ? vlFuellen(vl.betreff, Wx) : (art === 'ueb' || foe ? 'Spendenübergabe ' : '') + '„' + Wx.bedarf + '“' + (Wx.gliederung ? ' (' + Wx.gliederung + ')' : '');
+  if (foe && modus === 'einzeln') { einzelnSchreiben(P, p => mailUrl([p.mail.trim()], false, betreff(foeWerte(W, p)), vl ? vlFuellen(vl.text, foeWerte(W, p)) : null)); return; }
+  // Outlook trennt Empfänger mit „;“ (andere Programme mit „,“ – Outlook ist hier der Standard); Förderer gemeinsam: alle in BCC
+  mailOeffnen(mailUrl(M, foe, betreff(W), vl ? vlFuellen(vl.text, W) : null));
+}
+// einzeln, persönlich: je Kontakt ein Knopf – Outlook öffnet je Klick eine E-Mail (mehrere auf einmal blockiert der Browser)
+function einzelnSchreiben(P, url) {
+  const L = h('div', { class: 'rm-einzeln' }, P.map(p => { const k = h('button', { type: 'button', class: 'primary small', onclick: () => { mailOeffnen(url(p)); k.textContent = '✓ geöffnet'; k.className = 'small'; } }, 'E-Mail öffnen');
+    return h('div', { class: 'rm-ez' }, h('span', null, h('b', null, p.n), h('span', { class: 'muted small' }, ' · ' + p.f.name.trim() + ' · ' + p.mail)), k); }));
+  modal('Einzeln schreiben', h('div', { class: 'help' }, h('p', { class: 'muted small' }, 'Je Kontakt eine E-Mail mit persönlicher Anrede und dem Betrag der Förderung. Nacheinander öffnen und in Outlook absenden.'), L), [['Fertig', true, 'primary']], { wide: true });
+}
+
+/* ---------- Adresse der Gliederung als Vorschlag für den Ort der Spendenübergabe (nicht vorausgefüllt: ein Klick übernimmt).
+   Gespeichert in der Bedarfsliste (D.settings.adressen), einmal je Gliederung – Zahnrad → „Adressen der Gliederungen …“ oder gleich bei der Übergabe */
+const glAdresse = gl => (((D.settings.adressen || {})[gl]) || '').trim();
+const glName = gl => gl === DIO ? 'Diözese' : gl;
+function ortVorschlag(b) {
+  const gl = b.gliederung.trim(), u = b.nach.ueb, a = gl ? glAdresse(gl) : '';
+  if (!gl) return '';
+  if (!u.ort.trim()) return a ? `<button type="button" class="ort-vor" data-act="ort-vorschlag" title="Klicken: als Ort übernehmen">Vorschlag: <b>${esc(a)}</b></button>`
+    : `<button type="button" class="link small ort-vor0" data-act="adressen">Adresse ${gl === DIO ? 'der Diözese' : 'der Ortsgliederung ' + esc(gl)} hinterlegen – dann wird sie hier vorgeschlagen …</button>`;
+  if (!a) return `<button type="button" class="link small ort-vor0" data-act="ort-merken">Als Adresse ${gl === DIO ? 'der Diözese' : 'von ' + esc(gl)} merken</button>`;
+  return '';
+}
+function adresseMerken(gl, a) { if (!gl || !a.trim()) return; D.settings.adressen = Object.assign({}, D.settings.adressen, { [gl]: a.trim() }); changed(); toast('Adresse ' + (gl === DIO ? 'der Diözese' : 'von ' + gl) + ' gemerkt – wird künftig vorgeschlagen.', 'ok'); }
+async function adressenDialog(fokus) {
+  closeMenus();
+  const N = uniq([DIO, ...GL_LIST, ...D.bedarfe.map(b => b.gliederung.trim()).filter(Boolean)]), W = Object.assign({}, D.settings.adressen);
+  const rows = N.map(gl => { const inp = h('input', { type: 'text', class: 'ad-in', value: W[gl] || '', placeholder: 'z. B. Malteser Hilfsdienst e. V., Musterstraße 1, 33098 Paderborn', 'aria-label': 'Adresse ' + glName(gl), 'data-gl': gl, oninput: e => { W[gl] = e.target.value; } });
+    return h('tr', null, h('td', null, glName(gl)), h('td', null, inp)); });
+  const ok = await modal('Adressen der Gliederungen', h('div', { class: 'help' },
+    h('p', { class: 'muted small' }, 'Für den Ort der Spendenübergabe: die Adresse der Gliederung wird vorgeschlagen, aber nicht von selbst eingetragen. Gilt für alle, die mit dieser Bedarfsliste arbeiten.'),
+    h('div', { class: 'ad-wrap' }, h('table', { class: 'fh-tab ad-tab' }, rows))), [['Abbrechen', false], ['Speichern', true, 'primary']],
+    { wide: true, expose: () => setTimeout(() => { const i = fokus && $$('.ad-in').find(x => x.dataset.gl === fokus); if (i) { i.scrollIntoView({ block: 'center' }); i.focus(); } }, 80) });
+  if (!ok) return;
+  D.settings.adressen = Object.fromEntries(Object.entries(W).map(([k, v]) => [k, String(v || '').trim()]).filter(([, v]) => v)); changed(); keep(renderNow); toast('Adressen gespeichert', 'ok');
 }
 
 /* ---------- Vorlagen bearbeiten (Zahnrad → „E-Mail-Vorlagen …“): Name, wofür, Betreff, Text mit Platzhaltern in {geschweiften Klammern} */
@@ -166,37 +220,73 @@ const FACH_HAUPT_STD = { notfallvorsorge: 'Thorsten Heß' };          // vom Fun
 // fach.pers: Personen, die beim Bedarf feststehen (mit ihren Angaben – über den Stift änderbar); dazu kommen die übrigen des Fachreferats aus der
 // Personenliste, außer den ausgeblendeten (fach.aus). Fehlende Angaben ergänzt die Personenliste.
 const fachKopie = p => Object.assign(leerZ(), { n: p.n || '', rolle: p.rolle || '', mail: p.mail || '', tel: p.tel || '', mobil: p.mobil || '' });
-function fachZeig(b) {
-  const f = b.freigabe.fach, name = f.name.trim(), L = fachPersonen(name);
-  if (f.fuer && f.fuer !== norm(name)) { f.aus = []; f.pers = []; f.dazu = []; f.fuer = ''; }   // anderes Fachreferat eingetragen: die Auswahl galt dem alten
-  if (Array.isArray(f.wahl) && f.wahl.length && L.length) { f.aus = L.map(p => kkey(p.n)).filter(k => !f.wahl.includes(k)); }   // Auswahl bis 0.60 → ausgeblendete
-  delete f.wahl;
-  if (Array.isArray(f.dazu) && f.dazu.length) { f.pers = [...(f.pers || []), ...f.dazu.map(k => PR.list.find(p => kkey(p.n) === k)).filter(Boolean).map(fachKopie)]; f.dazu = []; }   // 0.61 → 0.62
+// Personengruppen beim Bedarf mit derselben Technik (ab 0.67): Fachreferat (aus der Spalte „Fachreferat“) und Presse und Öffentlichkeit bei der Spendenübergabe.
+// obj: wo pers/aus/fuer stehen · L: die Personen der Gruppe aus der Personenliste · ui: Bearbeiten-Merker · neu: was Neue in der Personenliste bekommen
+const GRP = {
+  fach: { obj: b => b.freigabe.fach, name: b => b.freigabe.fach.name.trim(), L: b => fachPersonen(b.freigabe.fach.name.trim()), ui: 'fEdit', box: '#fach-pers', p: 'freigabe.fach.pers',
+    titel: b => 'Fachreferat ' + b.freigabe.fach.name.trim(), zeigen: b => swap('fach-pers', fachBlock(b), true), neu: name => ({ fach: name }) },
+  presse: { obj: b => { const u = b.nach.ueb; if (!isObj(u.presse)) u.presse = { pers: [], aus: [], fuer: '' }; return u.presse; }, name: () => 'Presse und Öffentlichkeit', L: () => pressePersonen(),
+    ui: 'pEdit', box: '#presse-pers', p: 'nach.ueb.presse.pers', titel: () => 'Presse und Öffentlichkeit', zeigen: b => swap('presse-pers', presseBlock(b), true), neu: () => ({}) },   // Neue (z. B. jemand vor Ort) ohne Fachreferat
+};
+// pers: Personen, die beim Bedarf feststehen (mit ihren Angaben – über den Stift änderbar); dazu kommen die übrigen der Gruppe aus der Personenliste,
+// außer den ausgeblendeten (aus). Fehlende Angaben ergänzt die Personenliste.
+function grpZeig(b, g) {
+  const G = GRP[g], f = G.obj(b), name = G.name(b), L = G.L(b);
+  if (g === 'fach') {
+    if (f.fuer && f.fuer !== norm(name)) { f.aus = []; f.pers = []; f.dazu = []; f.fuer = ''; }   // anderes Fachreferat eingetragen: die Auswahl galt dem alten
+    if (Array.isArray(f.wahl) && f.wahl.length && L.length) { f.aus = L.map(p => kkey(p.n)).filter(k => !f.wahl.includes(k)); }   // Auswahl bis 0.60 → ausgeblendete
+    delete f.wahl;
+    if (Array.isArray(f.dazu) && f.dazu.length) { f.pers = [...(f.pers || []), ...f.dazu.map(k => PR.list.find(p => kkey(p.n) === k)).filter(Boolean).map(fachKopie)]; f.dazu = []; }   // 0.61 → 0.62
+  }
   const aus = new Set(f.aus || []), P = (f.pers || []).filter(c => !kontaktLeer(c)), pk = new Map(P.map(c => [kkey(c.n), c]));
   const voll = c => { const p = person(c.n); return p ? Object.assign({}, c, ...['rolle', 'mail', 'tel', 'mobil'].map(k => (c[k] || '').trim() ? {} : { [k]: p[k] || '' })) : c; };
   const Z = [...L.filter(p => !aus.has(kkey(p.n))).map(p => pk.has(kkey(p.n)) ? voll(pk.get(kkey(p.n))) : p), ...P.filter(c => !L.some(p => kkey(p.n) === kkey(c.n))).map(voll)];
   return { name, L, Z, weg: L.filter(p => aus.has(kkey(p.n)) && !pk.has(kkey(p.n))).length };
 }
-// alle, die gerade beim Fachreferat stehen, als feste Personen übernehmen (vor dem Bearbeiten und nach der Auswahl)
-function fachFest(b, Z) {
-  const f = b.freigabe.fach, { name, L } = fachZeig(b);
+// alle, die gerade in der Gruppe stehen, als feste Personen übernehmen (vor dem Bearbeiten und nach der Auswahl)
+function grpFest(b, g, Z) {
+  const f = GRP[g].obj(b), { name, L } = grpZeig(b, g);
   f.pers = Z.map(fachKopie); f.aus = L.map(p => kkey(p.n)).filter(k => !f.pers.some(c => kkey(c.n) === k)); f.fuer = norm(name);
 }
-let FSNAP = '[]';
-// Stift: die Personen beim Fachreferat direkt bearbeiten (wie bei „Zuständig“); „Fertig“ fragt, ob Neues in die Personenliste soll
-function fachBearbeiten(b, neu) {
-  if (UI.fEdit !== b.id) { fachFest(b, fachZeig(b).Z); FSNAP = JSON.stringify(b.freigabe.fach.pers); }
-  if (neu) b.freigabe.fach.pers.push(leerZ());
-  changed(); UI.fEdit = b.id; keep(renderNow);
-  const E = $$('#fach-pers .k-ed'), e = neu ? E[E.length - 1] : E[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
+const GSNAP = {};
+// Stift: die Personen direkt bearbeiten (wie bei „Zuständig“); „Fertig“ fragt, ob Neues in die Personenliste soll
+function grpBearbeiten(b, g, neu) {
+  const G = GRP[g];
+  if (UI[G.ui] !== b.id) { grpFest(b, g, grpZeig(b, g).Z); GSNAP[g] = JSON.stringify(G.obj(b).pers); }
+  if (neu) G.obj(b).pers.push(leerZ());
+  changed(); UI[G.ui] = b.id; keep(renderNow);
+  const E = $$(G.box + ' .k-ed'), e = neu ? E[E.length - 1] : E[0], inp = e && e.querySelector('input'); if (inp) inp.focus();
 }
-function fachFertig(b) {
-  const f = b.freigabe.fach, name = f.name.trim(), L = fachPersonen(name);
+function grpFertig(b, g) {
+  const G = GRP[g], f = G.obj(b), name = G.name(b), L = G.L(b);
   f.pers = (f.pers || []).filter(c => !kontaktLeer(c)); f.aus = L.map(p => kkey(p.n)).filter(k => !f.pers.some(c => kkey(c.n) === k)); f.fuer = norm(name);
-  const vor = JSON.parse(FSNAP || '[]').map(c => JSON.stringify(c)); FSNAP = '[]';
-  const N = f.pers.filter(c => !vor.includes(JSON.stringify(c))).map(c => person(c.n) ? c : Object.assign({}, c, { fach: name }));   // Neue gehören zum Fachreferat
-  if (N.length) setTimeout(() => wennFrei(() => personenBestaetigen(N, '')), 0);
+  const vor = JSON.parse(GSNAP[g] || '[]').map(c => JSON.stringify(c)); GSNAP[g] = '[]';
+  const N = f.pers.filter(c => !vor.includes(JSON.stringify(c))).map(c => person(c.n) ? c : Object.assign({}, c, G.neu(name)));   // Neue im Fachreferat bekommen es eingetragen
+  if (N.length) setTimeout(() => wennFrei(() => personenBestaetigen(N, g === 'presse' ? b.gliederung : '')), 0);
 }
+// „+“: wer in der Gruppe steht – Haken an/aus, über die Suche weitere aus der Personenliste dazu, oder jemanden neu eintragen
+async function grpDialog(b, g) {
+  const G = GRP[g], { name, L, Z } = grpZeig(b, g), imF = new Set(L.map(p => kkey(p.n))), an = new Set(Z.map(p => kkey(p.n)));
+  const liste = h('div', { class: 'ps-liste fd-liste' });
+  const text = p => norm([p.n, p.rolle, p.gl, p.fach, p.mail].filter(Boolean).join(' '));
+  let q = [];
+  const zeig = () => {
+    const S = q.length ? PR.list.filter(p => q.every(w => text(p).includes(w))).slice(0, 60) : [...L, ...Z.filter(p => !imF.has(kkey(p.n)))];   // Z: auch von Hand Eingetragene
+    liste.replaceChildren(...(S.length ? S.map(p => { const k = kkey(p.n), wo = imF.has(k) ? (g === 'fach' ? name : p.fach || name) : p.fach || p.gl || '';
+      return h('label', { class: 'ps-z' }, h('input', { type: 'checkbox', checked: an.has(k), onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); } }),
+        h('span', { class: 'ps-n' }, p.n, wo ? h('span', { class: 'muted small' }, ' · ' + wo) : null)); })   // nur der Name, dahinter Fachreferat bzw. Gliederung
+      : [h('p', { class: 'muted small' }, q.length ? 'Niemand gefunden.' : 'Noch niemand – oben suchen und dazunehmen oder unten neu eintragen.')]));
+  };
+  const such = h('input', { type: 'search', class: 'ps-such', placeholder: 'Weitere Person suchen: Name, Position, Gliederung …', oninput: e => { q = norm(e.target.value).split(/\s+/).filter(Boolean); zeig(); } });
+  zeig();
+  const ok = await modal(G.titel(b), h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such), liste),
+    [['Neue Person eintragen …', 'neu', 'link ps-neu'], ['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: () => setTimeout(() => such.focus(), 80) });
+  if (ok === 'neu') { grpBearbeiten(b, g, true); return; }                  // nicht in der Personenliste: von Hand eintragen
+  if (!ok) return;
+  const nach = [...Z.filter(p => an.has(kkey(p.n))), ...PR.list.filter(p => an.has(kkey(p.n)) && !Z.some(z => kkey(z.n) === kkey(p.n)))];
+  grpFest(b, g, nach); changed(); G.zeigen(b);
+}
+const fachZeig = b => grpZeig(b, 'fach'), fachFest = (b, Z) => grpFest(b, 'fach', Z);
 // Schlüssel der Standard-Hauptansprechperson; '' = bewusst niemand; undefined = noch nicht gefragt (oder nicht mehr im Fachreferat)
 function fachHauptStd(name, L) {
   const k = norm(name), S = D.settings.fachHaupt || {};
@@ -206,28 +296,6 @@ function fachHauptStd(name, L) {
   return v && !L.some(p => kkey(p.n) === v) ? (S[k] === undefined ? undefined : '') : v;
 }
 const fachHauptSetzen = (name, k) => { D.settings.fachHaupt = Object.assign({}, D.settings.fachHaupt, { [norm(name)]: k }); changed(); };
-// Stift beim Fachreferat: wer beim Bedarf steht – Haken an/aus, über die Suche weitere Mitarbeiterinnen und Mitarbeiter dazu
-async function fachDialog(b) {
-  const f = b.freigabe.fach, { name, L, Z } = fachZeig(b), imF = new Set(L.map(p => kkey(p.n))), an = new Set(Z.map(p => kkey(p.n)));
-  const liste = h('div', { class: 'ps-liste fd-liste' });
-  const text = p => norm([p.n, p.rolle, p.gl, p.fach, p.mail].filter(Boolean).join(' '));
-  let q = [];
-  const zeig = () => {
-    const S = q.length ? PR.list.filter(p => q.every(w => text(p).includes(w))).slice(0, 60) : [...L, ...Z.filter(p => !imF.has(kkey(p.n)))];   // Z: auch von Hand Eingetragene
-    liste.replaceChildren(...(S.length ? S.map(p => { const k = kkey(p.n);
-      return h('label', { class: 'ps-z' }, h('input', { type: 'checkbox', checked: an.has(k), onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); } }),
-        h('span', { class: 'ps-n' }, p.n, h('span', { class: 'muted small' }, ' · ' + (imF.has(k) ? name : p.fach || p.gl || 'Personenliste')))); })   // nur der Name, dahinter das Fachreferat
-      : [h('p', { class: 'muted small' }, q.length ? 'Niemand gefunden.' : 'Noch niemand im Fachreferat – oben suchen und dazunehmen.')]));
-  };
-  const such = h('input', { type: 'search', class: 'ps-such', placeholder: 'Weitere Person suchen: Name, Position, Gliederung …', oninput: e => { q = norm(e.target.value).split(/\s+/).filter(Boolean); zeig(); } });
-  zeig();
-  const ok = await modal('Fachreferat ' + name, h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such), liste),
-    [['Neue Person eintragen …', 'neu', 'link ps-neu'], ['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: () => setTimeout(() => such.focus(), 80) });
-  if (ok === 'neu') { fachBearbeiten(b, true); return; }                    // nicht in der Personenliste: von Hand eintragen
-  if (!ok) return;
-  const nach = [...Z.filter(p => an.has(kkey(p.n))), ...PR.list.filter(p => an.has(kkey(p.n)) && !Z.some(z => kkey(z.n) === kkey(p.n)))];
-  fachFest(b, nach); changed(); swap('fach-pers', fachBlock(b), true);
-}
 // Zahnrad → „Hauptansprechpersonen der Fachreferate …“: je Fachreferat die Standard-Hauptansprechperson
 async function fachHauptDialog() {
   closeMenus();
