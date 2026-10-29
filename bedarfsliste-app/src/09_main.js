@@ -2,11 +2,12 @@
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
 const UI = { heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
-const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort'];
+const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ }
-  UI.sort = Array.isArray(UI.sort) ? UI.sort.filter(s => s && SORT_SPALTEN.includes(s.k)) : []; }
+  UI.sort = Array.isArray(UI.sort) ? UI.sort.filter(s => s && SORT_SPALTEN.includes(s.k)) : [];
+  UI.prioKopf = [0, 1, 2].includes(UI.prioKopf) ? UI.prioKopf : 0; UI.fSw = Array.isArray(UI.fSw) ? UI.fSw.filter(s => typeof s === 'string') : []; }
 function saveUI() { try { localStorage.setItem(uiKey(), JSON.stringify(Object.fromEntries(UI_KEEP.map(k => [k, UI[k]])))); } catch (e) { /* */ } }
 const cur = () => D.bedarfe.find(b => b.id === UI.id) || null;
 
@@ -457,6 +458,7 @@ async function act(k, a, e) {
     case 'heute-wahl': heuteWaehlen(); return;
     case 'heute-fertig': heuteFertig(true); return;
     case 'heute-abbr': heuteFertig(false); return;
+    case 'heute-leer': if (UI.heuteWahl) { UI.heuteWahl.clear(); keep(renderNow); } return;
     case 'heute-an': heuteZeigen(true); return;
     case 'heute-alle': heuteZeigen(false); return;
     case 'vorlagen': vorlagenDialog(); return;

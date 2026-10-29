@@ -1141,9 +1141,6 @@ table.tasten tr.doppelt .ta-k:not(.leer) { border-color: var(--red-d); color: va
 .rm-gt { font-weight: 600; font-size: 13px; margin-bottom: 2px; }
 .rm-p { display: inline-flex; margin: 2px 14px 2px 0; }
 .rm-p.ohne { color: var(--faint); }
-.rm-arten { display: grid; gap: 4px; }
-.rm-arten .rm-a { display: block; line-height: 1.45; }
-.rm-arten .rm-a input { margin: 0 4px 0 0; vertical-align: -2px; }
 .vl-kopf { gap: 6px; flex-wrap: wrap; margin-bottom: 10px; }
 .vl-sel { min-width: 260px; }
 .vl-feld { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 8px 10px; }
@@ -1160,7 +1157,6 @@ table.tasten tr.doppelt .ta-k:not(.leer) { border-color: var(--red-d); color: va
 .swf-pop { min-width: 220px; max-height: min(420px, 70vh); overflow-y: auto; }
 .swf-pop .swf-z { display: flex; align-items: center; gap: 8px; }
 .swf-h { flex: none; width: 15px; height: 15px; border: 1.5px solid var(--line2); border-radius: 4px; font-size: 11px; line-height: 13px; text-align: center; color: var(--card); }
-.swf-z.on .swf-h { background: var(--ink2); border-color: var(--ink2); }
 .swf-hw, .swf-leer { padding: 6px 10px 4px; max-width: 240px; }
 /* Für heute */
 .list-head .heute { display: flex; align-items: center; gap: 6px; }
@@ -1170,5 +1166,38 @@ table.tasten tr.doppelt .ta-k:not(.leer) { border-color: var(--red-d); color: va
 table.list.heute-modus tbody tr[data-id] { cursor: pointer; }
 table.list.heute-modus tbody tr[data-id]:not(.heute-w) { opacity: .55; }
 table.list tbody tr.heute-w { opacity: 1; }
-table.list tbody tr.heute-w > td { background: var(--okbg); }
-table.list tbody tr.heute-w > td:first-child, table.list tbody tr.heute-m > td:first-child { box-shadow: inset 3px 0 0 var(--okline); }
+table.list tbody tr.heute-w > td { background: var(--errbg); }
+table.list tbody tr.heute-w > td:first-child, table.list tbody tr.heute-m > td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+
+/* 0.62: Haken und Auswahlknöpfe in Malteser-Rot; Papierkorb statt „Filter löschen“ */
+input[type=checkbox], input[type=radio] { accent-color: var(--red); }
+.filter-weg { display: inline-grid; place-items: center; width: 30px; height: 30px; padding: 0; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); color: var(--red); }
+.filter-weg:hover { border-color: var(--red); background: var(--errbg); }
+.filter-weg[hidden] { display: none; }
+.swf-z.on .swf-h { background: var(--red); border-color: var(--red); }
+/* In die Personenliste übernehmen: je Angabe die Art fett, daneben bündig alt (durchgestrichen) und neu */
+label.imp-f.pers-best { align-items: flex-start; }
+.pers-best input { margin-top: 3px; }
+.pb-r { flex: 1; min-width: 0; }
+.pb-r .imp-n { display: block; }
+.pb-r .pb-neu { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+.pb-f { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 2px 12px; margin-top: 4px; font-size: 13px; }
+.pb-f b { font-weight: 700; }
+.pb-f .pb-v { overflow-wrap: anywhere; }
+.pb-f s { color: var(--muted); margin-right: 8px; }
+/* Rundmail: Vorlagen als Kacheln (zwei je Reihe), Empfänger je Bereich in einem grauen Kasten */
+.rm-kacheln { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; }
+.rm-k { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 3px; min-height: 58px; padding: 9px 30px 9px 12px; border: 1.5px solid var(--line2); border-radius: 8px; background: var(--card); text-align: left; font: inherit; font-size: 13.5px; color: var(--ink); cursor: pointer; }
+.rm-k:hover { border-color: var(--faint); }
+.rm-k.on { border-color: var(--red); background: var(--errbg); }
+.rm-k:focus-visible { outline: 2px solid var(--focus); outline-offset: 1px; }
+.rm-ks { font-size: 12px; color: var(--muted); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.rm-pen { position: absolute; top: 6px; right: 6px; border: 0; background: none; padding: 2px 4px; color: var(--faint); opacity: 0; }
+.rm-k:hover .rm-pen, .rm-pen:focus-visible { opacity: 1; }
+.rm-pen:hover { color: var(--ink); }
+.rm-k.rm-neu { flex-direction: row; align-items: center; justify-content: center; gap: 8px; border-style: dashed; color: var(--muted); background: transparent; padding-right: 12px; }
+.rm-k.rm-neu:hover { color: var(--red); border-color: var(--red); }
+.rm-plus { font-size: 18px; line-height: 1; }
+.rm .rm-g { background: var(--hover); border-radius: 8px; padding: 8px 12px; }
+@media (max-width: 560px) { .rm-kacheln { grid-template-columns: minmax(0, 1fr); } }
+.fd-liste .ps-z { padding: 5px 8px; }

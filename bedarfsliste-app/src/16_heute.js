@@ -1,7 +1,6 @@
 /* ===================================================================== Für heute auswählen und Stichwort-Filter (ab 0.61)
    „Heute“: morgens die Bedarfe anklicken, an denen heute gearbeitet wird – danach zeigt die Liste nur diese, die übrigen auf Wunsch („Alle“).
-   Gilt bis Mitternacht und nur in diesem Browser. Stichwort-Filter wie in der Maßnahmenplanung: Klick – nur dieses, weiterer Klick – dazu,
-   Strg+Klick – alle außer diesem. */
+   Gilt bis Mitternacht und nur in diesem Browser. Stichwort-Filter: Kästchen anklicken setzt den Haken, noch einmal nimmt ihn weg (ab 0.62). */
 
 const HEUTE_KEY = 'bl-heute';
 let HEUTE = null;                                                 // { datum, ids, an } – an: nur die ausgewählten zeigen
@@ -26,7 +25,7 @@ function heuteZeigen(an) { if (!heuteDa()) return; HEUTE.an = an; heuteSpeichern
 function heuteDazu(id) { if (heuteAktiv() && !HEUTE.ids.includes(id)) { HEUTE.ids.push(id); heuteSpeichern(); } }
 function heuteLeiste() {
   if (UI.tab === 'archiv') return '';
-  if (UI.heuteWahl) return `<span class="heute-hw"><b>Für heute anklicken</b> · ${UI.heuteWahl.size} gewählt</span><button class="primary small" data-act="heute-fertig">Fertig</button><button class="link" data-act="heute-abbr">Abbrechen</button>`;
+  if (UI.heuteWahl) return `<span class="heute-hw"><b>Für heute anklicken</b></span><button class="primary small" data-act="heute-fertig">Fertig</button><button class="undo-btn heute-leer" data-act="heute-leer" title="Auswahl aufheben – alle Haken weg" aria-label="Auswahl aufheben">↶</button>`;
   if (!heuteDa()) return `<button class="heute-btn" data-act="heute-wahl" title="Bedarfe für heute auswählen – dann zeigt die Liste nur diese">${ICON_SONNE}<span>Heute</span></button>`;
   return `<div class="seg heute-seg" role="group" aria-label="Für heute"><button data-act="heute-an" class="${HEUTE.an ? 'on' : ''}" title="nur die für heute gewählten zeigen">${ICON_SONNE}<span>Heute (${HEUTE.ids.length})</span></button><button data-act="heute-alle" class="${HEUTE.an ? '' : 'on'}" title="alle Bedarfe zeigen – die für heute sind markiert">Alle</button></div><button class="k-pen" data-act="heute-wahl" title="Auswahl für heute ändern" aria-label="Auswahl für heute ändern">${ICON_PEN}</button>`;
 }
@@ -35,7 +34,6 @@ const ICON_SONNE = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden=
 function heuteKlick(tr) {
   const id = tr.dataset.id; if (UI.heuteWahl.has(id)) UI.heuteWahl.delete(id); else UI.heuteWahl.add(id);
   tr.classList.toggle('heute-w', UI.heuteWahl.has(id));
-  const z = $('.heute-hw'); if (z) z.innerHTML = `<b>Für heute anklicken</b> · ${UI.heuteWahl.size} gewählt`;
 }
 document.addEventListener('click', e => {
   if (!UI.heuteWahl || UI.view !== 'list') return;
@@ -54,25 +52,21 @@ const swAlle = () => uniq(D.bedarfe.filter(b => !!b.archiv === (UI.tab === 'arch
 function swFilterText() {
   const W = UI.fSw, A = swAlle();
   if (!W.length) return 'Stichwort: alle';
-  if (A.length - W.length === 1 && A.length > 2) return 'alle außer ' + A.find(s => !W.includes(s));
   return W.length <= 2 ? W.join(', ') : W.length + ' Stichworte';
 }
-function swFilterKlick(s, strg) {
+function swFilterKlick(s) {
   const A = swAlle(); let W = UI.fSw.filter(x => A.includes(x));
-  if (s == null) W = [];
-  else if (!W.length) W = strg ? A.filter(x => x !== s) : [s];          // alle → nur dieses (Strg: alle außer diesem)
-  else { const i = W.indexOf(s); if (i >= 0) W.splice(i, 1); else W.push(s); }   // sonst: an- bzw. abwählen
-  if (!W.length || A.every(x => W.includes(x))) W = [];                 // keins oder alle: wieder alle
+  if (s == null) W = [];                                                 // „Alle“: Auswahl aufheben
+  else { const i = W.indexOf(s); if (i >= 0) W.splice(i, 1); else W.push(s); }   // Kasten anklicken: Haken an, noch einmal: wieder weg
   UI.fSw = W; ORDER.ids = null; keep(renderNow);
   const btn = $('[data-act="sw-filter"]'); if (btn) swFilterPop(btn);
 }
 function swFilterPop(btn) {
   closeMenus();
   const A = swAlle(), W = UI.fSw, alle = !W.length;
-  const zeile = (s, on, t) => h('button', { role: 'menuitemcheckbox', class: 'swf-z' + (on ? ' on' : ''), 'aria-checked': String(on), onclick: e => swFilterKlick(s, e.ctrlKey || e.metaKey) },
+  const zeile = (s, on, t) => h('button', { role: 'menuitemcheckbox', class: 'swf-z' + (on ? ' on' : ''), 'aria-checked': String(on), onclick: () => swFilterKlick(s) },
     h('span', { class: 'swf-h', 'aria-hidden': 'true' }, on ? '✓' : ''), t);
   const m = h('div', { class: 'menu swf-pop', role: 'menu' }, zeile(null, alle, 'Alle'), h('hr'),
-    A.length ? A.map(s => zeile(s, alle || W.includes(s), s)) : h('div', { class: 'muted small swf-leer' }, 'Noch keine Stichworte vergeben.'),
-    h('div', { class: 'muted small swf-hw' }, 'Klick: nur dieses · weiterer Klick: dazu · Strg+Klick: alle außer diesem'));
+    A.length ? A.map(s => zeile(s, W.includes(s), s)) : h('div', { class: 'muted small swf-leer' }, 'Noch keine Stichworte vergeben.'));
   placePop(m, btn, 'right');
 }

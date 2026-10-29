@@ -158,9 +158,9 @@ async function personenBestaetigen(L, gl) {
   const A = personenAbweichung(L, gl); if (!A.length || $('.modal')) return;
   const an = A.map(() => true);
   const body = h('div', { class: 'help' }, h('p', null, 'Diese Angaben stehen noch nicht so in der Personenliste. Sollen sie dauerhaft übernommen werden? Dann schlägt die Liste sie auch bei anderen Bedarfen vor.'),
-    ...A.map((a, i) => h('label', { class: 'imp-f pers-best' }, h('input', { type: 'checkbox', checked: true, onchange: e => { an[i] = e.target.checked; } }), h('span', { class: 'imp-n' }, a.c.n.trim()),
-      h('span', { class: 'imp-pill' }, a.neu ? 'neu' + (a.felder.length ? ': ' + a.felder.map(f => PERS_FL[f[0]]).join(', ') : '') : 'geändert'),
-      a.neu ? null : h('span', { class: 'small muted' }, a.felder.map(([k, alt, neu]) => PERS_FL[k] + ': ' + (alt ? alt + ' → ' : '') + neu).join(' · ')))));
+    ...A.map((a, i) => h('label', { class: 'imp-f pers-best' }, h('input', { type: 'checkbox', checked: true, onchange: e => { an[i] = e.target.checked; } }),
+      h('div', { class: 'pb-r' }, h('span', { class: 'imp-n' }, a.c.n.trim(), a.neu ? h('span', { class: 'pb-neu' }, 'neu in der Liste') : null),
+        a.felder.length ? h('div', { class: 'pb-f' }, a.felder.map(([k, alt, neu]) => [h('b', null, PERS_FL[k]), h('span', { class: 'pb-v' }, alt ? h('s', null, alt) : null, neu)])) : null))));   // je Angabe: Art fett, alt durchgestrichen, neu
   if (await modal('In die Personenliste übernehmen?', body, [['Nur für diesen Bedarf', false], ['Dauerhaft übernehmen', true, 'primary']])) await personenUebernehmen(A.filter((a, i) => an[i]));
 }
 // „Personen.xlsx“ schreiben: die Personenliste (PR) – Zuständige aus den Bedarfen nur, wenn sie bestätigt wurden

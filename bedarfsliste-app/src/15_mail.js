@@ -9,18 +9,38 @@ const ICON_KAL = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="t
 const rundKnopf = (art, t) => `<button class="k-pliste k-rund" data-act="rundmail" data-v="${art}" title="${esc(t)}" aria-label="${esc(t)}">${ICON_RUND}</button>`;
 
 const VL_FUER = [['ueb', 'Spendenübergabe'], ['zust', 'Zuständige'], ['fach', 'Fachreferat'], ['alle', 'überall']];
-const VL_STD = [{ id: 'v-ueb', name: 'Absprache für Spendenübergabe', fuer: 'ueb', betreff: 'Spendenübergabe „{bedarf}“ – Absprache',
-  text: 'Hallo zusammen,\n\nfür „{bedarf}“ ({gliederung}) planen wir die Spendenübergabe:\n\nWann: {wann}\nWo: {ort}\n\nGespendet haben:\n{spender}\n\nBitte gebt mir kurz Bescheid, wer von euch an der Übergabe teilnimmt.\n\nViele Grüße' }];
+// mitgelieferte Vorlagen je Bereich; gelöschte merkt sich D.settings.vorlagenWeg, damit sie nicht wiederkommen
+const VL_STD = [
+  { id: 'v-ueb', name: 'Absprache für Spendenübergabe', fuer: 'ueb', betreff: 'Spendenübergabe „{bedarf}“ – Absprache',
+    text: 'Hallo zusammen,\n\nfür „{bedarf}“ ({gliederung}) planen wir die Spendenübergabe:\n\nWann: {wann}\nWo: {ort}\n\nGespendet haben:\n{spender}\n\nBitte gebt mir kurz Bescheid, wer von euch an der Übergabe teilnimmt.\n\nViele Grüße' },
+  { id: 'v-ueb-presse', name: 'Pressetermin zur Spendenübergabe', fuer: 'ueb', betreff: 'Pressetermin: Spendenübergabe „{bedarf}“',
+    text: 'Hallo zusammen,\n\nam {wann} findet in {ort} die Spendenübergabe für „{bedarf}“ ({gliederung}) statt.\n\nGespendet haben:\n{spender}\n\nKönnt ihr die Presse einladen bzw. Fotos und einen kurzen Bericht für unsere Kanäle übernehmen? Gebt mir bitte Bescheid, wer von euch dabei ist.\n\nViele Grüße' },
+  { id: 'v-z-interview', name: 'Terminvereinbarung zum Interview', fuer: 'zust', betreff: 'Kurzes Gespräch zu „{bedarf}“',
+    text: 'Hallo zusammen,\n\nfür die Förderanträge zu „{bedarf}“ möchte ich gern ein kurzes Gespräch (ca. 30 Minuten) mit euch führen: Wofür wird es gebraucht, wer profitiert davon, was ändert sich dadurch? Damit kann ich die Anträge gut begründen.\n\nWann passt es euch in den nächsten zwei Wochen? Gern auch per Teams.\n\nViele Grüße' },
+  { id: 'v-z-unterlagen', name: 'Unterlagen anfragen', fuer: 'zust', betreff: 'Unterlagen für „{bedarf}“',
+    text: 'Hallo zusammen,\n\nfür die Förderanträge zu „{bedarf}“ fehlen mir noch:\n{fehlt}\n\nKönnt ihr mir das in den nächsten zwei Wochen schicken oder in den Ordner legen?\n{link}\n\nViele Grüße' },
+  { id: 'v-z-ueb-frage', name: 'Spendenübergabe: Wann passt es?', fuer: 'zust', betreff: 'Spendenübergabe „{bedarf}“ – Terminfrage',
+    text: 'Hallo zusammen,\n\ndie Finanzierung für „{bedarf}“ steht – vielen Dank für eure Unterstützung! Gespendet haben:\n{spender}\n\nFür die Spendenübergabe mit den Förderern suchen wir einen Termin. Nennt mir bitte zwei, drei Termine, die euch passen, und einen geeigneten Ort (z. B. Wache oder Unterkunft).\n\nViele Grüße' },
+  { id: 'v-z-ueb-einl', name: 'Einladung zur Spendenübergabe', fuer: 'zust', betreff: 'Einladung: Spendenübergabe „{bedarf}“',
+    text: 'Hallo zusammen,\n\nherzliche Einladung zur Spendenübergabe für „{bedarf}“:\n\nWann: {wann}\nWo: {ort}\n\nMit dabei sind:\n{spender}\n\nSchön wäre es, wenn einige von euch in Dienstkleidung dabei sind – für die Fotos. Gebt mir bitte kurz Bescheid, wer kommt.\n\nViele Grüße' },
+  { id: 'v-f-freigabe', name: 'Abfrage der Freigabe', fuer: 'fach', betreff: 'Bitte um Freigabe: „{bedarf}“ ({gliederung})',
+    text: 'Hallo zusammen,\n\nfür „{bedarf}“ ({gliederung}, rund {summe}) bitten wir um die Freigabe durch das Fachreferat {fachreferat}.\n\nKurz zum Bedarf:\n{beschreibung}\n\nAnsprechperson vor Ort: {ansprechperson}\nUnterlagen: {link}\n\nGebt mir bitte bis Ende nächster Woche Rückmeldung, ob ihr den Bedarf befürwortet.\n\nViele Grüße' },
+  { id: 'v-f-zusage', name: 'Info: Finanzierung steht', fuer: 'fach', betreff: 'Finanzierung steht: „{bedarf}“ ({gliederung})',
+    text: 'Hallo zusammen,\n\nzur Info: Die Finanzierung für „{bedarf}“ ({gliederung}) steht. Gespendet haben:\n{spender}\n\nDie Spendenübergabe stimmen wir mit der Gliederung ab – wenn ihr dabei sein möchtet, gebt mir kurz Bescheid.\n\nViele Grüße' },
+];
 const VL_PLATZ = [['bedarf', 'Name des Bedarfs'], ['gliederung', 'Gliederung'], ['summe', 'Summe des Bedarfs'], ['wann', 'Termin der Spendenübergabe mit Uhrzeit'], ['ort', 'Ort der Spendenübergabe'],
-  ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner']];
-const vorlagen = () => Array.isArray(D.settings.vorlagen) ? D.settings.vorlagen : VL_STD;
+  ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner'], ['beschreibung', 'Beschreibung des Bedarfs'], ['fehlt', 'Unterlagen, die noch fehlen, je Zeile eine']];
+const vorlagen = () => { const S = D.settings, eig = Array.isArray(S.vorlagen) ? S.vorlagen : [], weg = new Set(S.vorlagenWeg || []);
+  return [...eig, ...VL_STD.filter(v => !weg.has(v.id) && !eig.some(e => e.id === v.id))]; };   // neue mitgelieferte kommen dazu
 const WTAG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
 function vlWerte(b) {
   const u = b.nach.ueb, Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), mit = Z.filter(f => u.mit.includes(f.id));
   const wann = validIso(u.termin) ? WTAG[new Date(u.termin + 'T12:00').getDay()] + ', ' + fmtDate(u.termin) + (u.zeit ? ', ' + u.zeit + ' Uhr' : '') : 'noch offen';
   return { bedarf: b.titel || 'Bedarf', gliederung: b.gliederung === DIO ? 'Diözese' : b.gliederung || '', summe: b.summe ? eur(b.summe) : '', wann, ort: u.ort.trim() || 'noch offen',
     spender: (mit.length ? mit : Z).map(f => '- ' + f.name.trim() + (foeAmt(f) ? ': ' + eur(foeAmt(f)) : '')).join('\n') || '- (noch keine Zusage eingetragen)',
-    ansprechperson: (b.zust[0] && b.zust[0].n) || '', fachreferat: b.freigabe.fach.name.trim(), link: okLink(b.link) ? b.link.trim() : '' };
+    ansprechperson: (b.zust[0] && b.zust[0].n) || '', fachreferat: b.freigabe.fach.name.trim(), link: okLink(b.link) ? b.link.trim() : '',
+    beschreibung: String(b.beschreibung || '').replace(/\*\*|__|~~/g, '').replace(/^\s*[*•]\s+/gm, '- ').trim() || '(noch keine Beschreibung)',
+    fehlt: b.unterlagen.filter(u => u.st === 'fehlt' || u.st === 'arbeit').map(u => '- ' + u.name).join('\n') || '- (alles da)' };
 }
 const vlFuellen = (t, W) => String(t || '').replace(/\{(\w+)\}/g, (m, k) => W[k] != null ? W[k] : m).replace(/\u00a0/g, ' ');
 
@@ -65,31 +85,39 @@ function rundGruppen(b) {
     ['presse', 'Presse und Öffentlichkeit', pressePersonen()]];
   return G.filter(g => g[2].length);
 }
-async function rundmail(b, art) {
+async function rundmail(b, art, wahl = '') {
   closeMenus();
   const G = rundGruppen(b), presseAn = new Set(presseWahl(b).map(p => kkey(p.n)));
   const vor = { zust: ['zust'], fach: ['fach'], ueb: ['zust', 'presse'] }[art] || ['zust'];
   const an = new Set();
   G.forEach(([g, , L]) => L.forEach(p => { if (p.mail && vor.includes(g) && (g !== 'presse' || presseAn.has(kkey(p.n)))) an.add(g + '|' + kkey(p.n)); }));
-  const V = vorlagen().filter(v => v.fuer === art || v.fuer === 'alle');
-  let wahl = '';
+  const V = vorlagen().filter(v => v.fuer === art || v.fuer === 'alle'), W = vlWerte(b);
+  if (!V.some(v => v.id === wahl)) wahl = '';
+  let zu = null;
   const zahl = h('span');
   const zaehl = () => { const M = new Set(G.flatMap(([g, , L]) => L.filter(p => an.has(g + '|' + kkey(p.n))).map(p => p.mail.trim().toLowerCase()))); zahl.textContent = M.size ? 'E-Mail an ' + M.size + ' öffnen' : 'E-Mail öffnen'; };
+  // je Vorlage eine Kachel (zwei je Reihe): Klick wählt, Doppelklick öffnet gleich die E-Mail, Stift bearbeitet die Vorlage
+  const kacheln = h('div', { class: 'rm-kacheln' });
+  const zeigK = () => kacheln.replaceChildren(...[['', 'Blanko', 'nur Empfänger und Betreff']].concat(V.map(v => [v.id, v.name, vlFuellen(v.betreff, W)])).map(([id, t, x]) =>
+    h('div', { class: 'rm-k' + (id === wahl ? ' on' : ''), role: 'radio', tabindex: 0, 'aria-checked': String(id === wahl), title: id ? 'Doppelklick: gleich die E-Mail öffnen' : '',
+      onclick: () => { wahl = id; zeigK(); }, ondblclick: () => { wahl = id; zu && zu(true); }, onkeydown: e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); wahl = id; zeigK(); } } },
+      h('b', null, t), h('span', { class: 'rm-ks' }, x),
+      id ? h('button', { type: 'button', class: 'rm-pen', title: 'Vorlage bearbeiten', 'aria-label': 'Vorlage bearbeiten', html: ICON_PEN, onclick: e => { e.stopPropagation(); zu && zu({ edit: id }); } }) : null))
+    .concat(h('button', { type: 'button', class: 'rm-k rm-neu', onclick: () => zu && zu('neu') }, h('span', { class: 'rm-plus', 'aria-hidden': 'true' }, '+'), 'Neue Vorlage')));
   const emp = h('div', { class: 'rm-emp' }, G.map(([g, t, L]) => h('div', { class: 'rm-g' }, h('div', { class: 'rm-gt' }, t),
     L.map(p => { const k = g + '|' + kkey(p.n);
       return h('label', { class: 'check rm-p' + (p.mail ? '' : ' ohne'), title: p.mail || 'keine E-Mail-Adresse eingetragen' }, h('input', { type: 'checkbox', checked: an.has(k), disabled: !p.mail,
         onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); zaehl(); } }), ' ' + (p.n || p.mail), h('span', { class: 'muted small' }, p.mail ? '' : ' · ohne E-Mail')); }))));
-  const arten = h('div', { class: 'rm-arten' }, [['', 'Blanko', 'nur die Empfänger, Betreff mit dem Namen des Bedarfs'], ...V.map(v => [v.id, v.name, v.betreff])].map(([id, t, x]) =>
-    h('label', { class: 'check rm-a' }, h('input', { type: 'radio', name: 'rm-art', checked: id === wahl, onchange: () => { wahl = id; } }), ' ', h('b', null, t), x ? h('span', { class: 'muted small' }, ' – ' + vlFuellen(x, vlWerte(b))) : null)));
-  zaehl();
-  const v = await modal('Rundmail', h('div', { class: 'help rm' }, G.length ? null : h('p', { class: 'muted' }, 'Noch niemand mit E-Mail-Adresse – erst Personen eintragen.'),
-    h('h4', null, 'An'), emp, h('h4', null, 'Art der E-Mail'), arten),
-    [['Neue Vorlage …', 'neu', 'link'], ['Abbrechen', false], [zahl, true, 'primary']], { wide: true });
-  if (v === 'neu') { if (await vorlagenDialog({ neu: art })) rundmail(b, art); return; }
+  zeigK(); zaehl();
+  const v = await modal('Rundmail', h('div', { class: 'help rm' }, h('h4', null, 'Worum geht es?'), kacheln,
+    h('h4', null, 'An'), G.length ? emp : h('p', { class: 'muted' }, 'Noch niemand mit E-Mail-Adresse – erst Personen eintragen.')),
+    [['Abbrechen', false], [zahl, true, 'primary']], { wide: true, expose: c => { zu = c; } });
+  if (v === 'neu') { if (await vorlagenDialog({ neu: art })) rundmail(b, art, (vorlagen().filter(x => x.fuer === art).pop() || {}).id); return; }
+  if (v && v.edit) { await vorlagenDialog({ id: v.edit }); rundmail(b, art, v.edit); return; }
   if (!v) return;
   const M = uniq(G.flatMap(([g, , L]) => L.filter(p => p.mail && an.has(g + '|' + kkey(p.n))).map(p => p.mail.trim())));
   if (!M.length) { toast('Niemand mit E-Mail-Adresse angehakt.', 'warn'); return; }
-  const vl = V.find(x => x.id === wahl), W = vlWerte(b);
+  const vl = V.find(x => x.id === wahl);
   const betreff = vl ? vlFuellen(vl.betreff, W) : (art === 'ueb' ? 'Spendenübergabe ' : '') + '„' + W.bedarf + '“' + (W.gliederung ? ' (' + W.gliederung + ')' : '');
   // Outlook trennt Empfänger mit „;“ (andere Programme mit „,“ – Outlook ist hier der Standard)
   const url = 'mailto:' + M.map(encodeURIComponent).join(';').replace(/%40/g, '@') + '?subject=' + encodeURIComponent(betreff) + (vl ? '&body=' + encodeURIComponent(vlFuellen(vl.text, W).replace(/\r?\n/g, '\r\n')) : '');
@@ -102,6 +130,7 @@ async function vorlagenDialog(o = {}) {
   closeMenus();
   const L = JSON.parse(JSON.stringify(vorlagen()));
   let i = 0;
+  if (o.id) i = Math.max(0, L.findIndex(v => v.id === o.id));
   if (o.neu) { L.push({ id: uid('v'), name: 'Neue Vorlage', fuer: o.neu, betreff: '„{bedarf}“', text: 'Hallo zusammen,\n\n\n\nViele Grüße' }); i = L.length - 1; }
   const sel = h('select', { class: 'vl-sel', 'aria-label': 'Vorlage', onchange: e => { i = +e.target.value; zeig(); } });
   const name = h('input', { type: 'text', class: 'vl-name', 'aria-label': 'Name der Vorlage', oninput: e => { L[i].name = e.target.value; liste(); } });
@@ -127,7 +156,7 @@ async function vorlagenDialog(o = {}) {
   const ok = await modal('E-Mail-Vorlagen', h('div', { class: 'help vl' }, h('p', { class: 'muted small' }, 'Für die Rundmail (Knopf mit drei Umschlägen). Gespeichert in der Bedarfsliste – gilt für alle, die mit ihr arbeiten.'), kopf, leer, feld),
     [['Abbrechen', false], ['Speichern', true, 'primary']], { wide: true });
   if (!ok) return false;
-  D.settings.vorlagen = L.map(v => Object.assign(v, { name: v.name.trim() || 'Vorlage' })); changed(); toast('Vorlagen gespeichert', 'ok');
+  D.settings.vorlagen = L.map(v => Object.assign(v, { name: v.name.trim() || 'Vorlage' })); D.settings.vorlagenWeg = VL_STD.map(v => v.id).filter(id => !L.some(v => v.id === id)); changed(); toast('Vorlagen gespeichert', 'ok');
   return true;
 }
 
@@ -154,22 +183,19 @@ const fachHauptSetzen = (name, k) => { D.settings.fachHaupt = Object.assign({}, 
 // Stift beim Fachreferat: wer beim Bedarf steht – Haken an/aus, über die Suche weitere Mitarbeiterinnen und Mitarbeiter dazu
 async function fachDialog(b) {
   const f = b.freigabe.fach, { name, L, Z } = fachZeig(b), imF = new Set(L.map(p => kkey(p.n))), an = new Set(Z.map(p => kkey(p.n)));
-  const liste = h('div', { class: 'ps-liste' }), zahl = h('span', { class: 'muted small' });
+  const liste = h('div', { class: 'ps-liste fd-liste' });
   const text = p => norm([p.n, p.rolle, p.gl, p.fach, p.mail].filter(Boolean).join(' '));
   let q = [];
   const zeig = () => {
     const S = q.length ? PR.list.filter(p => q.every(w => text(p).includes(w))).slice(0, 60) : [...L, ...Z.filter(p => !imF.has(kkey(p.n)))];
     liste.replaceChildren(...(S.length ? S.map(p => { const k = kkey(p.n);
       return h('label', { class: 'ps-z' }, h('input', { type: 'checkbox', checked: an.has(k), onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); } }),
-        h('span', { class: 'ps-n' }, p.n, imF.has(k) ? h('span', { class: 'muted small' }, ' · im Fachreferat') : null),
-        h('span', { class: 'ps-i small muted' }, [p.rolle, p.gl, p.fach && 'Fachreferat ' + p.fach].filter(Boolean).join(' · ')),
-        h('span', { class: 'ps-k small muted' }, [p.mail, p.tel || p.mobil].filter(Boolean).join(' · '))); })
+        h('span', { class: 'ps-n' }, p.n, h('span', { class: 'muted small' }, ' · ' + (imF.has(k) ? name : p.fach || p.gl || 'Personenliste')))); })   // nur der Name, dahinter das Fachreferat
       : [h('p', { class: 'muted small' }, q.length ? 'Niemand gefunden.' : 'Noch niemand im Fachreferat – oben suchen und dazunehmen.')]));
-    zahl.textContent = q.length ? S.length + (S.length === 60 ? '+' : '') + ' gefunden' : 'Haken: steht beim Bedarf';
   };
   const such = h('input', { type: 'search', class: 'ps-such', placeholder: 'Weitere Person suchen: Name, Position, Gliederung …', oninput: e => { q = norm(e.target.value).split(/\s+/).filter(Boolean); zeig(); } });
   zeig();
-  const ok = await modal('Fachreferat ' + name, h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such, zahl), liste),
+  const ok = await modal('Fachreferat ' + name, h('div', { class: 'help ps' }, h('div', { class: 'row ps-kopf' }, such), liste),
     [['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: () => setTimeout(() => such.focus(), 80) });
   if (!ok) return;
   f.aus = L.map(p => kkey(p.n)).filter(k => !an.has(k)); f.dazu = [...an].filter(k => !imF.has(k)); f.fuer = norm(name); delete f.wahl;

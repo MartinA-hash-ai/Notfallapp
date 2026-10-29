@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.62.0",
+    "date": "2026-10-29T15:00",
+    "items": [
+      "Prio-Sortierung und Stichwort-Filter bleiben nach dem Neuladen erhalten",
+      "Stichwort-Filter: Kästchen anklicken setzt den Haken, noch einmal nimmt ihn weg; roter Papierkorb statt „Filter löschen“",
+      "Heute: beim Auswählen ohne Zahl und „Abbrechen“ – der Pfeil zurück hebt die Auswahl auf; gewählte Bedarfe rot statt grün markiert",
+      "Rundmail: je Vorlage eine Kachel (zwei je Reihe), Doppelklick öffnet gleich die E-Mail, „+ Neue Vorlage“ als Kachel; Empfänger je Bereich im grauen Kasten",
+      "Neue mitgelieferte Vorlagen: Terminvereinbarung zum Interview, Unterlagen anfragen, Spendenübergabe – Terminfrage und Einladung, Pressetermin, Abfrage der Freigabe, Info ans Fachreferat",
+      "Haken und Auswahlknöpfe in Malteser-Rot",
+      "In die Personenliste übernehmen: Art der Angabe fett, alter Wert durchgestrichen, neuer daneben; ohne „geändert“",
+      "Fachreferat-Auswahl (Stift): nur die Namen, dahinter das Fachreferat; ohne Hinweis oben rechts"
+    ]
+  },
+  {
     "version": "0.61.0",
     "date": "2026-10-29T12:00",
     "items": [

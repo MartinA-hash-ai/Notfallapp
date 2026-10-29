@@ -78,7 +78,8 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(r.join('|') === 'nora vogt|Nora Vogt', 'beim Bedarf jemand anderes per Stern: ' + r.join('|'));
   await p.click('.fach-pen');
   r = await p.$$eval('.modal .ps-z', L => L.map(l => l.querySelector('.ps-n').textContent + (l.querySelector('input').checked ? '+' : '-')).join(','));
-  ok(r === 'Nora Vogt · im Fachreferat+,Thorsten Heß · im Fachreferat+', 'Stift: Auswahl mit Haken statt Karten: ' + r);
+  ok(r === 'Nora Vogt · Notfallvorsorge+,Thorsten Heß · Notfallvorsorge+', 'Stift: nur Namen, dahinter das Fachreferat: ' + r);
+  ok(await p.evaluate(() => !document.querySelector('.modal .ps-i, .modal .ps-k') && !document.querySelector('.modal').textContent.includes('Haken:')), 'ohne Position, Kontaktdaten und Hinweis oben rechts');
   await p.click('.modal .ps-z:has-text("Thorsten") input');
   await p.fill('.modal .ps-such', 'brakel'); await p.click('.modal .ps-z:has-text("Gerd Gast") input');
   await p.click('.modal footer button.primary');
@@ -97,8 +98,10 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('#fach-pers .k-rund');
   r = await p.evaluate(() => [...document.querySelectorAll('.modal .rm-g')].map(g => g.querySelector('.rm-gt').textContent + ':' + [...g.querySelectorAll('.rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(',')).join(' / '));
   ok(r === 'Zuständig:Gerd Gast- / Fachreferat Soziales Ehrenamt:Sara Sozial+,Tim Sozial+ / Presse und Öffentlichkeit:Olaf Öffentlich-,Petra Presse-', 'Rundmail Fachreferat: dessen Personen angehakt: ' + r);
-  r = await p.$$eval('.modal .rm-a', L => L.map(l => l.textContent.trim()).join(' / '));
-  ok(r.startsWith('Blanko') && !r.includes('Absprache'), 'Art: Blanko (Vorlage für die Übergabe hier nicht): ' + r);
+  r = await p.$$eval('.modal .rm-k', L => L.map(l => (l.querySelector('b') || l).textContent.trim() + (l.classList.contains('on') ? '*' : '')).join(' / '));
+  ok(r === 'Blanko* / Abfrage der Freigabe / Info: Finanzierung steht / +Neue Vorlage', 'Kacheln fürs Fachreferat: Blanko gewählt, die Vorlagen dafür, „+ Neue Vorlage“: ' + r);
+  r = await p.evaluate(() => [...document.querySelectorAll('.modal .rm-kacheln')].map(k => getComputedStyle(k).gridTemplateColumns.split(' ').length).join() + '|' + getComputedStyle(document.querySelector('.modal .rm-g')).backgroundColor);
+  ok(r.startsWith('2|') && !r.endsWith('rgba(0, 0, 0, 0)'), 'zwei Kacheln je Reihe, Empfänger im grauen Kasten: ' + r);
   await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
   r = await p.evaluate(() => decodeURIComponent(MAILS.pop() || ''));
   ok(r === 'mailto:s1@x.example;s2@x.example?subject=„Cäsar“ (Paderborn)'.replace('Cäsar', 'Anna'), 'Outlook mit beiden, Betreff mit Namen: ' + r);
@@ -117,18 +120,28 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('.ue-acts button[data-act="rundmail"]');
   r = await p.evaluate(() => [...document.querySelectorAll('.modal .rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(','));
   ok(r === 'Gerd Gast+,Sara Sozial-,Tim Sozial-,Olaf Öffentlich-,Petra Presse+', 'Rundmail Übergabe: Zuständige und gewählte Presse angehakt: ' + r);
-  await p.click('.modal .rm-a:has-text("Absprache für Spendenübergabe") input');
+  await p.click('.modal .rm-k:has-text("Absprache für Spendenübergabe")');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const u = new URL(MAILS.pop()); return [decodeURIComponent(u.pathname), u.searchParams.get('subject'), u.searchParams.get('body')]; });
   ok(r[0] === 'gg@x.example;pp@x.example' && r[1] === 'Spendenübergabe „Anna“ – Absprache' && r[2].includes('Wann: Freitag, 13.11.2026, 15:00 Uhr') && r[2].includes('Wo: Wache, Paderborn')
     && r[2].includes('- Stiftung A: 5.000 €') && r[2].includes('- Bank B: 1.000 €') && r[2].includes('wer von euch an der Übergabe teilnimmt'), 'Vorlage „Absprache für Spendenübergabe“ ausgefüllt: ' + r.join(' | ').replace(/\r?\n/g, '⏎'));
   // neue Vorlage aus der Rundmail heraus, dann steht sie zur Wahl
   await p.click('#sec-eck .eck-l > .sub .k-rund');
-  await p.click('.modal footer button:text-is("Neue Vorlage …")');
+  await p.click('.modal .rm-k.rm-neu');
   await p.fill('.modal .vl-name', 'Kurze Info'); await p.fill('.modal .vl-text', 'Hallo, kurz zu {bedarf}: {summe}');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
-  r = await p.evaluate(() => [D.settings.vorlagen.map(v => v.name + ':' + v.fuer).join(','), [...document.querySelectorAll('.modal .rm-a')].map(l => l.querySelector('b').textContent).join(',')]);
-  ok(r.join('|') === 'Absprache für Spendenübergabe:ueb,Kurze Info:zust|Blanko,Kurze Info', 'neue Vorlage gespeichert, Rundmail wieder offen mit ihr: ' + r.join('|'));
+  r = await p.evaluate(() => [D.settings.vorlagen.filter(v => v.fuer === 'zust').map(v => v.name).join(','), [...document.querySelectorAll('.modal .rm-k')].map(l => (l.querySelector('b') || l).textContent + (l.classList.contains('on') ? '*' : '')).join(',')]);
+  ok(r.join('|') === 'Terminvereinbarung zum Interview,Unterlagen anfragen,Spendenübergabe: Wann passt es?,Einladung zur Spendenübergabe,Kurze Info|Blanko,Terminvereinbarung zum Interview,Unterlagen anfragen,Spendenübergabe: Wann passt es?,Einladung zur Spendenübergabe,Kurze Info*,+Neue Vorlage',
+    'neue Vorlage gespeichert, Rundmail wieder offen mit ihr (gewählt): ' + r.join('|'));
+  await p.dblclick('.modal .rm-k:has-text("Unterlagen anfragen")'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => new URL(MAILS.pop()).searchParams.get('body'));
+  ok(r.includes('fehlen mir noch:\r\n- Angebot\r\n- Interview'), 'Doppelklick auf die Kachel öffnet gleich die E-Mail, fehlende Unterlagen eingesetzt: ' + r.slice(0, 120).replace(/\r?\n/g, '⏎'));
+  // gelöschte mitgelieferte Vorlage kommt nicht wieder
+  await p.evaluate(() => { vorlagenDialog({ id: 'v-f-zusage' }); }); await p.waitForTimeout(100);
+  await p.click('.modal button:text-is("Löschen")'); await p.click('.modal footer button.primary');
+  r = await p.evaluate(() => [JSON.stringify(D.settings.vorlagenWeg), vorlagen().some(v => v.id === 'v-f-zusage')]);
+  ok(r.join('|') === '["v-f-zusage"]|false', 'gelöschte mitgelieferte Vorlage bleibt weg: ' + r.join('|'));
+  await p.click('#sec-eck .eck-l > .sub .k-rund');
   await p.click('.modal header .x');
 
   // 6. Stichwort beim „+“: gleich alle vorhandenen
@@ -140,25 +153,44 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(r.join('|') === 'AED,MTW|true|Küche', 'Klick fügt hinzu, Liste bleibt für das nächste: ' + r.join('|'));
   await K.press('Escape'); await p.evaluate(() => { closeMenus(); zurueck(); });
 
-  // 7. Stichwort-Filter: Klick nur dieses, weiterer Klick dazu, Strg+Klick alle außer
+  // 7. Stichwort-Filter: Kästchen anklicken – Haken, noch einmal – weg; Papierkorb löscht
   await p.waitForTimeout(100);
-  const sw = async (t, mod) => { if (!(await p.$('.swf-pop'))) await p.click('button[data-act="sw-filter"]'); await p.click(`.swf-pop .swf-z:text-is("${t}")`, mod ? { modifiers: ['Control'] } : {}); await p.waitForTimeout(50); };
+  const sw = async t => { if (!(await p.$('.swf-pop'))) await p.click('button[data-act="sw-filter"]'); await p.click(`.swf-pop .swf-z:text-is("${t}")`); await p.waitForTimeout(50); };
   await sw('Küche');
   r = [await p.evaluate(() => UI.fSw.join()), await ids(), await p.$eval('button[data-act="sw-filter"]', e => e.textContent)];
-  ok(r.join('|') === 'Küche|k2|Küche▾', 'Klick: nur dieses: ' + r.join('|'));
+  ok(r.join('|') === 'Küche|k2|Küche▾', 'Klick: Haken: ' + r.join('|'));
+  ok(await p.evaluate(() => !document.querySelector('.swf-hw') && !!document.querySelector('.list-head .filter-weg svg') && !document.querySelector('.list-head .filter-weg').hidden), 'kein Hinweistext, Papierkorb statt „Filter löschen“');
   await sw('MTW');
   r = [await p.evaluate(() => UI.fSw.join()), await ids()];
   ok(r.join('|') === 'Küche,MTW|k0,k1,k2', 'weiterer Klick: dazu: ' + r.join('|'));
-  await sw('Alle'); await sw('Küche', true);
+  await sw('Küche');
   r = [await p.evaluate(() => UI.fSw.join()), await ids(), await p.$eval('button[data-act="sw-filter"]', e => e.textContent)];
-  ok(r.join('|') === 'AED,MTW|k0,k1|alle außer Küche▾', 'Strg+Klick: alle außer diesem: ' + r.join('|'));
-  await p.click('button[data-act="clear"]');
+  ok(r.join('|') === 'MTW|k0,k1|MTW▾', 'noch einmal: Haken weg: ' + r.join('|'));
+  // Prio-Sortierung und Stichwort-Filter überstehen das Neuladen
+  await p.click('button[data-act="prio-kopf"]'); await p.waitForTimeout(50);
+  await Promise.all([p.waitForNavigation(), p.evaluate(() => { window.__blReload = true; saveUI(); location.reload(); })]); await p.waitForSelector('.list-head [data-act="sw-filter"]'); await p.waitForTimeout(300);
+  r = await p.evaluate(() => [UI.prioKopf, UI.fSw.join(), document.querySelector('button[data-act="sw-filter"]').textContent]);
+  ok(r.join('|') === '1|MTW|MTW▾', 'nach dem Neuladen: Prio oben und Stichwort-Filter bleiben: ' + r.join('|'));
+  await p.evaluate(() => {
+    D = normalize({ bedarfe: ['Anna', 'Berta', 'Cäsar', 'Dora'].map((t, i) => Object.assign(blank(), { id: 'k' + i, titel: t, summe: 100 * (i + 1), gliederung: 'Paderborn', stichworte: [['AED'], ['MTW', 'AED'], ['Küche'], []][i] })) });
+    SAVED_JSON = JSON.stringify(D); undoReset(); UI.prioKopf = 0; UI.view = 'list'; ORDER.ids = null; renderNow(); });
+  // In die Personenliste übernehmen: Art fett, alt durchgestrichen, neu daneben, ohne „geändert“
+  await p.evaluate(() => { personenSetzen([{ n: 'Gerd Gast', mail: 'gg@x.example', tel: '05251 1' }]); personenBestaetigen([{ n: 'Gerd Gast', mail: 'gerd@x.example', tel: '05251 1', rolle: 'Leitung' }], ''); });
+  await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const f = document.querySelector('.modal .pb-f'); return [!!document.querySelector('.modal .imp-pill'), [...f.children].map(e => e.tagName + ':' + e.textContent).join(' / '), f.querySelector('s').textContent]; });
+  ok(r.join('|') === 'false|B:Position / SPAN:Leitung / B:E-Mail / SPAN:gg@x.examplegerd@x.example|gg@x.example', 'Personenliste-Rückfrage: Art fett, alt durchgestrichen, neu daneben: ' + r.join('|'));
+  await p.click('.modal footer button:text-is("Nur für diesen Bedarf")');
+  await p.evaluate(() => { Object.assign(UI, { q: '', fSw: [], prioKopf: 0 }); ORDER.ids = null; renderNow(); });
 
   // 8. Heute
   await p.click('button[data-act="heute-wahl"]');
   await p.click('#list-body tr[data-id="k1"] .l-name'); await p.click('#list-body tr[data-id="k2"] .l-sum');
   r = await p.evaluate(() => [UI.view, [...UI.heuteWahl].join(), document.querySelector('.heute-hw').textContent, document.querySelectorAll('#list-body tr.heute-w').length]);
-  ok(r.join('|') === 'list|k1,k2|Für heute anklicken · 2 gewählt|2', 'Auswählen: Klick markiert, öffnet nicht: ' + r.join('|'));
+  ok(r.join('|') === 'list|k1,k2|Für heute anklicken|2', 'Auswählen: Klick markiert, öffnet nicht (ohne Zahl): ' + r.join('|'));
+  ok(await p.evaluate(() => !document.querySelector('[data-act="heute-abbr"]') && getComputedStyle(document.querySelector('#list-body tr.heute-w td')).backgroundColor === 'rgb(253, 236, 234)'), 'kein „Abbrechen“, gewählte Zeilen rot hinterlegt');
+  await p.click('button[data-act="heute-leer"]');
+  ok(await p.evaluate(() => UI.heuteWahl.size === 0 && !document.querySelector('#list-body tr.heute-w')), 'Pfeil zurück: alle Haken weg');
+  await p.click('#list-body tr[data-id="k1"] .l-name'); await p.click('#list-body tr[data-id="k2"] .l-sum');
   await p.click('button[data-act="heute-fertig"]');
   r = [await ids(), await p.$eval('.heute-seg', e => e.textContent), await p.evaluate(() => JSON.parse(localStorage.getItem('bl-heute')).ids.join())];
   ok(r.join('|') === 'k1,k2|Heute (2)Alle|k1,k2', 'danach nur die gewählten, gemerkt: ' + r.join('|'));

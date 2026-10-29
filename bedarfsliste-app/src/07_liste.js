@@ -247,8 +247,8 @@ function listBar() {
       <div class="tools">
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen (Strg+F)">
-        <button class="sw-filter${UI.fSw.length ? ' on' : ''}" data-act="sw-filter" aria-haspopup="menu" title="Nach Stichwort filtern – Klick: nur dieses, weiterer Klick: dazu, Strg+Klick: alle außer diesem"><span>${esc(swFilterText())}</span><span class="dd" aria-hidden="true">▾</span></button>
-        <button class="link" data-act="clear"${anyFilter() ? '' : ' hidden'}>Filter löschen</button>
+        <button class="sw-filter${UI.fSw.length ? ' on' : ''}" data-act="sw-filter" aria-haspopup="menu" title="Nach Stichwort filtern – Kästchen anklicken, noch einmal: wieder weg"><span>${esc(swFilterText())}</span><span class="dd" aria-hidden="true">▾</span></button>
+        <button class="filter-weg" data-act="clear"${anyFilter() ? '' : ' hidden'} title="Filter löschen (Suche, Stichworte, nur Prio)" aria-label="Filter löschen">${ICON_TRASH}</button>
         <button class="info kz-info" data-act="kuerzel" data-tip="Tastaturbefehle" aria-label="Tastaturbefehle anzeigen">i</button>
       </div>
     </div>`;
