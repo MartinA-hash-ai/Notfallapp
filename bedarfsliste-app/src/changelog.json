@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.64.0",
+    "date": "2026-10-29T21:00",
+    "items": [
+      "KI-Knopf in der Liste (links neben „+ Bedarf“) mit Aufgaben als Kacheln – erste Aufgabe: „Bedarf aus Daten erstellen“",
+      "Eine Quelle (E-Mail, Interview-Transkript, Teams …): Prompt für Copilot kopieren, seine Antwort einfügen, „Einlesen …“",
+      "Mehrere Quellen: Cowork füllt eine Datei im Ordner „Förderrecherche“; ist sie ausgefüllt, fragt die Liste von selbst, ob der Bedarf angelegt werden soll (Punkt am KI-Knopf)",
+      "Vor dem Anlegen eine Vorschau: was erkannt wurde, was fehlt, was auffällt (unbekannter Ort, keine Zahl, ähnlicher Bedarf schon da) – ergänzt wird nichts",
+      "Übernommen werden Name, Ort, Summe, Deadline, Prio, Stichworte, Fachreferat, Ordner, Beschreibung, Freigaben, Unterlagen, Zuständige und genannte Förderer; neue Personen bietet die Liste danach für die Personenliste an"
+    ]
+  },
+  {
     "version": "0.63.0",
     "date": "2026-10-29T18:00",
     "items": [

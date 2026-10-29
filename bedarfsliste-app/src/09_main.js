@@ -132,7 +132,7 @@ function headerHtml() {
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}</nav>
-    <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button><button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
+    <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button>${UI.view === 'list' ? kiListeKnopf() : ''}<button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
     ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : listBar()}
   </header>`;
 }
@@ -473,6 +473,7 @@ async function act(k, a, e) {
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
     case 'tasten': tastenDialog(); return;
+    case 'ki-liste': kiListeDialog(); return;
     case 'sw-filter': if ($('.swf-pop')) closeMenus(); else swFilterPop(a); return;
     case 'heute-wahl': UI.paketWahl = null; heuteWaehlen(); return;
     case 'paket-wahl': paketWaehlen(true); return;
@@ -699,7 +700,7 @@ function boot() {
   } catch (e) { /* Browser ohne BroadcastChannel */ }
   document.addEventListener('visibilitychange', () => {
     if (document.hidden) { if (isDirty()) { saveDraft(); if (ST.conn === 'ok' && !ST.conflict) saveAll({ auto: true }); } }
-    else { karteiScan(); personenScan(); kiCheck(); kiScan(); }
+    else { karteiScan(); personenScan(); kiCheck(); kiScan(); eingangScan(); }
   });
   window.addEventListener('beforeunload', e => { if (isDirty() && !window.__blReload) { saveDraft(); e.preventDefault(); e.returnValue = ''; } });
 }
