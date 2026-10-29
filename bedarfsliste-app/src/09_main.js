@@ -638,6 +638,8 @@ document.addEventListener('input', e => {
   const base = baseOf(el, b);
   if ('num' in el.dataset) { liveNum(el); const v = deNum(el.value); if (v === null) return; setPath(base, el.dataset.p, v === '' ? null : v); }
   else {
+    // Pfad aus dem Explorer eingefügt: gleich in den SharePoint-Link umwandeln (der Pfad bleibt für Cowork gemerkt)
+    if (el.dataset.p === 'link' && !el.dataset.fid && istPfad(el.value)) { const l = ordnerLink(el.value); if (l) { b.pfad = l.pfad; el.value = l.link; toast('Pfad aus dem Explorer in einen SharePoint-Link umgewandelt.', 'ok'); } }
     setPath(base, el.dataset.p, el.value);
     // SharePoint-Link aus der Adresszeile: daraus lernt die Liste, wo „Ortsgliederungen“ liegt, und trägt fehlende Links bei anderen Bedarfen nach
     if (el.dataset.p === 'link' && !el.dataset.fid && spLernen(el.value)) { const n = spNachziehen(); if (n) toast('SharePoint-Link bei ' + n + (n === 1 ? ' weiterem Bedarf' : ' weiteren Bedarfen') + ' nachgetragen', 'ok'); }

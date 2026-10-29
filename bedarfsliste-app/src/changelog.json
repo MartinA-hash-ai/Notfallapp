@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.65.0",
+    "date": "2026-10-29T23:00",
+    "items": [
+      "„Neuen Bedarf anlegen?“: Angaben anklicken und gleich ändern; Stichworte, Freigaben, Unterlagen, Zuständige und Förderer mit × entfernen, Stichworte dazuschreiben, Prio per Klick",
+      "Offene Punkte und Quellen der KI lassen sich unter die Beschreibung setzen (angehakt) – sonst wären sie nach dem Anlegen weg",
+      "Ordner: Pfad aus dem Explorer einfügen – die Liste macht daraus den SharePoint-Link zum selben Ordner und merkt sich den Pfad für Cowork"
+    ]
+  },
+  {
     "version": "0.64.0",
     "date": "2026-10-29T21:00",
     "items": [

@@ -100,8 +100,7 @@ function neuBauen(r) {
   if (/hoch|dringend|ja\b|vorrang/i.test(f.prio || '')) b.prio = 'hoch';
   if (f.sw) b.stichworte = uniq(f.sw.split(/\s*[,;]\s*/).map(s => s.trim()).filter(Boolean));
   if (f.fach) { const fn = fachNamen().find(n => norm(n) === norm(f.fach)); b.freigabe.fach.name = fn || f.fach; if (!fn) warn.push('Fachreferat „' + f.fach + '“ kennt die Personenliste nicht – bitte prüfen.'); }
-  if (f.ordner) { const u = f.ordner.match(/https?:\/\/\S+/), q = !u && spRel(f.ordner);
-    if (u && okLink(u[0])) b.link = u[0].replace(/[).,;]+$/, ''); else if (q) { b.pfad = q.join('\\'); b.link = spLink(b.pfad, D.settings.sp || SP_STANDARD); } else warn.push('Ordner „' + f.ordner + '“ ist kein Link – nicht übernommen.'); }
+  if (f.ordner) { const l = ordnerLink(f.ordner); if (l) { b.link = l.link; b.pfad = l.pfad; } else warn.push('Ordner „' + f.ordner + '“ ist weder Link noch Pfad im SharePoint-Ordner – nicht übernommen.'); }
   b.beschreibung = r.text; if (!r.text) leer.push('Beschreibung');
   for (const k of ['ofk', 'fach', 'verw']) { const v = r.fr[k]; if (!v) continue; const st = wortSt(FR_WORT, v), d = anyDate((v.match(/\d{1,2}\.\d{1,2}\.\d{2,4}|\d{4}-\d{2}-\d{2}/) || [''])[0]) || '';
     if (!st) { warn.push('Freigabe ' + FR_NAME[k] + ' „' + v + '“ nicht verstanden.'); continue; }
@@ -124,32 +123,67 @@ const FR_NAME = { ofk: 'Ortsführungskreis', fach: 'Fachreferat', verw: 'Verwalt
 /* ---------- Vorschau: erst ansehen, dann anlegen */
 const neuLeer = r => !r.f.name && !r.text && !r.z.length;
 const neuKeinBlock = () => toast('Kein Bedarf gefunden – den Block ab „#BEDARF“ einfügen (in Copilot beim Codeblock auf „Kopieren“ klicken).', 'warn');
+// Vorschau zum Bearbeiten: Angabe anklicken → Feld (Enter oder Klick daneben übernimmt, Esc verwirft); Listen (Stichworte, Personen …) mit × zum Entfernen.
+// Die offenen Punkte und Quellen der KI lassen sich unter die Beschreibung setzen, sonst wären sie nach dem Anlegen weg.
 async function neuVorschau(text, quelle) {
   const r = neuLesen(text);
   if (neuLeer(r)) { neuKeinBlock(); return false; }
   const { b, warn, leer } = neuBauen(r);
+  const frDa = new Set(['ofk', 'fach', 'verw'].filter(k => r.fr[k])), ulDa = new Set(r.ul.map(([n]) => norm(n)));
   const name = h('input', { type: 'text', class: 'nv-name', value: b.titel, placeholder: 'Name des Bedarfs', 'aria-label': 'Name des Bedarfs' });
-  const zeile = (lab, v) => [h('dt', null, lab), h('dd', { class: v ? '' : 'leer' }, v || 'nicht gefunden')];
-  const fr = k => { const x = b.freigabe[k]; return r.fr[k] ? ({ ok: 'zugestimmt', angefragt: 'angefragt', nein: 'abgelehnt', offen: 'offen' })[x.st] + (x.erledigt || x.angefragt ? ' am ' + fmtDate(x.erledigt || x.angefragt) : '') : ''; };
-  const ul = b.unterlagen.filter(u => r.ul.some(([n]) => norm(n) === norm(u.name))).map(u => u.name + ': ' + ulText(u)).join(' · ');
+  const dl = h('dl', { class: 'nv-dl' });
+  const chip = (t, weg) => h('span', { class: 'pchip' }, t, h('button', { type: 'button', class: 'x', title: 'entfernen', 'aria-label': t + ' entfernen', onclick: e => { e.stopPropagation(); weg(); zeig(); } }, '×'));
+  let edit = '';
+  // Textangabe: zeigen oder (angeklickt) als Feld; set liefert false, wenn der Wert nicht passt
+  const feld = (k, lab, zeigen, roh, set, o = {}) => {
+    if (edit === k) {
+      const inp = h(o.lang ? 'textarea' : 'input', Object.assign({ class: 'nv-in', 'aria-label': lab, placeholder: o.ph || '' }, o.lang ? { rows: 8 } : { type: 'text' }));
+      inp.value = roh(); let fertig = false;
+      const los = ok => { if (fertig) return; fertig = true; if (ok && set(inp.value.trim()) === false) toast(lab + ': „' + inp.value.trim() + '“ passt nicht – nicht übernommen.', 'warn'); edit = ''; zeig(); };
+      inp.addEventListener('keydown', e => { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); los(false); } else if (e.key === 'Enter' && (!o.lang || e.ctrlKey)) { e.preventDefault(); los(true); } });
+      inp.addEventListener('blur', () => los(true));
+      setTimeout(() => { inp.focus(); if (!o.lang) inp.select(); }, 0);
+      return [h('dt', null, lab), h('dd', null, inp, o.lang ? h('div', { class: 'muted small' }, 'Strg+Enter oder Klick daneben übernimmt, Esc verwirft') : null)];
+    }
+    const v = zeigen();
+    return [h('dt', null, lab), h('dd', { class: 'nv-e' + (v ? '' : ' leer') + (o.lang ? ' nv-lang' : ''), tabindex: 0, title: 'Klicken zum Ändern', onclick: () => { edit = k; zeig(); },
+      onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); edit = k; zeig(); } } }, v || 'nicht gefunden – klicken zum Eintragen')];
+  };
+  const liste = (lab, L) => [h('dt', null, lab), h('dd', { class: L.length ? 'nv-chips' : 'leer' }, L.length ? L : 'nicht gefunden')];
+  const FR_T = { ok: 'zugestimmt', angefragt: 'angefragt', nein: 'abgelehnt', offen: 'offen' };
+  const zeig = () => dl.replaceChildren(
+    ...feld('ort', 'Ort', () => b.gliederung === DIO ? 'Diözese' : b.gliederung, () => b.gliederung === DIO ? 'Diözese' : b.gliederung, v => { b.gliederung = neuOrt(v) || v; }, { ph: 'Gliederung oder „Diözese“' }),
+    ...feld('summe', 'Summe', () => b.summe ? eur(b.summe) + ' (' + b.summeArt + ')' : '', () => b.summe ? fmtNum(b.summe) : '', v => { if (!v) { b.summe = null; return; } const x = deNum(v.replace(/€/g, '')); if (typeof x !== 'number') return false; b.summe = x; }, { ph: 'Betrag in Euro' }),
+    ...feld('dl', 'Deadline', () => fmtDate(b.deadline), () => fmtDate(b.deadline), v => { if (!v) { b.deadline = ''; return; } const d = anyDate(v); if (!d) return false; b.deadline = d; }, { ph: 'TT.MM.JJJJ' }),
+    h('dt', null, 'Prio'), h('dd', null, h('button', { type: 'button', class: 'nv-prio' + (b.prio === 'hoch' ? ' on' : ''), title: 'Klicken: Prio an / aus', onclick: () => { b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; zeig(); } }, b.prio === 'hoch' ? '★ hoch' : '☆ keine Prio')),
+    ...liste('Stichworte', [...b.stichworte.map((t, i) => chip(t, () => b.stichworte.splice(i, 1))), h('input', { type: 'text', class: 'nv-sw', placeholder: '+ Stichwort', 'aria-label': 'Stichwort hinzufügen',
+      onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); const v = e.target.value.trim(); if (v && !b.stichworte.some(x => norm(x) === norm(v))) b.stichworte.push(v); zeig(); const n = dl.querySelector('.nv-sw'); if (n) n.focus(); } } })]),
+    ...feld('fach', 'Fachreferat', () => b.freigabe.fach.name, () => b.freigabe.fach.name, v => { b.freigabe.fach.name = fachNamen().find(n => norm(n) === norm(v)) || v; }),
+    ...feld('ordner', 'Ordner', () => b.link, () => b.pfad || b.link, v => { if (!v) { b.link = ''; b.pfad = ''; return; } const l = ordnerLink(v); if (!l) return false; b.link = l.link; b.pfad = l.pfad; }, { ph: 'SharePoint-Link oder Pfad aus dem Explorer' }),
+    ...liste('Freigaben', ['ofk', 'fach', 'verw'].filter(k => frDa.has(k)).map(k => { const x = b.freigabe[k];
+      return chip(FR_NAME[k] + ': ' + FR_T[x.st] + (x.erledigt || x.angefragt ? ' am ' + fmtDate(x.erledigt || x.angefragt) : ''), () => { Object.assign(x, { st: 'offen', angefragt: '', erledigt: '' }); frDa.delete(k); }); })),
+    ...liste('Unterlagen', b.unterlagen.filter(u => ulDa.has(norm(u.name))).map(u => chip(u.name + ': ' + ulText(u), () => { ulDa.delete(norm(u.name)); if (u.fest) u.st = 'fehlt'; else b.unterlagen.splice(b.unterlagen.indexOf(u), 1); }))),
+    ...liste('Zuständige', b.zust.map((z, i) => chip([z.n, z.rolle, z.mail].filter(Boolean).join(', '), () => b.zust.splice(i, 1)))),
+    ...liste('Förderer', b.foerderer.map((x, i) => chip(x.name + ' (' + F_ST_L[x.status] + (foeAmt(x) ? ', ' + eur(foeAmt(x)) : '') + ')', () => b.foerderer.splice(i, 1)))),
+    ...feld('text', 'Beschreibung', () => b.beschreibung, () => b.beschreibung, v => { b.beschreibung = v; }, { lang: true }));
+  zeig();
+  const mitOffen = h('input', { type: 'checkbox', checked: r.o.length > 0 }), mitQ = h('input', { type: 'checkbox', checked: r.q.length > 0 });
   const body = h('div', { class: 'help nv' },
-    h('p', { class: 'muted small' }, 'Aus ' + quelle + '. Übernommen wird nur, was dort steht – leere Angaben bleiben leer. Danach lässt sich alles auf der Seite des Bedarfs ändern.'),
+    h('p', { class: 'muted small' }, 'Aus ' + quelle + '. Übernommen wird nur, was dort steht. Angaben anklicken zum Ändern, × entfernt.'),
     warn.length ? h('div', { class: 'nv-warn' }, h('b', null, 'Bitte prüfen'), h('ul', null, warn.map(t => h('li', null, t)))) : null,
-    h('label', { class: 'nv-l' }, 'Name', name),
-    h('dl', { class: 'nv-dl' }, zeile('Ort', b.gliederung === DIO ? 'Diözese' : b.gliederung), zeile('Summe', b.summe ? eur(b.summe) + ' (' + b.summeArt + ')' : ''), zeile('Deadline', fmtDate(b.deadline)),
-      zeile('Prio', b.prio === 'hoch' ? 'hoch' : ''), zeile('Stichworte', b.stichworte.join(', ')), zeile('Fachreferat', b.freigabe.fach.name), zeile('Ordner', b.link),
-      zeile('Freigaben', ['ofk', 'fach', 'verw'].filter(k => r.fr[k]).map(k => FR_NAME[k] + ': ' + fr(k)).join(' · ')), zeile('Unterlagen', ul),
-      zeile('Zuständige', b.zust.map(z => [z.n, z.rolle, z.mail].filter(Boolean).join(', ')).join(' · ')),
-      zeile('Förderer', b.foerderer.map(x => x.name + ' (' + F_ST_L[x.status] + (foeAmt(x) ? ', ' + eur(foeAmt(x)) : '') + ')').join(' · ')),
-      zeile('Beschreibung', b.beschreibung ? b.beschreibung.slice(0, 400) + (b.beschreibung.length > 400 ? ' …' : '') : '')),
-    r.o.length ? h('div', { class: 'nv-offen' }, h('b', null, 'Laut KI offen'), h('ul', null, r.o.map(t => h('li', null, t)))) : null,
-    r.q.length ? h('div', { class: 'nv-q muted small' }, h('b', null, 'Quellen: '), r.q.join(' · ')) : null);
+    h('label', { class: 'nv-l' }, 'Name', name), dl,
+    r.o.length ? h('div', { class: 'nv-offen' }, h('b', null, 'Laut KI offen'), h('ul', null, r.o.map(t => h('li', null, t))),
+      h('label', { class: 'check nv-mit' }, mitOffen, ' Unter die Beschreibung setzen (sonst ist es nach dem Anlegen weg)')) : null,
+    r.q.length ? h('div', { class: 'nv-q' }, h('span', { class: 'muted small' }, h('b', null, 'Quellen: '), r.q.join(' · ')), h('label', { class: 'check nv-mit' }, mitQ, ' Unter die Beschreibung setzen')) : null);
   const ok = await modal('Neuen Bedarf anlegen?', body, [['Abbrechen', false], ['Bedarf anlegen', true, 'primary']], { wide: true, expose: () => setTimeout(() => { name.focus(); name.select(); }, 80) });
   if (!ok) return false;
   b.titel = name.value.trim() || b.titel || 'Neuer Bedarf';
+  const anh = [r.o.length && mitOffen.checked ? '*Offen laut KI:*\n' + r.o.map(t => '- ' + t).join('\n') : '', r.q.length && mitQ.checked ? '*Quellen:*\n' + r.q.map(t => '- ' + t).join('\n') : ''].filter(Boolean);
+  if (anh.length) b.beschreibung = [b.beschreibung.trim(), ...anh].filter(Boolean).join('\n\n');
   D.bedarfe.unshift(b); UI.tab = 'aktiv'; changed(); heuteDazu(b.id);
   oeffnen(b.id);
-  toast('„' + b.titel + '“ angelegt' + (leer.length ? ' – nicht gefunden: ' + leer.join(', ') : '') + '.', 'ok');
+  const fehlt = leer.filter(x => !(x === 'Summe' && b.summe) && !(x === 'Ort' && b.gliederung) && !(x === 'Beschreibung' && b.beschreibung) && !(x === 'Zuständige' && b.zust.length) && !(x === 'Name' && b.titel));
+  toast('„' + b.titel + '“ angelegt' + (fehlt.length ? ' – nicht gefunden: ' + fehlt.join(', ') : '') + '.', 'ok');
   if (b.zust.length) setTimeout(() => wennFrei(() => personenBestaetigen(b.zust, b.gliederung)), 400);
   return true;
 }

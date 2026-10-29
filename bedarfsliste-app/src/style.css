@@ -1229,3 +1229,17 @@ label.imp-f.pers-best { align-items: flex-start; }
 .nv-offen { margin-top: 10px; font-size: 13px; color: var(--ink2); }
 .nv-q { margin-top: 8px; }
 .ki .ki-antwort textarea { max-height: 220px; overflow-y: auto; }
+/* Vorschau „Neuen Bedarf anlegen?“ zum Bearbeiten (0.65) */
+.nv-dl dd.nv-e { cursor: text; border-radius: 5px; margin: -2px -6px; padding: 2px 6px; }
+.nv-dl dd.nv-e:hover, .nv-dl dd.nv-e:focus-visible { background: var(--hover); outline: none; }
+.nv-dl dd.nv-lang { max-height: 160px; overflow-y: auto; }
+.nv-dl dd.nv-chips { display: flex; flex-wrap: wrap; gap: 4px 6px; align-items: center; }
+.nv-in { width: 100%; box-sizing: border-box; font: inherit; font-size: 13px; padding: 3px 6px; }
+textarea.nv-in { resize: vertical; }
+.nv-sw { width: 120px; font: inherit; font-size: 12.5px; padding: 1px 6px; border: 1px dashed var(--line2); border-radius: 12px; background: transparent; }
+.nv-prio { border: 0; background: none; padding: 0; font: inherit; font-size: 13px; color: var(--muted); cursor: pointer; }
+.nv-prio.on { color: #d29a17; font-weight: 600; }
+.nv-mit { margin-top: 6px; font-size: 12.5px; }
+.nv-q { margin-top: 10px; }
+.modal .nv-dl dd input.nv-sw { width: 130px; flex: none; }
+.nv-q .nv-mit, .nv-offen .nv-mit { display: flex; }

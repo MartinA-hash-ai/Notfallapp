@@ -428,6 +428,24 @@ function spLink(p, s = spBasis()) {
   const voll = s.pfad + '/' + rel.join('/');
   return s.lib ? s.origin + s.lib + '/Forms/AllItems.aspx?id=' + encodeURIComponent(voll) : s.origin + voll.split('/').map(encodeURIComponent).join('/');
 }
+// Pfad aus dem Explorer („C:\Users\…\OneDrive - MalteserCloud\Fundraising-Team - Diözese Paderborn - General\1601_Diözese_Pojekte\Ladesäulen“) → Link zum selben Ordner
+// in SharePoint. Der Freigabelink mit „?d=…&e=…“ lässt sich nicht berechnen (Kennung vergibt SharePoint) – der Link öffnet aber denselben Ordner.
+// Erkannt wird ab „Ortsgliederungen“, „1601_Diözese_Pojekte“ oder ab dem Ordner „… - General“ (so heißt die Bibliothek im OneDrive).
+const istPfad = v => { const t = unquote(String(v || '')).trim(); return !/^https?:/i.test(t) && /^([a-z]:\\|\\\\)|\\/i.test(t); };
+function spAusPfad(p) {
+  const seg = unquote(String(p || '')).split(/[\\/]+/).filter(Boolean);
+  let rel = spRel(p); if (!rel) { const i = seg.findIndex(x => /\s-\s*General$/i.test(x)); if (i >= 0 && i < seg.length - 1) rel = seg.slice(i + 1); }
+  if (!rel) return '';
+  const s = spBasis(), voll = s.pfad + '/' + rel.join('/');
+  return s.lib ? s.origin + s.lib + '/Forms/AllItems.aspx?id=' + encodeURIComponent(voll) : s.origin + voll.split('/').map(encodeURIComponent).join('/');
+}
+// Eingabe beim Ordner: Link bleibt Link; ein Pfad wird zum Link (der Pfad bleibt für Cowork gemerkt) → { link, pfad } oder null
+function ordnerLink(v) {
+  const t = unquote(String(v || '')).trim(), u = t.match(/https?:\/\/\S+/);
+  if (u && okLink(u[0])) return { link: u[0].replace(/[).,;]+$/, ''), pfad: '' };
+  if (!istPfad(t)) return null;
+  const l = spAusPfad(t); return l ? { link: l, pfad: /^[a-z]:\\|^\\\\/i.test(t) ? t : spRel(t) ? spRel(t).join('\\') : '' } : null;
+}
 // Ordner des Bedarfs im OneDrive (für Cowork): gefundener Pfad oder aus dem SharePoint-Link zurückgerechnet
 function kiOrdnerPfad(b) {
   if ((b.pfad || '').trim()) return unquote(b.pfad).trim();
