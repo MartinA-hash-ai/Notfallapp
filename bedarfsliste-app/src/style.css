@@ -399,10 +399,16 @@ html[data-vt] #app > main { view-transition-name: bl-inhalt; background: var(--b
 ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 ::view-transition-group(bl-inhalt) { animation: none; }
 ::view-transition-old(bl-inhalt), ::view-transition-new(bl-inhalt) { mix-blend-mode: normal; }
-html[data-vt="vor"]::view-transition-old(bl-inhalt) { animation: none; }
+/* die alte Seite als eigene Ebene (.vt-alt): bleibt an ihrer Stelle, auch wenn die neue anders gescrollt ist */
+html[data-vt] #app > main.vt-alt { view-transition-name: bl-alt; }
+::view-transition-group(bl-alt) { animation: none; }
+::view-transition-old(bl-alt) { mix-blend-mode: normal; }
+html[data-vt="vor"]::view-transition-old(bl-alt) { animation: none; }
+html[data-vt="vor"]::view-transition-group(bl-inhalt) { z-index: 2; }
 html[data-vt="vor"]::view-transition-new(bl-inhalt) { animation: bl-rein .32s cubic-bezier(.2, .8, .2, 1) both; box-shadow: -12px 0 30px rgba(0,0,0,.18); }
 html[data-vt="zurueck"]::view-transition-new(bl-inhalt) { animation: none; }
-html[data-vt="zurueck"]::view-transition-old(bl-inhalt) { animation: bl-raus .26s cubic-bezier(.5, 0, .9, .4) both; z-index: 1; box-shadow: -12px 0 30px rgba(0,0,0,.18); }
+html[data-vt="zurueck"]::view-transition-group(bl-alt) { z-index: 2; }
+html[data-vt="zurueck"]::view-transition-old(bl-alt) { animation: bl-raus .26s cubic-bezier(.5, 0, .9, .4) both; box-shadow: -12px 0 30px rgba(0,0,0,.18); }
 /* die Leiste unter der Kopfzeile gleitet mit (Liste: Suche & Co., Bedarf: Phasen) */
 html[data-vt] header.top .subbar { view-transition-name: bl-leiste; background: var(--card); }
 ::view-transition-group(bl-leiste) { animation: none; }
@@ -1375,3 +1381,6 @@ table.ue-tab td { overflow-wrap: break-word; hyphens: auto; }
 table.ue-tab col.c-d { width: 40px; } table.ue-tab col.c-v { width: 23%; } table.ue-tab col.c-e { width: 96px; } table.ue-tab col.c-z { width: 104px; }
 .vn-l { flex: 1 1 auto; }
 .vn-1.vn-nn .vn-t { font-size: 12.5px; } .vn-1.vn-nn .vn-l { column-gap: 5px; }
+/* 0.76: Kästen der Nacharbeit wie die Personenkarten oben (Zuständig, Fachreferat): warmes Grau, ohne Rahmen */
+.ue-teil, .vn-b:not(.vn-erl):not(.vn-nn) { background: var(--hover); border: 0; }
+.vn-1.vn-erl { border-color: transparent; }

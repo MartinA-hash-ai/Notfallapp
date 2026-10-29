@@ -279,7 +279,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click(R('b-mtw') + ' .l-sum', { modifiers: ['Control'] }); await p.click(R('b-mtw') + ' .l-sum', { modifiers: ['Control'] });
   ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-mtw'), 'noch einmal Strg+Klick öffnet den Bedarf');
   await p.click('button[data-act="back"]');
-  ok(await p.evaluate(() => UI.view === 'list' && !UI.auf && UI.ansicht === 'kompakt'), 'zurück in der Liste: wieder alles kompakt');
+  ok(await p.evaluate(() => UI.view === 'list' && UI.auf === 'b-mtw' && UI.ansicht === 'kompakt'), 'zurück in der Liste: der Bedarf bleibt aufgeklappt (0.76)');
+  await p.evaluate(() => aufklappen(null));
   // ohne Strg: Klick aufs Wort ändert es; daneben klappt der Bedarf auf (Spalten bleiben, die anderen werden blass), noch ein Klick daneben öffnet ihn
   const daneben = async sel => { const q = await (await p.$(sel)).boundingBox(); await p.mouse.click(q.x + 3, q.y + 3); };
   const spalten = () => p.evaluate(() => $$('table.list thead th').map(t => Math.round(t.getBoundingClientRect().width)).join());

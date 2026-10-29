@@ -135,10 +135,10 @@ function aufBreiten() {
   if (AUF_W) t.insertAdjacentHTML('afterbegin', aufCols());
 }
 // Aufklappen gleitet: die Zeile zieht sich von ihrer alten Höhe nach unten auf, die Zeilen darunter rutschen mit, die anderen werden blass
-function aufklappen(id) {
+function aufklappen(id, ruhig) {                                                 // ruhig: ohne Gleiten (zurück von der Seite eines Bedarfs)
   const alt = UI.auf; if (alt === id) return;
   klickRuhe();
-  const wie = !matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const wie = !ruhig && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   const vorher = wie ? new Map($$('#list-body tr[data-id]').map(r => [r.dataset.id, r.getBoundingClientRect()])) : null;
   if (id && !alt) { UI.auf = id; aufBreiten(); }                                    // messen, solange noch alles zugeklappt ist
   UI.auf = id;

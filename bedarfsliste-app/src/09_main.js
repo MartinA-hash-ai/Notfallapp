@@ -176,8 +176,8 @@ function renderNow() {
     // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
     if (UI.view !== 'list') ORDER.ids = null;
     else if (!ORDER.ids || ORDER.key !== ordKey() || filtered().some(x => !ORDER.ids.includes(x.id))) { ORDER.ids = null; ORDER.ids = filtered().map(x => x.id); ORDER.key = ordKey(); }
-    if (UI.auf && (UI.view !== 'list' || !filtered().some(x => x.id === UI.auf))) UI.auf = null;    // aufgeklappter Bedarf weggefiltert oder weg: zuklappen
-    if (UI.view !== 'list' || UI.ansicht !== 'kompakt') UI.auf = null;              // aufgeklappter Bedarf der kompakten Liste
+    if (UI.auf && UI.view === 'list' && !filtered().some(x => x.id === UI.auf)) UI.auf = null;    // aufgeklappter Bedarf weggefiltert oder weg: zuklappen
+    if (UI.ansicht !== 'kompakt') UI.auf = null;                                    // aufgeklappter Bedarf der kompakten Liste (bleibt, solange man auf der Seite eines Bedarfs ist)
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
     if (UI.kEdit !== UI.det) UI.kEdit = null;
     for (const g of Object.keys(GRP)) if (UI[GRP[g].ui] && UI[GRP[g].ui] !== (b && b.id)) {     // Seite verlassen: Fachreferat bzw. Presse fertig bearbeitet
@@ -375,7 +375,10 @@ let LISTE_Y = 0;
 function uebergang(r, fn) {
   if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { fn(); return; }
   const html = document.documentElement; html.dataset.vt = r;
-  document.startViewTransition(fn).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; });
+  // Seite wechseln: die alte Seite bekommt eine eigene Ebene und bleibt, wo sie war – sonst übernähme sie die Scrollposition
+  // der neuen (zurück zur weiter unten stehenden Liste: der Bedarf sprang beim Hinausgleiten nach oben)
+  const alt = (r === 'vor' || r === 'zurueck') && $('#app > main'); if (alt) alt.classList.add('vt-alt');
+  document.startViewTransition(() => { fn(); if (alt) alt.classList.remove('vt-alt'); }).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; });
 }
 // o.offen: Förderplan bzw. Nacharbeit gleich aufgeklappt ('foe', 'nach'); o.danach: nach dem Zeichnen (z. B. zur Stelle springen)
 // „+ Bedarf“ auf der Seite eines Bedarfs: gleich eine leere Seite zum Ausfüllen; bleibt sie unberührt, verschwindet sie beim Verlassen wieder
@@ -399,7 +402,9 @@ function oeffnen(id, o = {}) {
   setTimeout(kiCheck, 300);                                                        // Ergebnis von Copilot oder Cowork da?
 }
 // zurück: die Liste steht, wo sie war; der Fokus liegt auf dem Bedarf, von dem man kommt (mit ↑/↓ auf der Seite weitergeblättert: er wird ins Bild geholt)
-function zurueck() { leerWeg(); closeMenus(); klickRuhe(); const id = UI.id; UI.view = 'list'; uebergang('zurueck', () => { renderNow(); scrollTo(0, LISTE_Y); zeileFokus(id); zeileZeigen(id); }); }
+// War in der kompakten Liste ein Bedarf aufgeklappt, ist es danach der, von dem man kommt (auch wenn man auf der Seite weitergeblättert hat)
+function zurueck() { leerWeg(); closeMenus(); klickRuhe(); const id = UI.id, auf = KOMPAKT() && UI.auf; UI.auf = null; UI.view = 'list';
+  uebergang('zurueck', () => { renderNow(); if (auf && zeileEl(id)) aufklappen(id, true); scrollTo(0, LISTE_Y); zeileFokus(id); zeileZeigen(id); }); }
 // Seite eines Bedarfs: ↓ / ↑ öffnen den nächsten bzw. vorigen Bedarf – in der Reihenfolge, die die Liste beim Öffnen hatte
 // (steht er dort nicht, z. B. aus den Hinweisen geöffnet: die Liste mit Suche und Filtern, sonst alle Bedarfe seines Reiters)
 let NAV = [];

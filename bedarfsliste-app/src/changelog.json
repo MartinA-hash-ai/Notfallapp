@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.76.0",
+    "date": "2026-10-31T10:00",
+    "items": [
+      "Nacharbeit: Kästen im selben warmen Grau wie die Personenkarten oben (Zuständig, Fachreferat), ohne Rahmen",
+      "Kompakte Liste: ein aufgeklappter Bedarf bleibt aufgeklappt, wenn man von seiner Seite zurückkommt (auch nach dem Weiterblättern: dann der, von dem man kommt)",
+      "Zurück zur Liste: die Seite des Bedarfs gleitet sauber hinaus, statt beim Hinausgleiten nach oben zu springen"
+    ]
+  },
+  {
     "version": "0.75.0",
     "date": "2026-10-30T23:30",
     "items": [
