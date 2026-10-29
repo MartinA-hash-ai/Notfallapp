@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.72.0",
+    "date": "2026-10-30T21:00",
+    "items": [
+      "Spendenübergabe in drei Kästen: Termin und Ort (mit Notizen), Presse und Öffentlichkeit, Förderer bei der Übergabe",
+      "Termin und Ort kompakter: Beschriftung links neben dem Feld, Uhrzeit mit „Uhr“ in einer Zeile",
+      "Gelöschte Spendenübergabe: „+“ direkt hinter der Überschrift, der Satz darunter entfällt",
+      "Verwendungsnachweis: nicht nötig noch blasser (gestrichelt), erledigt mit grünem Hintergrund und grünem Namen"
+    ]
+  },
+  {
     "version": "0.71.0",
     "date": "2026-10-30T19:00",
     "items": [

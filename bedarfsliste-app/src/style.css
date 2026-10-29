@@ -1328,3 +1328,27 @@ table.ue-tab td { overflow-wrap: anywhere; }
 .vn-ok { color: var(--okink); font-weight: 600; }
 .vn-1 .ue-x { width: 22px; height: 22px; }
 .vn-1 .ue-x:hover { border-color: var(--ink2); color: var(--ink); }
+/* 0.72: Spendenübergabe in drei Kästen, Verwendungsnachweis: nicht nötig blasser, erledigt grün */
+.ue-h.weg { justify-content: flex-start; }
+.ue-teil { border: 1px solid var(--line); border-radius: 8px; background: var(--card); padding: 10px 12px; margin-bottom: 10px; }
+.ue-teil-h, .ue-teil .sub.presse-kopf { display: flex; align-items: center; gap: 4px; margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--ink2); text-transform: none; letter-spacing: 0; }
+.ue-teil-h.ue-foe-h { justify-content: space-between; margin: 0 0 6px; }
+.ue-teil.ue-presse { margin: 0 0 10px; }
+.ue-teil .ue-raster { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); }
+.ue-links { grid-template-columns: auto minmax(0, 1fr); gap: 8px 10px; align-items: baseline; }
+.ue-links > .lab { font-size: 12px; font-weight: 600; color: var(--ink2); }
+.ue-ort { min-width: 0; }
+.ue-ort > input { width: 100%; }
+.ue-teil .pe-ue { margin-top: 0; }
+.vn-b { background: var(--card); }
+.vn-1.vn-nn { background: transparent; border-style: dashed; opacity: .5; }
+.vn-1.vn-nn .na-title, .vn-1.vn-nn .vn-t { font-weight: 400; color: var(--muted); }
+.vn-1.vn-nn:hover { opacity: .8; }
+.vn-1.vn-erl { background: var(--okbg); border-color: var(--okline); }
+.vn-1.vn-erl .na-title { color: var(--okink); }
+.vn-1.vn-erl .ue-x { background: transparent; border-color: var(--okline); color: var(--okink); }
+.ue-teil .ue-raster { grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); }
+.ue-zeit { flex-wrap: nowrap; }
+.ue-zeit input.dfeld:not(.inline) { width: 108px; } .ue-zeit input.zfeld { width: 62px; }
+.ue-teil .pe-ue .lab { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink2); }
+.ue-teil .pe-ue .lab + .val { padding-left: 0; }

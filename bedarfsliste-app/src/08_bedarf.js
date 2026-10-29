@@ -547,15 +547,16 @@ function nachBody(b) {
   // Kopf: links „Spendenübergabe“, rechts Kalender-Export, Stand und × (gelöscht: nur „+“)
   const kopf = u.noetig ? `<span class="ue-h-r"><button type="button" class="ue-x ue-ics" data-act="ics"${validIso(u.termin) ? ' title="Kalendereintrag für Outlook (.ics) herunterladen"' : ' disabled title="Erst den Termin eintragen"'} aria-label="Kalendereintrag herunterladen">${ICON_EXPORT}</button>${seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], u.st, 'data-p="nach.ueb.st"', 'small')}<button type="button" class="ue-x" data-act="ueb-weg" title="Spendenübergabe löschen" aria-label="Spendenübergabe löschen">×</button></span>`
     : '<button type="button" class="ue-plus" data-act="ueb-neu" title="Spendenübergabe wieder anlegen" aria-label="Spendenübergabe wieder anlegen">+</button>';
+  // links drei Kästen: Termin und Ort (mit Notizen), Presse und Öffentlichkeit, Förderer bei der Übergabe
   return `<div class="grid two">
-    <div><h3 class="ue-h">Spendenübergabe${kopf}</h3>
-      ${u.noetig ? `<div class="na-block"><div class="ue-raster">
-          <div class="ue-links">${fld('Termin', `<span class="row nowrap ue-zeit">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}<span class="muted">Uhr</span></span>`, 'ue-termin')}
-            ${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus') + ortVorschlag(b) + routeKnoepfe(b))}</div>
-          <div class="ue-rechts">${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}</div></div>
-          <div class="ue-presse" id="presse-pers">${presseBlock(b)}</div>
-          <div class="sub ue-foe-h">Förderer bei der Übergabe${zu.length ? rundKnopf('foe', 'Förderer zur Spendenübergabe einladen – gemeinsam (BCC) oder einzeln mit persönlicher Anrede') : ''}</div>${uebTabelle(b)}</div>`
-        : '<p class="muted small ue-weg">Bei diesem Bedarf gibt es keine Spendenübergabe – über „+“ wieder anlegen.</p>'}
+    <div><h3 class="ue-h${u.noetig ? '' : ' weg'}">Spendenübergabe${kopf}</h3>
+      ${u.noetig ? `<div class="ue-teil"><div class="ue-teil-h">Termin und Ort</div><div class="ue-raster">
+          <div class="ue-links">
+            <span class="lab">Termin</span><span class="row nowrap ue-zeit ue-termin">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}<span class="muted">Uhr</span></span>
+            <span class="lab">Ort</span><div class="ue-ort">${tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus') + ortVorschlag(b) + routeKnoepfe(b)}</div></div>
+          <div class="ue-rechts">${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}</div></div></div>
+        <div class="ue-teil ue-presse" id="presse-pers">${presseBlock(b)}</div>
+        <div class="ue-teil"><div class="ue-teil-h ue-foe-h">Förderer bei der Übergabe${zu.length ? rundKnopf('foe', 'Förderer zur Spendenübergabe einladen – gemeinsam (BCC) oder einzeln mit persönlicher Anrede') : ''}</div>${uebTabelle(b)}</div>` : ''}
     </div>
     <div><h3>Verwendungsnachweis</h3>
       ${zu.length ? zu.map(nachLine).join('') : '<div class="empty small">Erscheint, sobald eine Förderung zugesagt ist.</div>'}

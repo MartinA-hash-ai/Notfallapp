@@ -83,13 +83,18 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   await p.click('#sec-nach .ue-h [data-act="ueb-weg"]'); await p.waitForSelector('.modal h2:text-is("Spendenübergabe löschen?")'); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [cur().nach.ueb.noetig, !!document.querySelector('#sec-nach .ue-plus'), !document.querySelector('#sec-nach .ue-tab'), kUebergabe(cur()).replace(/<[^>]+>/g, '')]);
   ok(r.join('|') === 'false|true|true|keine Übergabe', 'gelöscht: nur noch „+“, in der Liste „keine Übergabe“: ' + r.join('|'));
+  r = await p.evaluate(() => { const h = document.querySelector('#sec-nach .ue-h'), pl = h.querySelector('.ue-plus').getBoundingClientRect(), t = document.createRange(); t.selectNodeContents(h.firstChild); return [pl.left - t.getBoundingClientRect().right < 20, !document.querySelector('#sec-nach .ue-weg'), !document.querySelector('#sec-nach').textContent.includes('keine Spendenübergabe')]; });
+  ok(r.join('|') === 'true|true|true', '0.72: „+“ direkt hinter „Spendenübergabe“, kein Satz darunter: ' + r.join('|'));
   await p.click('#sec-nach .ue-plus'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => cur().nach.ueb.noetig && cur().nach.ueb.ort === 'Am Markt 1, 33034 Brakel' && !!document.querySelector('#sec-nach .ue-tab')), '„+“ legt sie wieder an, Angaben sind noch da');
+  r = await p.evaluate(() => [...document.querySelectorAll('#sec-nach .ue-teil')].map(x => (x.querySelector('.ue-teil-h, .presse-kopf').firstChild.textContent || '').trim()).join(','));
+  ok(r === 'Termin und Ort,Presse und Öffentlichkeit,Förderer bei der Übergabe', '0.72: drei Kästen: ' + r);
 
   // 0.71: erledigt einzeilig mit Pfeil zurück; „ohne E-Mail“ (rot) fragt nach; Kalender bei „Eingeladen“; Spalten wackeln nicht
   const fB = await p.evaluate(() => cur().foerderer[1].id);
   await p.click(`#nl-${fB} [data-p="vn.st"][data-v="erledigt"]`); await p.waitForTimeout(100);
   r = await p.evaluate(id => { const e = document.querySelector('#nl-' + id); return [e.classList.contains('vn-1'), e.textContent.replace(/\s+/g, ' ').trim(), !!e.querySelector('[data-act="vn-st"] svg')]; }, fB);
+  ok(await p.evaluate(id => { const e = document.querySelector('#nl-' + id), n = document.querySelector('.vn-nn'); return getComputedStyle(e).backgroundColor === getComputedStyle(document.documentElement).getPropertyValue('--okbg').trim().replace(/^#(..)(..)(..)$/, (m, r, g, b) => `rgb(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)})`) && (!n || +getComputedStyle(n).opacity < .7); }, fB), '0.72: erledigt mit grünem Hintergrund, nicht nötig blass');
   ok(r.join('|') === 'true|Bank B✓ erledigt|true', 'erledigt: eine Zeile mit grünem Haken und Pfeil zurück: ' + r.join('|'));
   await p.click(`#nl-${fB} [data-act="vn-st"]`); await p.waitForTimeout(100);
   ok(await p.evaluate(id => cur().foerderer[1].vn.st === 'offen' && !!document.querySelector('#nl-' + id + ' .vn-z'), fB), 'Pfeil zurück: wieder „steht aus“');
