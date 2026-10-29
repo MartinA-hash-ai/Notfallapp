@@ -1301,3 +1301,30 @@ table.ue-tab tr.aus td:not(.ut-d) { opacity: .4; }
 .vn-kopf .ue-x { width: 20px; height: 20px; font-size: 13px; }
 .vn-z { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; }
 .vn-nn .na-title { color: var(--muted); }
+/* 0.71: Kopf der Spendenübergabe mit Export, Stand und ×; Termin und Ort links, Notizen rechts; feste Spalten; Verwendungsnachweis einzeilig */
+.ue-h { justify-content: space-between; }
+.ue-h-r { display: inline-flex; align-items: center; gap: 6px; text-transform: none; letter-spacing: 0; font-weight: 400; }
+.ue-ics svg { display: block; }
+.ue-ics:not(:disabled):hover { border-color: var(--ink2); color: var(--ink); }
+.ue-raster { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 14px; align-items: start; }
+.ue-links { display: grid; gap: 10px; }
+.ue-zeit { align-items: center; gap: 6px; }
+@media (max-width: 700px) { .ue-raster { grid-template-columns: minmax(0, 1fr); } }
+.ue-foe-h { display: flex; align-items: center; justify-content: space-between; }
+table.ue-tab { table-layout: fixed; }
+table.ue-tab col.c-d { width: 46px; }
+table.ue-tab col.c-v { width: 26%; }
+table.ue-tab col.c-e { width: 106px; }
+table.ue-tab col.c-z { width: 112px; }
+table.ue-tab td { overflow-wrap: anywhere; }
+.ut-e { white-space: nowrap; }
+.ue-cal { border: 0; background: none; padding: 0 0 0 4px; color: var(--muted); vertical-align: middle; cursor: pointer; }
+.ue-cal svg { width: 14px; height: 14px; display: block; }
+.ue-cal:hover { color: var(--ink); }
+.vo-ohne { display: block; border: 0; background: none; padding: 0; margin-top: 2px; font: inherit; font-size: 12px; color: var(--red); cursor: pointer; text-decoration: underline dotted; }
+.vn-1 { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 8px 12px; }
+.vn-r { display: inline-flex; align-items: center; gap: 8px; }
+.vn-t { font-size: 13px; }
+.vn-ok { color: var(--okink); font-weight: 600; }
+.vn-1 .ue-x { width: 22px; height: 22px; }
+.vn-1 .ue-x:hover { border-color: var(--ink2); color: var(--ink); }

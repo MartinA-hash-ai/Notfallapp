@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.71.0",
+    "date": "2026-10-30T19:00",
+    "items": [
+      "Spendenübergabe: Stand und × stehen rechts auf Höhe der Überschrift, davor der Download des Kalendereintrags (.ics); die Knopfleiste darunter entfällt",
+      "Termin mit „Uhr“ und darunter der Ort mit Route links, die Notizen rechts daneben",
+      "Rundmail intern über das Umschlag-Symbol bei Presse und Öffentlichkeit (alle internen Vorlagen), „Förderer einladen“ über das Symbol bei „Förderer bei der Übergabe“",
+      "Tabelle der Förderer: feste Spaltenbreiten; „ohne E-Mail“ in Rot und anklickbar (fragt die E-Mail ab); neben dem Datum der Einladung ein Kalender zum Ändern",
+      "Verwendungsnachweis: erledigt oder nicht nötig nur noch eine Zeile mit Pfeil zurück"
+    ]
+  },
+  {
     "version": "0.70.0",
     "date": "2026-10-30T17:00",
     "items": [

@@ -518,37 +518,43 @@ function secFoe(b) {
 }
 
 /* ---------- Nacharbeit: Spendenübergabe einmal je Bedarf (Pressemitteilung entfällt ab 0.67), Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */
-// Verwendungsnachweis je Förderer: „Nachweis bis“ mit Datum, rechts „steht aus“ oder „erledigt“; × = kein Nachweis nötig
+// Verwendungsnachweis je Förderer: „Nachweis bis“ mit Datum, rechts „steht aus“ oder „erledigt“; × = kein Nachweis nötig.
+// Erledigt oder nicht nötig: nur eine Zeile (Name, rechts der Stand und ein Pfeil zurück)
+const ICON_ZURUECK = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M6 3.5L2.5 7 6 10.5M3 7h6.5a4 4 0 0 1 0 8H8" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function nachLine(f) {
-  const a = `data-fid="${f.id}"`, x = f.vn;
-  return `<div class="na-block vn-b${x.noetig ? '' : ' vn-nn'}" id="nl-${f.id}"><div class="vn-kopf"><span class="na-title">${esc(f.name || '(ohne Namen)')}</span>${x.noetig
-      ? `<button type="button" class="ue-x" data-act="set" data-p="vn.noetig" data-v="false" ${a} title="Kein Verwendungsnachweis nötig" aria-label="Kein Verwendungsnachweis nötig">×</button>` : ''}</div>`
-    + (x.noetig ? `<div class="vn-z"><label class="inl">Nachweis bis ${dfeld(f, 'vn.frist', a + ' aria-label="Verwendungsnachweis bis"')}</label>${seg(VN_ST, x.st, `data-p="vn.st" ${a}`, 'small')}</div>`
-      : `<div class="vn-z muted small">kein Nachweis nötig · <button type="button" class="link small" data-act="set" data-p="vn.noetig" data-v="true" ${a}>doch nötig</button></div>`) + '</div>';
+  const a = `data-fid="${f.id}"`, x = f.vn, kopf = (rechts, cls) => `<div class="na-block vn-b vn-1 ${cls}" id="nl-${f.id}"><span class="na-title">${esc(f.name || '(ohne Namen)')}</span>${rechts}</div>`;
+  if (!x.noetig) return kopf(`<span class="vn-r"><span class="vn-t muted">kein Verwendungsnachweis nötig</span><button type="button" class="ue-x" data-act="set" data-p="vn.noetig" data-v="true" ${a} title="Doch nötig" aria-label="Doch ein Verwendungsnachweis nötig">${ICON_ZURUECK}</button></span>`, 'vn-nn');
+  if (x.st === 'erledigt') return kopf(`<span class="vn-r"><span class="vn-t vn-ok">✓ erledigt</span><button type="button" class="ue-x" data-act="vn-st" data-v="offen" ${a} title="Zurück auf „steht aus“" aria-label="Zurück auf steht aus">${ICON_ZURUECK}</button></span>`, 'vn-erl');
+  return `<div class="na-block vn-b" id="nl-${f.id}"><div class="vn-kopf"><span class="na-title">${esc(f.name || '(ohne Namen)')}</span><button type="button" class="ue-x" data-act="set" data-p="vn.noetig" data-v="false" ${a} title="Kein Verwendungsnachweis nötig" aria-label="Kein Verwendungsnachweis nötig">×</button></div>`
+    + `<div class="vn-z"><label class="inl">Nachweis bis ${dfeld(f, 'vn.frist', a + ' aria-label="Verwendungsnachweis bis"')}</label>${seg(VN_ST, x.st, `data-p="vn.st" ${a}`, 'small')}</div></div>`;
 }
 // Förderer bei der Übergabe als Tabelle: dabei (Haken), Förderer mit Betrag, wer vor Ort ist, Einladung raus, Zusage zur Teilnahme. Nicht angehakte blass.
 const UE_ZU = { '': ['offen', ''], ja: ['✓ kommt', 'ok'], nein: ['✗ kommt nicht', 'no'] };
 function uebTabelle(b) {
   const u = b.nach.ueb, Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), E = u.einl || {};
   if (!Z.length) return '<p class="muted small">Erscheint, sobald eine Förderung zugesagt ist.</p>';
-  return `<table class="ue-tab"><thead><tr><th class="ut-d">Dabei</th><th>Förderer</th><th>Vor Ort</th><th>Eingeladen</th><th>Zusage</th></tr></thead><tbody>${Z.map(f => {
+  return `<table class="ue-tab"><colgroup><col class="c-d"><col><col class="c-v"><col class="c-e"><col class="c-z"></colgroup><thead><tr><th class="ut-d">Dabei</th><th>Förderer</th><th>Vor Ort</th><th>Eingeladen</th><th>Zusage</th></tr></thead><tbody>${Z.map(f => {
     const on = u.mit.includes(f.id), v = vorOrt(b, f), e = E[f.id] || {}, z = UE_ZU[e.zu || ''] || UE_ZU[''];
     return `<tr class="${on ? 'on' : 'aus'}"><td class="ut-d"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${on ? 'checked' : ''} aria-label="${esc(f.name)} ist dabei"></td>
       <td><b>${esc(f.name.trim())}</b>${foeAmt(f) ? `<div class="muted small">${eur(foeAmt(f))}</div>` : ''}</td>
-      <td><button type="button" class="link small vo-n${v ? '' : ' leer'}" data-act="vor-ort" data-fid="${f.id}" title="${v && v.mail ? esc(v.mail) + ' – ' : ''}klicken zum Ändern">${v ? esc(v.n) : 'Person wählen'}</button>${v && !v.mail ? '<div class="small warnl">ohne E-Mail</div>' : ''}</td>
-      <td><button type="button" class="ue-st${e.am ? ' ok' : ''}" data-act="einl-raus" data-fid="${f.id}" title="${e.am ? 'Einladung raus am ' + fmtDate(e.am) + ' – klicken: zurücknehmen' : 'Klicken: Einladung ist raus'}">${e.am ? '✓ ' + fmtDate(e.am).slice(0, 6) : '–'}</button></td>
+      <td><button type="button" class="link small vo-n${v ? '' : ' leer'}" data-act="vor-ort" data-fid="${f.id}" title="${v && v.mail ? esc(v.mail) + ' – ' : ''}klicken zum Ändern">${v ? esc(v.n) : 'Person wählen'}</button>${v && !v.mail ? `<button type="button" class="vo-ohne" data-act="vo-mail" data-fid="${f.id}" title="E-Mail eintragen">ohne E-Mail</button>` : ''}</td>
+      <td class="ut-e"><button type="button" class="ue-st${e.am ? ' ok' : ''}" data-act="einl-raus" data-fid="${f.id}" title="${e.am ? 'Einladung raus am ' + fmtDate(e.am) + ' – klicken: zurücknehmen' : 'Klicken: Einladung ist raus (heute)'}">${e.am ? '✓ ' + fmtDate(e.am).slice(0, 6) : '–'}</button>${e.am ? `<button type="button" class="ue-cal" data-act="einl-cal" data-fid="${f.id}" title="Datum der Einladung ändern" aria-label="Datum der Einladung ändern">${ICON_CAL}</button>` : ''}</td>
       <td><button type="button" class="ue-st ${z[1]}" data-act="einl-zu" data-fid="${f.id}" title="Klicken: offen → kommt → kommt nicht">${z[0]}</button></td></tr>`; }).join('')}</tbody></table>`;
 }
+const ICON_EXPORT = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><path d="M8 2v8M4.8 6.8 8 10l3.2-3.2M2.5 11.5v1.5a1 1 0 0 0 1 1h9a1 1 0 0 0 1-1v-1.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 function nachBody(b) {
-  const zu = b.foerderer.filter(f => f.status === 'zugesagt'), n = b.nach;
+  const zu = b.foerderer.filter(f => f.status === 'zugesagt'), n = b.nach, u = n.ueb;
+  // Kopf: links „Spendenübergabe“, rechts Kalender-Export, Stand und × (gelöscht: nur „+“)
+  const kopf = u.noetig ? `<span class="ue-h-r"><button type="button" class="ue-x ue-ics" data-act="ics"${validIso(u.termin) ? ' title="Kalendereintrag für Outlook (.ics) herunterladen"' : ' disabled title="Erst den Termin eintragen"'} aria-label="Kalendereintrag herunterladen">${ICON_EXPORT}</button>${seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], u.st, 'data-p="nach.ueb.st"', 'small')}<button type="button" class="ue-x" data-act="ueb-weg" title="Spendenübergabe löschen" aria-label="Spendenübergabe löschen">×</button></span>`
+    : '<button type="button" class="ue-plus" data-act="ueb-neu" title="Spendenübergabe wieder anlegen" aria-label="Spendenübergabe wieder anlegen">+</button>';
   return `<div class="grid two">
-    <div><h3 class="ue-h">Spendenübergabe${n.ueb.noetig ? '' : '<button type="button" class="ue-plus" data-act="ueb-neu" title="Spendenübergabe wieder anlegen" aria-label="Spendenübergabe wieder anlegen">+</button>'}</h3>
-      ${n.ueb.noetig ? `<div class="na-block"><div class="na-head ue-kopf">${seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], n.ueb.st, 'data-p="nach.ueb.st"', 'small')}<button type="button" class="ue-x" data-act="ueb-weg" title="Spendenübergabe löschen" aria-label="Spendenübergabe löschen">×</button></div>
-        <div class="grid2">${fld('Termin', `<span class="row nowrap">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}</span>`, 'ue-termin')}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus') + ortVorschlag(b) + routeKnoepfe(b))}</div>
-          ${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}
-          <div class="ue-acts"><button data-act="ics"${validIso(n.ueb.termin) ? '' : ' disabled title="Erst den Termin eintragen"'}>${ICON_KAL}<span>In Outlook eintragen (.ics)</span></button><button data-act="rundmail" data-v="foe" title="Förderer zur Spendenübergabe einladen – gemeinsam (BCC) oder einzeln mit persönlicher Anrede">${ICON_RUND}<span>Förderer einladen …</span></button><button data-act="rundmail" data-v="ueb" title="Rundmail an Zuständige und Presse (Absprache)">${ICON_RUND}<span>Rundmail intern …</span></button></div>
+    <div><h3 class="ue-h">Spendenübergabe${kopf}</h3>
+      ${u.noetig ? `<div class="na-block"><div class="ue-raster">
+          <div class="ue-links">${fld('Termin', `<span class="row nowrap ue-zeit">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}<span class="muted">Uhr</span></span>`, 'ue-termin')}
+            ${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus') + ortVorschlag(b) + routeKnoepfe(b))}</div>
+          <div class="ue-rechts">${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}</div></div>
           <div class="ue-presse" id="presse-pers">${presseBlock(b)}</div>
-          <div class="sub ue-foe-h">Förderer bei der Übergabe</div>${uebTabelle(b)}</div>`
+          <div class="sub ue-foe-h">Förderer bei der Übergabe${zu.length ? rundKnopf('foe', 'Förderer zur Spendenübergabe einladen – gemeinsam (BCC) oder einzeln mit persönlicher Anrede') : ''}</div>${uebTabelle(b)}</div>`
         : '<p class="muted small ue-weg">Bei diesem Bedarf gibt es keine Spendenübergabe – über „+“ wieder anlegen.</p>'}
     </div>
     <div><h3>Verwendungsnachweis</h3>

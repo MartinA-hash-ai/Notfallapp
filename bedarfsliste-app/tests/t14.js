@@ -141,7 +141,7 @@ const { chromium, ok, open, finish } = require('./lib');
   r = await p.evaluate(() => DL.pop()); if (r) r[1] = r[1].replace(/\r\n /g, '');   // gefaltete Zeilen zusammensetzen
   ok(r && r[0] === 'Spendenübergabe Anna.ics' && r[1].includes('DTSTART:20261113T150000\r\nDTEND:20261113T160000') && r[1].includes('SUMMARY:Spendenübergabe Paderborn – Anna') && r[1].includes('CATEGORIES:Außentermin') && r[1].includes('X-MICROSOFT-CDO-BUSYSTATUS:OOF') && r[1].includes('LOCATION:Wache\\, Paderborn')
     && r[1].includes('Stiftung A: 5.000'), 'Kalendereintrag (.ics) mit Termin, Ort und Spendern: ' + (r ? r[0] : '-'));
-  await p.click('.ue-acts button[data-act="rundmail"][data-v="ueb"]');
+  await p.click('#presse-pers .k-rund');
   r = await p.evaluate(() => [...document.querySelectorAll('.modal .rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(','));
   ok(r === 'Gerd Gast+,Sara Sozial-,Tim Sozial-,Petra Presse+,Vera Vorort+', 'Rundmail intern: Zuständige und Presse angehakt: ' + r);
   await p.click('.modal .rm-k:has-text("Absprache für Spendenübergabe")');
@@ -150,14 +150,14 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(r[0] === 'gg@x.example;pp@x.example;vv@x.example' && r[1] === 'Spendenübergabe „Anna“ – Absprache' && r[2].includes('Wann: Freitag, 13.11.2026, 15:00 Uhr') && r[2].includes('Wo: Wache, Paderborn')
     && r[2].includes('- Stiftung A: 5.000 €') && r[2].includes('- Bank B: 1.000 €') && r[2].includes('wer von euch an der Übergabe teilnimmt'), 'Vorlage „Absprache für Spendenübergabe“ ausgefüllt: ' + r.join(' | ').replace(/\r?\n/g, '⏎'));
   // Förderer einladen: gemeinsam in BCC ohne persönliche Anrede, oder einzeln mit Namen und Betrag
-  await p.click('.ue-acts button[data-v="foe"]'); await p.waitForTimeout(100);
+  await p.click('.ue-foe-h .k-rund'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelector('.modal .rm-k.on b').textContent, document.querySelector('.modal .rm-modus .on').textContent,
     [...document.querySelectorAll('.modal .rm-g')].map(g => g.querySelector('.rm-gt').textContent + ':' + [...g.querySelectorAll('.rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(',')).join(' / ')]);
   ok(r.join('|') === 'Förderer zur Spendenübergabe einladen|Einladung zur Spendenübergabe|Gemeinsam (BCC)|Stiftung A:Anna Albers+ / Bank B:Bernd Bank+', 'Förderer einladen: Einladung vorgewählt, gemeinsam per BCC, Kontakte der Förderer: ' + r.join('|'));
   await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const u = MAILS.pop(), q = new URLSearchParams(u.split('?')[1]); return [u.split('?')[0], q.get('bcc'), q.get('body').split('\r\n')[0], q.get('body').includes('im Namen der Malteser in Paderborn'), q.get('body').includes('Höhe')]; });
   ok(r.join('|') === 'mailto:|aa@stiftung.example;bb@bank.example|Sehr geehrte Damen und Herren,|true|false', 'gemeinsam: alle in BCC, ohne Namen und Betrag: ' + r.join('|'));
-  await p.click('.ue-acts button[data-v="foe"]'); await p.waitForTimeout(100);
+  await p.click('.ue-foe-h .k-rund'); await p.waitForTimeout(100);
   await p.click('.modal .rm-modus button:text-is("Einzeln, persönlich")'); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelectorAll('.modal .rm-ez').length]);
   ok(r.join('|') === 'Einzeln schreiben|2', 'einzeln: je Kontakt ein Knopf: ' + r.join('|'));
@@ -218,7 +218,7 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(r.join('|') === 'MTW|k0,k1|MTW▾', 'noch einmal: Haken weg: ' + r.join('|'));
   // Prio-Sortierung und Stichwort-Filter überstehen das Neuladen
   await p.click('button[data-act="prio-kopf"]'); await p.waitForTimeout(50);
-  await Promise.all([p.waitForNavigation(), p.evaluate(() => { window.__blReload = true; saveUI(); location.reload(); })]); await p.waitForSelector('.list-head [data-act="sw-filter"]'); await p.waitForTimeout(300);
+  await Promise.all([p.waitForNavigation(), p.evaluate(() => { window.__blReload = true; saveUI(); location.reload(); })]); await p.waitForFunction(() => typeof UI !== 'undefined' && typeof D !== 'undefined' && D && document.querySelector('.list-head [data-act="sw-filter"]'), null, { timeout: 5000 }); await p.waitForTimeout(500);
   r = await p.evaluate(() => [UI.prioKopf, UI.fSw.join(), document.querySelector('button[data-act="sw-filter"]').textContent]);
   ok(r.join('|') === '1|MTW|MTW▾', 'nach dem Neuladen: Prio oben und Stichwort-Filter bleiben: ' + r.join('|'));
   await p.evaluate(() => {

@@ -73,7 +73,7 @@ function presseBlock(b) {
   const inhalt = ed ? personen(f.pers, { edit: true, p: 'nach.ueb.presse.pers', a: 'data-grp="presse"', mobil: true, max: 30, wer: 'Person', neu: [], ohnePlus: true })
     : Z.length ? personen(Z, { kompakt: true, mobil: true, lesen: true, wahl: { an: new Set(f.wahl || []), act: 'presse-wahl', t: ['Ist dabei – klicken: nicht mehr', 'Klicken: ist bei der Übergabe dabei (für Rundmail und Kalender)'] } }) : '<p class="muted small fach-hw">Niemand eingetragen – über „+“ aus der Personenliste dazunehmen (Spalte „Fachreferat“: Presse und Öffentlichkeit) oder jemanden vor Ort eintragen.</p>';
   const knopf = ed ? '<button class="k-fertig" data-act="k-fertig" data-grp="presse">Fertig</button>'
-    : (Z.some(p => p.mail) ? rundKnopf('presse', 'Rundmail an Presse und Öffentlichkeit') : '')
+    : (Z.some(p => p.mail) || b.zust.some(z => (z.mail || '').trim()) ? rundKnopf('ueb', 'Rundmail intern: an Presse und Öffentlichkeit und die Zuständigen – Einladung, Absprache, Pressetermin') : '')
     + `<button class="k-pliste k-plus" data-act="k-neu" data-grp="presse" title="Person hinzufügen – aus der Personenliste oder neu eintragen (z. B. jemand vor Ort)" aria-label="Person zu Presse und Öffentlichkeit hinzufügen">+</button>`
     + `<button class="k-pen fach-pen" data-act="k-edit" data-grp="presse" title="Personen und Kontaktdaten bearbeiten" aria-label="Presse und Öffentlichkeit bearbeiten">${ICON_PEN}</button>`;
   return `<div class="sub fach-kopf presse-kopf">Presse und Öffentlichkeit${weg && !ed ? `<span class="fach-plus" title="${weg} ausgeblendet – über „+“ wieder dazunehmen">(+${weg})</span>` : ''}${knopf}</div><div class="fach-liste presse-liste${ed ? ' fach-ed' : ''}">${inhalt}</div>`;
@@ -134,7 +134,7 @@ async function rundmail(b, art, wahl = '', modus0) {
   const an = new Set();
   const pw = new Set((GRP.presse.obj(b).wahl || []));                          // Presse: angeklickte vorwählen (niemand angeklickt: alle)
   G.forEach(([g, , L, ja]) => L.forEach(p => { if (p.mail && (foe ? ja && p.vor : vor.includes(g) && (g !== 'presse' || !pw.size || pw.has(kkey(p.n))))) an.add(g + '|' + kkey(p.n)); }));
-  const V = vorlagen().filter(v => v.fuer === art || v.fuer === 'alle'), W = vlWerte(b);
+  const V = vorlagen().filter(v => v.fuer === art || v.fuer === 'alle' || (art === 'ueb' && v.fuer === 'presse')), W = vlWerte(b);   // intern: auch die Vorlagen für die Presse
   if (wahl === undefined || (wahl && !V.some(v => v.id === wahl))) wahl = '';
   if (foe && wahl === '' && !modus0) wahl = (V.find(v => v.fuer === 'foe') || { id: '' }).id;   // Förderer: gleich die Einladung vorgewählt
   let zu = null, modus = modus0 || (an.size > 1 ? 'bcc' : 'einzeln');

@@ -455,29 +455,31 @@ async function manuellSetzen(b, v, nurGrund) {
   b.manuell = v; b.grundM = t.trim(); changed(); keep(renderNow);
 }
 // „Wer ist dabei?“: Person des Förderers wählen – seine Kontakte (meist aus der Förder-Kartei), jemand anderes oder niemand
+const vorOrtSetzen = (b, f, v) => { b.nach.ueb.vorOrt = Object.assign({}, b.nach.ueb.vorOrt, { [f.id]: v }); if (v && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id); changed(); closeMenus(); keep(renderNow); };
+// Name und E-Mail abfragen (andere Person, oder die E-Mail fehlt noch); neue kommen beim Förderer zu den Kontakten, fehlende E-Mail wird dort nachgetragen
+async function vorOrtFragen(b, f, vor) {
+  const n = h('input', { type: 'text', class: 'tf-feld', placeholder: 'Vorname Nachname', 'aria-label': 'Name', value: vor ? vor.n : '' }), m = h('input', { type: 'email', class: 'tf-feld', placeholder: 'name@beispiel.de', 'aria-label': 'E-Mail', value: vor ? vor.mail || '' : '' });
+  let zu = null; [n, m].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (x === n) m.focus(); else zu && zu(true); } }));
+  const ok = await modal('Wer ist dabei?', h('div', { class: 'tf' }, h('label', { class: 'tf-l' }, 'Name (für ' + f.name.trim() + ')'), n, h('label', { class: 'tf-l' }, 'E-Mail – für die Einladung'), m),
+    [['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: c => { zu = c; setTimeout(() => (vor && vor.n ? m : n).focus(), 80); } });
+  const nm = n.value.trim(), ma = mailText(m.value.trim()) || m.value.trim();
+  if (!ok || !nm) return;
+  if (!ma) toast('Ohne E-Mail lässt sich ' + nm + ' nicht einladen – beim Förderer unter „Kontakte“ nachtragen.', 'warn');
+  const k = f.kontakte.find(c => kkey(c.n) === kkey(nm));
+  if (k) { if (ma && !(k.mail || '').trim()) k.mail = ma; }
+  else if (f.kontakte.filter(c => !kontaktLeer(c)).length < MAX_KONTAKTE) f.kontakte = [...f.kontakte.filter(c => !kontaktLeer(c)), Object.assign(leerK(), { n: nm, mail: ma })];
+  vorOrtSetzen(b, f, { n: nm, mail: ma });
+}
 function vorOrtMenu(btn, b) {
   closeMenus();
   const f = b.foerderer.find(x => x.id === btn.dataset.fid); if (!f) return;
-  const setze = v => { b.nach.ueb.vorOrt = Object.assign({}, b.nach.ueb.vorOrt, { [f.id]: v }); if (v && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id); changed(); closeMenus(); keep(renderNow); };
   const K = f.kontakte.filter(c => (c.n || '').trim()), cur0 = vorOrt(b, f);
-  // jemand, der nicht unter den Kontakten steht: Name und E-Mail (für die Einladung); kommt beim Förderer zu den Kontakten
-  const anderePerson = async () => {
-    const n = h('input', { type: 'text', class: 'tf-feld', placeholder: 'Vorname Nachname', 'aria-label': 'Name' }), m = h('input', { type: 'email', class: 'tf-feld', placeholder: 'name@beispiel.de', 'aria-label': 'E-Mail' });
-    let zu = null; [n, m].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (x === n) m.focus(); else zu && zu(true); } }));
-    const ok = await modal('Wer ist dabei?', h('div', { class: 'tf' }, h('label', { class: 'tf-l' }, 'Name (für ' + f.name.trim() + ')'), n, h('label', { class: 'tf-l' }, 'E-Mail – für die Einladung'), m),
-      [['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: c => { zu = c; setTimeout(() => n.focus(), 80); } });
-    const nm = n.value.trim(), ma = mailText(m.value.trim()) || m.value.trim();
-    if (!ok || !nm) return;
-    if (!ma) toast('Ohne E-Mail lässt sich ' + nm + ' nicht einladen – beim Förderer unter „Kontakte“ nachtragen.', 'warn');
-    if (!f.kontakte.some(c => kkey(c.n) === kkey(nm)) && f.kontakte.filter(c => !kontaktLeer(c)).length < MAX_KONTAKTE) f.kontakte = [...f.kontakte.filter(c => !kontaktLeer(c)), Object.assign(leerK(), { n: nm, mail: ma })];
-    setze({ n: nm, mail: ma });
-  };
-  if (!K.length) { anderePerson(); return; }                                       // noch kein Kontakt beim Förderer: gleich Name und E-Mail abfragen
+  if (!K.length) { vorOrtFragen(b, f); return; }                                  // noch kein Kontakt beim Förderer: gleich Name und E-Mail abfragen
   const m = h('div', { class: 'menu vo-pop', role: 'menu' },
-    K.length ? K.map(c => h('button', { role: 'menuitem', class: cur0 && kkey(cur0.n) === kkey(c.n) ? 'on' : '', onclick: () => setze({ n: c.n.trim(), mail: (c.mail || '').trim() }) },
-      c.n.trim(), c.rolle ? h('span', { class: 'muted small' }, ' · ' + c.rolle) : null)) : h('div', { class: 'muted small vo-leer' }, 'Beim Förderer sind noch keine Kontakte eingetragen.'),
-    h('hr'), h('button', { role: 'menuitem', onclick: () => { closeMenus(); anderePerson(); } }, 'Andere Person …'),
-    h('button', { role: 'menuitem', onclick: () => setze(null) }, 'Niemand'));
+    K.map(c => h('button', { role: 'menuitem', class: cur0 && kkey(cur0.n) === kkey(c.n) ? 'on' : '', onclick: () => vorOrtSetzen(b, f, { n: c.n.trim(), mail: (c.mail || '').trim() }) },
+      c.n.trim(), c.rolle ? h('span', { class: 'muted small' }, ' · ' + c.rolle) : null)),
+    h('hr'), h('button', { role: 'menuitem', onclick: () => { closeMenus(); vorOrtFragen(b, f); } }, 'Andere Person …'),
+    h('button', { role: 'menuitem', onclick: () => vorOrtSetzen(b, f, null) }, 'Niemand'));
   placePop(m, btn);
 }
 function foeWeiter(el) {
@@ -635,6 +637,10 @@ async function act(k, a, e) {
     case 'ics': icsLaden(b); return;
     case 'presse-wahl': { const f = GRP.presse.obj(b), W = (f.wahl || []).slice(), i = W.indexOf(a.dataset.k); if (i >= 0) W.splice(i, 1); else W.push(a.dataset.k); f.wahl = W; changed(); swap('presse-pers', presseBlock(b), true); return; }
     case 'vor-ort': vorOrtMenu(a, b); return;
+    case 'vo-mail': { const f = b.foerderer.find(x => x.id === a.dataset.fid); if (f) vorOrtFragen(b, f, vorOrt(b, f)); return; }
+    case 'einl-cal': { const E = b.nach.ueb.einl = Object.assign({}, b.nach.ueb.einl), id = a.dataset.fid;
+      calPop(a, (E[id] || {}).am, v => { E[id] = Object.assign({}, E[id], { am: v || '' }); changed(); keep(renderNow); }, { clear: 'Nicht eingeladen' }); return; }
+    case 'vn-st': { const f = b.foerderer.find(x => x.id === a.dataset.fid); if (f) { f.vn.st = a.dataset.v; changed(); } break; }
     case 'einl-raus': { const E = b.nach.ueb.einl = Object.assign({}, b.nach.ueb.einl), e = E[a.dataset.fid] = Object.assign({}, E[a.dataset.fid]); e.am = e.am ? '' : today(); changed(); break; }
     case 'einl-zu': { const E = b.nach.ueb.einl = Object.assign({}, b.nach.ueb.einl), e = E[a.dataset.fid] = Object.assign({}, E[a.dataset.fid]); e.zu = ({ '': 'ja', ja: 'nein', nein: '' })[e.zu || '']; changed(); break; }
     case 'ueb-weg': if (!await confirmBox('Spendenübergabe löschen?', 'Bei diesem Bedarf gibt es dann keine Spendenübergabe – auch nicht in der Liste. Termin, Ort und Notizen bleiben gespeichert und kommen zurück, wenn du sie über „+“ wieder anlegst.', 'Löschen')) return;

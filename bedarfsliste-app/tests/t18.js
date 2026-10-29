@@ -38,7 +38,7 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
     && desc.includes('Stiftung A: 3.000 € – vor Ort: Otto Ohm') && desc.includes('Bank B: 2.000 €') && !desc.includes('Bank B: 2.000 € – vor Ort') && desc.includes('Presse und Öffentlichkeit: Anke Presse') && desc.includes('Notizen:\\nFotos im Hof'),
     'Kalendereintrag: Titel „Spendenübergabe Ort – Bedarf“, Außentermin, abwesend, alles in der Beschreibung: ' + desc.slice(0, 260));
   // Rundmail intern: Einladung (intern) mit Platzhaltern, Presse nur die angeklickte, .ics wird mit heruntergeladen
-  await p.click('.ue-acts button[data-v="ueb"]'); await p.waitForTimeout(100);
+  await p.click('#presse-pers .k-rund'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [...document.querySelectorAll('.modal .rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(','));
   ok(r === 'Gerd Gast+,Anke Presse+,Rieke Presse-', 'intern: Zuständige und nur die angeklickte Presse: ' + r);
   await p.click('.modal .rm-k:has-text("Einladung zur Spendenübergabe (intern)")');
@@ -48,7 +48,7 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   ok(r[0] === 'gg@x.example;ap@x.example' && r[1] === 'Einladung: Spendenübergabe Brakel – Zelt' && r[2].includes('Von den Förderern vor Ort:\r\n- Stiftung A: Otto Ohm') && r[2].includes('Presse und Öffentlichkeit: Anke Presse')
     && r[2].includes('Notizen:\r\nFotos im Hof') && r[3] === 'Spendenübergabe Zelt.ics', 'interne Einladung ausgefüllt, .ics heruntergeladen: ' + r.slice(0, 2).join(' | ') + ' | ' + r[3]);
   // Förderer einladen: die Person vor Ort ist vorgewählt
-  await p.click('.ue-acts button[data-v="foe"]'); await p.waitForTimeout(100);
+  await p.click('.ue-foe-h .k-rund'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [...document.querySelectorAll('.modal .rm-p')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '+' : '-')).join(','));
   ok(r === 'Anna Albers-,Otto Ohm+,Bernd Bank-', 'Förderer einladen: nur die Person vor Ort angehakt (Bank B nicht dabei): ' + r);
   await p.click('.modal header .x');
@@ -69,22 +69,49 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   r = await p.evaluate(() => [JSON.stringify(cur().nach.ueb.einl[cur().foerderer[0].id]), document.querySelector('#sec-nach .ue-tab tr [data-act="einl-zu"]').textContent]);
   ok(r[0] === JSON.stringify({ am: await p.evaluate(() => today()), zu: 'ja' }) && r[1] === '✓ kommt', 'Eingeladen (heute) und Zusage „kommt“: ' + r.join('|'));
   await p.click('#sec-nach .ue-tab tr:has-text("Stiftung A") [data-act="einl-raus"]'); await p.waitForTimeout(80);
-  await p.click('.ue-acts button[data-v="foe"]'); await p.waitForTimeout(100); await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  await p.click('.ue-foe-h .k-rund'); await p.waitForTimeout(100); await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
   await p.click('.modal .rm-ez button'); await p.waitForTimeout(100); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);   // nur eine Person: einzeln
   ok(await p.evaluate(() => cur().nach.ueb.einl[cur().foerderer[0].id].am === today()), '„Förderer einladen“ vermerkt die Einladung von selbst');
   // Verwendungsnachweis: Überschrift, „Nachweis bis“, nur zwei Stände, × = nicht nötig
   r = await p.evaluate(() => { const c = document.querySelector('#sec-nach .grid.two > div:last-child'); return [c.querySelector('h3').textContent, c.querySelector('.vn-b .na-title').textContent, c.querySelector('.vn-z label').textContent.trim(), [...c.querySelector('.vn-b .seg').children].map(x => x.textContent).join(',')]; });
   ok(r.join('|') === 'Verwendungsnachweis|Stiftung A|Nachweis bis|steht aus,erledigt', 'Verwendungsnachweis je Förderer mit zwei Ständen: ' + r.join('|'));
   await p.click('#nl-' + await p.evaluate(() => cur().foerderer[0].id) + ' .ue-x'); await p.waitForTimeout(80);
-  ok(await p.evaluate(() => !cur().foerderer[0].vn.noetig && document.querySelector('#nl-' + cur().foerderer[0].id).textContent.includes('kein Nachweis nötig')), '× beim Förderer: kein Nachweis nötig („doch nötig“ holt ihn zurück)');
+  ok(await p.evaluate(() => !cur().foerderer[0].vn.noetig && document.querySelector('#nl-' + cur().foerderer[0].id).textContent.includes('kein Verwendungsnachweis nötig') && !!document.querySelector('#nl-' + cur().foerderer[0].id + '.vn-1 .ue-x svg')), '× beim Förderer: einzeilig „kein Verwendungsnachweis nötig“ mit Pfeil zurück');
   // Spendenübergabe löschen (mit Rückfrage) und wieder anlegen; in der Liste „keine Übergabe“
-  r = await p.evaluate(() => [document.querySelector('#sec-nach .grid.two > div h3').textContent, !document.querySelector('[data-p="nach.ueb.noetig"]')]);
-  ok(r.join('|') === 'Spendenübergabe|true', 'Überschrift „Spendenübergabe“, kein Haken mehr: ' + r.join('|'));
-  await p.click('#sec-nach .ue-kopf .ue-x'); await p.waitForSelector('.modal h2:text-is("Spendenübergabe löschen?")'); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const h3 = document.querySelector('#sec-nach .grid.two > div h3'); return [h3.firstChild.textContent, [...h3.querySelectorAll('.ue-h-r > *')].map(x => x.className.split(' ')[0] + (x.dataset.act ? ':' + x.dataset.act : '')).join(','), !document.querySelector('[data-p="nach.ueb.noetig"]'), !document.querySelector('.ue-acts'), document.querySelector('.ue-zeit').textContent.includes('Uhr')]; });
+  ok(r.join('|') === 'Spendenübergabe|ue-x:ics,seg,ue-x:ueb-weg|true|true|true', 'Kopf: „Spendenübergabe“, rechts Export, Stand, ×; keine Knopfleiste mehr; „Uhr“ hinter der Uhrzeit: ' + r.join('|'));
+  await p.click('#sec-nach .ue-h [data-act="ueb-weg"]'); await p.waitForSelector('.modal h2:text-is("Spendenübergabe löschen?")'); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [cur().nach.ueb.noetig, !!document.querySelector('#sec-nach .ue-plus'), !document.querySelector('#sec-nach .ue-tab'), kUebergabe(cur()).replace(/<[^>]+>/g, '')]);
   ok(r.join('|') === 'false|true|true|keine Übergabe', 'gelöscht: nur noch „+“, in der Liste „keine Übergabe“: ' + r.join('|'));
   await p.click('#sec-nach .ue-plus'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => cur().nach.ueb.noetig && cur().nach.ueb.ort === 'Am Markt 1, 33034 Brakel' && !!document.querySelector('#sec-nach .ue-tab')), '„+“ legt sie wieder an, Angaben sind noch da');
+
+  // 0.71: erledigt einzeilig mit Pfeil zurück; „ohne E-Mail“ (rot) fragt nach; Kalender bei „Eingeladen“; Spalten wackeln nicht
+  const fB = await p.evaluate(() => cur().foerderer[1].id);
+  await p.click(`#nl-${fB} [data-p="vn.st"][data-v="erledigt"]`); await p.waitForTimeout(100);
+  r = await p.evaluate(id => { const e = document.querySelector('#nl-' + id); return [e.classList.contains('vn-1'), e.textContent.replace(/\s+/g, ' ').trim(), !!e.querySelector('[data-act="vn-st"] svg')]; }, fB);
+  ok(r.join('|') === 'true|Bank B✓ erledigt|true', 'erledigt: eine Zeile mit grünem Haken und Pfeil zurück: ' + r.join('|'));
+  await p.click(`#nl-${fB} [data-act="vn-st"]`); await p.waitForTimeout(100);
+  ok(await p.evaluate(id => cur().foerderer[1].vn.st === 'offen' && !!document.querySelector('#nl-' + id + ' .vn-z'), fB), 'Pfeil zurück: wieder „steht aus“');
+  await p.evaluate(() => { const f = cur().foerderer[0]; cur().nach.ueb.vorOrt = { [f.id]: { n: 'Peter Beispiel', mail: '' } }; changed(); renderNow(); document.querySelector('#sec-nach .ue-tab').scrollIntoView({ block: 'center' }); });
+  await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const o = document.querySelector('#sec-nach .vo-ohne'); return [o.textContent, getComputedStyle(o).color === getComputedStyle(document.documentElement).getPropertyValue('--red').trim().replace(/^#(..)(..)(..)$/, (m, a, b2, c) => 'rgb(' + [a, b2, c].map(x => parseInt(x, 16)).join(', ') + ')')]; });
+  ok(r.join('|') === 'ohne E-Mail|true', '„ohne E-Mail“ in Rot: ' + r.join('|'));
+  await p.click('#sec-nach .vo-ohne'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelector('.modal input[aria-label="Name"]').value, document.activeElement.getAttribute('aria-label')]);
+  ok(r.join('|') === 'Wer ist dabei?|Peter Beispiel|E-Mail', 'Klick fragt nach, Name schon drin, Schreibmarke in der E-Mail: ' + r.join('|'));
+  await p.keyboard.type('pb@x.example'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => vorOrt(cur(), cur().foerderer[0]).mail === 'pb@x.example' && !document.querySelector('#sec-nach .vo-ohne')), 'E-Mail nachgetragen');
+  const breite = () => p.evaluate(() => [...document.querySelectorAll('#sec-nach .ue-tab thead th')].map(t => Math.round(t.getBoundingClientRect().width)).join(','));
+  const w0 = await breite();
+  for (let i = 0; i < 3; i++) { await p.click('#sec-nach .ue-tab tbody tr:first-child [data-act="einl-zu"]'); await p.waitForTimeout(80); }
+  await p.click('#sec-nach .ue-tab tbody tr:first-child [data-act="einl-raus"]'); await p.waitForTimeout(80);
+  ok(await breite() === w0, 'Spaltenbreiten bleiben gleich beim Umschalten: ' + w0);
+  if (!(await p.$('#sec-nach .ue-tab tbody tr:first-child .ue-cal'))) { await p.click('#sec-nach .ue-tab tbody tr:first-child [data-act="einl-raus"]'); await p.waitForTimeout(80); }
+  ok(await breite() === w0, 'auch mit Datum und Kalender gleich breit');
+  r = await p.evaluate(() => !!document.querySelector('#sec-nach .ue-tab tbody tr:first-child .ue-cal'));
+  if (r) { await p.click('#sec-nach .ue-tab tbody tr:first-child .ue-cal'); await p.waitForTimeout(150); }
+  ok(r && await p.evaluate(() => !!document.querySelector('.cal-pop')), 'Kalender neben dem Datum der Einladung öffnet die Datumswahl');
 
   await finish(b, [p]);
 })();
