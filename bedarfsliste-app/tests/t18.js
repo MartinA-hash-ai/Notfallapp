@@ -23,7 +23,7 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   ok(r === 'Stiftung:Anna Albers,Bank:Bernd Bank', 'hinter dem Förderer die Person (Hauptkontakt): ' + r);
   await p.click('#sec-nach .ue-tab tr:has-text("Stiftung A") .vo-n'); await menuKlick(p, 'Otto Ohm'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [JSON.stringify(cur().nach.ueb.vorOrt), cur().nach.ueb.mit.join() === cur().foerderer[0].id, document.querySelector('#sec-nach .ue-tab tbody .vo-n').textContent]);
-  ok(r.join('|') === '{"' + await p.evaluate(() => cur().foerderer[0].id) + '":{"n":"Otto Ohm","mail":"oo@x.example"}}|true|Otto Ohm', 'andere Person gewählt, Förderer gleich als dabei angehakt: ' + r.join('|'));
+  ok(r.join('|') === '{"' + await p.evaluate(() => cur().foerderer[0].id) + '":{"n":"Otto Ohm","mail":"oo@x.example","pos":""}}|true|Otto Ohm', 'andere Person gewählt, Förderer gleich als dabei angehakt: ' + r.join('|'));
   // Presse: Route-Text weg, Kontaktdaten nur als Symbole; anklicken = dabei, die andere blass
   r = await p.evaluate(() => [!document.querySelector('.ue-route').textContent.includes('Google Maps'), document.querySelector('#presse-pers').textContent.includes('ap@x.example'), !!document.querySelector('#presse-pers a[href="mailto:ap@x.example"]')]);
   ok(r.join('|') === 'true|false|true', 'ohne „Route in Google Maps:“, Presse ohne ausgeschriebene Kontaktdaten: ' + r.join('|'));
@@ -54,9 +54,9 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   await p.click('.modal header .x');
   // Andere Person (nicht unter den Kontakten), dann „Niemand“
   await p.click('#sec-nach .ue-tab tr:has-text("Bank B") .vo-n'); await menuKlick(p, 'Andere Person'); await p.waitForTimeout(100);
-  await p.keyboard.type('Clara Chef'); await p.keyboard.press('Enter'); await p.keyboard.type('cc@x.example'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
-  r = await p.evaluate(() => [document.querySelectorAll('#sec-nach .ue-tab tbody .vo-n')[1].textContent, vlWerte(cur()).vorort]);
-  ok(r[0] === 'Clara Chef' && r[1] === '- Stiftung A: Otto Ohm\n- Bank B: Clara Chef', 'andere Person eingetragen, Bank B nun dabei: ' + r.join(' | '));
+  await p.keyboard.type('Clara Chef'); await p.keyboard.press('Enter'); await p.keyboard.type('cc@x.example'); await p.keyboard.press('Enter'); await p.keyboard.type('Filialleiterin'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [document.querySelectorAll('#sec-nach .ue-tab tbody .vo-n')[1].textContent, vlWerte(cur()).vorort, cur().foerderer[1].kontakte.find(k => k.n === 'Clara Chef').rolle, document.querySelectorAll('#sec-nach .ue-tab tbody .vo-pos')[0].textContent]);
+  ok(r[0] === 'Clara Chef' && r[1] === '- Stiftung A: Otto Ohm\n- Bank B: Clara Chef (Filialleiterin)' && r[2] === 'Filialleiterin' && r[3] === 'Filialleiterin', 'andere Person mit E-Mail und Position eingetragen (auch beim Kontakt), Bank B nun dabei: ' + r.join(' | '));
   await p.click('#sec-nach .ue-tab tr:has-text("Bank B") .vo-n'); await menuKlick(p, 'Niemand'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => document.querySelectorAll('#sec-nach .ue-tab tbody .vo-n')[1].textContent) === 'Person wählen', '„Niemand“: wieder offen');
   await p.click('#sec-nach .ue-tab tr:has-text("Bank B") [data-act="mit"]'); await p.waitForTimeout(100);
@@ -95,7 +95,7 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   await p.click(`#nl-${fB} [data-p="vn.st"][data-v="erledigt"]`); await p.waitForTimeout(100);
   r = await p.evaluate(id => { const e = document.querySelector('#nl-' + id); return [e.classList.contains('vn-1'), e.textContent.replace(/\s+/g, ' ').trim(), !!e.querySelector('[data-act="vn-st"] svg')]; }, fB);
   ok(await p.evaluate(id => { const e = document.querySelector('#nl-' + id), n = document.querySelector('.vn-nn'); return getComputedStyle(e).backgroundColor === getComputedStyle(document.documentElement).getPropertyValue('--okbg').trim().replace(/^#(..)(..)(..)$/, (m, r, g, b) => `rgb(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)})`) && (!n || +getComputedStyle(n).opacity < .7); }, fB), '0.72: erledigt mit grünem Hintergrund, nicht nötig blass');
-  ok(r.join('|') === 'true|Bank B·✓ erledigt|true', 'erledigt: links beim Förderer mit Punkt, eine Zeile mit grünem Haken und Pfeil zurück: ' + r.join('|'));
+  ok(r.join('|') === 'true|Bank B✓ erledigt|true', 'erledigt: links beim Förderer ohne Punkt, eine Zeile mit grünem Haken und Pfeil zurück: ' + r.join('|'));
   await p.click(`#nl-${fB} [data-act="vn-st"]`); await p.waitForTimeout(100);
   ok(await p.evaluate(id => cur().foerderer[1].vn.st === 'offen' && !!document.querySelector('#nl-' + id + ' .vn-z'), fB), 'Pfeil zurück: wieder „steht aus“');
   await p.evaluate(() => { const f = cur().foerderer[0]; cur().nach.ueb.vorOrt = { [f.id]: { n: 'Peter Beispiel', mail: '' } }; changed(); renderNow(); document.querySelector('#sec-nach .ue-tab').scrollIntoView({ block: 'center' }); });
@@ -105,7 +105,7 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   await p.click('#sec-nach .vo-ohne'); await p.waitForTimeout(150);
   r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelector('.modal input[aria-label="Name"]').value, document.activeElement.getAttribute('aria-label')]);
   ok(r.join('|') === 'Wer ist dabei?|Peter Beispiel|E-Mail', 'Klick fragt nach, Name schon drin, Schreibmarke in der E-Mail: ' + r.join('|'));
-  await p.keyboard.type('pb@x.example'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  await p.keyboard.type('pb@x.example'); await p.keyboard.press('Enter'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => vorOrt(cur(), cur().foerderer[0]).mail === 'pb@x.example' && !document.querySelector('#sec-nach .vo-ohne')), 'E-Mail nachgetragen');
   const breite = () => p.evaluate(() => [...document.querySelectorAll('#sec-nach .ue-tab thead th')].map(t => Math.round(t.getBoundingClientRect().width)).join(','));
   const w0 = await breite();

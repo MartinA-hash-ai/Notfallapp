@@ -456,19 +456,21 @@ async function manuellSetzen(b, v, nurGrund) {
 }
 // „Wer ist dabei?“: Person des Förderers wählen – seine Kontakte (meist aus der Förder-Kartei), jemand anderes oder niemand
 const vorOrtSetzen = (b, f, v) => { b.nach.ueb.vorOrt = Object.assign({}, b.nach.ueb.vorOrt, { [f.id]: v }); if (v && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id); changed(); closeMenus(); keep(renderNow); };
-// Name und E-Mail abfragen (andere Person, oder die E-Mail fehlt noch); neue kommen beim Förderer zu den Kontakten, fehlende E-Mail wird dort nachgetragen
+// Name, E-Mail und Position abfragen (andere Person, oder die E-Mail fehlt noch); neue kommen beim Förderer zu den Kontakten, Fehlendes wird dort nachgetragen.
+// Die Position braucht Presse und Öffentlichkeit für die Pressemitteilung (steht in der Rundmail intern bei {vorort})
 async function vorOrtFragen(b, f, vor) {
   const n = h('input', { type: 'text', class: 'tf-feld', placeholder: 'Vorname Nachname', 'aria-label': 'Name', value: vor ? vor.n : '' }), m = h('input', { type: 'email', class: 'tf-feld', placeholder: 'name@beispiel.de', 'aria-label': 'E-Mail', value: vor ? vor.mail || '' : '' });
-  let zu = null; [n, m].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (x === n) m.focus(); else zu && zu(true); } }));
-  const ok = await modal('Wer ist dabei?', h('div', { class: 'tf' }, h('label', { class: 'tf-l' }, 'Name (für ' + f.name.trim() + ')'), n, h('label', { class: 'tf-l' }, 'E-Mail – für die Einladung'), m),
-    [['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: c => { zu = c; setTimeout(() => (vor && vor.n ? m : n).focus(), 80); } });
-  const nm = n.value.trim(), ma = mailText(m.value.trim()) || m.value.trim();
+  const po = h('input', { type: 'text', class: 'tf-feld', placeholder: 'z. B. Vorstand, Filialleitung', 'aria-label': 'Position', value: vor ? vor.pos || '' : '' });
+  let zu = null; [n, m, po].forEach(x => x.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); if (x === n) m.focus(); else if (x === m) po.focus(); else zu && zu(true); } }));
+  const ok = await modal('Wer ist dabei?', h('div', { class: 'tf' }, h('label', { class: 'tf-l' }, 'Name (für ' + f.name.trim() + ')'), n, h('label', { class: 'tf-l' }, 'E-Mail – für die Einladung'), m, h('label', { class: 'tf-l' }, 'Position – für Presse und Öffentlichkeit (Pressemitteilung)'), po),
+    [['Abbrechen', false], ['Übernehmen', true, 'primary']], { expose: c => { zu = c; setTimeout(() => (vor && vor.n ? (vor.mail ? po : m) : n).focus(), 80); } });
+  const nm = n.value.trim(), ma = mailText(m.value.trim()) || m.value.trim(), ps = po.value.trim();
   if (!ok || !nm) return;
   if (!ma) toast('Ohne E-Mail lässt sich ' + nm + ' nicht einladen – beim Förderer unter „Kontakte“ nachtragen.', 'warn');
   const k = f.kontakte.find(c => kkey(c.n) === kkey(nm));
-  if (k) { if (ma && !(k.mail || '').trim()) k.mail = ma; }
-  else if (f.kontakte.filter(c => !kontaktLeer(c)).length < MAX_KONTAKTE) f.kontakte = [...f.kontakte.filter(c => !kontaktLeer(c)), Object.assign(leerK(), { n: nm, mail: ma })];
-  vorOrtSetzen(b, f, { n: nm, mail: ma });
+  if (k) { if (ma && !(k.mail || '').trim()) k.mail = ma; if (ps && !(k.rolle || '').trim()) k.rolle = ps; }
+  else if (f.kontakte.filter(c => !kontaktLeer(c)).length < MAX_KONTAKTE) f.kontakte = [...f.kontakte.filter(c => !kontaktLeer(c)), Object.assign(leerK(), { n: nm, mail: ma, rolle: ps })];
+  vorOrtSetzen(b, f, { n: nm, mail: ma, pos: ps });
 }
 function vorOrtMenu(btn, b) {
   closeMenus();
@@ -476,7 +478,7 @@ function vorOrtMenu(btn, b) {
   const K = f.kontakte.filter(c => (c.n || '').trim()), cur0 = vorOrt(b, f);
   if (!K.length) { vorOrtFragen(b, f); return; }                                  // noch kein Kontakt beim Förderer: gleich Name und E-Mail abfragen
   const m = h('div', { class: 'menu vo-pop', role: 'menu' },
-    K.map(c => h('button', { role: 'menuitem', class: cur0 && kkey(cur0.n) === kkey(c.n) ? 'on' : '', onclick: () => vorOrtSetzen(b, f, { n: c.n.trim(), mail: (c.mail || '').trim() }) },
+    K.map(c => h('button', { role: 'menuitem', class: cur0 && kkey(cur0.n) === kkey(c.n) ? 'on' : '', onclick: () => vorOrtSetzen(b, f, { n: c.n.trim(), mail: (c.mail || '').trim(), pos: (c.rolle || '').trim() }) },
       c.n.trim(), c.rolle ? h('span', { class: 'muted small' }, ' · ' + c.rolle) : null)),
     h('hr'), h('button', { role: 'menuitem', onclick: () => { closeMenus(); vorOrtFragen(b, f); } }, 'Andere Person …'),
     h('button', { role: 'menuitem', onclick: () => vorOrtSetzen(b, f, null) }, 'Niemand'));

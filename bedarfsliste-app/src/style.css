@@ -1364,3 +1364,6 @@ table.ue-tab tr.aus td.ut-d { opacity: 1; }
 .vn-1 .vn-t { font-weight: 400; }
 .vn-1.vn-erl .vn-t, .vn-1.vn-erl .vn-pkt { color: var(--okink); }
 #sec-nach .vo-n.leer { color: var(--faint); }
+/* 0.74: „dabei“ grau statt grün (heißt noch nicht, dass jemand zugesagt hat); Position unter der Person vor Ort */
+table.ue-tab .ue-mit.c-ok { background: var(--hover); border-color: var(--ink2); color: var(--ink2); }
+.vo-pos { margin-top: 1px; line-height: 1.2; }

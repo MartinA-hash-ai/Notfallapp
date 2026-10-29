@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.74.0",
+    "date": "2026-10-30T23:00",
+    "items": [
+      "„Dabei“ grau statt grün – dabei heißt noch nicht, dass jemand zugesagt hat",
+      "Person vor Ort: bei neuen Personen werden Name, E-Mail und Position abgefragt; die Position steht unter dem Namen, kommt zum Kontakt beim Förderer und in die Rundmail intern ({vorort}) sowie den Kalendereintrag",
+      "Spendenübergabe „erledigt“ grün wie beim Verwendungsnachweis, offen und terminiert schwarz",
+      "Verwendungsnachweis erledigt: ohne Punkt zwischen Förderer und Haken"
+    ]
+  },
+  {
     "version": "0.73.0",
     "date": "2026-10-30T22:00",
     "items": [

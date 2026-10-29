@@ -33,7 +33,7 @@ const VL_STD = [
     text: 'Hallo zusammen,\n\nzur Info: Die Finanzierung für „{bedarf}“ ({gliederung}) steht. Gespendet haben:\n{spender}\n\nDie Spendenübergabe stimmen wir mit der Gliederung ab – wenn ihr dabei sein möchtet, gebt mir kurz Bescheid.\n\nViele Grüße' },
 ];
 const VL_PLATZ = [['bedarf', 'Name des Bedarfs'], ['gliederung', 'Gliederung'], ['summe', 'Summe des Bedarfs'], ['wann', 'Termin der Spendenübergabe mit Uhrzeit'], ['ort', 'Ort der Spendenübergabe'],
-  ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner'], ['beschreibung', 'Beschreibung des Bedarfs'], ['anrede', 'Förderer: einzeln „Guten Tag Name,“, gemeinsam „Sehr geehrte Damen und Herren,“'], ['malteser', '„der Malteser in Brakel“ bzw. „… in der Diözese Paderborn“'], ['ihre_foerderung', 'einzeln: „ in Höhe von 5.000 €“, gemeinsam leer'], ['foerderer', 'einzeln: Name des Förderers'], ['ortkurz', 'Gliederung bzw. Ort ohne Adresse (z. B. Paderborn)'], ['vorort', 'je Förderer, wer bei der Übergabe dabei ist'], ['presse', 'die angeklickte Person aus Presse und Öffentlichkeit'], ['notizen', 'Notizen zur Übergabe (mit Überschrift, sonst leer)'], ['fehlt', 'Unterlagen, die noch fehlen, je Zeile eine']];
+  ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner'], ['beschreibung', 'Beschreibung des Bedarfs'], ['anrede', 'Förderer: einzeln „Guten Tag Name,“, gemeinsam „Sehr geehrte Damen und Herren,“'], ['malteser', '„der Malteser in Brakel“ bzw. „… in der Diözese Paderborn“'], ['ihre_foerderung', 'einzeln: „ in Höhe von 5.000 €“, gemeinsam leer'], ['foerderer', 'einzeln: Name des Förderers'], ['ortkurz', 'Gliederung bzw. Ort ohne Adresse (z. B. Paderborn)'], ['vorort', 'je Förderer, wer bei der Übergabe dabei ist, mit Position'], ['presse', 'die angeklickte Person aus Presse und Öffentlichkeit'], ['notizen', 'Notizen zur Übergabe (mit Überschrift, sonst leer)'], ['fehlt', 'Unterlagen, die noch fehlen, je Zeile eine']];
 const vorlagen = () => { const S = D.settings, eig = Array.isArray(S.vorlagen) ? S.vorlagen : [], weg = new Set(S.vorlagenWeg || []);
   return [...eig, ...VL_STD.filter(v => !weg.has(v.id) && !eig.some(e => e.id === v.id))]; };   // neue mitgelieferte kommen dazu
 const WTAG = ['Sonntag', 'Montag', 'Dienstag', 'Mittwoch', 'Donnerstag', 'Freitag', 'Samstag'];
@@ -46,7 +46,7 @@ function vlWerte(b) {
     beschreibung: String(b.beschreibung || '').replace(/\*\*|__|~~/g, '').replace(/^\s*[*•]\s+/gm, '- ').trim() || '(noch keine Beschreibung)',
     anrede: 'Sehr geehrte Damen und Herren,', ihre_foerderung: '', foerderer: '', malteser: !b.gliederung || b.gliederung === DIO ? 'der Malteser in der Diözese Paderborn' : 'der Malteser in ' + b.gliederung,
     fehlt: b.unterlagen.filter(u => u.st === 'fehlt' || u.st === 'arbeit').map(u => '- ' + u.name).join('\n') || '- (alles da)',
-    ortkurz: ortKurz(b), vorort: dabeiListe(b).map(({ f, p }) => '- ' + f.name.trim() + ': ' + (p ? p.n : 'noch offen')).join('\n') || '- (noch niemand ausgewählt)',
+    ortkurz: ortKurz(b), vorort: dabeiListe(b).map(({ f, p }) => '- ' + f.name.trim() + ': ' + (p ? p.n + (p.pos ? ' (' + p.pos + ')' : '') : 'noch offen')).join('\n') || '- (noch niemand ausgewählt)',
     presse: presseGewaehlt(b).map(p => p.n).join(', ') || 'noch offen', notizen: u.info.trim() ? 'Notizen:\n' + u.info.trim() : '' };
 }
 // Ort für Titel und Kalender: die Gliederung (bei der Diözese der Ort aus der Adresse, sonst „Diözese“)
@@ -54,8 +54,9 @@ const ortKurz = b => b.gliederung && b.gliederung !== DIO ? b.gliederung : (b.na
 // wer vom Förderer bei der Übergabe dabei ist: von Hand gewählt (nach.ueb.vorOrt), sonst der Hauptkontakt aus dem Förderer (meist aus der Förder-Kartei)
 function vorOrt(b, f) {
   const V = b.nach.ueb.vorOrt || {};
-  if (f.id in V) return V[f.id] && V[f.id].n ? V[f.id] : null;                       // null: bewusst niemand
-  const c = f.kontakte.find(k => (k.n || '').trim()); return c ? { n: c.n.trim(), mail: (c.mail || '').trim() } : null;
+  const rolle = n => { const c = f.kontakte.find(k => kkey(k.n) === kkey(n)); return c ? (c.rolle || '').trim() : ''; };   // Position: gespeichert oder aus den Kontakten
+  if (f.id in V) return V[f.id] && V[f.id].n ? Object.assign({}, V[f.id], { pos: V[f.id].pos || rolle(V[f.id].n) }) : null;   // null: bewusst niemand
+  const c = f.kontakte.find(k => (k.n || '').trim()); return c ? { n: c.n.trim(), mail: (c.mail || '').trim(), pos: (c.rolle || '').trim() } : null;
 }
 // die Förderer der Übergabe: bei „Wer ist dabei?“ angehakt, sonst alle mit Zusage
 const dabeiListe = b => { const Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), M = b.foerderer.filter(f => b.nach.ueb.mit.includes(f.id) && f.name.trim());
@@ -90,7 +91,7 @@ function icsBlob(b) {
   // Beschreibung: Bedarf, Förderer mit Summe und wer von ihnen vor Ort ist, Presse und Öffentlichkeit, Notizen
   const Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), dabei = new Map(dabeiListe(b).map(x => [x.f.id, x.p]));
   const beschr = ['Bedarf: ' + W.bedarf + (b.summe ? ' (' + eur(b.summe) + ')' : '') + (W.gliederung ? ' – ' + W.gliederung : ''), '',
-    'Förderer:', ...(Z.length ? Z.map(f => '- ' + f.name.trim() + (foeAmt(f) ? ': ' + eur(foeAmt(f)) : '') + (dabei.has(f.id) ? ' – vor Ort: ' + (dabei.get(f.id) ? dabei.get(f.id).n : 'noch offen') : '')) : ['- (noch keine Zusage)']),
+    'Förderer:', ...(Z.length ? Z.map(f => '- ' + f.name.trim() + (foeAmt(f) ? ': ' + eur(foeAmt(f)) : '') + (dabei.has(f.id) ? ' – vor Ort: ' + (dabei.get(f.id) ? dabei.get(f.id).n + (dabei.get(f.id).pos ? ' (' + dabei.get(f.id).pos + ')' : '') : 'noch offen') : '')) : ['- (noch keine Zusage)']),
     '', 'Presse und Öffentlichkeit: ' + W.presse, W.ansprechperson ? 'Ansprechperson der Gliederung: ' + W.ansprechperson : '', u.info.trim() ? '\nNotizen:\n' + u.info.trim() : ''].filter(x => x !== null).join('\n').replace(/\u00a0/g, ' ');
   const K = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Malteser Dioezese Paderborn//Bedarfsliste//DE', 'METHOD:PUBLISH', 'BEGIN:VEVENT',
     'UID:' + b.id + '-uebergabe@bedarfsliste', 'DTSTAMP:' + jetzt.toISOString().replace(/[-:]/g, '').slice(0, 15) + 'Z',
