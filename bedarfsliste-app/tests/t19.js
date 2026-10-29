@@ -33,5 +33,14 @@ const { chromium, ok, open, finish } = require('./lib');
   r = await p.evaluate(() => { const t = getComputedStyle(document.querySelector('.ue-teil')), v = getComputedStyle(document.querySelector('.vn-b')), k = document.querySelector('.ue-teil').parentElement.closest('.grid.two');
     return [t.borderTopStyle === 'none' || t.borderTopWidth === '0px', v.borderTopStyle === 'none' || v.borderTopWidth === '0px', t.backgroundColor === v.backgroundColor]; });
   ok(r.join('|') === 'true|true|true', 'Nacharbeit: Kästen ohne Rahmen, gleiches Grau: ' + r.join('|'));
+  // 0.77: Symbole bei Zuständig mit denselben Abständen wie beim Fachreferat; Einladung raus grau statt grün
+  r = await p.evaluate(() => { const g = s => getComputedStyle(document.querySelector(s)).columnGap; return [g('#sec-eck .eck-l > .sub'), g('#fach-pers .sub.fach-kopf')]; });
+  ok(r[0] === r[1], 'Abstände der Symbole gleich: ' + r.join('|'));
+  await p.evaluate(() => { const x = cur(); x.nach.ueb.einl = { [x.foerderer[0].id]: { am: '2026-10-28', zu: 'ja' } }; changed(); renderNow(); });
+  r = await p.evaluate(() => { const e = document.querySelector('[data-act="einl-raus"]'), z = document.querySelector('[data-act="einl-zu"]'); return [e.classList.contains('raus'), !e.classList.contains('ok'), z.classList.contains('ok')]; });
+  ok(r.join('|') === 'true|true|true', 'Eingeladen grau, nur die Zusage grün: ' + r.join('|'));
+  // 0.77: beim Seitenwechsel bleibt die Kopfzeile obenauf (eigene Ebene über den gleitenden Seiten)
+  r = await p.evaluate(() => { document.documentElement.dataset.vt = 'zurueck'; const n = getComputedStyle(document.querySelector('header.top')).viewTransitionName; delete document.documentElement.dataset.vt; return n; });
+  ok(r === 'bl-kopf', 'Kopfzeile beim Übergang mit eigener Ebene: ' + r);
   await finish(b, [p]);
 })();

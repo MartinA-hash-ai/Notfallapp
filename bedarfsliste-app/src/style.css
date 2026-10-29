@@ -409,9 +409,14 @@ html[data-vt="vor"]::view-transition-new(bl-inhalt) { animation: bl-rein .32s cu
 html[data-vt="zurueck"]::view-transition-new(bl-inhalt) { animation: none; }
 html[data-vt="zurueck"]::view-transition-group(bl-alt) { z-index: 2; }
 html[data-vt="zurueck"]::view-transition-old(bl-alt) { animation: bl-raus .26s cubic-bezier(.5, 0, .9, .4) both; box-shadow: -12px 0 30px rgba(0,0,0,.18); }
+/* die Kopfzeile steht immer obenauf und bleibt stehen (sonst lägen die gleitenden Seiten über ihr) */
+html[data-vt] header.top { view-transition-name: bl-kopf; }
+::view-transition-group(bl-kopf) { animation: none; z-index: 5; }
+::view-transition-old(bl-kopf) { display: none; }
+::view-transition-new(bl-kopf) { animation: none; mix-blend-mode: normal; }
 /* die Leiste unter der Kopfzeile gleitet mit (Liste: Suche & Co., Bedarf: Phasen) */
 html[data-vt] header.top .subbar { view-transition-name: bl-leiste; background: var(--card); }
-::view-transition-group(bl-leiste) { animation: none; }
+::view-transition-group(bl-leiste) { animation: none; z-index: 6; }
 ::view-transition-old(bl-leiste), ::view-transition-new(bl-leiste) { mix-blend-mode: normal; }
 html[data-vt="vor"]::view-transition-old(bl-leiste) { animation: none; }
 html[data-vt="vor"]::view-transition-new(bl-leiste) { animation: bl-rein .32s cubic-bezier(.2, .8, .2, 1) both; }
@@ -1384,3 +1389,6 @@ table.ue-tab col.c-d { width: 40px; } table.ue-tab col.c-v { width: 23%; } table
 /* 0.76: Kästen der Nacharbeit wie die Personenkarten oben (Zuständig, Fachreferat): warmes Grau, ohne Rahmen */
 .ue-teil, .vn-b:not(.vn-erl):not(.vn-nn) { background: var(--hover); border: 0; }
 .vn-1.vn-erl { border-color: transparent; }
+/* 0.77: Symbole bei „Zuständig“ mit denselben Abständen wie beim Fachreferat; Einladung raus: dunkles Grau statt Grün (grün ist nur die Zusage) */
+#sec-eck .eck-l > .sub { gap: 8px; }
+.ue-st.raus { background: var(--muted); border-color: var(--muted); color: var(--card); }
