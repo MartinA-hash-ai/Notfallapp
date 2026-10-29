@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.75.0",
+    "date": "2026-10-30T23:30",
+    "items": [
+      "Nacharbeit: Kästen leicht grau hinterlegt, mehr Abstand zwischen Spendenübergabe und Verwendungsnachweis",
+      "Tabelle der Förderer: etwas breitere Förderer-Spalte, Namen brechen nicht mehr mitten im Wort um"
+    ]
+  },
+  {
     "version": "0.74.0",
     "date": "2026-10-30T23:00",
     "items": [

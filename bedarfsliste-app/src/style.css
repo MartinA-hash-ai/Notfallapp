@@ -1367,3 +1367,11 @@ table.ue-tab tr.aus td.ut-d { opacity: 1; }
 /* 0.74: „dabei“ grau statt grün (heißt noch nicht, dass jemand zugesagt hat); Position unter der Person vor Ort */
 table.ue-tab .ue-mit.c-ok { background: var(--hover); border-color: var(--ink2); color: var(--ink2); }
 .vo-pos { margin-top: 1px; line-height: 1.2; }
+/* 0.75: Kästen der Nacharbeit leicht grau, mehr Abstand zwischen Spendenübergabe und Verwendungsnachweis */
+.ue-teil, .vn-b:not(.vn-erl):not(.vn-nn) { background: var(--head); }
+.ue-teil .presse-liste .k1, .ue-teil .presse .fach-w { background: var(--card); }
+#nach-body > .grid.two { column-gap: 44px; }
+table.ue-tab td { overflow-wrap: break-word; hyphens: auto; }
+table.ue-tab col.c-d { width: 40px; } table.ue-tab col.c-v { width: 23%; } table.ue-tab col.c-e { width: 96px; } table.ue-tab col.c-z { width: 104px; }
+.vn-l { flex: 1 1 auto; }
+.vn-1.vn-nn .vn-t { font-size: 12.5px; } .vn-1.vn-nn .vn-l { column-gap: 5px; }
