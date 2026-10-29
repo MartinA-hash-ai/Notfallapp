@@ -1352,3 +1352,15 @@ table.ue-tab td { overflow-wrap: anywhere; }
 .ue-zeit input.dfeld:not(.inline) { width: 108px; } .ue-zeit input.zfeld { width: 62px; }
 .ue-teil .pe-ue .lab { font-size: 12px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink2); }
 .ue-teil .pe-ue .lab + .val { padding-left: 0; }
+/* 0.73: kein Blau in der Nacharbeit; „dabei“ als Kreis wie bei den Freigaben; Stand des Nachweises links beim Förderer */
+#sec-nach button.link, #sec-nach .vo-n { color: var(--ink); text-decoration: underline; text-decoration-style: solid; }
+#sec-nach button.link:hover, #sec-nach .vo-n:hover { color: var(--red); }
+#sec-nach .vo-ohne { text-decoration: underline; text-decoration-style: solid; }
+table.ue-tab .ut-d { vertical-align: middle; }
+table.ue-tab .ue-mit { margin: 0 auto; }
+table.ue-tab tr.aus td.ut-d { opacity: 1; }
+.vn-l { display: flex; align-items: baseline; flex-wrap: wrap; gap: 2px 7px; min-width: 0; }
+.vn-pkt { color: var(--faint); }
+.vn-1 .vn-t { font-weight: 400; }
+.vn-1.vn-erl .vn-t, .vn-1.vn-erl .vn-pkt { color: var(--okink); }
+#sec-nach .vo-n.leer { color: var(--faint); }

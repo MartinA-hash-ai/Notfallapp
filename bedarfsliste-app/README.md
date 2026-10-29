@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.73:** Die Nacharbeit kommt ohne Blau aus; ob ein Förderer bei der Übergabe dabei ist, zeigt ein Kreis wie bei den Freigaben.
+
 **Seit 0.72:** Die Spendenübergabe ist in drei Kästen gegliedert (Termin und Ort, Presse und Öffentlichkeit, Förderer bei der Übergabe). Verwendungsnachweise, die nicht nötig sind, treten blass zurück, erledigte sind grün hinterlegt.
 
 **Seit 0.71:** Die Spendenübergabe ist kompakter: Stand, Löschen und Kalender-Download stehen neben der Überschrift, die Rundmails sitzen als Symbole bei Presse und bei den Förderern. Erledigte oder nicht nötige Verwendungsnachweise brauchen nur noch eine Zeile.

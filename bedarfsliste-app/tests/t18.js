@@ -59,7 +59,7 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   ok(r[0] === 'Clara Chef' && r[1] === '- Stiftung A: Otto Ohm\n- Bank B: Clara Chef', 'andere Person eingetragen, Bank B nun dabei: ' + r.join(' | '));
   await p.click('#sec-nach .ue-tab tr:has-text("Bank B") .vo-n'); await menuKlick(p, 'Niemand'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => document.querySelectorAll('#sec-nach .ue-tab tbody .vo-n')[1].textContent) === 'Person wählen', '„Niemand“: wieder offen');
-  await p.click('#sec-nach .ue-tab tr:has-text("Bank B") input[data-act="mit"]'); await p.waitForTimeout(100);
+  await p.click('#sec-nach .ue-tab tr:has-text("Bank B") [data-act="mit"]'); await p.waitForTimeout(100);
   // 0.70: Tabelle der Förderer – nur zugesagte, ohne „zugesagt“, nicht angehakte blass; Eingeladen und Zusage per Klick; „Andere Person“ wird Kontakt
   r = await p.evaluate(() => [[...document.querySelectorAll('#sec-nach .ue-tab thead th')].map(t => t.textContent).join(','), [...document.querySelectorAll('#sec-nach .ue-tab tbody tr')].map(t => t.className).join(','),
     !document.querySelector('#sec-nach .ue-tab').textContent.includes('zugesagt'), cur().foerderer[1].kontakte.map(k => k.n + ':' + k.mail).join(',')]);
@@ -95,7 +95,7 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   await p.click(`#nl-${fB} [data-p="vn.st"][data-v="erledigt"]`); await p.waitForTimeout(100);
   r = await p.evaluate(id => { const e = document.querySelector('#nl-' + id); return [e.classList.contains('vn-1'), e.textContent.replace(/\s+/g, ' ').trim(), !!e.querySelector('[data-act="vn-st"] svg')]; }, fB);
   ok(await p.evaluate(id => { const e = document.querySelector('#nl-' + id), n = document.querySelector('.vn-nn'); return getComputedStyle(e).backgroundColor === getComputedStyle(document.documentElement).getPropertyValue('--okbg').trim().replace(/^#(..)(..)(..)$/, (m, r, g, b) => `rgb(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)})`) && (!n || +getComputedStyle(n).opacity < .7); }, fB), '0.72: erledigt mit grünem Hintergrund, nicht nötig blass');
-  ok(r.join('|') === 'true|Bank B✓ erledigt|true', 'erledigt: eine Zeile mit grünem Haken und Pfeil zurück: ' + r.join('|'));
+  ok(r.join('|') === 'true|Bank B·✓ erledigt|true', 'erledigt: links beim Förderer mit Punkt, eine Zeile mit grünem Haken und Pfeil zurück: ' + r.join('|'));
   await p.click(`#nl-${fB} [data-act="vn-st"]`); await p.waitForTimeout(100);
   ok(await p.evaluate(id => cur().foerderer[1].vn.st === 'offen' && !!document.querySelector('#nl-' + id + ' .vn-z'), fB), 'Pfeil zurück: wieder „steht aus“');
   await p.evaluate(() => { const f = cur().foerderer[0]; cur().nach.ueb.vorOrt = { [f.id]: { n: 'Peter Beispiel', mail: '' } }; changed(); renderNow(); document.querySelector('#sec-nach .ue-tab').scrollIntoView({ block: 'center' }); });

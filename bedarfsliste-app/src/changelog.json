@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.73.0",
+    "date": "2026-10-30T22:00",
+    "items": [
+      "Nacharbeit ohne Blau: Stand der Spendenübergabe (offen, terminiert, erledigt) gewählt immer schwarz hinterlegt",
+      "Route ab DGS, Route ab zu Hause und die Personen vor Ort schwarz unterstrichen; „ohne E-Mail“ rot mit durchgezogener Linie",
+      "„Dabei“ als runder Kreis wie bei den Freigaben: gestrichelt = nicht dabei, grün mit Haken = dabei",
+      "Verwendungsnachweis: „erledigt“ bzw. „kein Verwendungsnachweis nötig“ steht links beim Förderer, mit Punkt abgesetzt und nicht fett"
+    ]
+  },
+  {
     "version": "0.72.0",
     "date": "2026-10-30T21:00",
     "items": [
