@@ -1270,7 +1270,7 @@ textarea.nv-in { resize: vertical; }
 .ue-route { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; margin-top: 4px; }
 /* 0.69: Presse anklicken (wer dabei ist), Person je Förderer bei „Wer ist dabei?“ */
 .k1.k-wahl { cursor: pointer; border: 1.5px solid transparent; }
-.k1.k-wahl.on { border-color: var(--red); }
+.k1.k-wahl.on { border-color: var(--ink2); }
 .k1.k-wahl.dezent { opacity: .45; }
 .k1.k-wahl.dezent:hover { opacity: .75; }
 .mit-z { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
@@ -1279,3 +1279,25 @@ textarea.nv-in { resize: vertical; }
 .vo-pop button .muted { margin-left: 2px; }
 .vo-leer { padding: 6px 10px; }
 .rm-ics { margin-top: 10px; font-size: 12.5px; }
+/* 0.70: Spendenübergabe – Kopf mit × bzw. +, Förderer als Tabelle; Verwendungsnachweis je Förderer */
+.ue-h { display: flex; align-items: center; gap: 8px; }
+.ue-plus { display: inline-grid; place-items: center; width: 22px; height: 20px; padding: 0 0 2px; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); font-size: 15px; line-height: 1; color: var(--ink2); }
+.ue-plus:hover { border-color: var(--ink2); }
+.ue-kopf { justify-content: flex-end; gap: 6px; }
+.ue-x { display: inline-grid; place-items: center; width: 24px; height: 24px; padding: 0; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); font-size: 15px; line-height: 1; color: var(--muted); }
+.ue-x:hover { border-color: var(--red); color: var(--red); }
+.ue-weg { margin: 6px 0 0; }
+.ue-foe-h { margin: 14px 0 6px; font-size: 13px; font-weight: 600; color: var(--ink2); text-transform: none; letter-spacing: 0; }
+table.ue-tab { width: 100%; border-collapse: collapse; font-size: 13px; }
+table.ue-tab th { text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); padding: 4px 6px; border-bottom: 1px solid var(--line); }
+table.ue-tab td { padding: 6px; border-bottom: 1px solid var(--line3); vertical-align: top; }
+table.ue-tab .ut-d { width: 34px; text-align: center; }
+table.ue-tab tr.aus td:not(.ut-d) { opacity: .4; }
+.ue-st { border: 1px solid var(--line2); border-radius: 12px; background: var(--card); padding: 1px 9px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+.ue-st.ok { background: var(--okbg); border-color: var(--okline); color: var(--okink); }
+.ue-st.no { background: var(--errbg); border-color: var(--errline); color: var(--errink); }
+.vn-b { padding: 10px 12px; }
+.vn-kopf { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.vn-kopf .ue-x { width: 20px; height: 20px; font-size: 13px; }
+.vn-z { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 10px; }
+.vn-nn .na-title { color: var(--muted); }

@@ -27,7 +27,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     && await p.evaluate(() => document.querySelectorAll('tr[data-id="b-kueche"] .l-fin .mi[data-le="vn"]').length === 2 && !!document.querySelector('tr[data-id="b-kueche"] .l-fin .mi.m-off[data-le="vn"]'))
     && r.ueb.startsWith('Spendenübergabe einleiten Küche wird erst Ende November eingebaut'), 'Küche: erledigte Nachweise blass grün, auch „nicht nötig“ mit Linie und leerem Kreis, Überfinanzierung, Dreieck mit Info: ' + r.fin + ' / ' + r.ueb);
   r = await L('b-klausur');
-  ok(r.sym === 'no' && r.fin.includes('ab:Musterstiftung Ehrenamt NRW 2.000 €') && r.fin.includes('sum:Delta 2.000 € | sum:Eigenmittel 500 €') && r.ueb === 'nicht nötig' && r.meta.startsWith('Diözese'), 'Klausur: Absage durchgestrichen, Delta, Übergabe nicht nötig: ' + r.fin);
+  ok(r.sym === 'no' && r.fin.includes('ab:Musterstiftung Ehrenamt NRW 2.000 €') && r.fin.includes('sum:Delta 2.000 € | sum:Eigenmittel 500 €') && r.ueb === 'keine Übergabe' && r.meta.startsWith('Diözese'), 'Klausur: Absage durchgestrichen, Delta, keine Übergabe: ' + r.fin);
   r = await p.evaluate(() => [getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-name')).verticalAlign, getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-meta .ort')).fontWeight,
     getComputedStyle(document.querySelector('tr[data-id="b-klausur"] .fr.sum .fn')).color === getComputedStyle(document.querySelectorAll('tr[data-id="b-klausur"] .fr.sum .fn')[1]).color]);
   ok(r.join() === 'middle,700,true', 'Kerninfo mittig, Ort fett, Delta im selben Schwarz wie die Eigenmittel: ' + r.join());

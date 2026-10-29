@@ -171,10 +171,16 @@ async function rundmail(b, art, wahl = '', modus0) {
   if (!M.length) { toast('Niemand mit E-Mail-Adresse angehakt.', 'warn'); return; }
   const vl = V.find(x => x.id === wahl);
   const betreff = Wx => vl ? vlFuellen(vl.betreff, Wx) : (art === 'ueb' || foe ? 'Spendenübergabe ' : '') + '„' + Wx.bedarf + '“' + (Wx.gliederung ? ' (' + Wx.gliederung + ')' : '');
-  if (foe && modus === 'einzeln') { einzelnSchreiben(P, p => mailUrl([p.mail.trim()], false, betreff(foeWerte(W, p)), vl ? vlFuellen(vl.text, foeWerte(W, p)) : null)); return; }
+  if (foe && modus === 'einzeln') { einzelnSchreiben(P, p => { einlVermerken(b, [p.f]); return mailUrl([p.mail.trim()], false, betreff(foeWerte(W, p)), vl ? vlFuellen(vl.text, foeWerte(W, p)) : null); }); return; }
+  if (foe) einlVermerken(b, P.map(p => p.f));                                      // „Eingeladen“ beim Förderer abhaken (heute)
   // Outlook trennt Empfänger mit „;“ (andere Programme mit „,“ – Outlook ist hier der Standard); Förderer gemeinsam: alle in BCC
   if (mitIcs && mitIcs.checked) { download('Spendenübergabe ' + dateiName(b.titel || 'Bedarf') + '.ics', icsBlob(b)); if (!DEMO) toast('Kalendereintrag liegt in „Downloads“ – in Outlook an die E-Mail anhängen.', 'ok'); }
   mailOeffnen(mailUrl(M, foe, betreff(W), vl ? vlFuellen(vl.text, W) : null));
+}
+function einlVermerken(b, F) {
+  const E = b.nach.ueb.einl = Object.assign({}, b.nach.ueb.einl); let neu = false;
+  for (const f of uniq(F)) if (!(E[f.id] && E[f.id].am)) { E[f.id] = Object.assign({}, E[f.id], { am: today() }); neu = true; }
+  if (neu) { changed(); if (cur() === b && $('#nach-body')) swap('nach-body', nachBody(b), true); }
 }
 // einzeln, persönlich: je Kontakt ein Knopf – Outlook öffnet je Klick eine E-Mail (mehrere auf einmal blockiert der Browser)
 function einzelnSchreiben(P, url) {

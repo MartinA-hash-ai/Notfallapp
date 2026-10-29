@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.70.0",
+    "date": "2026-10-30T17:00",
+    "items": [
+      "Nacharbeit: links „Spendenübergabe“ als Überschrift; × neben dem Stand löscht sie (mit Rückfrage), „+“ legt sie wieder an; in der Liste steht dann „keine Übergabe“",
+      "Förderer bei der Übergabe als Tabelle: Dabei, Förderer mit Betrag, Vor Ort, Eingeladen, Zusage – nur zugesagte, nicht angehakte blass; „Förderer einladen …“ vermerkt die Einladung von selbst",
+      "„Andere Person …“ fragt Name und E-Mail ab und legt sie beim Förderer als Kontakt an",
+      "Verwendungsnachweis: rechts je Förderer „Nachweis bis“ mit Datum und nur noch „steht aus“ oder „erledigt“; × = kein Nachweis nötig",
+      "Presse und Öffentlichkeit: gewählte Person mit dunklem statt rotem Rahmen"
+    ]
+  },
+  {
     "version": "0.69.0",
     "date": "2026-10-30T15:00",
     "items": [

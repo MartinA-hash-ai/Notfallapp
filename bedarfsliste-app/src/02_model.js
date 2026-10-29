@@ -17,7 +17,7 @@ const ART = ['Stiftung', 'Sparkasse', 'Volksbank / Bank', 'Unternehmen', 'Sozial
 const EINSCH = [['sw', 'sehr wahrscheinlich', 't-e5'], ['w', 'wahrscheinlich', 't-e4'], ['u', 'unsicher', 't-e3'], ['uw', 'unwahrscheinlich', 't-e2'], ['suw', 'sehr unwahrscheinlich', 't-e1']];
 const EINSCH_ALT = { gut: 'w', unsicher: 'u', schwierig: 'uw' };
 // Verwendungsnachweis (Sach- und Finanzbericht in einem Abwasch)
-const VN_ST = [['offen', 'steht aus'], ['arbeit', 'in Arbeit', 't-warn'], ['erledigt', 'erledigt', 't-ok']];
+const VN_ST = [['offen', 'steht aus'], ['erledigt', 'erledigt', 't-ok']];   // ab 0.70 ohne „in Arbeit“
 const FEST_UL = ['Angebot', 'Interview', 'Konzept', 'Projektsteckbrief'];        // feste Unterlagen in dieser Reihenfolge (Interview: Gespräch mit den Leuten vor Ort, ab 0.54)
 
 function emptyData() { return { meta: { savedAt: null, rev: 0 }, settings: { kartei: '' }, bedarfe: [] }; }
@@ -31,7 +31,7 @@ function blank() {
     },
     unterlagen: FEST_UL.map(n => UL(n, 'fehlt', true)),
     foerderer: [], eigenanteil: null,
-    nach: { ueb: { noetig: true, st: 'offen', termin: '', zeit: '', ort: '', mit: [], info: '', vorOrt: {}, presse: { pers: [], aus: [], fuer: '', wahl: [] } }, pm: { noetig: true, st: 'offen', datum: '' } },
+    nach: { ueb: { noetig: true, st: 'offen', termin: '', zeit: '', ort: '', mit: [], info: '', vorOrt: {}, einl: {}, presse: { pers: [], aus: [], fuer: '', wahl: [] } }, pm: { noetig: true, st: 'offen', datum: '' } },
     manuell: '', grundM: '', archiv: false, angelegt: today(),         // grundM: warum zurückgestellt bzw. verworfen (ab 0.61)
   };
 }
@@ -121,12 +121,12 @@ function normalize(d) {
     n.foerderer = (Array.isArray(b.foerderer) ? b.foerderer : []).filter(isObj).map(f0 => {
       const f = mergeSicher(ff({}), f0), v = f.vn, v0 = isObj(f0.vn) ? f0.vn : {}, sb = isObj(f0.sb) ? f0.sb : null;
       // ab 0.6 hat der Verwendungsnachweis drei Stände, und der Sachbericht gehört zu ihm (ein Abwasch)
-      if (!VN_ST.some(o => o[0] === v0.st)) v.st = v0.erledigt === true ? 'erledigt' : 'offen';
+      if (!VN_ST.some(o => o[0] === v0.st)) v.st = v0.erledigt === true ? 'erledigt' : 'offen';   // auch „in Arbeit“ (bis 0.69) → steht aus
       if (sb && sb.noetig) {
         if (!v.noetig) Object.assign(v, { noetig: true, frist: sb.frist || v.frist, st: sb.erledigt ? 'erledigt' : 'offen' });
         else {
           if (sb.frist && (!v.frist || sb.frist < v.frist)) v.frist = sb.frist;
-          if ((v.st === 'erledigt') !== !!sb.erledigt) v.st = 'arbeit';
+          if ((v.st === 'erledigt') !== !!sb.erledigt) v.st = 'offen';
         }
       }
       delete f.sb; delete v.erledigt;

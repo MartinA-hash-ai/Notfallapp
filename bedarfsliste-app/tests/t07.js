@@ -85,8 +85,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(seq.join() === 'abgelehnt,geplant,beantragt', 'Förderer: Zusage → Absage → geplant → beantragt: ' + seq.join());
   seq.length = 0;
   const vn = async () => { const f = await F('b-mtw', 'Sparkasse Musterstadt'); return f.vn.noetig ? f.vn.st : 'nicht nötig'; };
-  for (let i = 0; i < 4; i++) { await p.click(R('b-mtw') + ' .vt[data-le="vn"]'); seq.push(await vn()); }
-  ok(seq.join() === 'arbeit,erledigt,nicht nötig,offen', 'Verwendungsnachweis: steht aus → in Arbeit → erledigt → nicht nötig → steht aus: ' + seq.join());
+  for (let i = 0; i < 3; i++) { await p.click(R('b-mtw') + ' .vt[data-le="vn"]'); seq.push(await vn()); }
+  ok(seq.join() === 'erledigt,nicht nötig,offen', 'Verwendungsnachweis (ab 0.70 ohne „in Arbeit“): steht aus → erledigt → nicht nötig → steht aus: ' + seq.join());
   ok(await order() === before, 'beim Bearbeiten springen die Zeilen nicht (neu sortiert wird beim Zurückkommen in die Liste)');
   ok(await p.$eval(R('b-klausur') + ' td.l-fr', e => e.querySelector('.fr-voll').innerText.trim() === 'freigegeben' && !e.querySelector('[data-le="fr"]')), 'Freigabe vollständig: nur „freigegeben“, nichts zum Weiterschalten (darunter das Angebot)');
   await p.evaluate(() => { D.bedarfe.find(x => x.id === 'b-klausur').freigabe.verw.st = 'offen'; changed(); keep(renderNow); });   // das Angebot zählt nicht mehr zur Freigabe
@@ -240,7 +240,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     x.nach.ueb.noetig = false; out.push(t(kUebergabe(x)));
     return out; });
   ok(r.join(' / ') === ['m-off:keine Freigabe', 'm-off:keine Finanzierung', 'noch keine Zusage', 'nicht geplant', 'm-run:in Bearbeitung', 'm-no:keine Freigabe', 'm-ok:freigegeben', 'm-run:in Bearbeitung',
-    'm-ok:Finanzierung beendet', 'm-off:offen', 'm-off:offen, bis 31.03.2027', 'm-run:in Bearbeitung', 'm-ok:erbracht', 'nicht nötig', 'nicht geplant', '20.11.2026, 15:00 Uhr', 'nicht nötig'].join(' / '),
+    'm-ok:Finanzierung beendet', 'm-off:offen', 'm-off:offen, bis 31.03.2027', 'm-run:in Bearbeitung', 'm-ok:erbracht', 'nicht nötig', 'nicht geplant', '20.11.2026, 15:00 Uhr', 'keine Übergabe'].join(' / '),
     'kompakte Stände für Freigabe, Finanzierung, Verwendungsnachweis und Spendenübergabe: ' + r.join(' / '));
   await p.click('.seg.ansicht [data-v="kompakt"]');
   r = await p.evaluate(() => { const rows = [...document.querySelectorAll('#list-body tr[data-id]')], hs = rows.map(x => Math.round(x.getBoundingClientRect().height));

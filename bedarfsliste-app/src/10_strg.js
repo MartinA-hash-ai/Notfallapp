@@ -184,11 +184,11 @@ function strgAct(b, el, then) {
     }
     case 'ang': { const u = angebotUL(b); if (!u) return; u.st = nextOf(ROT_ANG_A, u.st); return done(); }
     case 'foe': { if (!f) return; if (geldDa(f)) return geldDaHinweis(); const alt = f.status, v = ROT_FOE[alt] || 'geplant'; f.status = v; effects(b, f, 'status', v, alt); return done(); }
-    case 'vn': {                                                                         // nicht nötig → steht aus → in Arbeit → erledigt → nicht nötig
+    case 'vn': {                                                                         // nicht nötig → steht aus → erledigt → nicht nötig
       if (!f) return; const x = f.vn;
       if (!x.noetig) Object.assign(x, { noetig: true, st: 'offen' });
       else if (x.st === 'erledigt') Object.assign(x, { noetig: false, st: 'offen' });
-      else x.st = x.st === 'offen' ? 'arbeit' : 'erledigt';
+      else x.st = 'erledigt';
       return done();
     }
     case 'foe-name': if (!f) return;                                                    // Stift am Ende des Namens: Förderer umbenennen

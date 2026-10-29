@@ -17,12 +17,12 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
     window.DL = []; download = (n, blob) => blob.text().then(t => DL.push([n, t]));
   });
   await p.waitForTimeout(200);
-  await p.evaluate(() => { zuSet(cur(), 'nach', false); renderNow(); document.querySelector('#sec-nach .mit').scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(600);   // vorher hinscrollen: Scrollen schließt Menüs
+  await p.evaluate(() => { zuSet(cur(), 'nach', false); renderNow(); document.querySelector('#sec-nach .ue-tab').scrollIntoView({ block: 'center' }); }); await p.waitForTimeout(600);   // vorher hinscrollen: Scrollen schließt Menüs
   // Wer ist dabei: Hauptkontakt vorgeschlagen, per Klick änderbar
-  let r = await p.evaluate(() => [...document.querySelectorAll('#sec-nach .mit-z')].map(z => z.querySelector('label').textContent.trim().split(' ')[0] + ':' + z.querySelector('.vo-n').textContent).join(','));
+  let r = await p.evaluate(() => [...document.querySelectorAll('#sec-nach .ue-tab tbody tr')].map(z => z.querySelector('b').textContent.split(' ')[0] + ':' + z.querySelector('.vo-n').textContent).join(','));
   ok(r === 'Stiftung:Anna Albers,Bank:Bernd Bank', 'hinter dem Förderer die Person (Hauptkontakt): ' + r);
-  await p.click('#sec-nach .mit-z:has-text("Stiftung A") .vo-n'); await menuKlick(p, 'Otto Ohm'); await p.waitForTimeout(100);
-  r = await p.evaluate(() => [JSON.stringify(cur().nach.ueb.vorOrt), cur().nach.ueb.mit.join() === cur().foerderer[0].id, document.querySelector('#sec-nach .mit-z .vo-n').textContent]);
+  await p.click('#sec-nach .ue-tab tr:has-text("Stiftung A") .vo-n'); await menuKlick(p, 'Otto Ohm'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [JSON.stringify(cur().nach.ueb.vorOrt), cur().nach.ueb.mit.join() === cur().foerderer[0].id, document.querySelector('#sec-nach .ue-tab tbody .vo-n').textContent]);
   ok(r.join('|') === '{"' + await p.evaluate(() => cur().foerderer[0].id) + '":{"n":"Otto Ohm","mail":"oo@x.example"}}|true|Otto Ohm', 'andere Person gewählt, Förderer gleich als dabei angehakt: ' + r.join('|'));
   // Presse: Route-Text weg, Kontaktdaten nur als Symbole; anklicken = dabei, die andere blass
   r = await p.evaluate(() => [!document.querySelector('.ue-route').textContent.includes('Google Maps'), document.querySelector('#presse-pers').textContent.includes('ap@x.example'), !!document.querySelector('#presse-pers a[href="mailto:ap@x.example"]')]);
@@ -53,11 +53,38 @@ const menuKlick = async (p, t) => { const r = await p.evaluate(t => { const x = 
   ok(r === 'Anna Albers-,Otto Ohm+,Bernd Bank-', 'Förderer einladen: nur die Person vor Ort angehakt (Bank B nicht dabei): ' + r);
   await p.click('.modal header .x');
   // Andere Person (nicht unter den Kontakten), dann „Niemand“
-  await p.click('#sec-nach .mit-z:has-text("Bank B") .vo-n'); await menuKlick(p, 'Andere Person'); await p.waitForTimeout(100);
-  await p.keyboard.type('Clara Chef'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
-  r = await p.evaluate(() => [document.querySelectorAll('#sec-nach .mit-z .vo-n')[1].textContent, vlWerte(cur()).vorort]);
+  await p.click('#sec-nach .ue-tab tr:has-text("Bank B") .vo-n'); await menuKlick(p, 'Andere Person'); await p.waitForTimeout(100);
+  await p.keyboard.type('Clara Chef'); await p.keyboard.press('Enter'); await p.keyboard.type('cc@x.example'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [document.querySelectorAll('#sec-nach .ue-tab tbody .vo-n')[1].textContent, vlWerte(cur()).vorort]);
   ok(r[0] === 'Clara Chef' && r[1] === '- Stiftung A: Otto Ohm\n- Bank B: Clara Chef', 'andere Person eingetragen, Bank B nun dabei: ' + r.join(' | '));
-  await p.click('#sec-nach .mit-z:has-text("Bank B") .vo-n'); await menuKlick(p, 'Niemand'); await p.waitForTimeout(100);
-  ok(await p.evaluate(() => document.querySelectorAll('#sec-nach .mit-z .vo-n')[1].textContent) === 'Person wählen', '„Niemand“: wieder offen');
+  await p.click('#sec-nach .ue-tab tr:has-text("Bank B") .vo-n'); await menuKlick(p, 'Niemand'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => document.querySelectorAll('#sec-nach .ue-tab tbody .vo-n')[1].textContent) === 'Person wählen', '„Niemand“: wieder offen');
+  await p.click('#sec-nach .ue-tab tr:has-text("Bank B") input[data-act="mit"]'); await p.waitForTimeout(100);
+  // 0.70: Tabelle der Förderer – nur zugesagte, ohne „zugesagt“, nicht angehakte blass; Eingeladen und Zusage per Klick; „Andere Person“ wird Kontakt
+  r = await p.evaluate(() => [[...document.querySelectorAll('#sec-nach .ue-tab thead th')].map(t => t.textContent).join(','), [...document.querySelectorAll('#sec-nach .ue-tab tbody tr')].map(t => t.className).join(','),
+    !document.querySelector('#sec-nach .ue-tab').textContent.includes('zugesagt'), cur().foerderer[1].kontakte.map(k => k.n + ':' + k.mail).join(',')]);
+  ok(r.join('|') === 'Dabei,Förderer,Vor Ort,Eingeladen,Zusage|on,aus|true|Bernd Bank:bb@x.example,Clara Chef:cc@x.example', 'Tabelle, Bank B (nicht dabei) blass, „Andere Person“ mit E-Mail als Kontakt: ' + r.join('|'));
+  await p.click('#sec-nach .ue-tab tr:has-text("Stiftung A") [data-act="einl-raus"]'); await p.waitForTimeout(80);
+  await p.click('#sec-nach .ue-tab tr:has-text("Stiftung A") [data-act="einl-zu"]'); await p.waitForTimeout(80);
+  r = await p.evaluate(() => [JSON.stringify(cur().nach.ueb.einl[cur().foerderer[0].id]), document.querySelector('#sec-nach .ue-tab tr [data-act="einl-zu"]').textContent]);
+  ok(r[0] === JSON.stringify({ am: await p.evaluate(() => today()), zu: 'ja' }) && r[1] === '✓ kommt', 'Eingeladen (heute) und Zusage „kommt“: ' + r.join('|'));
+  await p.click('#sec-nach .ue-tab tr:has-text("Stiftung A") [data-act="einl-raus"]'); await p.waitForTimeout(80);
+  await p.click('.ue-acts button[data-v="foe"]'); await p.waitForTimeout(100); await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  await p.click('.modal .rm-ez button'); await p.waitForTimeout(100); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);   // nur eine Person: einzeln
+  ok(await p.evaluate(() => cur().nach.ueb.einl[cur().foerderer[0].id].am === today()), '„Förderer einladen“ vermerkt die Einladung von selbst');
+  // Verwendungsnachweis: Überschrift, „Nachweis bis“, nur zwei Stände, × = nicht nötig
+  r = await p.evaluate(() => { const c = document.querySelector('#sec-nach .grid.two > div:last-child'); return [c.querySelector('h3').textContent, c.querySelector('.vn-b .na-title').textContent, c.querySelector('.vn-z label').textContent.trim(), [...c.querySelector('.vn-b .seg').children].map(x => x.textContent).join(',')]; });
+  ok(r.join('|') === 'Verwendungsnachweis|Stiftung A|Nachweis bis|steht aus,erledigt', 'Verwendungsnachweis je Förderer mit zwei Ständen: ' + r.join('|'));
+  await p.click('#nl-' + await p.evaluate(() => cur().foerderer[0].id) + ' .ue-x'); await p.waitForTimeout(80);
+  ok(await p.evaluate(() => !cur().foerderer[0].vn.noetig && document.querySelector('#nl-' + cur().foerderer[0].id).textContent.includes('kein Nachweis nötig')), '× beim Förderer: kein Nachweis nötig („doch nötig“ holt ihn zurück)');
+  // Spendenübergabe löschen (mit Rückfrage) und wieder anlegen; in der Liste „keine Übergabe“
+  r = await p.evaluate(() => [document.querySelector('#sec-nach .grid.two > div h3').textContent, !document.querySelector('[data-p="nach.ueb.noetig"]')]);
+  ok(r.join('|') === 'Spendenübergabe|true', 'Überschrift „Spendenübergabe“, kein Haken mehr: ' + r.join('|'));
+  await p.click('#sec-nach .ue-kopf .ue-x'); await p.waitForSelector('.modal h2:text-is("Spendenübergabe löschen?")'); await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [cur().nach.ueb.noetig, !!document.querySelector('#sec-nach .ue-plus'), !document.querySelector('#sec-nach .ue-tab'), kUebergabe(cur()).replace(/<[^>]+>/g, '')]);
+  ok(r.join('|') === 'false|true|true|keine Übergabe', 'gelöscht: nur noch „+“, in der Liste „keine Übergabe“: ' + r.join('|'));
+  await p.click('#sec-nach .ue-plus'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => cur().nach.ueb.noetig && cur().nach.ueb.ort === 'Am Markt 1, 33034 Brakel' && !!document.querySelector('#sec-nach .ue-tab')), '„+“ legt sie wieder an, Angaben sind noch da');
+
   await finish(b, [p]);
 })();

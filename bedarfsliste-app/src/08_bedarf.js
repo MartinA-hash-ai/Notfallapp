@@ -518,24 +518,41 @@ function secFoe(b) {
 }
 
 /* ---------- Nacharbeit: Spendenübergabe einmal je Bedarf (Pressemitteilung entfällt ab 0.67), Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */
+// Verwendungsnachweis je Förderer: „Nachweis bis“ mit Datum, rechts „steht aus“ oder „erledigt“; × = kein Nachweis nötig
 function nachLine(f) {
   const a = `data-fid="${f.id}"`, x = f.vn;
-  return `<div class="nl ${x.noetig && x.st !== 'erledigt' ? 'open' : ''}" id="nl-${f.id}">${cbx(f, 'vn.noetig', 'Verwendungsnachweis', a)}${x.noetig ? `<label class="inl">Frist ${dfeld(f, 'vn.frist', a + ' aria-label="Frist Verwendungsnachweis"')}</label>${seg(VN_ST, x.st, `data-p="vn.st" ${a}`, 'small')}` : '<span class="muted small">nicht nötig</span>'}</div>`;
+  return `<div class="na-block vn-b${x.noetig ? '' : ' vn-nn'}" id="nl-${f.id}"><div class="vn-kopf"><span class="na-title">${esc(f.name || '(ohne Namen)')}</span>${x.noetig
+      ? `<button type="button" class="ue-x" data-act="set" data-p="vn.noetig" data-v="false" ${a} title="Kein Verwendungsnachweis nötig" aria-label="Kein Verwendungsnachweis nötig">×</button>` : ''}</div>`
+    + (x.noetig ? `<div class="vn-z"><label class="inl">Nachweis bis ${dfeld(f, 'vn.frist', a + ' aria-label="Verwendungsnachweis bis"')}</label>${seg(VN_ST, x.st, `data-p="vn.st" ${a}`, 'small')}</div>`
+      : `<div class="vn-z muted small">kein Nachweis nötig · <button type="button" class="link small" data-act="set" data-p="vn.noetig" data-v="true" ${a}>doch nötig</button></div>`) + '</div>';
+}
+// Förderer bei der Übergabe als Tabelle: dabei (Haken), Förderer mit Betrag, wer vor Ort ist, Einladung raus, Zusage zur Teilnahme. Nicht angehakte blass.
+const UE_ZU = { '': ['offen', ''], ja: ['✓ kommt', 'ok'], nein: ['✗ kommt nicht', 'no'] };
+function uebTabelle(b) {
+  const u = b.nach.ueb, Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), E = u.einl || {};
+  if (!Z.length) return '<p class="muted small">Erscheint, sobald eine Förderung zugesagt ist.</p>';
+  return `<table class="ue-tab"><thead><tr><th class="ut-d">Dabei</th><th>Förderer</th><th>Vor Ort</th><th>Eingeladen</th><th>Zusage</th></tr></thead><tbody>${Z.map(f => {
+    const on = u.mit.includes(f.id), v = vorOrt(b, f), e = E[f.id] || {}, z = UE_ZU[e.zu || ''] || UE_ZU[''];
+    return `<tr class="${on ? 'on' : 'aus'}"><td class="ut-d"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${on ? 'checked' : ''} aria-label="${esc(f.name)} ist dabei"></td>
+      <td><b>${esc(f.name.trim())}</b>${foeAmt(f) ? `<div class="muted small">${eur(foeAmt(f))}</div>` : ''}</td>
+      <td><button type="button" class="link small vo-n${v ? '' : ' leer'}" data-act="vor-ort" data-fid="${f.id}" title="${v && v.mail ? esc(v.mail) + ' – ' : ''}klicken zum Ändern">${v ? esc(v.n) : 'Person wählen'}</button>${v && !v.mail ? '<div class="small warnl">ohne E-Mail</div>' : ''}</td>
+      <td><button type="button" class="ue-st${e.am ? ' ok' : ''}" data-act="einl-raus" data-fid="${f.id}" title="${e.am ? 'Einladung raus am ' + fmtDate(e.am) + ' – klicken: zurücknehmen' : 'Klicken: Einladung ist raus'}">${e.am ? '✓ ' + fmtDate(e.am).slice(0, 6) : '–'}</button></td>
+      <td><button type="button" class="ue-st ${z[1]}" data-act="einl-zu" data-fid="${f.id}" title="Klicken: offen → kommt → kommt nicht">${z[0]}</button></td></tr>`; }).join('')}</tbody></table>`;
 }
 function nachBody(b) {
-  const zu = b.foerderer.filter(f => f.status === 'zugesagt'), cand = b.foerderer.filter(f => f.status !== 'abgelehnt' && f.name.trim()), n = b.nach;
+  const zu = b.foerderer.filter(f => f.status === 'zugesagt'), n = b.nach;
   return `<div class="grid two">
-    <div><h3>Gemeinsam für den Bedarf</h3>
-      <div class="na-block"><div class="na-head">${cbx(b, 'nach.ueb.noetig', 'Spendenübergabe')}${n.ueb.noetig ? seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], n.ueb.st, 'data-p="nach.ueb.st"', 'small') : ''}</div>
-        ${n.ueb.noetig ? `<div class="grid2">${fld('Termin', `<span class="row nowrap">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}</span>`, 'ue-termin')}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus') + ortVorschlag(b) + routeKnoepfe(b))}</div>
+    <div><h3 class="ue-h">Spendenübergabe${n.ueb.noetig ? '' : '<button type="button" class="ue-plus" data-act="ueb-neu" title="Spendenübergabe wieder anlegen" aria-label="Spendenübergabe wieder anlegen">+</button>'}</h3>
+      ${n.ueb.noetig ? `<div class="na-block"><div class="na-head ue-kopf">${seg([['offen', 'offen'], ['terminiert', 'terminiert', 't-run'], ['erledigt', 'erledigt', 't-ok']], n.ueb.st, 'data-p="nach.ueb.st"', 'small')}<button type="button" class="ue-x" data-act="ueb-weg" title="Spendenübergabe löschen" aria-label="Spendenübergabe löschen">×</button></div>
+        <div class="grid2">${fld('Termin', `<span class="row nowrap">${dfeld(b, 'nach.ueb.termin', 'aria-label="Termin der Spendenübergabe"')}${zfeld(b, 'nach.ueb.zeit', 'aria-label="Uhrzeit der Spendenübergabe"')}</span>`, 'ue-termin')}${fld('Ort', tin(b, 'nach.ueb.ort', 'aria-label="Ort der Spendenübergabe"', 'z. B. Wache, Rathaus') + ortVorschlag(b) + routeKnoepfe(b))}</div>
           ${pe(b, 'nach.ueb.info', 'Notizen', 'area', { fmt: true, cls: 'pe-ue', aria: 'Notizen zur Spendenübergabe', ph: 'z. B. warum es noch dauert: Küche wird erst im November eingebaut, Übergabe danach mit Fotos' })}
           <div class="ue-acts"><button data-act="ics"${validIso(n.ueb.termin) ? '' : ' disabled title="Erst den Termin eintragen"'}>${ICON_KAL}<span>In Outlook eintragen (.ics)</span></button><button data-act="rundmail" data-v="foe" title="Förderer zur Spendenübergabe einladen – gemeinsam (BCC) oder einzeln mit persönlicher Anrede">${ICON_RUND}<span>Förderer einladen …</span></button><button data-act="rundmail" data-v="ueb" title="Rundmail an Zuständige und Presse (Absprache)">${ICON_RUND}<span>Rundmail intern …</span></button></div>
           <div class="ue-presse" id="presse-pers">${presseBlock(b)}</div>
-          ${fld('Wer ist dabei?', `<div class="mit">${cand.length ? cand.map(f => { const v = vorOrt(b, f); return `<div class="mit-z"><label class="check"><input type="checkbox" data-act="mit" data-fid="${f.id}" ${n.ueb.mit.includes(f.id) ? 'checked' : ''}> ${esc(f.name)} <span class="muted small">${F_ST_L[f.status]}</span></label><button type="button" class="link small vo-n${v ? '' : ' leer'}" data-act="vor-ort" data-fid="${f.id}" title="Wer vom Förderer dabei ist – klicken zum Ändern">${v ? esc(v.n) : 'Person wählen'}</button></div>`; }).join('') : '<span class="muted small">Noch keine Förderer im Förderplan</span>'}</div>`)}` : ''}
-      </div>
+          <div class="sub ue-foe-h">Förderer bei der Übergabe</div>${uebTabelle(b)}</div>`
+        : '<p class="muted small ue-weg">Bei diesem Bedarf gibt es keine Spendenübergabe – über „+“ wieder anlegen.</p>'}
     </div>
-    <div><h3>Je Förderer</h3>
-      ${zu.length ? zu.map(f => `<div class="na-block"><div class="na-title">${esc(f.name || '(ohne Namen)')}</div>${nachLine(f)}</div>`).join('') : '<div class="empty small">Erscheint, sobald eine Förderung zugesagt ist.</div>'}
+    <div><h3>Verwendungsnachweis</h3>
+      ${zu.length ? zu.map(nachLine).join('') : '<div class="empty small">Erscheint, sobald eine Förderung zugesagt ist.</div>'}
     </div>
   </div>`;
 }

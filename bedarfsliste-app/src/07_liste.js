@@ -69,7 +69,7 @@ function lFinanz(b) {
 const uebWann = u => u.termin ? fmtDate(u.termin) + (u.zeit ? ', ' + esc(u.zeit) + ' Uhr' : '') : '';
 function lUebergabe(b) {
   const u = b.nach.ueb, F = finState(b);
-  const top = !u.noetig ? '<div class="ml nn">nicht nötig</div>'
+  const top = !u.noetig ? '<div class="ml nn">keine Übergabe</div>'
     : (u.st === 'erledigt' ? `<div class="ml">${mi('ok', 'erledigt')}<span>erledigt${u.termin ? ' am ' + fmtDate(u.termin) : ''}</span></div>`
       : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>`
       : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '')
@@ -180,7 +180,7 @@ function kNachweis(b) {
 }
 function kUebergabe(b) {
   const u = b.nach.ueb, F = finState(b);
-  if (!u.noetig) return kGrau('nicht nötig');
+  if (!u.noetig) return kGrau('keine Übergabe');
   if (u.termin) return u.st === 'erledigt' ? kz('ok', uebWann(u), 'k-ok') : `<span class="kz">${uebWann(u)}</span>`;
   if (u.st === 'erledigt') return kz('ok', 'erledigt', 'k-ok');
   return F.done && F.zu > 0 ? `<span class="kz warnl" title="Finanzierung steht – Spendenübergabe einleiten">${ICON_TRI}<span>nicht geplant</span></span>` : kGrau('nicht geplant');
