@@ -81,11 +81,11 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   ok(r.join('|') === '|true|0', 'Verknüpfung gelöst: bleibt gelöst (trotz gleichem Namen): ' + r.join('|'));
 
   // Kopie „Fördererliste.xlsx“ im Ordner nach dem Speichern; beim Einlesen zählen nur die eigenen Förderungen (die aus den Bedarfen liest das Programm selbst)
-  await p.evaluate(() => saveAll({})); await p.waitForTimeout(2600);
+  await p.evaluate(() => { flEintrag('F001').bew.dauer = 2; saveAll({}); }); await p.waitForTimeout(2600);
   r = await p.evaluate(async () => { const f = __fs.files['/Ordner/Fördererliste.xlsx']; if (!f || !f.data.length) return ['fehlt'];
     const bk = await xlsxBook(f.data.buffer.slice(0)), R = flLesen(bk), fo = bk.sheets.find(s => s.name === 'Förderungen');
-    return [bk.sheets.map(s => s.name).join('+'), R.liste.length, R.liste[0].foerderungen.length, fo.rows.length - 1, fo.rows.filter(x => x[9] === 'Bedarfsliste').map(x => x[10]).join(), R.liste.find(e => e.id === 'F004').kontakte[0].anschreiben]; });
-  ok(r.join('|') === 'Förderer+Ansprache+Kontakte+Förderungen+Anleitung|4|1|3|a,a|ja', 'Excel-Kopie im Ordner: Blätter, Förderungen mit Bedarf-ID, Einlesen ohne doppelte: ' + r.join('|'));
+    return [bk.sheets.map(s => s.name).join('+'), R.liste.length, R.liste[0].foerderungen.length, fo.rows.length - 1, fo.rows.filter(x => x[9] === 'Bedarfsliste').map(x => x[10]).join(), R.liste.find(e => e.id === 'F004').kontakte[0].anschreiben, JSON.stringify(R.liste[0].bew), bk.sheets[0].rows[1][15]]; });
+  ok(r.join('|') === 'Förderer+Ansprache+Kontakte+Förderungen+Anleitung|4|1|3|a,a|ja|{"chance":0,"dauer":2,"summe":0}|mittel', 'Excel-Kopie im Ordner: Blätter, Förderungen mit Bedarf-ID, Einlesen ohne doppelte: ' + r.join('|'));
 
   // eigene Seite: Liste, Suche, Filter, Seite eines Förderers, Bearbeiten, zurück
   await p.click('header.top [data-act="flist"]'); await p.waitForTimeout(150);
@@ -96,7 +96,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => [...document.querySelectorAll('#fl-body tr[data-id]')].map(x => x.dataset.id).join());
   ok(r === 'F001', 'Suche findet auch Positionen der Kontakte: ' + r);
   await p.keyboard.press('Enter'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
-  r = await p.evaluate(() => [UI.view, UI.flId, document.querySelector('.fl-name').value, document.querySelectorAll('.fl-gt tbody tr').length, document.querySelector('.fl-a select').value]);
+  r = await p.evaluate(() => [UI.view, UI.flId, document.querySelector('.fl-name').value, document.querySelectorAll('.fl-gl .fl-gz').length, document.querySelector('.fl-a select').value]);
   ok(r.join('|') === 'fdetail|F001|Sparkasse Beispiel|2|über die Gliederung', 'Enter in der Suche, Enter auf der Zeile: Seite des Förderers mit Förderungen und Ansprache: ' + r.join('|'));
   await p.fill('[data-fl="kontakte.0.pos"]', 'Filialdirektion'); await p.fill('[data-fl="fristen"]', '31.03.');
   await p.fill('[data-fl="recherche"]', '5.2.2026'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
@@ -104,17 +104,36 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   ok(r.join('|') === 'Filialdirektion|31.03.|2026-02-05|05.02.2026', 'Bearbeiten: Text und Datum (Enter übernimmt): ' + r.join('|'));
   await p.waitForTimeout(500);
   ok(await p.evaluate(() => kartei('Sparkasse Beispiel').kontakte[0].pos) === 'Filialdirektion', 'Kartei für Vorschläge nachgeführt');
+  // Einschätzung: aus den Daten geschätzt (Summe aus den Förderungen), von Hand gesetzt, noch einmal geklickt wieder geschätzt
+  r = await p.evaluate(() => { const B = flBew(flEintrag('F001')); return [B.chance.v, B.summe.v, B.summe.hand, B.summe.grund.replace(/\s/g, ' '), B.dauer.v, document.querySelectorAll('.fl-bw .fl-seg button.auto').length]; });
+  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|1', 'Einschätzung: Summe geschätzt, Dauer von Hand, Chance offen (unter drei Entscheidungen): ' + r.join('|'));
+  await p.click('.fl-bw button[data-k="chance"][data-v="3"]'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [flEintrag('F001').bew.chance, document.querySelector('.fl-bw button[data-k="chance"][data-v="3"]').className, document.querySelector('.fl-netz.gross').dataset.tip]);
+  ok(r[0] === 3 && r[1] === 'on' && r[2].startsWith('Erfolgschance: hoch · Dauer: mittel · Fördersumme: gering (geschätzt'), 'von Hand „hoch“, das Netz zeigt alle drei: ' + r.join(' | '));
+  await p.click('.fl-bw button[data-k="dauer"][data-v="2"]'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => flEintrag('F001').bew.dauer) === 0, 'noch einmal geklickt: wieder aus den Daten');
+  // Antragsweg als Schalter, „anschreiben“ per Klick, Fristen dieses Jahres aus dem Text
+  await p.click('.fl-seg button[data-act="fl-antrag"][data-v="Portal"]'); await p.waitForTimeout(100);
+  await p.click('[data-act="fl-k-an"][data-i="1"]'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.weg.join(), e.kontakte[1].anschreiben || 'leer', document.querySelector('[data-act="fl-k-an"][data-i="1"]').textContent.trim(), flFristenJahr('31.03. und 15.12., Förderung bis 5.000 €, alt: 1.1.2020', 2026).join()]; });
+  ok(r.join('|') === 'Portal|leer|anschreiben?|2026-03-31,2026-12-15', 'Antragsweg ein Schalter, anschreiben nein → offen, Fristen aus dem Text (Beträge und alte Jahre nicht): ' + r.join('|'));
   // Bedarf aus der Historie öffnen, zurück führt zum Förderer
-  await p.click('.fl-gt .fl-bed'); await p.waitForTimeout(200);
+  await p.click('.fl-gl .fl-bed'); await p.waitForTimeout(200);
   r = await p.evaluate(() => [UI.view, UI.id, document.querySelector('.subbar .back').textContent]);
   ok(r.join('|') === 'detail|a|‹ Sparkasse Beispiel', 'Klick auf den Bedarf öffnet ihn, „zurück“ heißt wie der Förderer: ' + r.join('|'));
   await p.click('.subbar .back'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => UI.view + '|' + UI.flId) === 'fdetail|F001', 'zurück auf der Seite des Förderers');
   await p.evaluate(() => document.activeElement.blur()); await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => UI.view) === 'flist', 'Esc: zurück zur Fördererliste');
-  await p.fill('#flq', ''); await p.selectOption('select[data-ui="flArt"]', 'Stiftung'); await p.waitForTimeout(100);
-  ok(await p.evaluate(() => [...document.querySelectorAll('#fl-body tr[data-id]')].map(x => x.dataset.id).join()) === 'F004', 'Filter nach Art');
-  await p.selectOption('select[data-ui="flArt"]', '');
+  // Einstieg über die Gliederung: Suche nach ihrem Namen oder Filter (zählt auch Förderer für alle); Spalten der Übersicht
+  await p.fill('#flq', 'geseke'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => [...document.querySelectorAll('#fl-body tr[data-id]')].map(x => x.dataset.id).join()) === 'F001', 'Suche nach einer Gliederung findet ihre Förderer');
+  await p.fill('#flq', ''); await p.evaluate(() => { flEintrag('F002').gl = ['alle']; }); await p.selectOption('select[data-ui="flGl"]', 'Brakel'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [[...document.querySelectorAll('#fl-body tr[data-id]')].map(x => x.dataset.id).join(), [...document.querySelectorAll('.fl-tab thead th')].map(t => t.textContent).join(','),
+    document.querySelector('#fl-body tr[data-id="F001"] .fl-kn').textContent, document.querySelectorAll('#fl-body tr[data-id="F001"] .fl-fi').length, document.querySelector('#fl-body tr[data-id="F002"] .fl-g').textContent, !!document.querySelector('section.card.list-card #fl-body')]);
+  ok(r[0] === 'F004,F001,F002' && r[1] === 'Förderer,Fördergebiet,Förderzweck,Fristen ' + new Date().getFullYear() + ',Einschätzung,Ansprechperson' && r[2] === 'Erika B' && r[3] === 2 && r[4] === 'alle Gliederungen' && r[5],
+    'Filter Brakel (mit „alle“), Spalten, Ansprechperson mit Telefon und E-Mail, weißer Kasten: ' + r.join(' | '));
+  await p.selectOption('select[data-ui="flGl"]', '');
   // Excel einlesen: ersetzt die Liste (nach Rückfrage); weggefallene Einträge verlieren ihre Verknüpfung
   const buf = await p.evaluate(async () => { const L = D.fl.liste; const alt = D.fl; D.fl = flNorm({ liste: JSON.parse(JSON.stringify(L.filter(e => e.id !== 'F004'))) }); D.fl.liste[0].notiz = 'neu eingelesen';
     const blob = flBlob(); D.fl = alt; return [...new Uint8Array(await blob.arrayBuffer())]; });

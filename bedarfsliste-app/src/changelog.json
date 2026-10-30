@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.89.0",
+    "date": "2026-10-31T14:00",
+    "items": [
+      "Fördererliste: Übersicht im weißen Kasten wie die Bedarfsliste, gleich breit",
+      "Übersicht für den Einstieg „eine Gliederung fragt nach Fördermöglichkeiten“: Förderer, Fördergebiet, Förderzweck, Fristen dieses Jahres, Einschätzung und Ansprechperson mit Telefon- und E-Mail-Knopf; die Art (Stiftung, Sparkasse …) steht nur noch auf der Seite des Förderers",
+      "Suche nach einer Gliederung (oder Filter) zeigt ihre Förderer und die für alle Gliederungen; der Vermerk zur Ansprache gilt dann für diese Gliederung",
+      "Fristen dieses Jahres liest das Programm aus dem Text („31.03. und 30.09.“): vorbei durchgestrichen, die nächste fett, in den nächsten sechs Wochen orange",
+      "Einschätzung als Netz mit drei Achsen – Erfolgschance (bis 50 % / 50–75 % / über 75 %), Dauer (ab 6 Monaten / 1–6 Monate / unter 1 Monat), Fördersumme (unter 5.000 / 5.000–10.000 / ab 10.000 €); je weiter außen, desto günstiger",
+      "Die Einschätzung lässt sich je Achse von Hand setzen; sonst schätzt das Programm aus Förderungen und Absagen, Beträgen und der Zeit zwischen Antrag und Antwort (gestrichelt)",
+      "Seite eines Förderers: Antragsweg als Schalter, Notizen rechts, Kontakte und Förderungen nebeneinander; „anschreiben“ je Kontakt per Klick (ja / nein / offen)",
+      "Excel der Fördererliste mit den Spalten Erfolgschance, Dauer und Fördersumme"
+    ]
+  },
+  {
     "version": "0.88.0",
     "date": "2026-10-31T13:00",
     "items": [
