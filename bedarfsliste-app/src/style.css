@@ -1579,17 +1579,18 @@ table.fl-tab td.fl-te { padding-top: 6px; padding-bottom: 4px; }
 .fl-pill.ok { background: var(--okbg); color: var(--okink); }
 /* Kopf */
 .fl-kopf { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: end; }
+.fl-kopf-in { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px 24px; min-width: 0; }
 .fl-kopf-z { display: flex; align-items: center; gap: 10px; min-width: 0; }
 .fl-kopf-l { flex: 1; min-width: 0; display: grid; gap: 4px; }
 .fl-detail .fl-name { field-sizing: content; width: auto; max-width: 100%; font-size: 36px; font-weight: 700; letter-spacing: -.01em; line-height: 1.15; }
 .fl-kopf-u { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 18px; font-size: 14.5px; color: var(--muted); }
 .fl-kopf-u b { font-weight: 400; color: var(--ink); }
 .fl-rech { font-size: 12.5px; color: var(--faint); }
-.fl-kz { text-align: right; min-width: 0; }
-.fl-kz-b { font-size: 36px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
-.fl-kz-b span { font-size: 28px; color: var(--muted); font-weight: 400; }
+.fl-kz { text-align: right; min-width: 0; flex: none; padding-bottom: 2px; }
+.fl-kz-b { color: var(--muted); font-size: 36px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fl-kz-b span { font-size: 28px; color: var(--faint); font-weight: 400; }
 .fl-kz-t { font-size: 13.5px; color: var(--muted); }
-.fl-punkte { flex: none; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); color: var(--ink2); font-size: 16px; line-height: 1; }
+.fl-punkte { display: grid; place-items: center; flex: none; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); color: var(--ink2); font-size: 16px; line-height: 1; }
 .fl-menue { width: 230px; padding: 6px; display: grid; gap: 4px; }
 .fl-mz { display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 8px; padding: 4px 6px; font-size: 13px; color: var(--muted); }
 .fl-mz select { width: 100%; }
@@ -1717,8 +1718,29 @@ button.fl-kr { cursor: pointer; }
 .fl-ak-box.neutral .fl-ab-1 { color: var(--muted); }
 .fl-ak-box.nein .fl-ab-kr { background: var(--red); border-color: var(--red); color: #fff; }
 .fl-hinweise { display: flex; flex-direction: column; gap: 10px; }
-.fl-hinweis-neu { border: 1px dashed var(--line2); border-radius: 8px; background: none; padding: 8px 12px; font-size: 13px; color: var(--muted); cursor: pointer; text-align: center; white-space: normal; }
+.fl-hinweis-neu { flex: none; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); padding: 2px 9px; font-size: 12px; font-weight: 600; color: var(--ink2); cursor: pointer; }
 .fl-hinweis-neu:hover, .fl-hinweis-neu:focus-visible { background: var(--warnbg); border-color: var(--warnline); color: var(--warn); }
+.fl-h-z > h3:has(+ .fl-sub2) { margin-right: 0; }
+.fl-h-z .fl-sub2 { margin-right: auto; }
+.fl-ak-box .fl-ab-x { opacity: .65; font-size: 17px; }
+/* Ansprechperson „nicht anschreiben“: blass, Hinweis beim Überfahren, ✉ durchgestrichen */
+.fl-kliste .k1.an-nein { opacity: .5; }
+.fl-kliste .k1.an-nein:hover { opacity: .7; }
+.kb.kb-aus { position: relative; cursor: default; color: var(--faint); }
+.kb.kb-aus::after { content: ''; position: absolute; left: 4px; right: 4px; top: 50%; border-top: 1.5px solid var(--red); transform: rotate(-35deg); }
+/* Fristen im Steckbrief: je Fördertopf eine Zeile Knöpfe, „+ Frist“, darunter ein Hinweis */
+.fl-fr { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; }
+.fl-frg { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; }
+.fl-topf { font-size: 12.5px; color: var(--muted); }
+button.fl-fd { background: var(--card); font: inherit; font-size: 12.5px; cursor: pointer; }
+button.fl-fd:hover { border-color: var(--faint); }
+.fl-frist-neu { border: 0; background: none; padding: 0; font-size: 13px; color: var(--muted); cursor: pointer; }
+.fl-frist-neu:hover { color: var(--ink); text-decoration: underline; }
+.fl-sv .pe.fl-ft-text { margin: -2px -8px 0; width: calc(100% + 16px); }
+.fl-frist-pop { padding: 10px 12px; display: grid; gap: 4px; width: 260px; }
+.fl-frist-pop input { width: 100%; }
+.fl-fp-k { display: flex; justify-content: space-between; align-items: center; margin-top: 6px; }
+.fl-detail .fl-anschrift { font-size: 14px; }
 .fl-ab-1 { display: flex; align-items: center; gap: 6px; }
 .fl-detail .fl-ab-k { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: inherit; flex: 1; min-width: 0; }
 .fl-detail .fl-ab-k::placeholder { color: inherit; opacity: 1; }

@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.95:** Fristen und Homepage stehen im Steckbrief eines Förderers. Fristen sind Knöpfe je Fördertopf (vorbei durchgestrichen, nächste fett, bald orange), mit „+ Frist“ kommen weitere dazu – mit Jahr einmalig, ohne Jahr jedes Jahr; in der Excel-Kopie stehen sie auf dem Blatt „Fristen“. Rechts gibt es höchstens einen Hinweis; Personen, die nicht angeschrieben werden sollen, sind blass mit durchgestrichener E-Mail.
+
 **Seit 0.94:** Die rechte Spalte eines Förderers ist eine Infomappe: gelbe Hinweise (frei beschriftet, nur wenn nötig), Einschätzung, Fristen, Links und der Antragsweg mit E-Mail-Adresse oder Portal-Link direkt daneben. Der Steckbrief zeigt nur Förderzweck, Fördergebiet und Förderhöhe; Ansprechpersonen werden nicht mehr nach Gliederung ausgegraut.
 
 **Seit 0.93:** Kontakte gibt es nur noch an einer Stelle: Laufende Bedarfe zeigen die Kontakte eines verknüpften Förderers aus der Fördererliste (für ihre Gliederung), archivierte behalten ihren Stand. Personen, die bei mehreren Förderern stehen, gleicht das Programm auf Wunsch an. Anschreiben-Priorität als ★, Ansprache-Kasten mit freier Überschrift und freiem Text.

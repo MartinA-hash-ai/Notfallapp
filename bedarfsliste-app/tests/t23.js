@@ -85,7 +85,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(async () => { const f = __fs.files['/Ordner/Fördererliste.xlsx']; if (!f || !f.data.length) return ['fehlt'];
     const bk = await xlsxBook(f.data.buffer.slice(0)), R = flLesen(bk), fo = bk.sheets.find(s => s.name === 'Förderungen');
     return [bk.sheets.map(s => s.name).join('+'), R.liste.length, R.liste[0].foerderungen.length, fo.rows.length - 1, fo.rows.filter(x => x[9] === 'Bedarfsliste').map(x => x[10]).join(), R.liste.find(e => e.id === 'F004').kontakte[0].anschreiben, JSON.stringify(R.liste[0].bew), bk.sheets[0].rows[1][15]]; });
-  ok(r.join('|') === 'Förderer+Ansprache+Kontakte+Förderungen+Anleitung|4|1|3|a,a|ja|{"chance":0,"dauer":2,"summe":0}|mittel', 'Excel-Kopie im Ordner: Blätter, Förderungen mit Bedarf-ID, Einlesen ohne doppelte: ' + r.join('|'));
+  ok(r.join('|') === 'Förderer+Ansprache+Kontakte+Förderungen+Fristen+Anleitung|4|1|3|a,a|ja|{"chance":0,"dauer":2,"summe":0}|mittel', 'Excel-Kopie im Ordner: Blätter, Förderungen mit Bedarf-ID, Einlesen ohne doppelte: ' + r.join('|'));
 
   // eigene Seite: Liste, Suche, Filter, Seite eines Förderers, Bearbeiten, zurück
   await p.click('header.top [data-act="flist"]'); await p.waitForTimeout(150);
@@ -100,7 +100,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   ok(r.join('|') === 'fdetail|F001|Sparkasse Beispiel|3|Über die Gliederung', 'Enter in der Suche, Enter auf der Zeile: Seite des Förderers mit Förderungen und Hinweis: ' + r.join('|'));
   // Kontakte über den Stift bearbeiten (wie „Zuständig“ beim Bedarf); Fristen als formatierter Text (Klick, Strg+Enter übernimmt)
   await p.click('[data-act="fl-k-edit"]'); await p.fill('[data-fl="kontakte.0.pos"]', 'Filialdirektion'); await p.click('[data-act="fl-k-fertig"]'); await p.waitForTimeout(100);
-  await p.click('.fl-seite .pe[data-k="fristen"]'); await p.keyboard.type('31.03.'); await p.keyboard.press('Control+Enter'); await p.waitForTimeout(100);
+  await p.click('.fl-steck .pe[data-k="fristen"]'); await p.keyboard.type('31.03.'); await p.keyboard.press('Control+Enter'); await p.waitForTimeout(100);
   await p.click('.fl-mehr-k'); await p.waitForTimeout(100);                     // Recherche-Stand steht unter „Weitere Angaben“
   await p.fill('[data-fl="recherche"]', '5.2.2026'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.kontakte[0].pos, e.fristen, e.recherche, document.querySelector('[data-fl="recherche"]').value]; });
@@ -126,16 +126,33 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.focus('.fn-griff[data-k="summe"]'); await p.keyboard.press('ArrowUp'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.bew.dauer, e.bew.summe, document.querySelector('.fn-v[data-k="summe"]').textContent, mailRein('Max%20Muster%20%3cmax.muster@beispiel.example%3e'), mailRein('mailto:a@b.example?subject=Hallo')]; });
   ok(r.join('|') === '0|2|5.000–10.000 €|max.muster@beispiel.example|a@b.example', 'Doppelklick: wieder geschätzt; ↑ von „gering“ (geschätzt) auf „mittel“; E-Mail aus Excel-Links bereinigt: ' + r.join('|'));
-  // Antragsweg als Schalter, „anschreiben“ per Klick, Fristen dieses Jahres aus dem Text
-  ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-z .fl-seg button')].map(b => b.textContent).join('/'), document.querySelector('.fl-alt-weg').textContent].join('|')) === 'per E-Mail/Portal|bisher: direkt',
-    'Antragsweg: nur per E-Mail oder Portal, „direkt“ aus der Kartei bleibt als Hinweis');
+  // Antragsweg als Schalter, „nicht anschreiben“ blass ohne Stern, Fristen als Knöpfe je Fördertopf
+  ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-z .fl-seg button')].map(b => b.textContent).join('/'), document.querySelector('.fl-alt-weg').textContent].join('|')) === 'E-Mail/Portal|bisher: direkt',
+    'Antragsweg: nur E-Mail oder Portal, „direkt“ aus der Kartei bleibt als Hinweis');
   await p.click('.fl-seg button[data-act="fl-antrag"][data-v="Portal"]'); await p.waitForTimeout(100);
   await p.fill('.fl-antrag', 'https://portal.spk.example'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
-  r = await p.evaluate(() => [flEintrag('F001').antrag, document.querySelector('.fl-seite .fl-weg-z .fl-oeffnen').getAttribute('href'), document.querySelector('.fl-antrag').placeholder]);
+  r = await p.evaluate(() => [flEintrag('F001').antrag, document.querySelector('.fl-weg-z .fl-oeffnen').getAttribute('href'), document.querySelector('.fl-antrag').placeholder]);
   ok(r.join('|') === 'https://portal.spk.example|https://portal.spk.example|Link zum Portal eintragen …', 'Antragsweg rechts: Portal mit Link direkt daneben: ' + r.join('|'));
-  await p.click('[data-act="fl-k-an"][data-i="1"]'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const k = document.querySelectorAll('.fl-kliste .k1')[1]; return [k.className, k.dataset.tip, !!k.querySelector('[data-act="fl-k-an"]'), k.querySelector('.kb').className, k.querySelector('.kb').tagName, !!document.querySelector('.fl-k-legende, .fl-legende')]; });
+  ok(r.join('|') === 'k1 fl-k1 an-nein|nicht anschreiben|false|kb kb-aus|SPAN|false', '„nicht anschreiben“: Karte blass mit Hinweis beim Überfahren, kein Stern, E-Mail durchgestrichen, keine Legende: ' + r.join('|'));
+  await p.click('[data-act="fl-k-edit"]'); await p.click('[data-act="fl-k-an-setzen"][data-i="1"][data-v=""]'); await p.click('[data-act="fl-k-fertig"]'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.weg.join(), e.kontakte[1].anschreiben || 'leer', document.querySelector('[data-act="fl-k-an"][data-i="1"]').textContent.trim(), flFristenJahr('31.03. und 15.12., Förderung bis 5.000 €, alt: 1.1.2020', 2026).join()]; });
-  ok(r.join('|') === 'Portal|leer|☆|2026-03-31,2026-12-15', 'Antragsweg ein Schalter, anschreiben nein → offen, Fristen aus dem Text (Beträge und alte Jahre nicht): ' + r.join('|'));
+  ok(r.join('|') === 'Portal|leer|☆|2026-03-31,2026-12-15', 'Antragsweg ein Schalter, anschreiben nein → offen (im Bearbeiten), Fristen aus dem Text (Beträge und alte Jahre nicht): ' + r.join('|'));
+  // Fristen: „+ Frist“ mit Fördertopf, jedes Jahr oder einmalig; Klick auf einen Knopf ändert oder entfernt
+  r = await p.evaluate(() => { const e = flEintrag('F001'); e.fristenL = []; changed(); renderNow(); return [fristParse('5.3.'), fristParse('31.03.2027'), fristParse('31.2.'), fristenAusText('31.03. und 30.09.').L.map(x => x.d).join(), fristenAusText('31.03. und 30.09.').text, fristenAusText('bis 15.10., Sitzung im Mai').text]; });
+  ok(r.join('|') === '03-05|2027-03-31||03-31,09-30||bis 15.10., Sitzung im Mai', 'Frist lesen: jedes Jahr, einmalig, ungültig; aus dem alten Text, der Rest bleibt als Hinweis: ' + r.join('|'));
+  const jahr = new Date().getFullYear();
+  await p.click('.fl-frist-neu'); await p.keyboard.type('01.01.'); await p.keyboard.press('Tab'); await p.keyboard.type('Programm A'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  await p.click('.fl-frist-neu'); await p.keyboard.type('31.12.'); await p.click('.fl-frist-pop button.primary'); await p.waitForTimeout(100);
+  await p.click('.fl-frist-neu'); await p.keyboard.type('15.6.' + (jahr + 1)); await p.keyboard.press('Tab'); await p.keyboard.type('Programm A'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [flEintrag('F001').fristenL.map(f => f.d + '/' + f.topf).join(), [...document.querySelectorAll('.fl-frg')].map(g => (g.querySelector('.fl-topf')?.textContent || '-') + ':' + [...g.querySelectorAll('.fl-fd')].map(b => b.textContent + '=' + b.className.replace('fl-fd ', '')).join(' ')).join(' | '), document.querySelector('.fl-sg').textContent.includes('Fristen ' + new Date().getFullYear())]);
+  ok(r.join('|') === `01-01/Programm A,12-31/,${jahr + 1}-06-15/Programm A|-:31.12.=naechste | Programm A:01.01.=vorbei 15.06.${jahr + 1}=naechste|true`, 'Fristen je Fördertopf: vorbei, nächste, einmalig mit Jahr: ' + r.join('|'));
+  await p.click('.fl-fd.vorbei'); await p.waitForSelector('.fl-frist-pop'); await p.click('.fl-frist-pop button:text-is("Entfernen")'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => flEintrag('F001').fristenL.map(f => f.d).join());
+  ok(r === `12-31,${jahr + 1}-06-15`, 'Frist entfernt: ' + r);
+  r = await p.evaluate(async () => { flEintrag('F001').fristenL[0].topf = 'Programm B'; const bk = await xlsxBook(await flBlob().arrayBuffer()), R = flLesen(bk);
+    return [bk.sheets.find(s => s.name === 'Fristen').rows.length - 1, R.liste.find(e => e.id === 'F001').fristenL.map(f => f.d + '/' + f.topf).join()]; });
+  ok(r.join('|') === `2|12-31/Programm B,${jahr + 1}-06-15/Programm A`, 'Fristen in der Excel-Kopie (eigenes Blatt) und wieder eingelesen: ' + r.join('|'));
   // Bedarf aus der Historie öffnen, zurück führt zum Förderer
   // Kennzahl im Kopf, Ansprache für die Gliederung aus dem Filter (änderbar), Steckbrief und Kontakte, Förderung von Hand mit Jahr oder Datum
   await p.evaluate(() => { UI.flGl = 'Geseke'; renderNow(); });
@@ -160,8 +177,8 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => [[...document.querySelectorAll('.fl-sg .fl-sl')].map(x => x.textContent).join(','), !!document.querySelector('[data-fl="richtlinien"]'), document.querySelector('.fl-kopf .fl-kz') !== null,
     [...document.querySelectorAll('.fl-kliste .k1')].map(k => k.querySelector('.fl-st').textContent + k.querySelector('.kn').textContent + ':' + [...k.querySelectorAll('.kb')].map(b => b.dataset.tip).join('+')).join(' | '),
     document.querySelector('.fl-fn .fl-notizen h3').textContent]);
-  ok(r.join('|') === 'Förderzweck,Fördergebiet,Förderhöhe|true|true|★Erika B:erika@spk.example+05272 1 | ☆Hans V:hans@spk.example|Notizen',
-    'Steckbrief immer vollständig, Links immer da, Kontakte als Karten (✓/○/✕, Adresse und Nummer beim Überfahren), Notizen neben den Förderungen: ' + r.join('|'));
+  ok(r.join('|') === `Förderzweck,Fördergebiet,Förderhöhe,Fristen ${jahr},Homepage|true|true|★Erika B:erika@spk.example+05272 1 | ☆Hans V:hans@spk.example|Notizen`,
+    'Steckbrief immer vollständig mit Fristen und Homepage, Links immer da, Kontakte als Karten (★/☆, Adresse und Nummer beim Überfahren), Notizen neben den Förderungen: ' + r.join('|'));
   await p.click('[data-act="fl-k-neu"]'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [UI.flKEdit, document.activeElement.dataset.fl, flEintrag('F001').kontakte.length]);
   await p.click('[data-act="fl-k-fertig"]'); await p.waitForTimeout(100);

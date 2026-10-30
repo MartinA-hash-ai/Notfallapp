@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.95.0",
+    "date": "2026-10-31T21:00",
+    "items": [
+      "Steckbrief eines Förderers mit Fristen und Homepage: Fristen dieses Jahres als Knöpfe (vorbei durchgestrichen, nächste fett, bald orange), gruppiert nach Fördertopf (z. B. mehrere Programme bei Aktion Mensch)",
+      "„+ Frist“: Datum mit Jahr = einmalig, ohne Jahr = jedes Jahr; Fördertopf frei wählbar; Klick auf eine Frist ändert oder entfernt sie; der bisherige Fristen-Text wird einmalig in Fristen umgewandelt, was kein Datum ist, bleibt als Hinweis darunter",
+      "Fristen stehen in der Excel-Kopie auf einem eigenen Blatt „Fristen“ und werden von dort wieder eingelesen",
+      "Hinweis rechts: höchstens einer, mit kleinem × oben rechts; „+ Hinweis“ klein oben rechts, nur solange keiner da ist",
+      "Ansprechpersonen „nicht anschreiben“: Karte blass, beim Überfahren „nicht anschreiben“, E-Mail durchgestrichen; kein rotes ✕ und keine Legende mehr",
+      "Antragsweg heißt jetzt kurz „E-Mail“ / „Portal“; die Anschrift steht rechts in der Infomappe",
+      "Kennzahl (Summe) rechtsbündig über dem linken Block und grau; Punkte im ⋯-Knopf mittig"
+    ]
+  },
+  {
     "version": "0.94.0",
     "date": "2026-10-31T19:00",
     "items": [
