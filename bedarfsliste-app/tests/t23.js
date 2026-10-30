@@ -96,9 +96,11 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => [...document.querySelectorAll('#fl-body tr[data-id]')].map(x => x.dataset.id).join());
   ok(r === 'F001', 'Suche findet auch Positionen der Kontakte: ' + r);
   await p.keyboard.press('Enter'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
-  r = await p.evaluate(() => [UI.view, UI.flId, document.querySelector('.fl-name').value, document.querySelectorAll('.fl-gl .fl-gz').length, document.querySelector('.fl-a select').value]);
-  ok(r.join('|') === 'fdetail|F001|Sparkasse Beispiel|2|über die Gliederung', 'Enter in der Suche, Enter auf der Zeile: Seite des Förderers mit Förderungen und Ansprache: ' + r.join('|'));
-  await p.fill('[data-fl="kontakte.0.pos"]', 'Filialdirektion'); await p.fill('[data-fl="fristen"]', '31.03.');
+  r = await p.evaluate(() => [UI.view, UI.flId, document.querySelector('.fl-name').value, document.querySelectorAll('.fl-foerd .fl-gl .fl-ge').length, document.querySelector('.fl-a select').value]);
+  ok(r.join('|') === 'fdetail|F001|Sparkasse Beispiel|3|über die Gliederung', 'Enter in der Suche, Enter auf der Zeile: Seite des Förderers mit Förderungen und Ansprache: ' + r.join('|'));
+  await p.fill('[data-fl="kontakte.0.pos"]', 'Filialdirektion');
+  await p.click('.fl-steck [data-act="fl-angabe"]'); await p.click('.menu button:text-is("Fristen")'); await p.fill('[data-fl="fristen"]', '31.03.');   // leere Angabe: über „+ Angabe“
+  await p.click('.fl-mehr-k'); await p.waitForTimeout(100);                     // Recherche-Stand steht unter „Weitere Angaben“
   await p.fill('[data-fl="recherche"]', '5.2.2026'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.kontakte[0].pos, e.fristen, e.recherche, document.querySelector('[data-fl="recherche"]').value]; });
   ok(r.join('|') === 'Filialdirektion|31.03.|2026-02-05|05.02.2026', 'Bearbeiten: Text und Datum (Enter übernimmt): ' + r.join('|'));
@@ -107,7 +109,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   // Einschätzung: aus den Daten geschätzt (Summe aus den Förderungen), von Hand gesetzt, noch einmal geklickt wieder geschätzt
   r = await p.evaluate(() => { const B = flBew(flEintrag('F001')); return [B.chance.v, B.summe.v, B.summe.hand, B.summe.grund.replace(/\s/g, ' '), B.dauer.v, [...document.querySelectorAll('.fn-griff')].map(g => g.dataset.k + ':' + g.getAttribute('class').replace('fn-griff ', '')).join(),
     [...document.querySelectorAll('.fn-v')].map(t => t.lastChild.textContent).join(' / '), [...document.querySelectorAll('.fn-s')].map(t => t.textContent).join('/')]; });
-  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|chance:offen,dauer:hand,summe:auto|noch offen / zwischen 1 und 6 Monaten / unter 5.000 €|//geschätzt',
+  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|chance:offen,dauer:hand,summe:auto|noch offen / 1–6 Monate / unter 5.000 €|//geschätzt',
     'Einschätzung: Summe geschätzt, Dauer von Hand, Chance offen; unter jeder Achse die Bedeutung: ' + r.join('|'));
   // Ecke ziehen: Erfolgschance ganz nach außen
   const ziel = async (k, st) => p.evaluate(([k, st]) => { const svg = document.querySelector('.fl-netz.zieh svg'), [x, y] = fnPt(FN_GROSS, k, FN_GROSS.R * st / 3), q = new DOMPoint(x, y).matrixTransform(svg.getScreenCTM()); return [q.x, q.y]; }, [k, st]);
@@ -122,14 +124,32 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.dblclick('.fn-griff[data-k="dauer"]'); await p.waitForTimeout(100);
   await p.focus('.fn-griff[data-k="summe"]'); await p.keyboard.press('ArrowUp'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.bew.dauer, e.bew.summe, document.querySelector('.fn-v[data-k="summe"]').textContent, mailRein('Max%20Muster%20%3cmax.muster@beispiel.example%3e'), mailRein('mailto:a@b.example?subject=Hallo')]; });
-  ok(r.join('|') === '0|2|5.000 bis 10.000 €|max.muster@beispiel.example|a@b.example', 'Doppelklick: wieder geschätzt; ↑ von „gering“ (geschätzt) auf „mittel“; E-Mail aus Excel-Links bereinigt: ' + r.join('|'));
+  ok(r.join('|') === '0|2|5.000–10.000 €|max.muster@beispiel.example|a@b.example', 'Doppelklick: wieder geschätzt; ↑ von „gering“ (geschätzt) auf „mittel“; E-Mail aus Excel-Links bereinigt: ' + r.join('|'));
   // Antragsweg als Schalter, „anschreiben“ per Klick, Fristen dieses Jahres aus dem Text
   await p.click('.fl-seg button[data-act="fl-antrag"][data-v="Portal"]'); await p.waitForTimeout(100);
   await p.click('[data-act="fl-k-an"][data-i="1"]'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.weg.join(), e.kontakte[1].anschreiben || 'leer', document.querySelector('[data-act="fl-k-an"][data-i="1"]').textContent.trim(), flFristenJahr('31.03. und 15.12., Förderung bis 5.000 €, alt: 1.1.2020', 2026).join()]; });
-  ok(r.join('|') === 'Portal|leer|anschreiben?|2026-03-31,2026-12-15', 'Antragsweg ein Schalter, anschreiben nein → offen, Fristen aus dem Text (Beträge und alte Jahre nicht): ' + r.join('|'));
+  ok(r.join('|') === 'Portal|leer|anschreiben offen|2026-03-31,2026-12-15', 'Antragsweg ein Schalter, anschreiben nein → offen, Fristen aus dem Text (Beträge und alte Jahre nicht): ' + r.join('|'));
   // Bedarf aus der Historie öffnen, zurück führt zum Förderer
-  await p.click('.fl-gl .fl-bed'); await p.waitForTimeout(200);
+  // Seite nach Entwurf 1a: Kennzahl im Kopf, Ansprache für die Gliederung aus dem Filter (änderbar), „+ Angabe“, Förderung von Hand mit Jahr oder Datum
+  await p.evaluate(() => { UI.flGl = 'Geseke'; renderNow(); });
+  r = await p.evaluate(() => [document.querySelector('.fl-kz-b').textContent.replace(/\s/g, ' '), document.querySelector('.fl-kz-t').textContent, document.querySelector('.fl-sub-gl').textContent,
+    document.querySelector('.fl-ak-box').className, document.querySelector('.fl-ab-2').textContent.replace(/\s+/g, ' ').trim(), document.querySelector('.fl-ab-h').value]);
+  ok(r.join('|') === '1.300 €|2 Förderungen seit 2024|gefiltert nach Gliederung Geseke|fl-ak-box gl|!Über die Gliederung▾|Gliederung fragt selbst an',
+    'Kopf mit Kennzahl; Ansprache-Kasten für die gefilterte Gliederung: ' + r.join(' | '));
+  await p.click('.fl-ab-2'); await p.click('.menu button:has-text("Nicht anschreiben")'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [flEintrag('F001').ansprache.map(a => a.gl + ':' + a.art).join(), document.querySelector('.fl-ak-box').className]);
+  ok(r.join('|') === 'Geseke:nicht anschreiben|fl-ak-box nein', 'Ansprache im Kasten geändert: ' + r.join('|'));
+  await p.click('.fl-ab-2'); await p.click('.menu button:has-text("Über die Gliederung")'); await p.evaluate(() => { UI.flGl = ''; renderNow(); });
+  await p.click('.fl-steck [data-act="fl-angabe"]'); await p.click('.menu button:text-is("Förderrichtlinien")'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => document.activeElement.dataset.fl) === 'richtlinien', '„+ Angabe“ blendet die leere Angabe ein und setzt die Schreibmarke hinein');
+  await p.click('[data-act="fl-g-neu"]'); await p.waitForTimeout(100);
+  const gi = await p.evaluate(() => flEintrag('F001').foerderungen.length - 1);
+  await p.fill(`[data-fl="foerderungen.${gi}.datum"]`, '12.04.2025'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  r = await p.evaluate(gi => { const g = flEintrag('F001').foerderungen[gi]; return [g.jahr, g.datum, g.quelle]; }, gi);
+  ok(r.join('|') === '2025|2025-04-12|von Hand', 'Förderung von Hand: Datum setzt auch das Jahr: ' + r.join('|'));
+  await p.evaluate(gi => { flEintrag('F001').foerderungen.splice(gi, 1); changed(); renderNow(); }, gi);
+  await p.click('.fl-foerd .fl-bed[data-id="a"]'); await p.waitForTimeout(200);
   r = await p.evaluate(() => [UI.view, UI.id, document.querySelector('.subbar .back').textContent]);
   ok(r.join('|') === 'detail|a|‹ Sparkasse Beispiel', 'Klick auf den Bedarf öffnet ihn, „zurück“ heißt wie der Förderer: ' + r.join('|'));
   await p.click('.subbar .back'); await p.waitForTimeout(200);
@@ -159,7 +179,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   ok(r.join('|') === '3|neu eingelesen|F001,-,-,-|3', 'eingelesen: Liste ersetzt, Verknüpfungen bleiben bei gleicher ID: ' + r.join('|'));
   // Förderer löschen: Verknüpfung in den Bedarfen fällt weg
   await p.evaluate(() => flOeffnen('F001')); await p.waitForTimeout(150);
-  await p.click('.fl-weg'); await p.waitForSelector('.modal'); await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  await p.click('[data-act="fl-menue"]'); await p.click('.fl-menue [data-act="fl-weg"]'); await p.waitForSelector('.modal'); await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
   r = await p.evaluate(() => [UI.view, D.fl.liste.map(e => e.id).join(), D.bedarfe.flatMap(b => b.foerderer.map(f => f.flId || '-')).join()]);
   ok(r.join('|') === 'flist|F002,F003|-,-,-,-,-', 'gelöscht, Verknüpfungen gelöst: ' + r.join('|'));
   // gespeichert und wieder geladen: bleibt erhalten

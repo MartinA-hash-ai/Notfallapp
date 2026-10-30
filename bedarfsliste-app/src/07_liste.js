@@ -338,6 +338,6 @@ function placePop(m, btn, align) {
   m.style.top = (r.bottom + 4 + m.offsetHeight > innerHeight ? Math.max(8, r.top - m.offsetHeight - 4) : r.bottom + 4) + 'px';
 }
 function closeMenus() { $$('.menu').forEach(m => m.remove()); }
-document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, .le-sug, [data-act="sw-pop"], [data-act="sw-filter"], [data-act="fristen"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], [data-act="kuerzel"], [data-act="fl-excel-menu"], input.dfeld, input.zfeld')) closeMenus(); }, true);
+document.addEventListener('mousedown', e => { if (!e.target.closest('.menu, .le-sug, [data-act="sw-pop"], [data-act="sw-filter"], [data-act="fristen"], [data-act="menu"], [data-act="info"], [data-act="circ"], [data-act="st-menu"], [data-act="more"], [data-act="fw"], [data-act="kuerzel"], [data-act="fl-excel-menu"], [data-act="fl-menue"], [data-act="fl-angabe"], [data-act="fl-ansp-menu"], input.dfeld, input.zfeld')) closeMenus(); }, true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeMenus(); });
 window.addEventListener('scroll', e => { if (!(e.target instanceof Element && e.target.closest('.menu'))) closeMenus(); }, true);

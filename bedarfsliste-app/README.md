@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.91:** Die Seite eines Förderers folgt dem Entwurf „1a“ (Claude Design): Kopf mit Name und Kennzahl, links Ansprechpersonen, Steckbrief, Förderungen und Absagen (offen, nach Jahren), Notizen und zugeklappte weitere Angaben; rechts die Ansprache für die gefilterte Gliederung, das Netz, die Fristen dieses Jahres und die Links.
+
 **Seit 0.90:** Die Einschätzung eines Förderers stellt man direkt im Netz ein: Ecken ziehen (oder anklicken und ↑/↓), Doppelklick schätzt wieder aus den Daten; unter jeder Achse steht die Bedeutung der Stufe. E-Mail-Adressen aus Excel-Links werden bereinigt.
 
 **Seit 0.89:** Die Übersicht der Fördererliste ist auf den Einstieg „eine Gliederung fragt nach Fördermöglichkeiten“ ausgelegt: Suche oder Filter nach der Gliederung, je Förderer Fördergebiet, Förderzweck, die Fristen dieses Jahres (aus dem Text gelesen), eine Einschätzung als Netz (Erfolgschance, Dauer, Fördersumme – je drei Stufen, von Hand gesetzt oder aus den Daten geschätzt) und die Ansprechperson mit Telefon und E-Mail. Auf der Seite eines Förderers stehen Kontakte und Förderungen nebeneinander, die Notizen rechts.

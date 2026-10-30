@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.91.0",
+    "date": "2026-10-31T16:00",
+    "items": [
+      "Seite eines Förderers neu nach dem Entwurf „1a“: Name groß auf dem grauen Grund, rechts die Kennzahl (Förderungen der letzten drei Jahre), Art, Status und Löschen im „⋯“-Menü",
+      "Links: Ansprechpersonen (nur wer angeschrieben werden darf) als graue Karten mit Telefon und E-Mail, daneben der Steckbrief; leere Angaben sind ausgeblendet, „+ Angabe“ holt sie dazu",
+      "Förderungen und Absagen: zuerst die offenen Anträge („nicht doppelt anfragen“), dann die letzten drei Jahre mit Jahressumme, ältere auf Klick; Absagen mit Grund",
+      "Rechts: Ansprache für die Gliederung aus dem Filter als farbiger Kasten (grün frei, orange über die Gliederung, rot umrandet nicht anschreiben), per Klick änderbar; darunter Netz, Fristen dieses Jahres mit Kreisen und die Links mit „Öffnen ↗“",
+      "Notizen als eigene Karte, „Weitere Angaben“ (Art, Status, Anschrift, Recherche, Quelle, übrige Kontakte) zugeklappt",
+      "Fristen: „bald“ (orange) jetzt einheitlich für die nächsten 21 Tage, auch in der Übersicht",
+      "Schmale Fenster: eine Spalte, Ansprache, Netz und Fristen zuerst, Telefon und E-Mail als große Knöpfe"
+    ]
+  },
+  {
     "version": "0.90.0",
     "date": "2026-10-31T15:00",
     "items": [
