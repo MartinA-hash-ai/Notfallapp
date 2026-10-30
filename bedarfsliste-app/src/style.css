@@ -1403,3 +1403,20 @@ table.ue-tab col.c-d { width: 40px; } table.ue-tab col.c-v { width: 23%; } table
 .or-opt { text-align: left; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); padding: 5px 9px; font-size: 13px; overflow-wrap: anywhere; white-space: normal; }
 .or-opt.on { border-color: var(--ink2); background: var(--hover); font-weight: 600; }
 .or-vor { margin-top: 6px; overflow-wrap: anywhere; }
+/* 0.79: Kontenliste der Gliederungen */
+main.konten { padding-top: 14px; }
+.k-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 12px; align-items: start; }
+.k-gl { padding: 12px 14px; margin: 0; }
+.k-gl-n { font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--ink); margin: 0 0 8px; }
+.k-konten { display: grid; gap: 6px; }
+.k-konto { display: grid; grid-template-columns: minmax(90px, 1fr) auto auto; gap: 4px 10px; align-items: center; background: var(--hover); border-radius: 7px; padding: 6px 10px; }
+.k-art { font-weight: 600; font-size: 13px; display: flex; flex-direction: column; min-width: 0; }
+.k-bank { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.k-iban, .k-bic { border: 0; background: none; padding: 2px 4px; border-radius: 4px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--ink); cursor: copy; white-space: nowrap; text-align: left; }
+.k-iban:hover, .k-bic:hover { background: var(--card); }
+.k-iban.falsch { color: var(--red); text-decoration: underline wavy; }
+span.k-bic { cursor: default; font-family: inherit; }
+.k-leer { max-width: 560px; margin: 20px auto; padding: 22px; }
+.konten-head .tools { display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+.konten-head #kq { width: 240px; }
+@media (max-width: 560px) { .k-konto { grid-template-columns: 1fr; } }

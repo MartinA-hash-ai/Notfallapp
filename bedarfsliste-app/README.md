@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.79:** Reiter „Kontenliste“ mit IBAN und BIC je Gliederung – eingelesen aus der Excel „Kontenliste der Gliederungen“. Die BIC leitet die Liste aus der IBAN ab (Bankleitzahlendatei der Bundesbank, aufbereitet im Python-Paket „schwifty“, MIT-Lizenz; `src/bic_de.json`).
+
 **Seit 0.78:** Erledigte Bedarfe fragen nach dem Archiv (sonst nach 30 Tagen von selbst); Ordner lassen sich auf das Feld „OneDrive / SharePoint“ ziehen; Enter in der Suche springt in die Liste.
 
 **Seit 0.76:** In der kompakten Liste bleibt ein aufgeklappter Bedarf aufgeklappt, wenn man von seiner Seite zurückkommt; beim Zurückgehen springt die Seite nicht mehr.

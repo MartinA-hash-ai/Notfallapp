@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.79.0",
+    "date": "2026-10-30T19:00",
+    "items": [
+      "Neuer Reiter „Kontenliste“ neben Bedarfe und Archiv: je Gliederung die Konten (Pax-Bank, BKC, Sparkasse, Volksbank) mit IBAN und BIC; Suche nach Gliederung, Ort oder Bank (Strg+F); Klick auf IBAN oder BIC kopiert sie",
+      "Die Kontenliste kommt aus der Excel „Kontenliste der Gliederungen“ (Knopf „Excel einlesen …“) und steht danach in der Bedarfsliste; neu einlesen ersetzt sie",
+      "BIC und Name der Bank ergeben sich aus der IBAN (Bankleitzahlen der Bundesbank); IBANs mit falscher Prüfziffer werden rot markiert"
+    ]
+  },
+  {
     "version": "0.78.0",
     "date": "2026-10-30T18:00",
     "items": [

@@ -38,12 +38,14 @@ if not CHANGELOG[0].get('date'):
     from zoneinfo import ZoneInfo
     CHANGELOG[0]['date'] = datetime.now(ZoneInfo('Europe/Berlin')).strftime('%Y-%m-%dT%H:%M')
 APP_INFO = {'version': CHANGELOG[0]['version'], 'date': CHANGELOG[0]['date']}
+# Bankleitzahl → [BIC, Name] für deutsche Banken (Bankleitzahlendatei der Bundesbank, aufbereitet im Python-Paket „schwifty“, MIT) – BIC aus der IBAN
+BIC_DE = json.load(open(os.path.join(SRC, 'bic_de.json'), encoding='utf8'))
 LOGO = 'data:image/png;base64,' + base64.b64encode(open(os.path.join(SRC, 'logo.png'), 'rb').read()).decode()
 LOGO_DARK = 'data:image/svg+xml;base64,' + base64.b64encode(open(os.path.join(SRC, 'logo_weiss.svg'), 'rb').read()).decode()
 
 
 def program(demo):
-    consts = {'DEMO': demo, 'LOGO': '' if demo else LOGO, 'LOGO_DARK': '' if demo else LOGO_DARK, 'FAVICON': FAVICON, 'APP_INFO': APP_INFO, 'CHANGELOG': CHANGELOG}
+    consts = {'DEMO': demo, 'LOGO': '' if demo else LOGO, 'LOGO_DARK': '' if demo else LOGO_DARK, 'FAVICON': FAVICON, 'APP_INFO': APP_INFO, 'CHANGELOG': CHANGELOG, 'BIC_DE': BIC_DE}
     head = ''.join('\nconst %s = %s;' % (k, json.dumps(v, ensure_ascii=False) if k != 'APP_INFO' else json.dumps(v)) for k, v in consts.items())
     code = js.replace("'use strict';", "'use strict';" + head, 1) + ('\n' + read(os.path.join(SRC, 'demo.js')) if demo else '')
     for bad in ('</script', '<!--'):

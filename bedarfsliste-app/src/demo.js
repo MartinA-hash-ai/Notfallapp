@@ -106,3 +106,10 @@ function demoBedarfe() {
       nach: { ueb: { noetig: true, st: 'erledigt', termin: '2026-05-09', ort: 'Schützenfest Geseke', mit: ['f-pav-spk'] }, pm: { noetig: true, st: 'veroeff', datum: '2026-05-11' } } }),
   ];
 }
+// Kontenliste in der Vorschau: erfundene Konten (gültige Prüfziffern, ausgedachte Kontonummern) für einige Gliederungen
+function demoKonten() {
+  const k = (art, blz, kto) => ({ art, iban: ibanBauen(blz, kto) });
+  const L = ['Altenbeken', 'Brakel', 'Büren', 'Dortmund', 'Geseke', 'Gütersloh', 'Hagen', 'Paderborn'].map((gl, i) => ({ gl, konten: [k('Pax-Bank', '37060120', 4711000 + i), k('BKC', '37060193', 8150000 + i)]
+    .concat(i % 3 === 0 ? [k('Sparkasse', '47650130', 1234500 + i)] : i % 3 === 1 ? [k('Volksbank', '47260121', 7654300 + i)] : []) }));
+  return { stand: '2026-10-01T09:00:00.000Z', datei: 'Kontenliste_Beispiel.xlsx', liste: L };
+}
