@@ -1,8 +1,8 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
-const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
+const UI = { flId: null, flq: '', flArt: '', flGl: '', vonFl: null, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw', 'flId'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
 function loadUI() { try { const o = JSON.parse(localStorage.getItem(uiKey()) || '{}'); for (const k of UI_KEEP) if (k in o) UI[k] = o[k]; } catch (e) { /* */ }
@@ -53,7 +53,7 @@ function updateSaveUI() {
 }
 // Förder-Kartei oben: nur, wenn etwas zu tun ist (Zugriff erlauben, Problem, keine Kartei) – läuft alles, steht nichts da (Zahnrad → Förder-Kartei)
 function karteiChip() {
-  if (DEMO) return '';
+  if (DEMO || flAktiv()) return '';                                     // ab 0.88: mit Fördererliste keine Kartei-Excel mehr
   if (KR.zugriff) return `<button class="kchip warn" data-act="kartei-erlauben" title="${esc('Die verknüpfte Kartei „' + D.settings.karteiLink + '“ lesen – ein Klick, der Browser fragt einmal nach')}">Förder-Kartei: Zugriff erlauben</button>`;
   if (KR.err) return `<button class="kchip warn" data-act="kartei" title="${esc(KR.err)}">Förder-Kartei: Problem</button>`;
   if (KR.list.length) return '';
@@ -69,7 +69,7 @@ function infosAlle() {
     if (b.archiv || b.manuell) continue;
     if (phase(b).warn.some(w => /Freigabe ist aber nicht vollständig/.test(w))) L.push({ b, z: 'frei', t: 'Antrag läuft, Freigabe noch nicht vollständig' });
     for (const f of b.foerderer) for (const x of foeHinweise(b, f))
-      L.push({ b, z: x.k, fid: f.id, t: x.k === 'amt' ? 'Zusage ohne Betrag: ' + short(f.name) : short(f.name) + ' – laut Kartei nicht für ' + b.gliederung });
+      L.push({ b, z: x.k, fid: f.id, t: x.k === 'amt' ? 'Zusage ohne Betrag: ' + short(f.name) : x.k === 'fl' ? short(f.name) + ' – Geld da, in Fördererliste übernehmen?' : x.k === 'ansprache' ? short(f.name) + ' – ' + b.gliederung + ': ' + flAnsprache(b, f).art : short(f.name) + ' – laut ' + (flAktiv() ? 'Fördererliste' : 'Kartei') + ' nicht für ' + b.gliederung });
   }
   return L;
 }
@@ -93,9 +93,9 @@ function fristPop(btn) {
 }
 // Eintrag im Feld der Hinweise: zur Stelle, die ihn auslöst, und sie kurz aufleuchten lassen. In der Liste in der Zeile des Bedarfs (kompakt:
 // aufgeklappt); steht er dort nicht (Suche, Filter, Archiv, zurückgestellt) oder ist man auf der Seite eines Bedarfs: auf seiner Seite
-const ZIEL_LISTE = { deadline: '[data-le="deadline"]', frist: '.fn[data-fid="§"]', erwartet: '.fn[data-fid="§"]', kartei: '.fn[data-fid="§"]', amt: '.fa[data-fid="§"]', vn: '.vt[data-fid="§"]', ueb: 'td.l-ueb > :first-child', frei: 'td.l-fr .ml' };
-const ZIEL_SEITE = { deadline: '#d-meta .d-dl', frist: '#foe-§ [data-dp="frist"]', erwartet: '#foe-§ [data-dp="erwartet"]', kartei: '#foe-§ .fp-title', amt: '#amt-§', vn: '#nl-§', ueb: '#sec-nach .ue-termin', frei: '#fr-blk' };
-const ZIEL_BEREICH = { frist: 'foe', erwartet: 'foe', kartei: 'foe', amt: 'foe', vn: 'nach', ueb: 'nach' };
+const ZIEL_LISTE = { deadline: '[data-le="deadline"]', frist: '.fn[data-fid="§"]', erwartet: '.fn[data-fid="§"]', kartei: '.fn[data-fid="§"]', ansprache: '.fn[data-fid="§"]', fl: '.fn[data-fid="§"]', amt: '.fa[data-fid="§"]', vn: '.vt[data-fid="§"]', ueb: 'td.l-ueb > :first-child', frei: 'td.l-fr .ml' };
+const ZIEL_SEITE = { deadline: '#d-meta .d-dl', frist: '#foe-§ [data-dp="frist"]', erwartet: '#foe-§ [data-dp="erwartet"]', kartei: '#foe-§ .fp-title', ansprache: '#foe-§ .fp-title', fl: '#foe-§ .fl-rot', amt: '#amt-§', vn: '#nl-§', ueb: '#sec-nach .ue-termin', frei: '#fr-blk' };
+const ZIEL_BEREICH = { frist: 'foe', erwartet: 'foe', kartei: 'foe', ansprache: 'foe', fl: 'foe', amt: 'foe', vn: 'nach', ueb: 'nach' };
 function springZu(id, z, fid, farbe) {
   const b = D.bedarfe.find(x => x.id === id); if (!b) return;
   closeMenus();
@@ -131,9 +131,10 @@ function headerHtml() {
   const tab = (k, l, n) => `<button class="tab ${UI.tab === k && UI.view === 'list' ? 'on' : ''}" data-act="tab" data-v="${k}">${l}<span class="cnt">${n}</span></button>`;
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
-    <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}<button class="tab" data-act="konten" title="Konten der Gliederungen mit IBAN und BIC (Fenster)">Kontenliste</button></nav>
+    <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}<button class="tab${UI.view === 'flist' || UI.view === 'fdetail' ? ' on' : ''}" data-act="flist" title="Förderer mit Kontakten, Ansprache je Gliederung und allen Förderungen">Fördererliste<span class="beta">Beta</span></button><button class="tab" data-act="konten" title="Konten der Gliederungen mit IBAN und BIC (Fenster)">Kontenliste</button></nav>
     <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button>${UI.view === 'list' ? kiListeKnopf() : ''}<button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
-    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : listBar()}
+    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ ${UI.vonFl && flEintrag(UI.vonFl) ? esc(flEintrag(UI.vonFl).name || 'Fördererliste') : 'Alle Bedarfe'}</button><div id="d-steps">${steps(b)}</div></div>`
+      : UI.view === 'flist' ? flBar() : UI.view === 'fdetail' ? flDetailBar() : listBar()}
   </header>`;
 }
 function bannersHtml() {
@@ -168,10 +169,11 @@ function renderNow() {
   try {
     closeMenus();
     const ae = document.activeElement;
-    const pk = ae && ae.dataset && ['p', 'dp', 'zp'].find(x => ae.dataset[x]);                 // Feld mit Pfad (auch Datum und Uhrzeit)
+    const pk = ae && ae.dataset && ['p', 'dp', 'zp', 'fl'].find(x => ae.dataset[x]);                 // Feld mit Pfad (auch Datum und Uhrzeit)
     const fk = ae && ae.closest && ae.closest('#app') ? (ae.id ? '#' + CSS.escape(ae.id) : pk ? `[data-${pk}="${ae.dataset[pk]}"]` + (ae.dataset.fid ? `[data-fid="${ae.dataset.fid}"]` : '') + (ae.dataset.uid ? `[data-uid="${ae.dataset.uid}"]` : '') : null) : null;
     let sel = null; try { sel = ae && 'selectionStart' in ae ? [ae.selectionStart, ae.selectionEnd] : null; } catch (e) { /* */ }
-    if (UI.view !== 'detail') UI.view = 'list';                                     // (0.79/0.80 kannte noch die Ansicht „konten“)
+    if (!['detail', 'flist', 'fdetail'].includes(UI.view)) UI.view = 'list';        // (0.79/0.80 kannte noch die Ansicht „konten“); ab 0.88 Fördererliste und ein Förderer
+    if (UI.view === 'fdetail' && !flCur()) UI.view = 'flist';
     const b = UI.view === 'detail' ? cur() : null;
     if (UI.view === 'detail' && !b) UI.view = 'list';
     // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
@@ -191,7 +193,7 @@ function renderNow() {
       if (z) setTimeout(() => wennFrei(() => zustFertig(z)), 0);
     }
     PIE_HOLD = false;
-    app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : listView());
+    app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : UI.view === 'flist' ? flListView() : UI.view === 'fdetail' ? flDetailView() : listView());
     aufMass();
     strgSet(CTRL_NOW);
     if (fk) { const e = $(fk, app); if (e) { e.focus({ preventScroll: true }); if (sel && 'setSelectionRange' in e) try { e.setSelectionRange(sel[0], sel[1]); } catch (x) { /* */ } } }
@@ -278,7 +280,7 @@ function mainMenu(btn) {
     DEMO ? null : item('upl', 'UPL (Investitionsabfrage) …'),
     DEMO ? null : item('pers-import', 'Kontakte für die Personenliste …'),
     DEMO ? null : item('konten-ein', 'Kontenliste einlesen (Excel) …'),
-    DEMO ? null : item('kartei', 'Förder-Kartei' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : '') + ' – wählen oder verknüpfen …'),
+    DEMO || flAktiv() ? null : item('kartei', 'Förder-Kartei' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : '') + ' – wählen oder verknüpfen …'),
     h('hr'), kopf('Vorlagen herunterladen'),
     item('upl-vorlage', 'UPL-Vorlage für Copilot/Cowork'),
     item('vorlage-leer', 'Förderplan-Vorlage (leer)'),
@@ -372,7 +374,7 @@ function swPop(btn) {
 }
 // Wechsel Liste ↔ Bedarf: der Bedarf gleitet von rechts über die Liste und beim Zurückgehen wieder hinaus (ohne Bewegung, wenn der
 // Browser das nicht kann oder in Windows die Animationen ausgeschaltet sind). Die Liste steht danach wieder an derselben Stelle.
-let LISTE_Y = 0;
+let LISTE_Y = 0, FL_Y = 0;
 function uebergang(r, fn) {
   if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { fn(); return; }
   const html = document.documentElement; html.dataset.vt = r;
@@ -396,7 +398,8 @@ function leerWeg(bleibt) {
 }
 function oeffnen(id, o = {}) {
   leerWeg(id);
-  if (UI.view === 'list') { LISTE_Y = scrollY; NAV = filtered().map(x => x.id); }
+  if (UI.view === 'list') { LISTE_Y = scrollY; NAV = filtered().map(x => x.id); UI.vonFl = null; }
+  if (UI.view === 'fdetail' || UI.view === 'flist') { FL_Y = scrollY; UI.vonFl = UI.view === 'fdetail' ? UI.flId : null; }   // aus der Fördererliste geöffnet: „zurück“ führt dorthin
   closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; ZU = null;
   const b = D.bedarfe.find(x => x.id === id); if (b && o.offen) { ZU = zuStd(b); ZU[o.offen] = false; }
   uebergang('vor', () => { renderNow(); scrollTo(0, 0); if (o.danach) o.danach(); });
@@ -431,20 +434,22 @@ async function fertigFrage(b) {
     h('label', { class: 'fertig-auto' }, cb, ' sonst in 30 Tagen automatisch archivieren')),
     [['Später', false], ['Jetzt archivieren', true, 'primary']]);
   if (!D.bedarfe.includes(b) || b.archiv) return;
-  if (ok) { archivieren(b); return; }
+  if (ok) { if (await flArchivPruefen(b) && D.bedarfe.includes(b) && !b.archiv) archivieren(b); return; }
   b.autoArchiv = cb.checked ? isoDate(new Date(Date.now() + 30 * 864e5)) : ''; changed(); safeRender();
 }
 // beim Start und etwa jede Minute: Bedarfe, deren Tag gekommen ist, ins Archiv (nur wenn noch alles erledigt ist)
 function autoArchivieren() {
   if (!D) return;
-  const L = D.bedarfe.filter(b => !b.archiv && b.autoArchiv && b.autoArchiv <= today() && !b.manuell && phase(b).step === 3);
+  const L = D.bedarfe.filter(b => !b.archiv && b.autoArchiv && b.autoArchiv <= today() && !b.manuell && phase(b).step === 3 && !b.foerderer.some(flOffen));   // erst, wenn die Förderer in der Fördererliste sind (oder „nicht in die Liste“)
   if (!L.length) return;
   L.forEach(b => { b.archiv = true; }); changed(); ORDER.ids = null; safeRender();
   toast(L.length === 1 ? `„${L[0].titel || 'Bedarf'}“ ist wie vorgesehen ins Archiv gewandert` : L.length + ' erledigte Bedarfe sind wie vorgesehen ins Archiv gewandert', 'ok');
 }
 // zurück: die Liste steht, wo sie war; der Fokus liegt auf dem Bedarf, von dem man kommt (mit ↑/↓ auf der Seite weitergeblättert: er wird ins Bild geholt)
 // War in der kompakten Liste ein Bedarf aufgeklappt, ist es danach der, von dem man kommt (auch wenn man auf der Seite weitergeblättert hat)
-function zurueck() { leerWeg(); closeMenus(); klickRuhe(); const id = UI.id, auf = KOMPAKT() && UI.auf; UI.auf = null; UI.view = 'list';
+function zurueck() { leerWeg(); closeMenus(); klickRuhe();
+  if (UI.vonFl && flEintrag(UI.vonFl)) { UI.flId = UI.vonFl; UI.vonFl = null; UI.view = 'fdetail'; uebergang('zurueck', () => { renderNow(); scrollTo(0, FL_Y); }); return; }
+  const id = UI.id, auf = KOMPAKT() && UI.auf; UI.auf = null; UI.view = 'list'; UI.vonFl = null;
   uebergang('zurueck', () => { renderNow(); if (auf && zeileEl(id)) aufklappen(id, true); scrollTo(0, LISTE_Y); zeileFokus(id); zeileZeigen(id); }); }
 // Seite eines Bedarfs: ↓ / ↑ öffnen den nächsten bzw. vorigen Bedarf – in der Reihenfolge, die die Liste beim Öffnen hatte
 // (steht er dort nicht, z. B. aus den Hinweisen geöffnet: die Liste mit Suche und Filtern, sonst alle Bedarfe seines Reiters)
@@ -543,8 +548,9 @@ function foeWeiter(el) {
 function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit); if (f && f.kontakte.some(kontaktLeer)) { f.kontakte = f.kontakte.filter(c => !kontaktLeer(c)); changed(); } }
 async function act(k, a, e) {
   const b = cur();
+  if ((k === 'flist' || k.startsWith('fl-')) && await flAct(k, a)) return;          // Fördererliste (23_foerderer.js)
   switch (k) {
-    case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; UI.paketWahl = null; UI.mehrWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
+    case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; UI.paketWahl = null; UI.mehrWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; UI.vonFl = null; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
     case 'konten': kontenDialog(); return;
     case 'konten-ein': closeMenus(); kontenEinlesen(); return;
     case 'konto-kopie': kontoKopieren(a.dataset.v); return;
@@ -632,6 +638,7 @@ async function act(k, a, e) {
       closeMenus();
       const offen = archivOffen(b);
       if (offen.length && !await confirmBox('Noch nicht alles erledigt', 'Noch offen: ' + offen.join(' · ') + '. Trotzdem ins Archiv?', 'Trotzdem archivieren')) return;
+      if (!await flArchivPruefen(b)) return;                                        // Geld eingegangen, Förderer aber noch nicht in der Fördererliste?
       archivieren(b); return; }
     case 'unarchive': b.archiv = false; changed(); toast('Wieder in der Liste der Bedarfe', 'ok'); break;
     case 'del': {
@@ -777,7 +784,7 @@ document.addEventListener('change', e => {
   if (!el.closest || !el.closest('#app')) return;
   if (el.id === 'ul-new') { addUl(false); return; }
   if (el.dataset.p === 'name' && el.dataset.fid) { const b = cur(), f = b && b.foerderer.find(x => x.id === el.dataset.fid); if (f && karteiFuellen(b, f)) { changed(); keep(renderNow); } return; }   // fertig getippt: Angaben aus der Kartei
-  if (el.dataset.ui && el.dataset.ui !== 'q') { UI[el.dataset.ui] = el.type === 'checkbox' ? el.checked : el.value; keep(renderNow); return; }
+  if (el.dataset.ui && el.dataset.ui !== 'q' && el.dataset.ui !== 'flq') { UI[el.dataset.ui] = el.type === 'checkbox' ? el.checked : el.value; keep(renderNow); return; }
   if (!el.dataset.p || !(el.type === 'checkbox' || el.tagName === 'SELECT')) return;
   const b = cur(); if (!b) return;
   setPath(baseOf(el, b), el.dataset.p, el.type === 'checkbox' ? el.checked : el.value);
@@ -808,6 +815,7 @@ function boot() {
   // lässt sich ein Teil der Daten nicht verarbeiten: Hinweis „beschädigt“ mit „Datensicherung laden“ statt einer leeren Seite; gespeichert wird dann nicht
   const kaputt = e => { console.error(e); return 'Daten lassen sich nicht verarbeiten – ' + ((e && e.message) || e); };
   try { D = normalize(d || emptyData()); } catch (e) { broken = broken || kaputt(e); D = normalize(emptyData()); }
+  flStart();
   SAVED_JSON = JSON.stringify(D); undoReset();
   if (broken) BROKEN = { reason: broken.replace(/^JSON\.parse: /, '').slice(0, 120) };
   if (!DEMO) checkDraft();

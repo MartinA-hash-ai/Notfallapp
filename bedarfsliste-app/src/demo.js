@@ -64,7 +64,7 @@ function demoBedarfe() {
       unterlagen: [UL('Konzept', 'da', true), UL('Projektsteckbrief', 'da', true), UL('Bilder', 'da'), UL('Presseartikel', 'da')],
       foerderer: [ff({ id: 'f-wb-lot', name: 'Beispiel-Soziallotterie', art: 'Soziallotterie', betrag: 12000, status: 'zugesagt', zugesagt: 12000, eingegangen: 12000, eingangAm: '2026-09-20', beantragtAm: '2026-06-10', entscheidungAm: '2026-08-29', einsch: 'w',
         warum: 'Hat den Wärmebus schon 2025 gefördert.', vn: { noetig: true, frist: '2027-04-30', st: 'arbeit' } }),
-        ff({ name: 'Volksbank Beispielland eG', art: 'Volksbank / Bank', betrag: 2000, status: 'abgelehnt', beantragtAm: '2026-06-10', entscheidungAm: '2026-07-15', knackpunkte: 'Absage: Budget für 2026 schon vergeben.' }),
+        ff({ name: 'Volksbank Beispielland eG', art: 'Volksbank / Bank', betrag: 2000, status: 'abgelehnt', beantragtAm: '2026-06-10', entscheidungAm: '2026-07-15', grund: 'Budget für 2026 schon vergeben – ab Januar wieder anfragen.' }),
         ff({ name: 'Stadtwerke Hagen (Beispiel)', art: 'Unternehmen', betrag: 1500, status: 'geplant', warum: 'Reserve, falls die Lotterie weniger gibt – nicht mehr nötig.' })],
       eigenanteil: 2000,
       nach: { ueb: { noetig: true, st: 'erledigt', termin: '2026-10-05', ort: 'Hauptbahnhof Hagen', mit: ['f-wb-lot'] }, pm: { noetig: true, st: 'veroeff', datum: '2026-10-06' } } }),
@@ -104,6 +104,37 @@ function demoBedarfe() {
       foerderer: [ff({ id: 'f-pav-spk', name: 'Sparkasse Musterstadt', art: 'Sparkasse', betrag: 2000, status: 'zugesagt', zugesagt: 2000, eingegangen: 2000, eingangAm: '2026-04-12', beantragtAm: '2026-02-10', entscheidungAm: '2026-03-20', einsch: 'sw',
         vn: { noetig: true, frist: '2026-09-30', st: 'erledigt' } })],
       nach: { ueb: { noetig: true, st: 'erledigt', termin: '2026-05-09', ort: 'Schützenfest Geseke', mit: ['f-pav-spk'] }, pm: { noetig: true, st: 'veroeff', datum: '2026-05-11' } } }),
+  ];
+}
+// Fördererliste in der Vorschau (ab 0.88): erfundene Förderer, Kontakte und Förderungen. Die Beispiel-Soziallotterie fehlt mit Absicht –
+// ihr Geld für den Wärmebus ist eingegangen, auf seiner Seite steht daher „In Fördererliste übernehmen?“
+function demoFoerderer() {
+  const K = (n, pos, mail, tel, gl, anschreiben, notiz) => ({ n, pos, mail, tel, gl, anschreiben, notiz: notiz || '' });
+  const G = (jahr, betrag, zweck, gl, ergebnis, grund) => ({ jahr, betrag, zweck, gl, ergebnis: ergebnis || 'gefördert', grund: grund || '', quelle: 'Kartei' });
+  return [
+    { id: 'F001', name: 'Sparkasse Musterstadt', art: 'Sparkasse', gl: ['Paderborn', 'Büren', 'Brakel', 'Geseke'], weg: ['direkt'], anschrift: 'Marktplatz 1, 33098 Musterstadt',
+      web: 'https://www.sparkasse-musterstadt.example', schwer: 'Bevölkerungsschutz, Ehrenamt, Jugend', hoehe: 'meist bis 10.000 €', fristen: 'laufend; Sitzung des Stiftungsrats im März und September', recherche: '2026-03-12',
+      notiz: 'Förderhinweis auf Fahrzeugen gern gesehen.',
+      ansprache: [{ gl: 'Geseke', art: 'über die Gliederung', hinweis: 'Die Gliederung Geseke fragt selbst an – nur abstimmen.' }],
+      kontakte: [K('Erika Beispiel', 'Filialleitung', 'erika.beispiel@sparkasse-musterstadt.example', '05251 000-100', ['Paderborn', 'Büren'], 'ja'),
+        K('Hans Exempel', 'Vorstandsvorsitz', 'hans.exempel@sparkasse-musterstadt.example', '', [], 'nein', 'Nur über Frau Beispiel'),
+        K('Lena Muster', 'Marktbereichsleitung', 'lena.muster@sparkasse-musterstadt.example', '05272 000-110', ['Brakel'], '')],
+      foerderungen: [G('2025', 1000, 'Folierung Krankentransportwagen', ['Paderborn']), G('2024', 500, 'Blaulichtanlage', ['Büren'])] },
+    { id: 'F002', name: 'Volksbank Beispielland eG', art: 'Volks- und Raiffeisenbank', gl: ['Lippstadt', 'Hagen'], weg: ['direkt'], anschrift: 'Bahnhofstraße 5, 59555 Beispielstadt',
+      schwer: 'Gesundheit, Ehrenamt', hoehe: 'bis 2.500 €', fristen: 'Anträge bis 31.01. für das laufende Jahr', recherche: '2025-11-03',
+      ansprache: [{ gl: 'Lippstadt', art: 'über die Gliederung', hinweis: 'Ortsbeauftragter kennt den Vorstand – Anfrage läuft über ihn.' }],
+      kontakte: [K('Jonas Muster', 'Marktbereichsleitung', 'jonas.muster@vb-beispielland.example', '02941 000-200', ['Lippstadt'], 'ja')],
+      foerderungen: [G('2025', 500, 'Übungspuppen und AED', ['Lippstadt'])] },
+    { id: 'F003', name: 'Bürgerstiftung Musterstadt', art: 'Stiftung', gl: ['Paderborn'], weg: ['per Mail'], web: 'https://www.buergerstiftung-musterstadt.example',
+      schwer: 'Bürgerschaftliches Engagement, Bevölkerungsschutz, Jugend', hoehe: '1.000 bis 15.000 €', fristen: '31.03. und 30.09.', richtlinien: 'https://www.buergerstiftung-musterstadt.example/foerderung', recherche: '2026-02-20',
+      kontakte: [K('Petra Exempel', 'Geschäftsführung', 'info@buergerstiftung-musterstadt.example', '05251 000-300', ['Paderborn'], 'ja')],
+      foerderungen: [G('2024', 2400, 'Helme für die Helfergruppe', ['Paderborn'])] },
+    { id: 'F004', name: 'Musterstiftung Ehrenamt NRW', art: 'Stiftung', gl: ['alle'], weg: ['Portal'], web: 'https://foerderportal.musterstiftung.example', notiz: 'Zugang zum Portal: Fundraising',
+      schwer: 'Ehrenamtsförderung, Qualifizierung', hoehe: 'bis 3.000 €', fristen: 'laufend', recherche: '2026-01-15',
+      foerderungen: [G('2026', 1500, 'Klausurtagung der Gruppenleitungen', ['Diözese'])] },
+    { id: 'F005', name: 'Stiftung Beispielhafte Hilfe', art: 'Stiftung', gl: ['Hagen', 'Iserlohn-Menden'], weg: ['per Mail'], schwer: 'Soziale Dienste, Wohnungslosenhilfe', hoehe: 'bis 5.000 €', fristen: '15.10.',
+      kontakte: [K('Dr. Max Exempel', 'Vorstand', 'm.exempel@beispielhafte-hilfe.example', '', ['Hagen'], '')],
+      foerderungen: [G('2023', null, 'Wärmebus Hagen', ['Hagen'], 'abgelehnt', 'Fördert keine laufenden Betriebskosten.')] },
   ];
 }
 // Kontenliste in der Vorschau: erfundene Konten (gültige Prüfziffern, ausgedachte Kontonummern) für einige Gliederungen

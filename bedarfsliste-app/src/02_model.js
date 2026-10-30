@@ -44,6 +44,7 @@ function ff(o) {
     frist: '', erwartet: '', warum: '', knackpunkte: '', einsch: '',
     art: '', weg: '', kontakte: [], web: '', fristInfo: '', hoehe: '', eigenInfo: '', quellen: '', notiz: '', datei: '', grund: '',   // grund: warum abgelehnt (für spätere Recherchen)   // datei: ausführliche Recherche (Word im Ordner des Bedarfs); kontakte: bis zu drei, der erste ist der Hauptkontakt
     vn: { noetig: true, frist: '', st: 'offen' },                      // ab 0.17: Verwendungsnachweis standardmäßig nötig
+    flId: '', flNein: false, flAus: [],                                // ab 0.88: Eintrag in der Fördererliste; „nicht in die Liste“; Kontakte, die nicht hinein sollen
   }, o);
 }
 // Kontakte eines Förderers: { n: Name, rolle: Funktion, mail, tel }; als Text „Name; Funktion; E-Mail; Telefon“ (Teile werden an ihrer Art erkannt)
@@ -135,7 +136,7 @@ function normalize(d) {
       if (vnMig && !b.archiv && v.noetig === false && !v.frist && v.st === 'offen') v.noetig = true;
       if (f.status === 'vorb') f.status = 'geplant';                 // „in Vorbereitung“ gibt es ab 0.17 nicht mehr
       if (!FOE_STAENDE.includes(f.status)) f.status = 'geplant';
-      f.id = gueltigeId(f.id, 'f'); f.name = String(f.name ?? ''); for (const k of ['betrag', 'zugesagt', 'eingegangen']) f[k] = zahlOderLeer(f[k]);
+      f.id = gueltigeId(f.id, 'f'); f.name = String(f.name ?? ''); f.flId = typeof f.flId === 'string' ? f.flId : ''; f.flNein = f.flNein === true; f.flAus = Array.isArray(f.flAus) ? f.flAus.filter(x => typeof x === 'string') : []; for (const k of ['betrag', 'zugesagt', 'eingegangen']) f[k] = zahlOderLeer(f[k]);
       // bis 0.20 ein Kontakt in drei Feldern (Ansprechperson, E-Mail, Telefon) – daraus wird der erste Kontakt
       if (!Array.isArray(f0.kontakte)) {
         const k = kontakteAusText(f0.kontakt);
@@ -158,6 +159,7 @@ function normalize(d) {
     if (!/^https?:\/\//i.test(n.link.trim()) && n.pfad.trim()) n.link = spLink(n.pfad, (isObj(o.settings) && o.settings.sp) || SP_STANDARD);   // Ordner bekannt: SharePoint-Link dazu
     return n;
   });
+  o.fl = flNorm(o.fl);                                                   // Fördererliste (ab 0.88)
   o.bedarfe.forEach(n => { if (n.fertigGefragt === null) n.fertigGefragt = !n.archiv && phase(n).step === 3; if (typeof n.autoArchiv !== 'string' || !validIso(n.autoArchiv)) n.autoArchiv = ''; });
   return o;
 }

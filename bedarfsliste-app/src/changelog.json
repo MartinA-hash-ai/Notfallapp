@@ -1,5 +1,21 @@
 [
   {
+    "version": "0.88.0",
+    "date": "2026-10-31T13:00",
+    "items": [
+      "Neuer Reiter „Fördererliste“ (Beta): alle Förderer mit Suche und Filtern (Art, Gliederung); je Förderer eine Seite mit Angaben, Ansprache je Gliederung, Kontakten mit Position und „anschreiben ja/nein“ sowie allen Förderungen und Absagen",
+      "Förderungen (bestätigter Geldeingang) und Absagen stehen von selbst in der Fördererliste – verknüpft mit dem Bedarf, ein Klick öffnet ihn; „zurück“ führt wieder zum Förderer",
+      "Förderer im Bedarf sind mit ihrem Eintrag verknüpft (bei gleichem Namen von selbst); nach dem Geldeingang ohne Eintrag fragt ein roter Knopf „In Fördererliste übernehmen?“ – neu anlegen, einem vorhandenen Eintrag zuordnen oder „nicht in die Liste“",
+      "Neue Kontakte eines verknüpften Förderers: roter Knopf „Neuer Kontakt – übernehmen?“",
+      "Absage: an der Stelle von „Geldeingang bestätigen“ steht „Grund der Absage eintragen“ (Fenster), der Grund steht auch in der Fördererliste",
+      "Archivieren fragt nach, wenn Geld eingegangen ist, der Förderer aber noch nicht in der Fördererliste steht; das automatische Archivieren wartet darauf",
+      "Ansprache je Gliederung (z. B. „über die Gliederung“): Hinweis am Förderer und oben bei den Infos",
+      "Die Fördererliste ersetzt die Kartei-Excel: Vorschläge und Kontakte beim Anlegen eines Förderers kommen aus ihr (mit Position, ohne „nicht anschreiben“)",
+      "Nach jedem Speichern legt das Programm eine aktuelle „Fördererliste.xlsx“ in seinen Ordner; einlesen lässt sich die umgebaute Fördererliste über „Excel ▾ → Excel einlesen …“",
+      "Schmale Fenster: die Reiter brechen um statt seitlich zu scrollen"
+    ]
+  },
+  {
     "version": "0.87.0",
     "date": "2026-10-31T11:30",
     "items": [

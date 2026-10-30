@@ -40,7 +40,7 @@ async function karteiDatei() {                                       // { name, 
   return undefined;                                                  // nicht verknüpft: im Ordner suchen
 }
 async function karteiScan(force) {
-  if (DEMO || KR.busy || ST.conn !== 'ok' || !ST.htmlDir) return;
+  if (DEMO || flAktiv() || KR.busy || ST.conn !== 'ok' || !ST.htmlDir) return;          // ab 0.88: mit Fördererliste keine Kartei-Excel mehr
   KR.busy = true;
   try {
     const vk = await karteiDatei();
@@ -93,15 +93,16 @@ function karteiFuellen(b, f) {
   if (!f.weg.trim() && (k.weg || []).length) f.weg = k.weg.map(w => KARTEI_WEG[w] || w).join(' oder ');
   const gl = norm(b.gliederung || ''), passt = c => !(c.gl || []).length || c.gl.some(g => /^alle$/i.test(g) || (gl && norm(g) === gl));
   if (!f.kontakte.some(c => c.n.trim() || c.mail.trim() || c.tel.trim())) {
-    const L = (k.kontakte || []).filter(c => !c.nicht && passt(c)).slice(0, MAX_KONTAKTE).map(c => ({ n: c.n, rolle: '', mail: c.m, tel: c.t }));
+    const L = (k.kontakte || []).filter(c => !c.nicht && passt(c)).slice(0, MAX_KONTAKTE).map(c => ({ n: c.n, rolle: c.pos || '', mail: c.m, tel: c.t }));
     if (L.length) f.kontakte = L;
   }
   const hist = Object.entries(k.hist || {}).sort((a, c) => c[0] - a[0]);
-  if (!f.notiz.trim() && hist.length) f.notiz = 'Laut Förder-Kartei bisher gefördert:\n' + hist.map(([y, v]) => '- ' + y + ': ' + v.replace(/\n/g, ', ')).join('\n');
+  if (k.flId && !f.flId && !f.flNein) f.flId = k.flId;
+  if (!f.notiz.trim() && hist.length) f.notiz = 'Laut ' + (k.flId ? 'Fördererliste' : 'Förder-Kartei') + ' bisher gefördert:\n' + hist.map(([y, v]) => '- ' + y + ': ' + v.replace(/\n/g, ', ')).join('\n');
   return true;
 }
 // alle Förderer aller Bedarfe, die in der Kartei stehen und noch nicht gefüllt wurden (beim Einlesen der Kartei)
-function karteiErgaenzen() { let n = 0; for (const b of D.bedarfe) for (const f of b.foerderer) if (karteiFuellen(b, f)) n++; return n; }
+function karteiErgaenzen() { let n = 0; for (const b of D.bedarfe) if (!(b.archiv && flAktiv())) for (const f of b.foerderer) if (karteiFuellen(b, f)) n++; return n; }   // Fördererliste: archivierte Bedarfe bleiben, wie sie sind
 function parseKartei(book) {
   const out = new Map();
   for (const sh of book.sheets) {

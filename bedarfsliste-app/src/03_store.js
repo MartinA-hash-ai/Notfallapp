@@ -189,7 +189,7 @@ function undo() {
 function changed() {
   undoMerk(); FCACHE = null;
   const fc = $('#frist-chip'); if (fc) fc.outerHTML = fristChip();                   // Fristen oben gleich nachführen
-  fertigPruefen();
+  fertigPruefen(); flPruefen();
   if (DEMO) { try { localStorage.setItem(DEMO_KEY, JSON.stringify(D)); } catch (e) { /* ohne Speicher weiter */ } return; }
   saveDraftBald(); scheduleAutosave(); updateSaveUI();
 }
@@ -233,7 +233,7 @@ async function saveAll(opts = {}) {
     D.meta = data.meta; SAVED_JSON = JSON.stringify(data);
     if (isDirty()) saveDraft(); else clearDraft();
     try { ST.stamp = (await ST.html.getFile()).lastModified; } catch (x) { ST.stamp = null; }   // Datei kurz gesperrt (OneDrive): Stempel holt der nächste Blick
-    ST.lastSave = new Date(); ST.conflict = null;
+    ST.lastSave = new Date(); ST.conflict = null; flExcelBald();
     if (ST.fail) { if (ST.fail.n > 1) toast('Wieder gespeichert.', 'ok'); ST.fail = null; }
     clearTimeout(ST.retry); ST.retry = null;
     if (!opts.auto) toast('Gespeichert', 'ok');

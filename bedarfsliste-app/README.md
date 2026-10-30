@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.88:** Reiter „Fördererliste“ (Beta): Die Förder-Kartei lebt jetzt im Programm – je Förderer Angaben, Ansprache je Gliederung (frei / über die Gliederung / nicht anschreiben), Kontakte mit Position und „anschreiben ja/nein“ sowie alle Förderungen und Absagen. Förderer in den Bedarfen sind mit ihrem Eintrag verknüpft; Förderungen mit bestätigtem Geldeingang und Absagen (mit Grund) erscheinen von selbst und öffnen per Klick den Bedarf. Nach dem Geldeingang ohne Eintrag fragt ein roter Knopf „In Fördererliste übernehmen?“, ebenso bei neuen Kontakten und beim Archivieren. Gespeichert wird die Liste in der Programmdatei (`D.fl`); nach jedem Speichern schreibt das Programm eine aktuelle `Fördererliste.xlsx` in seinen Ordner (Kopie zum Nachschauen und zur Sicherung – Änderungen dort gehen beim nächsten Speichern verloren). Einmal eingelesen wird die umgebaute Fördererliste über „Excel ▾ → Excel einlesen …“ auf der Seite der Fördererliste.
+
 **Seit 0.83:** Gemeinsam bearbeiten in einem Fenster mit einer Zeile wie ein Bedarf; Förderer, die bei allen stehen, sind dort schon eingetragen. Die Kontenliste ist schmaler, kopiert per Klick und lässt sich über den Stift bearbeiten.
 
 **Seit 0.81:** Die Kontenliste öffnet sich als Fenster mit einer Tabelle wie in der Excel (Spendenkonto, Sparkasse, Volksbank), mit Suche und Kopierzeichen.

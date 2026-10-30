@@ -161,7 +161,11 @@ function foeHinweise(b, f) {
   if (!f.name.trim()) return [];
   const k = kartei(f.name), L = [];
   if (f.status === 'zugesagt' && !foeAmt(f)) L.push({ k: 'amt', t: 'Zusage ohne Betrag – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).' });
-  if (k && b.gliederung && !istDio(b.gliederung) && k.gl.length && !k.gl.some(g => /^alle$/i.test(g)) && !k.gl.includes(b.gliederung)) L.push({ k: 'kartei', t: 'Laut Kartei zuständig für ' + esc(k.gl.join(', ')) });
+  if (k && b.gliederung && !istDio(b.gliederung) && k.gl.length && !k.gl.some(g => /^alle$/i.test(g)) && !k.gl.includes(b.gliederung)) L.push({ k: 'kartei', t: 'Laut ' + (flAktiv() ? 'Fördererliste' : 'Kartei') + ' zuständig für ' + esc(k.gl.join(', ')) });
+  // ab 0.88: Ansprache laut Fördererliste – für diese Gliederung „über die Gliederung“ oder „nicht anschreiben“ (nur solange noch nichts entschieden ist)
+  const an = (f.status === 'geplant' || f.status === 'beantragt') && flAnsprache(b, f);
+  if (flOffen(f)) L.push({ k: 'fl', t: 'Geld ist eingegangen – der Förderer steht aber noch nicht in der Fördererliste.' });
+  if (an) L.push({ k: 'ansprache', t: 'Laut Fördererliste für ' + esc(b.gliederung) + ': ' + esc(an.art) + (an.hinweis ? ' – ' + esc(an.hinweis) : '') });
   return L;
 }
 function foeWarnList(b, f) {
@@ -377,7 +381,7 @@ function fpCard(b, f) {
       </div>
       ${dots(f)}
     </div>
-    <div class="fk-st">${st === 'zugesagt' && f.eingegangen > 0 ? geldBlock(f) : `<button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div>${st === 'zugesagt' ? geldBlock(f) : ''}`}</div>
+    <div class="fk-st">${st === 'zugesagt' && f.eingegangen > 0 ? geldBlock(f) : `<button class="st-btn s-${st}" data-act="st-menu" ${a} aria-label="Stand: ${F_ST_L[st]} – ändern">${F_ST_L[st]} <span aria-hidden="true">▾</span></button><div class="fp-dates">${fpDates(f)}</div>${st === 'zugesagt' ? geldBlock(f) : st === 'abgelehnt' ? grundBlock(f) : ''}`}${flZeile(b, f)}</div>
     <div class="pc">
       <div class="pro" title="Pro: warum passt das?"><i></i>${pe(f, 'warum', '', 'area', { fmt: true, cls: 'pe-pc', aria: 'Pro – warum passt das', ph: 'Pro: Warum passt das? Satzungszweck, Förderschwerpunkt, Regionalbezug …' })}</div>
       <div class="contra" title="Contra: wo hakt es?"><i></i>${pe(f, 'knackpunkte', '', 'area', { fmt: true, cls: 'pe-pc', aria: 'Contra – Knackpunkte', ph: 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?' })}</div>
@@ -505,7 +509,7 @@ function foeKurz(b) {
   return [n + ' Förderer', F.zu ? eur(F.zu) + ' zugesagt' : 'noch keine Zusage', stand].join(' · ');
 }
 function secFoe(b) {
-  if (zuGet(b, 'foe')) return `<section class="card fp-head zu" id="sec-foe"><div class="sec-head">${zuKopf('foe', 'Förderplan', true)}<p id="foe-kurz">${esc(foeKurz(b))}</p></div></section>`;
+  if (zuGet(b, 'foe')) return `<section class="card fp-head zu" id="sec-foe"><div class="sec-head">${zuKopf('foe', 'Förderplan', true)}<p id="foe-kurz">${esc(foeKurz(b))}</p>${flKopfKnoepfe(b)}</div></section>`;
   return `<section class="card fp-head" id="sec-foe">
     <div class="sec-head">${zuKopf('foe', 'Förderplan', false)}
       <div class="sec-tools"><button class="icon-btn" data-act="import" aria-label="Ausgefüllte Recherche-Excel übernehmen" title="Ausgefüllte Recherche-Excel übernehmen – du siehst zuerst die Vorschläge">${ICON_UP}</button></div></div>
