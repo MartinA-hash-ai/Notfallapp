@@ -32,7 +32,8 @@ function blank() {
     unterlagen: FEST_UL.map(n => UL(n, 'fehlt', true)),
     foerderer: [], eigenanteil: null,
     nach: { ueb: { noetig: true, st: 'offen', termin: '', zeit: '', ort: '', mit: [], info: '', vorOrt: {}, einl: {}, presse: { pers: [], aus: [], fuer: '', wahl: [] } }, pm: { noetig: true, st: 'offen', datum: '' } },
-    manuell: '', grundM: '', archiv: false, angelegt: today(),         // grundM: warum zurückgestellt bzw. verworfen (ab 0.61)
+    manuell: '', grundM: '', archiv: false, fertigGefragt: false, autoArchiv: '',   // ab 0.78: nach getaner Nacharbeit einmal gefragt; autoArchiv: an diesem Tag von selbst ins Archiv
+    angelegt: today(),         // grundM: warum zurückgestellt bzw. verworfen (ab 0.61)
   };
 }
 function UL(name, st, fest) { return { id: uid('u'), name, st: st || 'fehlt', fest: !!fest }; }
@@ -99,6 +100,7 @@ function normalize(d) {
   o.meta.vnStd = 1;
   o.bedarfe = (Array.isArray(o.bedarfe) ? o.bedarfe : []).filter(isObj).map(b => {
     const n = mergeSicher(blank(), b);
+    if (typeof b.fertigGefragt !== 'boolean') n.fertigGefragt = null;                // ältere Daten: schon erledigte Bedarfe nicht nachträglich fragen (unten)
     n.id = gueltigeId(n.id, 'b'); n.summe = zahlOderLeer(n.summe); n.eigenanteil = zahlOderLeer(n.eigenanteil);
     for (const k of ['ofk', 'fach', 'verw']) if (!FR_STAENDE.includes(n.freigabe[k].st)) n.freigabe[k].st = 'offen';
     // ab 0.25 mehrere Stichworte (Fördertöpfe) je Bedarf – bisher eines
@@ -156,6 +158,7 @@ function normalize(d) {
     if (!/^https?:\/\//i.test(n.link.trim()) && n.pfad.trim()) n.link = spLink(n.pfad, (isObj(o.settings) && o.settings.sp) || SP_STANDARD);   // Ordner bekannt: SharePoint-Link dazu
     return n;
   });
+  o.bedarfe.forEach(n => { if (n.fertigGefragt === null) n.fertigGefragt = !n.archiv && phase(n).step === 3; if (typeof n.autoArchiv !== 'string' || !validIso(n.autoArchiv)) n.autoArchiv = ''; });
   return o;
 }
 
@@ -233,7 +236,7 @@ function finText(b) {
 
 /* ---------- Phase und Stand: ergeben sich aus den Häkchen, nichts davon wird von Hand gepflegt */
 const PHASES = [
-  { k: 'frei', t: 'Freigabe' }, { k: 'foer', t: 'Förderung' }, { k: 'nach', t: 'Nacharbeit' }, { k: 'fertig', t: 'Abgeschlossen' },
+  { k: 'frei', t: 'Freigabe' }, { k: 'foer', t: 'Förderung' }, { k: 'nach', t: 'Nacharbeit' }, { k: 'fertig', t: 'Abgeschlossen' },   // „Abgeschlossen“ ab 0.78 nicht mehr als eigener Schritt angezeigt
 ];
 const names = l => l.map(f => short(f.name)).join(', ');
 function nachOffen(b) {
@@ -272,7 +275,7 @@ function phase(b) {
   if (geld.length) return { k: 'geld', step: 1, t: 'Geldeingang offen', sub: names(geld), bad: false, warn };
   const na = nachOffen(b);
   if (na.length) return { k: 'nach', step: 2, t: 'Es fehlt', sub: na.join(', '), bad: false, warn };
-  return { k: 'fertig', step: 3, t: 'Alles erledigt', sub: b.archiv ? '' : 'kann ins Archiv', bad: false, warn };
+  return { k: 'fertig', step: 3, t: 'Alles erledigt', sub: b.archiv ? '' : b.autoArchiv ? 'kommt am ' + fmtDate(b.autoArchiv) + ' von selbst ins Archiv' : 'kann ins Archiv', bad: false, warn };
 }
 const phaseName = p => p.step < 0 ? p.t : PHASES[p.step].t;
 const PH_CLS = ['ph-frei', 'ph-foer', 'ph-nach', 'ph-fertig'];

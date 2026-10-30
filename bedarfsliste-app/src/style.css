@@ -1392,3 +1392,14 @@ table.ue-tab col.c-d { width: 40px; } table.ue-tab col.c-v { width: 23%; } table
 /* 0.77: Symbole bei „Zuständig“ mit denselben Abständen wie beim Fachreferat; Einladung raus: dunkles Grau statt Grün (grün ist nur die Zusage) */
 #sec-eck .eck-l > .sub { gap: 8px; }
 .ue-st.raus { background: var(--muted); border-color: var(--muted); color: var(--card); }
+/* 0.78: die Stelle leuchtet in der Farbe des Hinweises auf (rot jetzt fällig, gelb bald fällig, grau Info) */
+.blitz.b-gelb { --blitz: #fff0b3; --blitz-rand: #e0a800; }
+.blitz.b-info { --blitz: var(--line3); --blitz-rand: var(--muted); }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .blitz.b-gelb { --blitz: #5a4a12; --blitz-rand: #f0c94a; } }
+:root[data-theme="dark"] .blitz.b-gelb { --blitz: #5a4a12; --blitz-rand: #f0c94a; }
+.fertig-auto { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; }
+.o-link.drop-an { outline: 2px dashed var(--ink2); outline-offset: 4px; border-radius: 6px; }
+.or-liste { display: flex; flex-direction: column; gap: 4px; margin: 2px 0 8px; }
+.or-opt { text-align: left; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); padding: 5px 9px; font-size: 13px; overflow-wrap: anywhere; white-space: normal; }
+.or-opt.on { border-color: var(--ink2); background: var(--hover); font-weight: 600; }
+.or-vor { margin-top: 6px; overflow-wrap: anywhere; }

@@ -84,7 +84,7 @@ function fristChip() {
 function fristPop(btn) {
   closeMenus();
   const H = hinweise(), rel = n => n === 0 ? 'heute' : n === 1 ? 'morgen' : n === -1 ? 'gestern' : n < 0 ? 'vor ' + -n + ' Tagen' : 'in ' + n + ' Tagen';
-  const ziel = (x, cls) => ({ class: 'fp-row' + cls, role: 'menuitem', 'data-act': 'ziel', 'data-id': x.b.id, 'data-z': x.z, 'data-fid': x.fid || null });
+  const ziel = (x, cls) => ({ class: 'fp-row' + cls, role: 'menuitem', 'data-act': 'ziel', 'data-id': x.b.id, 'data-z': x.z, 'data-fid': x.fid || null, 'data-farbe': x.n == null ? 'info' : x.n <= 0 ? 'rot' : 'gelb' });   // die Stelle leuchtet in der Farbe des Hinweises auf
   const bed = x => h('span', { class: 'fp-b' }, (x.b.titel || '(ohne Namen)') + (x.b.archiv ? ' · im Archiv' : x.b.manuell ? ' · ' + x.b.manuell : ''));
   const frist = x => h('button', ziel(x, x.n <= 0 ? ' over' : ''), h('span', { class: 'fp-d' }, fmtDate(x.d)), h('span', { class: 'fp-t' }, x.t), h('span', { class: 'fp-r' }, rel(x.n)), bed(x));
   const info = x => h('button', ziel(x, ' fp-info'), h('span', { class: 'fp-d', html: '<i class="fp-i">i</i>' }), h('span', { class: 'fp-t' }, x.t), bed(x));
@@ -96,7 +96,7 @@ function fristPop(btn) {
 const ZIEL_LISTE = { deadline: '[data-le="deadline"]', frist: '.fn[data-fid="§"]', erwartet: '.fn[data-fid="§"]', kartei: '.fn[data-fid="§"]', amt: '.fa[data-fid="§"]', vn: '.vt[data-fid="§"]', ueb: 'td.l-ueb > :first-child', frei: 'td.l-fr .ml' };
 const ZIEL_SEITE = { deadline: '#d-meta .d-dl', frist: '#foe-§ [data-dp="frist"]', erwartet: '#foe-§ [data-dp="erwartet"]', kartei: '#foe-§ .fp-title', amt: '#amt-§', vn: '#nl-§', ueb: '#sec-nach .ue-termin', frei: '#fr-blk' };
 const ZIEL_BEREICH = { frist: 'foe', erwartet: 'foe', kartei: 'foe', amt: 'foe', vn: 'nach', ueb: 'nach' };
-function springZu(id, z, fid) {
+function springZu(id, z, fid, farbe) {
   const b = D.bedarfe.find(x => x.id === id); if (!b) return;
   closeMenus();
   const sel = S => (S[z] || ':not(*)').replace(/§/g, CSS.escape(fid || ''));
@@ -104,21 +104,21 @@ function springZu(id, z, fid) {
     if (KOMPAKT() && UI.auf !== id) aufklappen(id);
     const tr = zeileEl(id); if (!tr) return;
     const L = [...tr.querySelectorAll(sel(ZIEL_LISTE))];
-    blitz(L.length ? L : [tr.querySelector('.l-name .le-w')]); zeileFokus(id);
+    blitz(L.length ? L : [tr.querySelector('.l-name .le-w')], farbe); zeileFokus(id);
     return;
   }
-  const ber = ZIEL_BEREICH[z], los = () => blitz([$(sel(ZIEL_SEITE)) || $('#f-titel')]);
+  const ber = ZIEL_BEREICH[z], los = () => blitz([$(sel(ZIEL_SEITE)) || $('#f-titel')], farbe);
   if (UI.view !== 'detail' || UI.id !== id) return oeffnen(id, { offen: ber, danach: los });
   if (ber && zuGet(b, ber)) { zuSet(b, ber, false); keep(renderNow); }
   los();
 }
 // kurz aufleuchten lassen: rot hinterlegt, springt kurz hervor – nach dem Hinscrollen
-function blitz(els) {
+function blitz(els, farbe) {                                                     // farbe: rot (Standard), gelb (bald fällig), info (grau)
   els = els.filter(Boolean); if (!els.length) return;
   els[0].scrollIntoView({ block: 'center', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
   for (const el of els) {
-    el.classList.remove('blitz'); void el.offsetWidth; el.classList.add('blitz');
-    const weg = e => { if (e.target === el) { el.classList.remove('blitz'); el.removeEventListener('animationend', weg); } };
+    el.classList.remove('blitz', 'b-gelb', 'b-info'); void el.offsetWidth; el.classList.add('blitz'); if (farbe === 'gelb' || farbe === 'info') el.classList.add('b-' + farbe);
+    const weg = e => { if (e.target === el) { el.classList.remove('blitz', 'b-gelb', 'b-info'); el.removeEventListener('animationend', weg); } };
     el.addEventListener('animationend', weg);
   }
 }
@@ -272,7 +272,6 @@ function mainMenu(btn) {
   const m = h('div', { class: 'menu', id: 'mmenu', role: 'menu' },
     h('div', { class: 'menu-row' }, h('span', null, 'Darstellung'), ...[['light', 'hell'], ['dark', 'dunkel'], ['system', 'wie Windows']].map(([v, l]) =>
       h('button', { class: 'mini-btn' + (th === v ? ' on' : ''), 'data-act': 'theme', 'data-v': v }, l))),
-    colwGet(false) || colwGet(true) ? item('colw-reset', 'Spaltenbreiten der Liste zurücksetzen') : null,
     DEMO ? null : h('hr'), DEMO ? null : item('update', 'Programm-Update einspielen …', '', 'dick'),
     h('hr'), kopf('Excel einlesen'),
     DEMO ? null : item('upl', 'UPL (Investitionsabfrage) …'),
@@ -401,6 +400,46 @@ function oeffnen(id, o = {}) {
   uebergang('vor', () => { renderNow(); scrollTo(0, 0); if (o.danach) o.danach(); });
   setTimeout(kiCheck, 300);                                                        // Ergebnis von Copilot oder Cowork da?
 }
+// ins Archiv (Seite des Bedarfs: zurück zur Liste); „Rückgängig“ im Hinweis holt ihn zurück
+function archivieren(b) {
+  b.archiv = true; changed();
+  if (UI.view === 'detail' && UI.id === b.id) { UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe(); } else { ORDER.ids = null; keep(renderNow); }
+  toast(`„${b.titel || 'Bedarf'}“ liegt jetzt im Archiv`, 'ok', () => { if (D.bedarfe.includes(b) && b.archiv) { b.archiv = false; changed(); ORDER.ids = null; keep(renderNow); } });
+}
+// Nacharbeit erledigt (Phase 3 grün): einmal fragen, ob der Bedarf ins Archiv kann – sonst (vorgewählt) in 30 Tagen von selbst.
+// Wird wieder etwas offen, gilt beides nicht mehr (bei der nächsten Erledigung wird neu gefragt)
+let FERTIG_T = null;
+function fertigPruefen() {
+  clearTimeout(FERTIG_T);
+  FERTIG_T = setTimeout(() => wennFrei(() => {
+    let neu = false;
+    for (const b of D.bedarfe) {
+      if (b.archiv) continue;
+      const fertig = !b.manuell && phase(b).step === 3;
+      if (!fertig && (b.fertigGefragt || b.autoArchiv)) { b.fertigGefragt = false; b.autoArchiv = ''; neu = true; }
+      else if (fertig && !b.fertigGefragt) { b.fertigGefragt = true; neu = true; fertigFrage(b); break; }
+    }
+    if (neu) changed();
+  }), 500);
+}
+async function fertigFrage(b) {
+  const cb = h('input', { type: 'checkbox', checked: true });
+  const ok = await modal('Bedarf abgeschlossen', h('div', { class: 'tf' },
+    h('p', {}, '„' + (b.titel || 'Bedarf') + '“ ist erledigt: Die Finanzierung steht, Verwendungsnachweise und Spendenübergabe sind abgehakt. Kann er ins Archiv?'),
+    h('label', { class: 'fertig-auto' }, cb, ' sonst in 30 Tagen automatisch archivieren')),
+    [['Später', false], ['Jetzt archivieren', true, 'primary']]);
+  if (!D.bedarfe.includes(b) || b.archiv) return;
+  if (ok) { archivieren(b); return; }
+  b.autoArchiv = cb.checked ? isoDate(new Date(Date.now() + 30 * 864e5)) : ''; changed(); safeRender();
+}
+// beim Start und etwa jede Minute: Bedarfe, deren Tag gekommen ist, ins Archiv (nur wenn noch alles erledigt ist)
+function autoArchivieren() {
+  if (!D) return;
+  const L = D.bedarfe.filter(b => !b.archiv && b.autoArchiv && b.autoArchiv <= today() && !b.manuell && phase(b).step === 3);
+  if (!L.length) return;
+  L.forEach(b => { b.archiv = true; }); changed(); ORDER.ids = null; safeRender();
+  toast(L.length === 1 ? `„${L[0].titel || 'Bedarf'}“ ist wie vorgesehen ins Archiv gewandert` : L.length + ' erledigte Bedarfe sind wie vorgesehen ins Archiv gewandert', 'ok');
+}
 // zurück: die Liste steht, wo sie war; der Fokus liegt auf dem Bedarf, von dem man kommt (mit ↑/↓ auf der Seite weitergeblättert: er wird ins Bild geholt)
 // War in der kompakten Liste ein Bedarf aufgeklappt, ist es danach der, von dem man kommt (auch wenn man auf der Seite weitergeblättert hat)
 function zurueck() { leerWeg(); closeMenus(); klickRuhe(); const id = UI.id, auf = KOMPAKT() && UI.auf; UI.auf = null; UI.view = 'list';
@@ -521,7 +560,7 @@ async function act(k, a, e) {
     case 'about': closeMenus(); about(); return;
     case 'undo': undo(); return;
     case 'fristen': if ($('.frist-pop')) closeMenus(); else fristPop(a); return;
-    case 'ziel': springZu(a.dataset.id, a.dataset.z, a.dataset.fid); return;
+    case 'ziel': springZu(a.dataset.id, a.dataset.z, a.dataset.fid, a.dataset.farbe); return;
     case 'ansicht': UI.ansicht = a.dataset.v === 'kompakt' ? 'kompakt' : 'voll'; keep(renderNow); return;
     case 'fmt-info': closeMenus(); fmtInfo(); return;
     case 'save': closeMenus(); if (FSA && ST.conn === 'none') await connectFolder(); else saveAll({}); renderNow(); return;
@@ -583,8 +622,7 @@ async function act(k, a, e) {
       closeMenus();
       const offen = archivOffen(b);
       if (offen.length && !await confirmBox('Noch nicht alles erledigt', 'Noch offen: ' + offen.join(' · ') + '. Trotzdem ins Archiv?', 'Trotzdem archivieren')) return;
-      b.archiv = true; changed(); UI.view = 'list'; renderNow(); scrollTo(0, 0); klickRuhe();
-      toast(`„${b.titel || 'Bedarf'}“ liegt jetzt im Archiv`, 'ok', () => { if (D.bedarfe.includes(b) && b.archiv) { b.archiv = false; changed(); ORDER.ids = null; keep(renderNow); } }); return; }
+      archivieren(b); return; }
     case 'unarchive': b.archiv = false; changed(); toast('Wieder in der Liste der Bedarfe', 'ok'); break;
     case 'del': {
       closeMenus();
@@ -764,6 +802,7 @@ function boot() {
   if (broken) BROKEN = { reason: broken.replace(/^JSON\.parse: /, '').slice(0, 120) };
   if (!DEMO) checkDraft();
   try { renderNow(); } catch (e) { if (!BROKEN) BROKEN = { reason: kaputt(e).slice(0, 120) }; D = normalize(emptyData()); SAVED_JSON = JSON.stringify(D); undoReset(); renderNow(); }
+  setTimeout(autoArchivieren, 800);
   if (DEMO) return;
   restoreFolder().then(() => { renderNow(); askPermissionOnFirstClick(); }, e => { console.warn(e); ST.conn = 'none'; renderNow(); });
   // dieselbe Datei in einem zweiten Fenster oder Tab? Dann warnen – sonst überschreiben sich die Stände gegenseitig

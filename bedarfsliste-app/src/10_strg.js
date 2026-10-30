@@ -98,6 +98,12 @@ document.addEventListener('keydown', e => {
     const q = $('#q'); if (q && el !== q) { e.preventDefault(); closeMenus(); q.focus(); q.select(); }
     return;
   }
+  // Suche: Enter springt in den ersten gefundenen Bedarf – danach gehen die Pfeil- bzw. eigenen Tasten wieder in der Liste
+  if (el && el.id === 'q' && e.key === 'Enter' && !e.shiftKey && !e.ctrlKey && !e.altKey) {
+    e.preventDefault(); if (Q_T) { clearTimeout(Q_T); Q_T = null; renderNow(); }
+    const r = $('#list-body tr[data-id]'); if (r) { r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); }
+    return;
+  }
   if (el && el.closest && el.closest('input, textarea, select, [contenteditable], .menu')) return;
   const rows = $$('#list-body tr[data-id]'), tr = el && el.closest && el.closest('#list-body tr[data-id]');
   const geh = r => { e.preventDefault(); if (!r) return; r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); };

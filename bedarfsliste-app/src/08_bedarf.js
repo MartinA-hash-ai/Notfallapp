@@ -39,9 +39,9 @@ const ICON_PEN = '<svg viewBox="0 0 24 24" width="14" height="14" aria-hidden="t
 
 const stText = p => (p.step < 0 ? p.t : p.t + (p.sub ? ': ' + p.sub : '')) + p.warn.map(w => ' · ⚠ ' + w).join('');
 function steps(b) {
-  const p = phase(b);
+  const p = phase(b);   // ab 0.78 ohne Schritt „Abgeschlossen“: ist die Nacharbeit grün, ist alles fertig
   if (p.step < 0) return `<div class="steps" title="${esc(stText(p))}"><span class="phase ph-pause">${esc(p.t)}</span><button class="pause-grund${b.grundM ? '' : ' leer'}" data-act="grund-m" title="Begründung ändern">${b.grundM ? 'weil: ' + esc(b.grundM) : 'Begründung eintragen'}</button></div>`;
-  return `<ol class="steps" title="${esc(stText(p))}">` + PHASES.map((s, i) => { const done = p.step > i || p.step === 3;
+  return `<ol class="steps" title="${esc(stText(p))}">` + PHASES.slice(0, 3).map((s, i) => { const done = p.step > i || p.step === 3;
     return `<li class="${done ? 'done' : p.step === i ? 'cur ' + PH_CLS[i] : ''}"><span class="st-k">${done ? ICO.ok : i + 1}</span>${s.t}</li>`; }).join('') + '</ol>';
 }
 
@@ -137,7 +137,7 @@ function sidePanel(b) {
     <div id="fr-blk">${frBlock(b)}</div>
     <h3>Unterlagen</h3><div id="ul-body" class="ci-list">${unterlagenList(b)}</div>
     <h3>Ordner ${infoBtn('ordner')}</h3>
-    <div class="o-row"><span class="o-lab">OneDrive / SharePoint</span><div class="row">${tin(b, 'link', 'class="grow" aria-label="Link zum Ordner"', 'SharePoint-Link einfügen (https://…)')}<span id="link-btn">${linkBtn(b)}</span></div>
+    <div class="o-row o-link" title="Link einfügen – oder einen Ordner aus dem Explorer bzw. einen SharePoint-Link hierher ziehen"><span class="o-lab">OneDrive / SharePoint</span><div class="row">${tin(b, 'link', 'class="grow" aria-label="Link zum Ordner"', 'SharePoint-Link einfügen (https://…)')}<span id="link-btn">${linkBtn(b)}</span></div>
       <div id="link-hw">${linkHinweis(b)}</div></div>
   </section>`;
 }

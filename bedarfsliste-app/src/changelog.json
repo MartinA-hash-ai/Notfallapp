@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.78.0",
+    "date": "2026-10-30T18:00",
+    "items": [
+      "Seite eines Bedarfs: nur noch drei Schritte (Freigabe, Förderung, Nacharbeit) – „Abgeschlossen“ entfällt, grüne Nacharbeit heißt fertig",
+      "Ist die Nacharbeit erledigt, fragt die Bedarfsliste einmal, ob der Bedarf ins Archiv kann; sonst (vorgewählt) wandert er nach 30 Tagen von selbst ins Archiv – wird vorher wieder etwas offen, entfällt das",
+      "Menü: „Spaltenbreiten der Liste zurücksetzen“ entfernt (geht weiter per Doppelklick auf den Rand eines Spaltenkopfs)",
+      "Hinweise oben: die angesprungene Stelle leuchtet in der Farbe des Hinweises auf – gelb bei „bald fällig“, rot bei „jetzt fällig“",
+      "Suche (Strg+F): Enter springt in den ersten gefundenen Bedarf, danach gehen die Tasten wieder in der Liste",
+      "Ordner per Ziehen: einen Ordner aus dem Explorer oder einen SharePoint-Link auf „OneDrive / SharePoint“ ziehen; beim Ordner aus dem Explorer schlägt die App den Ort vor (wie bei ähnlichen Bedarfen), weil der Browser nur den Namen verrät"
+    ]
+  },
+  {
     "version": "0.77.0",
     "date": "2026-10-31T11:00",
     "items": [
