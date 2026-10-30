@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.85.0",
+    "date": "2026-10-31T10:00",
+    "items": [
+      "Kontenliste: das Fenster ist immer gleich breit, mit und ohne Suche",
+      "Ausführliche Liste, Spendenübergabe: stehen links die Punkte der Förderer (grau: soll dabei sein, grün: kommt, Linie: eingeladen), entfällt der gelbe Kreis vor dem Termin",
+      "Kompakte Liste: die Punkte stehen zu dritt je Zeile, damit der Termin daneben Platz hat"
+    ]
+  },
+  {
     "version": "0.84.0",
     "date": "2026-10-31T09:00",
     "items": [

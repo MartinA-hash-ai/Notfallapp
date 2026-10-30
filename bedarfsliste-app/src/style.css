@@ -1491,3 +1491,11 @@ td.l-ueb.mit-pkt { padding-left: 26px; }
 .k-ue-p { display: inline-flex; gap: 3px; margin-right: 6px; vertical-align: middle; }
 .k-ue-p i { width: 8px; height: 8px; border-radius: 50%; background: var(--ghost); }
 .k-ue-p i.ok { background: var(--strong); }
+/* 0.85: Übergabe – ausführlich ohne Kreis vor dem Termin, wenn links die Punkte der Förderer stehen; kompakt die Punkte zu dritt je Zeile */
+.ml.ohne-mi { padding-left: 0; }
+.ml.ohne-mi + .ml-sub { padding-left: 0; }
+.k-ue { display: inline-flex; align-items: center; gap: 8px; }
+.k-ue-p { display: inline-grid; grid-template-columns: repeat(3, 8px); gap: 3px; margin-right: 0; flex: none; }
+.k-ue > .kz { white-space: nowrap; }
+.modal.wide.k-modal { width: min(940px, 96vw); }
+.k-modal table.k-tab { width: 100%; }

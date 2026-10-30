@@ -80,9 +80,11 @@ function lFinanz(b) {
 const uebWann = u => u.termin ? fmtDate(u.termin) + (u.zeit ? ', ' + esc(u.zeit) + ' Uhr' : '') : '';
 function lUebergabe(b) {
   const u = b.nach.ueb, F = finState(b);
+  // stehen links die Punkte der Förderer (wer dabei ist, eingeladen, kommt), entfällt der Kreis vor dem Termin
+  const pk = u.noetig && b.foerderer.some(f => f.status === 'zugesagt' && (b === MEHR.T || u.mit.includes(f.id))), sym = (s, t) => pk ? '' : mi(s, t);
   const top = !u.noetig ? '<div class="ml nn">keine Übergabe</div>'
-    : (u.st === 'erledigt' ? `<div class="ml">${mi('ok', 'erledigt')}<span>erledigt${u.termin ? ' am ' + fmtDate(u.termin) : ''}</span></div>`
-      : u.st === 'terminiert' || u.termin ? `<div class="ml">${mi('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>`
+    : (u.st === 'erledigt' ? `<div class="ml${pk ? ' ohne-mi' : ''}">${sym('ok', 'erledigt')}<span>erledigt${u.termin ? ' am ' + fmtDate(u.termin) : ''}</span></div>`
+      : u.st === 'terminiert' || u.termin ? `<div class="ml${pk ? ' ohne-mi' : ''}">${sym('run', 'terminiert')}<span>${uebWann(u) || 'terminiert'}</span></div>`
       : F.done && F.zu > 0 ? `<div class="ml warnl">${ICON_TRI}<span>Spendenübergabe einleiten</span></div>` : '')
       + (u.ort ? `<div class="ml-sub">${esc(u.ort)}</div>` : '');                      // ohne Zeile darüber nicht eingerückt (CSS)
   const view = top + (u.noetig && u.info.trim() ? (top ? '<div class="ue-sep"></div>' : '') + `<div class="note fmt">${fmtText(u.info)}</div>` : '');
@@ -195,7 +197,7 @@ function kUebPunkte(b) {
   const L = b.foerderer.filter(f => f.status === 'zugesagt' && u.mit.includes(f.id)); if (!L.length) return '';
   return `<span class="k-ue-p">${L.map(f => { const e = (u.einl || {})[f.id] || {}, k = e.zu === 'ja'; return `<i class="${k ? 'ok' : ''}" title="${esc(short(f.name) + ': ' + (k ? 'kommt' : e.am ? 'eingeladen am ' + fmtDate(e.am) : 'soll dabei sein'))}"></i>`; }).join('')}</span>`;
 }
-const kUebergabe = b => kUebPunkte(b) + kUebStand(b);
+const kUebergabe = b => { const p = kUebPunkte(b); return p ? `<span class="k-ue">${p}${kUebStand(b)}</span>` : kUebStand(b); };
 function kUebStand(b) {
   const u = b.nach.ueb, F = finState(b);
   if (!u.noetig) return kGrau('keine Übergabe');
