@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.81.0",
+    "date": "2026-10-30T21:00",
+    "items": [
+      "Kontenliste als Fenster wie in der Excel: je Gliederung eine Zeile, Spalten Spendenkonto (Pax-Bank, hervorgehoben), Sparkasse und Volksbank; die BIC steht im Spaltenkopf (bei verschiedenen Banken in einer Spalte beim Konto)",
+      "Oben die Suche nach der Gliederung, rechts oben × zum Schließen (auch mit Esc); beim Überfahren erscheint neben der IBAN das Kopierzeichen, nach dem Kopieren ein Haken",
+      "IBANs in der normalen Schrift mit gleich breiten Ziffern, in Vierergruppen"
+    ]
+  },
+  {
     "version": "0.80.0",
     "date": "2026-10-30T20:00",
     "items": [

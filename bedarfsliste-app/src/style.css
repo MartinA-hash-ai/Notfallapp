@@ -1403,23 +1403,39 @@ table.ue-tab col.c-d { width: 40px; } table.ue-tab col.c-v { width: 23%; } table
 .or-opt { text-align: left; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); padding: 5px 9px; font-size: 13px; overflow-wrap: anywhere; white-space: normal; }
 .or-opt.on { border-color: var(--ink2); background: var(--hover); font-weight: 600; }
 .or-vor { margin-top: 6px; overflow-wrap: anywhere; }
-/* 0.79: Kontenliste der Gliederungen */
-main.konten { padding-top: 14px; }
-.k-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 12px; align-items: start; }
-.k-gl { padding: 12px 14px; margin: 0; }
-.k-gl-n { font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--ink); margin: 0 0 8px; }
-.k-konten { display: grid; gap: 6px; }
-.k-konto { display: grid; grid-template-columns: minmax(90px, 1fr) auto auto; gap: 4px 10px; align-items: center; background: var(--hover); border-radius: 7px; padding: 6px 10px; }
-.k-art { font-weight: 600; font-size: 13px; display: flex; flex-direction: column; min-width: 0; }
-.k-bank { font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.k-iban, .k-bic { border: 0; background: none; padding: 2px 4px; border-radius: 4px; font-family: ui-monospace, Consolas, monospace; font-size: 13px; color: var(--ink); cursor: copy; white-space: nowrap; text-align: left; }
-.k-iban:hover, .k-bic:hover { background: var(--card); }
+/* 0.81: Kontenliste als Fenster – Tabelle wie in der Excel, Spendenkonto hervorgehoben, Kopierzeichen beim Überfahren */
+.modal.wide.k-modal { max-width: 1180px; max-height: 86vh; }
+.k-modal .modal-body { padding-top: 0; display: flex; flex-direction: column; min-height: 0; }
+.k-box { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.k-kopf { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 10px 0 12px; }
+.k-such { flex: 1 1 260px; max-width: 380px; }
+.k-fuss { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; margin-left: auto; }
+.k-wrap { overflow: auto; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 8px; }
+table.k-tab { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }
+table.k-tab thead th { position: sticky; top: 0; z-index: 1; background: var(--head); text-align: left; vertical-align: bottom; padding: 9px 12px 8px; border-bottom: 1px solid var(--line); font-weight: 600; }
+.k-th { display: block; font-size: 13px; color: var(--ink); }
+.k-th-z { font-weight: 400; color: var(--muted); }
+.k-th-bic { display: flex; align-items: center; gap: 2px; margin-top: 2px; font-size: 11.5px; font-weight: 400; color: var(--muted); letter-spacing: .02em; }
+table.k-tab tbody th, table.k-tab tbody td { padding: 8px 12px; border-bottom: 1px solid var(--line3); vertical-align: top; text-align: left; }
+table.k-tab tbody tr:last-child > * { border-bottom: 0; }
+table.k-tab tbody tr:hover > * { background: var(--hover); }
+th.k-gl { width: 190px; font-weight: 600; color: var(--ink); }
+table.k-tab .k-haupt { background: color-mix(in srgb, var(--hover) 70%, transparent); }
+table.k-tab thead .k-haupt { background: var(--chipbg); }
+table.k-tab tbody tr:hover > .k-haupt { background: var(--chipbg); }
+.k-iban-z { display: flex; align-items: center; gap: 4px; }
+.k-iban { font-variant-numeric: tabular-nums; letter-spacing: .03em; color: var(--ink2); white-space: nowrap; }
+.k-haupt .k-iban { color: var(--ink); font-weight: 600; }
 .k-iban.falsch { color: var(--red); text-decoration: underline wavy; }
-span.k-bic { cursor: default; font-family: inherit; }
-.k-leer { max-width: 560px; margin: 20px auto; padding: 22px; }
-.konten-head .tools { display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap; }
-.konten-head #kq { width: 240px; }
-@media (max-width: 560px) { .k-konto { grid-template-columns: 1fr; } }
+.k-bic-z { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 1px; font-size: 11.5px; color: var(--muted); }
+.k-bic-w { letter-spacing: .02em; }
+.k-kopie { display: inline-grid; place-items: center; width: 24px; height: 22px; padding: 0; border: 0; border-radius: 5px; background: none; color: var(--muted); opacity: 0; cursor: pointer; }
+tr:hover .k-kopie, .k-kopie:focus-visible, .k-kopie.ok, thead .k-th-bic:hover .k-kopie { opacity: 1; }
+.k-kopie:hover { background: var(--card); color: var(--ink); }
+.k-kopie.ok { color: var(--strong); }
+.k-leer { color: var(--faint); }
+.k-nix { padding: 18px 12px; }
+@media (hover: none) { .k-kopie { opacity: .7; } }
 /* 0.80: mehrere Bedarfe gemeinsam bearbeiten */
 .mw h4 { margin: 14px 0 6px; }
 .mw-z { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; padding: 3px 0; }

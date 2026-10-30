@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.81:** Die Kontenliste öffnet sich als Fenster mit einer Tabelle wie in der Excel (Spendenkonto, Sparkasse, Volksbank), mit Suche und Kopierzeichen.
+
 **Seit 0.80:** Mehrere Bedarfe lassen sich gemeinsam bearbeiten (Prio, Freigaben, Förderer); die Liste zeigt bei der Spendenübergabe je Förderer, ob er dabei sein soll, eingeladen ist oder kommt.
 
 **Seit 0.79:** Reiter „Kontenliste“ mit IBAN und BIC je Gliederung – eingelesen aus der Excel „Kontenliste der Gliederungen“. Die BIC leitet die Liste aus der IBAN ab (Bankleitzahlendatei der Bundesbank, aufbereitet im Python-Paket „schwifty“, MIT-Lizenz; `src/bic_de.json`).

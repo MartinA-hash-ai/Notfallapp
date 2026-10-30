@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { kq: '', mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -131,9 +131,9 @@ function headerHtml() {
   const tab = (k, l, n) => `<button class="tab ${UI.tab === k && UI.view === 'list' ? 'on' : ''}" data-act="tab" data-v="${k}">${l}<span class="cnt">${n}</span></button>`;
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
-    <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}<button class="tab${UI.view === 'konten' ? ' on' : ''}" data-act="konten" title="Konten der Gliederungen mit IBAN und BIC">Kontenliste</button></nav>
+    <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}<button class="tab" data-act="konten" title="Konten der Gliederungen mit IBAN und BIC (Fenster)">Kontenliste</button></nav>
     <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button>${UI.view === 'list' ? kiListeKnopf() : ''}<button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
-    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : UI.view === 'konten' ? kontenBar() : listBar()}
+    ${b ? `<div class="subbar"><button class="back" data-act="back">‹ Alle Bedarfe</button><div id="d-steps">${steps(b)}</div></div>` : listBar()}
   </header>`;
 }
 function bannersHtml() {
@@ -171,6 +171,7 @@ function renderNow() {
     const pk = ae && ae.dataset && ['p', 'dp', 'zp'].find(x => ae.dataset[x]);                 // Feld mit Pfad (auch Datum und Uhrzeit)
     const fk = ae && ae.closest && ae.closest('#app') ? (ae.id ? '#' + CSS.escape(ae.id) : pk ? `[data-${pk}="${ae.dataset[pk]}"]` + (ae.dataset.fid ? `[data-fid="${ae.dataset.fid}"]` : '') + (ae.dataset.uid ? `[data-uid="${ae.dataset.uid}"]` : '') : null) : null;
     let sel = null; try { sel = ae && 'selectionStart' in ae ? [ae.selectionStart, ae.selectionEnd] : null; } catch (e) { /* */ }
+    if (UI.view !== 'detail') UI.view = 'list';                                     // (0.79/0.80 kannte noch die Ansicht „konten“)
     const b = UI.view === 'detail' ? cur() : null;
     if (UI.view === 'detail' && !b) UI.view = 'list';
     // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
@@ -190,7 +191,7 @@ function renderNow() {
       if (z) setTimeout(() => wennFrei(() => zustFertig(z)), 0);
     }
     PIE_HOLD = false;
-    app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : UI.view === 'konten' ? kontenView() : listView());
+    app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : listView());
     aufMass();
     strgSet(CTRL_NOW);
     if (fk) { const e = $(fk, app); if (e) { e.focus({ preventScroll: true }); if (sel && 'setSelectionRange' in e) try { e.setSelectionRange(sel[0], sel[1]); } catch (x) { /* */ } } }
@@ -543,7 +544,7 @@ async function act(k, a, e) {
   const b = cur();
   switch (k) {
     case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; UI.paketWahl = null; UI.mehrWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
-    case 'konten': closeMenus(); UI.view = 'konten'; renderNow(); scrollTo(0, 0); return;
+    case 'konten': kontenDialog(); return;
     case 'konten-ein': kontenEinlesen(); return;
     case 'konto-kopie': kontoKopieren(a.dataset.v); return;
     case 'open': oeffnen(a.dataset.id); return;
@@ -747,11 +748,6 @@ let Q_T = null;
 document.addEventListener('input', e => {
   const el = e.target;
   if (!el.closest || !el.closest('#app')) return;
-  if (el.dataset.ui === 'kq') {                                                    // Kontenliste: beim Tippen filtern
-    UI.kq = el.value; swap('k-body', kontenKarten(), true);
-    const c = $('#konten-count'), K = kontenDaten(); if (c && K) c.textContent = K.liste.filter(x => kontenTreffer(x, norm(UI.kq))).length + ' von ' + K.liste.length + ' Gliederungen';
-    return;
-  }
   if (el.dataset.ui === 'q') {
     if (UI.auf) aufklappen(null);
     UI.q = el.value;
