@@ -13,14 +13,22 @@ const FL_STATUS = ['aktiv', 'ruht', 'aufgelöst', 'fusioniert'], FL_WEGE = ['dir
 const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg: [], anschrift: '', web: '', schwer: '', hoehe: '', fristen: '', richtlinien: '', recherche: '', notiz: '', bew: { chance: 0, dauer: 0, summe: 0 }, ansprache: [], kontakte: [], foerderungen: [] });
 // Einschätzung (ab 0.89): je drei Stufen, 1 = ungünstig … 3 = günstig (im Netz außen = besser; bei der Dauer heißt außen „geht schnell“); 0 = nicht von Hand gesetzt
 const FL_BEW = [
-  { k: 'chance', t: 'Erfolgschance', kurz: 'Chance', st: ['gering', 'mittel', 'hoch'], def: ['Bewilligung bis 50 %', '50 bis 75 %', 'über 75 %'] },
-  { k: 'dauer', t: 'Dauer', kurz: 'Dauer', st: ['lange', 'mittel', 'schnell'], def: ['Entscheidung nach 6 Monaten oder später', 'nach 1 bis 6 Monaten', 'in unter einem Monat'] },
-  { k: 'summe', t: 'Fördersumme', kurz: 'Summe', st: ['gering', 'mittel', 'hoch'], def: ['unter 5.000 €', '5.000 bis 10.000 €', 'ab 10.000 €'] },
+  { k: 'chance', t: 'Erfolgschance', kurz: 'Chance', st: ['gering', 'mittel', 'hoch'], bed: ['gering (bis 50 %)', 'mittel (50 bis 75 %)', 'sehr gut (über 75 %)'] },
+  { k: 'dauer', t: 'Dauer', kurz: 'Dauer', st: ['lange', 'mittel', 'schnell'], bed: ['über 6 Monate', 'zwischen 1 und 6 Monaten', 'unter 1 Monat'] },
+  { k: 'summe', t: 'Fördersumme', kurz: 'Summe', st: ['gering', 'mittel', 'hoch'], bed: ['unter 5.000 €', '5.000 bis 10.000 €', 'über 10.000 €'] },
 ];
 const flKontaktLeer = () => ({ id: uid('k'), n: '', pos: '', mail: '', tel: '', gl: [], anschreiben: '', notiz: '' });
 const flFoerderungLeer = () => ({ id: uid('g'), jahr: '', datum: '', ergebnis: 'gefördert', betrag: null, zweck: '', gl: [], grund: '', quelle: '' });
 const strL = v => (Array.isArray(v) ? v : String(v ?? '').split(/\s*,\s*/)).map(x => String(x ?? '').trim()).filter(Boolean);
 const strV = v => String(v ?? '').trim();
+// E-Mail aus Excel-Links: „mailto:“, codiert („Name%20%3cadresse%3e“) oder „Name <adresse>“ → nur die Adresse
+function mailRein(v) {
+  let t = strV(v); if (!t) return '';
+  if (/%[0-9a-f]{2}/i.test(t)) try { t = decodeURIComponent(t); } catch (e) { /* bleibt, wie es ist */ }
+  t = t.replace(/^mailto:/i, '').split('?')[0];
+  const m = t.match(/[^\s<>"'(),;:]+@[^\s<>"'(),;:]+\.[a-z]{2,}/i);
+  return m ? m[0] : t.trim();
+}
 function flNorm(x) {
   const o = isObj(x) ? x : {}, ids = new Set();
   const L = (Array.isArray(o.liste) ? o.liste : []).filter(isObj).map(e0 => {
@@ -30,7 +38,7 @@ function flNorm(x) {
     e.gl = strL(e.gl); e.weg = strL(e.weg).filter(w => FL_WEGE.includes(w));
     const bw = isObj(e.bew) ? e.bew : {}; e.bew = Object.fromEntries(FL_BEW.map(x => [x.k, [1, 2, 3].includes(+bw[x.k]) ? +bw[x.k] : 0]));
     e.ansprache = (Array.isArray(e.ansprache) ? e.ansprache : []).filter(isObj).map(a => ({ gl: strV(a.gl), art: FL_ANSPRACHE.includes(a.art) ? a.art : 'frei', hinweis: strV(a.hinweis) }));
-    e.kontakte = (Array.isArray(e.kontakte) ? e.kontakte : []).filter(isObj).map(k => Object.assign(flKontaktLeer(), k, { gl: strL(k.gl), anschreiben: ['ja', 'nein'].includes(k.anschreiben) ? k.anschreiben : '' }));
+    e.kontakte = (Array.isArray(e.kontakte) ? e.kontakte : []).filter(isObj).map(k => Object.assign(flKontaktLeer(), k, { mail: mailRein(k.mail), gl: strL(k.gl), anschreiben: ['ja', 'nein'].includes(k.anschreiben) ? k.anschreiben : '' }));
     e.foerderungen = (Array.isArray(e.foerderungen) ? e.foerderungen : []).filter(isObj).map(g => Object.assign(flFoerderungLeer(), g, { gl: strL(g.gl), betrag: zahlOderLeer(g.betrag), ergebnis: g.ergebnis === 'abgelehnt' ? 'abgelehnt' : 'gefördert' }));
     if (!e.id || ids.has(e.id)) e.id = ''; ids.add(e.id);
     return e;
@@ -119,7 +127,7 @@ function flLesen(book) {
     bew: Object.fromEntries(FL_BEW.map(x => [x.k, x.st.findIndex(t => norm(r[norm(x.t)]).includes(t)) + 1])) }));
   const zu = r => L.find(e => e.id === strV(r['förderer-id'])) || L.find(e => kkey(e.name) === kkey(r['förderer']));
   for (const r of tab('Ansprache')) { const e = zu(r); if (e && strV(r.gliederung)) e.ansprache.push({ gl: strV(r.gliederung), art: strV(r.ansprache), hinweis: strV(r.hinweis) }); }
-  for (const r of tab('Kontakte')) { const e = zu(r); if (e && (strV(r.name) || strV(r['e-mail']) || strV(r.telefon))) e.kontakte.push(Object.assign(flKontaktLeer(), { n: strV(r.name), pos: strV(r.position), mail: strV(r['e-mail']), tel: cellStr(r.telefon), gl: strL(r.gliederungen), anschreiben: norm(r.anschreiben), notiz: strV(r.notiz) })); }
+  for (const r of tab('Kontakte')) { const e = zu(r); if (e && (strV(r.name) || strV(r['e-mail']) || strV(r.telefon))) e.kontakte.push(Object.assign(flKontaktLeer(), { n: strV(r.name), pos: strV(r.position), mail: mailRein(r['e-mail']), tel: cellStr(r.telefon), gl: strL(r.gliederungen), anschreiben: norm(r.anschreiben), notiz: strV(r.notiz) })); }
   for (const r of tab('Förderungen')) {
     const e = zu(r); if (!e || /^bedarfsliste$/i.test(strV(r.quelle))) continue;                     // die aus den Bedarfen liest das Programm selbst
     e.foerderungen.push(Object.assign(flFoerderungLeer(), { jahr: strV(r.jahr).replace(/\.0$/, ''), datum: xlDatum(r.datum), ergebnis: norm(r.ergebnis) === 'abgelehnt' ? 'abgelehnt' : 'gefördert', betrag: zahlOderLeer(r['betrag (€)']), zweck: strV(r['zweck / bedarf']), gl: strL(r.gliederungen), grund: strV(r['grund der absage']), quelle: strV(r.quelle) }));
@@ -194,17 +202,73 @@ function flBew(e) {
   return Object.fromEntries(FL_BEW.map(x => [x.k, e.bew[x.k] ? { v: e.bew[x.k], hand: true, grund: 'von Hand eingeschätzt' } : A[x.k] ? Object.assign({ hand: false }, A[x.k]) : { v: 0, hand: false, grund: '' }]));
 }
 const flBewText = (B, x) => x.t + ': ' + (B[x.k].v ? x.st[B[x.k].v - 1] + (B[x.k].hand ? '' : ' (geschätzt: ' + B[x.k].grund + ')') : 'noch nicht eingeschätzt');
-// Netz mit drei Achsen: oben Erfolgschance, rechts unten Fördersumme, links unten Dauer; je weiter außen, desto günstiger
+// Netz mit drei Achsen: oben Erfolgschance, rechts unten Fördersumme, links unten Dauer; je weiter außen, desto günstiger.
+// Groß (Seite eines Förderers): die Ecken lassen sich ziehen (auch mit den Pfeiltasten), unter jeder Achse steht, was der Wert bedeutet;
+// ganz zur Mitte gezogen oder doppelt geklickt: wieder aus den Daten geschätzt
+const FN_KLEIN = { W: 118, H: 76, R: 28, cx: 59, cy: 40 }, FN_GROSS = { W: 460, H: 196, R: 72, cx: 230, cy: 128 };
+const FN_WI = { chance: -90, summe: 30, dauer: 150 };
+const fnPt = (G, k, r) => { const a = FN_WI[k] * Math.PI / 180; return [G.cx + r * Math.cos(a), G.cy + r * Math.sin(a)]; };
+const fnP = (G, k, r) => fnPt(G, k, r).map(n => n.toFixed(1)).join(',');
+const fnPoly = (G, V) => FL_BEW.map(x => fnP(G, x.k, G.R * (V[x.k] || 0) / 3)).join(' ');
+const fnGriffR = (G, v) => v ? G.R * v / 3 : G.R * .14;
+const fnWert = (x, b) => b.v ? x.bed[b.v - 1] : 'noch offen';
+const FN_TEXT = { chance: { dx: 0, dy: -46, a: 'middle' }, dauer: { dx: -16, dy: -4, a: 'end' }, summe: { dx: 16, dy: -4, a: 'start' } };
 function flNetz(e, gross) {
-  const B = flBew(e), W = gross ? 230 : 118, R = gross ? 66 : 28, cx = W / 2, cy = gross ? 96 : 40, Hh = gross ? 186 : 76;
-  const WI = { chance: -90, summe: 30, dauer: 150 }, pt = (k, r) => { const a = WI[k] * Math.PI / 180; return [cx + r * Math.cos(a), cy + r * Math.sin(a)]; };
-  const P = (k, r) => pt(k, r).map(n => n.toFixed(1)).join(',');
-  const gitter = [1, 2, 3].map(i => `<polygon class="fn-g" points="${FL_BEW.map(x => P(x.k, R * i / 3)).join(' ')}"/>`).join('') + FL_BEW.map(x => `<line class="fn-g" x1="${cx}" y1="${cy}" x2="${P(x.k, R).split(',')[0]}" y2="${P(x.k, R).split(',')[1]}"/>`).join('');
+  const B = flBew(e), G = gross ? FN_GROSS : FN_KLEIN, V = Object.fromEntries(FL_BEW.map(x => [x.k, B[x.k].v]));
+  const gitter = [1, 2, 3].map(i => `<polygon class="fn-g" points="${FL_BEW.map(x => fnP(G, x.k, G.R * i / 3)).join(' ')}"/>`).join('')
+    + FL_BEW.map(x => { const [px, py] = fnPt(G, x.k, G.R); return `<line class="fn-g" x1="${G.cx}" y1="${G.cy}" x2="${px.toFixed(1)}" y2="${py.toFixed(1)}"/>`; }).join('');
   const hat = FL_BEW.some(x => B[x.k].v), nurGeschaetzt = FL_BEW.every(x => !B[x.k].v || !B[x.k].hand);
-  const wert = hat ? `<polygon class="fn-w${nurGeschaetzt ? ' geschaetzt' : ''}" points="${FL_BEW.map(x => P(x.k, R * B[x.k].v / 3)).join(' ')}"/>` + FL_BEW.filter(x => B[x.k].v).map(x => { const [px, py] = pt(x.k, R * B[x.k].v / 3); return `<circle class="fn-p" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="${gross ? 3.2 : 2.2}"/>`; }).join('') : '';
-  const lab = x => { const [px, py] = pt(x.k, R), dy = x.k === 'chance' ? (gross ? -9 : -5) : (gross ? 18 : 11); return `<text class="fn-l${B[x.k].v ? '' : ' leer'}" x="${px.toFixed(1)}" y="${(py + dy).toFixed(1)}" text-anchor="middle">${gross ? x.t : x.kurz}</text>`; };
-  return `<span class="fl-netz${gross ? ' gross' : ''}" data-tip="${esc(FL_BEW.map(x => flBewText(B, x)).join(' · '))}"><svg viewBox="0 0 ${W} ${Hh}" width="${W}" height="${Hh}" role="img" aria-label="${esc(FL_BEW.map(x => flBewText(B, x)).join(', '))}">${gitter}${wert}${FL_BEW.map(lab).join('')}</svg></span>`;
+  const flaeche = `<polygon class="fn-w${nurGeschaetzt ? ' geschaetzt' : ''}${hat ? '' : ' leer'}" points="${fnPoly(G, V)}"/>`;
+  if (!gross) {
+    const punkte = FL_BEW.filter(x => B[x.k].v).map(x => { const [px, py] = fnPt(G, x.k, G.R * B[x.k].v / 3); return `<circle class="fn-p${B[x.k].hand ? '' : ' auto'}" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.3"/>`; }).join('');
+    const lab = x => { const [px, py] = fnPt(G, x.k, G.R); return `<text class="fn-l${B[x.k].v ? '' : ' leer'}" x="${px.toFixed(1)}" y="${(py + (x.k === 'chance' ? -5 : 11)).toFixed(1)}" text-anchor="middle">${x.kurz}</text>`; };
+    return `<span class="fl-netz" data-tip="${esc(FL_BEW.map(x => flBewText(B, x)).join(' · '))}"><svg viewBox="0 0 ${G.W} ${G.H}" width="${G.W}" height="${G.H}" role="img" aria-label="${esc(FL_BEW.map(x => flBewText(B, x)).join(', '))}">${gitter}${flaeche}${punkte}${FL_BEW.map(lab).join('')}</svg></span>`;
+  }
+  const A = flBewAuto(e);
+  const griff = x => { const b = B[x.k], [px, py] = fnPt(G, x.k, fnGriffR(G, b.v));
+    return `<g class="fn-griff ${b.hand ? 'hand' : b.v ? 'auto' : 'offen'}" data-k="${x.k}" transform="translate(${px.toFixed(1)} ${py.toFixed(1)})" tabindex="0" role="slider" aria-label="${x.t}" aria-valuemin="0" aria-valuemax="3" aria-valuenow="${b.hand ? b.v : 0}" aria-valuetext="${esc(fnWert(x, b))}">`
+      + `<title>${esc(x.t + ': ' + fnWert(x, b) + (b.hand ? ' – von Hand' : b.v ? ' – geschätzt: ' + b.grund : '') + '. Ziehen zum Einschätzen, Doppelklick: wieder aus den Daten')}</title><circle class="fn-hit" r="15"/><circle class="fn-h" r="5.5"/></g>`; };
+  // Beschriftung: oben über der Ecke, unten seitlich daneben (links bündig nach außen) – Name, Bedeutung, ggf. „geschätzt“
+  const texte = x => { const b = B[x.k], [px, py] = fnPt(G, x.k, G.R), L = FN_TEXT[x.k], tx = (px + L.dx).toFixed(1), y0 = py + L.dy;
+    return `<text class="fn-l" x="${tx}" y="${y0.toFixed(1)}" text-anchor="${L.a}">${x.t}</text>`
+      + `<text class="fn-v${b.hand ? '' : b.v ? ' geschaetzt' : ' leer'}" data-k="${x.k}" x="${tx}" y="${(y0 + 15).toFixed(1)}" text-anchor="${L.a}"><title>${esc(b.v && !b.hand ? 'geschätzt: ' + b.grund : '')}</title>${esc(fnWert(x, b))}</text>`
+      + `<text class="fn-s" data-k="${x.k}" x="${tx}" y="${(y0 + 28).toFixed(1)}" text-anchor="${L.a}">${b.v && !b.hand ? 'geschätzt' : ''}</text>`; };
+  return `<span class="fl-netz gross zieh"><svg viewBox="0 0 ${G.W} ${G.H}" width="${G.W}" height="${G.H}" role="group" aria-label="Einschätzung"
+    data-hand="${esc(JSON.stringify(e.bew))}" data-auto="${esc(JSON.stringify(Object.fromEntries(FL_BEW.map(x => [x.k, A[x.k] ? A[x.k].v : 0]))))}">${gitter}${flaeche}${FL_BEW.map(texte).join('')}${FL_BEW.map(griff).join('')}</svg></span>`;
 }
+// Ziehen: Stufe aus der Lage des Zeigers entlang der Achse (nahe der Mitte: 0 = wieder aus den Daten); beim Loslassen übernehmen
+let FN_ZIEH = null;
+function fnStufe(svg, k, ev) {
+  const G = FN_GROSS, p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(svg.getScreenCTM().inverse()), a = FN_WI[k] * Math.PI / 180;
+  const r = (p.x - G.cx) * Math.cos(a) + (p.y - G.cy) * Math.sin(a);
+  return r < G.R / 6 ? 0 : Math.max(1, Math.min(3, Math.round(r / (G.R / 3))));
+}
+function fnZeigen(svg, k, v) {                                                  // Vorschau während des Ziehens, ohne neu zu zeichnen
+  const G = FN_GROSS, hand = JSON.parse(svg.dataset.hand), auto = JSON.parse(svg.dataset.auto), x = FL_BEW.find(y => y.k === k);
+  hand[k] = v; const V = Object.fromEntries(FL_BEW.map(y => [y.k, hand[y.k] || auto[y.k] || 0])), b = { v: V[k], hand: !!v };
+  svg.querySelector('.fn-w').setAttribute('points', fnPoly(G, V));
+  const [px, py] = fnPt(G, k, fnGriffR(G, V[k])), g = svg.querySelector(`.fn-griff[data-k="${k}"]`); g.setAttribute('transform', `translate(${px.toFixed(1)} ${py.toFixed(1)})`);
+  g.classList.toggle('hand', !!v); g.classList.toggle('auto', !v && !!V[k]); g.classList.toggle('offen', !V[k]);
+  const t = svg.querySelector(`.fn-v[data-k="${k}"]`); t.textContent = fnWert(x, b); t.setAttribute('class', 'fn-v' + (b.hand ? '' : b.v ? ' geschaetzt' : ' leer'));
+  svg.querySelector(`.fn-s[data-k="${k}"]`).textContent = b.v && !b.hand ? 'geschätzt' : '';
+}
+function fnSetzen(k, v) { const e = flCur(); if (!e || !(k in e.bew) || e.bew[k] === v) return; e.bew[k] = v; changed(); keep(renderNow); const g = $(`.fl-netz.zieh .fn-griff[data-k="${k}"]`); if (g) g.focus({ preventScroll: true }); }
+document.addEventListener('pointerdown', ev => {
+  const g = ev.target.closest && ev.target.closest('.fl-netz.zieh .fn-griff'); if (!g || ev.button !== 0) return;
+  ev.preventDefault(); g.focus({ preventScroll: true }); g.setPointerCapture(ev.pointerId);
+  FN_ZIEH = { g, k: g.dataset.k, svg: g.ownerSVGElement, v: null }; g.classList.add('aktiv'); FN_ZIEH.svg.parentNode.classList.add('zieht');
+});
+document.addEventListener('pointermove', ev => { if (!FN_ZIEH) return; const v = fnStufe(FN_ZIEH.svg, FN_ZIEH.k, ev); if (v !== FN_ZIEH.v) { FN_ZIEH.v = v; fnZeigen(FN_ZIEH.svg, FN_ZIEH.k, v); } });
+const fnLos = () => { if (!FN_ZIEH) return; const z = FN_ZIEH; FN_ZIEH = null; z.g.classList.remove('aktiv'); z.svg.parentNode.classList.remove('zieht'); if (z.v != null) fnSetzen(z.k, z.v); };
+document.addEventListener('pointerup', fnLos); document.addEventListener('pointercancel', fnLos);
+document.addEventListener('dblclick', ev => { const g = ev.target.closest && ev.target.closest('.fl-netz.zieh .fn-griff'); if (g) fnSetzen(g.dataset.k, 0); });
+document.addEventListener('keydown', ev => {
+  const g = ev.target.closest && ev.target.closest('.fl-netz.zieh .fn-griff'); if (!g) return;
+  const e = flCur(), k = g.dataset.k; if (!e) return;
+  const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[ev.key];
+  if (d) { ev.preventDefault(); ev.stopPropagation(); fnSetzen(k, Math.max(0, Math.min(3, (e.bew[k] || (flBewAuto(e)[k] || {}).v || 0) + d))); }   // vom angezeigten Wert aus, auch wenn er geschätzt ist
+  else if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); fnSetzen(k, 0); }
+}, true);
 // Fristen dieses Jahres aus dem Text („31.03. und 30.09.“, „bis 15.10.2026“): Tage ohne Jahr gelten jedes Jahr
 function flFristenJahr(t, jahr = +today().slice(0, 4)) {
   const L = [], re = /(?<![\d.])(\d{1,2})\.(\d{1,2})\.(?:(\d{4}|\d{2})(?!\d))?/g; let m;
@@ -299,9 +363,6 @@ function flDetailView() {
   const link = u => /^https?:\/\//i.test(u) ? `<a class="fl-ext" href="${esc(u)}" target="_blank" rel="noopener" data-act="link" title="Öffnen">↗</a>` : '';
   const seg = (L, an, act, extra = '') => `<div class="fl-seg" role="group">${L.map(([v, t, cls, tip]) => `<button class="${cls || ''}" data-act="${act}" data-v="${v}"${extra}${tip ? ` title="${esc(tip)}"` : ''} aria-pressed="${an(v)}">${t}</button>`).join('')}</div>`;
   const weg = seg(FL_WEGE.map(w => [w, w, e.weg.includes(w) ? 'on' : '']), w => e.weg.includes(w), 'fl-antrag');
-  const bew = x => { const b = B[x.k];
-    return `<div class="fl-bw"><span class="fl-l">${x.t}</span>${seg(x.st.map((t, i) => [i + 1, t, b.v === i + 1 ? (b.hand ? 'on' : 'auto') : '', x.def[i] + (b.hand && b.v === i + 1 ? ' – noch einmal klicken: wieder aus den Daten schätzen' : '')]), v => b.hand && b.v === v, 'fl-bew', ` data-k="${x.k}"`)}
-      <div class="fl-bw-g muted small">${b.hand ? 'von Hand eingeschätzt' : b.v ? 'geschätzt: ' + esc(b.grund) : 'noch keine Daten – bitte einschätzen'}</div></div>`; };
   const kontakt = (k, i) => { const a = FL_AN[k.anschreiben || ''];
     return `<div class="fl-kb">
       <div class="fl-kb1">${flIn(`kontakte.${i}.n`, k.n, { ph: 'Name', aria: 'Name', cls: 'fl-kn' })}<button class="fl-an fl-an-${a[0]}" data-act="fl-k-an" data-i="${i}" title="${a[2]}">${a[1]}</button><button class="fl-x" data-act="fl-k-weg" data-i="${i}" title="Kontakt entfernen" aria-label="Kontakt entfernen">×</button></div>
@@ -343,7 +404,7 @@ function flDetailView() {
         ${flFeld('Recherche-Stand', flIn('recherche', e.recherche ? fmtDate(e.recherche) : '', { typ: 'datum', ph: 'tt.mm.jjjj', aria: 'Recherche-Stand' }))}
       </section>
       <section class="card fl-rechts"><h3>Einschätzung <span class="info-t muted">– je weiter außen, desto günstiger</span></h3>
-        <div class="fl-bew">${flNetz(e, true)}<div class="fl-bws">${FL_BEW.map(bew).join('')}</div></div>
+        <div class="fl-bew">${flNetz(e, true)}<p class="muted small fl-bew-hw">Ecken ziehen zum Einschätzen · Doppelklick: wieder aus den Daten schätzen</p></div>
         <h3 class="fl-h2">Ansprache je Gliederung <span class="info-t muted">– wer schreibt an?</span></h3>
         <div class="fl-al">${e.ansprache.map(ansprache).join('') || '<p class="muted small">Überall frei – nichts vermerkt.</p>'}</div>
         <button class="link small" data-act="fl-a-neu">+ Vermerk für eine Gliederung</button>
@@ -520,7 +581,6 @@ async function flAct(k, a) {
     case 'fl-k-neu': if (e) { e.kontakte.push(flKontaktLeer()); neu(); const L = $$('.fl-kb'); const i = L.length && L[L.length - 1].querySelector('input'); if (i) i.focus(); } return true;
     case 'fl-k-an': { const x = e && e.kontakte[+a.dataset.i]; if (x) { x.anschreiben = ({ '': 'ja', ja: 'nein', nein: '' })[x.anschreiben || '']; neu(); } return true; }
     case 'fl-antrag': if (e) { const v = a.dataset.v; e.weg = e.weg.length === 1 && e.weg[0] === v ? [] : [v]; neu(); } return true;   // Schalter: ein Weg; Klick auf den gewählten nimmt ihn heraus
-    case 'fl-bew': if (e && a.dataset.k in e.bew) { const v = +a.dataset.v; e.bew[a.dataset.k] = e.bew[a.dataset.k] === v ? 0 : v; neu(); } return true;   // noch einmal: wieder aus den Daten
     case 'fl-k-weg': if (e) { e.kontakte.splice(+a.dataset.i, 1); neu(); } return true;
     case 'fl-a-neu': if (e) { e.ansprache.push({ gl: '', art: 'über die Gliederung', hinweis: '' }); neu(); const L = $$('.fl-a input'); if (L.length) L[L.length - 1].focus(); } return true;
     case 'fl-a-weg': if (e) { e.ansprache.splice(+a.dataset.i, 1); neu(); } return true;

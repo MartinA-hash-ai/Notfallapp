@@ -105,13 +105,24 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.waitForTimeout(500);
   ok(await p.evaluate(() => kartei('Sparkasse Beispiel').kontakte[0].pos) === 'Filialdirektion', 'Kartei für Vorschläge nachgeführt');
   // Einschätzung: aus den Daten geschätzt (Summe aus den Förderungen), von Hand gesetzt, noch einmal geklickt wieder geschätzt
-  r = await p.evaluate(() => { const B = flBew(flEintrag('F001')); return [B.chance.v, B.summe.v, B.summe.hand, B.summe.grund.replace(/\s/g, ' '), B.dauer.v, document.querySelectorAll('.fl-bw .fl-seg button.auto').length]; });
-  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|1', 'Einschätzung: Summe geschätzt, Dauer von Hand, Chance offen (unter drei Entscheidungen): ' + r.join('|'));
-  await p.click('.fl-bw button[data-k="chance"][data-v="3"]'); await p.waitForTimeout(100);
-  r = await p.evaluate(() => [flEintrag('F001').bew.chance, document.querySelector('.fl-bw button[data-k="chance"][data-v="3"]').className, document.querySelector('.fl-netz.gross').dataset.tip]);
-  ok(r[0] === 3 && r[1] === 'on' && r[2].startsWith('Erfolgschance: hoch · Dauer: mittel · Fördersumme: gering (geschätzt'), 'von Hand „hoch“, das Netz zeigt alle drei: ' + r.join(' | '));
-  await p.click('.fl-bw button[data-k="dauer"][data-v="2"]'); await p.waitForTimeout(100);
-  ok(await p.evaluate(() => flEintrag('F001').bew.dauer) === 0, 'noch einmal geklickt: wieder aus den Daten');
+  r = await p.evaluate(() => { const B = flBew(flEintrag('F001')); return [B.chance.v, B.summe.v, B.summe.hand, B.summe.grund.replace(/\s/g, ' '), B.dauer.v, [...document.querySelectorAll('.fn-griff')].map(g => g.dataset.k + ':' + g.getAttribute('class').replace('fn-griff ', '')).join(),
+    [...document.querySelectorAll('.fn-v')].map(t => t.lastChild.textContent).join(' / '), [...document.querySelectorAll('.fn-s')].map(t => t.textContent).join('/')]; });
+  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|chance:offen,dauer:hand,summe:auto|noch offen / zwischen 1 und 6 Monaten / unter 5.000 €|//geschätzt',
+    'Einschätzung: Summe geschätzt, Dauer von Hand, Chance offen; unter jeder Achse die Bedeutung: ' + r.join('|'));
+  // Ecke ziehen: Erfolgschance ganz nach außen
+  const ziel = async (k, st) => p.evaluate(([k, st]) => { const svg = document.querySelector('.fl-netz.zieh svg'), [x, y] = fnPt(FN_GROSS, k, FN_GROSS.R * st / 3), q = new DOMPoint(x, y).matrixTransform(svg.getScreenCTM()); return [q.x, q.y]; }, [k, st]);
+  let [x0, y0] = await ziel('chance', 0.42); const [x1, y1] = await ziel('chance', 3);
+  await p.mouse.move(x0, y0); await p.mouse.down(); await p.mouse.move(x1, y1, { steps: 5 });
+  r = await p.evaluate(() => [document.querySelector('.fn-v[data-k="chance"]').textContent, flEintrag('F001').bew.chance]);
+  ok(r.join('|') === 'sehr gut (über 75 %)|0', 'beim Ziehen: Vorschau mit Bedeutung, noch nicht übernommen: ' + r.join('|'));
+  await p.mouse.up(); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [flEintrag('F001').bew.chance, document.querySelector('.fn-griff[data-k="chance"]').getAttribute('class'), document.activeElement.dataset.k]);
+  ok(r.join('|') === '3|fn-griff hand|chance', 'losgelassen: Erfolgschance „sehr gut“ von Hand: ' + r.join('|'));
+  // Doppelklick: wieder aus den Daten; Pfeiltaste: vom angezeigten Wert aus
+  await p.dblclick('.fn-griff[data-k="dauer"]'); await p.waitForTimeout(100);
+  await p.focus('.fn-griff[data-k="summe"]'); await p.keyboard.press('ArrowUp'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.bew.dauer, e.bew.summe, document.querySelector('.fn-v[data-k="summe"]').textContent, mailRein('Max%20Muster%20%3cmax.muster@beispiel.example%3e'), mailRein('mailto:a@b.example?subject=Hallo')]; });
+  ok(r.join('|') === '0|2|5.000 bis 10.000 €|max.muster@beispiel.example|a@b.example', 'Doppelklick: wieder geschätzt; ↑ von „gering“ (geschätzt) auf „mittel“; E-Mail aus Excel-Links bereinigt: ' + r.join('|'));
   // Antragsweg als Schalter, „anschreiben“ per Klick, Fristen dieses Jahres aus dem Text
   await p.click('.fl-seg button[data-act="fl-antrag"][data-v="Portal"]'); await p.waitForTimeout(100);
   await p.click('[data-act="fl-k-an"][data-i="1"]'); await p.waitForTimeout(100);

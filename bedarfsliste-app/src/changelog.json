@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.90.0",
+    "date": "2026-10-31T15:00",
+    "items": [
+      "Fördererliste, Einschätzung: die Ecken des Netzes lassen sich ziehen (beim Überfahren werden sie größer); unter jeder Achse steht, was der Wert bedeutet, z. B. „über 10.000 €“ oder „zwischen 1 und 6 Monaten“",
+      "Doppelklick auf eine Ecke (oder zur Mitte ziehen): wieder aus den Daten geschätzt; mit der Tastatur: Ecke anklicken, dann ↑/↓",
+      "Die Schalter rechts neben dem Netz sind weg, der Kasten ist kleiner",
+      "E-Mail-Adressen aus Excel-Links („Name%20%3cadresse%3e“, „mailto:“) werden zur reinen Adresse – auch bei schon eingelesenen Kontakten"
+    ]
+  },
+  {
     "version": "0.89.0",
     "date": "2026-10-31T14:00",
     "items": [
