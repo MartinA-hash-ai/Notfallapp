@@ -1507,3 +1507,7 @@ td.l-ueb.mit-pkt { padding-left: 26px; }
 .ue-pkt.p-nein, .k-ue-p i.p-nein { background: var(--red); }
 .ue-weg.an, .ue-weg.an.ok { border-color: var(--ghost); }
 .k-ue-p i { box-sizing: border-box; }
+/* 0.87: Ring wie die Kreise beim Nachweis (dezent), Rot wie bei „Lücke“; ohne Strich zwischen Verwendungsnachweis und Spendenübergabe */
+.ue-pkt.p-vor, .k-ue-p i.p-vor { border-color: var(--line2); }
+.ue-pkt.p-nein, .k-ue-p i.p-nein { background: #d9827a; }
+table.list .l-ueb { border-left: 0; }
