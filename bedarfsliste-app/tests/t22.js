@@ -65,7 +65,7 @@ const { chromium, ok, open, finish } = require('./lib');
   // Spendenübergabe in der Liste: Punkt je Förderer, der dabei sein soll; grün = kommt; Linie, wenn eingeladen oder kommt
   r = await p.evaluate(() => { const x = D.bedarfe.find(y => y.id === 'a'); x.foerderer.forEach(f => { f.status = 'zugesagt'; f.zugesagt = 500; });
     x.nach.ueb.mit = x.foerderer.map(f => f.id); x.nach.ueb.einl = { [x.foerderer[0].id]: { am: '2026-10-28', zu: 'ja' } }; changed(); renderNow();
-    const tr = document.querySelector('#list-body tr[data-id="a"]'); return [[...tr.querySelectorAll('td.l-fin .ue-weg')].map(w => (w.classList.contains('an') ? 'linie' : '-') + '/' + (w.querySelector('.ue-pkt.ok') ? 'grün' : 'grau')).join(','), tr.querySelector('td.l-ueb').classList.contains('mit-pkt')]; });
+    const tr = document.querySelector('#list-body tr[data-id="a"]'); return [[...tr.querySelectorAll('td.l-fin .ue-weg')].map(w => (w.classList.contains('an') ? 'linie' : '-') + '/' + (w.querySelector('.ue-pkt.p-ja') ? 'grün' : 'grau')).join(','), tr.querySelector('td.l-ueb').classList.contains('mit-pkt')]; });
   ok(r.join('|') === 'linie/grün,-/grau|true', 'Liste: Punkte für die Übergabe (grün mit Linie = kommt, grau = vorgesehen): ' + r.join('|'));
   await finish(b, [p]);
 })();

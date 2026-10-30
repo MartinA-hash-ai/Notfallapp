@@ -1499,3 +1499,11 @@ td.l-ueb.mit-pkt { padding-left: 26px; }
 .k-ue > .kz { white-space: nowrap; }
 .modal.wide.k-modal { width: min(940px, 96vw); }
 .k-modal table.k-tab { width: 100%; }
+/* 0.86: Übergabe-Punkte auch auf grau hinterlegten Zeilen sichtbar (über der Nachbarzelle); Ring = vorgesehen, grau = eingeladen, grün = kommt, rot = kommt nicht; Linie immer hellgrau */
+.ue-pkt { z-index: 2; box-sizing: border-box; }
+.ue-pkt.p-vor, .k-ue-p i.p-vor { background: var(--card); border: 1.5px solid var(--muted); }
+.ue-pkt.p-einl, .k-ue-p i.p-einl { background: var(--muted); }
+.ue-pkt.p-ja, .k-ue-p i.p-ja { background: var(--strong); }
+.ue-pkt.p-nein, .k-ue-p i.p-nein { background: var(--red); }
+.ue-weg.an, .ue-weg.an.ok { border-color: var(--ghost); }
+.k-ue-p i { box-sizing: border-box; }

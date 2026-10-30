@@ -48,10 +48,12 @@ function zeitstrahl(f) {
 function uebPunkt(b, f) {
   if (b === MEHR.T) return vorlagePunkt(f);                                       // gemeinsam bearbeiten: anklickbar (22_mehr.js)
   const u = b.nach.ueb; if (!u.noetig || !u.mit.includes(f.id)) return '';
-  const e = (u.einl || {})[f.id] || {}, kommt = e.zu === 'ja', linie = kommt || !!e.am;
-  const t = kommt ? 'kommt zur Spendenübergabe' : e.am ? 'zur Spendenübergabe eingeladen am ' + fmtDate(e.am) + (e.zu === 'nein' ? ' – kommt nicht' : '') : 'soll bei der Spendenübergabe dabei sein, noch nicht eingeladen';
-  return `<span class="ue-weg${linie ? ' an' : ''}${kommt ? ' ok' : ''}" title="${esc(short(f.name) + ': ' + t)}"><i class="ue-pkt${kommt ? ' ok' : ''}"></i></span>`;
+  const e = (u.einl || {})[f.id] || {}, z = uebPunktStand(e), linie = z !== 'vor';
+  return `<span class="ue-weg${linie ? ' an' : ''}" title="${esc(short(f.name) + ': ' + UE_PKT_T[z] + (e.am ? ' (eingeladen am ' + fmtDate(e.am) + ')' : ''))}"><i class="ue-pkt p-${z}"></i></span>`;
 }
+// Stand eines Förderers bei der Übergabe: vorgesehen (Ring), eingeladen (grau), kommt (grün), kommt nicht (rot)
+const uebPunktStand = e => e.zu === 'ja' ? 'ja' : e.zu === 'nein' ? 'nein' : e.am ? 'einl' : 'vor';
+const UE_PKT_T = { vor: 'soll dabei sein, noch nicht eingeladen', einl: 'eingeladen, Antwort offen', ja: 'kommt zur Spendenübergabe', nein: 'kommt nicht zur Spendenübergabe' };
 function lNachweis(f, fertig, pk = '') {
   const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`, mu = pk ? ' mit-ue' : '';
   if (!v.noetig) return `<span class="lead"></span><span class="mi m-off" ${a} title="kein Verwendungsnachweis nötig"></span><span class="vt nn${mu}" ${a}>nicht nötig${pk}</span>`;
@@ -195,7 +197,7 @@ function kNachweis(b) {
 function kUebPunkte(b) {
   const u = b.nach.ueb; if (!u.noetig) return '';
   const L = b.foerderer.filter(f => f.status === 'zugesagt' && u.mit.includes(f.id)); if (!L.length) return '';
-  return `<span class="k-ue-p">${L.map(f => { const e = (u.einl || {})[f.id] || {}, k = e.zu === 'ja'; return `<i class="${k ? 'ok' : ''}" title="${esc(short(f.name) + ': ' + (k ? 'kommt' : e.am ? 'eingeladen am ' + fmtDate(e.am) : 'soll dabei sein'))}"></i>`; }).join('')}</span>`;
+  return `<span class="k-ue-p">${L.map(f => { const z = uebPunktStand((u.einl || {})[f.id] || {}); return `<i class="p-${z}" title="${esc(short(f.name) + ': ' + UE_PKT_T[z])}"></i>`; }).join('')}</span>`;
 }
 const kUebergabe = b => { const p = kUebPunkte(b); return p ? `<span class="k-ue">${p}${kUebStand(b)}</span>` : kUebStand(b); };
 function kUebStand(b) {

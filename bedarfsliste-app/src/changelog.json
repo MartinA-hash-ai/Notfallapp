@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.86.0",
+    "date": "2026-10-31T11:00",
+    "items": [
+      "Liste, Spendenübergabe: die Punkte sind jetzt auch auf grau hinterlegten Zeilen zu sehen (vorher von der Nachbarzelle verdeckt)",
+      "Punkte je Förderer: Ring = soll dabei sein, grau = eingeladen, grün = kommt, rot = kommt nicht – ausführlich und kompakt gleich",
+      "Die gepunktete Linie vom Verwendungsnachweis zum Punkt ist immer hellgrau"
+    ]
+  },
+  {
     "version": "0.85.0",
     "date": "2026-10-31T10:00",
     "items": [
