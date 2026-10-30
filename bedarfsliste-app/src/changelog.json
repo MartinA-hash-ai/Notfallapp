@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.82.0",
+    "date": "2026-10-30T22:00",
+    "items": [
+      "Gemeinsam bearbeiten neu: statt eines Fensters steht nach „Bearbeiten“ ganz oben in der Liste eine leere Vorlage – eine Zeile wie ein Bedarf, ausführlich oder kompakt",
+      "In der Vorlage wird bearbeitet wie in jeder Zeile: Summe, Ort, Ansprechperson, Deadline, Prio-Stern, jede Freigabe einzeln (kompakt: ein Klick auf die Freigabe gibt alle frei), Förderer mit Betrag, Stand und Verwendungsnachweis, Spendenübergabe",
+      "„Auf … übertragen“ setzt bei allen ausgewählten genau das, was in der Vorlage eingetragen oder angeklickt wurde; alles andere bleibt, wie es ist. Förderer, die es beim Bedarf schon gibt, werden nicht doppelt angelegt – nur ihre Angaben aus der Vorlage übernommen"
+    ]
+  },
+  {
     "version": "0.81.0",
     "date": "2026-10-30T21:00",
     "items": [

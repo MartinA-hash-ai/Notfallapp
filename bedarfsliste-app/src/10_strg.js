@@ -37,7 +37,7 @@ function peekAn(tr) {
 // nach einer Änderung: beim Bearbeiten nur die Zeile neu zeichnen (Reihenfolge bleibt), sonst die ganze Liste
 function relist(b) {
   const tr = STRG && $(`#list-body tr[data-id="${CSS.escape(b.id)}"]`);
-  if (tr) { tr.outerHTML = row(b); aufMass(); } else keep(renderNow);
+  if (tr) { tr.outerHTML = zeileHtml(b); aufMass(); } else keep(renderNow);
 }
 // Zustand der Taste auch an jeder anderen Taste und jedem Klick ablesen (ein offener Kalender schluckt das Loslassen)
 document.addEventListener('keydown', e => strgSet(e.key === 'Control' || e.key === 'Meta' || e.ctrlKey || e.metaKey));
@@ -59,7 +59,7 @@ const nextOf = (L, v) => L[(L.indexOf(v) + 1) % L.length];
 // Ist ein Bedarf aufgeklappt, holt ein Klick auf eine andere Zeile diese nach vorn; ein Klick außerhalb der Liste (oder Esc) klappt ihn zu.
 const AUF_POPS = '.menu, .cal-pop, .le-sug, .modal, .backdrop, .ue-form, #toasts, .le-edit, .le-new, #peek, .fmt-bar';
 document.addEventListener('click', e => {
-  if (UI.view !== 'list' || pickSet()) return;                                    // „Heute“ wählen: Klick markiert (16_heute.js)
+  if (UI.view !== 'list' || (pickSet() && !(e.target.closest && e.target.closest('tr[data-vorlage]')))) return;   // „Heute“ wählen: Klick markiert (16_heute.js); die Vorlage beim gemeinsamen Bearbeiten wird bearbeitet (22_mehr.js)
   if (e.target.closest('.le-edit, .le-new, .ue-form')) return;                         // offene Felder halten ihre Klicks selbst zurück (le-stop)
   if (e.target.closest('#list-body a[href]')) return;                               // Link (z. B. in den Übergabe-Notizen): öffnet den Link, nicht den Bedarf
   const tr = e.target.closest('#list-body tr[data-id]'), id = tr && tr.dataset.id, komp = UI.ansicht === 'kompakt';
@@ -74,8 +74,9 @@ document.addEventListener('click', e => {
   const zu = komp && id !== UI.auf;                                                 // kompakte Zeile, noch zugeklappt
   if (e.ctrlKey || e.metaKey) { if (zu) { e.preventDefault(); e.stopPropagation(); aufklappen(id); } return; }
   e.preventDefault(); e.stopPropagation();
-  const b = D.bedarfe.find(x => x.id === id), el = e.target.closest('[data-le]');
+  const b = bedarfVon(id), el = e.target.closest('[data-le]');
   if (b && el) return strgAct(b, el);
+  if (istVorlage(id) && !zu) return;                                              // die Vorlage hat keine eigene Seite
   if (zu) return aufklappen(id);
   oeffnen(id);
 }, true);
@@ -120,7 +121,7 @@ document.addEventListener('keydown', e => {
   if (!tr) return;
   if (taste(e, 'l-erster')) return geh(rows[0]);
   if (taste(e, 'l-letzter')) return geh(rows[rows.length - 1]);
-  const b = D.bedarfe.find(x => x.id === tr.dataset.id); if (!b) return;
+  const b = bedarfVon(tr.dataset.id); if (!b) return;
   if (taste(e, 'l-name')) { e.preventDefault(); const w = tr.querySelector('[data-le="titel"]'); if (w) strgAct(b, w); return; }
   if (taste(e, 'l-prio')) { e.preventDefault(); b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch'; changed(); relist(b); zeileFokus(b.id); return; }
   if (taste(e, 'l-enter')) { e.preventDefault(); if (UI.ansicht === 'kompakt' && UI.auf !== b.id) { aufklappen(b.id); zeileFokus(b.id); } else oeffnen(b.id); }
@@ -148,7 +149,7 @@ function aufklappen(id, ruhig) {                                                
   const vorher = wie ? new Map($$('#list-body tr[data-id]').map(r => [r.dataset.id, r.getBoundingClientRect()])) : null;
   if (id && !alt) { UI.auf = id; aufBreiten(); }                                    // messen, solange noch alles zugeklappt ist
   UI.auf = id;
-  for (const x of [alt, id]) { const b = x && D.bedarfe.find(y => y.id === x), tr = x && $(`#list-body tr[data-id="${CSS.escape(x)}"]`); if (b && tr) tr.outerHTML = row(b); }
+  for (const x of [alt, id]) { const b = x && bedarfVon(x), tr = x && $(`#list-body tr[data-id="${CSS.escape(x)}"]`); if (b && tr) tr.outerHTML = zeileHtml(b); }
   aufBreiten(); aufMass();
   if (vorher) aufGleiten(vorher, alt, id);
 }
@@ -172,10 +173,13 @@ function aufGleiten(vorher, alt, id) {
 function strgAct(b, el, then) {
   const f = el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : null, done = () => { changed(); relist(b); };
   switch (el.dataset.le) {
-    case 'prio': b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch';                        // Stern: Prio an oder aus – bei Prio-Sortierung gleich an den richtigen Platz
+    case 'prio': if (b === MEHR.T) vorlageBeruehrt('prio');
+      b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch';                        // Stern: Prio an oder aus – bei Prio-Sortierung gleich an den richtigen Platz
       if (UI.prioKopf) { ORDER.ids = null; changed(); keep(renderNow); return; }
       return done();
-    case 'titel': return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', feld: 'titel', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
+    case 'fr-alle': if (b !== MEHR.T) return; vorlageAlleFrei(b); return done();   // Vorlage, kompakt: alle Freigaben auf einmal
+    case 'titel': if (b === MEHR.T) return;
+      return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', feld: 'titel', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
     case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', feld: 'summe', then, set: v => { b.summe = v; } });
     case 'ort': return editField(b, el, { value: b.gliederung, src: SRC.ort, label: 'Ort oder Gliederung', feld: 'ort', then, set: v => { b.gliederung = v.trim(); } });
     case 'zust': return editField(b, el, { value: (b.zust[0] || {}).n || '', src: SRC.zust, label: 'Ansprechperson', feld: 'zust', then, set: v => { const alt = (b.zust[0] || {}).n || ''; b.zust = zustVorn(b, v.trim()); if (v.trim() && norm(v) !== norm(alt)) setTimeout(() => wennFrei(() => personenBestaetigen([b.zust[0]], b.gliederung)), 300); } });   // neue Ansprechperson: dauerhaft in die Personenliste?
@@ -186,9 +190,9 @@ function strgAct(b, el, then) {
     case 'fr': {
       const k = el.dataset.k, it = b.freigabe[k];
       if (k === 'ofk' && istDio(b.gliederung)) { toast('Bei Bedarfen der Diözese entfällt der Ortsführungskreis.', 'warn'); return; }
-      const alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); return done();
+      const alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); if (b === MEHR.T) vorlageBeruehrt('fr.' + k); return done();
     }
-    case 'ang': { const u = angebotUL(b); if (!u) return; u.st = nextOf(ROT_ANG_A, u.st); return done(); }
+    case 'ang': { const u = angebotUL(b); if (!u) return; u.st = nextOf(ROT_ANG_A, u.st); if (b === MEHR.T) vorlageBeruehrt('ang'); return done(); }
     case 'foe': { if (!f) return; if (geldDa(f)) return geldDaHinweis(); const alt = f.status, v = ROT_FOE[alt] || 'geplant'; f.status = v; effects(b, f, 'status', v, alt); return done(); }
     case 'vn': {                                                                         // nicht nötig → steht aus → erledigt → nicht nötig
       if (!f) return; const x = f.vn;

@@ -37,14 +37,15 @@ function heuteKlick(tr) {                                             // auch be
 }
 document.addEventListener('click', e => {
   if (!pickSet() || UI.view !== 'list') return;
-  const tr = e.target.closest && e.target.closest('#list-body tr[data-id]'); if (!tr) return;
+  const tr = e.target.closest && e.target.closest('#list-body tr[data-id]'); if (!tr || tr.dataset.vorlage) return;   // die Vorlage wird bearbeitet, nicht gewählt
   e.preventDefault(); e.stopPropagation(); heuteKlick(tr);
 }, true);
 document.addEventListener('keydown', e => {
   if (!pickSet() || UI.view !== 'list') return;
   const tr = document.activeElement && document.activeElement.matches && document.activeElement.matches('#list-body tr[data-id]') ? document.activeElement : null;
-  if (e.key === 'Escape' && !$('.menu, .modal')) { e.preventDefault(); e.stopPropagation(); if (UI.paketWahl) paketWaehlen(false); else if (UI.mehrWahl) mehrWaehlen(false); else heuteFertig(false); return; }
-  if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); heuteKlick(tr); }
+  // Esc in einem offenen Feld (z. B. der Vorlage beim gemeinsamen Bearbeiten) schließt nur das Feld
+  if (e.key === 'Escape' && !$('.menu, .modal, .le-edit, .le-new, .ue-form, .cal-pop, .le-sug, .fmt-bar')) { e.preventDefault(); e.stopPropagation(); if (UI.paketWahl) paketWaehlen(false); else if (UI.mehrWahl) mehrWaehlen(false); else heuteFertig(false); return; }
+  if (tr && !tr.dataset.vorlage && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); heuteKlick(tr); }
 }, true);
 
 /* ---------- Stichwort-Filter: UI.fSw = gewählte Stichworte; leer = alle */

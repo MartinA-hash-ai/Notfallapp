@@ -177,7 +177,7 @@ function renderNow() {
     // Liste: Reihenfolge bleibt, solange man in ihr arbeitet (Zeilen springen nicht weg); neu sortiert wird beim Zurückkommen
     if (UI.view !== 'list') ORDER.ids = null;
     else if (!ORDER.ids || ORDER.key !== ordKey() || filtered().some(x => !ORDER.ids.includes(x.id))) { ORDER.ids = null; ORDER.ids = filtered().map(x => x.id); ORDER.key = ordKey(); }
-    if (UI.auf && UI.view === 'list' && !filtered().some(x => x.id === UI.auf)) UI.auf = null;    // aufgeklappter Bedarf weggefiltert oder weg: zuklappen
+    if (UI.auf && UI.view === 'list' && !istVorlage(UI.auf) && !filtered().some(x => x.id === UI.auf)) UI.auf = null;    // aufgeklappter Bedarf weggefiltert oder weg: zuklappen
     if (UI.ansicht !== 'kompakt') UI.auf = null;                                    // aufgeklappter Bedarf der kompakten Liste (bleibt, solange man auf der Seite eines Bedarfs ist)
     if (!b || !b.foerderer.some(f => f.id === UI.det)) UI.det = null;
     if (UI.kEdit !== UI.det) UI.kEdit = null;
@@ -582,9 +582,9 @@ async function act(k, a, e) {
     case 'heute-wahl': UI.paketWahl = null; UI.mehrWahl = null; heuteWaehlen(); return;
     case 'mehr-wahl': mehrWaehlen(true); return;
     case 'mehr-ende': mehrWaehlen(false); return;
-    case 'mehr-leer': if (UI.mehrWahl) { UI.mehrWahl.clear(); keep(renderNow); } return;
+    case 'mehr-leer': mehrLeeren(); return;
     case 'mehr-alle': if (UI.mehrWahl) { filtered().forEach(x => UI.mehrWahl.add(x.id)); keep(renderNow); } return;
-    case 'mehr-los': mehrDialog(); return;
+    case 'mehr-los': mehrUebertragen(); return;
     case 'paket-wahl': paketWaehlen(true); return;
     case 'paket-ende': paketWaehlen(false); return;
     case 'paket-leer': if (UI.paketWahl) { UI.paketWahl.clear(); keep(renderNow); } return;

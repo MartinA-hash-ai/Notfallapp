@@ -1175,7 +1175,8 @@ table.tasten tr.doppelt .ta-k:not(.leer) { border-color: var(--red-d); color: va
 .heute-seg button { display: inline-flex; align-items: center; gap: 5px; }
 .heute-hw { font-size: 13px; color: var(--ink2); }
 table.list.heute-modus tbody tr[data-id] { cursor: pointer; }
-table.list.heute-modus tbody tr[data-id]:not(.heute-w) { opacity: .55; }
+table.list.heute-modus tbody tr[data-id]:not(.heute-w):not([data-vorlage]) { opacity: .55; }
+table.list.heute-modus tbody tr[data-vorlage] { cursor: auto; }
 table.list tbody tr.heute-w { opacity: 1; }
 table.list tbody tr.heute-w > td { background: var(--errbg); }
 table.list tbody tr.heute-w > td:first-child, table.list tbody tr.heute-m > td:first-child { box-shadow: inset 3px 0 0 var(--red); }
@@ -1455,3 +1456,10 @@ tr:hover .k-kopie, .k-kopie:focus-visible, .k-kopie.ok, thead .k-th-bic:hover .k
 .ue-weg.an .ue-pkt { top: -3.5px; }
 .ue-pkt.ok { background: var(--strong); }
 td.l-ueb.mit-pkt { padding-left: 26px; }
+/* 0.82: Vorlage beim gemeinsamen Bearbeiten – leere Zeile ganz oben, deutlich abgesetzt */
+#list-body tr[data-vorlage] > td { background: var(--warnbg); border-top: 2px dashed var(--warnline); border-bottom: 2px dashed var(--warnline); }
+#list-body tr[data-vorlage] > td:first-child { border-left: 2px dashed var(--warnline); }
+#list-body tr[data-vorlage] > td:last-child { border-right: 2px dashed var(--warnline); }
+#list-body tr[data-vorlage] td > * { filter: none !important; opacity: 1 !important; }
+.mv-t { display: block; font-weight: 700; font-size: 14px; color: var(--ink); }
+.mv-s { display: block; font-size: 12px; color: var(--warn); }
