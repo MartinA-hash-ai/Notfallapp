@@ -36,7 +36,7 @@ function peekAn(tr) {
 }
 // nach einer Änderung: beim Bearbeiten nur die Zeile neu zeichnen (Reihenfolge bleibt), sonst die ganze Liste
 function relist(b) {
-  const tr = STRG && $(`#list-body tr[data-id="${CSS.escape(b.id)}"]`);
+  const tr = (istVorlage(b.id) || STRG) && zeileEl(b.id);                          // die Vorlage beim gemeinsamen Bearbeiten steht im Fenster
   if (tr) { tr.outerHTML = zeileHtml(b); aufMass(); } else keep(renderNow);
 }
 // Zustand der Taste auch an jeder anderen Taste und jedem Klick ablesen (ein offener Kalender schluckt das Loslassen)
@@ -88,7 +88,7 @@ document.addEventListener('keydown', e => {
 // Tastatur in der Liste: ↑/↓ (Pos1/Ende) von Bedarf zu Bedarf – ist in der kompakten Ansicht einer aufgeklappt, klappen ↑/↓ gleich den
 // nächsten bzw. vorigen auf; Enter klappt auf (kompakt) bzw. öffnet, E ändert den Namen (F2 auch – in Vivaldi öffnet F2 aber die Schnellbefehle),
 // → öffnet den Bedarf (auf seiner Seite führt ← zurück), Leertaste schaltet den Prio-Stern, Strg+F springt in die Suche (steht man schon darin: die Suche des Browsers). Ist noch keine Zeile gewählt, beginnt ↓ bei der ersten
-const zeileEl = id => id && $(`#list-body tr[data-id="${CSS.escape(id)}"]`);
+const zeileEl = id => id && (istVorlage(id) ? $('#mehr-body tr[data-vorlage]') : $(`#list-body tr[data-id="${CSS.escape(id)}"]`));
 const zeileFokus = id => { const r = zeileEl(id); if (r) r.focus({ preventScroll: true }); };
 const zeileZeigen = id => { const r = zeileEl(id); if (!r) return; const q = r.getBoundingClientRect(), oben = Math.max(0, ($('header.top') || r).getBoundingClientRect().bottom);
   if (q.top < oben || q.bottom > innerHeight) r.scrollIntoView({ block: 'center' }); };
@@ -177,7 +177,6 @@ function strgAct(b, el, then) {
       b.prio = b.prio === 'hoch' ? 'mittel' : 'hoch';                        // Stern: Prio an oder aus – bei Prio-Sortierung gleich an den richtigen Platz
       if (UI.prioKopf) { ORDER.ids = null; changed(); keep(renderNow); return; }
       return done();
-    case 'fr-alle': if (b !== MEHR.T) return; vorlageAlleFrei(b); return done();   // Vorlage, kompakt: alle Freigaben auf einmal
     case 'titel': if (b === MEHR.T) return;
       return editField(b, el, { value: b.titel, area: true, label: 'Name des Bedarfs', feld: 'titel', then, set: v => { if (v.trim()) b.titel = v.trim(); } });
     case 'summe': return editField(b, el, { value: b.summe, num: true, label: 'Summe', feld: 'summe', then, set: v => { b.summe = v; } });
@@ -186,25 +185,29 @@ function strgAct(b, el, then) {
     case 'deadline': return calPop(el, b.deadline, v => { b.deadline = v; changed(); relist(b); }, { clear: 'Deadline entfernen' });
     case 'eig': return editField(b, el, { value: b.eigenanteil, num: true, right: true, label: 'Eigenmittel in Euro', set: v => { b.eigenanteil = v; } });
     case 'amt': if (!f) return;
-      return editField(b, el, { value: f.status === 'zugesagt' ? f.zugesagt : f.betrag, num: true, right: true, label: 'Betrag in Euro', set: v => { if (f.status === 'zugesagt') f.zugesagt = v; else f.betrag = v; } });
+      return editField(b, el, { value: f.status === 'zugesagt' ? f.zugesagt : f.betrag, num: true, right: true, label: 'Betrag in Euro', set: v => { if (f.status === 'zugesagt') f.zugesagt = v; else f.betrag = v; if (b === MEHR.T) vorlageBeruehrt('amt.' + f.id); } });
     case 'fr': {
       const k = el.dataset.k, it = b.freigabe[k];
+      if (b === MEHR.T) { vorlageFrKlick(b, k); return done(); }                    // gemeinsam bearbeiten: unverändert → freigegeben → …
       if (k === 'ofk' && istDio(b.gliederung)) { toast('Bei Bedarfen der Diözese entfällt der Ortsführungskreis.', 'warn'); return; }
-      const alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); if (b === MEHR.T) vorlageBeruehrt('fr.' + k); return done();
+      const alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); return done();
     }
     case 'ang': { const u = angebotUL(b); if (!u) return; u.st = nextOf(ROT_ANG_A, u.st); if (b === MEHR.T) vorlageBeruehrt('ang'); return done(); }
-    case 'foe': { if (!f) return; if (geldDa(f)) return geldDaHinweis(); const alt = f.status, v = ROT_FOE[alt] || 'geplant'; f.status = v; effects(b, f, 'status', v, alt); return done(); }
+    case 'foe': { if (!f) return; if (geldDa(f)) return geldDaHinweis(); const alt = f.status, v = ROT_FOE[alt] || 'geplant'; f.status = v; effects(b, f, 'status', v, alt); if (b === MEHR.T) vorlageBeruehrt('foe.' + f.id); return done(); }
+    case 'ue-mit': if (!f || b !== MEHR.T) return; vorlageUeKlick(f.id); return done();   // gemeinsam bearbeiten: bei der Übergabe dabei?
     case 'vn': {                                                                         // nicht nötig → steht aus → erledigt → nicht nötig
       if (!f) return; const x = f.vn;
       if (!x.noetig) Object.assign(x, { noetig: true, st: 'offen' });
       else if (x.st === 'erledigt') Object.assign(x, { noetig: false, st: 'offen' });
       else x.st = 'erledigt';
+      if (b === MEHR.T) vorlageBeruehrt('vn.' + f.id);
       return done();
     }
-    case 'foe-name': if (!f) return;                                                    // Stift am Ende des Namens: Förderer umbenennen
+    case 'foe-name': if (!f) return;
+      if (b === MEHR.T && MEHR.gemein.has(f.id)) { toast('Dieser Förderer steht bei allen – umbenennen bitte bei den Bedarfen selbst.', 'warn'); return; }                                                    // Stift am Ende des Namens: Förderer umbenennen
       return editField(b, el.closest('.fn'), { value: f.name, keep: true, fit: true, src: SRC.foe, label: 'Förderer', set: v => { if (v.trim()) f.name = v.trim(); } });
     case 'vn-frist': if (!f) return;                                                    // Kalender neben „Frist fehlt“ bzw. der Frist
-      return calPop(el, f.vn.frist, v => { f.vn.frist = v; changed(); relist(b); }, { clear: 'Frist entfernen' });
+      return calPop(el, f.vn.frist, v => { f.vn.frist = v; if (b === MEHR.T) vorlageBeruehrt('vnf.' + f.id); changed(); relist(b); }, { clear: 'Frist entfernen' });
     case 'ueb': return uebForm(b, el);
     case 'add': return addFoeForm(el, b);
   }
@@ -427,7 +430,7 @@ function addFoeForm(el, b) {
       b.foerderer.push(nf); changed();
     } else weiter = false;
     relist(b);
-    const plus = weiter && $(`#list-body tr[data-id="${CSS.escape(b.id)}"] .le-plus`);
+    const zt = weiter && zeileEl(b.id), plus = zt && zt.querySelector('.le-plus');
     if (plus) addFoeForm(plus, b);
   };
   const next = () => { if (!am.value.trim()) am.focus(); else finish(true); };

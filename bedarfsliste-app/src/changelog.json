@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.83.0",
+    "date": "2026-10-30T23:00",
+    "items": [
+      "Kontenliste schmaler: je Spalte die IBAN, darunter – nur wenn die Bank von der im Spaltenkopf abweicht – BIC und Name der Bank; nach einer Suche stehen BIC und Bank oben im Kopf",
+      "Kontenliste: Klick auf die IBAN kopiert sie, Klick auf die BIC die BIC; Stift oben rechts schaltet auf Bearbeiten (IBANs und Namen ändern, Gliederungen dazu oder weg). Zahl, Stand und „Excel einlesen“ sind aus dem Fenster raus – eingelesen wird über das Zahnrad",
+      "Gemeinsam bearbeiten: Bedarfe anklicken, dann „… bearbeiten“ – ein Fenster so breit wie die Liste mit einer Zeile wie ein Bedarf (ohne gelbe Vorlage in der Liste); „Übertragen“ setzt alles und schließt",
+      "Im Fenster lassen sich alle drei Freigaben einzeln setzen (unverändert → freigegeben → in Bearbeitung → abgelehnt → offen), dazu „alle freigeben“ im Spaltenkopf",
+      "Förderer, die bei allen ausgewählten stehen, sind im Fenster schon eingetragen: Stand, Betrag, Verwendungsnachweis mit Frist und ob sie bei der Spendenübergabe dabei sind (dabei, kommt, nicht dabei) gelten nur, wenn sie angeklickt werden"
+    ]
+  },
+  {
     "version": "0.82.0",
     "date": "2026-10-30T22:00",
     "items": [

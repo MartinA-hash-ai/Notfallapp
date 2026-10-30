@@ -124,7 +124,7 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
-**Seit 0.82:** Gemeinsam bearbeiten über eine leere Vorlagenzeile ganz oben in der Liste: was dort eingetragen wird, überträgt „Auf … übertragen“ auf alle ausgewählten Bedarfe.
+**Seit 0.83:** Gemeinsam bearbeiten in einem Fenster mit einer Zeile wie ein Bedarf; Förderer, die bei allen stehen, sind dort schon eingetragen. Die Kontenliste ist schmaler, kopiert per Klick und lässt sich über den Stift bearbeiten.
 
 **Seit 0.81:** Die Kontenliste öffnet sich als Fenster mit einer Tabelle wie in der Excel (Spendenkonto, Sparkasse, Volksbank), mit Suche und Kopierzeichen.
 

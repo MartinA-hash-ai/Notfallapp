@@ -24,19 +24,31 @@ const { chromium, ok, open, finish } = require('./lib');
     { gl: 'Hagen', konten: [{ art: 'Volksbank', iban: ibanBauen('47260121', 3) }, { art: 'Sparkasse', iban: ibanBauen('45050001', 3) }] }] } } }); SAVED_JSON = JSON.stringify(D); renderNow(); });
   ok(await p.evaluate(() => !!D.settings.konten && D.settings.konten.liste.length === 2), 'Kontenliste bleibt beim Laden erhalten (settings)');
   await p.click('header.top [data-act="konten"]'); await p.waitForTimeout(150);
-  r = await p.evaluate(() => [UI.view, document.querySelector('.modal.k-modal h2').textContent, [...document.querySelectorAll('.k-tab thead th')].map(t => t.querySelector('.k-th') ? t.querySelector('.k-th').textContent : t.textContent).join(','),
-    document.querySelectorAll('.k-tab tbody tr').length, document.querySelector('.k-tab thead th.k-haupt .k-th-bic').textContent, document.activeElement.className]);
-  ok(r.join('|') === 'list|Kontenliste der Gliederungen|Gliederung,Spendenkonto Pax-Bank,Sparkasse,Volksbank|2|BIC GENODED1PA7|k-such', 'Fenster: Spalten wie in der Excel, BIC im Kopf, Suche hat den Fokus: ' + r.join('|'));
-  r = await p.evaluate(() => [...document.querySelectorAll('.k-tab tbody tr')].map(t => t.querySelector('.k-gl').textContent + ':' + [...t.querySelectorAll('td')].map(td => td.querySelector('.k-iban') ? (td.querySelector('.k-bic-w') ? td.querySelector('.k-bic-w').textContent : 'iban') : '-').join('/')).join(','));
-  ok(r === 'Brakel:iban/BIC WELADED1HXB/-,Hagen:-/BIC WELADE3HXXX/iban', 'je Zeile die Konten; BIC beim Konto, wenn die Spalte verschiedene Banken hat: ' + r);
+  r = await p.evaluate(() => [document.querySelector('.modal.k-modal h2').textContent, [...document.querySelectorAll('.k-tab thead th')].map(t => t.querySelector('.k-th') ? t.querySelector('.k-th').textContent : t.textContent).join(','),
+    document.querySelectorAll('.k-tab tbody tr').length, document.querySelector('.k-tab thead th.k-haupt .k-bic').textContent.trim(), document.activeElement.className, !document.querySelector('.k-fuss'), !!document.querySelector('.k-modal header .k-stift')]);
+  ok(r.join('|') === 'Kontenliste der Gliederungen|Gliederung,Spendenkonto,Sparkasse,Volksbank|2|BIC GENODED1PA7|k-such|true|true', 'Fenster: Spalten, BIC im Kopf, Suche hat den Fokus, ohne Stand/Einlesen, Stift oben: ' + r.join('|'));
+  // ohne Suche: in der Spalte Sparkasse zwei verschiedene Banken → BIC und Bank unter der IBAN
+  r = await p.evaluate(() => [...document.querySelectorAll('.k-tab tbody tr')].map(t => t.querySelector('.k-gl').textContent + ':' + [...t.querySelectorAll('td')].map(td => td.querySelector('.k-iban') ? (td.querySelector('.k-bic') ? td.querySelector('.k-bic').textContent.trim() + '+' + (td.querySelector('.k-bank') ? 'Bank' : '') : 'iban') : '-').join('/')).join(','));
+  ok(r === 'Brakel:iban/BIC WELADED1HXB+Bank/-,Hagen:-/BIC WELADE3HXXX+Bank/iban', 'ohne Suche: BIC und Bank unter der IBAN, wenn die Spalte verschiedene Banken hat: ' + r);
   await p.keyboard.type('hag'); await p.waitForTimeout(80);
-  ok(await p.evaluate(() => [...document.querySelectorAll('.k-tab tbody .k-gl')].map(x => x.textContent).join(',') === 'Hagen'), 'Suche filtert beim Tippen');
+  r = await p.evaluate(() => [[...document.querySelectorAll('.k-tab tbody .k-gl')].map(x => x.textContent).join(','), [...document.querySelectorAll('.k-tab thead th')].slice(1).map(t => t.querySelector('.k-bic') ? t.querySelector('.k-bic').textContent.trim() + '|' + t.querySelector('.k-bank').textContent : '-').join(','), !document.querySelector('.k-tab tbody .k-bic')]);
+  ok(r[0] === 'Hagen' && /BIC WELADE3HXXX\|Sparkasse/.test(r[1]) && /BIC DGPBDE3MXXX\|/.test(r[1]) && r[2], 'Suche „hag“: nur Hagen, BIC und Name der Bank stehen jetzt im Kopf: ' + r.join(' # '));
   await p.evaluate(() => { window.KOPIE = []; navigator.clipboard.writeText = t => { KOPIE.push(t); return Promise.resolve(); }; });
   await p.fill('.k-such', ''); await p.waitForTimeout(50);
-  await p.hover('.k-tab tbody tr:first-child td.k-haupt'); await p.click('.k-tab tbody tr:first-child td.k-haupt .k-kopie'); await p.waitForTimeout(80);
-  r = await p.evaluate(() => [KOPIE[0] === ibanBauen('37060120', 2), document.querySelector('.k-tab tbody tr:first-child td.k-haupt .k-kopie').classList.contains('ok')]);
-  ok(r.join('|') === 'true|true', 'Kopierzeichen kopiert die IBAN (ohne Leerzeichen) und zeigt einen Haken: ' + r.join('|'));
-  await p.keyboard.press('Escape'); await p.waitForTimeout(80);
+  await p.click('.k-tab tbody tr:first-child td.k-haupt .k-iban'); await p.waitForTimeout(60);
+  await p.click('.k-tab thead th.k-haupt .k-bic'); await p.waitForTimeout(60);
+  r = await p.evaluate(() => [KOPIE[0] === ibanBauen('37060120', 2), KOPIE[1], document.querySelector('.k-tab tbody tr:first-child td.k-haupt .k-iban').classList.contains('ok')]);
+  ok(r.join('|') === 'true|GENODED1PA7|true', 'Klick auf die IBAN kopiert sie, Klick auf die BIC die BIC, mit Haken: ' + r.join('|'));
+  // Stift: bearbeiten statt kopieren
+  await p.click('.k-modal .k-stift'); await p.waitForTimeout(60);
+  ok(await p.evaluate(() => document.querySelector('.k-modal .k-stift').classList.contains('on') && document.querySelectorAll('.k-tab .k-in').length === 2 * 4), 'Stift: Felder zum Bearbeiten (Name und drei Konten je Gliederung)');
+  await p.evaluate(() => { const f = document.querySelector('.k-in[data-gl="Hagen"][data-art="Pax-Bank"]'); f.value = ibanBauen('37060120', 9); f.dispatchEvent(new Event('change', { bubbles: true })); });
+  await p.evaluate(() => { const f = document.querySelector('.k-in[data-gl="Brakel"][data-art="Sparkasse"]'); f.value = ''; f.dispatchEvent(new Event('change', { bubbles: true })); });
+  r = await p.evaluate(() => { const L = D.settings.konten.liste; return [L.find(x => x.gl === 'Hagen').konten.map(k => k.art).join('+'), L.find(x => x.gl === 'Brakel').konten.map(k => k.art).join('+')]; });
+  ok(r.join('|') === 'Pax-Bank+Sparkasse+Volksbank|Pax-Bank', 'IBAN eingetragen bzw. geleert – gespeichert: ' + r.join('|'));
+  await p.click('.k-neu'); await p.waitForTimeout(60);
+  ok(await p.evaluate(() => D.settings.konten.liste.length === 3 && document.activeElement.classList.contains('k-gl-in')), '„+ Gliederung“ legt eine Zeile an, der Name ist gleich zum Tippen bereit');
+  await p.click('.k-modal .k-stift'); await p.keyboard.press('Escape'); await p.waitForTimeout(80);
   ok(await p.evaluate(() => !document.querySelector('.k-modal')), 'Esc schließt das Fenster');
   await finish(b, [p]);
 })();

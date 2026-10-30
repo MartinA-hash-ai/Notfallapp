@@ -246,7 +246,7 @@ function effects(b, base, p, v, alt) {
     if (ent(v) && (!f.entscheidungAm || ent(alt))) f.entscheidungAm = today();
     if (alt === 'zugesagt') { f.zugesagt = null; f.eingegangen = null; f.eingangAm = ''; b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f.id); }
     if (v === 'zugesagt') { if (f.zugesagt == null) f.zugesagt = f.betrag; if (b.nach.ueb.noetig && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id);
-      if (!foeAmt(f) && !MEHR_STILL) toast('Zusage ohne Betrag bei „' + (f.name || 'Förderer') + '“ – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).', 'warn'); }
+      if (!foeAmt(f) && !MEHR_STILL && b !== MEHR.T) toast('Zusage ohne Betrag bei „' + (f.name || 'Förderer') + '“ – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).', 'warn'); }
     if (v === 'abgelehnt') b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f.id);
   }
 }
@@ -277,6 +277,7 @@ function mainMenu(btn) {
     h('hr'), kopf('Excel einlesen'),
     DEMO ? null : item('upl', 'UPL (Investitionsabfrage) …'),
     DEMO ? null : item('pers-import', 'Kontakte für die Personenliste …'),
+    DEMO ? null : item('konten-ein', 'Kontenliste einlesen (Excel) …'),
     DEMO ? null : item('kartei', 'Förder-Kartei' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : '') + ' – wählen oder verknüpfen …'),
     h('hr'), kopf('Vorlagen herunterladen'),
     item('upl-vorlage', 'UPL-Vorlage für Copilot/Cowork'),
@@ -545,7 +546,7 @@ async function act(k, a, e) {
   switch (k) {
     case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; UI.paketWahl = null; UI.mehrWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
     case 'konten': kontenDialog(); return;
-    case 'konten-ein': kontenEinlesen(); return;
+    case 'konten-ein': closeMenus(); kontenEinlesen(); return;
     case 'konto-kopie': kontoKopieren(a.dataset.v); return;
     case 'open': oeffnen(a.dataset.id); return;
     case 'back': zurueck(); return;
@@ -584,7 +585,7 @@ async function act(k, a, e) {
     case 'mehr-ende': mehrWaehlen(false); return;
     case 'mehr-leer': mehrLeeren(); return;
     case 'mehr-alle': if (UI.mehrWahl) { filtered().forEach(x => UI.mehrWahl.add(x.id)); keep(renderNow); } return;
-    case 'mehr-los': mehrUebertragen(); return;
+    case 'mehr-los': mehrDialog(); return;
     case 'paket-wahl': paketWaehlen(true); return;
     case 'paket-ende': paketWaehlen(false); return;
     case 'paket-leer': if (UI.paketWahl) { UI.paketWahl.clear(); keep(renderNow); } return;

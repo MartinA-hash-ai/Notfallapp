@@ -18,6 +18,7 @@ const ICON_TRI = '<svg class="tri" viewBox="0 0 16 16" aria-hidden="true"><path 
 // Freigabe: Ortsführungskreis, Verwaltung, Fachreferat – ist alles durch, steht nur noch ein Haken „freigegeben“ (Einzelheiten beim Überfahren).
 // Das Angebot ist eine Unterlage (Seite des Bedarfs) und steht hier nicht
 function lFreigabe(b) {
+  if (b === MEHR.T) return vorlageFreigabe(b);                                   // gemeinsam bearbeiten (22_mehr.js)
   const it = Object.fromEntries(frItems(b).map(i => [i.k, i]));
   if (!frOffen(b).names.length) {
     const tip = [['ofk', 'Ortsführungskreis'], ['verw', 'Verwaltung'], ['fach', 'Fachreferat']].map(([k, lab]) => { const i = it[k];
@@ -45,6 +46,7 @@ function zeitstrahl(f) {
 // Spendenübergabe (ab 0.80): Förderer, die dabei sein sollen (Häkchen „Dabei“), bekommen links in der Spalte Spendenübergabe einen hellgrauen Punkt,
 // grün, wenn sie zugesagt haben zu kommen; ist die Einladung raus oder kommen sie, führt eine gepunktete Linie vom Nachweis dorthin
 function uebPunkt(b, f) {
+  if (b === MEHR.T) return vorlagePunkt(f);                                       // gemeinsam bearbeiten: anklickbar (22_mehr.js)
   const u = b.nach.ueb; if (!u.noetig || !u.mit.includes(f.id)) return '';
   const e = (u.einl || {})[f.id] || {}, kommt = e.zu === 'ja', linie = kommt || !!e.am;
   const t = kommt ? 'kommt zur Spendenübergabe' : e.am ? 'zur Spendenübergabe eingeladen am ' + fmtDate(e.am) + (e.zu === 'nein' ? ' – kommt nicht' : '') : 'soll bei der Spendenübergabe dabei sein, noch nicht eingeladen';
@@ -236,14 +238,14 @@ function row(b) {
     <td class="l-meta"><div class="ort">${wort('ort', ortText(b))}</div><div>${wort('zust', b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>')}</div><div>${wort('deadline', b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>')}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
     <td class="l-fin"${auf ? ' colspan="2"' : ''}>${lFinanz(b)}</td>
-    <td class="l-ueb${b.nach.ueb.noetig && b.foerderer.some(f => f.status === 'zugesagt' && b.nach.ueb.mit.includes(f.id)) ? ' mit-pkt' : ''}">${lUebergabe(b)}</td>
+    <td class="l-ueb${b.nach.ueb.noetig && b.foerderer.some(f => f.status === 'zugesagt' && (b === MEHR.T || b.nach.ueb.mit.includes(f.id))) ? ' mit-pkt' : ''}">${lUebergabe(b)}</td>
   </tr>`;
 }
 const NCOL = 7;
 function listBody() {
-  const L = filtered(), V = UI.mehrWahl && MEHR.T ? vorlageZeile() : '';          // gemeinsam bearbeiten: die Vorlage ganz oben (22_mehr.js)
-  if (!L.length) return { html: V + `<tr><td colspan="${KOMPAKT() ? 8 : NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
-  return { html: V + L.map(row).join(''), n: L.length };
+  const L = filtered();
+  if (!L.length) return { html: `<tr><td colspan="${KOMPAKT() ? 8 : NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
+  return { html: L.map(row).join(''), n: L.length };
 }
 // Leiste der Liste: hängt wie auf der Seite eines Bedarfs unter der Kopfzeile – so beginnen beide Seiten gleich hoch und beim Hineinschieben springt nichts
 // ohne eigene Überschrift (der Reiter sagt schon „Bedarfe“ bzw. „Archiv“): links die Zahl, rechts Ansicht, Suche, Stichwort und ganz außen das „i“ für die Tastaturbefehle

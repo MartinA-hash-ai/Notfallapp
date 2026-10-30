@@ -297,9 +297,9 @@ table.list.kompakt tr.auf td.l-name { max-width: none; overflow: visible; }
 table.list td.l-star, table.list th.l-star, table.list.kompakt th:first-child { width: 30px; padding-left: 10px; padding-right: 0; }
 table.list td.l-star { vertical-align: middle; }
 .star-p { border: 0; background: none; padding: 2px; display: grid; place-items: center; color: var(--ghost); cursor: pointer; }   /* ohne Prio: ganz dezent */
-#list-body tr:hover .star-p:not(.on), .d-head:hover .d-star:not(.on) { color: var(--faint); }
+:is(#list-body, #mehr-body) tr:hover .star-p:not(.on), .d-head:hover .d-star:not(.on) { color: var(--faint); }
 .star-p svg path { fill: none; stroke: currentColor; stroke-width: 1.3; stroke-linejoin: round; }
-#list-body .star-p:hover, .star-p:hover { color: #d29a17; }
+:is(#list-body, #mehr-body) .star-p:hover, .star-p:hover { color: #d29a17; }
 .star-p.on { color: #e8a800; }
 .star-p.on svg path { fill: #f5c000; stroke: #d29a17; }
 .th-sort svg path { fill: none; stroke: currentColor; stroke-width: 1.4; stroke-linejoin: round; }
@@ -371,7 +371,7 @@ table.list td.l-fr { white-space: nowrap; width: 1%; color: var(--ink2); }
 .lead.tl { position: relative; border-color: var(--line2); }
 .lead.tl > i { position: absolute; left: 0; top: 0; border-bottom: 2px dotted transparent; }
 .lead.tl-g > i { width: 30%; border-color: var(--f-zu); } .lead.tl-y > i { width: 55%; border-color: #e0a400; } .lead.tl-r > i { width: 100%; border-color: var(--red); }
-#list-body .ph { color: var(--faint); font-weight: 400; }
+:is(#list-body, #mehr-body) .ph { color: var(--faint); font-weight: 400; }
 .vt { white-space: nowrap; color: var(--ink2); }
 .vt.nn { color: var(--ghost); }
 /* Finanzierung steht: Zusagen mit offenem Nachweis kräftig, erledigte blass grün, alle übrigen blass grau */
@@ -435,14 +435,14 @@ html[data-vt="hoch"]::view-transition-new(bl-inhalt) { animation: bl-von-oben .2
 @keyframes bl-raus { to { transform: translateX(100vw); } }
 @media (prefers-reduced-motion: reduce) { #peek .peek-s, #peek .peek-g { transition: none; } }
 /* Bearbeiten (ohne Strg): was sich ändern lässt, hebt sich beim Überfahren ab; unten links im Finanzierungsplan ein + */
-body.strg #list-body tr[data-id] { cursor: default; }
-body.strg #list-body [data-le] { cursor: pointer; }
-body.strg #list-body [data-le]:not(.mi) { border-radius: 4px; }
-body.strg #list-body [data-le]:not(.mi):hover { background: var(--runbg); box-shadow: 0 0 0 2px var(--runbg); }
-body.strg #list-body .mi[data-le]:hover { box-shadow: 0 0 0 3px var(--runbg); }
-body.strg #list-body [data-le="titel"]:hover, body.strg #list-body [data-le="summe"]:hover { box-shadow: inset 0 0 0 1px var(--runline); }
+body.strg :is(#list-body, #mehr-body) tr[data-id] { cursor: default; }
+body.strg :is(#list-body, #mehr-body) [data-le] { cursor: pointer; }
+body.strg :is(#list-body, #mehr-body) [data-le]:not(.mi) { border-radius: 4px; }
+body.strg :is(#list-body, #mehr-body) [data-le]:not(.mi):hover { background: var(--runbg); box-shadow: 0 0 0 2px var(--runbg); }
+body.strg :is(#list-body, #mehr-body) .mi[data-le]:hover { box-shadow: 0 0 0 3px var(--runbg); }
+body.strg :is(#list-body, #mehr-body) [data-le="titel"]:hover, body.strg :is(#list-body, #mehr-body) [data-le="summe"]:hover { box-shadow: inset 0 0 0 1px var(--runline); }
 /* nur das Wort ist zum Ändern da (Textcursor); daneben klappt ein Klick auf (kompakt) bzw. öffnet den Bedarf */
-body.strg #list-body .le-w:is([data-le="titel"], [data-le="summe"], [data-le="ort"], [data-le="zust"]) { cursor: text; }
+body.strg :is(#list-body, #mehr-body) .le-w:is([data-le="titel"], [data-le="summe"], [data-le="ort"], [data-le="zust"]) { cursor: text; }
 body.strg #list-body tr[data-id] :is(td.l-star, td.l-name, td.l-sum, td.l-meta), body.strg table.list.kompakt #list-body tr[data-id]:not(.auf) td { cursor: pointer; }
 /* aufgeklappt: Spalten bleiben, wie sie sind; die anderen Bedarfe treten zurück – ein Klick holt einen davon nach vorn */
 table.list.auf-fest { table-layout: fixed; }
@@ -454,8 +454,8 @@ body.strg table.list.hat-auf #list-body tr[data-id]:not(.auf) [data-le]:hover { 
 td.l-fin { position: relative; }
 .le-plus { display: none; position: absolute; left: 8px; bottom: 6px; width: 18px; height: 18px; padding: 0; border-radius: 50%; border: 1.5px solid var(--runline); background: var(--card); color: var(--runink);
   font-size: 14px; font-weight: 700; line-height: 1; place-items: center; }
-body.strg #list-body td.l-fin:hover .le-plus { display: grid; }
-body.strg #list-body .le-plus:hover { background: var(--runbg); }
+body.strg :is(#list-body, #mehr-body) td.l-fin:hover .le-plus { display: grid; }
+body.strg :is(#list-body, #mehr-body) .le-plus:hover { background: var(--runbg); }
 /* Feld an Ort und Stelle: kein Rahmen, nur eine Linie darunter; liegt über dem Wert, damit sich keine Spalte verschiebt */
 td.le-cell { position: relative; }
 .le-hide, .le-hide * { visibility: hidden; }
@@ -477,17 +477,17 @@ input.le-edit[type=date]::-webkit-calendar-picker-indicator { opacity: .45; curs
 .fn-t { flex: 1 1 auto; min-width: 0; }
 .le-pen, .le-cal, .le-ue { border: 0; background: none; padding: 0; color: var(--muted); place-items: center; }
 .le-pen { visibility: hidden; display: grid; flex: none; width: 14px; height: 20px; }
-body.strg #list-body .fr:hover .le-pen { visibility: visible; }
+body.strg :is(#list-body, #mehr-body) .fr:hover .le-pen { visibility: visible; }
 .le-pen:hover, .le-cal:hover, .le-ue:hover { color: var(--ink); }
 .le-cal { display: none; width: 14px; height: 14px; margin-left: 5px; vertical-align: -2px; }
 .le-cal svg { width: 13px; height: 13px; }
-body.strg #list-body tr:hover .le-cal { display: inline-grid; }   /* nur in der Zeile unter der Maus – sonst stünden überall Symbole */
+body.strg :is(#list-body, #mehr-body) tr:hover .le-cal { display: inline-grid; }   /* nur in der Zeile unter der Maus – sonst stünden überall Symbole */
 /* Spendenübergabe: mit Strg ein großer Kreis mit Stift oben rechts; Klick öffnet die Felder, die offen bleiben */
 td.l-ueb { position: relative; }
 .le-ue { display: none; position: absolute; top: 9px; right: 8px; width: 26px; height: 26px; border-radius: 50%; border: 1.5px solid var(--runline); background: var(--card); color: var(--runink); }
 .le-ue svg { width: 15px; height: 15px; }
-body.strg #list-body tr:hover .le-ue[data-le] { display: grid; border-radius: 50%; }
-body.strg #list-body .le-ue:hover { background: var(--runbg); }
+body.strg :is(#list-body, #mehr-body) tr:hover .le-ue[data-le] { display: grid; border-radius: 50%; }
+body.strg :is(#list-body, #mehr-body) .le-ue:hover { background: var(--runbg); }
 .ue-form { display: grid; gap: 6px; }
 table.list td.l-ueb { vertical-align: middle; }
 .ue-sep { border-top: 1px solid var(--line2); margin: 7px 0 5px; }
@@ -1404,39 +1404,49 @@ table.ue-tab col.c-d { width: 40px; } table.ue-tab col.c-v { width: 23%; } table
 .or-opt { text-align: left; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); padding: 5px 9px; font-size: 13px; overflow-wrap: anywhere; white-space: normal; }
 .or-opt.on { border-color: var(--ink2); background: var(--hover); font-weight: 600; }
 .or-vor { margin-top: 6px; overflow-wrap: anywhere; }
-/* 0.81: Kontenliste als Fenster – Tabelle wie in der Excel, Spendenkonto hervorgehoben, Kopierzeichen beim Überfahren */
-.modal.wide.k-modal { max-width: 1180px; max-height: 86vh; }
+/* 0.84: Kontenliste als schmales Fenster – je Spalte IBAN, darunter (wenn abweichend vom Kopf) BIC und Bank; Klick kopiert, Stift bearbeitet */
+.modal.wide.k-modal { width: auto; max-width: 96vw; max-height: 86vh; }
+.k-modal .k-wrap { max-width: calc(96vw - 40px); }
+.k-modal header { gap: 6px; }
+.k-modal header h2 { margin-right: auto; }
+.k-stift { display: inline-grid; place-items: center; width: 30px; height: 28px; padding: 0; border: 1px solid var(--line2); border-radius: 7px; background: var(--card); color: var(--muted); }
+.k-stift:hover { color: var(--ink); border-color: var(--ink2); }
+.k-stift.on { background: var(--ink2); border-color: var(--ink2); color: var(--card); }
 .k-modal .modal-body { padding-top: 0; display: flex; flex-direction: column; min-height: 0; }
 .k-box { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.k-kopf { display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap; padding: 10px 0 12px; }
-.k-such { flex: 1 1 260px; max-width: 380px; }
-.k-fuss { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; margin-left: auto; }
+.k-kopf { padding: 8px 0 12px; }
+.k-such { width: 100%; max-width: 320px; }
 .k-wrap { overflow: auto; flex: 1; min-height: 0; border: 1px solid var(--line); border-radius: 8px; }
-table.k-tab { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13.5px; }
-table.k-tab thead th { position: sticky; top: 0; z-index: 1; background: var(--head); text-align: left; vertical-align: bottom; padding: 9px 12px 8px; border-bottom: 1px solid var(--line); font-weight: 600; }
+table.k-tab { border-collapse: separate; border-spacing: 0; font-size: 13px; }
+table.k-tab thead th { position: sticky; top: 0; z-index: 1; background: var(--head); text-align: left; vertical-align: bottom; padding: 8px 10px 7px; border-bottom: 1px solid var(--line); font-weight: 600; }
 .k-th { display: block; font-size: 13px; color: var(--ink); }
-.k-th-z { font-weight: 400; color: var(--muted); }
-.k-th-bic { display: flex; align-items: center; gap: 2px; margin-top: 2px; font-size: 11.5px; font-weight: 400; color: var(--muted); letter-spacing: .02em; }
-table.k-tab tbody th, table.k-tab tbody td { padding: 8px 12px; border-bottom: 1px solid var(--line3); vertical-align: top; text-align: left; }
+table.k-tab tbody th, table.k-tab tbody td { padding: 7px 10px; border-bottom: 1px solid var(--line3); vertical-align: top; text-align: left; }
 table.k-tab tbody tr:last-child > * { border-bottom: 0; }
 table.k-tab tbody tr:hover > * { background: var(--hover); }
-th.k-gl { width: 190px; font-weight: 600; color: var(--ink); }
+th.k-gl, td.k-gl { min-width: 130px; font-weight: 600; color: var(--ink); white-space: nowrap; }
 table.k-tab .k-haupt { background: color-mix(in srgb, var(--hover) 70%, transparent); }
 table.k-tab thead .k-haupt { background: var(--chipbg); }
 table.k-tab tbody tr:hover > .k-haupt { background: var(--chipbg); }
-.k-iban-z { display: flex; align-items: center; gap: 4px; }
-.k-iban { font-variant-numeric: tabular-nums; letter-spacing: .03em; color: var(--ink2); white-space: nowrap; }
+.k-c { display: flex; align-items: center; gap: 4px; border: 0; background: none; padding: 1px 4px; margin: 0 -4px; border-radius: 4px; font: inherit; color: inherit; text-align: left; white-space: nowrap; cursor: copy; }
+.k-c:hover { background: var(--card); }
+.k-ic { display: inline-grid; place-items: center; color: var(--muted); opacity: 0; }
+.k-c:hover .k-ic, .k-c.ok .k-ic { opacity: 1; }
+.k-c.ok .k-ic { color: var(--strong); }
+.k-iban { font-variant-numeric: tabular-nums; letter-spacing: .03em; color: var(--ink2); }
 .k-haupt .k-iban { color: var(--ink); font-weight: 600; }
 .k-iban.falsch { color: var(--red); text-decoration: underline wavy; }
-.k-bic-z { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; margin-top: 1px; font-size: 11.5px; color: var(--muted); }
-.k-bic-w { letter-spacing: .02em; }
-.k-kopie { display: inline-grid; place-items: center; width: 24px; height: 22px; padding: 0; border: 0; border-radius: 5px; background: none; color: var(--muted); opacity: 0; cursor: pointer; }
-tr:hover .k-kopie, .k-kopie:focus-visible, .k-kopie.ok, thead .k-th-bic:hover .k-kopie { opacity: 1; }
-.k-kopie:hover { background: var(--card); color: var(--ink); }
-.k-kopie.ok { color: var(--strong); }
+.k-bic { font-size: 11.5px; color: var(--muted); letter-spacing: .02em; font-variant-numeric: tabular-nums; }
+.k-th-bic { margin-top: 2px; font-weight: 400; }
+.k-bank { display: block; font-size: 11.5px; font-weight: 400; color: var(--muted); white-space: normal; max-width: 220px; }
 .k-leer { color: var(--faint); }
 .k-nix { padding: 18px 12px; }
-@media (hover: none) { .k-kopie { opacity: .7; } }
+.k-in { width: 100%; min-width: 200px; font-variant-numeric: tabular-nums; letter-spacing: .02em; padding: 3px 6px; font-size: 13px; }
+.k-gl-z { display: flex; align-items: center; gap: 4px; }
+.k-gl-in { min-width: 120px; font-weight: 600; }
+.k-weg { border: 0; background: none; color: var(--muted); font-size: 16px; padding: 0 4px; }
+.k-weg:hover { color: var(--red); }
+.k-bearb tbody tr:hover > * { background: none; }
+@media (hover: none) { .k-ic { opacity: .6; } }
 /* 0.80: mehrere Bedarfe gemeinsam bearbeiten */
 .mw h4 { margin: 14px 0 6px; }
 .mw-z { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; padding: 3px 0; }
@@ -1456,10 +1466,18 @@ tr:hover .k-kopie, .k-kopie:focus-visible, .k-kopie.ok, thead .k-th-bic:hover .k
 .ue-weg.an .ue-pkt { top: -3.5px; }
 .ue-pkt.ok { background: var(--strong); }
 td.l-ueb.mit-pkt { padding-left: 26px; }
-/* 0.82: Vorlage beim gemeinsamen Bearbeiten – leere Zeile ganz oben, deutlich abgesetzt */
-#list-body tr[data-vorlage] > td { background: var(--warnbg); border-top: 2px dashed var(--warnline); border-bottom: 2px dashed var(--warnline); }
-#list-body tr[data-vorlage] > td:first-child { border-left: 2px dashed var(--warnline); }
-#list-body tr[data-vorlage] > td:last-child { border-right: 2px dashed var(--warnline); }
-#list-body tr[data-vorlage] td > * { filter: none !important; opacity: 1 !important; }
+/* 0.83: gemeinsam bearbeiten im Fenster – eine Zeile wie ein Bedarf */
+#mehr-body tr > td > * { filter: none !important; opacity: 1 !important; }
+#mehr-body tr:hover > td { background: none; }
+.mv-wrap { margin-top: 8px; border: 1px solid var(--line); border-radius: 8px; overflow: visible; }
+.mv-tab { width: 100%; }
+.mv-tab .mv-alle { margin-left: 6px; text-transform: none; letter-spacing: 0; font-weight: 400; }
 .mv-t { display: block; font-weight: 700; font-size: 14px; color: var(--ink); }
-.mv-s { display: block; font-size: 12px; color: var(--warn); }
+.mv-s { display: block; font-size: 12px; color: var(--muted); }
+.ml.mv-unv > span { color: var(--muted); }
+.mv-st { font-style: normal; font-size: 11.5px; margin-left: 4px; }
+.ml:not(.mv-unv) .mv-st { color: var(--ink2); }
+.mv-ue { cursor: pointer; }
+.ue-pkt.mv-leer { background: transparent; border: 1.5px dashed var(--line2); width: 10px; height: 10px; right: -6px; top: -5px; }
+.ue-pkt.mv-weg { background: transparent; border: 1.5px solid var(--red); }
+.mv-ue .ue-pkt { cursor: pointer; z-index: 3; } .mv-ue .ue-pkt::after { content: ""; position: absolute; inset: -6px; }

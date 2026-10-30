@@ -50,51 +50,74 @@ async function kontenEinlesen() {
 
 
 const kontenDaten = () => { if (DEMO && !D.settings.konten && typeof demoKonten === 'function') D.settings.konten = demoKonten(); return D.settings.konten; };
-const K_SPALTEN = [['Pax-Bank', 'Spendenkonto', 'Pax-Bank'], ['Sparkasse', 'Sparkasse', ''], ['Volksbank', 'Volksbank', '']];   // [Art aus der Excel, Überschrift, Zusatz]
-const ICON_KOPIE = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.8A1.3 1.3 0 0 0 9.2 2.5H3.8a1.3 1.3 0 0 0-1.3 1.3v5.4a1.3 1.3 0 0 0 1.3 1.3h1.7"/></g></svg>';
-const ICON_HAKEN = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-// BIC im Spaltenkopf, wenn alle Konten der Spalte bei derselben Bank liegen (Pax-Bank); sonst steht sie beim Konto
-function kSpalteBic(L, art) {
-  const B = new Map(); for (const x of L) for (const k of x.konten) if (k.art === art) { const bk = ibanBank(k.iban); if (bk) B.set(bk[0], (B.get(bk[0]) || 0) + 1); }
-  const s = [...B].sort((a, c) => c[1] - a[1]), n = s.reduce((a, x) => a + x[1], 0);
-  return s.length && s[0][1] / n >= .8 ? s[0][0] : '';                // fast alle gleich: diese oben, Ausreißer beim Konto
+const K_SPALTEN = [['Pax-Bank', 'Spendenkonto'], ['Sparkasse', 'Sparkasse'], ['Volksbank', 'Volksbank']];   // [Art aus der Excel, Überschrift]
+const ICON_KOPIE = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.8A1.3 1.3 0 0 0 9.2 2.5H3.8a1.3 1.3 0 0 0-1.3 1.3v5.4a1.3 1.3 0 0 0 1.3 1.3h1.7"/></g></svg>';
+const ICON_HAKEN = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+// Bank einer Spalte: liegen (fast) alle sichtbaren Konten bei derselben Bank, stehen BIC und Name im Spaltenkopf – nach einer Suche meist so;
+// sonst stehen sie unter der IBAN (nur bei den Konten, die von der Bank im Kopf abweichen)
+function kSpalteBank(L, art) {
+  const B = new Map(); for (const x of L) for (const k of x.konten) if (k.art === art) { const bk = ibanBank(k.iban); if (bk) { const y = B.get(bk[0]) || { bk, n: 0 }; y.n++; B.set(bk[0], y); } }
+  const s = [...B.values()].sort((a, c) => c.n - a.n), n = s.reduce((a, x) => a + x.n, 0);
+  return s.length && s[0].n / n >= .8 ? s[0].bk : null;
 }
-function kZelle(x, art, kopfBic, haupt) {
-  const k = x.konten.find(y => y.art === art); if (!k) return `<td class="k-z${haupt ? ' k-haupt' : ''}"><span class="k-leer">–</span></td>`;
+const kKopierbar = (v, cls, titel, inhalt) => `<button type="button" class="k-c ${cls}" data-v="${esc(v)}" title="${titel}">${inhalt}<span class="k-ic">${ICON_KOPIE}</span></button>`;
+function kZelle(x, art, kopf, haupt, bearb) {
+  const k = x.konten.find(y => y.art === art), td = `<td class="k-z${haupt ? ' k-haupt' : ''}">`;
+  if (bearb) return td + `<input type="text" class="k-in" data-gl="${esc(x.gl)}" data-art="${esc(art)}" value="${esc(k ? ibanSchoen(k.iban) : '')}" placeholder="IBAN" aria-label="IBAN ${esc(x.gl)} ${esc(art)}" spellcheck="false"></td>`;
+  if (!k) return td + '<span class="k-leer">–</span></td>';
   const bk = ibanBank(k.iban), ok = ibanOk(k.iban), roh = ibanRein(k.iban);
-  return `<td class="k-z${haupt ? ' k-haupt' : ''}"><div class="k-iban-z"><span class="k-iban${ok ? '' : ' falsch'}"${ok ? '' : ' title="Die Prüfziffer dieser IBAN stimmt nicht – bitte in der Excel prüfen"'}>${esc(ibanSchoen(roh))}</span>`
-    + `<button type="button" class="k-kopie" data-v="${esc(roh)}" title="IBAN kopieren" aria-label="IBAN von ${esc(x.gl)} (${esc(art)}) kopieren">${ICON_KOPIE}</button></div>`
-    + (bk && bk[0] !== kopfBic ? `<div class="k-bic-z"><span>${esc(bk[1])}</span> · <span class="k-bic-w">BIC ${esc(bk[0])}</span><button type="button" class="k-kopie" data-v="${esc(bk[0])}" title="BIC kopieren" aria-label="BIC kopieren">${ICON_KOPIE}</button></div>` : '') + '</td>';
+  return td + kKopierbar(roh, 'k-iban' + (ok ? '' : ' falsch'), ok ? 'Klicken: IBAN kopieren' : 'Die Prüfziffer dieser IBAN stimmt nicht – bitte prüfen', esc(ibanSchoen(roh)))
+    + (bk && (!kopf || bk[0] !== kopf[0]) ? kKopierbar(bk[0], 'k-bic', 'Klicken: BIC kopieren', 'BIC ' + esc(bk[0])) + `<span class="k-bank">${esc(bk[1])}</span>` : '')
+    + (!bk ? '<span class="k-bank">BIC unbekannt</span>' : '') + '</td>';
 }
-function kTabelle(K, q) {
-  const L = K.liste.filter(x => !q || norm(x.gl).includes(q)), bic = K_SPALTEN.map(([art]) => kSpalteBic(K.liste, art));
-  const kopf = K_SPALTEN.map(([art, t, z], i) => `<th class="${i ? '' : 'k-haupt'}"><span class="k-th">${t}${z ? ` <span class="k-th-z">${z}</span>` : ''}</span>`
-    + (bic[i] ? `<span class="k-th-bic">BIC ${bic[i]}<button type="button" class="k-kopie" data-v="${bic[i]}" title="BIC kopieren" aria-label="BIC kopieren">${ICON_KOPIE}</button></span>` : '<span class="k-th-bic">BIC je Bank, beim Konto</span>') + '</th>').join('');
-  const rows = L.map(x => `<tr><th scope="row" class="k-gl">${esc(x.gl)}</th>${K_SPALTEN.map(([art], i) => kZelle(x, art, bic[i], !i)).join('')}</tr>`).join('');
-  return `<table class="k-tab"><thead><tr><th class="k-gl">Gliederung</th>${kopf}</tr></thead><tbody>${rows || `<tr><td colspan="${K_SPALTEN.length + 1}" class="muted k-nix">Keine Gliederung passt zu „${esc(q)}“.</td></tr>`}</tbody></table>`;
+function kTabelle(K, q, bearb) {
+  const L = K.liste.filter(x => !q || norm(x.gl).includes(q)), kopfBank = K_SPALTEN.map(([art]) => kSpalteBank(L, art));
+  const kopf = K_SPALTEN.map(([art, t], i) => `<th class="${i ? '' : 'k-haupt'}"><span class="k-th">${t}</span>`
+    + (kopfBank[i] && !bearb ? kKopierbar(kopfBank[i][0], 'k-bic k-th-bic', 'Klicken: BIC kopieren', 'BIC ' + kopfBank[i][0]) + `<span class="k-bank">${esc(kopfBank[i][1])}</span>` : '') + '</th>').join('');
+  const zeile = x => `<tr>${bearb ? `<td class="k-gl"><div class="k-gl-z"><input type="text" class="k-in k-gl-in" data-gl="${esc(x.gl)}" value="${esc(x.gl)}" aria-label="Name der Gliederung"><button type="button" class="k-weg" data-gl="${esc(x.gl)}" title="Gliederung aus der Kontenliste entfernen" aria-label="Gliederung entfernen">×</button></div></td>` : `<th scope="row" class="k-gl">${esc(x.gl)}</th>`}${K_SPALTEN.map(([art], i) => kZelle(x, art, kopfBank[i], !i, bearb)).join('')}</tr>`;
+  return `<table class="k-tab${bearb ? ' k-bearb' : ''}"><thead><tr><th class="k-gl">Gliederung</th>${kopf}</tr></thead><tbody>${L.map(zeile).join('') || `<tr><td colspan="${K_SPALTEN.length + 1}" class="muted k-nix">Keine Gliederung passt zu „${esc(q)}“.</td></tr>`}`
+    + (bearb ? `<tr><td colspan="${K_SPALTEN.length + 1}"><button type="button" class="link small k-neu">+ Gliederung</button></td></tr>` : '') + '</tbody></table>';
 }
 async function kopiereZeichen(btn) {
   let ok = true; try { await navigator.clipboard.writeText(btn.dataset.v); } catch (e) { ok = false; }
   if (!ok) { toast('Kopieren ging nicht – bitte markieren und mit Strg+C kopieren.', 'warn'); return; }
-  btn.innerHTML = ICON_HAKEN; btn.classList.add('ok'); btn.title = 'kopiert';
-  setTimeout(() => { btn.innerHTML = ICON_KOPIE; btn.classList.remove('ok'); btn.title = /^[A-Z]{2}\d/.test(btn.dataset.v) ? 'IBAN kopieren' : 'BIC kopieren'; }, 1400);
+  const ic = btn.querySelector('.k-ic'); btn.classList.add('ok'); if (ic) ic.innerHTML = ICON_HAKEN;
+  setTimeout(() => { btn.classList.remove('ok'); if (ic) ic.innerHTML = ICON_KOPIE; }, 1400);
 }
-// Fenster: Suche, Tabelle, unten Stand und „Excel einlesen …“; Esc oder × schließt
+// Bearbeiten (Stift oben rechts): IBAN und Name der Gliederung ändern, Gliederungen dazu oder weg; die BIC ergibt sich aus der IBAN
+function kontoSetzen(K, gl, art, wert) {
+  const x = K.liste.find(y => y.gl === gl); if (!x) return;
+  const iban = ibanRein(wert); x.konten = x.konten.filter(k => k.art !== art);
+  if (iban) { x.konten.push({ art, iban }); x.konten.sort((a, c) => K_SPALTEN.findIndex(s => s[0] === a.art) - K_SPALTEN.findIndex(s => s[0] === c.art)); if (!ibanOk(iban)) toast('Die Prüfziffer dieser IBAN stimmt nicht – bitte prüfen.', 'warn'); }
+  changed();
+}
+// Fenster: oben Suche, Stift (Bearbeiten) und ×; Esc schließt. Ohne Stift kopiert ein Klick auf IBAN oder BIC
 async function kontenDialog() {
   closeMenus();
   const K = kontenDaten();
   if (!K || !K.liste.length) {
-    if (await confirmBox('Kontenliste', 'Noch keine Kontenliste hinterlegt. Die Excel „Kontenliste der Gliederungen“ einlesen? Danach stehen hier je Gliederung die Konten mit IBAN und BIC.', 'Excel einlesen …') && await kontenEinlesen()) kontenDialog();
+    if (DEMO) { toast('In der Vorschau gibt es keine Kontenliste.', 'warn'); return; }
+    if (await confirmBox('Kontenliste', 'Noch keine Kontenliste hinterlegt. Die Excel „Kontenliste der Gliederungen“ einlesen? (Später geht das über das Zahnrad → „Kontenliste einlesen …“.)', 'Excel einlesen …') && await kontenEinlesen()) kontenDialog();
     return;
   }
+  let bearb = false;
   const such = h('input', { type: 'search', class: 'k-such', placeholder: 'Gliederung suchen, z. B. Brakel …', 'aria-label': 'Gliederung suchen' });
-  const wrap = h('div', { class: 'k-wrap', html: kTabelle(K, '') });
-  const zahl = h('span', { class: 'muted small' });
-  const zeig = () => { const q = norm(such.value); wrap.innerHTML = kTabelle(K, q); const n = K.liste.filter(x => !q || norm(x.gl).includes(q)).length; zahl.textContent = n + ' von ' + K.liste.length + ' Gliederungen'; };
+  const wrap = h('div', { class: 'k-wrap' });
+  const zeig = () => { wrap.innerHTML = kTabelle(K, norm(such.value), bearb); };
+  const stift = h('button', { type: 'button', class: 'k-stift', title: 'Kontenliste bearbeiten', 'aria-label': 'Kontenliste bearbeiten', 'aria-pressed': 'false', html: ICON_PEN, onclick: () => {
+    bearb = !bearb; stift.classList.toggle('on', bearb); stift.setAttribute('aria-pressed', String(bearb)); stift.title = bearb ? 'Bearbeiten beenden' : 'Kontenliste bearbeiten'; zeig(); } });
   such.addEventListener('input', zeig);
-  wrap.addEventListener('click', e => { const k = e.target.closest('.k-kopie'); if (k) kopiereZeichen(k); });
-  let zu = null; zeig();
-  const ein = h('button', { type: 'button', class: 'link small', onclick: async () => { zu && zu(null); if (await kontenEinlesen()) kontenDialog(); } }, 'Excel einlesen …');
-  const fuss = h('div', { class: 'k-fuss muted small' }, zahl, h('span', {}, ' · Stand ' + fmtStamp(K.stand) + (K.datei ? ' aus „' + K.datei + '“' : '') + ' · '), ein);
-  await modal('Kontenliste der Gliederungen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such, fuss), wrap), [], { wide: true, cls: 'k-modal', expose: c => { zu = c; setTimeout(() => such.focus(), 40); } });
+  wrap.addEventListener('click', e => {
+    const c = e.target.closest('.k-c'); if (c && !bearb) { kopiereZeichen(c); return; }
+    const w = e.target.closest('.k-weg'); if (w) { K.liste = K.liste.filter(x => x.gl !== w.dataset.gl); changed(); zeig(); return; }
+    if (e.target.closest('.k-neu')) { let n = 'Neue Gliederung', i = 2; while (K.liste.some(x => x.gl === n)) n = 'Neue Gliederung ' + i++; K.liste.push({ gl: n, konten: [] }); changed(); such.value = ''; zeig();
+      const f = wrap.querySelector(`.k-gl-in[data-gl="${CSS.escape(n)}"]`); if (f) { f.focus(); f.select(); } }
+  });
+  wrap.addEventListener('change', e => {
+    const f = e.target; if (!f.classList.contains('k-in')) return;
+    if (f.classList.contains('k-gl-in')) { const x = K.liste.find(y => y.gl === f.dataset.gl), v = f.value.trim(); if (x && v && !K.liste.some(y => y !== x && y.gl === v)) { x.gl = v; changed(); } zeig(); return; }
+    kontoSetzen(K, f.dataset.gl, f.dataset.art, f.value); f.value = ibanSchoen(f.value);
+  });
+  zeig();
+  await modal('Kontenliste der Gliederungen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal', kopf: stift, expose: () => setTimeout(() => such.focus(), 40) });
 }

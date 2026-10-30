@@ -266,9 +266,9 @@ function modal(title, body, buttons, opts = {}) {
   return new Promise(resolve => {
     const opened = Date.now();
     const close = v => { back.remove(); document.removeEventListener('keydown', key); resolve(v); };
-    const key = e => { if (e.key === 'Escape') close(null); };
+    const key = e => { if (e.key === 'Escape' && !e.defaultPrevented && !$('.le-edit, .le-new, .ue-form, .cal-pop, .le-sug, .zeit-pop, .fmt-bar')) close(null); };   // Esc in einem offenen Feld schließt nur das Feld
     const box = h('div', { class: 'modal' + (opts.wide ? ' wide' : '') + (opts.cls ? ' ' + opts.cls : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
-      h('header', null, h('h2', null, title), h('button', { class: 'x', 'aria-label': 'Schließen', onclick: () => close(null) }, '×')),
+      h('header', null, h('h2', null, title), opts.kopf || null, h('button', { class: 'x', 'aria-label': 'Schließen', onclick: () => close(null) }, '×')),
       h('div', { class: 'modal-body' }, body),
       h('footer', null, (buttons || [['OK', true, 'primary']]).filter(Boolean).map(([label, val, cls]) =>
         h('button', { class: cls || '', onclick: () => close(typeof val === 'function' ? val() : val) }, label))));
