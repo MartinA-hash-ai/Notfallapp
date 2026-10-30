@@ -9,7 +9,7 @@ const pickSet = () => UI.heuteWahl || UI.paketWahl || UI.mehrWahl;   // gerade w
 const paketKnopf = () => UI.tab === 'archiv' ? '' : `<button class="heute-btn paket-btn" data-act="paket-wahl" title="Bedarfe zusammenführen – mehrere zu einem Paket">${ICON_PAKET}<span>Zusammenführen</span></button>`;
 function paketLeiste() {
   const n = UI.paketWahl.size;
-  return `<span class="heute-hw"><b>Bedarfe zum Zusammenführen anklicken</b></span><button class="primary small" data-act="paket-los"${n < 2 ? ' disabled' : ''}>${n < 2 ? 'Zusammenführen …' : n + ' zusammenführen …'}</button><button class="undo-btn" data-act="paket-leer" title="Auswahl aufheben – alle Haken weg" aria-label="Auswahl aufheben">↶</button><button class="link" data-act="paket-ende" title="Zusammenführen beenden (Esc)">Beenden</button>`;
+  return `<span class="heute-hw"><b>Bedarfe zum Zusammenführen anklicken</b></span><button class="primary small" data-act="paket-los"${n < 2 ? ' disabled' : ''}>${n < 2 ? 'Zusammenführen …' : n + ' zusammenführen …'}</button><button class="undo-btn" data-act="paket-leer" title="Auswahl aufheben – alle Haken weg" aria-label="Auswahl aufheben">↶</button><button class="undo-btn ende-x" data-act="paket-ende" title="Zusammenführen beenden (Esc)" aria-label="Zusammenführen beenden">×</button>`;
 }
 function paketZahl() { const k = $('[data-act="paket-los"]'), n = UI.paketWahl ? UI.paketWahl.size : 0; if (k) { k.disabled = n < 2; k.textContent = n < 2 ? 'Zusammenführen …' : n + ' zusammenführen …'; } }
 function paketWaehlen(an) { closeMenus(); UI.auf = null; UI.heuteWahl = null; UI.mehrWahl = null; UI.paketWahl = an ? new Set() : null; ORDER.ids = null; keep(renderNow); }

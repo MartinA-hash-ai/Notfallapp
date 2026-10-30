@@ -19,7 +19,7 @@ const mehrKnopf = () => UI.tab === 'archiv' ? '' : `<button class="heute-btn pak
 const mehrText = n => n ? n + (n === 1 ? ' Bedarf' : ' Bedarfe') + ' bearbeiten …' : 'Bearbeiten …';
 function mehrLeiste() {
   const n = UI.mehrWahl.size;
-  return `<span class="heute-hw"><b>Bedarfe anklicken</b></span><button class="small" data-act="mehr-alle" title="alle Bedarfe, die gerade in der Liste stehen (mit Suche und Filtern)">Alle</button><button class="primary small" data-act="mehr-los"${n ? '' : ' disabled'}>${mehrText(n)}</button><button class="undo-btn" data-act="mehr-leer" title="Auswahl aufheben – alle Haken weg" aria-label="Auswahl aufheben">↶</button><button class="link" data-act="mehr-ende" title="Bearbeiten beenden (Esc)">Beenden</button>`;
+  return `<span class="heute-hw"><b>Bedarfe anklicken</b></span><button class="small" data-act="mehr-alle" title="alle Bedarfe, die gerade in der Liste stehen (mit Suche und Filtern)">Alle</button><button class="primary small" data-act="mehr-los"${n ? '' : ' disabled'}>${mehrText(n)}</button><button class="undo-btn" data-act="mehr-leer" title="Auswahl aufheben – alle Haken weg" aria-label="Auswahl aufheben">↶</button><button class="undo-btn ende-x" data-act="mehr-ende" title="Bearbeiten beenden (Esc)" aria-label="Bearbeiten beenden">×</button>`;
 }
 function mehrZahl() { const k = $('[data-act="mehr-los"]'), n = UI.mehrWahl ? UI.mehrWahl.size : 0; if (k) { k.disabled = !n; k.textContent = mehrText(n); } }
 function mehrWaehlen(an) { closeMenus(); UI.auf = null; UI.heuteWahl = null; UI.paketWahl = null; UI.mehrWahl = an ? new Set() : null; MEHR.T = null; ORDER.ids = null; keep(renderNow); }
@@ -83,10 +83,10 @@ async function mehrDialog() {
     e.preventDefault(); strgAct(MEHR.T, el);
   });
   const breite = Math.min(innerWidth - 32, Math.max(900, ($('table.list') || {}).offsetWidth || 1200) + 40);
-  const ok = await modal(B.length === 1 ? '1 Bedarf bearbeiten' : B.length + ' Bedarfe gemeinsam bearbeiten', h('div', { class: 'mv' },
-    h('p', { class: 'muted small' }, 'Was du in der Zeile einträgst oder anklickst, wird bei allen ' + B.length + ' gesetzt; alles andere bleibt bei jedem Bedarf, wie es ist. '
-      + (MEHR.gemein.size ? 'Die Förderer, die bei allen stehen, sind schon eingetragen – bei ihnen gilt nur, was du anklickst.' : 'Neue Förderer mit dem „+“ im Finanzierungsplan.')), tab),
-    [['Abbrechen', false], ['Übertragen', true, 'primary']], { wide: true, cls: 'mv-modal', expose: () => setTimeout(() => { const m = $('.modal.mv-modal'); if (m) m.style.maxWidth = breite + 'px'; }, 0) });
+  // schlicht: keine Überschrift, kein Hinweistext; oben rechts „Übernehmen“ neben dem × (Schließen ohne Übernehmen: × oder Esc)
+  let zu = null; const ueber = h('button', { type: 'button', class: 'primary small mv-ok', onclick: () => zu && zu(true) }, 'Übernehmen');
+  const ok = await modal(B.length + (B.length === 1 ? ' Bedarf' : ' Bedarfe') + ' gemeinsam bearbeiten', h('div', { class: 'mv' }, tab), [],
+    { wide: true, cls: 'mv-modal', kopf: ueber, expose: c => { zu = c; setTimeout(() => { const m = $('.modal.mv-modal'); if (m) m.style.maxWidth = breite + 'px'; ueber.focus(); }, 0); } });
   closeMenus();
   if (!ok) { MEHR.T = null; return; }
   const vorher = JSON.stringify(D), R = mehrAnwenden(B, MEHR.T);

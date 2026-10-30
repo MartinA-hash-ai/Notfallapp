@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.84.0",
+    "date": "2026-10-31T09:00",
+    "items": [
+      "Gemeinsam bearbeiten: Fenster ohne Überschrift, Hinweistext und „Abbrechen“; „Übernehmen“ steht oben neben dem ×, der Rand um die Zeile ist schmaler",
+      "Auswahl in der Liste (Bearbeiten, Zusammenführen): „Beenden“ ist jetzt ein Kästchen mit × wie der Pfeil daneben",
+      "Kompakte Liste: in der Spalte Spendenübergabe vor dem Stand je Förderer, der dabei sein soll, ein kleiner Punkt (grün, wenn er kommt)"
+    ]
+  },
+  {
     "version": "0.83.0",
     "date": "2026-10-30T23:00",
     "items": [

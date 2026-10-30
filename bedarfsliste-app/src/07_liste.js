@@ -189,7 +189,14 @@ function kNachweis(b) {
   const fr = L.map(f => f.vn.frist).filter(Boolean).sort()[0];
   return kz('off', 'offen' + (fr ? ', bis ' + fmtDate(fr) : ''), 'k-off');
 }
-function kUebergabe(b) {
+// kompakt: vor dem Stand je Förderer, der bei der Übergabe dabei sein soll, ein kleiner Punkt (grau; grün, wenn er kommt)
+function kUebPunkte(b) {
+  const u = b.nach.ueb; if (!u.noetig) return '';
+  const L = b.foerderer.filter(f => f.status === 'zugesagt' && u.mit.includes(f.id)); if (!L.length) return '';
+  return `<span class="k-ue-p">${L.map(f => { const e = (u.einl || {})[f.id] || {}, k = e.zu === 'ja'; return `<i class="${k ? 'ok' : ''}" title="${esc(short(f.name) + ': ' + (k ? 'kommt' : e.am ? 'eingeladen am ' + fmtDate(e.am) : 'soll dabei sein'))}"></i>`; }).join('')}</span>`;
+}
+const kUebergabe = b => kUebPunkte(b) + kUebStand(b);
+function kUebStand(b) {
   const u = b.nach.ueb, F = finState(b);
   if (!u.noetig) return kGrau('keine Übergabe');
   if (u.termin) return u.st === 'erledigt' ? kz('ok', uebWann(u), 'k-ok') : `<span class="kz">${uebWann(u)}</span>`;

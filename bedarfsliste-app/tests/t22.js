@@ -18,6 +18,7 @@ const { chromium, ok, open, finish } = require('./lib');
   const V = '#mehr-body tr[data-vorlage]';
   r = await p.evaluate(() => [document.querySelector('.modal.mv-modal h2').textContent, document.querySelectorAll('#mehr-body tr').length, [...document.querySelectorAll('#mehr-body .fn-t')].map(x => x.textContent).join(','), document.querySelectorAll('#mehr-body .ml.mv-unv').length]);
   ok(r.join('|') === '3 Bedarfe gemeinsam bearbeiten|1|Stiftung A|3', 'Fenster mit einer Zeile; Stiftung A steht bei allen und ist schon da; Freigaben „unverändert“: ' + r.join('|'));
+  ok(await p.evaluate(() => getComputedStyle(document.querySelector('.mv-modal header h2')).display === 'none' && !document.querySelector('.mv-modal .mv p') && !document.querySelector('.mv-modal footer button') && document.activeElement.classList.contains('mv-ok')), 'ohne Überschrift, Hinweis und „Abbrechen“; „Übernehmen“ oben');
   await p.click(V + ' [data-le="summe"]'); await p.keyboard.type('4000'); await p.keyboard.press('Enter'); await p.waitForTimeout(80);
   await p.click(V + ' [data-le="ort"]'); await p.keyboard.type('Brakel'); await p.waitForTimeout(50); await p.keyboard.press('Enter'); await p.waitForTimeout(80);
   if (await p.$('.le-edit')) { await p.keyboard.press('Enter'); await p.waitForTimeout(80); }
@@ -36,7 +37,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click(V + ' .le-plus'); await p.keyboard.type('Lotterie L'); await p.keyboard.press('Enter'); await p.keyboard.type('250'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [MEHR.T.foerderer.map(f => f.name).join(','), MEHR.ue.get(MEHR.T.foerderer[0].id), !!MEHR.T.foerderer[0].vn.frist]);
   ok(r.join('|') === 'Stiftung A,Lotterie L|kommt|true', 'Frist, Übergabe und neuer Förderer im Fenster: ' + r.join('|'));
-  await p.click('.modal.mv-modal footer button.primary'); await p.waitForTimeout(150);
+  await p.click('.modal.mv-modal header .mv-ok'); await p.waitForTimeout(150);
   r = await p.evaluate(() => { const g = id => D.bedarfe.find(x => x.id === id), A = g('a').foerderer.find(f => f.name === 'Stiftung A');
     return [['a', 'b', 'c', 'd'].map(id => g(id).prio + ':' + g(id).summe + ':' + g(id).gliederung).join(','), ['a', 'b', 'd'].map(id => ['ofk', 'verw', 'fach'].map(k => g(id).freigabe[k].st).join('/')).join(','),
       A.status + ':' + (foeAmt(A) || 0) + ':' + !!A.vn.frist + ':' + g('a').nach.ueb.mit.includes(A.id) + ':' + ((g('a').nach.ueb.einl || {})[A.id] || {}).zu,
@@ -53,10 +54,14 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('[data-act="mehr-wahl"]'); await p.click('[data-act="mehr-alle"]'); await p.click('[data-act="mehr-los"]'); await p.waitForTimeout(100);
   await p.click('.mv-alle'); await p.waitForTimeout(50);
   ok(await p.evaluate(() => ['ofk', 'fach', 'verw'].every(k => MEHR.T.freigabe[k].st === 'ok') && MEHR.beruehrt.size === 3), '„alle freigeben“ im Spaltenkopf');
-  await p.click('.modal.mv-modal footer button:not(.primary)'); await p.waitForTimeout(80);
-  ok(await p.evaluate(() => D.bedarfe.every(x => x.freigabe.ofk.st !== 'ok') && !!UI.mehrWahl), 'Abbrechen ändert nichts, die Auswahl bleibt');
+  await p.click('.modal.mv-modal header .x'); await p.waitForTimeout(80);
+  ok(await p.evaluate(() => D.bedarfe.every(x => x.freigabe.ofk.st !== 'ok') && !!UI.mehrWahl), '× ändert nichts, die Auswahl bleibt');
   await p.keyboard.press('Escape'); await p.waitForTimeout(60);
   ok(await p.evaluate(() => !UI.mehrWahl), 'Esc beendet die Auswahl');
+  await p.click('[data-act="mehr-wahl"]'); ok(await p.evaluate(() => document.querySelector('[data-act="mehr-ende"]').textContent === '×'), '„Beenden“ ist ein Kästchen mit ×'); await p.click('[data-act="mehr-ende"]');
+  // kompakt: Punkte für die Übergabe vor dem Stand
+  r = await p.evaluate(() => { const x = D.bedarfe.find(y => y.id === 'a'), f = x.foerderer[0]; f.status = 'zugesagt'; x.nach.ueb.mit = [f.id]; UI.ansicht = 'kompakt'; renderNow(); const n = document.querySelectorAll('#list-body tr[data-id="a"] .k-ue-p i').length; UI.ansicht = 'voll'; renderNow(); return n; });
+  ok(r === 1, 'kompakte Liste: Punkt für den Förderer, der bei der Übergabe dabei ist: ' + r);
   // Spendenübergabe in der Liste: Punkt je Förderer, der dabei sein soll; grün = kommt; Linie, wenn eingeladen oder kommt
   r = await p.evaluate(() => { const x = D.bedarfe.find(y => y.id === 'a'); x.foerderer.forEach(f => { f.status = 'zugesagt'; f.zugesagt = 500; });
     x.nach.ueb.mit = x.foerderer.map(f => f.id); x.nach.ueb.einl = { [x.foerderer[0].id]: { am: '2026-10-28', zu: 'ja' } }; changed(); renderNow();

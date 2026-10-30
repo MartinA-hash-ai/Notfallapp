@@ -1481,3 +1481,13 @@ td.l-ueb.mit-pkt { padding-left: 26px; }
 .ue-pkt.mv-leer { background: transparent; border: 1.5px dashed var(--line2); width: 10px; height: 10px; right: -6px; top: -5px; }
 .ue-pkt.mv-weg { background: transparent; border: 1.5px solid var(--red); }
 .mv-ue .ue-pkt { cursor: pointer; z-index: 3; } .mv-ue .ue-pkt::after { content: ""; position: absolute; inset: -6px; }
+/* 0.84: gemeinsam bearbeiten schlicht – ohne Überschrift und Hinweis, „Übernehmen“ oben neben dem ×, schmaler Rand */
+.mv-modal header { justify-content: flex-end; gap: 8px; padding: 8px 10px; border-bottom: 0; }
+.mv-modal header h2 { display: none; }
+.mv-modal .modal-body { padding: 0 10px 10px; }
+.mv-wrap { margin-top: 0; }
+.ende-x { font-size: 15px; line-height: 1; }
+/* kompakte Liste: Punkte für die Spendenübergabe vor dem Stand */
+.k-ue-p { display: inline-flex; gap: 3px; margin-right: 6px; vertical-align: middle; }
+.k-ue-p i { width: 8px; height: 8px; border-radius: 50%; background: var(--ghost); }
+.k-ue-p i.ok { background: var(--strong); }
