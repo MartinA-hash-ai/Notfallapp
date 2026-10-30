@@ -114,7 +114,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => !!document.querySelector('#nach-body') && !document.querySelector('#fin-pie')), 'Nacharbeit von Hand aufgeklappt, Förderplan bleibt zu');
   await p.evaluate(() => { renderNow(); });
   ok(await p.evaluate(() => !!document.querySelector('#nach-body') && !document.querySelector('#fin-pie')), 'von Hand geklappt bleibt beim Neuzeichnen');
-  await p.reload(); await p.waitForTimeout(300);
+  await p.reload(); await p.waitForSelector('#sec-nach'); await p.waitForTimeout(150);   // warten, bis die Seite steht (unter Last dauert das Laden länger als 300 ms)
   ok(await p.evaluate(() => !!document.querySelector('#fin-pie') && !document.querySelector('#nach-body') && document.querySelectorAll('.fk.fp').length === 3), 'neu geöffnet: wieder je nach Phase (Förderplan offen, Nacharbeit zu)');
   r = await p.evaluate(() => { oeffnen('b-kueche'); return [!document.querySelector('#fin-pie'), !!document.querySelector('#foe-kurz'), !!document.querySelector('#nach-body')]; });
   ok(r.join() === 'true,true,true', 'Bedarf in der Nacharbeit: Förderplan eingeklappt, Nacharbeit offen: ' + r.join());
