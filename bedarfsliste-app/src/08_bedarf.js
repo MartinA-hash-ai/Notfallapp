@@ -165,7 +165,7 @@ function foeHinweise(b, f) {
   // ab 0.88: Ansprache laut Fördererliste – für diese Gliederung „über die Gliederung“ oder „nicht anschreiben“ (nur solange noch nichts entschieden ist)
   const an = (f.status === 'geplant' || f.status === 'beantragt') && flAnsprache(b, f);
   if (flOffen(f)) L.push({ k: 'fl', t: 'Geld ist eingegangen – der Förderer steht aber noch nicht in der Fördererliste.' });
-  if (an) L.push({ k: 'ansprache', t: 'Laut Fördererliste für ' + esc(b.gliederung) + ': ' + esc(an.art) + (an.hinweis ? ' – ' + esc(an.hinweis) : '') });
+  if (an) L.push({ k: 'ansprache', t: 'Laut Fördererliste für ' + esc(b.gliederung) + ': ' + esc(an.titel || an.art) + (an.hinweis ? ' – ' + esc(flPlain(an.hinweis)) : '') });
   return L;
 }
 function foeWarnList(b, f) {
@@ -184,8 +184,8 @@ function fwPop(btn) {
 }
 // Fuß der Kachel: links die Hauptansprechperson (ohne Person, z. B. bei einem Portal: die Website), daneben Telefon und E-Mail als Symbole
 // (beim Überfahren steht dran, was dahinter ist; Klick ruft an bzw. schreibt); rechts „Weitere Infos →“ öffnet das Fenster
-function fussKontakt(f) {
-  const k = kartei(f.name), kk = k && k.kontakte[0], hk = f.kontakte[0] || (kk ? { n: kk.n, rolle: '', mail: kk.m, tel: kk.t } : null);
+function fussKontakt(f, b) {
+  const k = kartei(f.name), kk = k && k.kontakte[0], hk = (b ? foeKontakte(b, f) : f.kontakte)[0] || (kk ? { n: kk.n, rolle: '', mail: kk.m, tel: kk.t } : null);   // laufender Bedarf: Kontakt aus der Fördererliste
   const web = webUrl(f.web || (k && k.web) || ''), tel = hk && telNr(hk.tel);
   const name = hk && (hk.n || hk.rolle) ? `<span class="ff-n">${esc(hk.n || hk.rolle)}</span>`
     : web ? `<a class="ff-n" href="${esc(web)}" target="_blank" rel="noopener" data-act="link">${esc(/portal/i.test(f.weg) ? 'Portal: ' : '')}${esc(kurzUrl(web).split('/')[0])}</a>` : '<span class="ff-n leer">kein Kontakt</span>';
@@ -247,7 +247,11 @@ function personen(L, o) {
   return L.map((c, i) => zeile(c, i, false)).join('') + (o.extra || []).map(c => zeile(c, 0, true)).join('') + (o.lesen ? '' : plus(n ? o.neu[0] : o.neu[1]));
 }
 // Kontakte des Förderers (die aus der Förder-Kartei sind beim Eintragen schon übernommen – karteiFuellen)
-function kontaktListe(f) {
+function kontaktListe(f, b) {
+  const e = flLive(b, f);
+  if (e) { const L = foeKontakte(b, f), gl = b.gliederung && b.gliederung !== DIO ? b.gliederung : '';   // laufender Bedarf, verknüpft: aus der Fördererliste, dort bearbeiten
+    return (L.length ? personen(L, { lesen: true }) : `<p class="muted small">Kein Kontakt${gl ? ' für ' + esc(gl) : ''} in der Fördererliste.</p>`)
+      + `<p class="muted small fl-k-quelle">Aus der Fördererliste${gl ? ' (für ' + esc(gl) + ')' : ''} – <button class="link" data-act="fl-oeffnen" data-id="${e.id}">dort bearbeiten</button></p>`; }
   return personen(f.kontakte, { a: `data-fid="${f.id}"`, p: 'kontakte', edit: UI.kEdit === f.id, wer: 'Kontakt', neu: ['weiterer Kontakt', 'Kontakt eintragen'],
     haupt: ['Hauptkontakt – steht in der Kachel', 'Zum Hauptkontakt machen'] });
 }
@@ -289,8 +293,8 @@ function foePop(b) {
         <div class="pop-einsch">${dots(f)}</div>
         <button class="x" data-act="det-zu" aria-label="Schließen" title="Schließen (Esc)">×</button></header>
       <div class="pop-body">
-        <div class="pA-box">${kKopf('Kontakte', UI.kEdit === f.id, a)}
-          ${kontaktListe(f)}<div class="ksep"></div>
+        <div class="pA-box">${flLive(b, f) ? '<div class="sub">Kontakte</div>' : kKopf('Kontakte', UI.kEdit === f.id, a)}
+          ${kontaktListe(f, b)}<div class="ksep"></div>
           ${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}</div>
         <div class="pA-bed">${f.status === 'abgelehnt' ? pe(f, 'grund', 'Grund der Ablehnung', 'area', { ph: 'Warum abgelehnt? z. B. Satzungszweck passt nicht, Budget ausgeschöpft, Region – hilft bei späteren Recherchen' }) : ''}${f.datei ? pe(f, 'datei', 'Ausführliche Recherche (Datei im Ordner des Bedarfs)') : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area', { fmt: true })}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area', { fmt: true })}${pe(f, 'eigenInfo', 'Eigenanteil', 'area', { fmt: true })}</div>
         <div class="pA-q"><div class="sub">Quellen</div>${pe(f, 'quellen', '', 'area', { html: `<span class="ql">${quellenListe(f.quellen)}</span>`, ph: 'Links eintragen, je Link eine Zeile', cls: 'pe-q' })}</div>
@@ -388,7 +392,7 @@ function fpCard(b, f) {
       <div class="contra" title="Contra: wo hakt es?"><i></i>${pe(f, 'knackpunkte', '', 'area', { fmt: true, cls: 'pe-pc', aria: 'Contra – Knackpunkte', ph: 'Contra: Wo hakt es? Worauf muss der Antrag den Fokus legen?' })}</div>
     </div>
     <div class="det">
-      <div class="fk-fuss" id="fuss-${f.id}">${fussKontakt(f)}</div>
+      <div class="fk-fuss" id="fuss-${f.id}">${fussKontakt(f, b)}</div>
     </div>
   </article>`;
 }

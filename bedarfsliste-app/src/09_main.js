@@ -69,7 +69,7 @@ function infosAlle() {
     if (b.archiv || b.manuell) continue;
     if (phase(b).warn.some(w => /Freigabe ist aber nicht vollständig/.test(w))) L.push({ b, z: 'frei', t: 'Antrag läuft, Freigabe noch nicht vollständig' });
     for (const f of b.foerderer) for (const x of foeHinweise(b, f))
-      L.push({ b, z: x.k, fid: f.id, t: x.k === 'amt' ? 'Zusage ohne Betrag: ' + short(f.name) : x.k === 'fl' ? short(f.name) + ' – Geld da, in Fördererliste übernehmen?' : x.k === 'ansprache' ? short(f.name) + ' – ' + b.gliederung + ': ' + flAnsprache(b, f).art : short(f.name) + ' – laut ' + (flAktiv() ? 'Fördererliste' : 'Kartei') + ' nicht für ' + b.gliederung });
+      L.push({ b, z: x.k, fid: f.id, t: x.k === 'amt' ? 'Zusage ohne Betrag: ' + short(f.name) : x.k === 'fl' ? short(f.name) + ' – Geld da, in Fördererliste übernehmen?' : x.k === 'ansprache' ? short(f.name) + ' – ' + b.gliederung + ': ' + (flAnsprache(b, f).titel || flAnsprache(b, f).art) : short(f.name) + ' – laut ' + (flAktiv() ? 'Fördererliste' : 'Kartei') + ' nicht für ' + b.gliederung });
   }
   return L;
 }
@@ -224,7 +224,7 @@ function refresh() {
   if (UI.view !== 'detail' || !b) return;
   swap('d-meta', metaRest(b)); swap('d-steps', steps(b)); swap('d-sw', swHead(b));
   swap('fr-blk', frBlock(b)); if (!PIE_HOLD) swap('fin-pie', finPie(b)); swap('fin-rows', finRows(b)); swap('fin-eig', finEigPct(b)); swap('link-btn', linkBtn(b)); swap('link-hw', linkHinweis(b)); swap('fach-pers', fachBlock(b));
-  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('fuss-' + f.id, fussKontakt(f)); swap('sh-' + f.id, foeShare(b, f)); });
+  b.foerderer.forEach(f => { swap('fw-' + f.id, foeWarn(b, f)); swap('fuss-' + f.id, fussKontakt(f, b)); swap('sh-' + f.id, foeShare(b, f)); });
   swap('nach-body', nachBody(b)); swap('foe-kurz', esc(foeKurz(b)));
 }
 
@@ -526,7 +526,7 @@ async function vorOrtFragen(b, f, vor) {
 function vorOrtMenu(btn, b) {
   closeMenus();
   const f = b.foerderer.find(x => x.id === btn.dataset.fid); if (!f) return;
-  const K = f.kontakte.filter(c => (c.n || '').trim()), cur0 = vorOrt(b, f);
+  const K = foeKontakte(b, f).filter(c => (c.n || '').trim()), cur0 = vorOrt(b, f);
   if (!K.length) { vorOrtFragen(b, f); return; }                                  // noch kein Kontakt beim Förderer: gleich Name und E-Mail abfragen
   const m = h('div', { class: 'menu vo-pop', role: 'menu' },
     K.map(c => h('button', { role: 'menuitem', class: cur0 && kkey(cur0.n) === kkey(c.n) ? 'on' : '', onclick: () => vorOrtSetzen(b, f, { n: c.n.trim(), mail: (c.mail || '').trim(), pos: (c.rolle || '').trim() }) },

@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.93.0",
+    "date": "2026-10-31T18:00",
+    "items": [
+      "Laufende Bedarfe zeigen die Kontakte eines verknüpften Förderers aus der Fördererliste – passend zur Gliederung des Bedarfs, ohne „nicht anschreiben“: ein neuer Filialleiter oder eine neue Telefonnummer wirkt sofort überall (Kachel, „Weitere Infos“, „Wer ist dabei?“, Einladungen). Archivierte Bedarfe behalten den Stand von damals",
+      "Kontakt in der Fördererliste umbenannt oder gelöscht: die Kopien in laufenden Bedarfen ziehen mit",
+      "Seite eines Förderers, gefiltert nach einer Gliederung: wer für sie zuständig ist, steht vorn; die anderen blass dahinter",
+      "Dieselbe Person bei mehreren Förderern (z. B. Sparkasse und ihre Stiftung): beim Bearbeiten steht „steht auch bei …“, bei „Fertig“ fragt das Programm, ob geänderte E-Mail und Telefonnummer dort mit übernommen werden",
+      "Anschreiben: ★ Priorität (wie die Prio bei den Bedarfen) statt grünem Haken, ☆ offen, ✕ nicht anschreiben",
+      "Ansprache-Kasten: Überschrift und Text frei schreibbar (der Text formatierbar); die Farbe wählt man über das Zeichen davor"
+    ]
+  },
+  {
     "version": "0.92.0",
     "date": "2026-10-31T17:00",
     "items": [

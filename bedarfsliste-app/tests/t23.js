@@ -132,28 +132,52 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.click('.fl-seg button[data-act="fl-antrag"][data-v="Portal"]'); await p.waitForTimeout(100);
   await p.click('[data-act="fl-k-an"][data-i="1"]'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.weg.join(), e.kontakte[1].anschreiben || 'leer', document.querySelector('[data-act="fl-k-an"][data-i="1"]').textContent.trim(), flFristenJahr('31.03. und 15.12., Förderung bis 5.000 €, alt: 1.1.2020', 2026).join()]; });
-  ok(r.join('|') === 'Portal|leer|○|2026-03-31,2026-12-15', 'Antragsweg ein Schalter, anschreiben nein → offen, Fristen aus dem Text (Beträge und alte Jahre nicht): ' + r.join('|'));
+  ok(r.join('|') === 'Portal|leer|☆|2026-03-31,2026-12-15', 'Antragsweg ein Schalter, anschreiben nein → offen, Fristen aus dem Text (Beträge und alte Jahre nicht): ' + r.join('|'));
   // Bedarf aus der Historie öffnen, zurück führt zum Förderer
   // Kennzahl im Kopf, Ansprache für die Gliederung aus dem Filter (änderbar), Steckbrief und Kontakte, Förderung von Hand mit Jahr oder Datum
   await p.evaluate(() => { UI.flGl = 'Geseke'; renderNow(); });
   r = await p.evaluate(() => [document.querySelector('.fl-kz-b').textContent.replace(/\s/g, ' '), document.querySelector('.fl-kz-t').textContent, document.querySelector('.fl-sub-gl').textContent,
-    document.querySelector('.fl-ak-box').className, document.querySelector('.fl-ab-2').textContent.replace(/\s+/g, ' ').trim(), document.querySelector('.fl-ab-h').value]);
-  ok(r.join('|') === '1.300 €|2 Förderungen seit 2024|gefiltert nach Gliederung Geseke|fl-ak-box gl|!Über die Gliederung▾|Gliederung fragt selbst an',
+    document.querySelector('.fl-ak-box').className, document.querySelector('.fl-ab-t').placeholder, document.querySelector('.fl-ab-h .pv').textContent]);
+  ok(r.join('|') === '1.300 €|2 Förderungen seit 2024|gefiltert nach Gliederung Geseke|fl-ak-box gl|Über die Gliederung|Gliederung fragt selbst an',
     'Kopf mit Kennzahl; Ansprache-Kasten für die gefilterte Gliederung: ' + r.join(' | '));
-  await p.click('.fl-ab-2'); await p.click('.menu button:has-text("Nicht anschreiben")'); await p.waitForTimeout(100);
+  await p.fill('.fl-ab-t', 'Erst Herrn B. fragen'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const c = D.bedarfe[1]; return [flEintrag('F001').ansprache[0].titel, foeHinweise(c, c.foerderer[0]).map(x => x.t).join()]; });
+  ok(r.join('|') === 'Erst Herrn B. fragen|Laut Fördererliste für Geseke: Erst Herrn B. fragen – Gliederung fragt selbst an', 'Ansprache: eigene Überschrift, auch im Hinweis am Bedarf: ' + r.join('|'));
+  await p.click('.fl-ab-pf'); await p.click('.menu button:has-text("Nicht anschreiben")'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [flEintrag('F001').ansprache.map(a => a.gl + ':' + a.art).join(), document.querySelector('.fl-ak-box').className]);
   ok(r.join('|') === 'Geseke:nicht anschreiben|fl-ak-box nein', 'Ansprache im Kasten geändert: ' + r.join('|'));
-  await p.click('.fl-ab-2'); await p.click('.menu button:has-text("Über die Gliederung")'); await p.evaluate(() => { UI.flGl = ''; renderNow(); });
+  await p.click('.fl-ab-pf'); await p.click('.menu button:has-text("Über die Gliederung")'); await p.evaluate(() => { UI.flGl = ''; renderNow(); });
   r = await p.evaluate(() => [[...document.querySelectorAll('.fl-sg .fl-sl')].map(x => x.textContent).join(','), !!document.querySelector('[data-fl="richtlinien"]'), document.querySelector('.fl-kopf .fl-kz') !== null,
     [...document.querySelectorAll('.fl-kliste .k1')].map(k => k.querySelector('.fl-st').textContent + k.querySelector('.kn').textContent + ':' + [...k.querySelectorAll('.kb')].map(b => b.dataset.tip).join('+')).join(' | '),
     document.querySelector('.fl-fn .fl-notizen h3').textContent]);
-  ok(r.join('|') === 'Förderzweck,Fördergebiet,Förderhöhe,Antragsweg,Fristen|true|true|✓Erika B:erika@spk.example+05272 1 | ○Hans V:hans@spk.example|Notizen',
+  ok(r.join('|') === 'Förderzweck,Fördergebiet,Förderhöhe,Antragsweg,Fristen|true|true|★Erika B:erika@spk.example+05272 1 | ☆Hans V:hans@spk.example|Notizen',
     'Steckbrief immer vollständig, Links immer da, Kontakte als Karten (✓/○/✕, Adresse und Nummer beim Überfahren), Notizen neben den Förderungen: ' + r.join('|'));
   await p.click('[data-act="fl-k-neu"]'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [UI.flKEdit, document.activeElement.dataset.fl, flEintrag('F001').kontakte.length]);
   await p.click('[data-act="fl-k-fertig"]'); await p.waitForTimeout(100);
   r.push(await p.evaluate(() => flEintrag('F001').kontakte.length));
   ok(r.join('|') === 'true|kontakte.2.n|3|2', '„+“: neuer Kontakt zum Ausfüllen; leer gelassen fällt er bei „Fertig“ weg: ' + r.join('|'));
+  // gefiltert nach Brakel: wer für Brakel zuständig ist, steht vorn; die anderen blass
+  await p.evaluate(() => { flEintrag('F001').kontakte[1].gl = ['Geseke']; UI.flGl = 'Brakel'; renderNow(); });
+  r = await p.evaluate(() => [...document.querySelectorAll('.fl-kliste .k1')].map(k => k.querySelector('.kn').textContent + (k.classList.contains('fremd') ? ' (blass)' : '')).join(', '));
+  ok(r === 'Erika B, Hans V (blass)', 'Filter Brakel: Zuständige vorn, andere blass: ' + r);
+  await p.evaluate(() => { flEintrag('F001').kontakte[1].gl = []; UI.flGl = ''; renderNow(); });
+  // laufender Bedarf: Kontakte kommen aus der Fördererliste (für seine Gliederung, ohne „nicht anschreiben“); archiviert: der damalige Stand
+  r = await p.evaluate(() => { const a = D.bedarfe[0], f = a.foerderer[0], e = flEintrag('F001'); e.kontakte[0].tel = '05272 999'; const live = foeKontakte(a, f).map(k => k.n + '/' + k.tel).join(',');
+    a.archiv = true; const alt = foeKontakte(a, f).map(k => k.n).join(','); a.archiv = false; return [live, alt, fussKontakt(f, a).includes('05272 999')]; });
+  ok(r.join('|') === 'Erika B/05272 999,Hans V/,Max Neu/|Max Neu|true', 'Kontakte im Bedarf: laufend aus der Fördererliste (dazu die nur im Bedarf), archiviert die Kopie: ' + r.join('|'));
+  // umbenannt in der Fördererliste: Kopien in laufenden Bedarfen ziehen mit; dieselbe Person bei einem anderen Förderer: bei „Fertig“ fragen
+  await p.evaluate(() => { D.bedarfe[0].foerderer[0].kontakte.push(Object.assign(leerK(), { n: 'Erika B' })); flEintrag('F002').kontakte.push(Object.assign(flKontaktLeer(), { n: 'Erika B', mail: 'alt@spk.example' })); renderNow(); });
+  await p.click('[data-act="fl-k-edit"]'); await p.fill('[data-fl="kontakte.0.n"]', 'Erika Brandt'); await p.fill('[data-fl="kontakte.0.mail"]', 'neu@spk.example');
+  r = await p.evaluate(() => [D.bedarfe[0].foerderer[0].kontakte.map(k => k.n).join(','), document.querySelector('.fl-auch') ? document.querySelector('.fl-auch').textContent.slice(0, 32) : '']);
+  ok(r.join('|') === 'Max Neu,Erika Brandt|steht auch bei Volksbank Test eG', 'Umbenennen zieht die Kopie im Bedarf mit; Hinweis „steht auch bei“: ' + r.join('|'));
+  await p.evaluate(() => { flEintrag('F002').kontakte[0].n = 'Erika Brandt'; });
+  await p.click('[data-act="fl-k-fertig"]'); await p.waitForSelector('.modal');
+  r = await p.$eval('.modal h2', x => x.textContent);
+  await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  r = [r, await p.evaluate(() => flEintrag('F002').kontakte[0].mail)];
+  ok(r.join('|') === 'Auch bei anderen Förderern ändern?|neu@spk.example', 'gleiche Person bei anderem Förderer: E-Mail auf Wunsch mitgeändert: ' + r.join('|'));
+  await p.evaluate(() => { const e = flEintrag('F001'); e.kontakte[0].n = 'Erika B'; flEintrag('F002').kontakte = []; D.bedarfe[0].foerderer[0].kontakte = D.bedarfe[0].foerderer[0].kontakte.filter(k => k.n !== 'Erika Brandt'); changed(); renderNow(); });
   await p.click('[data-act="fl-g-neu"]'); await p.waitForTimeout(100);
   const gi = await p.evaluate(() => flEintrag('F001').foerderungen.length - 1);
   await p.fill(`[data-fl="foerderungen.${gi}.datum"]`, '12.04.2025'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);

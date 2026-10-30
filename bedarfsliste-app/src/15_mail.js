@@ -54,9 +54,9 @@ const ortKurz = b => b.gliederung && b.gliederung !== DIO ? b.gliederung : (b.na
 // wer vom Förderer bei der Übergabe dabei ist: von Hand gewählt (nach.ueb.vorOrt), sonst der Hauptkontakt aus dem Förderer (meist aus der Förder-Kartei)
 function vorOrt(b, f) {
   const V = b.nach.ueb.vorOrt || {};
-  const rolle = n => { const c = f.kontakte.find(k => kkey(k.n) === kkey(n)); return c ? (c.rolle || '').trim() : ''; };   // Position: gespeichert oder aus den Kontakten
+  const K = foeKontakte(b, f), rolle = n => { const c = K.find(k => kkey(k.n) === kkey(n)); return c ? (c.rolle || '').trim() : ''; };   // Position: gespeichert oder aus den Kontakten (laufend: aus der Fördererliste)
   if (f.id in V) return V[f.id] && V[f.id].n ? Object.assign({}, V[f.id], { pos: V[f.id].pos || rolle(V[f.id].n) }) : null;   // null: bewusst niemand
-  const c = f.kontakte.find(k => (k.n || '').trim()); return c ? { n: c.n.trim(), mail: (c.mail || '').trim(), pos: (c.rolle || '').trim() } : null;
+  const c = K.find(k => (k.n || '').trim()); return c ? { n: c.n.trim(), mail: (c.mail || '').trim(), pos: (c.rolle || '').trim() } : null;
 }
 // die Förderer der Übergabe: bei „Wer ist dabei?“ angehakt, sonst alle mit Zusage
 const dabeiListe = b => { const Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), M = b.foerderer.filter(f => b.nach.ueb.mit.includes(f.id) && f.name.trim());
@@ -118,7 +118,7 @@ function rundGruppen(b) {
 // vorgewählt ist je Förderer die Person, die bei „Wer ist dabei?“ steht (auch wenn sie nicht unter den Kontakten ist)
 function foeGruppen(b) {
   const Z = b.foerderer.filter(f => f.status === 'zugesagt' && f.name.trim()), mit = b.nach.ueb.mit;
-  return Z.map(f => { const v = vorOrt(b, f), L = f.kontakte.filter(c => (c.n || '').trim() || (c.mail || '').trim()).map(c => Object.assign({}, c, { n: c.n.trim() || c.mail.trim(), f }));
+  return Z.map(f => { const v = vorOrt(b, f), L = foeKontakte(b, f).filter(c => (c.n || '').trim() || (c.mail || '').trim()).map(c => Object.assign({}, c, { n: c.n.trim() || c.mail.trim(), f }));
     if (v && !L.some(c => kkey(c.n) === kkey(v.n))) L.unshift(Object.assign(leerK(), { n: v.n, mail: v.mail || '', f }));
     L.forEach(c => { c.vor = v ? kkey(c.n) === kkey(v.n) : true; });
     return ['f-' + f.id, f.name.trim(), L, !mit.length || mit.includes(f.id)]; });
