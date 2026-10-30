@@ -84,7 +84,7 @@ async function karteiScan(force) {
 }
 // Angaben aus der Kartei in die Felder des Förderers übernehmen – nur leere Felder, je Förderer und Name einmal (f.kx): was du danach löschst, bleibt gelöscht.
 // Kontakte: die für die Gliederung des Bedarfs (oder für alle); „nicht direkt anschreiben“ nicht. Die Förderhistorie kommt in die Notizen.
-const KARTEI_WEG = { 'per Mail': 'E-Mail' };
+const KARTEI_WEG = { 'per Mail': 'E-Mail', 'per E-Mail': 'E-Mail' };
 function karteiFuellen(b, f) {
   const k = f.name.trim() && f.kx !== kkey(f.name) && kartei(f.name); if (!k) return false;
   f.kx = kkey(f.name);                                                             // je Name einmal – umbenannt in einen anderen Kartei-Eintrag: neu ergänzen

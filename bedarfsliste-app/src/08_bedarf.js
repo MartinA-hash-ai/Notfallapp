@@ -206,12 +206,13 @@ function quellenListe(t) {
 }
 const FX = { web: ['web', '↗', 'Seite öffnen'] };
 // eine Angabe zum Anklicken: art 'line' (eine Zeile), 'area' (mehrere Zeilen), 'num' (Betrag); fx: Knopf zum Schreiben, Anrufen, Öffnen
-// f: ein Förderer (mit data-fid) oder der Bedarf selbst; o.fmt: Text mit Formatierung, o.sug: Vorschläge beim Tippen, o.aria: Name des Felds
+// f: ein Förderer (mit data-fid) oder der Bedarf selbst; o.fmt: Text mit Formatierung, o.sug: Vorschläge beim Tippen, o.aria: Name des Felds;
+// o.flpe: ein Eintrag der Fördererliste (die gerade offene Seite eines Förderers, 23_foerderer.js)
 function pe(f, k, lab, art = 'line', o = {}) {
   const v = getPath(f, k), leer = v == null || String(v).trim() === '';
   const shown = o.html != null ? o.html : art === 'num' ? (leer ? '' : eur(v)) : art === 'date' ? fmtDate(v) : o.fmt ? fmtText(v) : esc(k === 'web' ? kurzUrl(v || '') : v || '');
   const fx = o.fx && !leer ? `<button class="fx" data-act="${FX[o.fx][0]}" data-fid="${f.id}" title="${FX[o.fx][2]}" aria-label="${FX[o.fx][2]}">${FX[o.fx][1]}</button>` : '';
-  return `<div class="pe${o.cls ? ' ' + o.cls : ''}" data-act="pe"${f.foerderer ? '' : ` data-fid="${f.id}"`} data-k="${k}" data-art="${art}" data-lab="${esc(o.aria || lab || o.ph || k)}"${o.fmt ? ' data-fmt="1"' : ''}${o.sug ? ` data-sug="${o.sug}"` : ''} title="Klicken zum Bearbeiten">`
+  return `<div class="pe${o.cls ? ' ' + o.cls : ''}" data-act="${o.flpe ? 'fl-pe' : 'pe'}"${f.foerderer || o.flpe ? '' : ` data-fid="${f.id}"`} data-k="${k}" data-art="${art}" data-lab="${esc(o.aria || lab || o.ph || k)}"${o.fmt ? ' data-fmt="1"' : ''}${o.sug ? ` data-sug="${o.sug}"` : ''} title="Klicken zum Bearbeiten">`
     + (lab ? `<div class="lab">${lab}</div>` : '')
     + `<div class="val${leer ? ' leer' : ''}">${leer ? esc(o.ph || 'nicht eingetragen') : `<span class="pv${o.fmt ? ' fmt' : ''}">${shown}</span>${fx}`}</div>${ICON_PEN}</div>`;
 }
@@ -300,7 +301,7 @@ function foePop(b) {
 // Angabe im Fenster bearbeiten: an derselben Stelle ein Feld; danach neu zeichnen, das Fenster bleibt an derselben Scrollstelle
 function popEdit(el) {
   if (el.querySelector('.pe-in')) return;
-  const b = cur(), f = b && (el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : b); if (!f) return;
+  const b = cur(), f = el.dataset.act === 'fl-pe' ? flCur() : b && (el.dataset.fid ? b.foerderer.find(x => x.id === el.dataset.fid) : b); if (!f) return;
   const k = el.dataset.k, art = el.dataset.art, lang = art === 'area', val = el.querySelector('.val');
   const alt = getPath(f, k);
   if (art === 'date') return calPop(el, alt, v => { setPath(f, k, v || ''); changed(); keep(renderNow); }, { clear: el.dataset.lab + ' entfernen' });

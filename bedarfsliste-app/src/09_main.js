@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { flId: null, flq: '', flArt: '', flGl: '', vonFl: null, flFelder: [], flAlt: false, flMehr: false, flAlleGl: false, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { flId: null, flq: '', flArt: '', flGl: '', vonFl: null, flKEdit: false, flAlt: false, flMehr: false, flAlleGl: false, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw', 'flId'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];

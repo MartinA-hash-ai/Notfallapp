@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.92.0",
+    "date": "2026-10-31T17:00",
+    "items": [
+      "Seite eines Förderers: unter dem Namen kein Fördergebiet mehr (steht im Steckbrief); die Fördersumme steht rechts über der rechten Spalte, bündig mit ihr – wie die Summe beim Bedarf",
+      "Ansprechpersonen wie „Zuständig“ beim Bedarf: alle Kontakte als graue Karten nebeneinander, E-Mail und Telefon beim Überfahren; vorn ✓ anschreiben, ○ offen (z. B. in CC), ✕ nicht anschreiben – ein Klick schaltet weiter; bearbeiten über den Stift, „+“ neben dem Stift",
+      "Steckbrief: alle Angaben immer da (leer zum Ausfüllen); Förderzweck, Förderhöhe und Fristen sind formatierbar wie die Texte beim Bedarf",
+      "Antragsweg: nur noch „per E-Mail“ oder „Portal“; „direkt“ aus der alten Kartei bleibt als Hinweis stehen, bis man wählt",
+      "Notizen stehen neben den Förderungen und Absagen in derselben Karte (auch formatierbar); „Weitere Angaben“ ohne Kontakte"
+    ]
+  },
+  {
     "version": "0.91.0",
     "date": "2026-10-31T16:00",
     "items": [
