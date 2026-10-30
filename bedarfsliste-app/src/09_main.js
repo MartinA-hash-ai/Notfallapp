@@ -69,7 +69,7 @@ function infosAlle() {
     if (b.archiv || b.manuell) continue;
     if (phase(b).warn.some(w => /Freigabe ist aber nicht vollständig/.test(w))) L.push({ b, z: 'frei', t: 'Antrag läuft, Freigabe noch nicht vollständig' });
     for (const f of b.foerderer) for (const x of foeHinweise(b, f))
-      L.push({ b, z: x.k, fid: f.id, t: x.k === 'amt' ? 'Zusage ohne Betrag: ' + short(f.name) : x.k === 'fl' ? short(f.name) + ' – Geld da, in Fördererliste übernehmen?' : x.k === 'ansprache' ? short(f.name) + ' – ' + b.gliederung + ': ' + (flAnsprache(b, f).titel || flAnsprache(b, f).art) : short(f.name) + ' – laut ' + (flAktiv() ? 'Fördererliste' : 'Kartei') + ' nicht für ' + b.gliederung });
+      L.push({ b, z: x.k, fid: f.id, t: x.k === 'amt' ? 'Zusage ohne Betrag: ' + short(f.name) : x.k === 'fl' ? short(f.name) + ' – Geld da, in Fördererliste übernehmen?' : x.k === 'ansprache' ? short(f.name) + ' – ' + b.gliederung + ': ' + (flAnsprache(b, f).titel || 'Hinweis') : short(f.name) + ' – laut ' + (flAktiv() ? 'Fördererliste' : 'Kartei') + ' nicht für ' + b.gliederung });
   }
   return L;
 }

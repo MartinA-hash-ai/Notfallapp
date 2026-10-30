@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.94.0",
+    "date": "2026-10-31T19:00",
+    "items": [
+      "Seite eines Förderers: alle Ansprechpersonen gleichrangig, nur nach ★ / ☆ / ✕ sortiert – nichts mehr ausgegraut, auch nicht bei gefilterter Gliederung",
+      "Steckbrief nur noch mit dem Nötigsten: Förderzweck, Fördergebiet, Förderhöhe",
+      "Rechte Spalte als Infomappe: Hinweise, Einschätzung, Fristen (mit dem formatierbaren Fristen-Text), Homepage und Förderrichtlinien, Antragsweg",
+      "Hinweise: kein grüner Kasten mehr – entweder ein gelber Hinweis (oder rot: nicht anschreiben) oder nichts; „+ Hinweis hinzufügen“ legt einen an, Kopfzeile, Überschrift und Text sind frei; gefiltert gilt er gleich für diese Gliederung",
+      "Antragsweg: per E-Mail oder Portal – direkt daneben die E-Mail-Adresse bzw. der Link zum Portal, mit „✉ Schreiben“ bzw. „Öffnen ↗“; bei Portal ohne Link lässt sich der Link der Homepage übernehmen",
+      "Excel: Spalte „Antrag an“ bei den Förderern, „Kopfzeile“ bei den Hinweisen",
+      "Test t06: „neu geöffnet“ öffnet den Bedarf wieder, statt die Seite neu zu laden (der Test-Browser verlor dabei gelegentlich seinen Speicher)"
+    ]
+  },
+  {
     "version": "0.93.0",
     "date": "2026-10-31T18:00",
     "items": [

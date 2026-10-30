@@ -162,10 +162,10 @@ function foeHinweise(b, f) {
   const k = kartei(f.name), L = [];
   if (f.status === 'zugesagt' && !foeAmt(f)) L.push({ k: 'amt', t: 'Zusage ohne Betrag – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).' });
   if (k && b.gliederung && !istDio(b.gliederung) && k.gl.length && !k.gl.some(g => /^alle$/i.test(g)) && !k.gl.includes(b.gliederung)) L.push({ k: 'kartei', t: 'Laut ' + (flAktiv() ? 'Fördererliste' : 'Kartei') + ' zuständig für ' + esc(k.gl.join(', ')) });
-  // ab 0.88: Ansprache laut Fördererliste – für diese Gliederung „über die Gliederung“ oder „nicht anschreiben“ (nur solange noch nichts entschieden ist)
+  // ab 0.88: Hinweis der Fördererliste für diese Gliederung (gelb, oder rot „nicht anschreiben“) – nur solange noch nichts entschieden ist
   const an = (f.status === 'geplant' || f.status === 'beantragt') && flAnsprache(b, f);
   if (flOffen(f)) L.push({ k: 'fl', t: 'Geld ist eingegangen – der Förderer steht aber noch nicht in der Fördererliste.' });
-  if (an) L.push({ k: 'ansprache', t: 'Laut Fördererliste für ' + esc(b.gliederung) + ': ' + esc(an.titel || an.art) + (an.hinweis ? ' – ' + esc(flPlain(an.hinweis)) : '') });
+  if (an) L.push({ k: 'ansprache', t: 'Laut Fördererliste für ' + esc(b.gliederung) + ': ' + esc(an.titel || an.kopf || 'Hinweis') + (an.hinweis ? ' – ' + esc(flPlain(an.hinweis)) : '') });
   return L;
 }
 function foeWarnList(b, f) {
