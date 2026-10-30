@@ -5,14 +5,14 @@
    und die Beschreibungen untereinander. Die alten werden zurückgestellt („wurde in Bedarf … zusammengeführt“). Kein Ordner-Link. */
 
 const ICON_PAKET = '<svg viewBox="0 0 16 16" width="15" height="15" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2.5v3c0 1.7 1.1 2.7 2.7 3.4L8 10v3.6M13 2.5v3c0 1.7-1.1 2.7-2.7 3.4L8 10"/><path d="M5.8 11.6L8 13.8l2.2-2.2"/></g></svg>';
-const pickSet = () => UI.heuteWahl || UI.paketWahl;               // gerade wird ausgewählt (für heute oder zum Zusammenführen)
+const pickSet = () => UI.heuteWahl || UI.paketWahl || UI.mehrWahl;   // gerade wird ausgewählt (für heute, zum Zusammenführen oder gemeinsam Bearbeiten: 22_mehr.js)
 const paketKnopf = () => UI.tab === 'archiv' ? '' : `<button class="heute-btn paket-btn" data-act="paket-wahl" title="Bedarfe zusammenführen – mehrere zu einem Paket">${ICON_PAKET}<span>Zusammenführen</span></button>`;
 function paketLeiste() {
   const n = UI.paketWahl.size;
   return `<span class="heute-hw"><b>Bedarfe zum Zusammenführen anklicken</b></span><button class="primary small" data-act="paket-los"${n < 2 ? ' disabled' : ''}>${n < 2 ? 'Zusammenführen …' : n + ' zusammenführen …'}</button><button class="undo-btn" data-act="paket-leer" title="Auswahl aufheben – alle Haken weg" aria-label="Auswahl aufheben">↶</button><button class="link" data-act="paket-ende" title="Zusammenführen beenden (Esc)">Beenden</button>`;
 }
 function paketZahl() { const k = $('[data-act="paket-los"]'), n = UI.paketWahl ? UI.paketWahl.size : 0; if (k) { k.disabled = n < 2; k.textContent = n < 2 ? 'Zusammenführen …' : n + ' zusammenführen …'; } }
-function paketWaehlen(an) { closeMenus(); UI.auf = null; UI.heuteWahl = null; UI.paketWahl = an ? new Set() : null; ORDER.ids = null; keep(renderNow); }
+function paketWaehlen(an) { closeMenus(); UI.auf = null; UI.heuteWahl = null; UI.mehrWahl = null; UI.paketWahl = an ? new Set() : null; ORDER.ids = null; keep(renderNow); }
 
 // Fragen: Name, Ort, Förderer – dann bauen
 async function paketDialog() {

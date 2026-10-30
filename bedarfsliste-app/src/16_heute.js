@@ -33,7 +33,7 @@ const ICON_SONNE = '<svg viewBox="0 0 16 16" width="14" height="14" aria-hidden=
 // beim Auswählen: Klick auf eine Zeile wählt sie (statt sie zu öffnen); Enter bzw. Leertaste auf der Zeile ebenso
 function heuteKlick(tr) {                                             // auch beim Zusammenführen (pickSet: 17_paket.js)
   const S = pickSet(), id = tr.dataset.id; if (S.has(id)) S.delete(id); else S.add(id);
-  tr.classList.toggle('heute-w', S.has(id)); if (UI.paketWahl) paketZahl();
+  tr.classList.toggle('heute-w', S.has(id)); if (UI.paketWahl) paketZahl(); if (UI.mehrWahl) mehrZahl();
 }
 document.addEventListener('click', e => {
   if (!pickSet() || UI.view !== 'list') return;
@@ -43,7 +43,7 @@ document.addEventListener('click', e => {
 document.addEventListener('keydown', e => {
   if (!pickSet() || UI.view !== 'list') return;
   const tr = document.activeElement && document.activeElement.matches && document.activeElement.matches('#list-body tr[data-id]') ? document.activeElement : null;
-  if (e.key === 'Escape' && !$('.menu, .modal')) { e.preventDefault(); e.stopPropagation(); if (UI.paketWahl) paketWaehlen(false); else heuteFertig(false); return; }
+  if (e.key === 'Escape' && !$('.menu, .modal')) { e.preventDefault(); e.stopPropagation(); if (UI.paketWahl) paketWaehlen(false); else if (UI.mehrWahl) mehrWaehlen(false); else heuteFertig(false); return; }
   if (tr && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); e.stopPropagation(); heuteKlick(tr); }
 }, true);
 

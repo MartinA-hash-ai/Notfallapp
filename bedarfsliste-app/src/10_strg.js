@@ -380,7 +380,7 @@ function feldWeiter(b, k, wie, then) {
 // Esc oder Klick daneben hört auf. Bleibt der Name leer, verschwindet die neue Zeile wieder.
 function neuerBedarf(nach) {
   const nb = blank(); D.bedarfe.unshift(nb); changed();
-  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: [], heuteWahl: null, paketWahl: null, prioKopf: UI.prioKopf === 2 ? 0 : UI.prioKopf }); heuteDazu(nb.id);
+  Object.assign(UI, { tab: 'aktiv', view: 'list', q: '', fSw: [], heuteWahl: null, paketWahl: null, mehrWahl: null, prioKopf: UI.prioKopf === 2 ? 0 : UI.prioKopf }); heuteDazu(nb.id);
   const L = (ORDER.ids && ORDER.key === ordKey() ? ORDER.ids : (ORDER.ids = null, filtered().map(x => x.id))).filter(id => id !== nb.id), at = nach ? L.indexOf(nach) : -1;
   ORDER.ids = at >= 0 ? [...L.slice(0, at + 1), nb.id, ...L.slice(at + 1)] : [nb.id, ...L]; ORDER.key = ordKey();
   renderNow(); strgSet(false);

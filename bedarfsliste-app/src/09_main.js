@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { kq: '', fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { kq: '', mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -245,7 +245,7 @@ function effects(b, base, p, v, alt) {
     if (ent(v) && (!f.entscheidungAm || ent(alt))) f.entscheidungAm = today();
     if (alt === 'zugesagt') { f.zugesagt = null; f.eingegangen = null; f.eingangAm = ''; b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f.id); }
     if (v === 'zugesagt') { if (f.zugesagt == null) f.zugesagt = f.betrag; if (b.nach.ueb.noetig && !b.nach.ueb.mit.includes(f.id)) b.nach.ueb.mit.push(f.id);
-      if (!foeAmt(f)) toast('Zusage ohne Betrag bei „' + (f.name || 'Förderer') + '“ – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).', 'warn'); }
+      if (!foeAmt(f) && !MEHR_STILL) toast('Zusage ohne Betrag bei „' + (f.name || 'Förderer') + '“ – bitte die zugesagte Summe eintragen (bei einer Sachspende ihren Wert).', 'warn'); }
     if (v === 'abgelehnt') b.nach.ueb.mit = b.nach.ueb.mit.filter(id => id !== f.id);
   }
 }
@@ -542,7 +542,7 @@ function kAufraeumen(b) { const f = b && b.foerderer.find(x => x.id === UI.kEdit
 async function act(k, a, e) {
   const b = cur();
   switch (k) {
-    case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; UI.paketWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
+    case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; UI.paketWahl = null; UI.mehrWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
     case 'konten': closeMenus(); UI.view = 'konten'; renderNow(); scrollTo(0, 0); return;
     case 'konten-ein': kontenEinlesen(); return;
     case 'konto-kopie': kontoKopieren(a.dataset.v); return;
@@ -578,7 +578,12 @@ async function act(k, a, e) {
     case 'adressen-alle': adressenDialog(); return;
     case 'ki-liste': kiListeDialog(); return;
     case 'sw-filter': if ($('.swf-pop')) closeMenus(); else swFilterPop(a); return;
-    case 'heute-wahl': UI.paketWahl = null; heuteWaehlen(); return;
+    case 'heute-wahl': UI.paketWahl = null; UI.mehrWahl = null; heuteWaehlen(); return;
+    case 'mehr-wahl': mehrWaehlen(true); return;
+    case 'mehr-ende': mehrWaehlen(false); return;
+    case 'mehr-leer': if (UI.mehrWahl) { UI.mehrWahl.clear(); keep(renderNow); } return;
+    case 'mehr-alle': if (UI.mehrWahl) { filtered().forEach(x => UI.mehrWahl.add(x.id)); keep(renderNow); } return;
+    case 'mehr-los': mehrDialog(); return;
     case 'paket-wahl': paketWaehlen(true); return;
     case 'paket-ende': paketWaehlen(false); return;
     case 'paket-leer': if (UI.paketWahl) { UI.paketWahl.clear(); keep(renderNow); } return;

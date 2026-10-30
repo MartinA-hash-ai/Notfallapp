@@ -1420,3 +1420,22 @@ span.k-bic { cursor: default; font-family: inherit; }
 .konten-head .tools { display: flex; align-items: center; gap: 10px; margin-left: auto; flex-wrap: wrap; }
 .konten-head #kq { width: 240px; }
 @media (max-width: 560px) { .k-konto { grid-template-columns: 1fr; } }
+/* 0.80: mehrere Bedarfe gemeinsam bearbeiten */
+.mw h4 { margin: 14px 0 6px; }
+.mw-z { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; padding: 3px 0; }
+.mw-l { font-weight: 600; font-size: 13px; }
+.mw-fl { display: grid; gap: 4px; }
+.mw-f { display: flex; align-items: center; justify-content: space-between; gap: 6px 12px; flex-wrap: wrap; padding: 4px 8px; border-radius: 6px; background: var(--hover); }
+.mw-f.mw-alle { background: transparent; border: 1px dashed var(--line2); }
+.mw-fn { min-width: 0; overflow-wrap: anywhere; }
+.mw-neu { display: grid; grid-template-columns: minmax(0, 1fr) auto 130px; gap: 6px; }
+@media (max-width: 560px) { .mw-neu { grid-template-columns: 1fr; } }
+/* 0.80: Spendenübergabe in der Liste – Punkt je Förderer links in der Spalte (grau: soll dabei sein, grün: kommt), gepunktet hingeführt, wenn eingeladen */
+.vt.mit-ue { display: flex; align-items: center; gap: 4px; overflow: visible; }
+.ue-weg { flex: 1 1 auto; position: relative; min-width: 14px; height: 0; margin-right: -21px; align-self: center; }
+.ue-weg.an { border-bottom: 2px dotted var(--line2); }
+.ue-weg.an.ok { border-color: var(--f-zu); }
+.ue-pkt { position: absolute; right: -5px; top: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--ghost); }
+.ue-weg.an .ue-pkt { top: -3.5px; }
+.ue-pkt.ok { background: var(--strong); }
+td.l-ueb.mit-pkt { padding-left: 26px; }

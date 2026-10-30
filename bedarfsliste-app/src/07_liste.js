@@ -42,12 +42,20 @@ function zeitstrahl(f) {
   const t = rest < 0 ? 'Frist seit ' + -rest + (rest === -1 ? ' Tag' : ' Tagen') + ' vorbei' : rest === 0 ? 'Frist ist heute' : 'noch ' + rest + (rest === 1 ? ' Tag' : ' Tage') + ' bis zur Frist';
   return `<span class="lead tl ${rest < 7 ? 'tl-r' : rest < 30 ? 'tl-y' : rest < 90 ? 'tl-g' : 'tl-0'}" title="${t}"><i></i></span>`;
 }
-function lNachweis(f, fertig) {
-  const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`;
-  if (!v.noetig) return `<span class="lead"></span><span class="mi m-off" ${a} title="kein Verwendungsnachweis nötig"></span><span class="vt nn" ${a}>nicht nötig</span>`;
-  if (fertig) return `<span class="lead"></span><span class="mi m-dot" ${a} title="erledigt"></span><span class="vt" ${a}>erledigt</span>`;
+// Spendenübergabe (ab 0.80): Förderer, die dabei sein sollen (Häkchen „Dabei“), bekommen links in der Spalte Spendenübergabe einen hellgrauen Punkt,
+// grün, wenn sie zugesagt haben zu kommen; ist die Einladung raus oder kommen sie, führt eine gepunktete Linie vom Nachweis dorthin
+function uebPunkt(b, f) {
+  const u = b.nach.ueb; if (!u.noetig || !u.mit.includes(f.id)) return '';
+  const e = (u.einl || {})[f.id] || {}, kommt = e.zu === 'ja', linie = kommt || !!e.am;
+  const t = kommt ? 'kommt zur Spendenübergabe' : e.am ? 'zur Spendenübergabe eingeladen am ' + fmtDate(e.am) + (e.zu === 'nein' ? ' – kommt nicht' : '') : 'soll bei der Spendenübergabe dabei sein, noch nicht eingeladen';
+  return `<span class="ue-weg${linie ? ' an' : ''}${kommt ? ' ok' : ''}" title="${esc(short(f.name) + ': ' + t)}"><i class="ue-pkt${kommt ? ' ok' : ''}"></i></span>`;
+}
+function lNachweis(f, fertig, pk = '') {
+  const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`, mu = pk ? ' mit-ue' : '';
+  if (!v.noetig) return `<span class="lead"></span><span class="mi m-off" ${a} title="kein Verwendungsnachweis nötig"></span><span class="vt nn${mu}" ${a}>nicht nötig${pk}</span>`;
+  if (fertig) return `<span class="lead"></span><span class="mi m-dot" ${a} title="erledigt"></span><span class="vt${mu}" ${a}>erledigt${pk}</span>`;
   const s = MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]], cal = `<button class="le-cal" data-le="vn-frist" data-fid="${f.id}" title="Frist des Verwendungsnachweises" aria-label="Frist des Verwendungsnachweises wählen">${ICON_CAL}</button>`;
-  return `${zeitstrahl(f)}<span class="mi ${s[0]}" ${a} title="${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}</span>`;
+  return `${zeitstrahl(f)}<span class="mi ${s[0]}" ${a} title="${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt${mu}" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}${pk}</span>`;
 }
 function lFinanz(b) {
   const F = finState(b), R = [];
@@ -56,9 +64,10 @@ function lFinanz(b) {
     const sym = s => `<span class="mi ${MI[s][0]}" data-le="foe" ${a}>${MI[s][1]}</span>`;
     const pen = `<button class="le-pen" data-le="foe-name" ${a} title="Förderer umbenennen" aria-label="Förderer umbenennen">${ICON_PEN}</button>`;
     const nm = `<span class="fn" data-le="foe" ${a}><span class="fn-t">${esc(f.name || '(ohne Namen)')}</span>${pen}</span><span class="fa" data-le="amt" ${a}>${eur(foeAmt(f))}</span>`;
-    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false) : EMPTY3}</div>`);
+    const pk = f.status === 'zugesagt' ? uebPunkt(b, f) : '';
+    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false, pk) : EMPTY3}</div>`);
     else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${sym('dot')}${nm}${EMPTY3}</div>`);
-    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig)}</div>`); }
+    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig, pk)}</div>`); }
   }
   R.push('<div class="fline"></div>');
   if (F.d) R.push(`<div class="fr sum"><span></span><span class="fn">${F.d > 0 ? 'Delta' : 'Überfinanzierung'}</span><span class="fa">${eur(Math.abs(F.d))}</span>${EMPTY3}</div><div class="fline"></div>`);
@@ -227,7 +236,7 @@ function row(b) {
     <td class="l-meta"><div class="ort">${wort('ort', ortText(b))}</div><div>${wort('zust', b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>')}</div><div>${wort('deadline', b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>')}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
     <td class="l-fin"${auf ? ' colspan="2"' : ''}>${lFinanz(b)}</td>
-    <td class="l-ueb">${lUebergabe(b)}</td>
+    <td class="l-ueb${b.nach.ueb.noetig && b.foerderer.some(f => f.status === 'zugesagt' && b.nach.ueb.mit.includes(f.id)) ? ' mit-pkt' : ''}">${lUebergabe(b)}</td>
   </tr>`;
 }
 const NCOL = 7;
@@ -243,7 +252,7 @@ function listBar() {
   const arch = UI.tab === 'archiv', all = D.bedarfe.filter(b => !!b.archiv === arch), n = filtered().length, komp = KOMPAKT();
   return `<div class="subbar list-head">
       <span class="muted" id="list-count">${zahlText(n, all.length)}</span>
-      <div class="heute">${UI.paketWahl ? paketLeiste() : heuteLeiste() + (UI.heuteWahl ? '' : paketKnopf())}</div>
+      <div class="heute">${UI.paketWahl ? paketLeiste() : UI.mehrWahl ? mehrLeiste() : heuteLeiste() + (UI.heuteWahl ? '' : paketKnopf() + mehrKnopf())}</div>
       <div class="tools">
         <div class="seg ansicht" role="group" aria-label="Ansicht der Liste"><button data-act="ansicht" data-v="voll" class="${komp ? '' : 'on'}" title="alle Angaben, Förderer einzeln">Ausführlich</button><button data-act="ansicht" data-v="kompakt" class="${komp ? 'on' : ''}" title="je Bedarf eine Zeile, je Bereich nur der Stand">Kompakt</button></div>
         <input type="search" id="q" data-ui="q" value="${esc(UI.q)}" placeholder="Suchen …" aria-label="Suchen (Strg+F)">

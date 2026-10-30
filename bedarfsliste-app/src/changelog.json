@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.80.0",
+    "date": "2026-10-30T20:00",
+    "items": [
+      "Mehrere Bedarfe gemeinsam bearbeiten: Knopf „Bearbeiten“ oben in der Liste, Bedarfe anklicken (oder „Alle“), dann Prio setzen oder entfernen, die drei Freigaben auf einen Stand bringen, vorhandene Förderer auf einen Stand setzen (z. B. zugesagt) oder entfernen, einen Förderer bei allen hinzufügen – Rückgängig nimmt alles auf einmal zurück",
+      "Liste, Spalte Spendenübergabe: je Förderer, der dabei sein soll, ein hellgrauer Punkt – grün, wenn er zugesagt hat zu kommen; ist die Einladung raus oder kommt er, führt eine gepunktete Linie vom Verwendungsnachweis dorthin"
+    ]
+  },
+  {
     "version": "0.79.0",
     "date": "2026-10-30T19:00",
     "items": [
