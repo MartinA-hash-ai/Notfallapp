@@ -134,8 +134,8 @@ const { chromium, ok, open, connect, finish } = require('./lib');
     return [X, 'aufwand' in flBewAuto(e), x.bew.aufwand, x.bew.dauer, flExportZeilen()['Förderer'][0].length]; });
   ok(r.join('|') === '- / 1:gefördert 2020, 2026 / 2:gefördert 2025 und 2026 / 3:2 Förderungen in 2024|false|1|0|22', 'Häufigkeit geschätzt (eine Förderung sagt nichts), Aufwand nicht; beide in der Excel-Kopie: ' + r.join('|'));
   // Antragsweg als Schalter, „nicht anschreiben“ blass ohne Stern, Fristen als Knöpfe je Fördertopf
-  ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-z .fl-seg button')].map(b => b.textContent).join('/'), document.querySelector('.fl-alt-weg').textContent].join('|')) === 'E-Mail/Portal|bisher: direkt',
-    'Antragsweg: nur E-Mail oder Portal, „direkt“ aus der Kartei bleibt als Hinweis');
+  ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-z .fl-seg button')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join('/'), flEintrag('F001').weg.join(), flWegNorm('direkt'), flWegNorm('per Mail'), flWegNorm('Portal'), flWegNorm('vor Ort') || '-', !!document.querySelector('.fl-alt-weg')].join('|')) === 'E-Mail*/Portal|E-Mail|E-Mail|E-Mail|Portal|-|false',
+    'Antragsweg: nur E-Mail oder Portal, „direkt“ aus der alten Kartei wird zu E-Mail');
   await p.click('.fl-seg button[data-act="fl-antrag"][data-v="Portal"]'); await p.waitForTimeout(100);
   await p.fill('.fl-antrag', 'https://portal.spk.example'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [flEintrag('F001').antrag, document.querySelector('.fl-weg-z .fl-oeffnen').getAttribute('href'), document.querySelector('.fl-antrag').placeholder]);

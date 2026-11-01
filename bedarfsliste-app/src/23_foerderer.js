@@ -10,8 +10,8 @@
 const FL_DATEI = 'Fördererliste.xlsx';
 const FL_ARTEN = ['Sparkasse', 'Volks- und Raiffeisenbank', 'Bank', 'Stiftung', 'Soziallotterie', 'Unternehmen', 'Kirche', 'Öffentlich', 'Stiftung / Sonstige'];
 const FL_STATUS = ['aktiv', 'ruht', 'aufgelöst', 'fusioniert'], FL_WEGE = ['E-Mail', 'Portal'], FL_ANSPRACHE = ['hinweis', 'nicht anschreiben'];
-// Antragsweg (ab 0.95 nur „E-Mail“ oder „Portal“): „per Mail“/„per E-Mail“ wird zu „E-Mail“; „direkt“ aus der alten Kartei bleibt stehen, bis man wählt
-const flWegNorm = w => /mail/i.test(w) ? 'E-Mail' : /portal/i.test(w) ? 'Portal' : /^direkt$/i.test(strV(w)) ? 'direkt' : '';
+// Antragsweg (ab 0.95 nur „E-Mail“ oder „Portal“): „per Mail“/„per E-Mail“ wird zu „E-Mail“, ab 0.99 auch „direkt“ aus der alten Kartei
+const flWegNorm = w => /mail/i.test(w) || /^direkt$/i.test(strV(w)) ? 'E-Mail' : /portal/i.test(w) ? 'Portal' : '';
 // Text mit Formatierungszeichen (*fett* …) für schlichte Stellen (Übersicht): Zeichen weg, Zeilen mit „ · “
 const flPlain = t => String(t || '').replace(/^\s*(?:[•*-]|\d+\.)\s+/gm, '').replace(/(^|[\s(„>])[*_~+](?=\S)/g, '$1').replace(/(\S)[*_~+](?=$|[\s.,;:!?)“<])/g, '$1').replace(/\s*\n+\s*/g, ' · ').trim();
 // Fristen (ab 0.95): „31.03.“ = jedes Jahr, „31.03.2027“ = einmalig
@@ -508,12 +508,11 @@ function flDetailView() {
 
   // Steckbrief: alle Angaben immer da (leer zum Ausfüllen); freie Texte formatierbar wie beim Bedarf
   const txt = (k, ph, aria, o = {}) => pe(e, k, '', 'area', Object.assign({ fmt: true, ph, aria, flpe: true }, o));
-  const altWeg = e.weg.includes('direkt') && !e.weg.some(w => FL_WEGE.includes(w)) ? '<span class="fl-alt-weg">bisher: direkt</span>' : '';
   // Antragsweg: per E-Mail oder Portal, direkt daneben die Adresse bzw. der Link (eine Angabe „Antrag an“)
   const wv = FL_WEGE.find(w => e.weg.includes(w)) || '', an0 = strV(e.antrag);
   const zielKnopf = wv === 'Portal' && /^https?:\/\//i.test(an0) ? `<a class="fl-oeffnen" href="${esc(an0)}" target="_blank" rel="noopener" data-act="link">Öffnen ↗</a>`
     : wv === 'E-Mail' && /@/.test(an0) ? `<a class="fl-oeffnen" href="mailto:${esc(mailRein(an0))}" data-act="link" title="${esc(mailRein(an0))}">✉ Schreiben</a>` : '';
-  const weg = `<div class="fl-weg-z"><div class="fl-seg" role="group" aria-label="Antragsweg">${FL_WEGE.map(w => `<button class="${e.weg.includes(w) ? 'on' : ''}" data-act="fl-antrag" data-v="${w}" aria-pressed="${e.weg.includes(w)}">${w}</button>`).join('')}</div>${altWeg}
+  const weg = `<div class="fl-weg-z"><div class="fl-seg" role="group" aria-label="Antragsweg">${FL_WEGE.map(w => `<button class="${e.weg.includes(w) ? 'on' : ''}" data-act="fl-antrag" data-v="${w}" aria-pressed="${e.weg.includes(w)}">${w}</button>`).join('')}</div>
       ${wv ? flIn('antrag', e.antrag, { ph: wv === 'Portal' ? 'Link zum Portal eintragen …' : 'E-Mail-Adresse für Anträge eintragen …', aria: wv === 'Portal' ? 'Link zum Portal' : 'E-Mail-Adresse für Anträge', cls: 'fl-url fl-antrag', title: e.antrag }) + zielKnopf : ''}</div>
       ${wv === 'Portal' && !an0 && /^https?:\/\//i.test(e.web) ? '<button class="fl-ab-alle" data-act="fl-antrag-web">Link der Homepage übernehmen</button>' : ''}`;
   // Fristen dieses Jahres je Fördertopf als Knöpfe (vorbei durchgestrichen, nächste fett, bald orange); Klick ändert, „+ Frist“ fügt hinzu; darunter ein Hinweis-Text
