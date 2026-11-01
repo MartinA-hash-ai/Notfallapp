@@ -85,7 +85,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(async () => { const f = __fs.files['/Ordner/Fördererliste.xlsx']; if (!f || !f.data.length) return ['fehlt'];
     const bk = await xlsxBook(f.data.buffer.slice(0)), R = flLesen(bk), fo = bk.sheets.find(s => s.name === 'Förderungen');
     return [bk.sheets.map(s => s.name).join('+'), R.liste.length, R.liste[0].foerderungen.length, fo.rows.length - 1, fo.rows.filter(x => x[9] === 'Bedarfsliste').map(x => x[10]).join(), R.liste.find(e => e.id === 'F004').kontakte[0].anschreiben, JSON.stringify(R.liste[0].bew), bk.sheets[0].rows[1][15]]; });
-  ok(r.join('|') === 'Förderer+Ansprache+Kontakte+Förderungen+Fristen+Anleitung|4|1|3|a,a|ja|{"chance":0,"dauer":2,"summe":0}|mittel', 'Excel-Kopie im Ordner: Blätter, Förderungen mit Bedarf-ID, Einlesen ohne doppelte: ' + r.join('|'));
+  ok(r.join('|') === 'Förderer+Ansprache+Kontakte+Förderungen+Fristen+Anleitung|4|1|3|a,a|ja|{"chance":0,"summe":0,"haeufig":0,"aufwand":0,"dauer":2}|mittel', 'Excel-Kopie im Ordner: Blätter, Förderungen mit Bedarf-ID, Einlesen ohne doppelte: ' + r.join('|'));
 
   // eigene Seite: Liste, Suche, Filter, Seite eines Förderers, Bearbeiten, zurück
   await p.click('header.top [data-act="flist"]'); await p.waitForTimeout(150);
@@ -110,8 +110,8 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   // Einschätzung: aus den Daten geschätzt (Summe aus den Förderungen), von Hand gesetzt, noch einmal geklickt wieder geschätzt
   r = await p.evaluate(() => { const B = flBew(flEintrag('F001')); return [B.chance.v, B.summe.v, B.summe.hand, B.summe.grund.replace(/\s/g, ' '), B.dauer.v, [...document.querySelectorAll('.fn-griff')].map(g => g.dataset.k + ':' + g.getAttribute('class').replace('fn-griff ', '')).join(),
     [...document.querySelectorAll('.fn-v')].map(t => t.lastChild.textContent).join(' / '), [...document.querySelectorAll('.fn-s')].map(t => t.textContent).join('/')]; });
-  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|chance:offen,dauer:hand,summe:auto|noch offen / 1–6 Monate / unter 5.000 €|//geschätzt',
-    'Einschätzung: Summe geschätzt, Dauer von Hand, Chance offen; unter jeder Achse die Bedeutung: ' + r.join('|'));
+  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|chance:offen,summe:auto,haeufig:auto,aufwand:offen,dauer:hand|noch offen / unter 5.000 € / alle paar Jahre / noch offen / 1–6 Monate|/geschätzt/geschätzt//',
+    'Einschätzung (Fünfeck): Summe und Häufigkeit geschätzt, Dauer von Hand, Chance und Aufwand offen; unter jeder Achse die Bedeutung: ' + r.join('|'));
   // Ecke ziehen: Erfolgschance ganz nach außen
   const ziel = async (k, st) => p.evaluate(([k, st]) => { const svg = document.querySelector('.fl-netz.zieh svg'), [x, y] = fnPt(FN_GROSS, k, FN_GROSS.R * st / 3), q = new DOMPoint(x, y).matrixTransform(svg.getScreenCTM()); return [q.x, q.y]; }, [k, st]);
   let [x0, y0] = await ziel('chance', 0.42); const [x1, y1] = await ziel('chance', 3);
@@ -126,6 +126,12 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.focus('.fn-griff[data-k="summe"]'); await p.keyboard.press('ArrowUp'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.bew.dauer, e.bew.summe, document.querySelector('.fn-v[data-k="summe"]').textContent, mailRein('Max%20Muster%20%3cmax.muster@beispiel.example%3e'), mailRein('mailto:a@b.example?subject=Hallo')]; });
   ok(r.join('|') === '0|2|5.000–10.000 €|max.muster@beispiel.example|a@b.example', 'Doppelklick: wieder geschätzt; ↑ von „gering“ (geschätzt) auf „mittel“; E-Mail aus Excel-Links bereinigt: ' + r.join('|'));
+  // Häufigkeit aus den Jahren der Förderungen; Aufwand nur von Hand – beide in der Excel-Kopie und wieder eingelesen
+  r = await p.evaluate(async () => { const e = flEintrag('F001'), alt = e.foerderungen, H = js => { e.foerderungen = js.map(j => Object.assign(flFoerderungLeer(), { jahr: String(j), betrag: 100 })); const a = flBewAuto(e).haeufig; return a ? a.v + ':' + a.grund : '-'; };
+    const X = [H([]), H([2020]), H([2025]), H([2024, 2024, 2021])].join(' / '); e.foerderungen = alt; e.bew.aufwand = 1;   // H: dazu kommt die Förderung 2026 aus dem Bedarf
+    const R = flLesen(await xlsxBook(await flBlob().arrayBuffer())), x = R.liste.find(f => f.id === 'F001'); e.bew.aufwand = 0;
+    return [X, 'aufwand' in flBewAuto(e), x.bew.aufwand, x.bew.dauer, flExportZeilen()['Förderer'][0].length]; });
+  ok(r.join('|') === '- / 1:gefördert 2020, 2026 / 2:gefördert 2025 und 2026 / 3:2 Förderungen in 2024|false|1|0|20', 'Häufigkeit geschätzt (eine Förderung sagt nichts), Aufwand nicht; beide in der Excel-Kopie: ' + r.join('|'));
   // Antragsweg als Schalter, „nicht anschreiben“ blass ohne Stern, Fristen als Knöpfe je Fördertopf
   ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-z .fl-seg button')].map(b => b.textContent).join('/'), document.querySelector('.fl-alt-weg').textContent].join('|')) === 'E-Mail/Portal|bisher: direkt',
     'Antragsweg: nur E-Mail oder Portal, „direkt“ aus der Kartei bleibt als Hinweis');

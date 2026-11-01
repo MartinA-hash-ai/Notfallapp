@@ -30,12 +30,16 @@ function fristenAusText(t) {
   return { L, text: rest ? strV(t) : '' };
 }
 const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg: [], anschrift: '', web: '', schwer: '', hoehe: '', fristen: '', richtlinien: '', recherche: '', notiz: '', bew: { chance: 0, dauer: 0, summe: 0 }, antrag: '', fristenL: [], ansprache: [], kontakte: [], foerderungen: [] });
-// Einschätzung (ab 0.89): je drei Stufen, 1 = ungünstig … 3 = günstig (im Netz außen = besser; bei der Dauer heißt außen „geht schnell“); 0 = nicht von Hand gesetzt
+// Einschätzung (ab 0.89, Häufigkeit und Aufwand ab 0.96): je drei Stufen, 1 = ungünstig … 3 = günstig (im Netz außen = besser; bei Dauer und Aufwand heißt außen
+// „geht schnell“ bzw. „einfach“); 0 = nicht von Hand gesetzt. Reihenfolge = im Uhrzeigersinn ab oben: Geld (Summe, Häufigkeit) rechts, Mühe (Aufwand, Dauer) links
 const FL_BEW = [
   { k: 'chance', t: 'Erfolgschance', kurz: 'Chance', st: ['gering', 'mittel', 'hoch'], bed: ['gering (bis 50 %)', 'mittel (50 bis 75 %)', 'sehr gut (über 75 %)'] },
-  { k: 'dauer', t: 'Dauer', kurz: 'Dauer', st: ['lange', 'mittel', 'schnell'], bed: ['über 6 Monate', '1–6 Monate', 'unter 1 Monat'] },
   { k: 'summe', t: 'Fördersumme', kurz: 'Summe', st: ['gering', 'mittel', 'hoch'], bed: ['unter 5.000 €', '5.000–10.000 €', 'über 10.000 €'] },
+  { k: 'haeufig', t: 'Häufigkeit', kurz: 'Häufigkeit', st: ['alle paar Jahre', 'einmal im Jahr', 'mehrmals im Jahr'], bed: ['alle paar Jahre', 'einmal im Jahr', 'mehrmals im Jahr'] },
+  { k: 'aufwand', t: 'Aufwand', kurz: 'Aufwand', st: ['sehr aufwendig', 'mäßig', 'einfach'], bed: ['sehr aufwendig', 'mäßig', 'einfach'] },
+  { k: 'dauer', t: 'Dauer', kurz: 'Dauer', st: ['lange', 'mittel', 'schnell'], bed: ['über 6 Monate', '1–6 Monate', 'unter 1 Monat'] },
 ];
+const FL_BEW_XL = ['Erfolgschance', 'Dauer', 'Fördersumme', 'Häufigkeit', 'Aufwand'].map(t => FL_BEW.find(x => x.t === t));   // Spalten in der Excel-Kopie (die ersten drei wie bisher)
 const flKontaktLeer = () => ({ id: uid('k'), n: '', pos: '', mail: '', tel: '', gl: [], anschreiben: '', notiz: '' });
 const flFoerderungLeer = () => ({ id: uid('g'), jahr: '', datum: '', ergebnis: 'gefördert', betrag: null, zweck: '', gl: [], grund: '', quelle: '' });
 const strL = v => (Array.isArray(v) ? v : String(v ?? '').split(/\s*,\s*/)).map(x => String(x ?? '').trim()).filter(Boolean);
@@ -155,7 +159,7 @@ function flPruefen() {
 
 // ---------- Excel: einlesen (umgebaute Kartei oder eigene Kopie) und schreiben
 const FL_SP = {
-  'Förderer': ['ID', 'Name', 'Art', 'Status', 'Gliederungen', 'Antragsweg', 'Anschrift', 'Homepage / Portal', 'Förderschwerpunkte', 'Förderhöhe', 'Fristen', 'Förderrichtlinien (Link)', 'Recherche-Stand', 'Notizen', 'Erfolgschance', 'Dauer', 'Fördersumme', 'Antrag an (E-Mail oder Portal-Link)'],
+  'Förderer': ['ID', 'Name', 'Art', 'Status', 'Gliederungen', 'Antragsweg', 'Anschrift', 'Homepage / Portal', 'Förderschwerpunkte', 'Förderhöhe', 'Fristen', 'Förderrichtlinien (Link)', 'Recherche-Stand', 'Notizen', ...FL_BEW_XL.map(x => x.t), 'Antrag an (E-Mail oder Portal-Link)'],
   'Ansprache': ['Förderer-ID', 'Förderer', 'Gliederung', 'Ansprache', 'Hinweis', 'Überschrift', 'Kopfzeile'],
   'Kontakte': ['Förderer-ID', 'Förderer', 'Name', 'Position', 'E-Mail', 'Telefon', 'Gliederungen', 'Anschreiben', 'Notiz'],
   'Förderungen': ['Förderer-ID', 'Förderer', 'Jahr', 'Datum', 'Ergebnis', 'Betrag (€)', 'Zweck / Bedarf', 'Gliederungen', 'Grund der Absage', 'Quelle', 'Bedarf-ID'],
@@ -169,7 +173,7 @@ function flLesen(book) {
   const F = tab('Förderer'); if (!F.length || !('id' in F[0]) || !('name' in F[0])) return null;
   const L = F.filter(r => strV(r.name)).map(r => Object.assign(flLeer(), { id: strV(r.id), name: strV(r.name), art: strV(r.art), status: strV(r.status) || 'aktiv', gl: strL(r.gliederungen), weg: strL(r.antragsweg),
     anschrift: strV(r.anschrift), web: strV(r['homepage / portal']), schwer: strV(r['förderschwerpunkte']), hoehe: strV(r['förderhöhe']), fristen: strV(r.fristen), richtlinien: strV(r['förderrichtlinien (link)']), recherche: xlDatum(r['recherche-stand']), notiz: strV(r.notizen),
-    bew: Object.fromEntries(FL_BEW.map(x => [x.k, x.st.findIndex(t => norm(r[norm(x.t)]).includes(t)) + 1])), antrag: strV(r['antrag an (e-mail oder portal-link)']) }));
+    bew: Object.fromEntries(FL_BEW.map(x => [x.k, x.st.findIndex(t => norm(r[norm(x.t)]).includes(norm(t))) + 1])), antrag: strV(r['antrag an (e-mail oder portal-link)']) }));
   const zu = r => L.find(e => e.id === strV(r['förderer-id'])) || L.find(e => kkey(e.name) === kkey(r['förderer']));
   for (const r of tab('Ansprache')) { const e = zu(r); if (e && strV(r.gliederung)) e.ansprache.push({ gl: strV(r.gliederung), art: strV(r.ansprache), titel: strV(r['überschrift']), kopf: strV(r.kopfzeile), hinweis: strV(r.hinweis) }); }
   for (const r of tab('Kontakte')) { const e = zu(r); if (e && (strV(r.name) || strV(r['e-mail']) || strV(r.telefon))) e.kontakte.push(Object.assign(flKontaktLeer(), { n: strV(r.name), pos: strV(r.position), mail: mailRein(r['e-mail']), tel: cellStr(r.telefon), gl: strL(r.gliederungen), anschreiben: norm(r.anschreiben), notiz: strV(r.notiz) })); }
@@ -197,7 +201,7 @@ async function flEinlesen() {
 function flExportZeilen() {
   const L = D.fl.liste, j = v => v.join(', ');
   return {
-    'Förderer': L.map(e => [e.id, e.name, e.art, e.status, j(e.gl), j(e.weg), e.anschrift, e.web, e.schwer, e.hoehe, e.fristen, e.richtlinien, e.recherche, e.notiz, ...FL_BEW.map(x => e.bew[x.k] ? x.st[e.bew[x.k] - 1] : ''), e.antrag]),
+    'Förderer': L.map(e => [e.id, e.name, e.art, e.status, j(e.gl), j(e.weg), e.anschrift, e.web, e.schwer, e.hoehe, e.fristen, e.richtlinien, e.recherche, e.notiz, ...FL_BEW_XL.map(x => e.bew[x.k] ? x.st[e.bew[x.k] - 1] : ''), e.antrag]),
     'Ansprache': L.flatMap(e => e.ansprache.map(a => [e.id, e.name, a.gl, a.art, a.hinweis, a.titel, a.kopf])),
     'Kontakte': L.flatMap(e => e.kontakte.map(k => [e.id, e.name, k.n, k.pos, k.mail, k.tel, j(k.gl), k.anschreiben, k.notiz])),
     'Fristen': L.flatMap(e => e.fristenL.map(f => [e.id, e.name, fristText(f.d), f.d.length === 5 ? 'ja' : 'nein', f.topf])),
@@ -206,8 +210,8 @@ function flExportZeilen() {
 }
 function flBlob(Z = flExportZeilen()) {
   const kopf = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, z = { border: 'thin', v: 'top', wrap: true };
-  const breiten = { 'Förderer': [7, 34, 18, 11, 26, 16, 30, 34, 34, 16, 18, 26, 13, 40, 14, 11, 13, 34], 'Ansprache': [11, 30, 22, 18, 60, 30, 24], 'Kontakte': [11, 30, 26, 24, 34, 18, 24, 12, 30], 'Förderungen': [11, 30, 7, 11, 11, 11, 40, 24, 30, 16, 12], 'Fristen': [11, 30, 12, 11, 30] };
-  const datum = { 'Förderer': [12], 'Förderungen': [3] }, txt = { 'Kontakte': [5] }, listen = { 'Förderer': [[2, FL_ARTEN], [3, FL_STATUS], ...FL_BEW.map((x, i) => [14 + i, x.st])], 'Ansprache': [[3, FL_ANSPRACHE]], 'Kontakte': [[7, ['ja', 'nein']]], 'Förderungen': [[4, ['gefördert', 'abgelehnt']]], 'Fristen': [[3, ['ja', 'nein']]] };
+  const breiten = { 'Förderer': [7, 34, 18, 11, 26, 16, 30, 34, 34, 16, 18, 26, 13, 40, 14, 11, 13, 17, 15, 34], 'Ansprache': [11, 30, 22, 18, 60, 30, 24], 'Kontakte': [11, 30, 26, 24, 34, 18, 24, 12, 30], 'Förderungen': [11, 30, 7, 11, 11, 11, 40, 24, 30, 16, 12], 'Fristen': [11, 30, 12, 11, 30] };
+  const datum = { 'Förderer': [12], 'Förderungen': [3] }, txt = { 'Kontakte': [5] }, listen = { 'Förderer': [[2, FL_ARTEN], [3, FL_STATUS], ...FL_BEW_XL.map((x, i) => [14 + i, x.st])], 'Ansprache': [[3, FL_ANSPRACHE]], 'Kontakte': [[7, ['ja', 'nein']]], 'Förderungen': [[4, ['gefördert', 'abgelehnt']]], 'Fristen': [[3, ['ja', 'nein']]] };
   const sheets = Object.keys(FL_SP).map(name => {
     const R = Z[name], n = R.length + 1, last = colName(FL_SP[name].length - 1);
     return { name, cols: breiten[name], freeze: 'C2', filter: 'A1:' + last + n, heights: { 0: 30 },
@@ -217,7 +221,7 @@ function flBlob(Z = flExportZeilen()) {
   sheets.push({ name: 'Anleitung', cols: [120], grid: false, rows: [[{ v: 'Fördererliste der Bedarfsliste', st: { b: true, sz: 15 } }], [],
     ...['Diese Datei schreibt die Bedarfsliste nach jedem Speichern neu – gepflegt wird die Fördererliste im Programm (Reiter „Fördererliste“). Änderungen hier gehen beim nächsten Speichern verloren.',
       'Blatt „Förderer“: je Förderer eine Zeile; die ID (F001 …) verbindet die Blätter. „Ansprache“: je Förderer und Gliederung frei / über die Gliederung / nicht anschreiben.',
-      'Erfolgschance, Dauer, Fördersumme: von Hand eingeschätzt (gering/mittel/hoch, bei der Dauer lange/mittel/schnell); leer = das Programm schätzt aus den Förderungen und Absagen.',
+      'Erfolgschance, Dauer, Fördersumme, Häufigkeit, Aufwand: von Hand eingeschätzt (Auswahl in der Zelle); leer = das Programm schätzt aus den Förderungen und Absagen, soweit möglich (den Aufwand nicht).',
       'Blatt „Ansprache“: Hinweise je Förderer – „hinweis“ (gelb) oder „nicht anschreiben“ (rot), mit Kopfzeile, Überschrift und Text; Gliederung leer = gilt für alle.',
       'Blatt „Fristen“: je Frist eine Zeile – „31.03.“ mit „jedes Jahr: ja“ gilt jährlich, „31.03.2027“ einmalig; dazu optional der Fördertopf. „Fristen“ bei den Förderern ist nur noch ein Hinweis (z. B. laufend).',
       'Blatt „Kontakte“: je Person eine Zeile mit Position; „Anschreiben“: ja, nein oder leer (nicht festgelegt).',
@@ -246,6 +250,12 @@ function flBewAuto(e) {
   const T = D.bedarfe.flatMap(b => b.foerderer.filter(f => f.flId === e.id && (f.status === 'zugesagt' || f.status === 'abgelehnt') && validIso(f.beantragtAm) && validIso(f.entscheidungAm))
     .map(f => (Date.parse(f.entscheidungAm) - Date.parse(f.beantragtAm)) / 864e5)).filter(d => d >= 0);
   if (T.length) { const d = mitte(T); R.dauer = { v: d < 30 ? 3 : d < 183 ? 2 : 1, grund: 'Antwort nach ' + dauerText(d) + ' (' + T.length + (T.length === 1 ? ' Antrag)' : ' Anträge)') }; }
+  // Häufigkeit aus den Jahren der Förderungen: mehrere in einem Jahr, in aufeinanderfolgenden Jahren oder nur mit Abstand (eine allein sagt nichts)
+  const J = G.map(x => +String(x.datum || x.jahr || '').slice(0, 4)).filter(j => j > 1990), Y = uniq(J).sort((a, c) => a - c);
+  const mehr = Y.find(y => J.filter(j => j === y).length > 1), folge = Y.find((y, i) => i && y - Y[i - 1] === 1);
+  if (mehr) R.haeufig = { v: 3, grund: J.filter(j => j === mehr).length + ' Förderungen in ' + mehr };
+  else if (folge) R.haeufig = { v: 2, grund: 'gefördert ' + (folge - 1) + ' und ' + folge };
+  else if (Y.length > 1) R.haeufig = { v: 1, grund: 'gefördert ' + Y.join(', ') };
   return R;
 }
 function flBew(e) {
@@ -253,17 +263,20 @@ function flBew(e) {
   return Object.fromEntries(FL_BEW.map(x => [x.k, e.bew[x.k] ? { v: e.bew[x.k], hand: true, grund: 'von Hand eingeschätzt' } : A[x.k] ? Object.assign({ hand: false }, A[x.k]) : { v: 0, hand: false, grund: '' }]));
 }
 const flBewText = (B, x) => x.t + ': ' + (B[x.k].v ? x.st[B[x.k].v - 1] + (B[x.k].hand ? '' : ' (geschätzt: ' + B[x.k].grund + ')') : 'noch nicht eingeschätzt');
-// Netz mit drei Achsen: oben Erfolgschance, rechts unten Fördersumme, links unten Dauer; je weiter außen, desto günstiger.
+// Netz mit fünf Achsen (Fünfeck): oben Erfolgschance, im Uhrzeigersinn Fördersumme, Häufigkeit, Aufwand, Dauer; je weiter außen, desto günstiger.
 // Groß (Seite eines Förderers): die Ecken lassen sich ziehen (auch mit den Pfeiltasten), unter jeder Achse steht, was der Wert bedeutet;
 // ganz zur Mitte gezogen oder doppelt geklickt: wieder aus den Daten geschätzt
-const FN_KLEIN = { W: 118, H: 76, R: 28, cx: 59, cy: 40, y0: 0 }, FN_GROSS = { W: 300, H: 228, R: 78, cx: 150, cy: 118, y0: -16 };
-const FN_WI = { chance: -90, summe: 30, dauer: 150 };
+const FN_KLEIN = { W: 150, H: 82, R: 25, cx: 75, cy: 42, y0: 0 }, FN_GROSS = { W: 380, H: 262, R: 82, cx: 190, cy: 140, y0: 0 };
+const FN_WI = Object.fromEntries(FL_BEW.map((x, i) => [x.k, -90 + i * 360 / FL_BEW.length]));
 const fnPt = (G, k, r) => { const a = FN_WI[k] * Math.PI / 180; return [G.cx + r * Math.cos(a), G.cy + r * Math.sin(a)]; };
 const fnP = (G, k, r) => fnPt(G, k, r).map(n => n.toFixed(1)).join(',');
 const fnPoly = (G, V) => FL_BEW.map(x => fnP(G, x.k, G.R * (V[x.k] || 0) / 3)).join(' ');
 const fnGriffR = (G, v) => v ? G.R * v / 3 : G.R * .14;
 const fnWert = (x, b) => b.v ? x.bed[b.v - 1] : 'noch offen';
-const FN_TEXT = { chance: { x: 150, y: -2 }, dauer: { x: 82, y: 180 }, summe: { x: 218, y: 180 } };   // Name, darunter Bedeutung (+14) und „geschätzt“ (+27)
+// Beschriftung neben der Ecke: oben darüber, sonst seitlich nach außen (obere Ecken auf Höhe der Ecke, untere darunter); Name, darunter Bedeutung (+14) und „geschätzt“ (+27)
+const fnText = (G, k, gross) => { const [px, py] = fnPt(G, k, G.R), a = FN_WI[k] * Math.PI / 180, c = Math.cos(a), s = Math.sin(a);
+  if (Math.abs(c) < .01) return { x: px, y: py - (gross ? 44 : 5), a: 'middle' };
+  return { x: px + (c > 0 ? 1 : -1) * (gross ? (s > 0 ? 6 : 12) : (s > 0 ? 2 : 4)), y: py + (gross ? (s > 0 ? 20 : -6) : (s > 0 ? 10 : 3)), a: c > 0 ? 'start' : 'end' }; };
 function flNetz(e, gross) {
   const B = flBew(e), G = gross ? FN_GROSS : FN_KLEIN, V = Object.fromEntries(FL_BEW.map(x => [x.k, B[x.k].v]));
   const gitter = [1, 2, 3].map(i => `<polygon class="fn-g" points="${FL_BEW.map(x => fnP(G, x.k, G.R * i / 3)).join(' ')}"/>`).join('')
@@ -272,7 +285,7 @@ function flNetz(e, gross) {
   const flaeche = `<polygon class="fn-w${nurGeschaetzt ? ' geschaetzt' : ''}${hat ? '' : ' leer'}" points="${fnPoly(G, V)}"/>`;
   if (!gross) {
     const punkte = FL_BEW.filter(x => B[x.k].v).map(x => { const [px, py] = fnPt(G, x.k, G.R * B[x.k].v / 3); return `<circle class="fn-p${B[x.k].hand ? '' : ' auto'}" cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="2.3"/>`; }).join('');
-    const lab = x => { const [px, py] = fnPt(G, x.k, G.R); return `<text class="fn-l${B[x.k].v ? '' : ' leer'}" x="${px.toFixed(1)}" y="${(py + (x.k === 'chance' ? -5 : 11)).toFixed(1)}" text-anchor="middle">${x.kurz}</text>`; };
+    const lab = x => { const L = fnText(G, x.k, false); return `<text class="fn-l${B[x.k].v ? '' : ' leer'}" x="${L.x.toFixed(1)}" y="${L.y.toFixed(1)}" text-anchor="${L.a}">${x.kurz}</text>`; };
     return `<span class="fl-netz" data-tip="${esc(FL_BEW.map(x => flBewText(B, x)).join(' · '))}"><svg viewBox="0 0 ${G.W} ${G.H}" width="${G.W}" height="${G.H}" role="img" aria-label="${esc(FL_BEW.map(x => flBewText(B, x)).join(', '))}">${gitter}${flaeche}${punkte}${FL_BEW.map(lab).join('')}</svg></span>`;
   }
   const A = flBewAuto(e);
@@ -280,10 +293,10 @@ function flNetz(e, gross) {
     return `<g class="fn-griff ${b.hand ? 'hand' : b.v ? 'auto' : 'offen'}" data-k="${x.k}" transform="translate(${px.toFixed(1)} ${py.toFixed(1)})" tabindex="0" role="slider" aria-label="${x.t}" aria-valuemin="0" aria-valuemax="3" aria-valuenow="${b.hand ? b.v : 0}" aria-valuetext="${esc(fnWert(x, b))}">`
       + `<title>${esc(x.t + ': ' + fnWert(x, b) + (b.hand ? ' – von Hand' : b.v ? ' – geschätzt: ' + b.grund : '') + '. Ziehen zum Einschätzen, Doppelklick: wieder aus den Daten')}</title><circle class="fn-hit" r="15"/><circle class="fn-h" r="5.5"/></g>`; };
   // Beschriftung: Name, darunter die Bedeutung der Stufe und ggf. „geschätzt“
-  const texte = x => { const b = B[x.k], L = FN_TEXT[x.k];
-    return `<text class="fn-l" x="${L.x}" y="${L.y}" text-anchor="middle">${x.t}</text>`
-      + `<text class="fn-v${b.hand ? '' : b.v ? ' geschaetzt' : ' leer'}" data-k="${x.k}" x="${L.x}" y="${L.y + 14}" text-anchor="middle"><title>${esc(b.v && !b.hand ? 'geschätzt: ' + b.grund : '')}</title>${esc(fnWert(x, b))}</text>`
-      + `<text class="fn-s" data-k="${x.k}" x="${L.x}" y="${L.y + 27}" text-anchor="middle">${b.v && !b.hand ? 'geschätzt' : ''}</text>`; };
+  const texte = x => { const b = B[x.k], L = fnText(G, x.k, true), X = L.x.toFixed(1), at = `x="${X}" text-anchor="${L.a}"`;
+    return `<text class="fn-l" ${at} y="${L.y.toFixed(1)}">${x.t}</text>`
+      + `<text class="fn-v${b.hand ? '' : b.v ? ' geschaetzt' : ' leer'}" data-k="${x.k}" ${at} y="${(L.y + 14).toFixed(1)}"><title>${esc(b.v && !b.hand ? 'geschätzt: ' + b.grund : '')}</title>${esc(fnWert(x, b))}</text>`
+      + `<text class="fn-s" data-k="${x.k}" ${at} y="${(L.y + 27).toFixed(1)}">${b.v && !b.hand ? 'geschätzt' : ''}</text>`; };
   return `<span class="fl-netz gross zieh"><svg viewBox="0 ${G.y0} ${G.W} ${G.H}" width="100%" role="group" aria-label="Einschätzung"
     data-hand="${esc(JSON.stringify(e.bew))}" data-auto="${esc(JSON.stringify(Object.fromEntries(FL_BEW.map(x => [x.k, A[x.k] ? A[x.k].v : 0]))))}">${gitter}${flaeche}${FL_BEW.map(texte).join('')}${FL_BEW.map(griff).join('')}</svg></span>`;
 }
@@ -391,7 +404,7 @@ function flBar() {
 }
 function flListView() {
   return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><thead><tr><th>Förderer</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
-    <th class="fl-te" title="Erfolgschance, Dauer, Fördersumme – je weiter außen, desto günstiger">Einschätzung</th><th>Ansprechperson</th></tr></thead><tbody id="fl-body">${flZeilen()}</tbody></table></div></section></main>`;
+    <th class="fl-te" title="Erfolgschance, Fördersumme, Häufigkeit, Aufwand, Dauer – je weiter außen, desto günstiger">Einschätzung</th><th>Ansprechperson</th></tr></thead><tbody id="fl-body">${flZeilen()}</tbody></table></div></section></main>`;
 }
 function flExcelMenu(btn) {
   closeMenus();

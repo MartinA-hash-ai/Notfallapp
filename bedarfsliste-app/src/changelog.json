@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.96.0",
+    "date": "2026-11-01T12:00",
+    "items": [
+      "Einschätzung eines Förderers als Fünfeck: zu Erfolgschance, Fördersumme und Dauer kommen Häufigkeit (alle paar Jahre / einmal im Jahr / mehrmals im Jahr) und Aufwand (sehr aufwendig / mäßig / einfach) – außen bleibt günstiger",
+      "Häufigkeit wird aus den Förderungen geschätzt: mehrere in einem Jahr, in aufeinanderfolgenden Jahren oder nur mit Abstand; eine einzelne Förderung sagt noch nichts. Den Aufwand schätzt das Programm nicht – nur von Hand",
+      "Anordnung im Netz: rechts das Geld (Fördersumme, Häufigkeit), links die Mühe (Dauer, Aufwand)",
+      "Excel-Kopie: neue Spalten „Häufigkeit“ und „Aufwand“ mit Auswahl in der Zelle; ältere Dateien ohne diese Spalten lassen sich weiter einlesen"
+    ]
+  },
+  {
     "version": "0.95.0",
     "date": "2026-10-31T21:00",
     "items": [
