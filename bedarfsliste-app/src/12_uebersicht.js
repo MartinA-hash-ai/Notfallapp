@@ -19,7 +19,7 @@ function ueBlaetter() {
   // je Förderer: Angaben aus der neuesten Anfrage, die sie hat; Zahlen über alle Anfragen
   const M = new Map();
   for (const { b, f } of A) {
-    const k = kkey(f.name), m = M.get(k) || { n: f.name.trim(), L: [] }; m.L.push({ b, f }); M.set(k, m);
+    const k = foeKey(f.name), m = M.get(k) || { n: f.name.trim(), L: [] }; m.L.push({ b, f }); M.set(k, m);
   }
   const erst = (L, fn) => { for (const x of L) { const v = fn(x); if (v) return v; } return ''; };
   const foerderer = [kopf(['Förderer', 'Art', 'Website', 'Antragsweg', 'Kontakt', 'E-Mail', 'Telefon', 'Anfragen', 'Zugesagt', 'Abgelehnt', 'Offen', 'Summe zugesagt (€)', 'Letzte Anfrage', 'Bedarfe', 'Ausführliche Recherche (Datei)']),

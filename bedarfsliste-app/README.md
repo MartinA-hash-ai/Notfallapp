@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.98:** Förderer können einen Kurzname bekommen (⋯-Menü, z. B. DSEE); in den Bedarfen gelten Kurzname und voller Name. Der Steckbrief hat eine Förderquote und Fördertöpfe (oben rechts umschalten: eigener Zweck, Gebiet, Höhe, Quote und Fristen je Topf). Oben rechts steht in der Fördererliste „+ Förderer“. Im Netz heißt es nun < 2 Monate / 2–6 Monate / > 6 Monate, die Erfolgschance ohne Prozente, die Häufigkeit alle paar Jahre / jährlich / mehrmals jährlich. Die gemeinnützigen Zwecke der Malteser sind hinterlegt („Malteser-Zwecke“).
+
 **Seit 0.97:** Die Achse „Fördersumme“ ist nach der Fördermittel-Statistik 2026 gestuft: bis 1.000 €, 1.000–3.000 €, über 3.000 €.
 
 **Seit 0.96:** Die Einschätzung eines Förderers ist ein Fünfeck: Erfolgschance, Fördersumme, Häufigkeit (alle paar Jahre / einmal im Jahr / mehrmals im Jahr), Aufwand (sehr aufwendig / mäßig / einfach) und Dauer. Die Häufigkeit schätzt das Programm aus den Förderungen, den Aufwand setzt man von Hand.

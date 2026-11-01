@@ -170,9 +170,9 @@ function foeHinweise(b, f) {
 }
 function foeWarnList(b, f) {
   if (!f.name.trim()) return [];
-  const key = kkey(f.name), other = D.bedarfe.filter(x => x !== b && !x.archiv && x.foerderer.some(g => kkey(g.name) === key && g.status !== 'abgelehnt'));
+  const key = foeKey(f.name), other = D.bedarfe.filter(x => x !== b && !x.archiv && x.foerderer.some(g => foeKey(g.name) === key && g.status !== 'abgelehnt'));
   const L = foeHinweise(b, f).map(x => x.t);
-  if (other.length) L.push('Auch im Förderplan von: ' + other.map(x => `<button class="link" data-act="open" data-id="${x.id}">${esc(x.titel || '(ohne Namen)')}</button> (${F_ST_L[x.foerderer.find(g => kkey(g.name) === key).status]})`).join(', '));
+  if (other.length) L.push('Auch im Förderplan von: ' + other.map(x => `<button class="link" data-act="open" data-id="${x.id}">${esc(x.titel || '(ohne Namen)')}</button> (${F_ST_L[x.foerderer.find(g => foeKey(g.name) === key).status]})`).join(', '));
   return L;
 }
 const foeWarn = (b, f) => !foeWarnList(b, f).length ? '' : `<button class="fw-tri${foeHinweise(b, f).length ? '' : ' grau'}" data-act="fw" data-fid="${f.id}" aria-label="Hinweise anzeigen">${ICON_TRI}</button>`;

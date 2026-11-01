@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.98.0",
+    "date": "2026-11-01T18:00",
+    "items": [
+      "Einschätzung: Dauer jetzt < 2 Monate / 2–6 Monate / > 6 Monate; „über“ und „unter“ stehen überall im Netz als > und <; bei der Erfolgschance fallen die Prozentangaben weg (gering / mittel / hoch)",
+      "Häufigkeit heißt alle paar Jahre / jährlich / mehrmals jährlich",
+      "Kurzname für einen Förderer (⋯-Menü neben dem Namen, z. B. DSEE): in der Liste in Klammern unter dem Namen, auf der Seite des Förderers vor der Art („DSEE · Stiftung“); in den Bedarfen gelten Kurzname und voller Name – bei der Eingabe werden beide vorgeschlagen, beide führen zum selben Förderer",
+      "Oben rechts steht auf den Seiten der Fördererliste „+ Förderer“ (statt „+ Bedarf“): eine leere Seite zum Ausfüllen; bleibt sie unberührt, verschwindet sie beim Verlassen wieder",
+      "Steckbrief mit Förderquote (Freitext, z. B. „bis 90 % der Kosten“)",
+      "Fördertöpfe im Steckbrief: oben rechts „Allgemein“ und je Fördertopf ein Knopf, „+ Fördertopf“ legt einen an; jeder Topf hat eigenen Förderzweck, eigenes Fördergebiet, eigene Höhe, Quote und seine Fristen („+ Frist“ übernimmt den Topf); wird ein Topf umbenannt, gehen seine Fristen mit",
+      "Excel-Kopie: neues Blatt „Fördertöpfe“, neue Spalten „Förderquote“ und „Kurzname“; „Häufigkeit“ versteht auch die Werte aus 0.96",
+      "Gemeinnützige Zwecke der Malteser hinterlegt (Knopf „Malteser-Zwecke“ in der Fördererliste) – Grundlage für die spätere Auswahl beim Förderzweck; Stand der Recherche mit Quellen im Fenster, vor Verwendung in Anträgen gegenprüfen"
+    ]
+  },
+  {
     "version": "0.97.0",
     "date": "2026-11-01T14:00",
     "items": [

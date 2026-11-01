@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { flId: null, flq: '', flArt: '', flGl: '', vonFl: null, flKEdit: false, flAlt: false, flMehr: false, flAlleGl: false, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { flId: null, flTopf: '', flq: '', flArt: '', flGl: '', vonFl: null, flKEdit: false, flAlt: false, flMehr: false, flAlleGl: false, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw', 'flId'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -132,7 +132,7 @@ function headerHtml() {
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}<button class="tab${UI.view === 'flist' || UI.view === 'fdetail' ? ' on' : ''}" data-act="flist" title="Förderer mit Kontakten, Ansprache je Gliederung und allen Förderungen">Fördererliste<span class="beta">Beta</span></button><button class="tab" data-act="konten" title="Konten der Gliederungen mit IBAN und BIC (Fenster)">Kontenliste</button></nav>
-    <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button>${UI.view === 'list' ? kiListeKnopf() : ''}<button class="primary" data-act="new">+ Bedarf</button><button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
+    <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button>${UI.view === 'list' ? kiListeKnopf() : ''}${UI.view === 'flist' || UI.view === 'fdetail' ? '<button class="primary" data-act="fl-neu-leer" title="Neuen Förderer anlegen">+ Förderer</button>' : '<button class="primary" data-act="new">+ Bedarf</button>'}<button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
     ${b ? `<div class="subbar"><button class="back" data-act="back">‹ ${UI.vonFl && flEintrag(UI.vonFl) ? esc(flEintrag(UI.vonFl).name || 'Fördererliste') : 'Alle Bedarfe'}</button><div id="d-steps">${steps(b)}</div></div>`
       : UI.view === 'flist' ? flBar() : UI.view === 'fdetail' ? flDetailBar() : listBar()}
   </header>`;

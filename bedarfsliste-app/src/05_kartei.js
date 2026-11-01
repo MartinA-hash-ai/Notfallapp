@@ -12,12 +12,14 @@ const kkey = s => norm(String(s ?? '').normalize('NFC').replace(/\u00ad/g, '').r
 const KEINE_ZEILE = /^(summe|zwischensumme|gesamt|gesamtsumme|insgesamt|total|hinweis|hinweise|anmerkung|anmerkungen|stand\b|quelle|quellen|fazit|ergebnis|legende)\b/i;
 const istEintrag = name => !!name && name.length <= 150 && !KEINE_ZEILE.test(name);
 const kartei = name => KR.byKey.get(kkey(name)) || null;
+// Schlüssel eines Förderers im Bedarf: Kurzname und voller Name aus der Fördererliste gelten als derselbe Förderer
+const foeKey = name => { const e = flAktiv() && flVonName(name); return kkey(e ? e.name : name); };
 const truthy = v => v === true || v === 1 || /^(x|ja|wahr|true|1|✓)$/i.test(String(v ?? '').trim());
 const cellStr = v => v === true ? 'ja' : v === false ? '' : String(v ?? '').trim();
 
 function karteiSet(list) {
   KR.list = list.sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  KR.byKey = new Map(list.map(k => [kkey(k.name), k]));
+  KR.byKey = new Map(list.flatMap(k => [[kkey(k.name), k], ...(k.kurz ? [[kkey(k.kurz), k]] : [])]));            // Kurzname und voller Name finden denselben Eintrag
 }
 // verknüpfte Kartei: eine Excel an einem anderen Ort (z. B. die gemeinsame Kartei im SharePoint-Ordner, über OneDrive auf dem PC) –
 // die Liste liest sie dort, wo die Kolleginnen und Kollegen sie pflegen. Der Verweis liegt im Browser (IndexedDB), der Dateiname in den Einstellungen.
