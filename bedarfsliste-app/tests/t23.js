@@ -110,7 +110,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   // Einschätzung: aus den Daten geschätzt (Summe aus den Förderungen), von Hand gesetzt, noch einmal geklickt wieder geschätzt
   r = await p.evaluate(() => { const B = flBew(flEintrag('F001')); return [B.chance.v, B.summe.v, B.summe.hand, B.summe.grund.replace(/\s/g, ' '), B.dauer.v, [...document.querySelectorAll('.fn-griff')].map(g => g.dataset.k + ':' + g.getAttribute('class').replace('fn-griff ', '')).join(),
     [...document.querySelectorAll('.fn-v')].map(t => t.lastChild.textContent).join(' / '), [...document.querySelectorAll('.fn-s')].map(t => t.textContent).join('/')]; });
-  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|chance:offen,summe:auto,haeufig:auto,aufwand:offen,dauer:hand|noch offen / unter 5.000 € / alle paar Jahre / noch offen / 1–6 Monate|/geschätzt/geschätzt//',
+  ok(r.join('|') === '0|1|false|üblich rund 650 € (2 Förderungen)|2|chance:offen,summe:auto,haeufig:auto,aufwand:offen,dauer:hand|noch offen / bis 1.000 € / alle paar Jahre / noch offen / 1–6 Monate|/geschätzt/geschätzt//',
     'Einschätzung (Fünfeck): Summe und Häufigkeit geschätzt, Dauer von Hand, Chance und Aufwand offen; unter jeder Achse die Bedeutung: ' + r.join('|'));
   // Ecke ziehen: Erfolgschance ganz nach außen
   const ziel = async (k, st) => p.evaluate(([k, st]) => { const svg = document.querySelector('.fl-netz.zieh svg'), [x, y] = fnPt(FN_GROSS, k, FN_GROSS.R * st / 3), q = new DOMPoint(x, y).matrixTransform(svg.getScreenCTM()); return [q.x, q.y]; }, [k, st]);
@@ -125,7 +125,8 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.dblclick('.fn-griff[data-k="dauer"]'); await p.waitForTimeout(100);
   await p.focus('.fn-griff[data-k="summe"]'); await p.keyboard.press('ArrowUp'); await p.waitForTimeout(100);
   r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.bew.dauer, e.bew.summe, document.querySelector('.fn-v[data-k="summe"]').textContent, mailRein('Max%20Muster%20%3cmax.muster@beispiel.example%3e'), mailRein('mailto:a@b.example?subject=Hallo')]; });
-  ok(r.join('|') === '0|2|5.000–10.000 €|max.muster@beispiel.example|a@b.example', 'Doppelklick: wieder geschätzt; ↑ von „gering“ (geschätzt) auf „mittel“; E-Mail aus Excel-Links bereinigt: ' + r.join('|'));
+  r.push(await p.evaluate(() => { const e = flEintrag('F001'), alt = e.foerderungen, S = b => { e.foerderungen = [b, b, b].map(x => Object.assign(flFoerderungLeer(), { jahr: '2020', betrag: x })); return flBewAuto(e).summe.v; }; const X = [S(1000), S(1001), S(3000), S(3001)].join(); e.foerderungen = alt; return X; }));
+  ok(r.join('|') === '0|2|1.000–3.000 €|max.muster@beispiel.example|a@b.example|1,2,2,3', 'Doppelklick: wieder geschätzt; Fördersumme bis 1.000 / bis 3.000 / darüber; ↑ von „gering“ (geschätzt) auf „mittel“; E-Mail aus Excel-Links bereinigt: ' + r.join('|'));
   // Häufigkeit aus den Jahren der Förderungen; Aufwand nur von Hand – beide in der Excel-Kopie und wieder eingelesen
   r = await p.evaluate(async () => { const e = flEintrag('F001'), alt = e.foerderungen, H = js => { e.foerderungen = js.map(j => Object.assign(flFoerderungLeer(), { jahr: String(j), betrag: 100 })); const a = flBewAuto(e).haeufig; return a ? a.v + ':' + a.grund : '-'; };
     const X = [H([]), H([2020]), H([2025]), H([2024, 2024, 2021])].join(' / '); e.foerderungen = alt; e.bew.aufwand = 1;   // H: dazu kommt die Förderung 2026 aus dem Bedarf

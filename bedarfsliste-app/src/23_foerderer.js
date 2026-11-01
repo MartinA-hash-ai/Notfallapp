@@ -34,7 +34,7 @@ const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg:
 // „geht schnell“ bzw. „einfach“); 0 = nicht von Hand gesetzt. Reihenfolge = im Uhrzeigersinn ab oben: Geld (Summe, Häufigkeit) rechts, Mühe (Aufwand, Dauer) links
 const FL_BEW = [
   { k: 'chance', t: 'Erfolgschance', kurz: 'Chance', st: ['gering', 'mittel', 'hoch'], bed: ['gering (bis 50 %)', 'mittel (50 bis 75 %)', 'sehr gut (über 75 %)'] },
-  { k: 'summe', t: 'Fördersumme', kurz: 'Summe', st: ['gering', 'mittel', 'hoch'], bed: ['unter 5.000 €', '5.000–10.000 €', 'über 10.000 €'] },
+  { k: 'summe', t: 'Fördersumme', kurz: 'Summe', st: ['gering', 'mittel', 'hoch'], bed: ['bis 1.000 €', '1.000–3.000 €', 'über 3.000 €'] },   // Grenzen nach der Fördermittel-Statistik 2026 (Stufen etwa gleich groß)
   { k: 'haeufig', t: 'Häufigkeit', kurz: 'Häufigkeit', st: ['alle paar Jahre', 'einmal im Jahr', 'mehrmals im Jahr'], bed: ['alle paar Jahre', 'einmal im Jahr', 'mehrmals im Jahr'] },
   { k: 'aufwand', t: 'Aufwand', kurz: 'Aufwand', st: ['sehr aufwendig', 'mäßig', 'einfach'], bed: ['sehr aufwendig', 'mäßig', 'einfach'] },
   { k: 'dauer', t: 'Dauer', kurz: 'Dauer', st: ['lange', 'mittel', 'schnell'], bed: ['über 6 Monate', '1–6 Monate', 'unter 1 Monat'] },
@@ -246,7 +246,7 @@ function flBewAuto(e) {
   const H = flHistorie(e), G = H.filter(x => x.ergebnis === 'gefördert'), n = H.length, R = {};
   if (n >= 3) { const p = G.length / n; R.chance = { v: p > .75 ? 3 : p > .5 ? 2 : 1, grund: G.length + ' von ' + n + ' Anträgen bewilligt' }; }
   const B = G.map(x => +x.betrag).filter(x => x > 0);
-  if (B.length) { const m = mitte(B); R.summe = { v: m >= 10000 ? 3 : m >= 5000 ? 2 : 1, grund: 'üblich rund ' + eur(Math.round(m)) + ' (' + B.length + (B.length === 1 ? ' Förderung)' : ' Förderungen)') }; }
+  if (B.length) { const m = mitte(B); R.summe = { v: m > 3000 ? 3 : m > 1000 ? 2 : 1, grund: 'üblich rund ' + eur(Math.round(m)) + ' (' + B.length + (B.length === 1 ? ' Förderung)' : ' Förderungen)') }; }
   const T = D.bedarfe.flatMap(b => b.foerderer.filter(f => f.flId === e.id && (f.status === 'zugesagt' || f.status === 'abgelehnt') && validIso(f.beantragtAm) && validIso(f.entscheidungAm))
     .map(f => (Date.parse(f.entscheidungAm) - Date.parse(f.beantragtAm)) / 864e5)).filter(d => d >= 0);
   if (T.length) { const d = mitte(T); R.dauer = { v: d < 30 ? 3 : d < 183 ? 2 : 1, grund: 'Antwort nach ' + dauerText(d) + ' (' + T.length + (T.length === 1 ? ' Antrag)' : ' Anträge)') }; }

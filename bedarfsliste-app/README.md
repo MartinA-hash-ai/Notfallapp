@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.97:** Die Achse „Fördersumme“ ist nach der Fördermittel-Statistik 2026 gestuft: bis 1.000 €, 1.000–3.000 €, über 3.000 €.
+
 **Seit 0.96:** Die Einschätzung eines Förderers ist ein Fünfeck: Erfolgschance, Fördersumme, Häufigkeit (alle paar Jahre / einmal im Jahr / mehrmals im Jahr), Aufwand (sehr aufwendig / mäßig / einfach) und Dauer. Die Häufigkeit schätzt das Programm aus den Förderungen, den Aufwand setzt man von Hand.
 
 **Seit 0.95:** Fristen und Homepage stehen im Steckbrief eines Förderers. Fristen sind Knöpfe je Fördertopf (vorbei durchgestrichen, nächste fett, bald orange), mit „+ Frist“ kommen weitere dazu – mit Jahr einmalig, ohne Jahr jedes Jahr; in der Excel-Kopie stehen sie auf dem Blatt „Fristen“. Rechts gibt es höchstens einen Hinweis; Personen, die nicht angeschrieben werden sollen, sind blass mit durchgestrichener E-Mail.
