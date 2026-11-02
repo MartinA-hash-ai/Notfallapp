@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.114.0",
+    "date": "2026-11-07T14:00",
+    "items": [
+      "Fördererliste: Hat ein Förderer mehrere Fördertöpfe, ist seine Zeile entsprechend hoch. Links steht der Förderer mit der Kurzform (z. B. DSEE statt Deutsche Stiftung für Engagement und Ehrenamt; der volle Name erscheint beim Darüberfahren), rechts daneben stehen die Fördertöpfe untereinander, je Topf eine eigene, etwas schmalere Zeile mit Gebiet, Zweck, Fristen und Spinnennetz. Die Ansprechperson steht über die ganze Höhe",
+      "Die Spalte „Förderer“ ist dafür zweigeteilt (Förderer | Fördertopf); Förderer mit höchstens einem Topf zeigen weiter den vollen Namen über beide Teile",
+      "Klick auf den Förderer öffnet ihn, Klick auf eine Topf-Zeile öffnet ihn mit diesem Topf; „▾ n Fördertöpfe“ klappt die Töpfe ein (eingeklappt: die Topfnamen, zusammengefasstes Gebiet, Zweck und Fristen, kein Netz). Der Hinweis zur Ansprache steht bei mehreren Töpfen unter der Ansprechperson"
+    ]
+  },
+  {
     "version": "0.113.0",
     "date": "2026-11-07T10:00",
     "items": [

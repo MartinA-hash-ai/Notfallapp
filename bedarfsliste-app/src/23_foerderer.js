@@ -461,30 +461,31 @@ const flKomma = t => String(t || '').split(/\n+/).map(x => flPlain(x)).filter(Bo
 const flGebiet = e => e.gl.map(g => /^alle$/i.test(g) ? 'alle Gliederungen' : UI.flGl && norm(g) === norm(UI.flGl) ? `<b>${esc(g)}</b>` : esc(g)).join(', ');
 function flZeilen() {
   const R = flTreffer();
-  if (!R.length) return `<tr><td colspan="6"><div class="empty">${flDaten().liste.length ? 'Kein Förderer passt zur Suche.' : 'Noch keine Fördererliste – „Excel ▾ → Excel einlesen …“ übernimmt die umgebaute Fördererliste.'}</div></td></tr>`;
+  if (!R.length) return `<tr><td colspan="7"><div class="empty">${flDaten().liste.length ? 'Kein Förderer passt zur Suche.' : 'Noch keine Fördererliste – „Excel ▾ → Excel einlesen …“ übernimmt die umgebaute Fördererliste.'}</div></td></tr>`;
   const krone = g => g ? `<span class="fl-krone-l" data-tip="> 10.000 € möglich">${ICON_KRONE}</span>` : '';
   const gebiet = e => e.gl.length ? `<div class="fl-clamp" data-tip="${esc(e.gl.map(g => /^alle$/i.test(g) ? 'alle Gliederungen' : g).join(', '))}">${flGebiet(e)}</div>` : '<span class="muted">–</span>';
   const zweck = e => e.schwer ? `<div class="fl-clamp" data-tip="${esc(flKomma(e.schwer))}">${esc(flKomma(e.schwer))}</div>` : '<span class="muted">–</span>';
   return R.flatMap(({ e: e0, T }) => {
     const gruppe = e0.topfe.length >= 2, zu = gruppe && !!UI.flZu[e0.id], e = flEff(e0, gruppe ? T : null), ansp = e.ansprache.filter(a => !UI.flGl || !a.gl || norm(a.gl) === norm(UI.flGl));
-    const lauf = flLaufend(e).filter(x => !x.b.archiv && !x.b.manuell), bea = lauf.filter(x => x.f.status === 'beantragt'), k = flKontaktHaupt(e);
+    const lauf = flLaufend(e).filter(x => !x.b.archiv && !x.b.manuell), bea = lauf.filter(x => x.f.status === 'beantragt'), k = flKontaktHaupt(e), ruht = e0.status !== 'aktiv' ? ' fl-ruht' : '';
     const laufZ = bea.length ? 'Antrag läuft: ' + bea.map(x => short(x.b.titel)).join(', ') : lauf.length ? 'eingeplant: ' + lauf.map(x => short(x.b.titel)).join(', ') : '';
     const hinweis = ansp.length ? `<div class="fl-ansp" title="${esc(ansp.map(a => (a.gl || 'alle') + ': ' + (a.titel || 'Hinweis') + (a.hinweis ? ' – ' + flPlain(a.hinweis) : '')).join('\n'))}">${ICON_TRI}<span>${UI.flGl ? esc(ansp[0].titel || 'Hinweis') : esc(ansp.map(a => a.gl || 'alle').join(', ')) + ': ' + esc(ansp[0].titel || 'Hinweis')}</span></div>` : '';
-    const kontakt = `<td class="fl-k">${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}</td>`;
-    const schalter = gruppe ? `<button class="fl-tg" data-act="fl-zu" data-id="${e0.id}" aria-expanded="${!zu}" title="Fördertöpfe ${zu ? 'zeigen' : 'einklappen'}">${zu ? '▸' : '▾'} ${T.length}${T.length < e0.topfe.length ? ' von ' + e0.topfe.length : ''} Fördertöpfe</button>` : '';
-    const kopf = `<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="${e0.status !== 'aktiv' ? 'fl-ruht' : ''}${gruppe && !zu ? ' fl-kopf-tr' : ''}">
-      <td class="fl-n"><b class="fl-nm">${krone(e.gross)}${esc(e.name || '(ohne Namen)')}</b>${e.kurz ? ` <span class="fl-kurz">(${esc(e.kurz)})</span>` : ''}${e0.status !== 'aktiv' ? `<div class="muted small">${esc(e0.status)}</div>` : ''}${laufZ ? `<div class="fl-lz small${bea.length ? ' an' : ''}">${esc(laufZ)}</div>` : ''}${schalter}</td>
-      <td class="fl-g">${gruppe && !zu ? '' : gebiet(e)}${hinweis}</td>
-      <td class="fl-z">${gruppe && !zu ? '' : zweck(e)}</td>
-      <td class="fl-tf">${gruppe && !zu ? '' : flFristenHtml(e)}</td>
-      <td class="fl-te">${gruppe ? '' : flNetz(e0)}</td>
-      ${kontakt}</tr>`;
-    if (!gruppe || zu) return [kopf];
-    return [kopf, ...T.map((t, n) => {                                              // je Fördertopf eine eingerückte Zeile
+    const kontakt = (rs) => `<td class="fl-k${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}" data-act="fl-oeffnen" data-id="${e0.id}"` : ''}>${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}${rs || gruppe ? hinweis : ''}</td>`;
+    const status = e0.status !== 'aktiv' ? `<div class="muted small">${esc(e0.status)}</div>` : '', lz = laufZ ? `<div class="fl-lz small${bea.length ? ' an' : ''}">${esc(laufZ)}</div>` : '';
+    if (!gruppe) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="${ruht.trim()}">
+      <td class="fl-n" colspan="2"><b class="fl-nm">${krone(e.gross)}${esc(e.name || '(ohne Namen)')}</b>${e.kurz ? ` <span class="fl-kurz">(${esc(e.kurz)})</span>` : ''}${status}${lz}</td>
+      <td class="fl-g">${gebiet(e)}${hinweis}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te">${flNetz(e0)}</td>${kontakt(0)}</tr>`];
+    // mehrere Fördertöpfe: eine hohe Zeile – links der Förderer (Kurzform), rechts daneben die Töpfe untereinander, je Topf eine eigene Zeile
+    const kurzname = e0.kurz || e0.name || '(ohne Namen)', tip = e0.kurz && e0.name ? ` data-tip="${esc(e0.name)}"` : '';
+    const schalter = `<button class="fl-tg" data-act="fl-zu" data-id="${e0.id}" aria-expanded="${!zu}" title="Fördertöpfe ${zu ? 'zeigen' : 'einklappen'}">${zu ? '▸' : '▾'} ${T.length}${T.length < e0.topfe.length ? ' von ' + e0.topfe.length : ''} Fördertöpfe</button>`;
+    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(e.gross)}${esc(kurzname)}</b>${status}${lz}${schalter}</td>`;
+    if (zu) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="fl-kopf-tr${ruht}">${links(0)}<td class="fl-tn muted"><div class="fl-clamp">${esc(T.map(t => t.name || '(ohne Namen)').join(', '))}</div></td>
+      <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te"></td>${kontakt(0)}</tr>`];
+    return T.map((t, n) => {
       const et = Object.assign({}, e0, { fristenL: e0.fristenL.filter(f => f.topf === t.name || (!f.topf && t === e0.topfe[0])), fristen: t.fristen });
-      return `<tr class="fl-tr-t${n === T.length - 1 ? ' fl-tr-letzte' : ''}${e0.status !== 'aktiv' ? ' fl-ruht' : ''}" data-act="fl-oeffnen" data-id="${e0.id}" data-topf="${t.id}" tabindex="0">
-      <td class="fl-n"><span class="fl-tn"><b class="fl-nm">${krone(t.gross)}${esc(t.name || '(ohne Namen)')}</b>${t.kurz ? ` <span class="fl-kurz">(${esc(t.kurz)})</span>` : ''}</span></td>
-      <td class="fl-g">${gebiet(t)}</td><td class="fl-z">${zweck(t)}</td><td class="fl-tf">${flFristenHtml(et)}</td><td class="fl-te">${flNetz(e0, false, { t })}</td><td class="fl-k"></td></tr>`; })];
+      return `<tr class="fl-tr-t${n === T.length - 1 ? ' fl-tr-letzte' : ''}${ruht}" data-act="fl-oeffnen" data-id="${e0.id}" data-topf="${t.id}" tabindex="0">${n ? '' : links(T.length)}
+      <td class="fl-tn"><b class="fl-nm">${krone(t.gross)}${esc(t.name || '(ohne Namen)')}</b>${t.kurz ? ` <span class="fl-kurz">(${esc(t.kurz)})</span>` : ''}</td>
+      <td class="fl-g">${gebiet(t)}</td><td class="fl-z">${zweck(t)}</td><td class="fl-tf">${flFristenHtml(et)}</td><td class="fl-te">${flNetz(e0, false, { t })}</td>${n ? '' : kontakt(T.length)}</tr>`; });
   }).join('');
 }
 function flBar() {
@@ -504,7 +505,7 @@ function flSuchPanel() {
     <div class="fl-such-f"><span id="fl-such-n">${flGefiltert().length} Treffer</span><button class="fl-such-r" data-act="fl-such-reset" data-tip="Zurücksetzen" aria-label="Zurücksetzen">↶</button></div></div>`;
 }
 function flListView() {
-  return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><colgroup><col style="width:20%"><col style="width:15%"><col style="width:19%"><col style="width:17%"><col style="width:11%"><col style="width:18%"></colgroup><thead><tr><th>Förderer</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
+  return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><colgroup><col style="width:12%"><col style="width:14%"><col style="width:13%"><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:17%"></colgroup><thead><tr><th colspan="2">Förderer</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
     <th class="fl-te">Einschätzung<button class="fl-lupe${flQAktiv() ? ' an' : ''}" data-act="fl-such" aria-expanded="${!!UI.flSuch}" aria-label="Nach Einschätzung suchen" data-tip="Nach Einschätzung suchen">${ICON_LUPE}</button>${UI.flSuch ? flSuchPanel() : ''}</th><th>Ansprechperson</th></tr></thead><tbody id="fl-body">${flZeilen()}</tbody></table></div></section></main>`;
 }
 function flExcelMenu(btn) {
