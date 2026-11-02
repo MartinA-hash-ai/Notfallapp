@@ -1669,7 +1669,8 @@ table.fl-tab td.fl-te { padding-top: 6px; padding-bottom: 4px; }
 .fl-seg button:hover { color: var(--ink); background: var(--hover); }
 .fl-seg button.on { background: var(--ink); color: var(--card); font-weight: 600; }
 /* Förderungen und Absagen */
-.fl-detail .card.fl-fn { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 28px; }
+.fl-detail .card.fl-fn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
+.fl-detail .card.fl-fn .fl-foerd { padding-right: 28px; min-width: 0; }
 .fl-foerd { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .fl-detail .fl-plus-t { font-size: 13px; color: var(--muted); text-decoration: none; }
 .fl-detail .fl-plus-t:hover { color: var(--ink); text-decoration: underline; }
@@ -1825,7 +1826,7 @@ button.fl-fd:hover { border-color: var(--faint); }
 .fl-netz .fn-s { font: italic 11px var(--font); fill: var(--faint); }
 @media (prefers-reduced-motion: reduce) { .fl-netz .fn-h { transition: none; } }
 /* schmal: eine Spalte, Ansprache und Netz zuerst (Entwurf 1c) */
-@media (max-width: 1180px) { .fl-ps, .fl-detail .card.fl-fn { grid-template-columns: minmax(0, 1fr); } .fl-notizen { border-left: 0; padding-left: 0; border-top: 1px solid var(--line3); padding-top: 16px; } .fl-steck { border-left: 0; padding-left: 0; border-top: 1px solid var(--line3); padding-top: 16px; } }
+@media (max-width: 1180px) { .fl-ps, .fl-detail .card.fl-fn { grid-template-columns: minmax(0, 1fr); } .fl-detail .card.fl-fn { gap: 16px; } .fl-detail .card.fl-fn .fl-foerd { padding-right: 0; } .fl-notizen { border-left: 0; padding-left: 0; border-top: 1px solid var(--line3); padding-top: 16px; } .fl-steck { border-left: 0; padding-left: 0; border-top: 1px solid var(--line3); padding-top: 16px; } }
 @media (max-width: 900px) { .fl-raster, .fl-kopf { grid-template-columns: minmax(0, 1fr); } .fl-kz { text-align: left; } .fl-rechts { order: -1; } .fl-mehr-i { padding-left: 20px; } }
 @media (max-width: 600px) {
   .fl-detail { gap: 14px; padding-top: 18px; }

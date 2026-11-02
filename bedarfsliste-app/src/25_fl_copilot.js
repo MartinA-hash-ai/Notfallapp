@@ -26,7 +26,12 @@ const FLC_FELDER = [
   ['aufwand', 'Aufwand', 'Aufwand des Antrags: einfach = E-Mail/kurzes Formular; mäßig = Formular mit Kosten- und Finanzierungsplan; sehr aufwendig = ausführlicher Antrag mit vielen Anlagen oder Verwendungsnachweis. Nur wenn ableitbar; Begründung in „Anmerkung“.', () => FLC_AUFWAND],
   ['dauer', 'Dauer bis zur Entscheidung', 'Nur wenn der Förderer eine Bearbeitungszeit nennt.', () => FLC_DAUER],
   ['gross', 'Großförderer (ja = über 10.000 € möglich)', 'ja nur, wenn laut Quelle Förderungen über 10.000 € möglich sind. Sonst leer.', () => ['ja', 'nein']],
-  ['notiz', 'Notizen', 'Besonderheiten für die Antragstellung (z. B. Zugang, Ausschlüsse, was nicht gefördert wird). Kurz.'],
+  ['gefoerdert', 'Was wird gefördert?', 'Konkret, was der Förderer fördert (Projekte, Anschaffungen, Zielgruppen) – kurze Stichpunkte, jeder in einer neuen Zeile mit „- “ am Anfang. Nur Belegtes.'],
+  ['nicht', 'Was wird nicht gefördert?', 'Ausschlüsse laut Satzung oder Richtlinie (z. B. laufende Kosten, Personal, Rückwirkendes, bestimmte Zwecke) – Stichpunkte wie oben.'],
+  ['tickt', 'Wie tickt der Förderer? (Zusammenfassung, 2–3 Sätze)', 'Worum geht es dem Förderer? Was ist ihm wichtig, welcher Ton, welche Haltung, wer entscheidet, wie fördert er (z. B. oft kleine Beträge an Vereine vor Ort)? Nur 2–3 Sätze, aus Satzung, Leitbild, Richtlinien und veröffentlichten Förderungen abgeleitet.'],
+  ['zieht', 'Förderargumentation: Argumente, die ziehen', 'Welche Argumente überzeugen diesen Förderer für ein Vorhaben der Malteser? Nach Gewicht sortiert, je Stichpunkt kurz begründen und die Fundstelle nennen (z. B. „Satzungszweck: Förderung des Ehrenamts“).'],
+  ['stolper', 'Förderargumentation: Stolpersteine', 'Wo kann ein Antrag scheitern oder auf Widerstand stoßen? (z. B. Ausschlüsse, kirchliche Träger, Eigenanteil, Fristen, Nachweispflichten, Gleichbehandlung mit anderen Trägern) – je Stichpunkt kurz begründen.'],
+  ['notiz', 'Weitere Notizen', 'Sonstige Besonderheiten für die Antragstellung (z. B. Zugang, Ansprechweg, Sitzungsrhythmus). Kurz; leer, wenn es nichts gibt.'],
 ];
 const FLC_SICHER = ['sicher', 'unsicher'];
 const flcZweckeListe = () => MHD_ZWECKE.map(z => z.k);
@@ -89,7 +94,8 @@ function flcPrompt(e) {
     '9. Fristen: jeden festen Antragstermin einzeln ins Blatt „Fristen“ (bei Fördertöpfen mit dem Namen des Topfs). Gibt es keine festen Termine, schreib den Hinweis (z. B. „laufend“) in „Hinweis zu Fristen“ im Blatt „Steckbrief“.',
     '10. Kontakte: nur Personen oder Funktionen, deren Kontaktdaten der Förderer selbst öffentlich nennt. Keine privaten Daten, nichts aus sozialen Netzwerken, keine Vermutungen zu E-Mail-Adressen. Die Spalte „Anschreiben“ bleibt leer.',
     '11. Häufigkeit, Aufwand und Dauer nur ausfüllen, wenn du es aus den Richtlinien ableiten kannst, und in „Anmerkung“ kurz begründen.',
-    '12. Alle geöffneten Seiten trägst du zusätzlich im Blatt „Quellen“ ein (Link, was dort steht, Abrufdatum).',
+    '12. Notizen (diese Felder landen später in den Notizen des Förderers): „Was wird gefördert?“ und „Was wird nicht gefördert?“ als kurze Stichpunkte (jeder in einer neuen Zeile, mit „- “ am Anfang), nur Belegtes aus Satzung und Richtlinien. „Wie tickt der Förderer?“ in 2–3 Sätzen: Was ist ihm wichtig, welche Haltung, wie und wem fördert er typischerweise? „Förderargumentation“: Welche Argumente ziehen bei diesem Förderer für ein Vorhaben der Malteser (nach Gewicht sortiert, je Argument kurz begründen und die Fundstelle nennen, z. B. „Satzungszweck: Förderung des Ehrenamts“)? Wo sind Stolpersteine (Ausschlüsse, kirchliche Träger, Eigenanteil, Nachweispflichten, Gleichbehandlung)? Alles aus den Quellen abgeleitet, keine Vermutungen ohne Hinweis darauf – Eigenes kennzeichnest du mit „Einschätzung:“.',
+    '13. Alle geöffneten Seiten trägst du zusätzlich im Blatt „Quellen“ ein (Link, was dort steht, Abrufdatum).',
     '',
     'Gib mir die ausgefüllte Datei als Excel-Datei zum Herunterladen zurück (gleicher Dateiname mit dem Zusatz „_ausgefüllt“). Schreibe darunter in höchstens fünf Sätzen, was du nicht gefunden hast und wo du unsicher bist. Wenn du keine Datei erzeugen kannst, gib den Inhalt jedes Blatts als Tabelle mit denselben Überschriften aus, damit ich ihn einfügen kann.',
   ].join('\n');
@@ -98,7 +104,7 @@ function flcPrompt(e) {
 // ---------- Einlesen
 const flcSchluessel = [['name', /^name des f/], ['kurz', /^kurzname/], ['art', /^art$/], ['frei', /^f(ö|oe)rderzweck/], ['zw', /^zwecke der malteser/], ['gl', /^f(ö|oe)rdergebiet/], ['von', /^f(ö|oe)rderh(ö|oe)he von/], ['bis', /^f(ö|oe)rderh(ö|oe)he bis/],
   ['quote', /^f(ö|oe)rderquote/], ['fristen', /^hinweis zu fristen/], ['web', /^homepage/], ['richtlinien', /^f(ö|oe)rderrichtlinien/], ['weg', /^antragsweg/], ['antrag', /^antrag an/], ['anschrift', /^anschrift/],
-  ['haeufig', /^h(ä|ae)ufigkeit/], ['aufwand', /^aufwand/], ['dauer', /^dauer/], ['gross', /^gro(ß|ss)f(ö|oe)rderer/], ['notiz', /^notizen/]];
+  ['haeufig', /^h(ä|ae)ufigkeit/], ['aufwand', /^aufwand/], ['dauer', /^dauer/], ['gross', /^gro(ß|ss)f(ö|oe)rderer/], ['gefoerdert', /^was wird gef(ö|oe)rdert/], ['nicht', /^was wird nicht/], ['tickt', /^wie tickt/], ['zieht', /^f(ö|oe)rderargumentation: argumente/], ['stolper', /^f(ö|oe)rderargumentation: stolper/], ['notiz', /^weitere notizen|^notizen/]];
 const flcStufe = (x, v) => { const n = norm(v); if (!n) return 0; for (let i = 2; i >= 0; i--) if (n === norm(x.bed[i]) || n === norm(x.st[i])) return i + 1; return flStufe(x, v); };
 function flcFristDatum(v, jedesJahr) {                                          // Zahl (Excel-Datum) oder Text; „31.03.“ ohne Jahr = jedes Jahr
   const d0 = typeof v === 'number' ? xlDatum(v) : fristParse(cellStr(v)); if (!d0) return '';
@@ -141,7 +147,10 @@ function flcAenderungen(e, R) {
   add('anschrift', 'Anschrift', e.anschrift, w('anschrift'), () => { e.anschrift = w('anschrift'); });
   for (const [k, titel, x] of [['haeufig', 'Häufigkeit', FL_BEW[2]], ['aufwand', 'Aufwand', FL_BEW[3]], ['dauer', 'Dauer', FL_BEW[4]]]) { const v = flcStufe(x, w(k)); if (v) add(k, titel, e.bew[x.k] ? x.bed[e.bew[x.k] - 1] : '', x.bed[v - 1], () => { e.bew[x.k] = v; }); }
   if (norm(w('gross')) === 'ja' && !e.gross) add('gross', 'Großförderer (> 10.000 € möglich)', '', 'ja', () => { e.gross = true; });
-  if (w('notiz')) add('notiz', 'Notizen (wird angehängt)', e.notiz ? '(bisher vorhanden)' : '', w('notiz'), () => { e.notiz = [e.notiz, w('notiz')].filter(Boolean).join('\n'); }, {});
+  // Notizen: gefördert / nicht gefördert / so tickt der Förderer / Argumente / Stolpersteine / Weiteres – als ein Block mit fetten Zwischenüberschriften, an die vorhandenen Notizen angehängt
+  const abschnitte = [['gefoerdert', 'Gefördert'], ['nicht', 'Nicht gefördert'], ['tickt', 'So tickt der Förderer'], ['zieht', 'Argumente, die ziehen'], ['stolper', 'Stolpersteine'], ['notiz', 'Weiteres']].filter(([k]) => w(k));
+  if (abschnitte.length) { const nt = abschnitte.map(([k, t]) => '*' + t + ':*\n' + w(k).replace(/\r/g, '')).join('\n\n'), u = abschnitte.some(([k]) => F[k].unsicher), q = (abschnitte.map(([k]) => F[k].quelle).find(Boolean)) || '';
+    if (!(e.notiz || '').includes(w(abschnitte[0][0]))) L.push({ titel: 'Notizen (wird angehängt)', alt: e.notiz ? '(bisher vorhanden)' : '', neu: nt, fn: () => { e.notiz = [e.notiz, nt].filter(Boolean).join('\n\n'); }, unsicher: u, quelle: q, notiz: '', an: !e.notiz && !u }); }
   for (const f of R.fristen) { if (!f.d) { L.push({ titel: 'Frist', alt: '', neu: '„' + f.roh + '“ ist kein Datum – wird nicht übernommen', fn: null, unsicher: true, quelle: f.quelle, an: false }); continue; }
     if (e.fristenL.some(x => x.d === f.d && x.topf === f.topf)) continue;
     L.push({ titel: 'Frist' + (f.topf ? ' · ' + f.topf : ''), alt: '', neu: fristText(f.d) + (f.d.length === 5 ? ' (jedes Jahr)' : ' (einmalig)'), fn: () => { e.fristenL.push({ id: uid('fr'), d: f.d, topf: f.topf }); }, unsicher: f.unsicher, quelle: f.quelle, an: !f.unsicher }); }

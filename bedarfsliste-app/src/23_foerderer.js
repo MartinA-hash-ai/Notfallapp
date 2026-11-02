@@ -634,7 +634,7 @@ function flDetailView() {
   const gruppe = y => { const L = H.filter(x => (x.jahr || '–') === y), G = L.filter(x => x.ergebnis === 'gefördert'), a = L.length - G.length;
     return `<div class="fl-gk"><b>${esc(y === '–' ? 'ohne Jahr' : y)}</b><span>Förderungen ${G.length}${a ? ' · ' + a + (a === 1 ? ' Absage' : ' Absagen') : ''}</span><span class="fl-gk-sum">${eur(G.reduce((s, x) => s + (+x.betrag || 0), 0))}</span></div><div class="fl-gl">${L.map(eintrag).join('')}</div>`; };
   const altL = alt.filter(y => y !== '–').map(Number);
-  const foerd = `<div class="fl-foerd"><div class="fl-h-z"><h3>Förderungen und Absagen</h3><span class="fl-sub">${K.n ? 'seit ' + K.seit + ' · ' + eur(K.sum) + ' gefördert' : ''}</span><button class="link fl-plus-t" data-act="fl-g-neu">+ Förderung von Hand</button></div>
+  const foerd = `<div class="fl-foerd"><div class="fl-h-z"><h3>Förderungen und Absagen</h3><button class="link fl-plus-t" data-act="fl-g-neu">+ Förderung von Hand</button></div>
       <div class="fl-gr">${Lauf.length ? `<div class="fl-gk offen"><b>Offen</b><span>nicht doppelt anfragen</span></div><div class="fl-gl">${Lauf.map(offen).join('')}</div>` : ''}
         ${neu.map(gruppe).join('')}${UI.flAlt ? alt.map(gruppe).join('') : ''}</div>
       ${!H.length && !Lauf.length ? '<p class="fl-leer">Noch keine Förderung und keine Absage.</p>' : ''}
