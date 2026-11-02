@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.109.0",
+    "date": "2026-11-05T10:00",
+    "items": [
+      "⋯-Menü eines Förderers: Kurzname- und Status-Feld liegen jetzt im Menü statt darüber hinaus",
+      "Der Öffnen-Knopf (Link) steht überall direkt hinter der Überschrift – auch beim Antragsweg – und ist kleiner und dezenter",
+      "Fenster zum Einlesen einer Copilot-Vorlage aufgeräumt: nach Bereichen gegliedert (Steckbrief, Einschätzung, Notizen, Fristen, Fördertöpfe, Kontakte, Sonstiges), alle Häkchen einheitlich in einer Spalte links, Titel und „bisher“-Wert links, der neue Wert rechts, Quelle und Anmerkung darunter; Formatierungen (fett, Aufzählungen) werden direkt dargestellt",
+      "Im Fenster lassen sich Texte per Klick ändern (Enter übernimmt, Esc verwirft); Art, Antragsweg und die Stufen der Einschätzung über eine Auswahlliste; oben „Alle“, „Keine“, „Vorauswahl“ und ein Zähler"
+    ]
+  },
+  {
     "version": "0.108.0",
     "date": "2026-11-04T16:00",
     "items": [

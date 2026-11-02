@@ -585,7 +585,7 @@ function flDetailView() {
   const zielKnopf = wv === 'Portal' && /^https?:\/\//i.test(an0) ? `<a class="fl-oeffnen fl-ico" href="${esc(an0)}" target="_blank" rel="noopener" data-act="link" title="Link öffnen" aria-label="Link öffnen">${ICON_OEFFNEN}</a>`
     : wv === 'E-Mail' && /@/.test(an0) ? `<a class="fl-oeffnen fl-ico" href="mailto:${esc(mailRein(an0))}" data-act="link" title="E-Mail schreiben: ${esc(mailRein(an0))}" aria-label="E-Mail schreiben">✉</a>` : '';
   const weg = `<div class="fl-weg-z"><select class="fl-in fl-weg-sel" data-sel="fl-antrag" aria-label="Antragsweg"><option value=""${wv ? '' : ' selected'}>–</option>${FL_WEGE.map(w => `<option${w === wv ? ' selected' : ''}>${w}</option>`).join('')}</select>
-      ${wv ? flIn('antrag', wv === 'Portal' ? flUrlAnz(e.antrag) : e.antrag, { ph: wv === 'Portal' ? 'Link zum Portal …' : 'E-Mail-Adresse für Anträge …', aria: wv === 'Portal' ? 'Link zum Portal' : 'E-Mail-Adresse für Anträge', cls: 'fl-url fl-antrag', title: e.antrag }) + zielKnopf : ''}</div>
+      ${wv ? flIn('antrag', wv === 'Portal' ? flUrlAnz(e.antrag) : e.antrag, { ph: wv === 'Portal' ? 'Link zum Portal …' : 'E-Mail-Adresse für Anträge …', aria: wv === 'Portal' ? 'Link zum Portal' : 'E-Mail-Adresse für Anträge', cls: 'fl-url fl-antrag', title: e.antrag }) : ''}</div>
       ${wv === 'Portal' && !an0 && /^https?:\/\//i.test(e.web) ? '<button class="fl-ab-alle" data-act="fl-antrag-web">Link der Homepage übernehmen</button>' : ''}`;
   // Fristen dieses Jahres je Fördertopf als Knöpfe (vorbei durchgestrichen, nächste fett, bald orange); Klick ändert, „+ Frist“ fügt hinzu; darunter ein Hinweis-Text
   // Fördertöpfe (ab 0.98): „Allgemein“ zeigt die Angaben des Förderers; ein Fördertopf (z. B. ein Programm der Aktion Mensch) hat eigenen Zweck, eigenes Gebiet,
@@ -654,7 +654,7 @@ function flDetailView() {
   const hinweise = (haupt ? hBox(haupt) : '') + (sonst.length ? `<button class="fl-ab-alle" data-act="fl-alle-gl" aria-expanded="${!!UI.flAlleGl}">${UI.flAlleGl ? '▾' : '▸'} ${sonst.length} ${sonst.length === 1 ? 'Hinweis' : 'Hinweise'} für andere Gliederungen</button>${UI.flAlleGl ? sonst.map(hBox).join('') : ''}` : '');
   const seite = `<div class="fl-rechts">${haupt ? '' : '<div class="fl-hz"><button class="fl-hinweis-neu" data-act="fl-ansp-neu" title="Gelben Hinweis anlegen, z. B. „Erst mit der Gliederung sprechen“">+ Hinweis</button></div>'}<aside class="card fl-seite">
       <section class="fl-blk">${flNetz(e, true)}</section>
-      <section class="fl-blk"><h3>Antragsweg</h3>${weg}</section>
+      <section class="fl-blk"><div class="fl-blk-k"><h3>Antragsweg</h3>${zielKnopf}</div>${weg}</section>
       ${link('richtlinien', 'Förderrichtlinien', 'Förderrichtlinien')}
       ${link('web', 'Homepage', 'Homepage')}
       <section class="fl-blk"><h3>Anschrift</h3>${flTa('anschrift', e.anschrift, { rows: 1, ph: 'Straße, PLZ Ort eintragen …', aria: 'Anschrift', cls: 'fl-anschrift' })}</section>

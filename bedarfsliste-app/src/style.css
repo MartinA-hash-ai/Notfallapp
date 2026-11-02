@@ -1990,3 +1990,45 @@ table.fl-tab thead th.fl-te { text-align: center; }
 .flc-n { color: var(--ink); overflow-wrap: anywhere; white-space: pre-line; }
 .flc-q { overflow-wrap: anywhere; }
 .flc-z.unsicher .flc-n { color: var(--warn); }
+
+/* 0.109: ⋯-Menü, dezente Öffnen-Knöpfe, Fenster zum Einlesen der Copilot-Vorlage */
+.fl-menue { width: 300px; box-sizing: border-box; }
+.fl-menue .fl-mz { grid-template-columns: 62px minmax(0, 1fr); }
+.fl-menue .fl-mz input, .fl-menue .fl-mz select { width: 100%; min-width: 0; box-sizing: border-box; margin: 0; }
+.fl-blk-k .fl-oeffnen.fl-ico { width: 20px; height: 20px; border: 0; background: none; color: var(--faint); border-radius: 5px; font-size: 12px; }
+.fl-blk-k .fl-oeffnen.fl-ico svg { width: 12px; height: 12px; }
+.fl-blk-k .fl-oeffnen.fl-ico:hover { background: var(--hover); color: var(--ink2); }
+.modal.wide.flc-modal { max-width: 960px; width: min(960px, 96vw); }
+.flc-modal .modal-body { padding: 0 18px 14px; }
+.flc-bar { position: sticky; top: 0; z-index: 3; background: var(--card); padding: 8px 0 8px; border-bottom: 1px solid var(--line); display: grid; gap: 4px; }
+.flc-bt { font-size: 13.5px; color: var(--ink2); }
+.flc-bw { display: flex; align-items: center; gap: 14px; }
+.flc-zaehl { font-size: 13px; font-weight: 600; color: var(--ink); margin-right: auto; }
+.flc-hint { margin: 0; }
+.flc-bereich { margin: 16px 0 4px; font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.flc-r { display: grid; grid-template-columns: 24px 170px minmax(0, 1fr); gap: 0 12px; align-items: start; padding: 9px 8px; border-top: 1px solid var(--line3); border-radius: 0; }
+.flc-r:hover { background: var(--hover); }
+.flc-r.unsicher { background: var(--warnbg); }
+.flc-r.aus { opacity: .6; }
+.flc-cb { display: grid; place-items: center; padding-top: 1px; cursor: pointer; }
+input.flc-c { appearance: none; -webkit-appearance: none; width: 18px; height: 18px; margin: 0; border: 1.6px solid var(--line2); border-radius: 5px; background: var(--card); cursor: pointer; display: grid; place-items: center; }
+input.flc-c:hover { border-color: var(--ink2); }
+input.flc-c:checked { background: var(--ink) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.4l3 3 6-6.4' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 14px no-repeat; border-color: var(--ink); }
+input.flc-c:disabled { border-style: dashed; cursor: not-allowed; background: transparent; }
+input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.flc-k { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; font-size: 13.5px; }
+.flc-k b { font-weight: 600; }
+.flc-alt { font-size: 12px; color: var(--muted); max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.flc-v { min-width: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 3px; }
+.flc-w { font-size: 13.5px; line-height: 1.45; overflow-wrap: anywhere; border-radius: 5px; padding: 1px 6px; margin: 0 -6px; }
+.flc-w.edit { cursor: text; }
+.flc-w.edit:hover, .flc-w.edit:focus-visible { background: var(--card); outline: 1px solid var(--line2); }
+.flc-w.fmt p, .flc-w.fmt ul { margin: 0; } .flc-w.fmt ul { padding-left: 18px; }
+.flc-w.offen { outline: none; background: none; padding: 0; margin: 0; }
+.flc-ed { width: 100%; box-sizing: border-box; resize: none; field-sizing: content; min-height: 2.4em; max-height: 50vh; font: inherit; font-size: 13.5px; line-height: 1.45; padding: 4px 6px; border: 1px solid var(--focus); border-radius: 6px; background: var(--input); color: var(--ink); }
+.flc-ed:focus { outline: none; }
+.flc-sel { width: auto; max-width: 100%; font-size: 13.5px; padding: 2px 6px; }
+.flc-m { display: flex; flex-wrap: wrap; gap: 2px 12px; font-size: 12px; color: var(--muted); min-width: 0; }
+.flc-m a { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); text-decoration: underline; text-decoration-color: var(--line2); }
+.flc-m a:hover { color: var(--ink); }
+@media (max-width: 700px) { .flc-r { grid-template-columns: 24px minmax(0, 1fr); } .flc-v { grid-column: 2; } }
