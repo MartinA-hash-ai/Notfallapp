@@ -671,6 +671,14 @@ function flDetailView() {
     </div>
   </main>`;
 }
+// Hinweis im Kopf: gleicher Abstand nach oben (zum Seitenkopf) und nach unten (zu den weißen Kästen), ohne dass sich etwas verschiebt
+function flHinweisMitte() {
+  const hw = $('.fl-kopf > .fl-hinw'), k = $('.fl-kopf'), m = $('main.fl-detail'); if (!hw || !k || !m) return;
+  hw.style.bottom = '0px'; if (getComputedStyle(hw).position !== 'absolute') { hw.style.bottom = ''; return; }
+  const cs = getComputedStyle(m), gap = parseFloat(cs.rowGap) || 18, platz = parseFloat(cs.paddingTop) + k.offsetHeight + gap, g = Math.max(0, (platz - hw.offsetHeight) / 2);
+  hw.style.bottom = (g - gap) + 'px';
+}
+document.addEventListener('input', ev => { if (ev.target.closest && ev.target.closest('.fl-hinw')) flHinweisMitte(); });
 // kleine Menüs: „⋯“ (Kurzname, Status, löschen) und Ansprache für die Gliederung
 function flMenue(btn) {
   closeMenus(); const e = flCur(); if (!e) return;

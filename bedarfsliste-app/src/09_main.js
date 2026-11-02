@@ -202,7 +202,7 @@ function renderNow() {
   } finally { _rendering = false; }
 }
 // Höhe des angedockten Kopfs (Titelleiste + Unterleiste): darunter dockt die Kopfzeile der Fördererliste an
-const kopfHoehe = () => { const k = $('header.top'); if (k) document.documentElement.style.setProperty('--kopfh', k.offsetHeight + 'px'); };
+const kopfHoehe = () => { const k = $('header.top'); if (k) document.documentElement.style.setProperty('--kopfh', k.offsetHeight + 'px'); if (typeof flHinweisMitte === 'function') flHinweisMitte(); };
 window.addEventListener('resize', kopfHoehe);
 function keep(fn) { const y = window.scrollY, tw = $('.tablewrap'), x = tw ? tw.scrollLeft : 0; fn(); window.scrollTo(0, y); const t2 = $('.tablewrap'); if (t2 && x) t2.scrollLeft = x; }
 // wird gerade getippt oder ist ein Feld zum Bearbeiten offen (auch Schreibfelder mit Formatierung, Übergabe-Fenster)? Dann nicht
