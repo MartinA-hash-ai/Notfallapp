@@ -60,6 +60,8 @@ function flcVorlageBlob(e, z) {
     : bl('Fristen', [18, 14, 34, 14, 40], ['Frist (TT.MM.JJJJ)', 'Jedes Jahr (ja/nein)', 'Fördertopf (leer = allgemein)', 'Sicherheit', 'Quelle (Link)'], 25, { lists: [L('B', 25, ['ja', 'nein']), L('D', 25, FLC_SICHER)] });
   const toepfe = bl('Fördertöpfe', FLC_TSP.map(c => c[1]), FLC_TSP.map(c => c[0]), 12,
     { heights: { 0: 44 }, lists: [L('H', 12, FLC_SICHER), L('M', 12, FL_WEGE), L('O', 12, FLC_HAEUFIG), L('P', 12, FLC_AUFWAND), L('Q', 12, FLC_DAUER), L('R', 12, ['ja', 'nein'])] });
+  const beispiele = topf ? bl('Beispiele', [24, 60, 30, 10, 14, 14, 40], ['Schlagwort (1–3 Wörter)', 'Beschreibung (ein Satz)', 'Empfänger / Ort', 'Jahr', 'Betrag (€)', 'Sicherheit', 'Quelle (Link)'], 10, { lists: [L('F', 10, FLC_SICHER)] })
+    : bl('Beispiele', [30, 24, 60, 30, 10, 14, 14, 40], ['Fördertopf (leer = Förderer allgemein)', 'Schlagwort (1–3 Wörter)', 'Beschreibung (ein Satz)', 'Empfänger / Ort', 'Jahr', 'Betrag (€)', 'Sicherheit', 'Quelle (Link)'], 10, { lists: [L('G', 10, FLC_SICHER)] });
   const kontakte = bl('Kontakte', [28, 28, 32, 22, 26, 16, 14, 40], ['Name', 'Position', 'E-Mail', 'Telefon', 'Gliederungen (leer = alle)', 'Anschreiben (leer lassen)', 'Sicherheit', 'Quelle (Link)'], 15,
     { lists: [L('G', 15, FLC_SICHER)] });
   const quellen = bl('Quellen', [60, 60, 16], ['Link (wirklich geöffnet)', 'Was dort steht', 'Abgerufen am (TT.MM.JJJJ)'], 25);
@@ -72,20 +74,21 @@ function flcVorlageBlob(e, z) {
     ['Diese Datei beschreibt ' + wer + ' der Malteser (Diözese Paderborn). Sie wird recherchiert und ausgefüllt und danach in die Bedarfsliste eingelesen (Fördererliste → Seite des Förderers → ⋯ → „Mit Copilot ausfüllen …“).'],
     [''],
     ['Regeln für das Ausfüllen', { b: true }],
-    ['1. Nur die gelb hinterlegten Zellen ausfüllen: im Blatt „Steckbrief“ die Spalten „Wert“, „Sicherheit“, „Quelle“ und „Anmerkung“, in ' + (topf ? '„Fristen“, „Kontakte“ und „Quellen“' : '„Fristen“, „Fördertöpfe“, „Kontakte“ und „Quellen“') + ' die Zeilen darunter. Keine Blätter, Spalten oder Überschriften ändern, umbenennen, löschen oder hinzufügen. „Anleitung“ und „Auswahlwerte“ nicht ändern.'],
+    ['1. Nur die gelb hinterlegten Zellen ausfüllen: im Blatt „Steckbrief“ die Spalten „Wert“, „Sicherheit“, „Quelle“ und „Anmerkung“, in ' + (topf ? '„Fristen“, „Beispiele“, „Kontakte“ und „Quellen“' : '„Fristen“, „Fördertöpfe“, „Beispiele“, „Kontakte“ und „Quellen“') + ' die Zeilen darunter. Keine Blätter, Spalten oder Überschriften ändern, umbenennen, löschen oder hinzufügen. „Anleitung“ und „Auswahlwerte“ nicht ändern.'],
     ['2. Nichts raten und nichts erfinden: Was nicht belegt ist, bleibt leer. Jede ausgefüllte Angabe bekommt in „Quelle“ einen Link, den Sie wirklich geöffnet haben (bevorzugt Seiten des Förderers: Satzung, Förderrichtlinien, Antragsformular, Jahresbericht).'],
     ['3. Spalte „Sicherheit“: „sicher“ = steht so in der Quelle; „unsicher“ = nur indirekt belegt, älter als zwei Jahre oder widersprüchlich. Unsichere Angaben übernimmt das Programm nicht automatisch.'],
     ['4. Auswahlfelder nur mit den vorgegebenen Werten füllen (Blatt „Auswahlwerte“). Zahlen ohne Einheit und ohne Tausenderpunkt (z. B. 10000). Datum als TT.MM.JJJJ; eine Frist ohne Jahr (z. B. 31.03.) gilt jedes Jahr.'],
     ['5. Kontakte: nur Personen oder Funktionen, deren Kontaktdaten der Förderer selbst öffentlich nennt (Impressum, Seite „Ansprechpartner“). Keine privaten Daten, nichts aus sozialen Netzwerken. „Anschreiben“ leer lassen – das entscheiden wir.'],
     [topf ? '6. Alle Angaben im Blatt „Steckbrief“ beziehen sich nur auf diesen einen Fördertopf, nicht auf den Förderer insgesamt; auch Notizen und Förderargumentation. Fristen im Blatt „Fristen“ sind die Fristen dieses Topfs.'
-      : '6. Hat der Förderer mehrere Förderprogramme (Fördertöpfe), steht jedes in einer eigenen Zeile im Blatt „Fördertöpfe“ – und zwar mit ALLEN Spalten ausgefüllt (Zweck, Gebiet, Höhe, Quote, Hinweis zu Fristen, Antragsweg, Links, Einschätzung, Notizen), soweit belegbar. Ein Fördertopf, der nur mit Namen eingetragen ist, ist unbrauchbar. Fristen eines Programms im Blatt „Fristen“ mit demselben Namen in „Fördertopf“. Im Blatt „Steckbrief“ steht, was für den Förderer insgesamt gilt.'],
+      : '6. Hat der Förderer mehrere Förderprogramme (Fördertöpfe), steht jedes in einer eigenen Zeile im Blatt „Fördertöpfe“ – mit ALLEN Spalten ausgefüllt, soweit belegbar. Ein Fördertopf, der nur mit Namen eingetragen ist, ist unbrauchbar. Im Blatt „Steckbrief“ steht dann nur, was für den ganzen Förderer gilt (Name, Art, Homepage, Anschrift, allgemeine Haltung); alles Programmbezogene steht in der Zeile des Programms. Fristen und Beispiele eines Programms mit seinem Namen in „Fördertopf“.'],
     ['7. Zu jeder Einschätzung (Häufigkeit, Aufwand, Dauer) kurz in „Anmerkung“ begründen – oder leer lassen.'],
     ['8. Keine Wiederholungen: Jede Information steht genau einmal, im passendsten Feld. Was schon in einem eigenen Feld steht (z. B. Förderzweck, Gebiet, Höhe, Fristen, Antragsweg), nicht noch einmal in den Notiz-Feldern aufnehmen – auch nicht umformuliert.'],
+    ['9. Notizen knapp: nur kurze Stichpunkte (je höchstens etwa 10 Wörter, höchstens 4 je Feld); „Wie tickt …“ in höchstens zwei kurzen Sätzen. Beispiele geförderter Projekte nicht in die Notizen, sondern ins Blatt „Beispiele“ (Schlagwort aus 1–3 Wörtern, ein Satz Beschreibung).'],
     [''],
     ['Stand: ' + (typeof today === 'function' ? fmtDate(today()) : '')],
   ];
   const anl = { name: 'Anleitung', cols: [130], grid: false, rows: text.map(([t, st]) => [{ v: t, st: Object.assign({ wrap: true, v: 'top' }, st || {}) }]) };
-  return xlsxBlob([anl, steck, fristen, ...(topf ? [] : [toepfe]), kontakte, quellen, auswahl]);
+  return xlsxBlob([anl, steck, fristen, ...(topf ? [] : [toepfe]), beispiele, kontakte, quellen, auswahl]);
 }
 
 // ---------- Auftrag für Copilot
@@ -99,8 +102,8 @@ function flcPrompt(e, z) {
     'So gehst du vor:',
     '1. Lies zuerst das Blatt „Anleitung“ und die Spalte „Format / Erklärung“ im Blatt „Steckbrief“ – dort steht, was in jede Zelle gehört.',
     topf ? '2. Recherchiere vor allem auf den eigenen Seiten des Förderers zu diesem Programm: Förderrichtlinie oder Programmbeschreibung, Antragsformular oder Antragsportal, Ausschreibung und Fristen, Jahresbericht, Seite „Ansprechpartner“ oder Impressum.'
-      : '2. Recherchiere vor allem auf den eigenen Seiten des Förderers: Satzung, Förderrichtlinien oder Vergaberichtlinien, Antragsformular, Jahresbericht, Seite „Ansprechpartner“ oder Impressum. Prüfe außerdem, ob es mehrere Förderprogramme (Fördertöpfe) gibt. Gibt es welche, recherchierst du JEDES Programm eigens auf seiner Programmseite bzw. in seiner Richtlinie und trägst es in einer eigenen Zeile im Blatt „Fördertöpfe“ mit allen Spalten ein (Zweck, Gebiet, Höhe, Quote, Hinweis zu Fristen, Antragsweg, Links, Häufigkeit, Aufwand, Dauer, Großförderer und die Notiz-Spalten). Ein Programm, das nur mit seinem Namen eingetragen ist, ist unbrauchbar – zu jedem Programm brauche ich dieselbe Tiefe. Was du zu einer Zelle nicht belegen kannst, lässt du leer; die Zeile bleibt trotzdem so vollständig wie möglich. Das Blatt „Steckbrief“ beschreibt dann den Förderer insgesamt.',
-    '3. Fülle nur die gelb hinterlegten Zellen: im Blatt „Steckbrief“ die Spalten Wert, Sicherheit, Quelle und Anmerkung; in ' + (topf ? '„Fristen“, „Kontakte“ und „Quellen“' : '„Fristen“, „Fördertöpfe“, „Kontakte“ und „Quellen“') + ' die Zeilen darunter. Ändere keine Überschriften, Blattnamen oder Spalten, füge nichts hinzu und lösche nichts. „Anleitung“ und „Auswahlwerte“ bleiben unverändert.',
+      : '2. Recherchiere vor allem auf den eigenen Seiten des Förderers: Satzung, Förderrichtlinien oder Vergaberichtlinien, Antragsformular, Jahresbericht, Seite „Ansprechpartner“ oder Impressum. Prüfe ZUERST, ob es mehrere Förderprogramme (Fördertöpfe) gibt, und richte dich danach:\n   a) Kein oder nur ein Programm: Fülle das Blatt „Steckbrief“ vollständig aus; das Blatt „Fördertöpfe“ bleibt leer.\n   b) Mehrere Programme: Recherchiere JEDES Programm eigens auf seiner Programmseite bzw. in seiner Richtlinie und trage es in einer eigenen Zeile im Blatt „Fördertöpfe“ mit allen Spalten ein (Zweck, Gebiet, Höhe, Quote, Hinweis zu Fristen, Antragsweg, Links, Häufigkeit, Aufwand, Dauer, Großförderer und die Notiz-Spalten). Ein Programm nur mit Namen ist unbrauchbar – zu jedem Programm brauche ich dieselbe Tiefe. Im Blatt „Steckbrief“ trägst du dann NUR ein, was für den ganzen Förderer gilt: Name, Kurzname, Art, Homepage, Anschrift und – falls es übergreifend gilt – „Wie tickt der Förderer?“. Alles, was zu einem Programm gehört (Zweck, Gebiet, Höhe, Quote, Fristen, Antragsweg, Einschätzung, gefördert / nicht gefördert, Argumente, Stolpersteine, Beispiele), steht in der Zeile bzw. mit dem Namen dieses Programms – nicht im Steckbrief.',
+    '3. Fülle nur die gelb hinterlegten Zellen: im Blatt „Steckbrief“ die Spalten Wert, Sicherheit, Quelle und Anmerkung; in ' + (topf ? '„Fristen“, „Beispiele“, „Kontakte“ und „Quellen“' : '„Fristen“, „Fördertöpfe“, „Beispiele“, „Kontakte“ und „Quellen“') + ' die Zeilen darunter. Ändere keine Überschriften, Blattnamen oder Spalten, füge nichts hinzu und lösche nichts. „Anleitung“ und „Auswahlwerte“ bleiben unverändert.',
     '4. Erfinde nichts und rate nicht. Was du nicht belegen kannst, bleibt leer. Trage bei jeder ausgefüllten Angabe in „Quelle“ den Link ein, den du tatsächlich geöffnet hast – keine Links aus dem Gedächtnis. Setze „Sicherheit“ auf „sicher“, wenn die Angabe so in der Quelle steht, sonst auf „unsicher“ (indirekt belegt, älter als zwei Jahre oder widersprüchlich).',
     '5. Formate: Auswahlfelder nur mit den Werten aus dem Blatt „Auswahlwerte“ (genau so geschrieben). Beträge als reine Zahl ohne Einheit und ohne Tausenderpunkt (10000). Datum als TT.MM.JJJJ; eine Frist ohne Jahr (31.03.) gilt jedes Jahr, bei einmaligen Fristen „Jedes Jahr“ = nein.',
     '6. Förderzweck: kurze Stichworte in eigenen Worten. Bei „Zwecke der Malteser“ nur die Zwecke aus der Liste wählen, die zum Förderzweck passen; Zwecke ohne Bezug zu den Maltesern (z. B. Kultur, Sport, Tierschutz) lässt du weg. Passt ' + (topf ? 'das Programm' : 'der Förderer') + ' nach seiner Satzung bzw. Richtlinie gar nicht zu den Maltesern, schreib das in „Weitere Notizen“.',
@@ -109,10 +112,11 @@ function flcPrompt(e, z) {
     '9. Fristen: jeden festen Antragstermin einzeln ins Blatt „Fristen“' + (topf ? ' (alle gehören zu diesem Fördertopf)' : ' (bei Fördertöpfen mit dem Namen des Topfs)') + '. Gibt es keine festen Termine, schreib den Hinweis (z. B. „laufend“) in „Hinweis zu Fristen“ im Blatt „Steckbrief“.',
     '10. Kontakte: nur Personen oder Funktionen, deren Kontaktdaten der Förderer selbst öffentlich nennt. Keine privaten Daten, nichts aus sozialen Netzwerken, keine Vermutungen zu E-Mail-Adressen. Die Spalte „Anschreiben“ bleibt leer.',
     '11. Häufigkeit, Aufwand und Dauer nur ausfüllen, wenn du es aus den Richtlinien ableiten kannst, und in „Anmerkung“ kurz begründen.',
-    '12. Notizen (diese Felder landen später in den Notizen ' + (topf ? 'dieses Fördertopfs' : 'des Förderers') + '): „Was wird gefördert?“ und „Was wird nicht gefördert?“ als kurze Stichpunkte (jeder in einer neuen Zeile, mit „- “ am Anfang), nur Belegtes aus Satzung und Richtlinien. „Wie tickt der Förderer?“ in 2–3 Sätzen: Was ist ihm wichtig, welche Haltung, wie und wem fördert er typischerweise' + (topf ? ' (in diesem Programm)' : '') + '? „Förderargumentation“: Welche Argumente ziehen bei ' + (topf ? 'diesem Programm' : 'diesem Förderer') + ' für ein Vorhaben der Malteser (nach Gewicht sortiert, je Argument kurz begründen und die Fundstelle nennen, z. B. „Satzungszweck: Förderung des Ehrenamts“)? Wo sind Stolpersteine (Ausschlüsse, kirchliche Träger, Eigenanteil, Nachweispflichten, Gleichbehandlung)? Alles aus den Quellen abgeleitet, keine Vermutungen ohne Hinweis darauf – Eigenes kennzeichnest du mit „Einschätzung:“.',
-    '13. Alle geöffneten Seiten trägst du zusätzlich im Blatt „Quellen“ ein (Link, was dort steht, Abrufdatum).',
-    '14. Keine Wiederholungen: Jede Information steht genau einmal, im passendsten Feld. Was schon in einem eigenen Feld steht (Förderzweck, Gebiet, Förderhöhe, Quote, Fristen, Antragsweg, Links, Anschrift, Häufigkeit, Aufwand, Dauer), wiederholst du NICHT in den Notiz-Feldern („Was wird gefördert?“, „Wie tickt …“, Argumente, Stolpersteine, Weitere Notizen) – auch nicht umformuliert. „Was wird gefördert?“ nennt nur, was über die Stichworte im Förderzweck hinausgeht (konkrete Beispiele, Anschaffungen, Zielgruppen). Auch die Notiz-Felder wiederholen sich nicht gegenseitig: ein Punkt steht entweder bei „Argumente“ oder bei „Stolpersteine“ oder in „Weitere Notizen“.',
-    ...(topf ? [] : ['15. Fördertöpfe: Was für alle Programme gleich gilt (z. B. Anschrift, Antragsweg, allgemeine Haltung des Förderers), steht einmal im Blatt „Steckbrief“ – unser Programm übernimmt es beim Einlesen in jeden Topf, der dazu nichts Eigenes hat. In den Zeilen der Fördertöpfe steht, was für das jeweilige Programm gilt (Zweck, Gebiet, Höhe, Fristen usw. immer). Die Notiz-Spalten eines Topfs wiederholen nichts, was schon im Steckbrief oder in einer anderen Spalte steht.']),
+    '12. Notizen (diese Felder landen später in den Notizen ' + (topf ? 'dieses Fördertopfs' : 'des Förderers bzw. des jeweiligen Fördertopfs') + '): KURZ UND KNAPP. Nur Stichpunkte, jeder in einer neuen Zeile mit „- “ am Anfang, je Stichpunkt höchstens etwa 10 Wörter, höchstens 4 Stichpunkte je Feld – lieber das Wichtigste als alles. „Was wird gefördert?“ und „Was wird nicht gefördert?“: nur Belegtes aus Satzung und Richtlinien. „Wie tickt …“: höchstens zwei kurze Sätze (was ist ' + (topf ? 'dem Programm' : 'dem Förderer') + ' wichtig, wen fördert ' + (topf ? 'es' : 'er') + ' typischerweise). „Argumente, die ziehen“: nach Gewicht sortiert, Fundstelle ganz kurz in Klammern (z. B. „(Satzung)“). „Stolpersteine“: Ausschlüsse, Eigenanteil, Nachweispflichten u. Ä. Eigene Einschätzungen kennzeichnest du mit „Einschätzung:“. Keine Projektbeispiele, keine Zahlenreihen und keine Statistik in den Notizen.',
+    '13. Beispiele: Trage im Blatt „Beispiele“ bis zu 8 Projekte ein, die ' + (topf ? 'das Programm' : 'der Förderer') + ' nachweislich gefördert hat – bevorzugt solche, die einem Vorhaben der Malteser ähneln (Hilfsorganisationen, Ehrenamt, Sanitäts- und Rettungsdienst, Soziales, Hospiz). Je Zeile: Schlagwort aus 1–3 Wörtern (z. B. „Erste-Hilfe-Kurse“), Beschreibung in einem Satz (was wurde gefördert), Empfänger / Ort, Jahr, Betrag (nur wenn genannt)' + (topf ? '' : ', bei mehreren Programmen der Name des Programms in „Fördertopf“') + ' und die Quelle.',
+    '14. Alle geöffneten Seiten trägst du zusätzlich im Blatt „Quellen“ ein (Link, was dort steht, Abrufdatum).',
+    '15. Keine Wiederholungen: Jede Information steht genau einmal, im passendsten Feld. Was schon in einem eigenen Feld steht (Förderzweck, Gebiet, Förderhöhe, Quote, Fristen, Antragsweg, Links, Anschrift, Häufigkeit, Aufwand, Dauer), wiederholst du NICHT in den Notiz-Feldern („Was wird gefördert?“, „Wie tickt …“, Argumente, Stolpersteine, Weitere Notizen) – auch nicht umformuliert. „Was wird gefördert?“ nennt nur, was über die Stichworte im Förderzweck hinausgeht (Anschaffungen, Kostenarten, Zielgruppen); konkrete geförderte Projekte stehen nur im Blatt „Beispiele“. Auch die Notiz-Felder wiederholen sich nicht gegenseitig: ein Punkt steht entweder bei „Argumente“ oder bei „Stolpersteine“ oder in „Weitere Notizen“.',
+    ...(topf ? [] : ['16. Fördertöpfe: Was für alle Programme gleich gilt (z. B. Anschrift, Antragsweg, allgemeine Haltung des Förderers), steht einmal im Blatt „Steckbrief“ – unser Programm übernimmt es beim Einlesen in jeden Topf, der dazu nichts Eigenes hat. In den Zeilen der Fördertöpfe steht, was für das jeweilige Programm gilt (Zweck, Gebiet, Höhe, Fristen usw. immer). Die Notiz-Spalten eines Topfs wiederholen nichts, was schon im Steckbrief oder in einer anderen Spalte steht.']),
     '',
     'Gib mir die ausgefüllte Datei als Excel-Datei zum Herunterladen zurück (gleicher Dateiname mit dem Zusatz „_ausgefüllt“). Schreibe darunter in höchstens fünf Sätzen, was du nicht gefunden hast und wo du unsicher bist. Wenn du keine Datei erzeugen kannst, gib den Inhalt jedes Blatts als Tabelle mit denselben Überschriften aus, damit ich ihn einfügen kann.',
   ];
@@ -145,7 +149,9 @@ function flcLesen(book) {
       web: strV(r[9]), richtlinien: strV(r[10]), fristen: strV(r[11]), weg: strV(r[12]), antrag: strV(r[13]), haeufig: strV(r[14]), aufwand: strV(r[15]), dauer: strV(r[16]), gross: strV(r[17]),
       gefoerdert: strV(r[18]), nicht: strV(r[19]), tickt: strV(r[20]), zieht: strV(r[21]), stolper: strV(r[22]), notiz: strV(r[23]) })),
     kontakte: tab('Kontakte').map(r => ({ n: strV(r[0]), pos: strV(r[1]), mail: mailRein(r[2]), tel: cellStr(r[3]), gl: strL(r[4]), unsicher: norm(r[6]) === 'unsicher', quelle: cellStr(r[7]) })),
-    quellen: tab('Quellen').map(r => ({ url: cellStr(r[0]), was: cellStr(r[1]), am: cellStr(r[2]) })) };
+    quellen: tab('Quellen').map(r => ({ url: cellStr(r[0]), was: cellStr(r[1]), am: cellStr(r[2]) })),
+    beispiele: (() => { const s = blatt('Beispiele'); if (!s) return []; const mt = /^f(ö|oe)rdertopf/.test(norm(cellStr((s.rows[0] || [])[0]))), o = mt ? 1 : 0;   // in der Fördertopf-Vorlage ohne Spalte „Fördertopf“
+      return s.rows.slice(1).filter(r => r && (cellStr(r[o]) || cellStr(r[o + 1]))).map(r => ({ topf: mt ? strV(r[0]) : '', titel: strV(r[o]), text: strV(r[o + 1]), ort: strV(r[o + 2]), jahr: cellStr(r[o + 3]), betrag: zahlOderLeer(r[o + 4]), unsicher: norm(r[o + 5]) === 'unsicher', quelle: cellStr(r[o + 6]) })); })() };
 }
 // Angaben der Fördertopf-Zeile t, die dem Fördertopf x noch fehlen (vorhandene Angaben bleiben):
 // [{ lab, key (Feld des Topfs), bereich, neu (Text), fn(wert), edit, opts }]
@@ -156,7 +162,7 @@ function flcTopfFelder(x, t) {
   f('Förderzweck', 'schwer', S, t.schwer && !x.schwer, t.schwer, v => { x.schwer = v; }, T);
   f('Fördergebiet', 'gl', S, t.gl.length && !x.gl.length, t.gl.join(', '), v => { x.gl = strL(v); }, T);
   f('Förderhöhe', 'hoehe', S, (t.von != null || t.bis != null) && x.hoeheVon == null && x.hoeheBis == null && !x.hoehe, flHoeheKlar({ hoeheVon: t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }),
-    () => { Object.assign(x, { hoeheVon: t.von == null ? t.bis : t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }); });
+    () => { Object.assign(x, { hoeheVon: t.von == null ? t.bis : t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }); x.bew.summe = 0; });
   f('Förderquote', 'quote', S, t.quote && !x.quote, t.quote, v => { x.quote = v; }, T);
   f('Hinweis zu Fristen', 'fristen', S, t.fristen && !x.fristen, t.fristen, v => { x.fristen = v; }, T);
   const weg = flWegNorm(t.weg), an = weg === 'Portal' ? flUrlVoll(t.antrag) : mailRein(t.antrag);
@@ -164,7 +170,7 @@ function flcTopfFelder(x, t) {
   f(weg === 'Portal' ? 'Antrag an (Link)' : 'Antrag an (E-Mail)', 'antrag', S, an && !x.antrag, an, v => { x.antrag = weg === 'Portal' ? flUrlVoll(v) : mailRein(v); }, T);
   f('Programmseite', 'web', S, t.web && !x.web, flUrlVoll(t.web), v => { x.web = flUrlVoll(v); }, T);
   f('Förderrichtlinien', 'richtlinien', S, t.richtlinien && !x.richtlinien, flUrlVoll(t.richtlinien), v => { x.richtlinien = flUrlVoll(v); }, T);
-  for (const [k, titel, b] of [['haeufig', 'Häufigkeit', FL_BEW[2]], ['aufwand', 'Aufwand', FL_BEW[3]], ['dauer', 'Dauer', FL_BEW[4]]]) { const v = flcStufe(b, t[k]); f(titel, 'bew', E, v && !x.bew[b.k], v ? b.bed[v - 1] : '', tt => { const i = b.bed.indexOf(tt); if (i >= 0) x.bew[b.k] = i + 1; }, 'sel', b.bed); }
+  for (const [k, titel, b] of [['haeufig', 'Häufigkeit', FL_BEW[2]], ['aufwand', 'Aufwand', FL_BEW[3]], ['dauer', 'Dauer', FL_BEW[4]]]) { const v = flcStufe(b, t[k]); f(titel, 'bew.' + b.k, E, v && !x.bew[b.k], v ? b.bed[v - 1] : '', tt => { const i = b.bed.indexOf(tt); if (i >= 0) x.bew[b.k] = i + 1; }, 'sel', b.bed); }
   f('Großförderer', 'gross', E, norm(t.gross) === 'ja' && !x.gross, '> 10.000 € möglich', () => { x.gross = true; });
   const nt = flcNotizText(k => t[k]); f('Notizen', 'notiz', 'Notizen', nt && !x.notiz, nt, v => { x.notiz = v; }, 'rich');
   return D;
@@ -175,7 +181,7 @@ function flcAenderungen(e, R, h) {
   const L = [], F = R.F, w = k => (F[k] ? F[k].text : ''), istTopf = h !== e, tModus = R.modus === 'topf';
   const erbenAlle = h === e && !e.topfe.length, key = n => 't:' + norm(n), hKey = istTopf ? key(h.name) : '';
   const bekannt = new Set([...R.topfe.filter(t => t.name).map(t => key(t.name)), ...e.topfe.map(t => key(t.name)), ...(istTopf ? [hKey] : [])]);
-  const ERBT = { frei: 'schwer', gl: 'gl', von: 'hoehe', quote: 'quote', fristen: 'fristen', web: 'web', richtlinien: 'richtlinien', weg: 'weg', antrag: 'antrag', anschrift: 'anschrift', haeufig: 'bew', aufwand: 'bew', dauer: 'bew', gross: 'gross' };   // Feld, das ein neuer Fördertopf davon erben kann
+  const ERBT = { frei: 'schwer', gl: 'gl', von: 'hoehe', quote: 'quote', fristen: 'fristen', web: 'web', richtlinien: 'richtlinien', weg: 'weg', antrag: 'antrag', anschrift: 'anschrift', haeufig: 'bew.haeufig', aufwand: 'bew.aufwand', dauer: 'bew.dauer', gross: 'gross' };   // Feld, das ein neuer Fördertopf davon erben kann
   const add = (k, bereich, titel, alt, neu, fn, o = {}) => { if (!strV(neu) || strV(alt) === strV(neu)) return; const f = F[k] || {};
     L.push({ bereich, titel, alt: strV(alt), neu: strV(neu), fn, edit: o.edit || '', opts: o.opts || null, unsicher: !!(f.unsicher || o.unsicher), quelle: f.quelle || o.quelle || '', notiz: f.notiz || '', an: !strV(alt) && !(f.unsicher || o.unsicher), erbt: ERBT[k] || '' }); };
   const S = 'Steckbrief', T = { edit: 'text' }, bez = istTopf ? 'Fördertopf' : 'Förderer';
@@ -186,7 +192,7 @@ function flcAenderungen(e, R, h) {
   add('frei', S, 'Förderzweck', h.schwer, zNeu, v => { h.schwer = v; }, { edit: 'text', unsicher: !!(F.zw && F.zw.unsicher), quelle: (F.zw || {}).quelle });
   add('gl', S, 'Fördergebiet', h.gl.join(', '), strL(w('gl')).join(', '), v => { h.gl = strL(v); }, T);
   const von = zahlOderLeer(F.von && F.von.wert), bis = zahlOderLeer(F.bis && F.bis.wert);
-  if (von != null || bis != null) { const t = flHoeheKlar({ hoeheVon: von, hoeheBis: bis == null ? von : bis, hoehe: '' }); add('von', S, 'Förderhöhe', flHoeheKlar(h), t, () => { Object.assign(h, { hoeheVon: von == null ? bis : von, hoeheBis: bis == null ? von : bis, hoehe: '' }); }, { unsicher: !!(F.bis && F.bis.unsicher), quelle: (F.bis || {}).quelle }); }
+  if (von != null || bis != null) { const t = flHoeheKlar({ hoeheVon: von, hoeheBis: bis == null ? von : bis, hoehe: '' }); add('von', S, 'Förderhöhe', flHoeheKlar(h), t, () => { Object.assign(h, { hoeheVon: von == null ? bis : von, hoeheBis: bis == null ? von : bis, hoehe: '' }); h.bew.summe = 0; }, { unsicher: !!(F.bis && F.bis.unsicher), quelle: (F.bis || {}).quelle }); }
   add('quote', S, 'Förderquote', h.quote, w('quote'), v => { h.quote = v; }, T);
   add('fristen', S, 'Hinweis zu Fristen', h.fristen, w('fristen'), v => { h.fristen = v; }, T);
   add('web', S, 'Homepage', h.web, flUrlVoll(w('web')), v => { h.web = flUrlVoll(v); }, T);
@@ -207,13 +213,21 @@ function flcAenderungen(e, R, h) {
     L.push({ bereich: 'Fristen', titel: 'Frist' + (tp ? ' · ' + tp : ''), alt: '', neu: fristText(f.d) + (f.d.length === 5 ? ' (jedes Jahr)' : ' (einmalig)'), fn: () => { e.fristenL.push({ id: uid('fr'), d: f.d, topf: tp }); }, unsicher: f.unsicher, quelle: f.quelle, an: !f.unsicher, tab: tp && bekannt.has(key(tp)) ? key(tp) : '' }); }
   // Fördertöpfe aus dem Blatt „Fördertöpfe“: je Topf ein eigener Reiter. Neue Töpfe werden angelegt (erst ganz zuletzt) und bekommen die Angaben ihrer Zeile, vorhandene werden nur in leeren Feldern ergänzt.
   // Wurde der Förderer als Ganzes recherchiert (noch keine Töpfe), erbt JEDER neue Topf, was ihm in seiner Zeile fehlt, aus den Angaben des Förderers – nicht nur der erste.
+  const NEU = {};                                                                  // neue Töpfe dieses Einlesens: Reiter → { m: Topf, kopf: „Fördertopf anlegen“ }
   for (const t of R.topfe) { if (!t.name || (istTopf && norm(t.name) === norm(h.name))) continue; const x = e.topfe.find(y => norm(y.name) === norm(t.name)), tk = key(t.name);
-    if (!x) { const m = flTopfLeer(t.name), D = flcTopfFelder(m, t), nurName = !D.length;
+    if (!x) { const m = flTopfLeer(t.name), D = flcTopfFelder(m, t), nurName = !D.length && !R.beispiele.some(b => norm(b.topf) === norm(t.name));
       const kopf = { bereich: 'Fördertopf', titel: 'Fördertopf anlegen', alt: '', neu: t.name + (t.kurz ? ' (' + t.kurz + ')' : ''), tab: tk, anlegen: true, spaet: true, unsicher: t.unsicher, quelle: t.quelle,
-        fn: () => { if (!nurName) m.recherche = today(); if (erbenAlle && e.topfe.length) flTopfErbt(m, e); flTopfEinfuegen(e, m); },
+        fn: () => { if (!nurName) m.recherche = today(); if (erbenAlle) flcErbeAlles(m, e); flTopfEinfuegen(e, m); },
         notiz: nurName ? 'Zu diesem Fördertopf hat Copilot nur den Namen geliefert – besser einzeln recherchieren lassen (⋯ → „Mit Copilot ausfüllen …“ → Fördertopf).' : '', an: !t.unsicher && !nurName };
-      L.push(kopf); D.forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, topfNeu: kopf, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
+      NEU[tk] = { m, kopf }; L.push(kopf); D.forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, topfNeu: kopf, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
     else flcTopfFelder(x, t).forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
+  // Beispiele geförderter Projekte: zum Topf mit dem Namen in „Fördertopf“, sonst zum Ziel des Einlesens
+  for (const b of R.beispiele) { const tp = tname != null ? tname : b.topf, tk = tp && bekannt.has(key(tp)) ? key(tp) : '', neu = NEU[tk];
+    const ziel = neu ? neu.m : tk ? (e.topfe.find(y => key(y.name) === tk) || h) : h;
+    if (ziel.beispiele.some(y => norm(y.titel) === norm(b.titel) && norm(y.text) === norm(b.text))) continue;
+    const meta = [b.ort, b.jahr, b.betrag != null ? eur(b.betrag) : ''].filter(Boolean).join(' · ');
+    L.push({ bereich: 'Beispiele', titel: b.titel || 'Beispiel', alt: '', neu: (b.text || '') + (meta ? '\n' + meta : ''), fn: () => { ziel.beispiele.push(flBeispielNorm(b)); }, tab: tk || (tname != null ? hKey : ''), topfNeu: neu ? neu.kopf : undefined,
+      unsicher: b.unsicher, quelle: b.quelle, notiz: '', an: !b.unsicher, erbt: !tk && !istTopf ? 'beispiele' : '' }); }
   for (const k of R.kontakte) { if (!k.n) continue; const x = e.kontakte.find(y => kkey(y.n) === kkey(k.n));
     if (!x) L.push({ bereich: 'Kontakte', titel: 'Kontakt (des Förderers)', alt: '', neu: [k.n, k.pos, k.mail, k.tel].filter(Boolean).join(' · '), fn: () => { e.kontakte.push(Object.assign(flKontaktLeer(), { n: k.n, pos: k.pos, mail: k.mail, tel: k.tel, gl: k.gl })); }, unsicher: k.unsicher, quelle: k.quelle, an: !k.unsicher });
     else if ((!x.pos && k.pos) || (!x.mail && k.mail) || (!x.tel && k.tel))
@@ -229,7 +243,16 @@ function flcAenderungen(e, R, h) {
   L.tabReihe = [hKey, ...R.topfe.map(t => key(t.name)), ...e.topfe.map(t => key(t.name))].filter((k, i, A) => k && A.indexOf(k) === i && L.some(x => x.tab === k));      // Reiter in der Reihenfolge der Vorlage
   return L;
 }
-const FLC_BEREICHE = ['Fördertopf', 'Steckbrief', 'Einschätzung', 'Notizen', 'Fristen', 'Kontakte', 'Sonstiges'];
+const FLC_BEREICHE = ['Fördertopf', 'Steckbrief', 'Einschätzung', 'Notizen', 'Beispiele', 'Fristen', 'Kontakte', 'Sonstiges'];
+// Förderer als Ganzes recherchiert, dabei Fördertöpfe angelegt: Was beim Förderer steht, wäre danach nicht mehr zu sehen (die Seite zeigt die Töpfe).
+// Deshalb bekommt jeder neue Topf: leere Felder vom Förderer, fehlende Achsen der Einschätzung, die Notizen des Förderers (angehängt) und seine Beispiele
+function flcErbeAlles(m, e) {
+  const notiz0 = m.notiz, bsp0 = m.beispiele.slice();
+  flTopfErbt(m, e);
+  FL_BEW.forEach(x => { if (!m.bew[x.k] && e.bew[x.k]) m.bew[x.k] = e.bew[x.k]; });
+  if (notiz0 && e.notiz && !notiz0.includes(e.notiz)) m.notiz = notiz0 + '\n\n*Zum Förderer allgemein:*\n' + e.notiz;
+  if (bsp0.length && e.beispiele.length) m.beispiele = bsp0.concat(e.beispiele.filter(b => !bsp0.some(x => norm(x.titel) === norm(b.titel))).map(b => Object.assign({}, b, { id: uid('b') })));
+}
 // Fördertopf einfügen: der erste übernimmt vorher die Angaben des Förderers
 function flTopfEinfuegen(e, t) {
   if (!e.topfe.length) { flTopfErbt(t, e); e.fristenL.forEach(f => { if (!f.topf) f.topf = t.name; }); }
@@ -288,7 +311,7 @@ async function flcEinlesen(datei) {
       : anl ? 'Neuer Fördertopf „' + n + '“: Diese Angaben gelten nur für ihn.' : aktiv === L.hKey ? 'Ziel des Einlesens: Fördertopf „' + n + '“.' : 'Vorhandener Fördertopf „' + n + '“: Es werden nur leere Felder ergänzt.'); };
   const erbeZeilen = () => {                                                       // was ein neuer Topf zusätzlich vom Förderer übernimmt (nur Ansicht)
     if (!tabsAn() || !aktiv || !L.erbenAlle) return []; const ki = L.findIndex(x => x.anlegen && x.tab === aktiv); if (ki < 0 || !gilt(ki)) return [];
-    const eigen = new Set(L.filter(x => x.tab === aktiv && x.key).map(x => x.key)), G = L.filter((x, i) => x.erbt && x.tab === '' && x.fn && gilt(i) && !eigen.has(x.erbt)); if (!G.length) return [];
+    const eigen = new Set(L.filter(x => x.tab === aktiv && x.key).map(x => x.key)), G = L.filter((x, i) => x.erbt && x.tab === '' && x.fn && gilt(i) && (!eigen.has(x.erbt) || x.erbt === 'notiz' || x.erbt === 'beispiele')); if (!G.length) return [];
     return [h('div', { class: 'flc-bereich' }, 'Vom Förderer übernommen'), ...G.map(x => h('div', { class: 'flc-r erbe' }, h('div', { class: 'flc-cb' }), h('div', { class: 'flc-k' }, h('b', {}, x.titel), h('span', { class: 'fl-pill' }, 'Förderer')), h('div', { class: 'flc-v' }, h('div', { class: 'flc-w' + (x.edit === 'rich' ? ' fmt' : ''), html: anzeige(x) }))))]; };
   const zeichne = () => {
     const an = tabsAn(); tabBar.hidden = !an; if (!tabsListe().includes(aktiv)) aktiv = tabsListe()[0] || '';

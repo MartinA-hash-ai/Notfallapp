@@ -29,7 +29,7 @@ function fristenAusText(t) {
   const rest = String(t || '').replace(FRIST_RE, '').replace(/\b(und|sowie|bzw|oder|jeweils|bis|zum|am|je)\b/gi, '').replace(/[\s,.;:–\-\/()*_]+/g, '');
   return { L, text: rest ? strV(t) : '' };
 }
-const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg: [], anschrift: '', web: '', schwer: '', hoehe: '', fristen: '', quote: '', kurz: '', gross: false, hoeheVon: null, hoeheBis: null, topfe: [], topfMig: false, richtlinien: '', recherche: '', notiz: '', bew: { chance: 0, dauer: 0, summe: 0 }, antrag: '', fristenL: [], ansprache: [], kontakte: [], foerderungen: [] });
+const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg: [], anschrift: '', web: '', schwer: '', hoehe: '', fristen: '', quote: '', kurz: '', gross: false, hoeheVon: null, hoeheBis: null, topfe: [], topfMig: false, richtlinien: '', recherche: '', notiz: '', bew: { chance: 0, dauer: 0, summe: 0 }, antrag: '', fristenL: [], ansprache: [], kontakte: [], foerderungen: [], beispiele: [] });
 // Einschätzung (ab 0.89, Häufigkeit und Aufwand ab 0.96): je drei Stufen, 1 = ungünstig … 3 = günstig (im Netz außen = besser; bei Dauer und Aufwand heißt außen
 // „geht schnell“ bzw. „einfach“); 0 = nicht von Hand gesetzt. Reihenfolge = im Uhrzeigersinn ab oben: Geld (Summe, Häufigkeit) rechts, Mühe (Aufwand, Dauer) links
 const FL_BEW = [
@@ -53,15 +53,17 @@ function mailRein(v) {
   return m ? m[0] : t.trim();
 }
 // Felder, die Förderer und Fördertopf gemeinsam haben (beim Förderer ohne Töpfe gelten sie für ihn selbst, sonst je Topf)
-const FL_TF = ['schwer', 'gl', 'hoehe', 'hoeheVon', 'hoeheBis', 'quote', 'fristen', 'web', 'richtlinien', 'weg', 'antrag', 'anschrift', 'recherche', 'bew', 'gross', 'notiz'];
+const FL_TF = ['schwer', 'gl', 'hoehe', 'hoeheVon', 'hoeheBis', 'quote', 'fristen', 'web', 'richtlinien', 'weg', 'antrag', 'anschrift', 'recherche', 'bew', 'gross', 'notiz', 'beispiele'];
 const flBewNull = () => Object.fromEntries(FL_BEW.map(x => [x.k, 0]));
-const flTopfLeer = (name = '') => ({ id: uid('t'), name, kurz: '', schwer: '', gl: [], hoehe: '', hoeheVon: null, hoeheBis: null, quote: '', fristen: '', web: '', richtlinien: '', weg: [], antrag: '', anschrift: '', recherche: '', bew: flBewNull(), gross: false, notiz: '' });
+const flTopfLeer = (name = '') => ({ id: uid('t'), name, kurz: '', schwer: '', gl: [], hoehe: '', hoeheVon: null, hoeheBis: null, quote: '', fristen: '', web: '', richtlinien: '', weg: [], antrag: '', anschrift: '', recherche: '', bew: flBewNull(), gross: false, notiz: '', beispiele: [] });
 function flTraegerNorm(o) {
   for (const k of ['schwer', 'hoehe', 'quote', 'fristen', 'web', 'richtlinien', 'antrag', 'anschrift', 'notiz']) o[k] = strV(o[k]);
   o.gross = o.gross === true; o.hoeheVon = zahlOderLeer(o.hoeheVon); o.hoeheBis = zahlOderLeer(o.hoeheBis); if (o.hoeheVon != null || o.hoeheBis != null) o.hoehe = '';   // Förderhöhe: Zahlen von … bis; ein älterer Freitext bleibt, bis man neu einträgt
   o.recherche = validIso(o.recherche) ? o.recherche : ''; o.gl = strL(o.gl); o.weg = uniq(strL(o.weg).map(flWegNorm));
   const bw = isObj(o.bew) ? o.bew : {}; o.bew = Object.fromEntries(FL_BEW.map(x => [x.k, [1, 2, 3].includes(+bw[x.k]) ? +bw[x.k] : 0]));
+  o.beispiele = (Array.isArray(o.beispiele) ? o.beispiele : []).filter(isObj).map(flBeispielNorm).filter(b => b.titel || b.text);   // ab 0.120: Beispiele geförderter Projekte
 }
+const flBeispielNorm = b => ({ id: strV(b.id) || uid('b'), titel: strV(b.titel), text: strV(b.text), ort: strV(b.ort), jahr: strV(b.jahr).replace(/\.0$/, ''), betrag: zahlOderLeer(b.betrag), quelle: strV(b.quelle) });
 // Fördertopf übernimmt vom Förderer, was ihm noch fehlt (Kopie); Einschätzung nur, wenn noch nichts gesetzt ist
 function flTopfErbt(t, e) {
   for (const k of FL_TF) {
@@ -69,7 +71,7 @@ function flTopfErbt(t, e) {
     else if (k === 'gross') t.gross = t.gross || e.gross;
     else if (k === 'hoehe') { if (!t.hoehe && t.hoeheVon == null && t.hoeheBis == null) Object.assign(t, { hoehe: e.hoehe, hoeheVon: e.hoeheVon, hoeheBis: e.hoeheBis }); }
     else if (k === 'hoeheVon' || k === 'hoeheBis') continue;
-    else if (Array.isArray(e[k])) { if (!t[k].length) t[k] = e[k].slice(); }
+    else if (Array.isArray(e[k])) { if (!t[k].length) t[k] = JSON.parse(JSON.stringify(e[k])); }
     else if (!t[k]) t[k] = e[k];
   }
 }
@@ -193,6 +195,7 @@ const FL_SP = {
   'Förderungen': ['Förderer-ID', 'Förderer', 'Jahr', 'Datum', 'Ergebnis', 'Betrag (€)', 'Zweck / Bedarf', 'Gliederungen', 'Grund der Absage', 'Quelle', 'Bedarf-ID'],
   'Fristen': ['Förderer-ID', 'Förderer', 'Frist', 'jedes Jahr', 'Fördertopf'],
   'Fördertöpfe': ['Förderer-ID', 'Förderer', 'Fördertopf', 'Kurzname', 'Förderzweck', 'Fördergebiet', 'Förderhöhe', 'Förderquote', 'Förderhöhe von (€)', 'Förderhöhe bis (€)', ...FLT_X.map(x => x[0])],
+  'Beispiele': ['Förderer-ID', 'Förderer', 'Fördertopf', 'Titel', 'Beschreibung', 'Empfänger / Ort', 'Jahr', 'Betrag (€)', 'Quelle'],
 };
 // Stufe aus einer Excel-Zelle: von der höchsten Stufe an suchen („mehrmals jährlich“ enthält „jährlich“); „einmal im Jahr“ aus 0.96 gilt weiter
 const flStufe = (x, v) => { const t = norm(v).replace('im jahr', 'jährlich'); if (!t) return 0; for (let i = x.st.length - 1; i >= 0; i--) if (t.includes(norm(x.st[i]))) return i + 1; return 0; };
@@ -215,6 +218,8 @@ function flLesen(book) {
   for (const r of tab('Fördertöpfe')) { const e = zu(r); if (e && strV(r['fördertopf'])) { const t = Object.assign(flTopfLeer(strV(r['fördertopf'])), { kurz: strV(r.kurzname), schwer: strV(r['förderzweck']), gl: strL(r['fördergebiet']), hoehe: strV(r['förderhöhe']), quote: strV(r['förderquote']), hoeheVon: zahlOderLeer(r['förderhöhe von (€)']), hoeheBis: zahlOderLeer(r['förderhöhe bis (€)']),
       web: strV(r['homepage / portal']), richtlinien: strV(r['förderrichtlinien (link)']), weg: strL(r.antragsweg), antrag: strV(r['antrag an (e-mail oder portal-link)']), anschrift: strV(r.anschrift), recherche: xlDatum(r['recherche-stand']), fristen: strV(r['hinweis zu fristen']), notiz: strV(r.notizen), gross: norm(r['großförderer']) === 'ja' });
     FL_BEW.forEach(x => { t.bew[x.k] = flStufe(x, r[norm(x.t)]); }); e.topfe.push(t); } }
+  for (const r of tab('Beispiele')) { const e = zu(r); if (!e) continue; const t = strV(r['fördertopf']) ? e.topfe.find(x => norm(x.name) === norm(r['fördertopf'])) : null;
+    (t || e).beispiele.push(flBeispielNorm({ titel: r.titel, text: r.beschreibung, ort: r['empfänger / ort'], jahr: cellStr(r.jahr), betrag: r['betrag (€)'], quelle: r.quelle })); }
   if (blatt('Fristen')) for (const r of tab('Fristen')) { const e = zu(r), d = typeof r.frist === 'number' ? xlDatum(r.frist) : fristParse(cellStr(r.frist));
     if (e && d) (e.fristenL = e.fristenL || []).push({ d: norm(r['jedes jahr']) !== 'nein' && d.length > 5 ? d.slice(5) : d, topf: strV(r['fördertopf']) }); }   // jedes Jahr: nur Tag und Monat
   else L.forEach(e => { delete e.fristenL; });                                          // ältere Excel: Termine aus dem Fristen-Text
@@ -243,11 +248,12 @@ function flExportZeilen() {
     'Fördertöpfe': L.flatMap(e => e.topfe.map(t => [e.id, e.name, t.name, t.kurz, t.schwer, j(t.gl), flHoeheKlar(t), t.quote, t.hoeheVon ?? '', t.hoeheBis ?? '', t.web, t.richtlinien, j(t.weg), t.antrag, t.anschrift, t.recherche, t.fristen, t.notiz, t.gross ? 'ja' : '',
       ...['chance', 'dauer', 'summe', 'haeufig', 'aufwand'].map(k => { const x = FL_BEW.find(y => y.k === k); return t.bew[k] ? x.st[t.bew[k] - 1] : ''; })])),
     'Förderungen': L.flatMap(e => flHistorie(e).map(x => [e.id, e.name, +x.jahr || x.jahr || '', x.datum || '', x.ergebnis, x.betrag, x.zweck, j(x.gl || []), x.grund || '', x.quelle, x.bedarfId || ''])),
+    'Beispiele': L.flatMap(e => [{ t: null, B: e.beispiele }, ...e.topfe.map(t => ({ t, B: t.beispiele }))].flatMap(({ t, B }) => B.map(b => [e.id, e.name, t ? t.name : '', b.titel, b.text, b.ort, b.jahr, b.betrag ?? '', b.quelle]))),
   };
 }
 function flBlob(Z = flExportZeilen()) {
   const kopf = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, z = { border: 'thin', v: 'top', wrap: true };
-  const breiten = { 'Förderer': [7, 34, 18, 11, 26, 16, 30, 34, 34, 16, 18, 26, 13, 40, 14, 11, 13, 17, 15, 34, 26, 14, 14, 14, 14], 'Ansprache': [11, 30, 22, 18, 60, 30, 24], 'Kontakte': [11, 30, 26, 24, 34, 18, 24, 12, 30], 'Förderungen': [11, 30, 7, 11, 11, 11, 40, 24, 30, 16, 12], 'Fristen': [11, 30, 12, 11, 30], 'Fördertöpfe': [11, 30, 30, 18, 34, 26, 22, 26, 14, 14, 30, 30, 12, 30, 30, 13, 26, 40, 12, 14, 11, 13, 17, 15] };
+  const breiten = { 'Förderer': [7, 34, 18, 11, 26, 16, 30, 34, 34, 16, 18, 26, 13, 40, 14, 11, 13, 17, 15, 34, 26, 14, 14, 14, 14], 'Ansprache': [11, 30, 22, 18, 60, 30, 24], 'Kontakte': [11, 30, 26, 24, 34, 18, 24, 12, 30], 'Förderungen': [11, 30, 7, 11, 11, 11, 40, 24, 30, 16, 12], 'Fristen': [11, 30, 12, 11, 30], 'Fördertöpfe': [11, 30, 30, 18, 34, 26, 22, 26, 14, 14, 30, 30, 12, 30, 30, 13, 26, 40, 12, 14, 11, 13, 17, 15], 'Beispiele': [11, 30, 26, 22, 60, 24, 8, 12, 34] };
   const datum = { 'Förderer': [12], 'Förderungen': [3], 'Fördertöpfe': [15] }, txt = { 'Kontakte': [5] }, listen = { 'Förderer': [[2, FL_ARTEN], [3, FL_STATUS], ...FL_BEW_XL.map((x, i) => [14 + i, x.st])], 'Ansprache': [[3, FL_ANSPRACHE]], 'Kontakte': [[7, ['ja', 'nein']]], 'Förderungen': [[4, ['gefördert', 'abgelehnt']]], 'Fristen': [[3, ['ja', 'nein']]] };
   const sheets = Object.keys(FL_SP).map(name => {
     const R = Z[name], n = R.length + 1, last = colName(FL_SP[name].length - 1);
@@ -264,6 +270,7 @@ function flBlob(Z = flExportZeilen()) {
       'Blatt „Fördertöpfe“: je Fördertopf (z. B. ein Programm der Aktion Mensch) eine Zeile mit allem, was für ihn gilt: Zweck, Gebiet, Förderhöhe, Quote, Homepage, Antragsweg, Einschätzung, Großförderer und Notizen (hat ein Förderer Fördertöpfe, stehen Steckbrief, Einschätzung und Notizen dort, nicht mehr beim Förderer); der Name verbindet ihn mit den Fristen. „Kurzname“ bei den Förderern: so heißt der Förderer intern (z. B. DSEE) – in den Bedarfen gelten Kurzname und voller Name.',
       '„Großförderer“: ja = in der Fördererliste mit kleiner Krone (> 10.000 € möglich); im Programm über die Krone neben „> 3.000 €“ im Netz.',
       'Blatt „Kontakte“: je Person eine Zeile mit Position; „Anschreiben“: ja, nein oder leer (nicht festgelegt).',
+      'Blatt „Beispiele“: geförderte Projekte als Beispiele – Schlagwort, Beschreibung, Empfänger/Ort, Jahr, Betrag, Quelle; „Fördertopf“ leer = beim Förderer selbst.',
       'Blatt „Förderungen“: Förderungen und Absagen. Quelle „Bedarfsliste“ = aus einem Bedarf (Bedarf-ID), sonst aus der alten Kartei oder von Hand.',
       'Zurückholen: im Programm Reiter „Fördererliste“ → „Excel einlesen …“ (ersetzt die Liste im Programm).'].map(t => [{ v: t, st: { wrap: true } }])] });
   return xlsxBlob(sheets);
@@ -301,13 +308,15 @@ function flBewAuto(e) {
 const flTopfWahl = e => e.topfe.length ? (e.topfe.find(t => t.id === UI.flTopf) || e.topfe[0]) : null;
 const flTraeger = e => flTopfWahl(e) || e;
 // aus den Daten geschätzt: Förderungen und Absagen gehören zum Förderer, nicht zu einem Topf – mit mehreren Töpfen deshalb keine Schätzung je Topf
-// Fördersumme zusätzlich aus der Förderhöhe im Steckbrief des Trägers (Förderer oder Topf), wenn die Förderungen nichts hergeben; bei „von … bis“ zählt die Mitte
+// Fördersumme aus der Förderhöhe im Steckbrief des Trägers (Förderer oder Topf): zählt der höchste mögliche Betrag („1.000 bis 5.000 €“ → 5.000 € → > 3.000 €).
+// Die Förderhöhe geht vor der Schätzung aus den Förderungen; ein älterer Freitext zählt nur mit „€“ oder „Euro“
 function flBewHoehe(o) {
-  const v = o.hoeheVon, b = o.hoeheBis; if (v == null && b == null) return null;
-  const m = ((v == null ? b : v) + (b == null ? v : b)) / 2;
+  let m = o.hoeheBis != null ? o.hoeheBis : o.hoeheVon;
+  if (m == null && /€|euro/i.test(o.hoehe || '')) { const Z = flHoeheZahlen(o.hoehe).filter(x => x >= 100); if (Z.length) m = Math.max(...Z); }
+  if (m == null) return null;
   return { v: m > 3000 ? 3 : m > 1000 ? 2 : 1, grund: 'Förderhöhe ' + flHoeheKlar(o) };
 }
-const flAutoFuer = (e, t) => { const A = t && e.topfe.length > 1 ? {} : flBewAuto(e); if (A.summe) return A; const H = flBewHoehe(t || e); return H ? Object.assign({}, A, { summe: H }) : A; };
+const flAutoFuer = (e, t) => { const A = t && e.topfe.length > 1 ? {} : flBewAuto(e), H = flBewHoehe(t || e); return H ? Object.assign({}, A, { summe: H }) : A; };
 function flBew(e, t) {
   const A = flAutoFuer(e, t), bw = (t || e).bew;
   return Object.fromEntries(FL_BEW.map(x => [x.k, bw[x.k] ? { v: bw[x.k], hand: true, grund: 'von Hand eingeschätzt' } : A[x.k] ? Object.assign({ hand: false }, A[x.k]) : { v: 0, hand: false, grund: '' }]));
@@ -544,6 +553,7 @@ function flHoeheEdit(el) {
   const wrap = h('div', { class: 'fl-hoehe-in' }, 'von ', von, ' € bis ', bis, ' €');
   const num = a => a.value ? +a.value : null;
   const ok = () => { if (fertig) return; fertig = true; let a = num(von), b = num(bis); if (a != null && b == null) b = a; if (a != null && b != null && a > b) [a, b] = [b, a];
+    if (a !== o.hoeheVon || b !== o.hoeheBis) o.bew.summe = 0;                    // neue Förderhöhe: Fördersumme im Netz wieder daraus schätzen
     o.hoeheVon = a; o.hoeheBis = b; o.hoehe = ''; changed(); keep(renderNow); };
   wrap.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); ok(); } else if (ev.key === 'Escape') { ev.preventDefault(); fertig = true; keep(renderNow); } });
   wrap.addEventListener('focusout', () => setTimeout(() => { if (!fertig && !wrap.contains(document.activeElement)) ok(); }, 0));
@@ -551,6 +561,26 @@ function flHoeheEdit(el) {
 }
 const flHoeheFeld = (o, pf) => { const t = flHoeheKlar(o);
   return `<div class="pe fl-fett fl-hoehe" data-act="fl-hoehe" data-pf="${pf}" tabindex="0" title="Klicken zum Bearbeiten"><div class="val${t ? '' : ' leer'}">${t ? esc(t) : 'Förderhöhe eintragen …'}</div>${ICON_PEN}</div>`; };
+// Beispiele geförderter Projekte (ab 0.120): Schlagwort in der Liste, Klick zeigt die Beschreibung; „+ Beispiel“ und Bearbeiten über ein Fenster
+async function flBspZeigen(i) {
+  const e = flCur(), T = e && flTraeger(e), b = T && T.beispiele[i]; if (!b) return;
+  const meta = [b.ort, b.jahr, b.betrag != null ? eur(b.betrag) : ''].filter(Boolean).join(' · '), url = /^https?:\/\//i.test(b.quelle) ? b.quelle : '';
+  const body = h('div', { class: 'fl-bsp-pop' }, meta ? h('div', { class: 'muted small' }, meta) : null, h('p', {}, b.text || '–'),
+    b.quelle ? (url ? h('a', { href: url, target: '_blank', rel: 'noopener', class: 'small' }, 'Quelle: ' + kurzUrl(url)) : h('div', { class: 'muted small' }, 'Quelle: ' + b.quelle)) : null);
+  const v = await modal(b.titel || 'Beispiel', body, [['Löschen', 'weg'], ['Bearbeiten', 'edit'], ['Schließen', null, 'primary']]);
+  if (v === 'weg') { T.beispiele.splice(i, 1); changed(); keep(renderNow); toast('Beispiel gelöscht – mit ↶ (Strg+Z) zurückzuholen'); }
+  else if (v === 'edit') flBspForm(i);
+}
+async function flBspForm(i) {
+  const e = flCur(), T = e && flTraeger(e); if (!T) return; const b = T.beispiele[i] || {};
+  const f = (lab, v, o = {}) => { const el = h(o.ta ? 'textarea' : 'input', Object.assign({ class: 'fl-bsp-f', 'aria-label': lab, placeholder: o.ph || '' }, o.ta ? { rows: 3 } : { type: 'text' })); el.value = v == null ? '' : String(v); return [h('label', { class: 'fl-bsp-lab' }, lab), el]; };
+  const F = { titel: f('Schlagwort (1–3 Wörter)', b.titel, { ph: 'z. B. Erste-Hilfe-Kurse' }), text: f('Beschreibung', b.text, { ta: true, ph: 'Was wurde gefördert?' }), ort: f('Empfänger / Ort', b.ort), jahr: f('Jahr', b.jahr), betrag: f('Betrag (€)', b.betrag), quelle: f('Quelle (Link)', b.quelle) };
+  const body = h('div', { class: 'fl-bsp-form' }, ...Object.values(F).flat());
+  const ok = await modal(i < 0 ? 'Beispiel hinzufügen' : 'Beispiel bearbeiten', body, [['Abbrechen', false], ['Speichern', true, 'primary']]); if (!ok) return;
+  const w = k => F[k][1].value.trim(), n = flBeispielNorm({ id: b.id, titel: w('titel'), text: w('text'), ort: w('ort'), jahr: w('jahr'), betrag: w('betrag') ? +w('betrag').replace(/[^\d,]/g, '').replace(',', '.') || null : null, quelle: w('quelle') });
+  if (!n.titel && !n.text) return;
+  if (i < 0) T.beispiele.push(n); else T.beispiele[i] = n; changed(); keep(renderNow);
+}
 // Förderzweck: Freitext (zuerst) und Vorauswahl der Zwecke der Malteser (danach, mit Komma getrennt); Klick öffnet das Auswahlfeld
 const flZweckFeld = (o, pf, ph) => `<div class="pe fl-zweck" data-act="fl-zweck" data-pf="${pf}" tabindex="0" title="Klicken zum Bearbeiten"><div class="val${o.schwer ? '' : ' leer'}">${o.schwer ? `<span class="pv fmt">${fmtText(o.schwer)}</span>` : esc(ph)}</div>${ICON_PEN}</div>`;
 let ZW_POP = null;
@@ -737,7 +767,10 @@ function flDetailView() {
       ${link('richtlinien', 'Förderrichtlinien', 'Förderrichtlinien')}
       ${link('web', 'Homepage', 'Homepage')}
       <section class="fl-blk"><h3>Anschrift</h3>${flTa(pf + 'anschrift', W.anschrift, { rows: 1, ph: 'Straße, PLZ Ort eintragen …', aria: 'Anschrift', cls: 'fl-anschrift' })}</section>
-      <section class="fl-blk"><h3>Recherchestand</h3>${pe(e, pf + 'recherche', '', 'date', { flpe: true, ph: 'Datum eintragen …', aria: 'Recherchestand' })}</section></aside></div>`;
+      <section class="fl-blk"><h3>Recherchestand</h3>${pe(e, pf + 'recherche', '', 'date', { flpe: true, ph: 'Datum eintragen …', aria: 'Recherchestand' })}</section></aside>
+      <section class="card fl-bsp"><div class="fl-blk-k"><h3>Beispiele</h3><button class="link fl-plus-t" data-act="fl-bsp-neu">+ Beispiel</button></div>
+        ${W.beispiele.length ? `<div class="fl-bsp-l">${W.beispiele.map((b, i) => `<button class="fl-bsp-c" data-act="fl-bsp" data-i="${i}" title="${esc(b.text)}">${esc(b.titel || short(b.text))}${b.jahr ? ` <span class="fl-bsp-j">${esc(b.jahr)}</span>` : ''}</button>`).join('')}</div>`
+          : '<p class="fl-leer">Noch keine Beispiele – Copilot trägt geförderte Projekte ein, oder „+ Beispiel“.</p>'}</section></div>`;
 
   // der Hinweis steht im Kopf, rechts neben dem Namen – der Kasten mit dem Netz bleibt auf Höhe des linken Kastens
   return `<main class="fl-main fl-detail">${hinweise ? kopf.slice(0, -6) + `<div class="fl-hinw">${hinweise}</div></div>` : kopf}
@@ -1020,6 +1053,8 @@ async function flAct(k, a) {
     case 'fl-k-an': { const x = e && e.kontakte[+a.dataset.i]; if (x) { x.anschreiben = x.anschreiben === 'ja' ? '' : 'ja'; neu(); } return true; }   // ★ an/aus; „nicht anschreiben“ im Bearbeiten
     case 'fl-frist': case 'fl-frist-neu': if (e) flFristMenue(a, k === 'fl-frist' ? +a.dataset.i : null, a.dataset.topf || ''); return true;
     case 'fl-hoehe': flHoeheEdit(a); return true;
+    case 'fl-bsp': flBspZeigen(+a.dataset.i); return true;
+    case 'fl-bsp-neu': flBspForm(-1); return true;
     case 'fl-zweck': flZweckMenue(a); return true;
     case 'fl-copilot-dialog': closeMenus(); if (e) flcDialog(e); return true;
     case 'fl-copilot-lesen': closeMenus(); flcEinlesen(); return true;

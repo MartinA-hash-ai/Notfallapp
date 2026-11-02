@@ -85,7 +85,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(async () => { const f = __fs.files['/Ordner/Fördererliste.xlsx']; if (!f || !f.data.length) return ['fehlt'];
     const bk = await xlsxBook(f.data.buffer.slice(0)), R = flLesen(bk), fo = bk.sheets.find(s => s.name === 'Förderungen');
     return [bk.sheets.map(s => s.name).join('+'), R.liste.length, R.liste[0].foerderungen.length, fo.rows.length - 1, fo.rows.filter(x => x[9] === 'Bedarfsliste').map(x => x[10]).join(), R.liste.find(e => e.id === 'F004').kontakte[0].anschreiben, JSON.stringify(R.liste[0].bew), bk.sheets[0].rows[1][15]]; });
-  ok(r.join('|') === 'Förderer+Ansprache+Kontakte+Förderungen+Fristen+Fördertöpfe+Anleitung|4|1|3|a,a|ja|{"chance":0,"summe":0,"haeufig":0,"aufwand":0,"dauer":2}|mittel', 'Excel-Kopie im Ordner: Blätter, Förderungen mit Bedarf-ID, Einlesen ohne doppelte: ' + r.join('|'));
+  ok(r.join('|') === 'Förderer+Ansprache+Kontakte+Förderungen+Fristen+Fördertöpfe+Beispiele+Anleitung|4|1|3|a,a|ja|{"chance":0,"summe":0,"haeufig":0,"aufwand":0,"dauer":2}|mittel', 'Excel-Kopie im Ordner: Blätter, Förderungen mit Bedarf-ID, Einlesen ohne doppelte: ' + r.join('|'));
 
   // eigene Seite: Liste, Suche, Filter, Seite eines Förderers, Bearbeiten, zurück
   await p.click('header.top [data-act="flist"]'); await p.waitForTimeout(150);
@@ -396,7 +396,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   ok(await p.evaluate(() => !document.querySelector('.fl-menue [data-fl="status"]') && /Mit Copilot ausfüllen/.test(document.querySelector('.fl-menue').textContent) && !/Recherche vorbereiten|Ausgefüllte Vorlage/.test(document.querySelector('.fl-menue').textContent)), '⋯-Menü: ohne Status, ohne die beiden alten Einträge');
   r = await p.evaluate(async () => { const e = flEintrag('F002'), bk = await xlsxBook(await flcVorlageBlob(e).arrayBuffer()), st = bk.sheets.find(x => x.name === 'Steckbrief'), pr = flcPrompt(e);
     return [bk.sheets.map(x => x.name).join('+'), st.rows.length - 1, FLC_FELDER.length, st.rows[1][1], pr.includes('Volksbank Test eG') && pr.includes(FLC_DATEI) && /Quelle/.test(pr) && /nichts/i.test(pr), flcLesen(bk) !== null]; });
-  ok(r.join('|') === 'Anleitung+Steckbrief+Fristen+Fördertöpfe+Kontakte+Quellen+Auswahlwerte|25|25|Volksbank Test eG|true|true', 'Vorlage: sieben Blätter, ein Feld je Zeile, Name vorbelegt; Auftrag nennt Förderer, Datei und Quellenpflicht: ' + r.join('|'));
+  ok(r.join('|') === 'Anleitung+Steckbrief+Fristen+Fördertöpfe+Beispiele+Kontakte+Quellen+Auswahlwerte|25|25|Volksbank Test eG|true|true', 'Vorlage: sieben Blätter, ein Feld je Zeile, Name vorbelegt; Auftrag nennt Förderer, Datei und Quellenpflicht: ' + r.join('|'));
   const datei = await p.evaluate(async () => { const S = [['Feld', 'Wert', 'Erkl', 'Sicherheit', 'Quelle', 'Anm'], ['Name des Förderers (voller Name)', 'Volksbank Test eG', '', 'sicher', 'https://q.example', ''], ['Kurzname (intern)', 'VBT', '', 'unsicher', '', ''], ['Art', 'Stiftung', '', 'sicher', 'https://q.example/a', ''],
       ['Förderzweck (Freitext)', 'Ehrenamt', '', 'sicher', '', ''], ['Zwecke der Malteser (Auswahl, mehrere mit Komma)', 'Gesundheit, Jugendhilfe, Kultur', '', 'sicher', '', ''], ['Fördergebiet (Gliederungen, Komma getrennt)', 'Dortmund, Hagen', '', 'sicher', '', ''],
       ['Förderhöhe von (€)', '1.000', '', 'sicher', '', ''], ['Förderhöhe bis (€)', 10000, '', 'sicher', '', ''], ['Förderquote', 'bis 80 %', '', 'sicher', '', ''], ['Homepage', 'www.x.example', '', 'sicher', '', ''], ['Antragsweg', 'Portal', '', 'sicher', '', ''],
@@ -473,7 +473,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.evaluate(() => { UI.flTopf = flEintrag('F002').topfe[1].id; renderNow(); }); await p.click('.fl-punkte'); await p.click('[data-act="fl-copilot-dialog"]'); await p.waitForSelector('.flc-dlg');
   r = await p.evaluate(async () => { const e = flEintrag('F002'), b = e.topfe[1], z = { modus: 'topf', topf: b, name: b.name }, bk = await xlsxBook(await flcVorlageBlob(e, z).arrayBuffer()), st = bk.sheets.find(x => x.name === 'Steckbrief'), pr = flcPrompt(e, z);
     return [[...document.querySelectorAll('.flc-dlg .flc-zo')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '*' : '') + (l.querySelector('input').disabled ? '(aus)' : '')).join('/'), [...document.querySelectorAll('.flc-dlg select option')].map(o => o.textContent + (o.selected ? '*' : '')).join('/'), bk.sheets.map(x => x.name).join('+'), st.rows[1][0], st.rows[1][1], st.rows.some(x => /^Art$/.test(x[0])), pr.includes('„Programm B“') && pr.includes('nur für diesen einen Fördertopf'), flcLesen(bk).modus]; });
-  ok(r.join('|') === 'Förderer allgemein(aus)/Ein bestimmter Fördertopf*|Programm A – noch nicht recherchiert/Programm B – noch nicht recherchiert*/Neuer Fördertopf …|Anleitung+Steckbrief+Fristen+Kontakte+Quellen+Auswahlwerte|Name des Fördertopfs (voller Name)|Programm B|false|true|topf', 'Dialog: erst „Förderer allgemein“ oder „bestimmter Fördertopf“ (allgemein gesperrt, sobald es Töpfe gibt), Töpfe ohne Recherche gekennzeichnet; Vorlage je Topf ohne Blatt „Fördertöpfe“ und ohne „Art“, Auftrag nennt den Topf: ' + r.join('|'));
+  ok(r.join('|') === 'Förderer allgemein(aus)/Ein bestimmter Fördertopf*|Programm A – noch nicht recherchiert/Programm B – noch nicht recherchiert*/Neuer Fördertopf …|Anleitung+Steckbrief+Fristen+Beispiele+Kontakte+Quellen+Auswahlwerte|Name des Fördertopfs (voller Name)|Programm B|false|true|topf', 'Dialog: erst „Förderer allgemein“ oder „bestimmter Fördertopf“ (allgemein gesperrt, sobald es Töpfe gibt), Töpfe ohne Recherche gekennzeichnet; Vorlage je Topf ohne Blatt „Fördertöpfe“ und ohne „Art“, Auftrag nennt den Topf: ' + r.join('|'));
   await p.click('.modal footer button.primary'); await p.waitForTimeout(100);
   // Einlesen je Fördertopf: vorhandener Topf (nach Namen gewählt) oder neuer
   const topfDatei = (name, zweck) => p.evaluate(async ([name, zweck]) => { const q = 'https://q.example/r.pdf';
@@ -541,7 +541,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.evaluate(() => { const e = flEintrag('F002'); Object.assign(e, { notiz: '', anschrift: '', schwer: '', gl: [], recherche: '', web: '', weg: [], antrag: '', gross: false }); e.bew = { chance: 0, summe: 0, haeufig: 0, aufwand: 0, dauer: 0 }; e.fristenL = []; e.topfe = []; e.topfMig = false; e.kontakte = []; UI.flTopf = ''; changed(); flOeffnen('F002'); renderNow(); }); await p.waitForTimeout(250);
   await p.click('.fl-punkte'); await p.click('[data-act="fl-copilot-dialog"]'); await p.waitForSelector('.flc-dlg');
   r = await p.evaluate(async () => { const e = flEintrag('F002'), bk = await xlsxBook(await flcVorlageBlob(e).arrayBuffer()), tp = bk.sheets.find(x => x.name === 'Fördertöpfe'), pr = flcPrompt(e);
-    return [[...document.querySelectorAll('.flc-dlg .flc-zo')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '*' : '') + (l.querySelector('input').disabled ? '(aus)' : '')).join('/'), [...document.querySelectorAll('.flc-dlg select option')].map(o => o.textContent).join('/'), document.querySelector('.flc-unter').hidden, tp.rows[0].length, pr.includes('JEDES Programm') && pr.includes('nur mit seinem Namen eingetragen ist, ist unbrauchbar')]; });
+    return [[...document.querySelectorAll('.flc-dlg .flc-zo')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '*' : '') + (l.querySelector('input').disabled ? '(aus)' : '')).join('/'), [...document.querySelectorAll('.flc-dlg select option')].map(o => o.textContent).join('/'), document.querySelector('.flc-unter').hidden, tp.rows[0].length, pr.includes('JEDES Programm') && pr.includes('Ein Programm nur mit Namen ist unbrauchbar')]; });
   ok(r.join('|') === 'Förderer allgemein*/Ein bestimmter Fördertopf|Neuer Fördertopf …|true|24|true', 'Dialog ohne Töpfe: „Förderer allgemein“ vorgewählt, Topf-Auswahl erst nach Klick; Vorlage: Töpfe-Blatt mit allen Angaben (24 Spalten), Auftrag verlangt jeden Topf vollständig: ' + r.join('|'));
   await p.click('.flc-dlg input[value="t"]'); r = await p.evaluate(() => [document.querySelector('.flc-unter').hidden, document.querySelector('.flc-neuname').hidden]);
   ok(r.join() === 'false,false', 'Dialog: „Ein bestimmter Fördertopf“ zeigt die Auswahl (neuer Topf mit Namensfeld)');
@@ -574,7 +574,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = [await tabs(), ...(await titel())];
   ok(r[0] === 'Förderer:4/4!/Mikroförderung*:8/8/action!*:9/9/Nur Name*:0/1' && r[1] === 'Anschrift,Aufwand,An die Notizen anhängen,Recherchestand (Förderer)' && r[2] === '', 'Vorschau: Reiter „Förderer“ und je Fördertopf; der Förderer-Reiter zeigt nur die Angaben zum Förderer: ' + r.join(' | '));
   await p.click('.flc-tab:has-text("action!")'); r = [await tabs(), ...(await titel())];
-  ok(r[0].includes('action!*:9/9!') && r[1] === 'Fördertopf anlegen,Förderzweck,Fördergebiet,Förderhöhe,Antragsweg,Antrag an (Link),Förderrichtlinien,Häufigkeit,Notizen' && r[2] === 'Anschrift', 'Reiter eines Fördertopfs: seine eigenen Angaben, darunter was er vom Förderer übernimmt (nur was er nicht selbst hat): ' + r.join(' | '));
+  ok(r[0].includes('action!*:9/9!') && r[1] === 'Fördertopf anlegen,Förderzweck,Fördergebiet,Förderhöhe,Antragsweg,Antrag an (Link),Förderrichtlinien,Häufigkeit,Notizen' && r[2] === 'Anschrift,Aufwand,An die Notizen anhängen', 'Reiter eines Fördertopfs: seine eigenen Angaben, darunter was er vom Förderer übernimmt (fehlende Felder und Achsen; die Notizen des Förderers werden angehängt): ' + r.join(' | '));
   await p.click('.flc-r:has-text("Fördertopf anlegen") input'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [[...document.querySelectorAll('.flc-r input')].filter(c => c.disabled).length, document.querySelectorAll('.flc-r.erbe').length, document.querySelector('.flc-tab.on small').textContent]);
   ok(r.join('|') === '8|0|0/9', 'Ohne „Fördertopf anlegen“ sind seine übrigen Angaben gesperrt und zählen nicht: ' + r.join('|'));
@@ -587,6 +587,46 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.evaluate(() => undo()); await p.waitForTimeout(300);
   ok(await p.evaluate(() => flEintrag('F002').topfe.length) === 0, 'Einlesen mit mehreren Fördertöpfen: ein Rückgängig nimmt alles zurück');
   await p.evaluate(() => { flZurueck(); });
+  // 0.120: Fördersumme aus dem Höchstbetrag; Förderer-Angaben gehen beim Einlesen in jeden neuen Topf (nichts verborgen); Beispiele
+  r = await p.evaluate(() => { const o = { hoeheVon: 1000, hoeheBis: 5000, hoehe: '' }, a = flBewHoehe(o), b = flBewHoehe({ hoeheVon: 1000, hoeheBis: 1000, hoehe: '' }), c = flBewHoehe({ hoeheVon: null, hoeheBis: null, hoehe: 'bis 2.500 Euro' }), d = flBewHoehe({ hoeheVon: null, hoeheBis: null, hoehe: 'bis 90 % der Kosten' });
+    return [a.v, b.v, c.v, d]; });
+  ok(r.join('|') === '3|1|2|', 'Fördersumme aus der Förderhöhe: der Höchstbetrag zählt (1.000–5.000 € → > 3.000 €), alter Freitext nur mit Euro: ' + r.join('|'));
+  await p.evaluate(() => { const e = flEintrag('F002'); Object.assign(e, { notiz: '', anschrift: '', schwer: '', gl: [], recherche: '', web: '', weg: [], antrag: '', gross: false, hoeheVon: null, hoeheBis: null, hoehe: '', beispiele: [] }); e.bew = { chance: 0, summe: 1, haeufig: 0, aufwand: 0, dauer: 0 }; e.fristenL = []; e.topfe = []; e.topfMig = false; e.kontakte = []; UI.flTopf = ''; changed(); flOeffnen('F002'); renderNow(); }); await p.waitForTimeout(250);
+  await p.click('.fl-hoehe'); await p.fill('.fl-hoehe-f >> nth=0', '1000'); await p.fill('.fl-hoehe-f >> nth=1', '5000'); await p.keyboard.press('Enter'); await p.waitForTimeout(200);
+  r = await p.evaluate(() => { const e = flEintrag('F002'), B = flBew(e); return [e.bew.summe, B.summe.v, B.summe.hand, B.summe.grund]; });
+  ok(r.join('|') === '0|3|false|Förderhöhe von 1.000 € bis 5.000 €', 'Neue Förderhöhe: die von Hand gesetzte Fördersumme wird verworfen, das Netz schätzt aus der Höhe: ' + r.join('|'));
+  await p.evaluate(() => { const e = flEintrag('F002'); e.hoeheVon = null; e.hoeheBis = null; changed(); renderNow(); });
+  const bingo = await p.evaluate(async () => { const q = 'https://q.example/b';
+    const S = [['Feld', 'Wert', 'E', 'Sicherheit', 'Quelle', 'Anm'], ['Name des Förderers (voller Name)', 'Volksbank Test eG', '', 'sicher', q, ''], ['Anschrift', 'Weg 1, 12345 Ort', '', 'sicher', q, ''], ['Was wird gefördert?', '- Dankformate', '', 'sicher', q, ''], ['Wie tickt der Förderer? (Zusammenfassung, 2–3 Sätze)', 'Landesnah.', '', 'sicher', q, '']];
+    const zeile = o => FLC_TSP.map(([n]) => o[n] === undefined ? '' : o[n]);
+    const T = [FLC_TSP.map(c => c[0]), zeile({ 'Fördertopf (voller Name)': 'Projektförderung', 'Förderzweck': 'Ehrenamt', 'Förderhöhe von (€)': 1000, 'Förderhöhe bis (€)': 5000, 'Sicherheit': 'sicher' }),
+      zeile({ 'Fördertopf (voller Name)': 'Local Hero', 'Förderzweck': 'Engagement vor Ort', 'Förderhöhe bis (€)': 1000, 'Sicherheit': 'sicher', 'Weitere Notizen': '- Auswahl durch Vermittlungsstellen' })];
+    const Bs = [['Fördertopf (leer = Förderer allgemein)', 'Schlagwort', 'Beschreibung', 'Ort', 'Jahr', 'Betrag', 'Sicherheit', 'Quelle'], ['', 'Ehrenamtstag', 'Dankfest für Engagierte.', 'Essen', 2026, 1680, 'sicher', q], ['Local Hero', 'Kältebus', 'Preis für einen Kältebus.', 'Köln', 2025, 1000, 'sicher', q]];
+    const bl = (name, rows) => ({ name, cols: rows[0].map(() => 20), rows });
+    return Array.from(new Uint8Array(await xlsxBlob([bl('Steckbrief', S), bl('Fördertöpfe', T), bl('Beispiele', Bs)]).arrayBuffer())); });
+  await p.evaluate(() => closeMenus()); const [fc5] = await Promise.all([p.waitForEvent('filechooser'), p.evaluate(() => { flcEinlesen(); })]);
+  await fc5.setFiles({ name: 'bingo.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(bingo) }); await p.waitForSelector('.flc-r');
+  r = [await tabs(), ...(await titel())];
+  ok(r[1].includes('Ehrenamtstag'), 'Vorschau: Beispiele des Förderers im Reiter „Förderer“: ' + r.join(' | '));
+  await p.click('.flc-tab:has-text("Local Hero")'); r = [await tabs(), ...(await titel())];
+  ok(r[1] === 'Fördertopf anlegen,Förderzweck,Förderhöhe,Notizen,Kältebus' && r[2] === 'Anschrift,An die Notizen anhängen,Ehrenamtstag', 'Reiter „Local Hero“: eigene Angaben und Beispiel, dazu vom Förderer Anschrift, Notizen (angehängt) und dessen Beispiel: ' + r.join(' | '));
+  await p.click('.modal footer button.primary'); await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const e = flEintrag('F002'), [P, H] = e.topfe; return [e.topfe.map(t => t.name).join(), P.notiz.includes('*Gefördert:*\n- Dankformate'), H.notiz.startsWith('*Weiteres:*\n- Auswahl') && H.notiz.includes('*Zum Förderer allgemein:*') && H.notiz.includes('Landesnah.'), H.anschrift, P.beispiele.map(b => b.titel).join(), H.beispiele.map(b => b.titel).join(), flBew(e, P).summe.v, flBew(e, H).summe.v]; });
+  ok(r.join('|') === 'Projektförderung,Local Hero|true|true|Weg 1, 12345 Ort|Ehrenamtstag|Kältebus,Ehrenamtstag|3|1', 'Einlesen: Notizen und Beispiele des Förderers stehen in jedem Topf (bei eigenen Notizen angehängt), nichts bleibt verborgen; Netz je Topf aus seiner Höhe: ' + r.join('|'));
+  // Beispiele auf der Seite: Schlagworte, Klick zeigt die Beschreibung, löschen, hinzufügen
+  await p.evaluate(() => { UI.flTopf = flEintrag('F002').topfe[1].id; renderNow(); }); await p.waitForTimeout(200);
+  r = await p.evaluate(() => [[...document.querySelectorAll('.fl-bsp .fl-bsp-c')].map(b => b.textContent.trim()).join('/'), (() => { const a = document.querySelector('.fl-bsp').getBoundingClientRect(), l = document.querySelector('.fl-fn').getBoundingClientRect(); return Math.abs(a.bottom - l.bottom) < 2 || (a.bottom > l.bottom && Math.abs(a.height - 110) < 2); })()]);
+  ok(r.join('|') === 'Kältebus 2025/Ehrenamtstag 2026|true', 'Kasten „Beispiele“: Schlagworte mit Jahr, reicht bis zum unteren Rand der linken Kästen (mindestens 110 px hoch): ' + r.join('|'));
+  await p.click('.fl-bsp-c >> nth=0'); await p.waitForSelector('.fl-bsp-pop');
+  r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelector('.fl-bsp-pop').textContent]);
+  ok(r[0] === 'Kältebus' && r[1].includes('Preis für einen Kältebus.') && r[1].includes('Köln · 2025 · 1.000'), 'Klick auf ein Beispiel: Fenster mit Beschreibung, Ort, Jahr und Betrag: ' + r.join(' | '));
+  await p.click('.modal footer button:has-text("Löschen")'); await p.waitForTimeout(200);
+  await p.click('[data-act="fl-bsp-neu"]'); await p.waitForSelector('.fl-bsp-form'); await p.fill('.fl-bsp-form input >> nth=0', 'Sanitätsrucksack'); await p.fill('.fl-bsp-form textarea', 'Ausstattung für den Sanitätsdienst.'); await p.click('.modal footer button.primary'); await p.waitForTimeout(200);
+  r = await p.evaluate(() => flEintrag('F002').topfe[1].beispiele.map(b => b.titel + ':' + b.text).join('/'));
+  ok(r === 'Ehrenamtstag:Dankfest für Engagierte./Sanitätsrucksack:Ausstattung für den Sanitätsdienst.', 'Beispiel löschen und „+ Beispiel“ hinzufügen: ' + r);
+  r = await p.evaluate(async () => { const R = flLesen(await xlsxBook(await flBlob().arrayBuffer())), e = R.liste.find(x => x.id === 'F002'); return e.topfe.map(t => t.name + ':' + t.beispiele.map(b => b.titel + '/' + b.jahr).join('+')).join(' '); });
+  ok(r === 'Projektförderung:Ehrenamtstag/2026 Local Hero:Ehrenamtstag/2026+Sanitätsrucksack/', 'Excel-Kopie: Beispiele je Topf hin und zurück: ' + r);
+  await p.evaluate(() => { const e = flEintrag('F002'); e.topfe = []; e.topfMig = false; e.beispiele = []; UI.flTopf = ''; changed(); flZurueck(); });
   // gespeichert und wieder geladen: bleibt erhalten
   r = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [n.fl.liste.length, JSON.stringify(n.fl) === JSON.stringify(D.fl), n.bedarfe[0].foerderer[1].flAus.length, n.bedarfe[0].foerderer[3].flNein]; });
   ok(r.join('|') === '2|true|0|true', 'Speichern/Laden behält Fördererliste und Merker: ' + r.join('|'));

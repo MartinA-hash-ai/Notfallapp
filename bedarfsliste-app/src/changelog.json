@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.120.0",
+    "date": "2026-11-09T10:00",
+    "items": [
+      "Einlesen einer Förderer-Recherche mit Fördertöpfen: Nichts bleibt mehr unsichtbar beim Förderer. Jeder neue Topf bekommt, was ihm fehlt, aus den Angaben des Förderers – auch einzelne Achsen der Einschätzung –, die Notizen des Förderers werden an eigene Notizen des Topfs angehängt („Zum Förderer allgemein“), Beispiele des Förderers gehen in jeden Topf. Die Vorschau zeigt das je Topf unter „Vom Förderer übernommen“",
+      "Auftrag an Copilot: Prüft zuerst, ob es mehrere Fördertöpfe gibt. Ohne Töpfe kommt alles in den Steckbrief; mit Töpfen steht im Steckbrief nur Allgemeines (Name, Art, Homepage, Anschrift, Haltung), alles Programmbezogene in der Zeile des Topfs",
+      "Notizen knapper: nur kurze Stichpunkte (je höchstens etwa 10 Wörter, höchstens 4 je Feld), „Wie tickt …“ höchstens zwei kurze Sätze, keine Projektbeispiele oder Statistik in den Notizen",
+      "Neu: Beispiele geförderter Projekte. In der Vorlage gibt es das Blatt „Beispiele“ (Schlagwort aus 1–3 Wörtern, ein Satz Beschreibung, Empfänger/Ort, Jahr, Betrag, bei mehreren Programmen der Fördertopf). Auf der Seite des Förderers steht ein eigener Kasten „Beispiele“ unter Antragsweg … Recherchestand; er reicht bis zum unteren Rand der linken Kästen (mehr: Scrollbalken). Die Beispiele stehen als Schlagworte da, ein Klick zeigt die Beschreibung; „+ Beispiel“ legt eines von Hand an, im Fenster lässt es sich bearbeiten oder löschen. Die Excel-Kopie hat dafür das Blatt „Beispiele“",
+      "Spinnennetz: Die Fördersumme richtet sich nach dem Höchstbetrag der Förderhöhe (1.000–5.000 € → „> 3.000 €“, bisher zählte die Mitte). Die Förderhöhe geht vor der Schätzung aus den Förderungen. Wird die Förderhöhe geändert oder eingelesen, wird eine von Hand gesetzte Fördersumme verworfen und neu geschätzt"
+    ]
+  },
+  {
     "version": "0.119.0",
     "date": "2026-11-08T16:00",
     "items": [

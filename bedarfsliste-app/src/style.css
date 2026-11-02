@@ -2092,3 +2092,20 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 .flc-drop:hover, .flc-drop:focus-visible, .flc-drop.ueber { border-color: var(--faint); background: var(--hover); outline: none; }
 .flc-drop.ueber { border-style: solid; }
 .flc-drop[hidden] { display: none; }
+
+/* 0.120: Beispiele geförderter Projekte – eigener Kasten unter der Infomappe, reicht bis zum unteren Rand der linken Kästen (darüber hinaus: Scrollbalken) */
+.fl-rechts { align-self: stretch; }
+.fl-detail .card.fl-bsp { flex: 1 1 auto; min-height: 110px; contain: size; overflow-y: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; }
+.fl-bsp .fl-blk-k { display: flex; align-items: center; justify-content: space-between; }
+.fl-bsp h3 { margin: 0; }
+.fl-bsp-l { display: flex; flex-wrap: wrap; gap: 6px; }
+.fl-bsp-c { border: 1px solid var(--line2); background: var(--soft); border-radius: 999px; padding: 4px 11px; font-size: 13px; color: var(--ink); cursor: pointer; text-align: left; line-height: 1.35; }
+.fl-bsp-c:hover, .fl-bsp-c:focus-visible { background: var(--hover); border-color: var(--faint); outline: none; }
+.fl-bsp-j { color: var(--muted); font-size: 11.5px; margin-left: 2px; }
+.fl-bsp .fl-leer { margin: 0; }
+.fl-bsp-pop p { margin: 6px 0 10px; font-size: 14px; line-height: 1.5; white-space: pre-line; }
+.fl-bsp-pop a { color: var(--muted); }
+.fl-bsp-form { display: grid; grid-template-columns: 150px minmax(0, 1fr); gap: 8px 12px; align-items: center; min-width: min(520px, 80vw); }
+.fl-bsp-lab { font-size: 13px; color: var(--ink2); }
+.fl-bsp-f { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; }
+@media (max-width: 900px) { .fl-detail .card.fl-bsp { contain: none; max-height: 320px; } }
