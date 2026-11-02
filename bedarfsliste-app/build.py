@@ -6,6 +6,7 @@ Ergebnis:
   Bedarfsliste_Update.zip      Update-Paket: nur das Programm, die Daten in der vorhandenen Datei bleiben
   Foerderplan_Vorlage.xlsx      leere Förderplan-Vorlage (über tools/vorlage.js, braucht Node)
   UPL_Vorlage.xlsx              UPL-Vorlage für Copilot/Cowork (tools/vorlage.js … upl)
+  Foerderer_Copilot_Vorlage.xlsx  Vorlage für einen Förderer, von Copilot auszufüllen (tools/vorlage.js … flc)
   vorschau/Bedarfsliste_Vorschau.html   Vorschau mit Beispieldaten (ohne Speichern) für die Ansicht im Browser
 """
 import base64, glob, json, os, subprocess, sys, zipfile
@@ -78,6 +79,11 @@ try:
     subprocess.run(['node', os.path.join(HERE, 'tools', 'vorlage.js'), os.path.join(HERE, 'Foerderplan_Vorlage.xlsx')], check=True)
 except (OSError, subprocess.CalledProcessError) as e:
     print('Hinweis: Förderplan-Vorlage nicht erzeugt (Node fehlt?):', e, file=sys.stderr)
+# Förderer-Vorlage für Copilot (25_fl_copilot.js)
+try:
+    subprocess.run(['node', os.path.join(HERE, 'tools', 'vorlage.js'), os.path.join(HERE, 'Foerderer_Copilot_Vorlage.xlsx'), 'flc'], check=True)
+except (OSError, subprocess.CalledProcessError) as e:
+    print('Hinweis: Förderer-Vorlage nicht erzeugt (Node fehlt?):', e, file=sys.stderr)
 # UPL-Vorlage für Copilot/Cowork (13_upl.js)
 try:
     subprocess.run(['node', os.path.join(HERE, 'tools', 'vorlage.js'), os.path.join(HERE, 'UPL_Vorlage.xlsx'), 'upl'], check=True)

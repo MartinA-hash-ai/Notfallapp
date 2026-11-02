@@ -683,7 +683,7 @@ document.addEventListener('input', ev => { if (ev.target.closest && ev.target.cl
 function flMenue(btn) {
   closeMenus(); const e = flCur(); if (!e) return;
   placePop(h('div', { class: 'menu fl-menue', role: 'menu', html: `<label class="fl-mz"><span>Kurzname</span>${flIn('kurz', e.kurz, { ph: 'z. B. DSEE', aria: 'Kurzname', title: 'So nennt ihr den Förderer intern; in den Bedarfen gelten Kurzname und voller Name' })}</label>
-    <label class="fl-mz"><span>Status</span>${flSel('status', e.status, FL_STATUS, { aria: 'Status' })}</label><hr><button role="menuitem" class="fl-rot-t" data-act="fl-weg">Förderer löschen …</button>` }), btn, 'right');
+    <label class="fl-mz"><span>Status</span>${flSel('status', e.status, FL_STATUS, { aria: 'Status' })}</label><hr><div class="fl-mg">Mit Copilot ausfüllen</div><button role="menuitem" data-act="fl-copilot-vorlage">Vorlage für Copilot herunterladen</button><button role="menuitem" data-act="fl-copilot-prompt">Auftrag für Copilot kopieren</button><button role="menuitem" data-act="fl-copilot-lesen">Ausgefüllte Vorlage einlesen …</button><hr><button role="menuitem" class="fl-rot-t" data-act="fl-weg">Förderer löschen …</button>` }), btn, 'right');
 }
 // Frist anlegen oder ändern: Datum im Kalender wählen; „jedes Jahr“ (Standard) merkt nur Tag und Monat, sonst gilt sie einmalig; Fördertopf frei (Vorschläge: die schon benutzten)
 function flFristMenue(btn, i, topf = '') {
@@ -930,6 +930,9 @@ async function flAct(k, a) {
     case 'fl-frist': case 'fl-frist-neu': if (e) flFristMenue(a, k === 'fl-frist' ? +a.dataset.i : null, a.dataset.topf || ''); return true;
     case 'fl-hoehe': flHoeheEdit(a); return true;
     case 'fl-zweck': flZweckMenue(a); return true;
+    case 'fl-copilot-vorlage': closeMenus(); download(FLC_DATEI, flcVorlageBlob(e)); return true;
+    case 'fl-copilot-prompt': closeMenus(); flcPromptKopieren(e); return true;
+    case 'fl-copilot-lesen': closeMenus(); flcEinlesen(); return true;
     case 'fl-krone': if (e) { e.gross = !e.gross; neu(); } return true;
     case 'fl-such': UI.flSuch = !UI.flSuch; keep(renderNow); return true;
     case 'fl-such-reset': UI.flBewQ = flQNull(); keep(renderNow); return true;

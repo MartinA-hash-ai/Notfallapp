@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.107:** Förderer lassen sich mit Copilot recherchieren: ⋯ neben dem Namen → „Vorlage für Copilot herunterladen“ und „Auftrag für Copilot kopieren“, die ausgefüllte Datei kommt über „Ausgefüllte Vorlage einlesen …“ zurück; jede Angabe wird vor dem Übernehmen einzeln angezeigt. Die leere Vorlage liegt auch als Foerderer_Copilot_Vorlage.xlsx bei.
+
 **Seit 0.106:** Der Hinweis im Kopf sitzt mittig zwischen Seitenkopf und weißem Kasten.
 
 **Seit 0.105:** Der Hinweis zu einem Förderer hat nur noch Kopfzeile und Überschrift und verschiebt die Seite nicht mehr.

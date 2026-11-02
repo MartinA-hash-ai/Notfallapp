@@ -3,9 +3,10 @@
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const SRC = path.join(__dirname, '..', 'src');
 // mit „upl“ als drittem Argument: die UPL-Vorlage für Copilot/Cowork (13_upl.js)
-const upl = process.argv[3] === 'upl';
-const code = ['01_util.js', '02_model.js', '04_xlsx.js', '06_vorlage.js', ...(upl ? ['13_upl.js'] : [])].map(f => fs.readFileSync(path.join(SRC, f), 'utf8')).join('\n');
-const ctx = vm.createContext({ Blob, TextEncoder, TextDecoder, DEMO: false, console });
-const blob = vm.runInContext(code + (upl ? '\n;uplVorlageBlob();' : '\n;vorlageBlob(null);'), ctx);
+const upl = process.argv[3] === 'upl', flc = process.argv[3] === 'flc';
+const code = (flc ? ['01_util.js', '02_model.js', '04_xlsx.js', '23_foerderer.js', '24_zwecke.js', '25_fl_copilot.js'] : ['01_util.js', '02_model.js', '04_xlsx.js', '06_vorlage.js', ...(upl ? ['13_upl.js'] : [])]).map(f => fs.readFileSync(path.join(SRC, f), 'utf8')).join('\n');
+const stub = { addEventListener() {}, querySelector() { return null; }, querySelectorAll() { return []; } };
+const ctx = vm.createContext({ Blob, TextEncoder, TextDecoder, DEMO: false, console, document: stub, window: stub });
+const blob = vm.runInContext(code + (flc ? '\n;flcVorlageBlob(null);' : upl ? '\n;uplVorlageBlob();' : '\n;vorlageBlob(null);'), ctx);
 const out = process.argv[2] || path.join(__dirname, '..', 'Foerderplan_Vorlage.xlsx');
 blob.arrayBuffer().then(buf => { fs.writeFileSync(out, Buffer.from(buf)); console.log('OK', out); });

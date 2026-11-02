@@ -1977,3 +1977,15 @@ table.fl-tab thead th.fl-te { text-align: center; }
 .fl-kopf { position: relative; }
 .fl-kopf > .fl-hinw { position: absolute; right: 0; bottom: 0; width: 380px; z-index: 2; }
 @media (max-width: 900px) { .fl-kopf > .fl-hinw { position: static; width: auto; } }
+
+/* 0.107: Copilot-Vorlage */
+.fl-mg { padding: 4px 10px 2px; font-size: 11.5px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.flc-l { display: grid; gap: 2px; }
+.flc-z { display: grid; grid-template-columns: 22px minmax(0, 1fr); column-gap: 6px; row-gap: 1px; padding: 6px 8px; border-radius: 6px; align-items: start; }
+.flc-z:hover { background: var(--hover); }
+.flc-z input { grid-row: 1 / span 3; margin-top: 3px; }
+.flc-z > span { grid-column: 2; }
+.flc-t { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.flc-n { color: var(--ink); overflow-wrap: anywhere; white-space: pre-line; }
+.flc-q { overflow-wrap: anywhere; }
+.flc-z.unsicher .flc-n { color: var(--warn); }

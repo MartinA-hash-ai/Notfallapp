@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.107.0",
+    "date": "2026-11-04T14:00",
+    "items": [
+      "Excel-Vorlage für Copilot: Im ⋯-Menü neben dem Förderernamen gibt es „Vorlage für Copilot herunterladen“, „Auftrag für Copilot kopieren“ und „Ausgefüllte Vorlage einlesen …“. Die Vorlage (Foerderer_Copilot_Vorlage.xlsx liegt auch im Projektordner) beschreibt einen Förderer: Steckbrief (Feld, Wert, Sicherheit, Quelle, Anmerkung), Fristen, Fördertöpfe, Kontakte, Quellen sowie Anleitung und Auswahlwerte, mit Auswahllisten in den Zellen",
+      "Beim Einlesen zeigt das Programm jede Angabe einzeln zum Ankreuzen: neue, sichere Angaben sind vorgewählt; Angaben, die etwas Vorhandenes ersetzen würden, und „unsichere“ nicht. Bestehende Fristen, Fördertöpfe und Kontakte werden nicht doppelt angelegt, leere Felder bei vorhandenen ergänzt; Recherchestand wird auf heute gesetzt"
+    ]
+  },
+  {
     "version": "0.106.0",
     "date": "2026-11-04T10:00",
     "items": [
