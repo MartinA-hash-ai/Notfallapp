@@ -2046,3 +2046,15 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 .flc-knoepfe { display: flex; gap: 8px; margin: 6px 0 2px; flex-wrap: wrap; }
 .flc-ziel { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 4px 0; font-size: 13.5px; }
 .flc-ziel .flc-neuname { flex: 1 1 220px; width: auto; }
+
+/* 0.112: Förderer mit mehreren Fördertöpfen – Kopfzeile und je Topf eine eingerückte Zeile */
+.fl-tg { display: block; margin-top: 3px; border: 0; background: none; padding: 0; font-size: 12.5px; color: var(--muted); cursor: pointer; text-align: left; }
+.fl-tg:hover { color: var(--ink); text-decoration: underline; }
+#fl-body tr.fl-tr-t td { padding-top: 6px; padding-bottom: 6px; background: var(--soft); }
+#fl-body tr.fl-tr-t:hover td { background: var(--hover); }
+#fl-body tr.fl-tr-t .fl-n { padding-left: 30px; }
+#fl-body tr.fl-tr-t .fl-tn { position: relative; display: block; }
+#fl-body tr.fl-tr-t .fl-tn::before { content: ""; position: absolute; left: -16px; top: .45em; width: 9px; height: 9px; border-left: 1.5px solid var(--line2); border-bottom: 1.5px solid var(--line2); border-radius: 0 0 0 4px; }
+#fl-body tr.fl-tr-t .fl-nm { font-weight: 500; }
+#fl-body tr:has(+ tr.fl-tr-t) td { border-bottom-color: transparent; }
+#fl-body tr.fl-tr-t:not(.fl-tr-letzte) td { border-bottom-color: var(--line3); }

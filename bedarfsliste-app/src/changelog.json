@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.112.0",
+    "date": "2026-11-06T14:00",
+    "items": [
+      "Fördererliste: Hat ein Förderer mehrere Fördertöpfe, steht er als Kopfzeile (Name, Krone, Hinweis, Ansprechperson) mit je einer eingerückten Zeile pro Topf – mit eigenem Gebiet, Zweck, Fristen und Spinnennetz. Ein Förderer mit höchstens einem Topf bleibt eine einzige Zeile",
+      "Einklappen: „▾ 3 Fördertöpfe“ in der Kopfzeile blendet die Topf-Zeilen aus und ein. Eingeklappt zeigt die Kopfzeile Gebiet, Zweck und Fristen aller Töpfe, aber bewusst kein Netz (ein gemischtes Netz würde keinem Topf entsprechen)",
+      "Gliederungsfilter, Suche und Mindestwerte der Einschätzung wirken je Topf: Es bleiben nur die passenden Töpfe stehen („▾ 1 von 2 Fördertöpfe“), der Förderer erscheint, sobald einer passt",
+      "Ein Klick auf eine Topf-Zeile öffnet den Förderer direkt mit diesem Fördertopf"
+    ]
+  },
+  {
     "version": "0.111.0",
     "date": "2026-11-06T10:00",
     "items": [
