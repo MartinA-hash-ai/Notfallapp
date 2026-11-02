@@ -1,6 +1,6 @@
 /* ===================================================================== Fördererliste: Excel-Vorlage und Auftrag für Copilot (ab 0.107, je Fördertopf ab 0.111, Töpfe mit allen Angaben ab 0.113)
-   Im ⋯-Menü eines Förderers: „Recherche mit Copilot vorbereiten …“ (Vorlage herunterladen und Auftrag kopieren – für den Förderer als Ganzes, einen vorhandenen oder einen neuen
-   Fördertopf) und „Ausgefüllte Vorlage einlesen …“ (mit Auswahl, in welchen Topf).
+   Im ⋯-Menü eines Förderers: „Mit Copilot ausfüllen …“ – ein Fenster mit Vorlage herunterladen, Auftrag kopieren (für den Förderer als Ganzes, einen vorhandenen oder einen neuen
+   Fördertopf) und Ablagefeld für die ausgefüllte Excel (das Einlesen fragt, in welchen Topf).
    Die Vorlage beschreibt EINEN Förderer oder EINEN Fördertopf: Blatt „Steckbrief“ (Feld · Wert · Sicherheit · Quelle · Anmerkung), „Fristen“, „Fördertöpfe“, „Kontakte“, „Quellen“;
    dazu „Anleitung“ und „Auswahlwerte“. Beim Einlesen zeigt das Programm jede Angabe einzeln zum Ankreuzen: neue Angaben sind vorgewählt, Angaben, die
    einen vorhandenen Wert ersetzen würden, und „unsichere“ nicht. */
@@ -69,7 +69,7 @@ function flcVorlageBlob(e, z) {
   const wer = topf ? 'einen Fördertopf (ein Förderprogramm)' + (e && e.name ? ' des Förderers „' + e.name + '“' : '') : 'einen Förderer';
   const text = [
     [topf ? 'Fördertopf-Vorlage für Copilot' : 'Förderer-Vorlage für Copilot', { b: true, sz: 15 }],
-    ['Diese Datei beschreibt ' + wer + ' der Malteser (Diözese Paderborn). Sie wird recherchiert und ausgefüllt und danach in die Bedarfsliste eingelesen (Fördererliste → Seite des Förderers → ⋯ → „Ausgefüllte Vorlage einlesen …“).'],
+    ['Diese Datei beschreibt ' + wer + ' der Malteser (Diözese Paderborn). Sie wird recherchiert und ausgefüllt und danach in die Bedarfsliste eingelesen (Fördererliste → Seite des Förderers → ⋯ → „Mit Copilot ausfüllen …“).'],
     [''],
     ['Regeln für das Ausfüllen', { b: true }],
     ['1. Nur die gelb hinterlegten Zellen ausfüllen: im Blatt „Steckbrief“ die Spalten „Wert“, „Sicherheit“, „Quelle“ und „Anmerkung“, in ' + (topf ? '„Fristen“, „Kontakte“ und „Quellen“' : '„Fristen“, „Fördertöpfe“, „Kontakte“ und „Quellen“') + ' die Zeilen darunter. Keine Blätter, Spalten oder Überschriften ändern, umbenennen, löschen oder hinzufügen. „Anleitung“ und „Auswahlwerte“ nicht ändern.'],
@@ -80,6 +80,7 @@ function flcVorlageBlob(e, z) {
     [topf ? '6. Alle Angaben im Blatt „Steckbrief“ beziehen sich nur auf diesen einen Fördertopf, nicht auf den Förderer insgesamt; auch Notizen und Förderargumentation. Fristen im Blatt „Fristen“ sind die Fristen dieses Topfs.'
       : '6. Hat der Förderer mehrere Förderprogramme (Fördertöpfe), steht jedes in einer eigenen Zeile im Blatt „Fördertöpfe“ – und zwar mit ALLEN Spalten ausgefüllt (Zweck, Gebiet, Höhe, Quote, Hinweis zu Fristen, Antragsweg, Links, Einschätzung, Notizen), soweit belegbar. Ein Fördertopf, der nur mit Namen eingetragen ist, ist unbrauchbar. Fristen eines Programms im Blatt „Fristen“ mit demselben Namen in „Fördertopf“. Im Blatt „Steckbrief“ steht, was für den Förderer insgesamt gilt.'],
     ['7. Zu jeder Einschätzung (Häufigkeit, Aufwand, Dauer) kurz in „Anmerkung“ begründen – oder leer lassen.'],
+    ['8. Keine Wiederholungen: Jede Information steht genau einmal, im passendsten Feld. Was schon in einem eigenen Feld steht (z. B. Förderzweck, Gebiet, Höhe, Fristen, Antragsweg), nicht noch einmal in den Notiz-Feldern aufnehmen – auch nicht umformuliert.'],
     [''],
     ['Stand: ' + (typeof today === 'function' ? fmtDate(today()) : '')],
   ];
@@ -110,6 +111,8 @@ function flcPrompt(e, z) {
     '11. Häufigkeit, Aufwand und Dauer nur ausfüllen, wenn du es aus den Richtlinien ableiten kannst, und in „Anmerkung“ kurz begründen.',
     '12. Notizen (diese Felder landen später in den Notizen ' + (topf ? 'dieses Fördertopfs' : 'des Förderers') + '): „Was wird gefördert?“ und „Was wird nicht gefördert?“ als kurze Stichpunkte (jeder in einer neuen Zeile, mit „- “ am Anfang), nur Belegtes aus Satzung und Richtlinien. „Wie tickt der Förderer?“ in 2–3 Sätzen: Was ist ihm wichtig, welche Haltung, wie und wem fördert er typischerweise' + (topf ? ' (in diesem Programm)' : '') + '? „Förderargumentation“: Welche Argumente ziehen bei ' + (topf ? 'diesem Programm' : 'diesem Förderer') + ' für ein Vorhaben der Malteser (nach Gewicht sortiert, je Argument kurz begründen und die Fundstelle nennen, z. B. „Satzungszweck: Förderung des Ehrenamts“)? Wo sind Stolpersteine (Ausschlüsse, kirchliche Träger, Eigenanteil, Nachweispflichten, Gleichbehandlung)? Alles aus den Quellen abgeleitet, keine Vermutungen ohne Hinweis darauf – Eigenes kennzeichnest du mit „Einschätzung:“.',
     '13. Alle geöffneten Seiten trägst du zusätzlich im Blatt „Quellen“ ein (Link, was dort steht, Abrufdatum).',
+    '14. Keine Wiederholungen: Jede Information steht genau einmal, im passendsten Feld. Was schon in einem eigenen Feld steht (Förderzweck, Gebiet, Förderhöhe, Quote, Fristen, Antragsweg, Links, Anschrift, Häufigkeit, Aufwand, Dauer), wiederholst du NICHT in den Notiz-Feldern („Was wird gefördert?“, „Wie tickt …“, Argumente, Stolpersteine, Weitere Notizen) – auch nicht umformuliert. „Was wird gefördert?“ nennt nur, was über die Stichworte im Förderzweck hinausgeht (konkrete Beispiele, Anschaffungen, Zielgruppen). Auch die Notiz-Felder wiederholen sich nicht gegenseitig: ein Punkt steht entweder bei „Argumente“ oder bei „Stolpersteine“ oder in „Weitere Notizen“.',
+    ...(topf ? [] : ['15. Fördertöpfe: Was für alle Programme gleich gilt (z. B. Anschrift, Antragsweg, allgemeine Haltung des Förderers), steht einmal im Blatt „Steckbrief“ – unser Programm übernimmt es beim Einlesen in jeden Topf, der dazu nichts Eigenes hat. In den Zeilen der Fördertöpfe steht, was für das jeweilige Programm gilt (Zweck, Gebiet, Höhe, Fristen usw. immer). Die Notiz-Spalten eines Topfs wiederholen nichts, was schon im Steckbrief oder in einer anderen Spalte steht.']),
     '',
     'Gib mir die ausgefüllte Datei als Excel-Datei zum Herunterladen zurück (gleicher Dateiname mit dem Zusatz „_ausgefüllt“). Schreibe darunter in höchstens fünf Sätzen, was du nicht gefunden hast und wo du unsicher bist. Wenn du keine Datei erzeugen kannst, gib den Inhalt jedes Blatts als Tabelle mit denselben Überschriften aus, damit ich ihn einfügen kann.',
   ];
@@ -208,7 +211,7 @@ function flcAenderungen(e, R, h) {
     if (!x) { const m = flTopfLeer(t.name), D = flcTopfFelder(m, t), nurName = !D.length;
       const kopf = { bereich: 'Fördertopf', titel: 'Fördertopf anlegen', alt: '', neu: t.name + (t.kurz ? ' (' + t.kurz + ')' : ''), tab: tk, anlegen: true, spaet: true, unsicher: t.unsicher, quelle: t.quelle,
         fn: () => { if (!nurName) m.recherche = today(); if (erbenAlle && e.topfe.length) flTopfErbt(m, e); flTopfEinfuegen(e, m); },
-        notiz: nurName ? 'Zu diesem Fördertopf hat Copilot nur den Namen geliefert – besser einzeln recherchieren lassen (⋯ → „Recherche vorbereiten …“ → Fördertopf).' : '', an: !t.unsicher && !nurName };
+        notiz: nurName ? 'Zu diesem Fördertopf hat Copilot nur den Namen geliefert – besser einzeln recherchieren lassen (⋯ → „Mit Copilot ausfüllen …“ → Fördertopf).' : '', an: !t.unsicher && !nurName };
       L.push(kopf); D.forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, topfNeu: kopf, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
     else flcTopfFelder(x, t).forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
   for (const k of R.kontakte) { if (!k.n) continue; const x = e.kontakte.find(y => kkey(y.n) === kkey(k.n));
@@ -237,7 +240,7 @@ async function flcEinlesen(datei) {
   const e = flCur(); if (!e) return;
   const f = datei || await pickFile('.xlsx'); if (!f) return;
   let R = null; try { R = flcLesen(await xlsxBook(await f.arrayBuffer())); } catch (x) { console.warn(x); }
-  if (!R) { modal('Keine Copilot-Vorlage erkannt', h('p', {}, 'In „' + f.name + '“ fehlt das Blatt „Steckbrief“ mit den Feldern der Vorlage. Bitte die Vorlage über ⋯ → „Recherche mit Copilot vorbereiten …“ holen und von Copilot ausfüllen lassen.')); return; }
+  if (!R) { modal('Keine Copilot-Vorlage erkannt', h('p', {}, 'In „' + f.name + '“ fehlt das Blatt „Steckbrief“ mit den Feldern der Vorlage. Bitte die Vorlage über ⋯ → „Mit Copilot ausfüllen …“ holen und von Copilot ausfüllen lassen.')); return; }
   // Ziel: der Förderer selbst (nur ohne Fördertöpfe, Vorlage „Förderer“) oder ein vorhandener bzw. neuer Fördertopf
   const dName = strV(R.F.name && R.F.name.text), mitTopf = e.topfe.length > 0 || R.modus === 'topf';
   const optionen = [...(e.topfe.length ? [] : R.modus === 'topf' ? [] : [{ k: 'e', l: 'Förderer als Ganzes (ohne Fördertopf)' }]), ...e.topfe.map(t => ({ k: 't:' + t.id, l: t.name || '(ohne Namen)', t })), ...(mitTopf ? [{ k: 'neu', l: 'Neuer Fördertopf' + (R.modus === 'topf' && dName ? ' „' + dName + '“' : '') }] : [])];
@@ -319,27 +322,26 @@ async function flcEinlesen(datei) {
   toast(n ? n + (n === 1 ? ' Angabe' : ' Angaben') + ' übernommen – mit ↶ (Strg+Z) wieder rückgängig zu machen' : 'Nichts übernommen', n ? 'ok' : undefined);
 }
 
-// ---------- „Recherche mit Copilot vorbereiten“: Ziel wählen, dann Vorlage herunterladen und Auftrag kopieren
+// ---------- „Mit Copilot ausfüllen“: Ziel wählen, dann Vorlage herunterladen und Auftrag kopieren
 function flcDialog(e) {
   const T = e.topfe, cur = flTopfWahl(e), ohne = !T.length; let art = ohne ? 'e' : 't', tw = cur ? cur.id : T.length ? T[0].id : 'neu';       // art: Förderer allgemein | bestimmter Fördertopf; tw: Id des Topfs oder „neu“
   const neuName = h('input', { type: 'text', class: 'flc-neuname', placeholder: 'Name des neuen Fördertopfs', 'aria-label': 'Name des neuen Fördertopfs' });
   const sel = h('select', { class: 'flc-sel', 'aria-label': 'Fördertopf' }, ...T.map(t => h('option', { value: t.id, selected: t.id === tw }, (t.name || '(ohne Namen)') + (t.recherche ? '' : ' – noch nicht recherchiert'))), h('option', { value: 'neu', selected: tw === 'neu' }, 'Neuer Fördertopf …'));
   const z = () => { if (art === 'e') return { modus: 'foerderer', topf: null, name: '' }; if (tw === 'neu') return { modus: 'topf', topf: null, name: strV(neuName.value) }; const t = T.find(x => x.id === tw); return { modus: 'topf', topf: t, name: t ? t.name : '' }; };
   const braucht = () => { if (art === 't' && tw === 'neu' && !strV(neuName.value)) { toast('Bitte den Namen des neuen Fördertopfs eintragen.', 'warn'); neuName.focus(); return true; } return false; };
-  // nach „Vorlage herunterladen“ oder „Auftrag kopieren“: Feld zum Hineinziehen (oder Auswählen) der ausgefüllten Excel – öffnet gleich das Einlesen
+  // Feld zum Hineinziehen (oder Auswählen) der ausgefüllten Excel – öffnet gleich das Einlesen
   let zu = null; const nimm = f => { if (!f) return; if (!/\.xlsx$/i.test(f.name)) { toast('Bitte die ausgefüllte Excel-Datei (.xlsx) nehmen.', 'warn'); return; } if (zu) zu(true); flcEinlesen(f); };
-  const ablage = h('div', { class: 'flc-drop', role: 'button', tabindex: '0', hidden: true, 'aria-label': 'Ausgefüllte Excel einlesen' },
-    h('b', {}, 'Ausgefüllte Excel hier hineinziehen'), h('span', { class: 'muted small' }, 'oder klicken, um sie auszuwählen'));
+  const ablage = h('div', { class: 'flc-drop', role: 'button', tabindex: '0', 'aria-label': 'Ausgefüllte Excel einlesen' },
+    h('b', {}, '3 · Ausgefüllte Excel hier hineinziehen'), h('span', { class: 'muted small' }, 'oder klicken, um sie auszuwählen'));
   const waehle = async () => nimm(await pickFile('.xlsx'));
   ablage.addEventListener('click', waehle);
   ablage.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); waehle(); } });
   ablage.addEventListener('dragover', ev => { ev.preventDefault(); ev.stopPropagation(); ablage.classList.add('ueber'); });
   ablage.addEventListener('dragleave', () => ablage.classList.remove('ueber'));
   ablage.addEventListener('drop', ev => { ev.preventDefault(); ev.stopPropagation(); ablage.classList.remove('ueber'); nimm([...((ev.dataTransfer && ev.dataTransfer.files) || [])][0]); });
-  const zeigAblage = () => { ablage.hidden = false; };
   const knoepfe = h('div', { class: 'flc-knoepfe' },
-    h('button', { class: 'primary', onclick: () => { if (braucht()) return; download(FLC_DATEI, flcVorlageBlob(e, z())); zeigAblage(); } }, '1 · Vorlage herunterladen'),
-    h('button', { class: 'primary', onclick: () => { if (braucht()) return; flcPromptKopieren(e, z()); zeigAblage(); } }, '2 · Auftrag kopieren'));
+    h('button', { class: 'primary', onclick: () => { if (braucht()) return; download(FLC_DATEI, flcVorlageBlob(e, z())); } }, '1 · Vorlage herunterladen'),
+    h('button', { class: 'primary', onclick: () => { if (braucht()) return; flcPromptKopieren(e, z()); } }, '2 · Auftrag kopieren'));
   const rE = h('input', { type: 'radio', name: 'flc-d', value: 'e', checked: art === 'e', disabled: !ohne, onchange: () => { art = 'e'; zeig(); } });
   const rT = h('input', { type: 'radio', name: 'flc-d', value: 't', checked: art === 't', onchange: () => { art = 't'; zeig(); } });
   const hinwE = h('p', { class: 'muted small flc-sub' }), hinwT = h('p', { class: 'muted small flc-sub' }), unter = h('div', { class: 'flc-sub flc-unter' }, sel, neuName);
@@ -355,7 +357,7 @@ function flcDialog(e) {
     h('label', { class: 'flc-zo' + (ohne ? '' : ' aus') }, rE, h('b', {}, ' Förderer allgemein')), hinwE,
     h('label', { class: 'flc-zo' }, rT, h('b', {}, ' Ein bestimmter Fördertopf')), unter, hinwT,
     knoepfe, ablage);
-  modal('Recherche mit Copilot vorbereiten', body, [['Fertig', true, 'primary']], { expose: c => { zu = c; } });
+  modal('Mit Copilot ausfüllen', body, [['Fertig', true, 'primary']], { expose: c => { zu = c; } });
 }
 function flcPromptKopieren(e, z) {
   const t = flcPrompt(e, z), fail = () => { modal('Auftrag für Copilot', h('textarea', { class: 'rech-prompt', rows: 14, spellcheck: false, value: t, readonly: true })); };

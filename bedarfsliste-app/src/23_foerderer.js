@@ -762,7 +762,7 @@ document.addEventListener('input', ev => { if (ev.target.closest && ev.target.cl
 function flMenue(btn) {
   closeMenus(); const e = flCur(); if (!e) return;
   placePop(h('div', { class: 'menu fl-menue', role: 'menu', html: `<label class="fl-mz"><span>Kurzname</span>${flIn('kurz', e.kurz, { ph: 'z. B. DSEE', aria: 'Kurzname', title: 'So nennt ihr den Förderer intern; in den Bedarfen gelten Kurzname und voller Name' })}</label>
-    <label class="fl-mz"><span>Status</span>${flSel('status', e.status, FL_STATUS, { aria: 'Status' })}</label><hr><div class="fl-mg">Mit Copilot ausfüllen</div><button role="menuitem" data-act="fl-copilot-dialog">Recherche vorbereiten …</button><button role="menuitem" data-act="fl-copilot-lesen">Ausgefüllte Vorlage einlesen …</button><hr><button role="menuitem" class="fl-rot-t" data-act="fl-weg">Förderer löschen …</button>` }), btn, 'right');
+<hr><button role="menuitem" data-act="fl-copilot-dialog">Mit Copilot ausfüllen …</button><hr><button role="menuitem" class="fl-rot-t" data-act="fl-weg">Förderer löschen …</button>` }), btn, 'right');
 }
 // Frist anlegen oder ändern: Datum im Kalender wählen; „jedes Jahr“ (Standard) merkt nur Tag und Monat, sonst gilt sie einmalig; Fördertopf frei (Vorschläge: die schon benutzten)
 function flFristMenue(btn, i, topf = '') {

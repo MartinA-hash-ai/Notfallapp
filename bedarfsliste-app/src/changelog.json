@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.119.0",
+    "date": "2026-11-08T16:00",
+    "items": [
+      "⋯-Menü eines Förderers: statt „Recherche vorbereiten …“ und „Ausgefüllte Vorlage einlesen …“ gibt es einen Eintrag „Mit Copilot ausfüllen …“. Das Fenster enthält alles: Auswahl (Förderer allgemein oder Fördertopf), „1 · Vorlage herunterladen“, „2 · Auftrag kopieren“ und – sofort sichtbar – „3 · Ausgefüllte Excel hier hineinziehen“",
+      "⋯-Menü: das Feld „Status“ ist entfernt",
+      "Auftrag für Copilot und Anleitung der Vorlage: keine Wiederholungen – jede Information steht genau einmal im passendsten Feld. Was schon in einem eigenen Feld steht (z. B. Förderzweck, Gebiet, Höhe, Fristen, Antragsweg), kommt nicht noch einmal in die Notiz-Felder; „Was wird gefördert?“ nennt nur, was über die Stichworte im Förderzweck hinausgeht; die Notiz-Felder wiederholen sich nicht gegenseitig. Bei Fördertöpfen steht Gemeinsames einmal im Steckbrief (das Programm übernimmt es in jeden Topf)"
+    ]
+  },
+  {
     "version": "0.118.0",
     "date": "2026-11-08T14:00",
     "items": [
