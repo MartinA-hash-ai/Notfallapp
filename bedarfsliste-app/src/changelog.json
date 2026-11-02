@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.115.0",
+    "date": "2026-11-07T17:00",
+    "items": [
+      "Copilot-Vorlage einlesen: Enthält die Förderer-Vorlage Fördertöpfe, zeigt das Fenster Reiter – „Förderer“ und je Fördertopf einen eigenen. So ist klar, welche Angabe in welchen Topf kommt, und man kann zwischen den Töpfen umschalten. Jeder Reiter zeigt, wie viele seiner Angaben angehakt sind",
+      "Reiter „Förderer“: Angaben zum Förderer selbst (Steckbrief, Kontakte, Quellen, Recherchestand). Reiter eines Fördertopfs: „Fördertopf anlegen“ (neu) mit allen seinen Angaben – Zweck, Gebiet, Höhe, Quote, Antragsweg, Links, Einschätzung, Notizen, Fristen; jede Angabe lässt sich einzeln an- und abhaken und ändern. Ohne „Fördertopf anlegen“ werden seine übrigen Angaben gesperrt",
+      "Darunter steht „Vom Förderer übernommen“: was der neue Topf zusätzlich aus den Angaben des Förderers erbt, soweit er dazu nichts Eigenes hat (nur zur Ansicht). Ein Topf, zu dem Copilot nur den Namen geliefert hat, ist nicht vorgewählt und weist auf die Einzelrecherche hin",
+      "Alle / Keine / Vorauswahl wirken auf den gerade angezeigten Reiter. Vorhandene Fördertöpfe erscheinen ebenfalls als Reiter (es werden nur leere Felder ergänzt)"
+    ]
+  },
+  {
     "version": "0.114.0",
     "date": "2026-11-07T14:00",
     "items": [

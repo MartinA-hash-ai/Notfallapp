@@ -144,31 +144,37 @@ function flcLesen(book) {
     kontakte: tab('Kontakte').map(r => ({ n: strV(r[0]), pos: strV(r[1]), mail: mailRein(r[2]), tel: cellStr(r[3]), gl: strL(r[4]), unsicher: norm(r[6]) === 'unsicher', quelle: cellStr(r[7]) })),
     quellen: tab('Quellen').map(r => ({ url: cellStr(r[0]), was: cellStr(r[1]), am: cellStr(r[2]) })) };
 }
-// Angaben der Fördertopf-Zeile t, die dem Fördertopf x noch fehlen: [[Beschriftung, Setzer]] (vorhandene Angaben bleiben)
+// Angaben der Fördertopf-Zeile t, die dem Fördertopf x noch fehlen (vorhandene Angaben bleiben):
+// [{ lab, key (Feld des Topfs), bereich, neu (Text), fn(wert), edit, opts }]
 function flcTopfFelder(x, t) {
-  const D = [], f = (lab, wenn, fn) => { if (wenn) D.push([lab, fn]); };
-  f('Kurzname', t.kurz && !x.kurz, () => { x.kurz = t.kurz; });
-  f('Zweck', t.schwer && !x.schwer, () => { x.schwer = t.schwer; });
-  f('Gebiet', t.gl.length && !x.gl.length, () => { x.gl = t.gl.slice(); });
-  f('Höhe', (t.von != null || t.bis != null) && x.hoeheVon == null && x.hoeheBis == null && !x.hoehe, () => { Object.assign(x, { hoeheVon: t.von == null ? t.bis : t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }); });
-  f('Quote', t.quote && !x.quote, () => { x.quote = t.quote; });
-  f('Hinweis zu Fristen', t.fristen && !x.fristen, () => { x.fristen = t.fristen; });
+  const D = [], S = 'Steckbrief', E = 'Einschätzung', T = 'text';
+  const f = (lab, key, bereich, wenn, text, fn, edit, opts) => { if (wenn) D.push({ lab, key, bereich, neu: strV(text), fn, edit: edit || '', opts: opts || null }); };
+  f('Kurzname', 'kurz', S, t.kurz && !x.kurz, t.kurz, v => { x.kurz = v; }, T);
+  f('Förderzweck', 'schwer', S, t.schwer && !x.schwer, t.schwer, v => { x.schwer = v; }, T);
+  f('Fördergebiet', 'gl', S, t.gl.length && !x.gl.length, t.gl.join(', '), v => { x.gl = strL(v); }, T);
+  f('Förderhöhe', 'hoehe', S, (t.von != null || t.bis != null) && x.hoeheVon == null && x.hoeheBis == null && !x.hoehe, flHoeheKlar({ hoeheVon: t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }),
+    () => { Object.assign(x, { hoeheVon: t.von == null ? t.bis : t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }); });
+  f('Förderquote', 'quote', S, t.quote && !x.quote, t.quote, v => { x.quote = v; }, T);
+  f('Hinweis zu Fristen', 'fristen', S, t.fristen && !x.fristen, t.fristen, v => { x.fristen = v; }, T);
   const weg = flWegNorm(t.weg), an = weg === 'Portal' ? flUrlVoll(t.antrag) : mailRein(t.antrag);
-  f('Antragsweg', weg && !x.weg.length, () => { x.weg = [weg]; });
-  f('Antrag an', an && !x.antrag, () => { x.antrag = an; });
-  f('Programmseite', t.web && !x.web, () => { x.web = flUrlVoll(t.web); });
-  f('Richtlinien', t.richtlinien && !x.richtlinien, () => { x.richtlinien = flUrlVoll(t.richtlinien); });
-  for (const [k, titel, b] of [['haeufig', 'Häufigkeit', FL_BEW[2]], ['aufwand', 'Aufwand', FL_BEW[3]], ['dauer', 'Dauer', FL_BEW[4]]]) { const v = flcStufe(b, t[k]); f(titel, v && !x.bew[b.k], () => { x.bew[b.k] = v; }); }
-  f('Großförderer', norm(t.gross) === 'ja' && !x.gross, () => { x.gross = true; });
-  const nt = flcNotizText(k => t[k]); f('Notizen', nt && !x.notiz, () => { x.notiz = nt; });
+  f('Antragsweg', 'weg', S, weg && !x.weg.length, weg, v => { x.weg = [v]; }, 'sel', FL_WEGE);
+  f(weg === 'Portal' ? 'Antrag an (Link)' : 'Antrag an (E-Mail)', 'antrag', S, an && !x.antrag, an, v => { x.antrag = weg === 'Portal' ? flUrlVoll(v) : mailRein(v); }, T);
+  f('Programmseite', 'web', S, t.web && !x.web, flUrlVoll(t.web), v => { x.web = flUrlVoll(v); }, T);
+  f('Förderrichtlinien', 'richtlinien', S, t.richtlinien && !x.richtlinien, flUrlVoll(t.richtlinien), v => { x.richtlinien = flUrlVoll(v); }, T);
+  for (const [k, titel, b] of [['haeufig', 'Häufigkeit', FL_BEW[2]], ['aufwand', 'Aufwand', FL_BEW[3]], ['dauer', 'Dauer', FL_BEW[4]]]) { const v = flcStufe(b, t[k]); f(titel, 'bew', E, v && !x.bew[b.k], v ? b.bed[v - 1] : '', tt => { const i = b.bed.indexOf(tt); if (i >= 0) x.bew[b.k] = i + 1; }, 'sel', b.bed); }
+  f('Großförderer', 'gross', E, norm(t.gross) === 'ja' && !x.gross, '> 10.000 € möglich', () => { x.gross = true; });
+  const nt = flcNotizText(k => t[k]); f('Notizen', 'notiz', 'Notizen', nt && !x.notiz, nt, v => { x.notiz = v; }, 'rich');
   return D;
 }
 // Angaben als Liste von Änderungen für den Träger h (ein Fördertopf oder der Förderer selbst):
 // { bereich, titel, alt, neu, fn(wert), edit: '' | 'text' | 'rich' | 'sel', opts, unsicher, quelle, notiz, an }; „edit“: der neue Wert lässt sich im Fenster ändern
 function flcAenderungen(e, R, h) {
   const L = [], F = R.F, w = k => (F[k] ? F[k].text : ''), istTopf = h !== e, tModus = R.modus === 'topf';
+  const erbenAlle = h === e && !e.topfe.length, key = n => 't:' + norm(n), hKey = istTopf ? key(h.name) : '';
+  const bekannt = new Set([...R.topfe.filter(t => t.name).map(t => key(t.name)), ...e.topfe.map(t => key(t.name)), ...(istTopf ? [hKey] : [])]);
+  const ERBT = { frei: 'schwer', gl: 'gl', von: 'hoehe', quote: 'quote', fristen: 'fristen', web: 'web', richtlinien: 'richtlinien', weg: 'weg', antrag: 'antrag', anschrift: 'anschrift', haeufig: 'bew', aufwand: 'bew', dauer: 'bew', gross: 'gross' };   // Feld, das ein neuer Fördertopf davon erben kann
   const add = (k, bereich, titel, alt, neu, fn, o = {}) => { if (!strV(neu) || strV(alt) === strV(neu)) return; const f = F[k] || {};
-    L.push({ bereich, titel, alt: strV(alt), neu: strV(neu), fn, edit: o.edit || '', opts: o.opts || null, unsicher: !!(f.unsicher || o.unsicher), quelle: f.quelle || o.quelle || '', notiz: f.notiz || '', an: !strV(alt) && !(f.unsicher || o.unsicher) }); };
+    L.push({ bereich, titel, alt: strV(alt), neu: strV(neu), fn, edit: o.edit || '', opts: o.opts || null, unsicher: !!(f.unsicher || o.unsicher), quelle: f.quelle || o.quelle || '', notiz: f.notiz || '', an: !strV(alt) && !(f.unsicher || o.unsicher), erbt: ERBT[k] || '' }); };
   const S = 'Steckbrief', T = { edit: 'text' }, bez = istTopf ? 'Fördertopf' : 'Förderer';
   if (tModus && istTopf) { add('name', S, 'Name des Fördertopfs', h.name, w('name'), v => { h.name = v; }, T); add('kurz', S, 'Kurzname des Fördertopfs', h.kurz, w('kurz'), v => { h.kurz = v; }, T); }
   else if (!tModus) { add('name', S, 'Name des Förderers', e.name, w('name'), v => { e.name = v; }, T); add('kurz', S, 'Kurzname', e.kurz, w('kurz'), v => { e.kurz = v; }, T); }
@@ -190,22 +196,21 @@ function flcAenderungen(e, R, h) {
   // Notizen: gefördert / nicht gefördert / so tickt der Förderer / Argumente / Stolpersteine / Weiteres – als ein Block mit fetten Zwischenüberschriften, an die vorhandenen Notizen angehängt
   const abschnitte = FLC_ABSCHNITTE.filter(([k]) => w(k));
   if (abschnitte.length) { const nt = flcNotizText(w), u = abschnitte.some(([k]) => F[k].unsicher), q = (abschnitte.map(([k]) => F[k].quelle).find(Boolean)) || '';
-    if (!(h.notiz || '').includes(w(abschnitte[0][0]))) L.push({ bereich: 'Notizen', titel: 'An die Notizen anhängen', alt: h.notiz ? '(Notizen vorhanden)' : '', neu: nt, fn: v => { h.notiz = [h.notiz, v].filter(Boolean).join('\n\n'); }, edit: 'rich', unsicher: u, quelle: q, notiz: '', an: !h.notiz && !u }); }
+    if (!(h.notiz || '').includes(w(abschnitte[0][0]))) L.push({ bereich: 'Notizen', titel: 'An die Notizen anhängen', alt: h.notiz ? '(Notizen vorhanden)' : '', neu: nt, fn: v => { h.notiz = [h.notiz, v].filter(Boolean).join('\n\n'); }, edit: 'rich', unsicher: u, quelle: q, notiz: '', an: !h.notiz && !u, erbt: 'notiz' }); }
   const tname = istTopf ? h.name : null;
   for (const f of R.fristen) { if (!f.d) { L.push({ bereich: 'Fristen', titel: 'Frist', alt: '', neu: '„' + f.roh + '“ ist kein Datum – wird nicht übernommen', fn: null, unsicher: true, quelle: f.quelle, an: false }); continue; }
     const tp = tname != null ? tname : f.topf;
     if (e.fristenL.some(x => x.d === f.d && x.topf === tp)) continue;
-    L.push({ bereich: 'Fristen', titel: 'Frist' + (tp ? ' · ' + tp : ''), alt: '', neu: fristText(f.d) + (f.d.length === 5 ? ' (jedes Jahr)' : ' (einmalig)'), fn: () => { e.fristenL.push({ id: uid('fr'), d: f.d, topf: tp }); }, unsicher: f.unsicher, quelle: f.quelle, an: !f.unsicher }); }
-  // Fördertöpfe aus dem Blatt „Fördertöpfe“: neue mit allen Angaben der Zeile anlegen, vorhandene nur in leeren Feldern ergänzen.
+    L.push({ bereich: 'Fristen', titel: 'Frist' + (tp ? ' · ' + tp : ''), alt: '', neu: fristText(f.d) + (f.d.length === 5 ? ' (jedes Jahr)' : ' (einmalig)'), fn: () => { e.fristenL.push({ id: uid('fr'), d: f.d, topf: tp }); }, unsicher: f.unsicher, quelle: f.quelle, an: !f.unsicher, tab: tp && bekannt.has(key(tp)) ? key(tp) : '' }); }
+  // Fördertöpfe aus dem Blatt „Fördertöpfe“: je Topf ein eigener Reiter. Neue Töpfe werden angelegt (erst ganz zuletzt) und bekommen die Angaben ihrer Zeile, vorhandene werden nur in leeren Feldern ergänzt.
   // Wurde der Förderer als Ganzes recherchiert (noch keine Töpfe), erbt JEDER neue Topf, was ihm in seiner Zeile fehlt, aus den Angaben des Förderers – nicht nur der erste.
-  const erbenAlle = h === e && !e.topfe.length;
-  for (const t of R.topfe) { if (!t.name || (istTopf && norm(t.name) === norm(h.name))) continue; const x = e.topfe.find(y => norm(y.name) === norm(t.name)), B = 'Fördertöpfe';
-    if (!x) { const n = flTopfLeer(t.name), D = flcTopfFelder(n, t);
-      const kopf = [t.name, t.kurz && '(' + t.kurz + ')', t.schwer, flHoeheKlar({ hoeheVon: t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }), t.quote].filter(Boolean).join(' · '), nurName = !D.length;
-      L.push({ bereich: B, titel: 'Weiterer Fördertopf', alt: '', neu: kopf + (D.length ? '\nAngaben: ' + D.map(d => d[0]).join(', ') : ''),
-        fn: () => { const m = flTopfLeer(t.name); flcTopfFelder(m, t).forEach(d => d[1]()); if (!nurName) m.recherche = today(); if (erbenAlle && e.topfe.length) flTopfErbt(m, e); flTopfEinfuegen(e, m); }, unsicher: t.unsicher, quelle: t.quelle,
-        notiz: nurName ? 'Zu diesem Fördertopf hat Copilot nur den Namen geliefert – besser einzeln recherchieren lassen (⋯ → „Recherche vorbereiten …“ → Fördertopf).' : '', an: !t.unsicher && !nurName }); }
-    else { const D = flcTopfFelder(x, t); if (D.length) L.push({ bereich: B, titel: 'Fördertopf ergänzen · ' + t.name, alt: '', neu: 'leere Felder füllen: ' + D.map(d => d[0]).join(', '), fn: () => { flcTopfFelder(x, t).forEach(d => d[1]()); }, unsicher: t.unsicher, quelle: t.quelle, an: !t.unsicher }); } }
+  for (const t of R.topfe) { if (!t.name || (istTopf && norm(t.name) === norm(h.name))) continue; const x = e.topfe.find(y => norm(y.name) === norm(t.name)), tk = key(t.name);
+    if (!x) { const m = flTopfLeer(t.name), D = flcTopfFelder(m, t), nurName = !D.length;
+      const kopf = { bereich: 'Fördertopf', titel: 'Fördertopf anlegen', alt: '', neu: t.name + (t.kurz ? ' (' + t.kurz + ')' : ''), tab: tk, anlegen: true, spaet: true, unsicher: t.unsicher, quelle: t.quelle,
+        fn: () => { if (!nurName) m.recherche = today(); if (erbenAlle && e.topfe.length) flTopfErbt(m, e); flTopfEinfuegen(e, m); },
+        notiz: nurName ? 'Zu diesem Fördertopf hat Copilot nur den Namen geliefert – besser einzeln recherchieren lassen (⋯ → „Recherche vorbereiten …“ → Fördertopf).' : '', an: !t.unsicher && !nurName };
+      L.push(kopf); D.forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, topfNeu: kopf, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
+    else flcTopfFelder(x, t).forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
   for (const k of R.kontakte) { if (!k.n) continue; const x = e.kontakte.find(y => kkey(y.n) === kkey(k.n));
     if (!x) L.push({ bereich: 'Kontakte', titel: 'Kontakt (des Förderers)', alt: '', neu: [k.n, k.pos, k.mail, k.tel].filter(Boolean).join(' · '), fn: () => { e.kontakte.push(Object.assign(flKontaktLeer(), { n: k.n, pos: k.pos, mail: k.mail, tel: k.tel, gl: k.gl })); }, unsicher: k.unsicher, quelle: k.quelle, an: !k.unsicher });
     else if ((!x.pos && k.pos) || (!x.mail && k.mail) || (!x.tel && k.tel))
@@ -214,9 +219,14 @@ function flcAenderungen(e, R, h) {
   if (qs.length) { const t = 'Quellen der Recherche (' + fmtDate(today()) + '):\n' + qs.map(q => '- ' + q.url + (q.was ? ' – ' + q.was : '')).join('\n');
     L.push({ bereich: 'Notizen', titel: 'Quellen anhängen', alt: '', neu: t, fn: v => { h.notiz = [h.notiz, v].filter(Boolean).join('\n\n'); }, edit: 'rich', unsicher: false, quelle: '', an: false }); }
   L.push({ bereich: 'Sonstiges', titel: 'Recherchestand (' + bez + ')', alt: h.recherche ? fmtDate(h.recherche) : '', neu: fmtDate(today()), fn: () => { h.recherche = today(); }, unsicher: false, quelle: '', an: true });
+  // Reiter: Angaben zum Förderer (Name, Kontakte, Steckbrief des Förderers) oder zu einem Fördertopf; Namen der Töpfe für die Beschriftung
+  const TN = {}; [...R.topfe, ...e.topfe, ...(istTopf ? [h] : [])].forEach(t => { if (t.name) TN[key(t.name)] = t.name; });
+  L.forEach(x => { if (x.tab === undefined) x.tab = x.bereich === 'Kontakte' ? '' : hKey; });
+  L.erbenAlle = erbenAlle; L.tabNamen = TN; L.hKey = hKey;
+  L.tabReihe = [hKey, ...R.topfe.map(t => key(t.name)), ...e.topfe.map(t => key(t.name))].filter((k, i, A) => k && A.indexOf(k) === i && L.some(x => x.tab === k));      // Reiter in der Reihenfolge der Vorlage
   return L;
 }
-const FLC_BEREICHE = ['Steckbrief', 'Einschätzung', 'Notizen', 'Fristen', 'Fördertöpfe', 'Kontakte', 'Sonstiges'];
+const FLC_BEREICHE = ['Fördertopf', 'Steckbrief', 'Einschätzung', 'Notizen', 'Fristen', 'Kontakte', 'Sonstiges'];
 // Fördertopf einfügen: der erste übernimmt vorher die Angaben des Förderers
 function flTopfEinfuegen(e, t) {
   if (!e.topfe.length) { flTopfErbt(t, e); e.fristenL.forEach(f => { if (!f.topf) f.topf = t.name; }); }
@@ -237,7 +247,16 @@ async function flcEinlesen() {
   const neuName = h('input', { type: 'text', class: 'flc-neuname', value: R.modus === 'topf' ? dName : '', placeholder: 'Name des neuen Fördertopfs', 'aria-label': 'Name des neuen Fördertopfs' });
   let tr = null, L = [], cbs = [];
   const traeger = () => { if (wahl === 'e') return e; if (wahl === 'neu') { if (!tr || !tr._neu) { tr = flTopfLeer(strV(neuName.value) || dName || 'Neuer Fördertopf'); tr._neu = true; if (!e.topfe.length) flTopfErbt(tr, e); } tr.name = strV(neuName.value) || dName || 'Neuer Fördertopf'; return tr; } return e.topfe.find(t => 't:' + t.id === wahl) || e; };
-  const zaehl = h('span', { class: 'flc-zaehl' }), zeigen = () => { zaehl.textContent = cbs.filter(c => c.checked).length + ' von ' + L.filter(x => x.fn).length + ' ausgewählt'; };
+  const zaehl = h('span', { class: 'flc-zaehl' }); let rows = [], aktiv = '';                // aktiv: Reiter – '' = Förderer, sonst der Fördertopf
+  const mitTabs = R.topfe.some(t => t.name);                                       // Förderer-Vorlage mit Fördertöpfen: Angaben je Förderer/Topf in Reitern
+  const tabsListe = () => [...(L.some(x => x.tab === '') ? [''] : []), ...L.tabReihe], tabsAn = () => mitTabs && tabsListe().length > 1;
+  const gilt = i => cbs[i].checked && !(L[i].topfNeu && !cbs[L.indexOf(L[i].topfNeu)].checked);   // Angaben eines Topfs zählen nur, wenn „Fördertopf anlegen“ angehakt ist
+  const tabBar = h('div', { class: 'flc-tabs', role: 'tablist', 'aria-label': 'Angaben je Förderer und Fördertopf' });
+  const zeigen = () => {
+    L.forEach((x, i) => { if (x.topfNeu) { const an = cbs[L.indexOf(x.topfNeu)].checked; cbs[i].disabled = !an; rows[i].classList.toggle('aus', !an); } });
+    zaehl.textContent = L.filter((x, i) => x.fn && gilt(i)).length + ' von ' + L.filter(x => x.fn).length + ' ausgewählt';
+    tabBar.querySelectorAll('.flc-tab').forEach(b => { const ids = L.map((x, i) => i).filter(i => L[i].tab === b.dataset.k && L[i].fn); b.querySelector('small').textContent = ids.filter(gilt).length + '/' + ids.length; });
+  };
   const anzeige = x => x.edit === 'rich' ? fmtText(x.neu) : esc(x.neu).replace(/\n/g, '<br>');
   const wert = x => {
     if (x.edit === 'sel') { const sel = h('select', { class: 'flc-sel', 'aria-label': x.titel }, ...x.opts.map(o => h('option', { selected: o === x.neu }, o))); sel.addEventListener('change', () => { x.neu = sel.value; }); return sel; }
@@ -261,26 +280,40 @@ async function flcEinlesen() {
     h('div', { class: 'flc-k' }, h('b', {}, x.titel), x.unsicher ? h('span', { class: 'fl-pill warn' }, 'unsicher') : null, x.alt ? h('span', { class: 'flc-alt', title: 'bisher: ' + x.alt }, 'bisher: ' + x.alt) : null),
     h('div', { class: 'flc-v' }, wert(x), (x.quelle || x.notiz) ? h('div', { class: 'flc-m' }, x.quelle ? h('a', { href: /^https?:\/\//i.test(x.quelle) ? x.quelle : null, target: '_blank', rel: 'noopener', 'data-act': 'link', title: x.quelle }, 'Quelle: ' + kurzUrl(x.quelle)) : null, x.notiz ? h('span', {}, x.notiz) : null) : null));
   const liste = h('div', { class: 'flc-liste' });
+  const tabKopf = () => { if (!tabsAn()) return null; const anl = L.some(x => x.anlegen && x.tab === aktiv), n = L.tabNamen[aktiv] || '';
+    return h('p', { class: 'muted small flc-tabinfo' }, !aktiv ? 'Angaben zum Förderer.' + (L.erbenAlle ? ' Jeder neue Fördertopf übernimmt daraus, was ihm in seiner eigenen Zeile fehlt (im Reiter des Topfs unter „Vom Förderer übernommen“ zu sehen).' : '')
+      : anl ? 'Neuer Fördertopf „' + n + '“: Diese Angaben gelten nur für ihn.' : aktiv === L.hKey ? 'Ziel des Einlesens: Fördertopf „' + n + '“.' : 'Vorhandener Fördertopf „' + n + '“: Es werden nur leere Felder ergänzt.'); };
+  const erbeZeilen = () => {                                                       // was ein neuer Topf zusätzlich vom Förderer übernimmt (nur Ansicht)
+    if (!tabsAn() || !aktiv || !L.erbenAlle) return []; const ki = L.findIndex(x => x.anlegen && x.tab === aktiv); if (ki < 0 || !gilt(ki)) return [];
+    const eigen = new Set(L.filter(x => x.tab === aktiv && x.key).map(x => x.key)), G = L.filter((x, i) => x.erbt && x.tab === '' && x.fn && gilt(i) && !eigen.has(x.erbt)); if (!G.length) return [];
+    return [h('div', { class: 'flc-bereich' }, 'Vom Förderer übernommen'), ...G.map(x => h('div', { class: 'flc-r erbe' }, h('div', { class: 'flc-cb' }), h('div', { class: 'flc-k' }, h('b', {}, x.titel), h('span', { class: 'fl-pill' }, 'Förderer')), h('div', { class: 'flc-v' }, h('div', { class: 'flc-w' + (x.edit === 'rich' ? ' fmt' : ''), html: anzeige(x) }))))]; };
+  const zeichne = () => {
+    const an = tabsAn(); tabBar.hidden = !an; if (!tabsListe().includes(aktiv)) aktiv = tabsListe()[0] || '';
+    tabBar.replaceChildren(...(an ? tabsListe().map(k => { const b = h('button', { type: 'button', role: 'tab', class: 'flc-tab' + (k === aktiv ? ' on' : ''), 'aria-selected': String(k === aktiv), onclick: () => { aktiv = k; zeichne(); } }, k ? L.tabNamen[k] : 'Förderer', L.some(x => x.anlegen && x.tab === k) ? h('i', { class: 'flc-neu' }, 'neu') : null, h('small', {}));
+      b.dataset.k = k; return b; }) : []));
+    const sicht = L.map((x, i) => i).filter(i => !an || L[i].tab === aktiv), teile = FLC_BEREICHE.map(b => ({ b, L: sicht.filter(i => L[i].bereich === b) })).filter(t => t.L.length);
+    liste.replaceChildren(...[tabKopf(), ...teile.flatMap(t => [h('div', { class: 'flc-bereich' }, t.b), ...t.L.map(i => rows[i])]), ...erbeZeilen()].filter(Boolean)); zeigen();
+  };
   const baue = () => {                                                           // Angaben für das gewählte Ziel neu aufstellen
     L = flcAenderungen(e, R, traeger()); cbs = L.map(x => h('input', { type: 'checkbox', class: 'flc-c', checked: x.an, disabled: !x.fn, 'aria-label': x.titel + ' übernehmen' }));
-    cbs.forEach(c => c.addEventListener('change', zeigen));
-    const teile = FLC_BEREICHE.map(b => ({ b, L: L.map((x, i) => [x, i]).filter(([x]) => x.bereich === b) })).filter(t => t.L.length);
-    liste.replaceChildren(...teile.flatMap(t => [h('div', { class: 'flc-bereich' }, t.b), ...t.L.map(([x, i]) => zeile(x, i))])); zeigen();
+    rows = L.map((x, i) => zeile(x, i)); cbs.forEach((c, i) => c.addEventListener('change', () => { if (L[i].anlegen && tabsAn()) { zeichne(); c.focus(); } else zeigen(); }));
+    zeichne();
   };
-  const alle = f2 => () => { L.forEach((x, i) => { if (x.fn) cbs[i].checked = f2(x); }); zeigen(); };
+  const alle = f2 => () => { L.forEach((x, i) => { if (x.fn && (!tabsAn() || x.tab === aktiv)) cbs[i].checked = f2(x); }); if (tabsAn()) zeichne(); else zeigen(); };
   const ziel = h('div', { class: 'flc-ziel' }, h('b', {}, 'Einlesen in:'), ...optionen.map(o => h('label', { class: 'flc-zo' }, h('input', { type: 'radio', name: 'flc-ziel', checked: o.k === wahl, onchange: () => { wahl = o.k; neuName.hidden = wahl !== 'neu'; baue(); } }), ' ' + o.l)), neuName);
   neuName.hidden = wahl !== 'neu'; neuName.addEventListener('input', () => { if (wahl === 'neu') { traeger(); const t = liste.querySelector('.flc-r b'); } });
   neuName.addEventListener('change', () => { if (wahl === 'neu') baue(); });
   const bar = h('div', { class: 'flc-bar' }, h('div', { class: 'flc-bt' }, h('b', {}, '„' + f.name + '“'), R.modus === 'topf' ? ' (Fördertopf-Vorlage)' : ' (Förderer-Vorlage)', ' für ', h('b', {}, e.name || 'diesen Förderer')),
     ...(optionen.length > 1 || wahl === 'neu' ? [ziel] : []),
     h('div', { class: 'flc-bw' }, zaehl, h('button', { class: 'link small', onclick: alle(() => true) }, 'Alle'), h('button', { class: 'link small', onclick: alle(() => false) }, 'Keine'), h('button', { class: 'link small', onclick: alle(x => x.an) }, 'Vorauswahl')),
-    h('p', { class: 'muted small flc-hint' }, 'Vorgewählt sind neue, sichere Angaben. Angaben, die etwas Vorhandenes ersetzen würden, und unsichere sind nicht angekreuzt – bitte einzeln prüfen. Texte lassen sich per Klick ändern.'));
+    h('p', { class: 'muted small flc-hint' }, 'Vorgewählt sind neue, sichere Angaben. Angaben, die etwas Vorhandenes ersetzen würden, und unsichere sind nicht angekreuzt – bitte einzeln prüfen. Texte lassen sich per Klick ändern.' + (mitTabs ? ' Die Reiter zeigen, welche Angaben in welchen Fördertopf kommen.' : '')), tabBar);
   baue();
   const body = h('div', { class: 'flc' }, bar, liste);
   const ok = await modal('Angaben aus Copilot übernehmen?', body, [['Abbrechen', false], ['Ausgewählte übernehmen', true, 'primary']], { wide: true, cls: 'flc-modal' });
   if (!ok) return;
   let n = 0; const t = traeger(); if (t._neu) { delete t._neu; flTopfEinfuegen(e, t); UI.flTopf = t.id; }
-  L.forEach((x, i) => { if (cbs[i].checked && x.fn) { x.fn(x.neu); n++; } });
+  const ids = L.map((x, i) => i).filter(i => L[i].fn && gilt(i));
+  [...ids.filter(i => !L[i].spaet), ...ids.filter(i => L[i].spaet)].forEach(i => { L[i].fn(L[i].neu); n++; });          // „Fördertopf anlegen“ zuletzt: der Topf erbt dann, was ihm fehlt
   if (t !== e) UI.flTopf = t.id;
   if (n || t !== e) { e.fristenL.sort((a, c) => a.d.localeCompare(c.d)); flZuKartei(); changed(); keep(renderNow); }
   toast(n ? n + (n === 1 ? ' Angabe' : ' Angaben') + ' übernommen – mit ↶ (Strg+Z) wieder rückgängig zu machen' : 'Nichts übernommen', n ? 'ok' : undefined);

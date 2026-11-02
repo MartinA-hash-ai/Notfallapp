@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.115:** Beim Einlesen einer Förderer-Vorlage mit Fördertöpfen zeigt das Fenster Reiter: „Förderer“ und je Fördertopf einen. Jeder Reiter listet, was in diesen Träger kommt (jede Angabe einzeln an-/abhaken und änderbar); bei neuen Töpfen steht darunter, was sie zusätzlich vom Förderer übernehmen. Ein Topf nur mit Namen ist nicht vorgewählt.
+
 **Seit 0.114:** Hat ein Förderer mehrere Fördertöpfe, ist seine Zeile in der Fördererliste so hoch, dass die Töpfe rechts neben dem Förderer (Kurzform) untereinander stehen – je Topf eine Zeile mit Gebiet, Zweck, Fristen und Netz. „▾ n Fördertöpfe“ klappt sie ein; ein Klick auf eine Topf-Zeile öffnet den Förderer mit diesem Topf.
 
 **Seit 0.113:** „Recherche vorbereiten“ fragt zuerst, ob der Förderer allgemein oder ein bestimmter Fördertopf recherchiert werden soll. Die Förderer-Vorlage enthält im Blatt „Fördertöpfe“ alle Angaben je Topf, der Auftrag verlangt jeden Topf vollständig. Beim Einlesen erbt jeder neue Topf, was ihm fehlt, vom Förderer (nicht mehr nur der erste); Töpfe nur mit Namen sind nicht vorgewählt.

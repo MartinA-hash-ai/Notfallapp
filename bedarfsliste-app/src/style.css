@@ -2068,3 +2068,15 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 .flc-dlg .flc-unter[hidden], .flc-dlg .flc-sub[hidden], .flc-dlg .flc-neuname[hidden] { display: none; }
 .flc-zo.aus { opacity: .55; cursor: not-allowed; }
 .flc-zo.aus input { cursor: not-allowed; }
+
+/* 0.115: Einlesen – Reiter je Förderer und Fördertopf */
+.flc-tabs { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; border-bottom: 1px solid var(--line); }
+.flc-tabs[hidden] { display: none; }
+.flc-tab { display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); border-bottom: 0; border-radius: 8px 8px 0 0; background: var(--soft); padding: 6px 12px; font-size: 13.5px; color: var(--ink2); cursor: pointer; margin-bottom: -1px; }
+.flc-tab:hover { background: var(--hover); }
+.flc-tab.on { background: var(--card); color: var(--ink); font-weight: 600; border-color: var(--line2); border-bottom: 1px solid var(--card); }
+.flc-tab small { font-size: 11.5px; color: var(--muted); font-weight: 400; }
+.flc-neu { font-style: normal; font-size: 10.5px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); border: 1px solid var(--line2); border-radius: 999px; padding: 0 6px; }
+.flc-tabinfo { margin: 10px 0 0; }
+.flc-r.erbe { background: var(--soft); }
+.flc-r.erbe .flc-w { color: var(--muted); }
