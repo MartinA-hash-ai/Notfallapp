@@ -2037,3 +2037,12 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 .fl-notizen .pe .val, .fl-notizen .pe .pe-in { max-height: calc(20 * 1.5em); max-height: 20lh; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line2) transparent; }
 .fl-notizen .pe .val { line-height: 1.5; }
 .fl-tab .fl-ft { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+/* 0.111: lange Titel in „Förderungen und Absagen“ umbrechen statt überlappen */
+.fl-ge-t { min-width: 0; }
+.fl-ge-t .fl-bed { white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.flc-dlg { display: grid; gap: 8px; }
+.flc-zo { display: flex; align-items: center; gap: 6px; font-size: 14px; cursor: pointer; }
+.flc-neuname { width: 100%; box-sizing: border-box; }
+.flc-knoepfe { display: flex; gap: 8px; margin: 6px 0 2px; flex-wrap: wrap; }
+.flc-ziel { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 14px; padding: 4px 0; font-size: 13.5px; }
+.flc-ziel .flc-neuname { flex: 1 1 220px; width: auto; }

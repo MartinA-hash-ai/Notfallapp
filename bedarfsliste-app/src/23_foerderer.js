@@ -29,7 +29,7 @@ function fristenAusText(t) {
   const rest = String(t || '').replace(FRIST_RE, '').replace(/\b(und|sowie|bzw|oder|jeweils|bis|zum|am|je)\b/gi, '').replace(/[\s,.;:–\-\/()*_]+/g, '');
   return { L, text: rest ? strV(t) : '' };
 }
-const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg: [], anschrift: '', web: '', schwer: '', hoehe: '', fristen: '', quote: '', kurz: '', gross: false, hoeheVon: null, hoeheBis: null, topfe: [], richtlinien: '', recherche: '', notiz: '', bew: { chance: 0, dauer: 0, summe: 0 }, antrag: '', fristenL: [], ansprache: [], kontakte: [], foerderungen: [] });
+const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg: [], anschrift: '', web: '', schwer: '', hoehe: '', fristen: '', quote: '', kurz: '', gross: false, hoeheVon: null, hoeheBis: null, topfe: [], topfMig: false, richtlinien: '', recherche: '', notiz: '', bew: { chance: 0, dauer: 0, summe: 0 }, antrag: '', fristenL: [], ansprache: [], kontakte: [], foerderungen: [] });
 // Einschätzung (ab 0.89, Häufigkeit und Aufwand ab 0.96): je drei Stufen, 1 = ungünstig … 3 = günstig (im Netz außen = besser; bei Dauer und Aufwand heißt außen
 // „geht schnell“ bzw. „einfach“); 0 = nicht von Hand gesetzt. Reihenfolge = im Uhrzeigersinn ab oben: Geld (Summe, Häufigkeit) rechts, Mühe (Aufwand, Dauer) links
 const FL_BEW = [
@@ -52,18 +52,41 @@ function mailRein(v) {
   const m = t.match(/[^\s<>"'(),;:]+@[^\s<>"'(),;:]+\.[a-z]{2,}/i);
   return m ? m[0] : t.trim();
 }
+// Felder, die Förderer und Fördertopf gemeinsam haben (beim Förderer ohne Töpfe gelten sie für ihn selbst, sonst je Topf)
+const FL_TF = ['schwer', 'gl', 'hoehe', 'hoeheVon', 'hoeheBis', 'quote', 'fristen', 'web', 'richtlinien', 'weg', 'antrag', 'anschrift', 'recherche', 'bew', 'gross', 'notiz'];
+const flBewNull = () => Object.fromEntries(FL_BEW.map(x => [x.k, 0]));
+const flTopfLeer = (name = '') => ({ id: uid('t'), name, kurz: '', schwer: '', gl: [], hoehe: '', hoeheVon: null, hoeheBis: null, quote: '', fristen: '', web: '', richtlinien: '', weg: [], antrag: '', anschrift: '', recherche: '', bew: flBewNull(), gross: false, notiz: '' });
+function flTraegerNorm(o) {
+  for (const k of ['schwer', 'hoehe', 'quote', 'fristen', 'web', 'richtlinien', 'antrag', 'anschrift', 'notiz']) o[k] = strV(o[k]);
+  o.gross = o.gross === true; o.hoeheVon = zahlOderLeer(o.hoeheVon); o.hoeheBis = zahlOderLeer(o.hoeheBis); if (o.hoeheVon != null || o.hoeheBis != null) o.hoehe = '';   // Förderhöhe: Zahlen von … bis; ein älterer Freitext bleibt, bis man neu einträgt
+  o.recherche = validIso(o.recherche) ? o.recherche : ''; o.gl = strL(o.gl); o.weg = uniq(strL(o.weg).map(flWegNorm));
+  const bw = isObj(o.bew) ? o.bew : {}; o.bew = Object.fromEntries(FL_BEW.map(x => [x.k, [1, 2, 3].includes(+bw[x.k]) ? +bw[x.k] : 0]));
+}
+// Fördertopf übernimmt vom Förderer, was ihm noch fehlt (Kopie); Einschätzung nur, wenn noch nichts gesetzt ist
+function flTopfErbt(t, e) {
+  for (const k of FL_TF) {
+    if (k === 'bew') { if (!FL_BEW.some(x => t.bew[x.k])) t.bew = Object.assign({}, e.bew); }
+    else if (k === 'gross') t.gross = t.gross || e.gross;
+    else if (k === 'hoehe') { if (!t.hoehe && t.hoeheVon == null && t.hoeheBis == null) Object.assign(t, { hoehe: e.hoehe, hoeheVon: e.hoeheVon, hoeheBis: e.hoeheBis }); }
+    else if (k === 'hoeheVon' || k === 'hoeheBis') continue;
+    else if (Array.isArray(e[k])) { if (!t[k].length) t[k] = e[k].slice(); }
+    else if (!t[k]) t[k] = e[k];
+  }
+}
 function flNorm(x) {
   const o = isObj(x) ? x : {}, ids = new Set();
   const L = (Array.isArray(o.liste) ? o.liste : []).filter(isObj).map(e0 => {
     const e = Object.assign(flLeer(), e0);
-    for (const k of ['id', 'name', 'kurz', 'art', 'anschrift', 'web', 'schwer', 'hoehe', 'quote', 'fristen', 'richtlinien', 'notiz', 'antrag']) e[k] = strV(e[k]);
-    e.gross = e0.gross === true; e.hoeheVon = zahlOderLeer(e0.hoeheVon); e.hoeheBis = zahlOderLeer(e0.hoeheBis); if (e.hoeheVon != null || e.hoeheBis != null) e.hoehe = '';   // Förderhöhe: Zahlen von … bis; ein älterer Freitext bleibt, bis man neu einträgt
-    e.topfe = (Array.isArray(e0.topfe) ? e0.topfe : []).filter(isObj).map(t => ({ id: strV(t.id) || uid('t'), name: strV(t.name), kurz: strV(t.kurz), schwer: strV(t.schwer), gl: strL(t.gl), hoehe: strV(t.hoehe), hoeheVon: zahlOderLeer(t.hoeheVon), hoeheBis: zahlOderLeer(t.hoeheBis), quote: strV(t.quote) })).map(t => (t.hoeheVon != null || t.hoeheBis != null ? Object.assign(t, { hoehe: '' }) : t));
-    e.status = FL_STATUS.includes(e.status) ? e.status : 'aktiv'; e.recherche = validIso(e.recherche) ? e.recherche : '';
-    e.gl = strL(e.gl); e.weg = uniq(strL(e.weg).map(flWegNorm));
-    if (Array.isArray(e0.fristenL)) e.fristenL = e0.fristenL.filter(isObj).map(f => ({ id: f.id || uid('fr'), d: /^\d{2}-\d{2}$/.test(f.d) || validIso(f.d) ? f.d : fristParse(f.d), topf: strV(f.topf) })).filter(f => f.d);
-    else { const x = fristenAusText(e.fristen); e.fristenL = x.L; e.fristen = x.text; }   // bis 0.94: Fristen nur als Text
-    const bw = isObj(e.bew) ? e.bew : {}; e.bew = Object.fromEntries(FL_BEW.map(x => [x.k, [1, 2, 3].includes(+bw[x.k]) ? +bw[x.k] : 0]));
+    for (const k of ['id', 'name', 'kurz', 'art']) e[k] = strV(e[k]);
+    e.status = FL_STATUS.includes(e.status) ? e.status : 'aktiv';
+    const fm = e0.fristenL;                                                      // bis 0.94: Fristen nur als Text
+    flTraegerNorm(e);
+    if (Array.isArray(fm)) e.fristenL = fm.filter(isObj).map(f => ({ id: f.id || uid('fr'), d: /^\d{2}-\d{2}$/.test(f.d) || validIso(f.d) ? f.d : fristParse(f.d), topf: strV(f.topf) })).filter(f => f.d);
+    else { const x = fristenAusText(e.fristen); e.fristenL = x.L; e.fristen = x.text; }
+    // Fördertöpfe (ab 0.111) haben Steckbrief, Einschätzung, Links und Notizen für sich; bei älteren Ständen bekommt jeder Topf, was ihm fehlt, aus den Angaben des Förderers
+    e.topfe = (Array.isArray(e0.topfe) ? e0.topfe : []).filter(isObj).map(t => { const o = Object.assign(flTopfLeer(), t, { id: strV(t.id) || uid('t') }); o.name = strV(o.name); o.kurz = strV(o.kurz); flTraegerNorm(o); return o; });
+    if (e.topfe.length && !e0.topfMig) { e.topfe.forEach(t => flTopfErbt(t, e)); const erster = e.topfe[0].name; e.fristenL.forEach(f => { if (!f.topf) f.topf = erster; }); }
+    e.topfMig = e.topfe.length > 0;
     // Hinweise (ab 0.94): gelb „hinweis“ oder rot „nicht anschreiben“; bis 0.93 hieß gelb „über die Gliederung“ (wird zur Überschrift), „frei“ ohne Text entfällt
     e.ansprache = (Array.isArray(e.ansprache) ? e.ansprache : []).filter(isObj).map(a => { const art0 = strV(a.art), nein = art0 === 'nicht anschreiben';
       return { gl: strV(a.gl), art: nein ? 'nicht anschreiben' : 'hinweis', kopf: strV(a.kopf), titel: strV(a.titel) || (art0 === 'über die Gliederung' ? 'Über die Gliederung' : nein ? 'Nicht anschreiben' : ''), hinweis: strV(a.hinweis) }; })
@@ -132,10 +155,10 @@ const flSumme = e => flHistorie(e).filter(x => x.ergebnis === 'gefördert').redu
 // ---------- als „Kartei“ für das übrige Programm (Vorschläge beim Anlegen, Kontakte, Hinweis „laut Kartei für …“)
 function flZuKartei() {
   if (!flAktiv()) return;
-  karteiSet(D.fl.liste.filter(e => e.name.trim()).map(e => ({
+  karteiSet(D.fl.liste.filter(e => e.name.trim()).map(e0 => { const e = flEff(e0); return {
     name: e.name, kurz: e.kurz, flId: e.id, blatt: /stift/i.test(e.art) ? 'Stiftungen' : 'Banken', gl: e.gl.slice(), weg: e.weg.slice(), notiz: e.notiz, schwer: e.schwer, web: e.web,
     kontakte: e.kontakte.filter(k => k.n.trim()).sort((a, c) => (c.anschreiben === 'ja') - (a.anschreiben === 'ja')).map(k => ({ n: k.n, pos: k.pos, m: k.mail, t: k.tel, nicht: k.anschreiben === 'nein', gl: k.gl.slice() })),
-    hist: flHistorie(e).filter(x => x.ergebnis === 'gefördert').reduce((h, x) => { const y = x.jahr || '–', t = [x.betrag ? eur(x.betrag) : '', x.zweck].filter(Boolean).join(' '); h[y] = h[y] ? h[y] + '\n' + t : t; return h; }, {}) })));
+    hist: flHistorie(e).filter(x => x.ergebnis === 'gefördert').reduce((h, x) => { const y = x.jahr || '–', t = [x.betrag ? eur(x.betrag) : '', x.zweck].filter(Boolean).join(' '); h[y] = h[y] ? h[y] + '\n' + t : t; return h; }, {}) }; }));
   Object.assign(KR, { name: 'Fördererliste', err: null, zugriff: false, at: new Date() });
 }
 // Hinweis der Fördererliste für die Gliederung eines Bedarfs (gelb oder „nicht anschreiben“) – erscheint am Förderer im Bedarf und oben bei den Infos
@@ -159,6 +182,9 @@ function flPruefen() {
   FL_T = setTimeout(() => { const vor = flSig(); flAlleVerknuepfen(); flZuKartei(); if (flSig() !== vor && UI.view === 'detail') safeRender(); }, 400);   // Förderer umbenannt: Zeile „Fördererliste: …“ nachziehen
 }
 
+// weitere Angaben je Fördertopf im Blatt „Fördertöpfe“ (ab 0.111): [Spalte, Feld]; Einschätzung und Großförderer folgen
+const FLT_X = [['Homepage / Portal', 'web'], ['Förderrichtlinien (Link)', 'richtlinien'], ['Antragsweg', 'weg'], ['Antrag an (E-Mail oder Portal-Link)', 'antrag'], ['Anschrift', 'anschrift'], ['Recherche-Stand', 'recherche'], ['Hinweis zu Fristen', 'fristen'], ['Notizen', 'notiz'], ['Großförderer', 'gross'],
+  ['Erfolgschance', 'bew.chance'], ['Dauer', 'bew.dauer'], ['Fördersumme', 'bew.summe'], ['Häufigkeit', 'bew.haeufig'], ['Aufwand', 'bew.aufwand']];
 // ---------- Excel: einlesen (umgebaute Kartei oder eigene Kopie) und schreiben
 const FL_SP = {
   'Förderer': ['ID', 'Name', 'Art', 'Status', 'Gliederungen', 'Antragsweg', 'Anschrift', 'Homepage / Portal', 'Förderschwerpunkte', 'Förderhöhe', 'Fristen', 'Förderrichtlinien (Link)', 'Recherche-Stand', 'Notizen', ...FL_BEW_XL.map(x => x.t), 'Antrag an (E-Mail oder Portal-Link)', 'Förderquote', 'Kurzname', 'Großförderer', 'Förderhöhe von (€)', 'Förderhöhe bis (€)'],
@@ -166,7 +192,7 @@ const FL_SP = {
   'Kontakte': ['Förderer-ID', 'Förderer', 'Name', 'Position', 'E-Mail', 'Telefon', 'Gliederungen', 'Anschreiben', 'Notiz'],
   'Förderungen': ['Förderer-ID', 'Förderer', 'Jahr', 'Datum', 'Ergebnis', 'Betrag (€)', 'Zweck / Bedarf', 'Gliederungen', 'Grund der Absage', 'Quelle', 'Bedarf-ID'],
   'Fristen': ['Förderer-ID', 'Förderer', 'Frist', 'jedes Jahr', 'Fördertopf'],
-  'Fördertöpfe': ['Förderer-ID', 'Förderer', 'Fördertopf', 'Kurzname', 'Förderzweck', 'Fördergebiet', 'Förderhöhe', 'Förderquote', 'Förderhöhe von (€)', 'Förderhöhe bis (€)'],
+  'Fördertöpfe': ['Förderer-ID', 'Förderer', 'Fördertopf', 'Kurzname', 'Förderzweck', 'Fördergebiet', 'Förderhöhe', 'Förderquote', 'Förderhöhe von (€)', 'Förderhöhe bis (€)', ...FLT_X.map(x => x[0])],
 };
 // Stufe aus einer Excel-Zelle: von der höchsten Stufe an suchen („mehrmals jährlich“ enthält „jährlich“); „einmal im Jahr“ aus 0.96 gilt weiter
 const flStufe = (x, v) => { const t = norm(v).replace('im jahr', 'jährlich'); if (!t) return 0; for (let i = x.st.length - 1; i >= 0; i--) if (t.includes(norm(x.st[i]))) return i + 1; return 0; };
@@ -186,10 +212,13 @@ function flLesen(book) {
     const e = zu(r); if (!e || /^bedarfsliste$/i.test(strV(r.quelle))) continue;                     // die aus den Bedarfen liest das Programm selbst
     e.foerderungen.push(Object.assign(flFoerderungLeer(), { jahr: strV(r.jahr).replace(/\.0$/, ''), datum: xlDatum(r.datum), ergebnis: norm(r.ergebnis) === 'abgelehnt' ? 'abgelehnt' : 'gefördert', betrag: zahlOderLeer(r['betrag (€)']), zweck: strV(r['zweck / bedarf']), gl: strL(r.gliederungen), grund: strV(r['grund der absage']), quelle: strV(r.quelle) }));
   }
-  for (const r of tab('Fördertöpfe')) { const e = zu(r); if (e && strV(r['fördertopf'])) e.topfe.push({ name: strV(r['fördertopf']), kurz: strV(r.kurzname), schwer: strV(r['förderzweck']), gl: strL(r['fördergebiet']), hoehe: strV(r['förderhöhe']), quote: strV(r['förderquote']), hoeheVon: zahlOderLeer(r['förderhöhe von (€)']), hoeheBis: zahlOderLeer(r['förderhöhe bis (€)']) }); }
+  for (const r of tab('Fördertöpfe')) { const e = zu(r); if (e && strV(r['fördertopf'])) { const t = Object.assign(flTopfLeer(strV(r['fördertopf'])), { kurz: strV(r.kurzname), schwer: strV(r['förderzweck']), gl: strL(r['fördergebiet']), hoehe: strV(r['förderhöhe']), quote: strV(r['förderquote']), hoeheVon: zahlOderLeer(r['förderhöhe von (€)']), hoeheBis: zahlOderLeer(r['förderhöhe bis (€)']),
+      web: strV(r['homepage / portal']), richtlinien: strV(r['förderrichtlinien (link)']), weg: strL(r.antragsweg), antrag: strV(r['antrag an (e-mail oder portal-link)']), anschrift: strV(r.anschrift), recherche: xlDatum(r['recherche-stand']), fristen: strV(r['hinweis zu fristen']), notiz: strV(r.notizen), gross: norm(r['großförderer']) === 'ja' });
+    FL_BEW.forEach(x => { t.bew[x.k] = flStufe(x, r[norm(x.t)]); }); e.topfe.push(t); } }
   if (blatt('Fristen')) for (const r of tab('Fristen')) { const e = zu(r), d = typeof r.frist === 'number' ? xlDatum(r.frist) : fristParse(cellStr(r.frist));
     if (e && d) (e.fristenL = e.fristenL || []).push({ d: norm(r['jedes jahr']) !== 'nein' && d.length > 5 ? d.slice(5) : d, topf: strV(r['fördertopf']) }); }   // jedes Jahr: nur Tag und Monat
   else L.forEach(e => { delete e.fristenL; });                                          // ältere Excel: Termine aus dem Fristen-Text
+  const tf = blatt('Fördertöpfe'); if (tf && (tf.rows[0] || []).some(c => norm(cellStr(c)) === 'notizen')) L.forEach(e => { e.topfMig = true; });   // Blatt ab 0.111: die Töpfe haben ihre Angaben schon, nichts mehr vom Förderer erben
   return flNorm({ liste: L });
 }
 async function flEinlesen() {
@@ -211,14 +240,15 @@ function flExportZeilen() {
     'Ansprache': L.flatMap(e => e.ansprache.map(a => [e.id, e.name, a.gl, a.art, a.hinweis, a.titel, a.kopf])),
     'Kontakte': L.flatMap(e => e.kontakte.map(k => [e.id, e.name, k.n, k.pos, k.mail, k.tel, j(k.gl), k.anschreiben, k.notiz])),
     'Fristen': L.flatMap(e => e.fristenL.map(f => [e.id, e.name, fristText(f.d), f.d.length === 5 ? 'ja' : 'nein', f.topf])),
-    'Fördertöpfe': L.flatMap(e => e.topfe.map(t => [e.id, e.name, t.name, t.kurz, t.schwer, j(t.gl), flHoeheKlar(t), t.quote, t.hoeheVon ?? '', t.hoeheBis ?? ''])),
+    'Fördertöpfe': L.flatMap(e => e.topfe.map(t => [e.id, e.name, t.name, t.kurz, t.schwer, j(t.gl), flHoeheKlar(t), t.quote, t.hoeheVon ?? '', t.hoeheBis ?? '', t.web, t.richtlinien, j(t.weg), t.antrag, t.anschrift, t.recherche, t.fristen, t.notiz, t.gross ? 'ja' : '',
+      ...['chance', 'dauer', 'summe', 'haeufig', 'aufwand'].map(k => { const x = FL_BEW.find(y => y.k === k); return t.bew[k] ? x.st[t.bew[k] - 1] : ''; })])),
     'Förderungen': L.flatMap(e => flHistorie(e).map(x => [e.id, e.name, +x.jahr || x.jahr || '', x.datum || '', x.ergebnis, x.betrag, x.zweck, j(x.gl || []), x.grund || '', x.quelle, x.bedarfId || ''])),
   };
 }
 function flBlob(Z = flExportZeilen()) {
   const kopf = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, z = { border: 'thin', v: 'top', wrap: true };
-  const breiten = { 'Förderer': [7, 34, 18, 11, 26, 16, 30, 34, 34, 16, 18, 26, 13, 40, 14, 11, 13, 17, 15, 34, 26, 14, 14, 14, 14], 'Ansprache': [11, 30, 22, 18, 60, 30, 24], 'Kontakte': [11, 30, 26, 24, 34, 18, 24, 12, 30], 'Förderungen': [11, 30, 7, 11, 11, 11, 40, 24, 30, 16, 12], 'Fristen': [11, 30, 12, 11, 30], 'Fördertöpfe': [11, 30, 30, 18, 34, 26, 22, 26, 14, 14] };
-  const datum = { 'Förderer': [12], 'Förderungen': [3] }, txt = { 'Kontakte': [5] }, listen = { 'Förderer': [[2, FL_ARTEN], [3, FL_STATUS], ...FL_BEW_XL.map((x, i) => [14 + i, x.st])], 'Ansprache': [[3, FL_ANSPRACHE]], 'Kontakte': [[7, ['ja', 'nein']]], 'Förderungen': [[4, ['gefördert', 'abgelehnt']]], 'Fristen': [[3, ['ja', 'nein']]] };
+  const breiten = { 'Förderer': [7, 34, 18, 11, 26, 16, 30, 34, 34, 16, 18, 26, 13, 40, 14, 11, 13, 17, 15, 34, 26, 14, 14, 14, 14], 'Ansprache': [11, 30, 22, 18, 60, 30, 24], 'Kontakte': [11, 30, 26, 24, 34, 18, 24, 12, 30], 'Förderungen': [11, 30, 7, 11, 11, 11, 40, 24, 30, 16, 12], 'Fristen': [11, 30, 12, 11, 30], 'Fördertöpfe': [11, 30, 30, 18, 34, 26, 22, 26, 14, 14, 30, 30, 12, 30, 30, 13, 26, 40, 12, 14, 11, 13, 17, 15] };
+  const datum = { 'Förderer': [12], 'Förderungen': [3], 'Fördertöpfe': [15] }, txt = { 'Kontakte': [5] }, listen = { 'Förderer': [[2, FL_ARTEN], [3, FL_STATUS], ...FL_BEW_XL.map((x, i) => [14 + i, x.st])], 'Ansprache': [[3, FL_ANSPRACHE]], 'Kontakte': [[7, ['ja', 'nein']]], 'Förderungen': [[4, ['gefördert', 'abgelehnt']]], 'Fristen': [[3, ['ja', 'nein']]] };
   const sheets = Object.keys(FL_SP).map(name => {
     const R = Z[name], n = R.length + 1, last = colName(FL_SP[name].length - 1);
     return { name, cols: breiten[name], freeze: 'C2', filter: 'A1:' + last + n, heights: { 0: 30 },
@@ -231,7 +261,7 @@ function flBlob(Z = flExportZeilen()) {
       'Erfolgschance, Dauer, Fördersumme, Häufigkeit, Aufwand: von Hand eingeschätzt (Auswahl in der Zelle); leer = das Programm schätzt aus den Förderungen und Absagen, soweit möglich (den Aufwand nicht).',
       'Blatt „Ansprache“: Hinweise je Förderer – „hinweis“ (gelb) oder „nicht anschreiben“ (rot), mit Kopfzeile, Überschrift und Text; Gliederung leer = gilt für alle.',
       'Blatt „Fristen“: je Frist eine Zeile – „31.03.“ mit „jedes Jahr: ja“ gilt jährlich, „31.03.2027“ einmalig; dazu optional der Fördertopf. „Fristen“ bei den Förderern ist nur noch ein Hinweis (z. B. laufend).',
-      'Blatt „Fördertöpfe“: je Fördertopf (z. B. ein Programm der Aktion Mensch) eine Zeile mit eigenem Förderzweck, Fördergebiet, Förderhöhe und Förderquote; der Name verbindet ihn mit den Fristen. „Kurzname“ bei den Förderern: so heißt der Förderer intern (z. B. DSEE) – in den Bedarfen gelten Kurzname und voller Name.',
+      'Blatt „Fördertöpfe“: je Fördertopf (z. B. ein Programm der Aktion Mensch) eine Zeile mit allem, was für ihn gilt: Zweck, Gebiet, Förderhöhe, Quote, Homepage, Antragsweg, Einschätzung, Großförderer und Notizen (hat ein Förderer Fördertöpfe, stehen Steckbrief, Einschätzung und Notizen dort, nicht mehr beim Förderer); der Name verbindet ihn mit den Fristen. „Kurzname“ bei den Förderern: so heißt der Förderer intern (z. B. DSEE) – in den Bedarfen gelten Kurzname und voller Name.',
       '„Großförderer“: ja = in der Fördererliste mit kleiner Krone (> 10.000 € möglich); im Programm über die Krone neben „> 3.000 €“ im Netz.',
       'Blatt „Kontakte“: je Person eine Zeile mit Position; „Anschreiben“: ja, nein oder leer (nicht festgelegt).',
       'Blatt „Förderungen“: Förderungen und Absagen. Quelle „Bedarfsliste“ = aus einem Bedarf (Bedarf-ID), sonst aus der alten Kartei oder von Hand.',
@@ -267,9 +297,27 @@ function flBewAuto(e) {
   else if (Y.length > 1) R.haeufig = { v: 1, grund: 'gefördert ' + Y.join(', ') };
   return R;
 }
-function flBew(e) {
-  const A = flBewAuto(e);
-  return Object.fromEntries(FL_BEW.map(x => [x.k, e.bew[x.k] ? { v: e.bew[x.k], hand: true, grund: 'von Hand eingeschätzt' } : A[x.k] ? Object.assign({ hand: false }, A[x.k]) : { v: 0, hand: false, grund: '' }]));
+// aktueller Fördertopf der Seite (ohne Töpfe: null); Träger = der Topf, sonst der Förderer selbst
+const flTopfWahl = e => e.topfe.length ? (e.topfe.find(t => t.id === UI.flTopf) || e.topfe[0]) : null;
+const flTraeger = e => flTopfWahl(e) || e;
+// aus den Daten geschätzt: Förderungen und Absagen gehören zum Förderer, nicht zu einem Topf – mit mehreren Töpfen deshalb keine Schätzung je Topf
+const flAutoFuer = (e, t) => t && e.topfe.length > 1 ? {} : flBewAuto(e);
+function flBew(e, t) {
+  const A = flAutoFuer(e, t), bw = (t || e).bew;
+  return Object.fromEntries(FL_BEW.map(x => [x.k, bw[x.k] ? { v: bw[x.k], hand: true, grund: 'von Hand eingeschätzt' } : A[x.k] ? Object.assign({ hand: false }, A[x.k]) : { v: 0, hand: false, grund: '' }]));
+}
+// Übersicht und Suche: mit mehreren Töpfen je Achse der beste Wert
+function flBewFuer(e, t) {
+  if (t || !e.topfe.length) return flBew(e, t);
+  const L = e.topfe.map(x => flBew(e, x));
+  return Object.fromEntries(FL_BEW.map(x => [x.k, L.reduce((b, B) => B[x.k].v > b.v ? B[x.k] : b, { v: 0, hand: false, grund: '' })]));
+}
+// Angaben des Förderers für Liste, Suche und Kartei: ohne Töpfe er selbst, sonst zusammengefasst aus seinen Fördertöpfen
+function flEff(e) {
+  if (!e.topfe.length) return e;
+  const T = e.topfe, erst = k => (T.find(t => strV(t[k])) || {})[k] || '';
+  return Object.assign({}, e, { gl: T.some(t => t.gl.some(g => /^alle$/i.test(g))) ? ['alle'] : uniq(T.flatMap(t => t.gl)), schwer: uniq(T.flatMap(t => flKomma(t.schwer).split(', ').filter(Boolean))).join(', '),
+    weg: (T.find(t => t.weg.length) || { weg: [] }).weg, web: erst('web'), antrag: erst('antrag'), gross: T.some(t => t.gross), quote: erst('quote'), fristen: T.map(t => strV(t.fristen)).filter(Boolean).join('; '), notiz: T.map(t => strV(t.notiz)).filter(Boolean).join('\n\n') });
 }
 const flBewText = (B, x) => x.t + ': ' + (B[x.k].v ? x.st[B[x.k].v - 1] + (B[x.k].hand ? '' : ' (geschätzt: ' + B[x.k].grund + ')') : 'noch nicht eingeschätzt');
 // Netz mit fünf Achsen (Fünfeck): oben Erfolgschance, im Uhrzeigersinn Fördersumme, Häufigkeit, Aufwand, Dauer; je weiter außen, desto günstiger.
@@ -287,7 +335,7 @@ const fnText = (G, k, gross) => { const [px, py] = fnPt(G, k, G.R), a = FN_WI[k]
   if (Math.abs(c) < .01) return { x: px, y: py - (gross ? 44 : 5), a: 'middle' };
   return { x: px + (c > 0 ? 1 : -1) * (gross ? (s > 0 ? 6 : 12) : (s > 0 ? 2 : 4)), y: py + (gross ? (s > 0 ? 20 : -6) : (s > 0 ? 10 : 3)), a: c > 0 ? 'start' : 'end' }; };
 function flNetz(e, gross, o = {}) {
-  const B = flBew(e), G = gross ? FN_GROSS : FN_KLEIN, V = Object.fromEntries(FL_BEW.map(x => [x.k, B[x.k].v]));
+  const bt = o.t || e, B = gross && !o.such ? flBew(e, o.t) : flBewFuer(e, o.t), G = gross ? FN_GROSS : FN_KLEIN, V = Object.fromEntries(FL_BEW.map(x => [x.k, B[x.k].v]));
   const gitter = [1, 2, 3].map(i => `<polygon class="fn-g" points="${FL_BEW.map(x => fnP(G, x.k, G.R * i / 3)).join(' ')}"/>`).join('')
     + FL_BEW.map(x => { const [px, py] = fnPt(G, x.k, G.R); return `<line class="fn-g" x1="${G.cx}" y1="${G.cy}" x2="${px.toFixed(1)}" y2="${py.toFixed(1)}"/>`; }).join('');
   const hat = FL_BEW.some(x => B[x.k].v), nurGeschaetzt = FL_BEW.every(x => !B[x.k].v || !B[x.k].hand);
@@ -297,7 +345,7 @@ function flNetz(e, gross, o = {}) {
     const lab = x => { const L = fnText(G, x.k, false); return `<text class="fn-l${B[x.k].v ? '' : ' leer'}" x="${L.x.toFixed(1)}" y="${L.y.toFixed(1)}" text-anchor="${L.a}">${x.kurz}</text>`; };
     return `<span class="fl-netz"><svg viewBox="0 0 ${G.W} ${G.H}" width="${G.W}" height="${G.H}" role="img" aria-label="${esc(FL_BEW.map(x => flBewText(B, x)).join(', '))}"><rect class="fn-bg" x="-38" y="-15" width="126" height="72" rx="8"/><circle class="fn-treff" cx="${G.cx}" cy="${G.cy}" r="${G.R + 3}"/>${gitter}${flaeche}${punkte}${FL_BEW.map(lab).join('')}</svg></span>`;
   }
-  const A = flBewAuto(e);
+  const A = flAutoFuer(e, o.t);
   const griff = x => { const b = B[x.k], [px, py] = fnPt(G, x.k, fnGriffR(G, b.v));
     return `<g class="fn-griff ${b.hand ? 'hand' : b.v ? 'auto' : 'offen'}" data-k="${x.k}" transform="translate(${px.toFixed(1)} ${py.toFixed(1)})" tabindex="0" role="slider" aria-label="${x.t}" aria-valuemin="0" aria-valuemax="3" aria-valuenow="${b.hand ? b.v : 0}" aria-valuetext="${esc(fnWert(x, b, o.such))}">`
       + `<title>${esc(x.t + ': ' + fnWert(x, b, o.such) + (b.hand ? ' – von Hand' : b.v ? ' – geschätzt: ' + b.grund : '') + '. Ziehen zum Einschätzen, Doppelklick: wieder aus den Daten')}</title><circle class="fn-hit" r="15"/><circle class="fn-h" r="5.5"/></g>`; };
@@ -306,9 +354,9 @@ function flNetz(e, gross, o = {}) {
     return `<text class="fn-l" ${at} y="${L.y.toFixed(1)}">${x.t}</text>`
       + `<text class="fn-v${b.hand ? '' : b.v ? ' geschaetzt' : ' leer'}" data-k="${x.k}" ${at} y="${(L.y + 14).toFixed(1)}"><title>${esc(b.v && !b.hand ? 'geschätzt: ' + b.grund : '')}</title>${esc(fnWert(x, b, o.such))}</text>`
       + `<text class="fn-s" data-k="${x.k}" ${at} y="${(L.y + 27).toFixed(1)}">${b.v && !b.hand ? 'geschätzt' : ''}</text>`
-      + (x.k === 'summe' && !o.such && (b.v === 3 || e.gross) ? `<g class="fn-krone${e.gross ? ' an' : ''}" data-act="fl-krone" data-tip="> 10.000 € möglich" role="button" tabindex="0" aria-pressed="${!!e.gross}" aria-label="Großförderer: > 10.000 € möglich" transform="translate(${(L.x + (b.v === 3 ? 62 : 6)).toFixed(1)} ${(L.y + 2).toFixed(1)})"><rect x="-4" y="-3" width="24" height="20" fill="transparent"/><g transform="scale(.9)">${ICON_KRONE.replace(/^<svg[^>]*>/, '').replace('</svg>', '')}</g></g>` : ''); };
+      + (x.k === 'summe' && !o.such && (b.v === 3 || bt.gross) ? `<g class="fn-krone${bt.gross ? ' an' : ''}" data-act="fl-krone" data-tip="> 10.000 € möglich" role="button" tabindex="0" aria-pressed="${!!bt.gross}" aria-label="Großförderer: > 10.000 € möglich" transform="translate(${(L.x + (b.v === 3 ? 62 : 6)).toFixed(1)} ${(L.y + 2).toFixed(1)})"><rect x="-4" y="-3" width="24" height="20" fill="transparent"/><g transform="scale(.9)">${ICON_KRONE.replace(/^<svg[^>]*>/, '').replace('</svg>', '')}</g></g>` : ''); };
   return `<span class="fl-netz gross zieh${o.such ? ' such' : ''}"><svg viewBox="0 ${G.y0} ${G.W} ${G.H}" width="100%" role="group" aria-label="${o.such ? 'Mindestwerte für die Suche' : 'Einschätzung'}"${o.such ? ' data-such="1"' : ''}
-    data-hand="${esc(JSON.stringify(e.bew))}" data-auto="${esc(JSON.stringify(Object.fromEntries(FL_BEW.map(x => [x.k, A[x.k] ? A[x.k].v : 0]))))}">${gitter}${flaeche}${FL_BEW.map(texte).join('')}${FL_BEW.map(griff).join('')}</svg></span>`;
+    data-hand="${esc(JSON.stringify(bt.bew))}" data-auto="${esc(JSON.stringify(Object.fromEntries(FL_BEW.map(x => [x.k, A[x.k] ? A[x.k].v : 0]))))}">${gitter}${flaeche}${FL_BEW.map(texte).join('')}${FL_BEW.map(griff).join('')}</svg></span>`;
 }
 // Ziehen: Stufe aus der Lage des Zeigers entlang der Achse (nahe der Mitte: 0 = wieder aus den Daten); beim Loslassen übernehmen
 let FN_ZIEH = null;
@@ -328,7 +376,7 @@ function fnZeigen(svg, k, v) {                                                  
 }
 // Suche nach Einschätzung (ab 0.100): ein Netz mit Mindestwerten – gezeigt werden Förderer mit diesem Wert oder einem besseren (weiter außen); 0 = egal
 const flQNull = () => Object.fromEntries(FL_BEW.map(x => [x.k, 0]));
-const flQEintrag = () => ({ id: '#such', foerderungen: [], bew: Object.assign(flQNull(), UI.flBewQ) });
+const flQEintrag = () => ({ id: '#such', foerderungen: [], topfe: [], bew: Object.assign(flQNull(), UI.flBewQ) });
 const flQAktiv = () => FL_BEW.some(x => (UI.flBewQ || {})[x.k] > 0);
 function flListeNeu() { swap('fl-body', flZeilen(), true); const c = $('#fl-count'); if (c) c.textContent = flGefiltert().length + ' von ' + D.fl.liste.length + ' Förderern'; const n = $('#fl-such-n'); if (n) n.textContent = flGefiltert().length + ' Treffer'; const l = $('.fl-lupe'); if (l) l.classList.toggle('an', flQAktiv()); }
 function fnSuchSetzen(k, v) {
@@ -336,7 +384,7 @@ function fnSuchSetzen(k, v) {
   const n = $('.fl-such .fl-netz'); if (n) n.outerHTML = flNetz(flQEintrag(), true, { such: true });
   flListeNeu(); const g = $(`.fl-such .fn-griff[data-k="${k}"]`); if (g) g.focus({ preventScroll: true });
 }
-function fnSetzen(k, v, such) { if (such) return fnSuchSetzen(k, v); const e = flCur(); if (!e || !(k in e.bew) || e.bew[k] === v) return; e.bew[k] = v; changed(); keep(renderNow); const g = $(`.fl-netz.zieh .fn-griff[data-k="${k}"]`); if (g) g.focus({ preventScroll: true }); }
+function fnSetzen(k, v, such) { if (such) return fnSuchSetzen(k, v); const e = flCur(), W = e && flTraeger(e); if (!W || !(k in W.bew) || W.bew[k] === v) return; W.bew[k] = v; changed(); keep(renderNow); const g = $(`.fl-netz.zieh .fn-griff[data-k="${k}"]`); if (g) g.focus({ preventScroll: true }); }
 document.addEventListener('pointerdown', ev => {
   const g = ev.target.closest && ev.target.closest('.fl-netz.zieh .fn-griff'); if (!g || ev.button !== 0) return;
   ev.preventDefault(); g.focus({ preventScroll: true }); g.setPointerCapture(ev.pointerId);
@@ -350,7 +398,7 @@ document.addEventListener('keydown', ev => {
   const g = ev.target.closest && ev.target.closest('.fl-netz.zieh .fn-griff'); if (!g) return;
   const such = !!g.closest('.fl-such'), e = such ? flQEintrag() : flCur(), k = g.dataset.k; if (!e) return;
   const d = { ArrowUp: 1, ArrowRight: 1, ArrowDown: -1, ArrowLeft: -1 }[ev.key];
-  if (d) { ev.preventDefault(); ev.stopPropagation(); fnSetzen(k, Math.max(0, Math.min(3, (e.bew[k] || (flBewAuto(e)[k] || {}).v || 0) + d)), such); }   // vom angezeigten Wert aus, auch wenn er geschätzt ist
+  if (d) { ev.preventDefault(); ev.stopPropagation(); fnSetzen(k, Math.max(0, Math.min(3, (such ? e.bew[k] || 0 : flBew(e, flTopfWahl(e))[k].v) + d)), such); }   // vom angezeigten Wert aus, auch wenn er geschätzt ist
   else if (ev.key === 'Delete' || ev.key === 'Backspace') { ev.preventDefault(); fnSetzen(k, 0, such); }
 }, true);
 // Fristen dieses Jahres aus dem Text („31.03. und 30.09.“, „bis 15.10.2026“): Tage ohne Jahr gelten jedes Jahr
@@ -381,11 +429,11 @@ const flDaten = () => D.fl;
 const flInGl = (e, g) => e.gl.some(x => norm(x) === g || /^alle$/i.test(x));
 function flGefiltert() {
   const q = norm(UI.flq), gl = norm(UI.flGl || ''), L = flDaten().liste;
-  const glBekannt = new Set([...L.flatMap(e => e.gl), ...D.bedarfe.map(b => b.gliederung)].map(norm).filter(g => g && g !== 'alle'));
+  const glBekannt = new Set([...L.flatMap(e => flEff(e).gl), ...D.bedarfe.map(b => b.gliederung)].map(norm).filter(g => g && g !== 'alle'));
   const Q = UI.flBewQ || {}, ks = FL_BEW.filter(x => Q[x.k] > 0);                // Suche nach Einschätzung: mindestens diese Stufe (gezeigter Wert, auch geschätzt)
   const glTeil = q.length >= 3 && [...glBekannt].some(g => g.includes(q)), glWort = e => glTeil && e.gl.some(x => norm(x).includes(q) || /^alle$/i.test(x));   // Teil eines Gliederungsnamens: Förderer dieser Gliederung und „alle Gliederungen“ – einheitlich, ob ausgeschrieben oder nicht
-  return L.filter(e => (!gl || flInGl(e, gl)) && (!ks.length || (B => ks.every(x => B[x.k].v >= Q[x.k]))(flBew(e))) && (!q || glWort(e) || (glBekannt.has(q) && flInGl(e, q))
-    || [e.name, e.kurz, e.art, e.notiz, e.schwer, e.quote, ...e.topfe.map(t => t.name + ' ' + t.schwer), ...e.gl, ...e.kontakte.map(k => k.n + ' ' + k.pos)].some(t => norm(t).includes(q))))
+  return L.filter(e0 => { const e = flEff(e0); return (!gl || flInGl(e, gl)) && (!ks.length || (B => ks.every(x => B[x.k].v >= Q[x.k]))(flBewFuer(e0))) && (!q || glWort(e) || (glBekannt.has(q) && flInGl(e, q))
+    || [e.name, e.kurz, e.art, e.notiz, e.schwer, e.quote, ...e0.topfe.map(t => t.name + ' ' + t.kurz + ' ' + t.schwer), ...e.gl, ...e.kontakte.map(k => k.n + ' ' + k.pos)].some(t => norm(t).includes(q))); })
     .sort((a, c) => a.name.localeCompare(c.name, 'de'));
 }
 const ICON_JA = '<svg viewBox="0 0 16 16" width="12" height="12" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
@@ -402,8 +450,8 @@ const flGebiet = e => e.gl.map(g => /^alle$/i.test(g) ? 'alle Gliederungen' : UI
 function flZeilen() {
   const L = flGefiltert();
   if (!L.length) return `<tr><td colspan="6"><div class="empty">${flDaten().liste.length ? 'Kein Förderer passt zur Suche.' : 'Noch keine Fördererliste – „Excel ▾ → Excel einlesen …“ übernimmt die umgebaute Fördererliste.'}</div></td></tr>`;
-  return L.map(e => {
-    const ansp = e.ansprache.filter(a => !UI.flGl || !a.gl || norm(a.gl) === norm(UI.flGl));
+  return L.map(e0 => {
+    const e = flEff(e0), ansp = e.ansprache.filter(a => !UI.flGl || !a.gl || norm(a.gl) === norm(UI.flGl));
     const lauf = flLaufend(e).filter(x => !x.b.archiv && !x.b.manuell), bea = lauf.filter(x => x.f.status === 'beantragt'), k = flKontaktHaupt(e);
     const laufZ = bea.length ? 'Antrag läuft: ' + bea.map(x => short(x.b.titel)).join(', ') : lauf.length ? 'eingeplant: ' + lauf.map(x => short(x.b.titel)).join(', ') : '';
     return `<tr data-act="fl-oeffnen" data-id="${e.id}" tabindex="0" class="${e.status !== 'aktiv' ? 'fl-ruht' : ''}">
@@ -411,12 +459,12 @@ function flZeilen() {
       <td class="fl-g">${e.gl.length ? `<div class="fl-clamp" data-tip="${esc(e.gl.map(g => /^alle$/i.test(g) ? 'alle Gliederungen' : g).join(', '))}">${flGebiet(e)}</div>` : '<span class="muted">–</span>'}${ansp.length ? `<div class="fl-ansp" title="${esc(ansp.map(a => (a.gl || 'alle') + ': ' + (a.titel || 'Hinweis') + (a.hinweis ? ' – ' + flPlain(a.hinweis) : '')).join('\n'))}">${ICON_TRI}<span>${UI.flGl ? esc(ansp[0].titel || 'Hinweis') : esc(ansp.map(a => a.gl || 'alle').join(', ')) + ': ' + esc(ansp[0].titel || 'Hinweis')}</span></div>` : ''}</td>
       <td class="fl-z">${e.schwer ? `<div class="fl-clamp" data-tip="${esc(flKomma(e.schwer))}">${esc(flKomma(e.schwer))}</div>` : '<span class="muted">–</span>'}</td>
       <td class="fl-tf">${flFristenHtml(e)}</td>
-      <td class="fl-te">${flNetz(e)}</td>
+      <td class="fl-te">${flNetz(e0)}</td>
       <td class="fl-k">${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}</td></tr>`;
   }).join('');
 }
 function flBar() {
-  const D0 = flDaten(), n = flGefiltert().length, GL = uniq(D0.liste.flatMap(e => e.gl)).filter(g => !/^alle$/i.test(g)).sort((a, c) => a.localeCompare(c, 'de'));
+  const D0 = flDaten(), n = flGefiltert().length, GL = uniq(D0.liste.flatMap(e => flEff(e).gl)).filter(g => !/^alle$/i.test(g)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<div class="subbar list-head fl-head">
       <span class="muted" id="fl-count">${n} von ${D0.liste.length} Förderern</span>
       <div class="tools">
@@ -505,7 +553,7 @@ const FL_QUELLE = q => q === 'Bedarfsliste' ? 'aus dem Bedarf' : /kartei/i.test(
 function flKontextGl() {
   if (UI.flGl) return UI.flGl;
   const q = norm(UI.flq); if (!q) return '';
-  return [...D.fl.liste.flatMap(e => e.gl), ...D.bedarfe.map(b => b.gliederung)].find(g => g && !/^alle$/i.test(g) && g !== DIO && norm(g) === q) || '';
+  return [...D.fl.liste.flatMap(e => flEff(e).gl), ...D.bedarfe.map(b => b.gliederung)].find(g => g && !/^alle$/i.test(g) && g !== DIO && norm(g) === q) || '';
 }
 // Kennzahl im Kopf: bestätigte Förderungen ab dem vorletzten Jahr, dazu die Absagen
 function flKennzahl(H) {
@@ -548,9 +596,11 @@ const ICON_PUNKTE = '<svg viewBox="0 0 16 16" width="16" height="16" aria-hidden
 const FL_KS = { ja: ['ja', '★', 'Priorität – anschreiben (Klick: keine Priorität)'], '': ['leer', '☆', 'Klick: Priorität – anschreiben'] };
 function flDetailView() {
   const e = flCur(); if (!e) return '<main class="fl-main"><div class="empty">Diesen Förderer gibt es nicht mehr.</div></main>';
+  // Fördertöpfe (ab 0.111): Steckbrief, Einschätzung, Links und Notizen gelten je Topf; ohne Töpfe für den Förderer selbst (W = der Träger dieser Angaben, pf = Pfad im Eintrag)
+  const TP = e.topfe, tp = flTopfWahl(e), W = tp || e, pf = tp ? `topfe.${TP.indexOf(tp)}.` : '';
   const H = flHistorie(e), K = flKennzahl(H), jahr0 = +today().slice(0, 4), heute = today(), ctx = flKontextGl();
   const kz = K.n ? `${K.n} ${K.n === 1 ? 'Förderung' : 'Förderungen'} seit ${K.seit}` : `keine Förderung seit ${K.seit}`;
-  const rech = !e.recherche ? '' : flRechercheAlt(e) ? `<span class="fl-pill warn">Recherche veraltet · ${fmtDate(e.recherche)}</span>` : `<span class="fl-rech">recherchiert ${fmtDate(e.recherche)}</span>`;
+  const rech = !W.recherche ? '' : flRechercheAlt(W) ? `<span class="fl-pill warn">Recherche veraltet · ${fmtDate(W.recherche)}</span>` : `<span class="fl-rech">recherchiert ${fmtDate(W.recherche)}</span>`;
   // Kopf: links Name, darunter Art und Recherche; die bisher geförderte Summe rechts bündig mit der linken Spalte (grau)
   const kopf = `<div class="fl-kopf"><div class="fl-kopf-in">
       <div class="fl-kopf-l"><div class="fl-kopf-z">${flIn('name', e.name, { ph: 'Name des Förderers', aria: 'Name des Förderers', cls: 'fl-name' })}<button class="fl-punkte" data-act="fl-menue" aria-haspopup="menu" title="Art, Status, Förderer löschen" aria-label="Weitere Aktionen">${ICON_PUNKTE}</button></div>
@@ -583,32 +633,28 @@ function flDetailView() {
   // Steckbrief: alle Angaben immer da (leer zum Ausfüllen); freie Texte formatierbar wie beim Bedarf
   const txt = (k, ph, aria, o = {}) => pe(e, k, '', 'area', Object.assign({ fmt: true, ph, aria, flpe: true }, o));
   // Antragsweg: per E-Mail oder Portal, direkt daneben die Adresse bzw. der Link (eine Angabe „Antrag an“)
-  const wv = FL_WEGE.find(w => e.weg.includes(w)) || '', an0 = strV(e.antrag);
+  const wv = FL_WEGE.find(w => W.weg.includes(w)) || '', an0 = strV(W.antrag);
   const zielKnopf = wv === 'Portal' && /^https?:\/\//i.test(an0) ? `<a class="fl-oeffnen fl-ico" href="${esc(an0)}" target="_blank" rel="noopener" data-act="link" title="Link öffnen" aria-label="Link öffnen">${ICON_OEFFNEN}</a>`
     : wv === 'E-Mail' && /@/.test(an0) ? `<a class="fl-oeffnen fl-ico" href="mailto:${esc(mailRein(an0))}" data-act="link" title="E-Mail schreiben: ${esc(mailRein(an0))}" aria-label="E-Mail schreiben">✉</a>` : '';
   const weg = `<div class="fl-weg-z"><select class="fl-in fl-weg-sel" data-sel="fl-antrag" aria-label="Antragsweg"><option value=""${wv ? '' : ' selected'}>–</option>${FL_WEGE.map(w => `<option${w === wv ? ' selected' : ''}>${w}</option>`).join('')}</select>
-      ${wv ? flIn('antrag', wv === 'Portal' ? flUrlAnz(e.antrag) : e.antrag, { ph: wv === 'Portal' ? 'Link zum Portal …' : 'E-Mail-Adresse für Anträge …', aria: wv === 'Portal' ? 'Link zum Portal' : 'E-Mail-Adresse für Anträge', cls: 'fl-url fl-antrag', title: e.antrag }) : ''}</div>
-      ${wv === 'Portal' && !an0 && /^https?:\/\//i.test(e.web) ? '<button class="fl-ab-alle" data-act="fl-antrag-web">Link der Homepage übernehmen</button>' : ''}`;
+      ${wv ? flIn(pf + 'antrag', wv === 'Portal' ? flUrlAnz(W.antrag) : W.antrag, { ph: wv === 'Portal' ? 'Link zum Portal …' : 'E-Mail-Adresse für Anträge …', aria: wv === 'Portal' ? 'Link zum Portal' : 'E-Mail-Adresse für Anträge', cls: 'fl-url fl-antrag', title: W.antrag }) : ''}</div>
+      ${wv === 'Portal' && !an0 && /^https?:\/\//i.test(W.web) ? '<button class="fl-ab-alle" data-act="fl-antrag-web">Link der Homepage übernehmen</button>' : ''}`;
   // Fristen dieses Jahres je Fördertopf als Knöpfe (vorbei durchgestrichen, nächste fett, bald orange); Klick ändert, „+ Frist“ fügt hinzu; darunter ein Hinweis-Text
-  // Fördertöpfe (ab 0.98): „Allgemein“ zeigt die Angaben des Förderers; ein Fördertopf (z. B. ein Programm der Aktion Mensch) hat eigenen Zweck, eigenes Gebiet,
-  // eigene Höhe und Quote und seine Fristen – leer gelassen gilt, was allgemein dasteht
-  const TP = e.topfe, ti = UI.flTopf ? TP.findIndex(t => t.id === UI.flTopf) : -1, tp = ti >= 0 ? TP[ti] : null, pf = tp ? `topfe.${ti}.` : '';
-  const FD = flFristenDaten(e), toepfe = uniq(FD.filter(x => !tp || x.topf === tp.name).map(x => x.topf || ' ')).sort((a, b) => (b === ' ') - (a === ' '));   // ohne Fördertopf zuerst
+  const FD = flFristenDaten(e), toepfe = uniq(FD.filter(x => !tp || x.topf === tp.name || (!x.topf && tp === TP[0])).map(x => x.topf || ' ')).sort((a, b) => (b === ' ') - (a === ' '));   // ohne Fördertopf zuerst
   const pill = x => { const { t, st } = fristStand(x, FD, heute);
     return `<button class="fl-fd ${st}" data-act="fl-frist" data-i="${x.i}" title="${esc((x.einmalig ? 'einmalig' : 'jedes Jahr') + (x.topf ? ' · ' + x.topf : '') + ' · ' + (st === 'vorbei' ? 'vorbei' : t === 0 ? 'heute' : 'in ' + t + (t === 1 ? ' Tag' : ' Tagen')) + ' – Klick: ändern')}">${x.einmalig ? fmtDate(x.iso) : fmtDate(x.iso).slice(0, 6)}</button>`; };
   const fBtn = `<button class="fl-frist-neu" data-act="fl-frist-neu"${tp ? ` data-topf="${esc(tp.name)}"` : ''}>+ Frist</button>`;
-  const fGrp = (t, plus) => `<div class="fl-frg">${t.trim() && !tp ? `<span class="fl-topf" title="${esc(t)}">${esc((TP.find(x => x.name === t) || {}).kurz || t)}</span>` : ''}<span class="fl-fds">${FD.filter(x => (x.topf || ' ') === t).map(pill).join('')}${plus}</span></div>`;
+  const fGrp = (t, plus) => `<div class="fl-frg">${t.trim() && !tp ? `<span class="fl-topf" title="${esc(t)}">${esc((TP.find(x => x.name === t) || {}).kurz || t)}</span>` : ''}<span class="fl-fds">${FD.filter(x => tp ? (x.topf === tp.name || (!x.topf && tp === TP[0])) : (x.topf || ' ') === t).map(pill).join('')}${plus}</span></div>`;
   const fristen = (toepfe.length ? toepfe.map((t, n) => fGrp(t, n === toepfe.length - 1 ? fBtn : '')).join('') : `<div class="fl-frg"><span class="fl-fds">${fBtn}</span></div>`)
-    + (tp ? '' : txt('fristen', 'Hinweis zu Fristen, z. B. laufend …', 'Hinweis zu Fristen', { cls: 'fl-ft-text klein', pre: flSemikolon }));
-  const link = (k, lab, titel) => `<section class="fl-blk"><div class="fl-blk-k"><h3>${titel}</h3>${/^https?:\/\//i.test(e[k]) ? `<a class="fl-oeffnen fl-ico" href="${esc(e[k])}" target="_blank" rel="noopener" data-act="link" title="Link öffnen" aria-label="Link öffnen">${ICON_OEFFNEN}</a>` : ''}</div>${flIn(k, flUrlAnz(e[k]), { ph: 'Link eintragen …', aria: lab, cls: 'fl-url', title: e[k] })}</section>`;
-  const chips = `<div class="fl-topfw" role="group" aria-label="Fördertopf">${TP.length ? `<button class="fl-tpb${tp ? '' : ' on'}" data-act="fl-topf" data-id="" aria-pressed="${!tp}">Allgemein</button>`
-    + TP.map(t => `<button class="fl-tpb${tp && tp.id === t.id ? ' on' : ''}" data-act="fl-topf" data-id="${t.id}" aria-pressed="${!!tp && tp.id === t.id}" title="${esc(t.name || 'Fördertopf ohne Namen')}">${esc(t.kurz || t.name || '(ohne Namen)')}</button>`).join('') : ''}<button class="fl-tpb neu" data-act="fl-topf-neu" title="Fördertopf anlegen, z. B. ein einzelnes Programm der Aktion Mensch">+ Fördertopf</button></div>`;
+    + txt(pf + 'fristen', 'Hinweis zu Fristen, z. B. laufend …', 'Hinweis zu Fristen', { cls: 'fl-ft-text klein', pre: flSemikolon });
+  const link = (k, lab, titel) => `<section class="fl-blk"><div class="fl-blk-k"><h3>${titel}</h3>${/^https?:\/\//i.test(W[k]) ? `<a class="fl-oeffnen fl-ico" href="${esc(W[k])}" target="_blank" rel="noopener" data-act="link" title="Link öffnen" aria-label="Link öffnen">${ICON_OEFFNEN}</a>` : ''}</div>${flIn(pf + k, flUrlAnz(W[k]), { ph: 'Link eintragen …', aria: lab, cls: 'fl-url', title: W[k] })}</section>`;
+  const chips = `<div class="fl-topfw" role="group" aria-label="Fördertopf">${TP.map(t => `<button class="fl-tpb${tp && tp.id === t.id ? ' on' : ''}" data-act="fl-topf" data-id="${t.id}" aria-pressed="${!!tp && tp.id === t.id}" title="${esc(t.name || 'Fördertopf ohne Namen')}">${esc(t.kurz || t.name || '(ohne Namen)')}</button>`).join('')}<button class="fl-tpb neu" data-act="fl-topf-neu" title="Fördertopf anlegen, z. B. ein einzelnes Programm der Aktion Mensch">+ Fördertopf</button></div>`;
   const steck = `<div class="fl-steck"><div class="fl-steck-k">${TP.length ? '' : '<h3>Steckbrief</h3>'}${chips}</div><div class="fl-sg">
-      ${tp ? `<span class="fl-sl">Name</span><div class="fl-sv fl-tpn">${flIn(pf + 'name', tp.name, { ph: 'Name des Fördertopfs', aria: 'Name des Fördertopfs', cls: 'fl-fett' })}<button class="fl-muell" data-act="fl-topf-weg" title="Fördertopf entfernen – seine Fristen bleiben stehen" aria-label="Fördertopf entfernen">${ICON_TRASH}</button></div>
+      ${tp ? `<span class="fl-sl">Name</span><div class="fl-sv fl-tpn">${flIn(pf + 'name', tp.name, { ph: 'Name des Fördertopfs', aria: 'Name des Fördertopfs', cls: 'fl-fett' })}<button class="fl-muell" data-act="fl-topf-weg" title="Fördertopf mit Steckbrief, Einschätzung und Notizen entfernen" aria-label="Fördertopf entfernen">${ICON_TRASH}</button></div>
       <span class="fl-sl fl-eng">Kurzname</span><div class="fl-sv fl-eng">${flIn(pf + 'kurz', tp.kurz, { ph: 'z. B. DSEE-Ehrenamt (optional)', aria: 'Kurzname des Fördertopfs', title: 'Steht auf dem Knopf oben; der volle Name erscheint beim Überfahren' })}</div>` : ''}
-      <span class="fl-sl">Zweck</span><div class="fl-sv">${flZweckFeld(tp || e, pf, tp ? 'Zweck dieses Topfs … (leer: wie allgemein)' : 'Förderzweck eintragen …')}</div>
-      <span class="fl-sl">Gebiet</span><div class="fl-sv">${flIn(pf + 'gl', (tp ? tp.gl : e.gl).join(', '), { typ: 'liste', sug: 'gl', ph: tp ? 'Gebiet dieses Topfs … (leer: wie allgemein)' : 'Gliederungen eintragen … oder „alle“', aria: 'Fördergebiet', cls: 'fl-feld' })}</div>
-      <span class="fl-sl">Förderhöhe</span><div class="fl-sv">${flHoeheFeld(tp || e, pf)}</div>
+      <span class="fl-sl">Zweck</span><div class="fl-sv">${flZweckFeld(W, pf, 'Förderzweck eintragen …')}</div>
+      <span class="fl-sl">Gebiet</span><div class="fl-sv">${flIn(pf + 'gl', W.gl.join(', '), { typ: 'liste', sug: 'gl', ph: 'Gliederungen eintragen … oder „alle“', aria: 'Fördergebiet', cls: 'fl-feld' })}</div>
+      <span class="fl-sl">Förderhöhe</span><div class="fl-sv">${flHoeheFeld(W, pf)}</div>
       <span class="fl-sl">Quote</span><div class="fl-sv">${txt(pf + 'quote', 'z. B. bis 90 % der Kosten …', 'Förderquote')}</div>
       <span class="fl-sl">Fristen ${jahr0}</span><div class="fl-sv fl-fr">${fristen}</div></div></div>`;
 
@@ -641,7 +687,7 @@ function flDetailView() {
         ${neu.map(gruppe).join('')}${UI.flAlt ? alt.map(gruppe).join('') : ''}</div>
       ${!H.length && !Lauf.length ? '<p class="fl-leer">Noch keine Förderung und keine Absage.</p>' : ''}
       ${alt.length ? `<button class="fl-fuss" data-act="fl-alt">${UI.flAlt ? 'Ältere Einträge ausblenden ▾' : `Ältere Einträge (${H.filter(x => alt.includes(x.jahr || '–')).length}${altL.length ? ', ' + Math.min(...altL) + (altL.length > 1 ? '–' + Math.max(...altL) : '') : ''}) anzeigen ▸`}</button>` : ''}</div>`;
-  const notizen = `<div class="fl-notizen"><h3>Notizen</h3>${txt('notiz', 'Notizen eintragen … z. B. Zugang zum Portal, Absprachen, Besonderheiten', 'Notizen', { cls: 'fl-notiz-pe' })}</div>`;
+  const notizen = `<div class="fl-notizen"><h3>Notizen</h3>${txt(pf + 'notiz', 'Notizen eintragen … z. B. Zugang zum Portal, Absprachen, Besonderheiten', 'Notizen', { cls: 'fl-notiz-pe' })}</div>`;
 
   // Weitere Angaben (zugeklappt): Art, Status, Anschrift, Recherche, Quelle
   // rechte Spalte als Infomappe: höchstens ein Hinweis (gelb, oder rot: nicht anschreiben) – sonst oben rechts „+ Hinweis“; Einschätzung, Antragsweg,
@@ -655,12 +701,12 @@ function flDetailView() {
   const haupt = (ctx && HL.find(x => norm(x.a.gl) === norm(ctx))) || HL.find(x => !x.a.gl) || (!ctx && HL[0]) || null, sonst = HL.filter(x => x !== haupt);
   const hinweise = (haupt ? hBox(haupt) : '') + (sonst.length ? `<button class="fl-ab-alle" data-act="fl-alle-gl" aria-expanded="${!!UI.flAlleGl}">${UI.flAlleGl ? '▾' : '▸'} ${sonst.length} ${sonst.length === 1 ? 'Hinweis' : 'Hinweise'} für andere Gliederungen</button>${UI.flAlleGl ? sonst.map(hBox).join('') : ''}` : '');
   const seite = `<div class="fl-rechts">${haupt ? '' : '<div class="fl-hz"><button class="fl-hinweis-neu" data-act="fl-ansp-neu" title="Gelben Hinweis anlegen, z. B. „Erst mit der Gliederung sprechen“">+ Hinweis</button></div>'}<aside class="card fl-seite">
-      <section class="fl-blk">${flNetz(e, true)}</section>
+      <section class="fl-blk">${flNetz(e, true, { t: tp })}</section>
       <section class="fl-blk"><div class="fl-blk-k"><h3>Antragsweg</h3>${zielKnopf}</div>${weg}</section>
       ${link('richtlinien', 'Förderrichtlinien', 'Förderrichtlinien')}
       ${link('web', 'Homepage', 'Homepage')}
-      <section class="fl-blk"><h3>Anschrift</h3>${flTa('anschrift', e.anschrift, { rows: 1, ph: 'Straße, PLZ Ort eintragen …', aria: 'Anschrift', cls: 'fl-anschrift' })}</section>
-      <section class="fl-blk"><h3>Recherchestand</h3>${pe(e, 'recherche', '', 'date', { flpe: true, ph: 'Datum eintragen …', aria: 'Recherchestand' })}</section></aside></div>`;
+      <section class="fl-blk"><h3>Anschrift</h3>${flTa(pf + 'anschrift', W.anschrift, { rows: 1, ph: 'Straße, PLZ Ort eintragen …', aria: 'Anschrift', cls: 'fl-anschrift' })}</section>
+      <section class="fl-blk"><h3>Recherchestand</h3>${pe(e, pf + 'recherche', '', 'date', { flpe: true, ph: 'Datum eintragen …', aria: 'Recherchestand' })}</section></aside></div>`;
 
   // der Hinweis steht im Kopf, rechts neben dem Namen – der Kasten mit dem Netz bleibt auf Höhe des linken Kastens
   return `<main class="fl-main fl-detail">${hinweise ? kopf.slice(0, -6) + `<div class="fl-hinw">${hinweise}</div></div>` : kopf}
@@ -685,7 +731,7 @@ document.addEventListener('input', ev => { if (ev.target.closest && ev.target.cl
 function flMenue(btn) {
   closeMenus(); const e = flCur(); if (!e) return;
   placePop(h('div', { class: 'menu fl-menue', role: 'menu', html: `<label class="fl-mz"><span>Kurzname</span>${flIn('kurz', e.kurz, { ph: 'z. B. DSEE', aria: 'Kurzname', title: 'So nennt ihr den Förderer intern; in den Bedarfen gelten Kurzname und voller Name' })}</label>
-    <label class="fl-mz"><span>Status</span>${flSel('status', e.status, FL_STATUS, { aria: 'Status' })}</label><hr><div class="fl-mg">Mit Copilot ausfüllen</div><button role="menuitem" data-act="fl-copilot-vorlage">Vorlage für Copilot herunterladen</button><button role="menuitem" data-act="fl-copilot-prompt">Auftrag für Copilot kopieren</button><button role="menuitem" data-act="fl-copilot-lesen">Ausgefüllte Vorlage einlesen …</button><hr><button role="menuitem" class="fl-rot-t" data-act="fl-weg">Förderer löschen …</button>` }), btn, 'right');
+    <label class="fl-mz"><span>Status</span>${flSel('status', e.status, FL_STATUS, { aria: 'Status' })}</label><hr><div class="fl-mg">Mit Copilot ausfüllen</div><button role="menuitem" data-act="fl-copilot-dialog">Recherche vorbereiten …</button><button role="menuitem" data-act="fl-copilot-lesen">Ausgefüllte Vorlage einlesen …</button><hr><button role="menuitem" class="fl-rot-t" data-act="fl-weg">Förderer löschen …</button>` }), btn, 'right');
 }
 // Frist anlegen oder ändern: Datum im Kalender wählen; „jedes Jahr“ (Standard) merkt nur Tag und Monat, sonst gilt sie einmalig; Fördertopf frei (Vorschläge: die schon benutzten)
 function flFristMenue(btn, i, topf = '') {
@@ -707,12 +753,21 @@ function flFristMenue(btn, i, topf = '') {
   placePop(m, btn); d.focus();
 }
 // Fördertopf anlegen: Name eintragen (Vorschläge: Töpfe, die schon bei den Fristen vorkommen)
+// Fördertopf anlegen: der erste übernimmt die bisherigen Angaben des Förderers (Steckbrief, Einschätzung, Links, Notizen) und dessen Fristen; weitere beginnen leer
+function flTopfAnlegen(e, name) { const t = flTopfEinfuegen(e, flTopfLeer(name)); UI.flTopf = t.id; return t; }
+async function flTopfEntfernen(e) {
+  const t = flTopfWahl(e); if (!t) return;
+  if (!await confirmBox('Fördertopf entfernen?', '„' + (t.name || 'Fördertopf') + '“ mit Steckbrief, Einschätzung, Links und Notizen entfernen? Mit ↶ (Strg+Z) lässt es sich zurückholen.', 'Entfernen')) return;
+  const i = e.topfe.indexOf(t); e.topfe.splice(i, 1);
+  if (e.topfe.length) e.fristenL = e.fristenL.filter(f => f.topf !== t.name); else { e.fristenL.forEach(f => { if (f.topf === t.name) f.topf = ''; }); e.topfMig = false; }   // letzter Topf: seine Fristen gehen an den Förderer zurück
+  UI.flTopf = ''; changed(); keep(renderNow); toast('Fördertopf entfernt (Rückgängig: ↶).', 'ok');
+}
 function flTopfMenue(btn) {
   closeMenus(); const e = flCur(); if (!e) return;
   const T = uniq(e.fristenL.map(f => f.topf)).filter(t => t && !e.topfe.some(x => norm(x.name) === norm(t))), dl = h('datalist', { id: 'fl-toepfe2' }, ...T.map(t => h('option', { value: t })));
   const n = h('input', { type: 'text', placeholder: 'z. B. Programm Jugend', list: 'fl-toepfe2', 'aria-label': 'Name des Fördertopfs' });
   const ok = () => { const v = strV(n.value); if (!v) { n.focus(); return; } if (e.topfe.some(x => norm(x.name) === norm(v))) { toast('Diesen Fördertopf gibt es schon.', 'warn'); return; }
-    const t = { id: uid('t'), name: v, kurz: '', schwer: '', gl: [], hoehe: '', hoeheVon: null, hoeheBis: null, quote: '' }; e.topfe.push(t); UI.flTopf = t.id; closeMenus(); changed(); keep(renderNow); };
+    flTopfAnlegen(e, v); closeMenus(); changed(); keep(renderNow); };
   n.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); ok(); } });
   placePop(h('div', { class: 'menu fl-frist-pop', role: 'dialog', 'aria-label': 'Fördertopf hinzufügen' }, h('label', { class: 'tf-l' }, 'Name des Fördertopfs'), n, dl,
     h('div', { class: 'fl-fp-k' }, h('span'), h('button', { class: 'primary', onclick: ok }, 'Hinzufügen'))), btn); n.focus();
@@ -724,7 +779,8 @@ function flAnspracheMenue(btn) {
 function flSetzen(el) {
   const e = flCur(); if (!e) return false;
   let v = el.value; const t = el.dataset.typ;
-  if (['web', 'richtlinien'].includes(el.dataset.fl) || (el.dataset.fl === 'antrag' && !e.weg.includes('E-Mail'))) v = flUrlVoll(v);
+  const tf = /^topfe\.(\d+)\./.exec(el.dataset.fl), Wt = tf ? e.topfe[+tf[1]] : e, fk = el.dataset.fl.replace(/^topfe\.\d+\./, '');          // Träger (Topf oder Förderer) und Feld
+  if (['web', 'richtlinien'].includes(fk) || (fk === 'antrag' && Wt && !Wt.weg.includes('E-Mail'))) v = flUrlVoll(v);
   if (t === 'liste') v = strL(v);
   else if (t === 'zahl') v = zahlOderLeer(v);
   else if (t === 'jahrdatum') {                                                   // Förderung von Hand: „2024“ oder „12.04.2024“
@@ -747,12 +803,12 @@ document.addEventListener('input', ev => {
 document.addEventListener('change', ev => {
   const el = ev.target; if (!el.dataset) return;
   if (UI.view !== 'fdetail') return;
-  if (el.dataset.sel === 'fl-antrag') { const e = flCur(); if (e) { e.weg = el.value ? [el.value] : []; changed(); keep(renderNow); } return; }
+  if (el.dataset.sel === 'fl-antrag') { const e = flCur(); if (e) { flTraeger(e).weg = el.value ? [el.value] : []; changed(); keep(renderNow); } return; }
   if (!el.dataset.fl) return;
   if (flSetzen(el) && (el.tagName === 'SELECT' || el.dataset.typ || ['web', 'richtlinien', 'antrag', 'kurz'].includes(el.dataset.fl) || /^topfe\.\d+\.(name|kurz)$/.test(el.dataset.fl))) keep(renderNow);   // Auswahl, Datum, Betrag, Links („Öffnen“): Darstellung nachziehen
 });
 // Fördergebiet: beim Tippen die bekannten Gliederungen vorschlagen (nach dem letzten Komma); Enter übernimmt den obersten Eintrag, ein Klick daneben auch
-const flGebieteBekannt = () => uniq(['alle', ...GL_LIST, ...D.fl.liste.flatMap(e => e.gl), ...D.bedarfe.map(b => b.gliederung)].map(strV).filter(Boolean));
+const flGebieteBekannt = () => uniq(['alle', ...GL_LIST, ...D.fl.liste.flatMap(e => flEff(e).gl), ...D.bedarfe.map(b => b.gliederung)].map(strV).filter(Boolean));
 let GSUG = null;
 const gSugZu = () => { if (GSUG) GSUG.box.remove(); GSUG = null; };
 function gToken(inp) { const v = inp.value, i = v.lastIndexOf(','); return { vor: v.slice(0, i + 1) + (i >= 0 ? ' ' : ''), tok: v.slice(i + 1).trim() }; }
@@ -925,7 +981,7 @@ async function flAct(k, a) {
     case 'fl-k-an-setzen': { const x = e && e.kontakte[+a.dataset.i]; if (x) { x.anschreiben = a.dataset.v; neu(); } return true; }
     case 'fl-ansp-menu': if ($('.menu')) closeMenus(); else flAnspracheMenue(a); return true;
     case 'fl-ansp-neu': if (e) { e.ansprache.push({ gl: flKontextGl(), art: 'hinweis', kopf: '', titel: '', hinweis: '' }); neu(); const t = $(`[data-fl="ansprache.${e.ansprache.length - 1}.titel"]`); if (t) t.focus(); } return true;   // gefiltert: gleich für diese Gliederung
-    case 'fl-antrag-web': if (e) { e.antrag = e.web; neu(); } return true;
+    case 'fl-antrag-web': if (e) { const W = flTraeger(e); W.antrag = W.web; neu(); } return true;
     case 'fl-alle-gl': UI.flAlleGl = !UI.flAlleGl; keep(renderNow); return true;
     case 'fl-alt': UI.flAlt = !UI.flAlt; keep(renderNow); return true;
     case 'fl-g-erg': { const g = e && e.foerderungen[+a.dataset.i]; if (g) { g.ergebnis = g.ergebnis === 'abgelehnt' ? 'gefördert' : 'abgelehnt'; neu(); } return true; }
@@ -933,15 +989,14 @@ async function flAct(k, a) {
     case 'fl-frist': case 'fl-frist-neu': if (e) flFristMenue(a, k === 'fl-frist' ? +a.dataset.i : null, a.dataset.topf || ''); return true;
     case 'fl-hoehe': flHoeheEdit(a); return true;
     case 'fl-zweck': flZweckMenue(a); return true;
-    case 'fl-copilot-vorlage': closeMenus(); download(FLC_DATEI, flcVorlageBlob(e)); return true;
-    case 'fl-copilot-prompt': closeMenus(); flcPromptKopieren(e); return true;
+    case 'fl-copilot-dialog': closeMenus(); if (e) flcDialog(e); return true;
     case 'fl-copilot-lesen': closeMenus(); flcEinlesen(); return true;
-    case 'fl-krone': if (e) { e.gross = !e.gross; neu(); } return true;
+    case 'fl-krone': if (e) { const W = flTraeger(e); W.gross = !W.gross; neu(); } return true;
     case 'fl-such': UI.flSuch = !UI.flSuch; keep(renderNow); return true;
     case 'fl-such-reset': UI.flBewQ = flQNull(); keep(renderNow); return true;
     case 'fl-topf': UI.flTopf = a.dataset.id || ''; keep(renderNow); return true;
     case 'fl-topf-neu': if (e) flTopfMenue(a); return true;
-    case 'fl-topf-weg': { const i = e ? e.topfe.findIndex(t => t.id === UI.flTopf) : -1; if (i >= 0) { e.topfe.splice(i, 1); UI.flTopf = ''; changed(); keep(renderNow); toast('Fördertopf entfernt – seine Fristen bleiben stehen (Rückgängig: ↶).', 'ok'); } return true; }
+    case 'fl-topf-weg': if (e) await flTopfEntfernen(e); return true;
     case 'fl-k-weg': if (e) { const [k] = e.kontakte.splice(+a.dataset.i, 1); if (k) flKopienAnpassen(e, k.n, null); neu(); } return true;
     case 'fl-a-neu': if (e) { e.ansprache.push({ gl: '', art: 'hinweis', kopf: '', titel: '', hinweis: '' }); neu(); const L = $$('.fl-a input'); if (L.length) L[L.length - 1].focus(); } return true;
     case 'fl-a-weg': if (e) { e.ansprache.splice(+a.dataset.i, 1); neu(); } return true;

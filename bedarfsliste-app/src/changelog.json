@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.111.0",
+    "date": "2026-11-06T10:00",
+    "items": [
+      "Fördertöpfe haben jetzt alles für sich: Steckbrief (Zweck, Gebiet, Förderhöhe, Quote, Fristen und Hinweis), Spinnendiagramm mit Krone, Antragsweg, Förderrichtlinien, Homepage, Anschrift, Recherchestand und Notizen. Hat ein Förderer Fördertöpfe, gibt es keinen „Allgemein“-Knopf mehr – die Knöpfe sind die Töpfe, „+ Fördertopf“ legt einen weiteren an",
+      "Der erste Fördertopf eines Förderers übernimmt dessen bisherige Angaben (und seine Fristen), jeder weitere beginnt leer. Bei älteren Ständen mit Fördertöpfen erbt einmalig jeder Topf, was ihm aus den Angaben des Förderers fehlt",
+      "Fördertopf entfernen fragt nach (Steckbrief, Einschätzung, Notizen und seine Fristen gehen mit; mit ↶ zurückholbar); beim letzten Topf kehren die Fristen zum Förderer zurück",
+      "Fördererliste und Suche fassen die Töpfe zusammen: Gebiet und Zweck aller Töpfe, je Achse der beste Wert im Netz, Krone, wenn ein Topf sie hat; die Kartei für die Bedarfe nimmt ebenfalls die zusammengefassten Angaben",
+      "Copilot je Fördertopf: ⋯ → „Recherche vorbereiten …“ fragt, für wen recherchiert wird (Förderer als Ganzes, ein vorhandener oder ein neuer Fördertopf) und bietet dann „Vorlage herunterladen“ und „Auftrag kopieren“ an. Die Fördertopf-Vorlage gilt nur für diesen Topf (ohne Art, ohne Blatt „Fördertöpfe“); der Auftrag nennt den Topf",
+      "Beim Einlesen lässt sich das Ziel wählen: ein vorhandener Fördertopf (vorgewählt, wenn der Name übereinstimmt), ein neuer Fördertopf oder – ohne Töpfe – der Förderer; beim Wechsel des Ziels werden die Angaben neu gegenübergestellt",
+      "Excel-Kopie: Blatt „Fördertöpfe“ mit allen Angaben je Topf (Links, Antragsweg, Einschätzung, Großförderer, Hinweis zu Fristen, Notizen, Recherche-Stand)",
+      "Förderungen und Absagen: lange Titel brechen um und überlappen die Markierung nicht mehr"
+    ]
+  },
+  {
     "version": "0.110.0",
     "date": "2026-11-05T14:00",
     "items": [

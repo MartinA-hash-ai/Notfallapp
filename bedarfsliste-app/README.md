@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.111:** Fördertöpfe haben Steckbrief, Spinnendiagramm, Links, Anschrift, Recherchestand und Notizen für sich; ab dem ersten Topf entfällt „Allgemein“. Copilot-Vorlage und Auftrag gibt es je Fördertopf, beim Einlesen wird das Ziel gewählt (vorhandener oder neuer Topf).
+
 **Seit 0.110:** Rückgängig (↶, Strg+Z) funktioniert jetzt auch in der Fördererliste, einschließlich dem Einlesen einer Copilot-Vorlage. Notizen zeigen höchstens 20 Zeilen mit Scrollbalken; im Hinweis zu Fristen bricht „;“ die Zeile um.
 
 **Seit 0.109:** Das Fenster zum Einlesen der Copilot-Vorlage ist nach Bereichen gegliedert, zeigt Formatierungen direkt an und lässt Texte per Klick ändern; die Öffnen-Knöpfe stehen dezent hinter den Überschriften.
