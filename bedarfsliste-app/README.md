@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.117:** Bei mehreren Fördertöpfen stehen Förderername und Ansprechperson in der Fördererliste vertikal mittig.
+
 **Seit 0.116:** Die Fördersumme im Spinnennetz wird aus der Förderhöhe im Steckbrief geschätzt (je Fördertopf aus der Höhe des Topfs; Förderungen und von Hand Eingeschätztes gehen vor). Das Warndreieck zur Ansprache steht in der Fördererliste unter dem Förderernamen; Zeilen haben keinen blauen Fokusrahmen mehr.
 
 **Seit 0.115:** Beim Einlesen einer Förderer-Vorlage mit Fördertöpfen zeigt das Fenster Reiter: „Förderer“ und je Fördertopf einen. Jeder Reiter listet, was in diesen Träger kommt (jede Angabe einzeln an-/abhaken und änderbar); bei neuen Töpfen steht darunter, was sie zusätzlich vom Förderer übernehmen. Ein Topf nur mit Namen ist nicht vorgewählt.

@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.117.0",
+    "date": "2026-11-08T12:00",
+    "items": [
+      "Fördererliste: Bei Förderern mit mehreren Fördertöpfen stehen Förderername und Ansprechperson vertikal mittig in der hohen Zeile"
+    ]
+  },
+  {
     "version": "0.116.0",
     "date": "2026-11-08T10:00",
     "items": [
