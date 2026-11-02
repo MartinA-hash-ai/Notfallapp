@@ -232,10 +232,10 @@ function flTopfEinfuegen(e, t) {
   if (!e.topfe.length) { flTopfErbt(t, e); e.fristenL.forEach(f => { if (!f.topf) f.topf = t.name; }); }
   e.topfe.push(t); e.topfMig = true; return t;
 }
-async function flcEinlesen() {
+async function flcEinlesen(datei) {
   if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; }
   const e = flCur(); if (!e) return;
-  const f = await pickFile('.xlsx'); if (!f) return;
+  const f = datei || await pickFile('.xlsx'); if (!f) return;
   let R = null; try { R = flcLesen(await xlsxBook(await f.arrayBuffer())); } catch (x) { console.warn(x); }
   if (!R) { modal('Keine Copilot-Vorlage erkannt', h('p', {}, 'In „' + f.name + '“ fehlt das Blatt „Steckbrief“ mit den Feldern der Vorlage. Bitte die Vorlage über ⋯ → „Recherche mit Copilot vorbereiten …“ holen und von Copilot ausfüllen lassen.')); return; }
   // Ziel: der Förderer selbst (nur ohne Fördertöpfe, Vorlage „Förderer“) oder ein vorhandener bzw. neuer Fördertopf
@@ -326,9 +326,20 @@ function flcDialog(e) {
   const sel = h('select', { class: 'flc-sel', 'aria-label': 'Fördertopf' }, ...T.map(t => h('option', { value: t.id, selected: t.id === tw }, (t.name || '(ohne Namen)') + (t.recherche ? '' : ' – noch nicht recherchiert'))), h('option', { value: 'neu', selected: tw === 'neu' }, 'Neuer Fördertopf …'));
   const z = () => { if (art === 'e') return { modus: 'foerderer', topf: null, name: '' }; if (tw === 'neu') return { modus: 'topf', topf: null, name: strV(neuName.value) }; const t = T.find(x => x.id === tw); return { modus: 'topf', topf: t, name: t ? t.name : '' }; };
   const braucht = () => { if (art === 't' && tw === 'neu' && !strV(neuName.value)) { toast('Bitte den Namen des neuen Fördertopfs eintragen.', 'warn'); neuName.focus(); return true; } return false; };
+  // nach „Vorlage herunterladen“ oder „Auftrag kopieren“: Feld zum Hineinziehen (oder Auswählen) der ausgefüllten Excel – öffnet gleich das Einlesen
+  let zu = null; const nimm = f => { if (!f) return; if (!/\.xlsx$/i.test(f.name)) { toast('Bitte die ausgefüllte Excel-Datei (.xlsx) nehmen.', 'warn'); return; } if (zu) zu(true); flcEinlesen(f); };
+  const ablage = h('div', { class: 'flc-drop', role: 'button', tabindex: '0', hidden: true, 'aria-label': 'Ausgefüllte Excel einlesen' },
+    h('b', {}, 'Ausgefüllte Excel hier hineinziehen'), h('span', { class: 'muted small' }, 'oder klicken, um sie auszuwählen'));
+  const waehle = async () => nimm(await pickFile('.xlsx'));
+  ablage.addEventListener('click', waehle);
+  ablage.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); waehle(); } });
+  ablage.addEventListener('dragover', ev => { ev.preventDefault(); ev.stopPropagation(); ablage.classList.add('ueber'); });
+  ablage.addEventListener('dragleave', () => ablage.classList.remove('ueber'));
+  ablage.addEventListener('drop', ev => { ev.preventDefault(); ev.stopPropagation(); ablage.classList.remove('ueber'); nimm([...((ev.dataTransfer && ev.dataTransfer.files) || [])][0]); });
+  const zeigAblage = () => { ablage.hidden = false; };
   const knoepfe = h('div', { class: 'flc-knoepfe' },
-    h('button', { class: 'primary', onclick: () => { if (braucht()) return; download(FLC_DATEI, flcVorlageBlob(e, z())); } }, '1 · Vorlage herunterladen'),
-    h('button', { class: 'primary', onclick: () => { if (braucht()) return; flcPromptKopieren(e, z()); } }, '2 · Auftrag kopieren'));
+    h('button', { class: 'primary', onclick: () => { if (braucht()) return; download(FLC_DATEI, flcVorlageBlob(e, z())); zeigAblage(); } }, '1 · Vorlage herunterladen'),
+    h('button', { class: 'primary', onclick: () => { if (braucht()) return; flcPromptKopieren(e, z()); zeigAblage(); } }, '2 · Auftrag kopieren'));
   const rE = h('input', { type: 'radio', name: 'flc-d', value: 'e', checked: art === 'e', disabled: !ohne, onchange: () => { art = 'e'; zeig(); } });
   const rT = h('input', { type: 'radio', name: 'flc-d', value: 't', checked: art === 't', onchange: () => { art = 't'; zeig(); } });
   const hinwE = h('p', { class: 'muted small flc-sub' }), hinwT = h('p', { class: 'muted small flc-sub' }), unter = h('div', { class: 'flc-sub flc-unter' }, sel, neuName);
@@ -340,11 +351,11 @@ function flcDialog(e) {
   };
   sel.addEventListener('change', () => { zeig(); if (tw === 'neu') neuName.focus(); });
   zeig();
-  const body = h('div', { class: 'flc-dlg' }, h('p', { class: 'muted small' }, 'Wofür soll Copilot recherchieren? Vorlage und Auftrag werden darauf zugeschnitten.'),
+  const body = h('div', { class: 'flc-dlg' },
     h('label', { class: 'flc-zo' + (ohne ? '' : ' aus') }, rE, h('b', {}, ' Förderer allgemein')), hinwE,
     h('label', { class: 'flc-zo' }, rT, h('b', {}, ' Ein bestimmter Fördertopf')), unter, hinwT,
-    knoepfe, h('p', { class: 'muted small' }, 'Danach in Copilot: den Auftrag einfügen, die Vorlage anhängen, die ausgefüllte Datei wieder herunterladen und hier über ⋯ → „Ausgefüllte Vorlage einlesen …“ einlesen.'));
-  modal('Recherche mit Copilot vorbereiten', body, [['Fertig', true, 'primary']]);
+    knoepfe, ablage);
+  modal('Recherche mit Copilot vorbereiten', body, [['Fertig', true, 'primary']], { expose: c => { zu = c; } });
 }
 function flcPromptKopieren(e, z) {
   const t = flcPrompt(e, z), fail = () => { modal('Auftrag für Copilot', h('textarea', { class: 'rech-prompt', rows: 14, spellcheck: false, value: t, readonly: true })); };

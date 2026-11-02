@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.118.0",
+    "date": "2026-11-08T14:00",
+    "items": [
+      "Recherche mit Copilot vorbereiten: die beiden Erklärtexte (oben und unten) sind entfernt",
+      "Nach „1 · Vorlage herunterladen“ oder „2 · Auftrag kopieren“ erscheint darunter ein Feld, in das man die ausgefüllte Excel hineinziehen kann (oder klicken und auswählen). Das Fenster schließt sich dann und das Einlesen öffnet sich direkt – der Umweg über ⋯ → „Ausgefüllte Vorlage einlesen …“ entfällt (geht aber weiterhin)"
+    ]
+  },
+  {
     "version": "0.117.0",
     "date": "2026-11-08T12:00",
     "items": [
