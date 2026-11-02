@@ -2032,3 +2032,8 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 .flc-m a { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--muted); text-decoration: underline; text-decoration-color: var(--line2); }
 .flc-m a:hover { color: var(--ink); }
 @media (max-width: 700px) { .flc-r { grid-template-columns: 24px minmax(0, 1fr); } .flc-v { grid-column: 2; } }
+
+/* 0.110: Notizen höchstens 20 Zeilen, dann Scrollbalken; Fristen-Hinweis mit Zeilenumbruch nach „;“ */
+.fl-notizen .pe .val, .fl-notizen .pe .pe-in { max-height: calc(20 * 1.5em); max-height: 20lh; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--line2) transparent; }
+.fl-notizen .pe .val { line-height: 1.5; }
+.fl-tab .fl-ft { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }

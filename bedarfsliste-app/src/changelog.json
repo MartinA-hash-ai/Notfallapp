@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.110.0",
+    "date": "2026-11-05T14:00",
+    "items": [
+      "Rückgängig (↶ / Strg+Z) gilt jetzt auch für die Fördererliste: Eingaben auf der Seite eines Förderers, Fördertöpfe, Kontakte, Löschen und das Einlesen einer Copilot-Vorlage (ein Schritt für alles, was eingelesen wurde); Tippen im selben Feld zählt als ein Schritt",
+      "Notizen eines Förderers zeigen höchstens 20 Zeilen, darüber hinaus gibt es einen Scrollbalken",
+      "Hinweis zu Fristen: nach einem „;“ beginnt eine neue Zeile (im Steckbrief und in der Liste); der gespeicherte Text bleibt unverändert"
+    ]
+  },
+  {
     "version": "0.109.0",
     "date": "2026-11-05T10:00",
     "items": [

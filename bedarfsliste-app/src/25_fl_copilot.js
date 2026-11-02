@@ -215,7 +215,7 @@ async function flcEinlesen() {
   if (!ok) return;
   let n = 0; L.forEach((x, i) => { if (cbs[i].checked && x.fn) { x.fn(x.neu); n++; } });
   if (n) { e.fristenL.sort((a, c) => a.d.localeCompare(c.d)); flZuKartei(); changed(); keep(renderNow); }
-  toast(n ? n + (n === 1 ? ' Angabe' : ' Angaben') + ' übernommen' : 'Nichts übernommen', n ? 'ok' : undefined);
+  toast(n ? n + (n === 1 ? ' Angabe' : ' Angaben') + ' übernommen – mit ↶ (Strg+Z) wieder rückgängig zu machen' : 'Nichts übernommen', n ? 'ok' : undefined);
 }
 function flcPromptKopieren(e) {
   const t = flcPrompt(e), fail = () => { modal('Auftrag für Copilot', h('textarea', { class: 'rech-prompt', rows: 14, spellcheck: false, value: t, readonly: true })); };

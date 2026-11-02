@@ -365,9 +365,11 @@ function flFristenDaten(e, jahr = +today().slice(0, 4)) {
 }
 const fristStand = (x, L, heute = today()) => { const t = Math.round((Date.parse(x.iso) - Date.parse(heute)) / 864e5), n = L.find(y => y.topf === x.topf && y.iso >= heute);
   return { t, st: x.iso < heute ? 'vorbei' : n === x ? (t <= 21 ? 'bald' : 'naechste') : 'spaeter' }; };
+// Hinweis zu Fristen: nach jedem „;“ eine neue Zeile
+const flSemikolon = t => String(t || '').replace(/;[ \t]*/g, ';\n');
 function flFristenHtml(e) {
   const L = flFristenDaten(e).map(x => x.iso), heute = today();
-  if (!L.length) return e.fristen ? `<span class="fl-ft" title="${esc(flPlain(e.fristen))}">${esc(flKurz(flPlain(e.fristen), 46))}</span>` : '<span class="muted">–</span>';
+  if (!L.length) return e.fristen ? `<span class="fl-ft" title="${esc(flKomma(e.fristen))}">${esc(flSemikolon(flPlain(e.fristen)))}</span>` : '<span class="muted">–</span>';
   const n = L.find(d => d >= heute);
   return `<span class="fl-fds" title="${esc(flPlain(e.fristen))}">` + L.map(d => { const t = Math.round((Date.parse(d) - Date.parse(heute)) / 864e5);
     return `<span class="fl-fd${d < heute ? ' vorbei' : ''}${d === n ? ' naechste' : ''}${d === n && t <= 21 ? ' bald' : ''}" title="${d < heute ? 'vorbei' : t === 0 ? 'heute' : 'in ' + t + (t === 1 ? ' Tag' : ' Tagen')}">${fmtDate(d).slice(0, 6)}</span>`; }).join('') + '</span>';
@@ -597,7 +599,7 @@ function flDetailView() {
   const fBtn = `<button class="fl-frist-neu" data-act="fl-frist-neu"${tp ? ` data-topf="${esc(tp.name)}"` : ''}>+ Frist</button>`;
   const fGrp = (t, plus) => `<div class="fl-frg">${t.trim() && !tp ? `<span class="fl-topf" title="${esc(t)}">${esc((TP.find(x => x.name === t) || {}).kurz || t)}</span>` : ''}<span class="fl-fds">${FD.filter(x => (x.topf || ' ') === t).map(pill).join('')}${plus}</span></div>`;
   const fristen = (toepfe.length ? toepfe.map((t, n) => fGrp(t, n === toepfe.length - 1 ? fBtn : '')).join('') : `<div class="fl-frg"><span class="fl-fds">${fBtn}</span></div>`)
-    + (tp ? '' : txt('fristen', 'Hinweis zu Fristen, z. B. laufend …', 'Hinweis zu Fristen', { cls: 'fl-ft-text klein' }));
+    + (tp ? '' : txt('fristen', 'Hinweis zu Fristen, z. B. laufend …', 'Hinweis zu Fristen', { cls: 'fl-ft-text klein', pre: flSemikolon }));
   const link = (k, lab, titel) => `<section class="fl-blk"><div class="fl-blk-k"><h3>${titel}</h3>${/^https?:\/\//i.test(e[k]) ? `<a class="fl-oeffnen fl-ico" href="${esc(e[k])}" target="_blank" rel="noopener" data-act="link" title="Link öffnen" aria-label="Link öffnen">${ICON_OEFFNEN}</a>` : ''}</div>${flIn(k, flUrlAnz(e[k]), { ph: 'Link eintragen …', aria: lab, cls: 'fl-url', title: e[k] })}</section>`;
   const chips = `<div class="fl-topfw" role="group" aria-label="Fördertopf">${TP.length ? `<button class="fl-tpb${tp ? '' : ' on'}" data-act="fl-topf" data-id="" aria-pressed="${!tp}">Allgemein</button>`
     + TP.map(t => `<button class="fl-tpb${tp && tp.id === t.id ? ' on' : ''}" data-act="fl-topf" data-id="${t.id}" aria-pressed="${!!tp && tp.id === t.id}" title="${esc(t.name || 'Fördertopf ohne Namen')}">${esc(t.kurz || t.name || '(ohne Namen)')}</button>`).join('') : ''}<button class="fl-tpb neu" data-act="fl-topf-neu" title="Fördertopf anlegen, z. B. ein einzelnes Programm der Aktion Mensch">+ Fördertopf</button></div>`;
@@ -733,6 +735,7 @@ function flSetzen(el) {
   else if (t === 'datum') { const d = anyDate(v); if (strV(v) && !d) { toast('„' + v + '“ ist kein Datum (z. B. 05.12.2026).', 'warn'); return false; } v = d || ''; }
   const kn = /^kontakte\.\d+\.n$/.test(el.dataset.fl) && getPath(e, el.dataset.fl), tn = /^topfe\.\d+\.name$/.test(el.dataset.fl) && getPath(e, el.dataset.fl);
   setPath(e, el.dataset.fl, v); if (kn) flKopienAnpassen(e, kn, v);
+  UNDO.tipp = 'fl|' + e.id + '|' + el.dataset.fl;                                    // Tippen im selben Feld = ein Rückgängig-Schritt
   if (tn) e.fristenL.forEach(f => { if (f.topf === tn) f.topf = strV(v); });                // Fördertopf umbenannt: seine Fristen gehen mit
   changed(); return true;
 }

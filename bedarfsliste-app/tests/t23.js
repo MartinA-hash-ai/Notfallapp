@@ -418,6 +418,25 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => { const e = flEintrag('F002'); return [e.kurz, e.art, e.schwer, e.gl.join(', '), e.hoeheVon + '-' + e.hoeheBis, e.quote, e.web, e.weg.join(), e.antrag, [e.bew.haeufig, e.bew.aufwand, e.bew.dauer].join(), e.gross, e.fristenL.map(f => f.d + '/' + f.topf).sort().join(), e.topfe.map(t => t.name + ':' + t.hoeheVon).join(), e.kontakte.map(k => k.n + ':' + k.mail).join(), e.notiz.includes('https://q.example'), e.notiz.includes('*Gefördert:*\n- Ausstattung für Ehrenamtliche') && e.notiz.includes('*Stolpersteine:*\n- Eigenanteil 20 %') && e.notiz.includes('*So tickt der Förderer:*'), e.recherche === today()]; });
   ok(r.join('|') === '|Stiftung|Ehrenamt, Gesundheit, Jugendhilfe, Zusatz|Dortmund, Hagen|1000-10000|alt|https://www.x.example|Portal|https://portal.x.example|2,2,2|true|03-31/Topf A,2027-09-15/|Topf A:500|Frau K:K@X.example|false|true|true',
     'Einlesen: neue sichere Angaben übernommen, Unsicheres und Vorhandenes (Förderquote) nicht, Kultur weggelassen, ungültige Frist nicht: ' + r.join('|'));
+  await p.evaluate(() => undo()); await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const e = flEintrag('F002'); return [e.art, e.schwer, e.gl.length, e.topfe.length, e.fristenL.length, e.kontakte.length, e.quote, e.gross, e.notiz]; });
+  ok(r.join('|') === '||0|0|0|0|alt|false|', 'Einlesen der Copilot-Vorlage lässt sich mit einem Rückgängig ganz zurücknehmen: ' + r.join('|'));
+  // 0.110: Rückgängig auch für die Fördererliste (Einlesen, Tippen), Notizen höchstens 20 Zeilen, „;“ im Fristen-Hinweis = neue Zeile
+  await p.evaluate(() => { const e = flEintrag('F002'); Object.assign(e, { kurz: '', quote: '', fristen: '' }); changed(); UNDO.stack = []; undoReset(); flOeffnen('F002'); renderNow(); }); await p.waitForTimeout(300);
+  await p.click('.fl-punkte'); await p.fill('.fl-menue [data-fl="kurz"]', 'A'); await p.keyboard.type('BC'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  r = await p.evaluate(() => [flEintrag('F002').kurz, UNDO.stack.length]);
+  ok(r.join('|') === 'ABC|1', 'Tippen im selben Feld der Fördererliste ist ein Rückgängig-Schritt: ' + r.join('|'));
+  await p.evaluate(() => undo()); await p.waitForTimeout(300);
+  r = await p.evaluate(() => [flEintrag('F002').kurz, UI.view]);
+  ok(r.join('|') === '|fdetail', 'Rückgängig: Kurzname wieder leer: ' + r.join('|'));
+  const nT = await p.evaluate(() => flEintrag('F002').topfe.length);
+  await p.evaluate(() => { const e = flEintrag('F002'); e.topfe.push({ id: 'tt', name: 'Neu', kurz: '', schwer: '', gl: [], hoehe: '', hoeheVon: null, hoeheBis: null, quote: '' }); e.fristen = 'laufend; Sitzung im März; Antrag per Portal'; changed(); renderNow(); });
+  await p.evaluate(() => undo()); await p.waitForTimeout(200);
+  r = await p.evaluate(() => [flEintrag('F002').topfe.length, flEintrag('F002').fristen]);
+  ok(r.join('|') === nT + '|', 'Rückgängig: Fördertopf und Hinweis wieder weg: ' + r.join('|'));
+  await p.evaluate(() => { const e = flEintrag('F002'); e.fristen = 'laufend; Sitzung im März; Antrag per Portal'; e.notiz = Array.from({ length: 40 }, (_, i) => 'Zeile ' + (i + 1)).join('\n\n'); changed(); renderNow(); }); await p.waitForTimeout(200);
+  r = await p.evaluate(() => { const v = document.querySelector('.fl-notizen .pe .val'), cs = getComputedStyle(v), f = document.querySelector('.fl-ft-text .pv'); return [cs.overflowY, v.scrollHeight > v.clientHeight, Math.round(v.clientHeight / parseFloat(cs.lineHeight)) <= 20, (f.innerHTML.match(/<br>|<p/g) || []).length >= 2 || f.querySelectorAll('div, p, li').length >= 3, flEintrag('F002').fristen.includes(';') && !flEintrag('F002').fristen.includes('\n')]; });
+  ok(r.join('|') === 'auto|true|true|true|true', 'Notizen: höchstens 20 Zeilen, dann Scrollbalken; Fristen-Hinweis bricht nach „;“ um (Text selbst unverändert): ' + r.join('|'));
   // gespeichert und wieder geladen: bleibt erhalten
   r = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [n.fl.liste.length, JSON.stringify(n.fl) === JSON.stringify(D.fl), n.bedarfe[0].foerderer[1].flAus.length, n.bedarfe[0].foerderer[3].flNein]; });
   ok(r.join('|') === '2|true|0|true', 'Speichern/Laden behält Fördererliste und Merker: ' + r.join('|'));

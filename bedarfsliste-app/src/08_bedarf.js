@@ -210,7 +210,7 @@ const FX = { web: ['web', '↗', 'Seite öffnen'] };
 // o.flpe: ein Eintrag der Fördererliste (die gerade offene Seite eines Förderers, 23_foerderer.js)
 function pe(f, k, lab, art = 'line', o = {}) {
   const v = getPath(f, k), leer = v == null || String(v).trim() === '';
-  const shown = o.html != null ? o.html : art === 'num' ? (leer ? '' : eur(v)) : art === 'date' ? fmtDate(v) : o.fmt ? fmtText(v) : esc(k === 'web' ? kurzUrl(v || '') : v || '');
+  const shown = o.html != null ? o.html : art === 'num' ? (leer ? '' : eur(v)) : art === 'date' ? fmtDate(v) : o.fmt ? fmtText(o.pre ? o.pre(v) : v) : esc(k === 'web' ? kurzUrl(v || '') : v || '');
   const fx = o.fx && !leer ? `<button class="fx" data-act="${FX[o.fx][0]}" data-fid="${f.id}" title="${FX[o.fx][2]}" aria-label="${FX[o.fx][2]}">${FX[o.fx][1]}</button>` : '';
   return `<div class="pe${o.cls ? ' ' + o.cls : ''}" data-act="${o.flpe ? 'fl-pe' : 'pe'}"${f.foerderer || o.flpe ? '' : ` data-fid="${f.id}"`} data-k="${k}" data-art="${art}" data-lab="${esc(o.aria || lab || o.ph || k)}"${o.fmt ? ' data-fmt="1"' : ''}${o.sug ? ` data-sug="${o.sug}"` : ''} title="Klicken zum Bearbeiten">`
     + (lab ? `<div class="lab">${lab}</div>` : '')

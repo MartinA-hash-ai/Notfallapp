@@ -147,21 +147,29 @@ async function connectFolder() {
 // Je Schritt nur, was sich geändert hat (die betroffenen Bedarfe, Reihenfolge, Einstellungen) – nicht jedes Mal der ganze Bestand.
 const UNDO = { stack: [], last: null, t: 0, aus: false, tipp: null, tippAlt: null };
 const undoStand = () => JSON.stringify({ bedarfe: D.bedarfe, settings: D.settings });
-const undoAufnahme = () => ({ set: JSON.stringify(D.settings), ids: D.bedarfe.map(b => b.id), bd: new Map(D.bedarfe.map(b => [b.id, JSON.stringify(b)])) });
+// ab 0.110 auch die Fördererliste: je Förderer ein Eintrag (fd) und die Reihenfolge (fids)
+const undoAufnahme = () => { const FL = (D.fl && D.fl.liste) || []; return { set: JSON.stringify(D.settings), ids: D.bedarfe.map(b => b.id), bd: new Map(D.bedarfe.map(b => [b.id, JSON.stringify(b)])), fids: FL.map(e => e.id), fd: new Map(FL.map(e => [e.id, JSON.stringify(e)])) }; };
 // was man braucht, um vom Stand B zurück zum Stand A zu kommen (null: kein Unterschied)
 function undoDiff(A, B) {
   const alt = []; for (const [id, j] of A.bd) if (B.bd.get(id) !== j) alt.push([id, j]);
   const neu = B.ids.filter(id => !A.bd.has(id)), ordnung = A.ids.join('\n') !== B.ids.join('\n') ? A.ids : null, set = A.set !== B.set ? A.set : null;
-  return alt.length || neu.length || ordnung || set ? { alt, neu, ordnung, set } : null;
+  const falt = []; for (const [id, j] of A.fd) if (B.fd.get(id) !== j) falt.push([id, j]);
+  const fneu = B.fids.filter(id => !A.fd.has(id)), fordnung = A.fids.join('\n') !== B.fids.join('\n') ? A.fids : null;
+  return alt.length || neu.length || ordnung || set || falt.length || fneu.length || fordnung ? { alt, neu, ordnung, set, falt, fneu, fordnung } : null;
 }
 // der Stand, zu dem Schritt s von L aus zurückführt
-function undoZiel(L, s) { const bd = new Map(L.bd); s.neu.forEach(id => bd.delete(id)); s.alt.forEach(([id, j]) => bd.set(id, j)); return { set: s.set ?? L.set, ids: s.ordnung || L.ids, bd }; }
+function undoZiel(L, s) { const bd = new Map(L.bd), fd = new Map(L.fd); s.neu.forEach(id => bd.delete(id)); s.alt.forEach(([id, j]) => bd.set(id, j)); (s.fneu || []).forEach(id => fd.delete(id)); (s.falt || []).forEach(([id, j]) => fd.set(id, j));
+  return { set: s.set ?? L.set, ids: s.ordnung || L.ids, bd, fids: s.fordnung || L.fids, fd }; }
 // zwei Schritte hintereinander (Tippen im selben Feld) zu einem: s führt von S1 nach S0, d von S2 nach S1
 function undoVerbinden(s, d) {
   const hat = new Set(s.alt.map(a => a[0]));
   for (const [id, j] of d.alt) if (!hat.has(id) && !s.neu.includes(id)) s.alt.push([id, j]);
   for (const id of d.neu) if (!s.neu.includes(id)) s.neu.push(id);
   if (!s.ordnung && d.ordnung) s.ordnung = d.ordnung; if (s.set == null && d.set != null) s.set = d.set;
+  const fhat = new Set((s.falt || []).map(a => a[0])); s.falt = s.falt || []; s.fneu = s.fneu || [];
+  for (const [id, j] of (d.falt || [])) if (!fhat.has(id) && !s.fneu.includes(id)) s.falt.push([id, j]);
+  for (const id of (d.fneu || [])) if (!s.fneu.includes(id)) s.fneu.push(id);
+  if (!s.fordnung && d.fordnung) s.fordnung = d.fordnung;
 }
 function undoReset() { UNDO.stack = []; UNDO.last = undoAufnahme(); UNDO.t = 0; UNDO.tippAlt = null; }
 function undoMerk() {
@@ -180,7 +188,12 @@ function undo() {
   const s = UNDO.stack.pop(), map = new Map(D.bedarfe.map(b => [b.id, b]));
   s.neu.forEach(id => map.delete(id)); s.alt.forEach(([id, j]) => map.set(id, JSON.parse(j)));
   const ids = s.ordnung || D.bedarfe.map(b => b.id);
-  D = normalize(Object.assign({}, D, { settings: s.set != null ? JSON.parse(s.set) : D.settings, bedarfe: ids.map(id => map.get(id)).filter(Boolean) }));
+  let fl = D.fl;
+  if ((s.falt && s.falt.length) || (s.fneu && s.fneu.length) || s.fordnung) {                // Fördererliste: geänderte zurück, neue weg, Reihenfolge
+    const fm = new Map(D.fl.liste.map(e => [e.id, e])); (s.fneu || []).forEach(id => fm.delete(id)); (s.falt || []).forEach(([id, j]) => fm.set(id, JSON.parse(j)));
+    fl = { liste: (s.fordnung || D.fl.liste.map(e => e.id)).map(id => fm.get(id)).filter(Boolean) };
+  }
+  D = normalize(Object.assign({}, D, { settings: s.set != null ? JSON.parse(s.set) : D.settings, bedarfe: ids.map(id => map.get(id)).filter(Boolean), fl }));
   UNDO.last = undoAufnahme(); UNDO.t = 0; UNDO.tippAlt = null;
   UNDO.aus = true; try { changed(); } finally { UNDO.aus = false; }
   ORDER.ids = null;                                                                       // Wiederhergestelltes steht an seinem Platz in der Liste
