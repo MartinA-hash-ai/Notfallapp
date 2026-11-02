@@ -1526,7 +1526,7 @@ table.fl-tab td.fl-te { padding-top: 6px; padding-bottom: 4px; }
 .fl-lz.an { color: var(--warn); }
 .fl-tab .fl-g { max-width: 220px; }
 .fl-tab .fl-z { max-width: 300px; }
-.fl-clamp { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.fl-clamp { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .fl-ansp { display: flex; align-items: center; gap: 4px; margin-top: 3px; font-size: 12px; color: var(--warn); font-weight: 600; }
 .fl-ansp svg { width: 12px; height: 12px; flex: none; }
 .fl-fds { display: inline-flex; flex-wrap: wrap; gap: 4px; }
@@ -1740,8 +1740,8 @@ button.fl-kr { cursor: pointer; }
 .fl-topf { font-size: 12.5px; color: var(--muted); }
 button.fl-fd { background: var(--card); font: inherit; font-size: 12.5px; cursor: pointer; }
 button.fl-fd:hover { border-color: var(--faint); }
-.fl-frist-neu { border: 0; background: none; padding: 0; font-size: 13px; color: var(--muted); cursor: pointer; }
-.fl-frist-neu:hover { color: var(--ink); text-decoration: underline; }
+.fl-frist-neu { border: 1px dashed var(--line2); border-radius: 999px; background: none; padding: 1px 10px; font-size: 12.5px; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.fl-frist-neu:hover { color: var(--ink); border-color: var(--faint); }
 .fl-sv .pe.fl-ft-text { margin: -2px -8px 0; width: calc(100% + 16px); }
 .fl-frist-pop { padding: 10px 12px; display: grid; gap: 4px; width: 260px; }
 .fl-frist-pop input { width: 100%; }
@@ -1871,7 +1871,7 @@ button.fl-fd:hover { border-color: var(--faint); }
 .fp-head.zu .sec-head .fl-rot + .fl-rot { margin-left: 6px; }
 @media (max-width: 640px) { nav.tabs { flex-wrap: wrap; min-width: 0; max-width: 100%; } .tab { padding: 9px 6px 7px; font-size: 14px; } }
 /* 0.98: Kurzname, Fördertöpfe im Steckbrief */
-.fl-tab .fl-kurz { font-size: 12.5px; color: var(--muted); font-weight: 400; margin-top: 1px; }
+.fl-tab .fl-kurz { font-size: 12.5px; color: var(--muted); font-weight: 400; }
 .fl-kopf-u .fl-kurz-k { font-weight: 600; color: var(--ink); }
 .fl-mz input.fl-in { width: 100%; }
 .fl-menue .fl-mz { grid-template-columns: 70px 1fr; }
@@ -1937,3 +1937,28 @@ table.fl-tab thead th.fl-te { text-align: center; }
 .fl-krone-l { position: absolute; left: -9px; top: -11px; transform: rotate(-24deg); color: #d29a17; line-height: 0; cursor: default; }
 .fl-krone-l svg { width: 13px; height: 11px; }
 .fl-kopf-u .fl-in.fl-art-sel { border: 0; border-radius: 0; box-shadow: none; padding: 0 15px 0 0; width: auto; height: auto; min-height: 0; background-color: transparent; }
+
+/* 0.102 */
+.fl-detail h3 { line-height: 1.15; }
+.fl-detail .card.fl-seite { gap: 14px; }
+.fl-blk { gap: 2px; }
+.fl-blk-k { display: flex; align-items: center; gap: 8px; }
+.fl-blk-k .fl-oeffnen.fl-ico { width: 24px; height: 22px; }
+.fl-seite .fl-in { padding-top: 0; padding-bottom: 0; }
+.fl-steck .fl-sg { row-gap: 7px; }
+.fl-kopf-in { padding: 0 12px; }
+.fl-rechts { position: relative; }
+.fl-hz { position: absolute; right: 6px; top: -20px; margin: 0; }
+.fl-krone-l { left: -5px; top: -8px; }
+.fl-such { left: 50%; right: auto; transform: translateX(-50%); }
+.tip-pop { white-space: normal; max-width: 420px; }
+.fl-weg-sel { width: 5.2em; padding-right: 2px; }
+.fl-hoehe-in { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 6px; font-weight: 400; color: var(--muted); font-size: 14px; }
+.fl-hoehe-f { width: 88px; border: 1px solid var(--line2); border-radius: 6px; padding: 3px 6px; font: inherit; font-size: 14px; color: var(--ink); background: var(--input); text-align: right; }
+.fl-hoehe-f:focus { outline: none; border-color: var(--focus); }
+.fl-zweck-pop { position: fixed; z-index: 60; width: 320px; padding: 8px; display: grid; gap: 6px; }
+.fl-zweck-frei { width: 100%; box-sizing: border-box; resize: none; font: inherit; font-size: 13.5px; border: 1px solid var(--line2); border-radius: 6px; padding: 4px 6px; background: var(--input); color: var(--ink); field-sizing: content; min-height: 2.6em; }
+.fl-zweck-frei:focus { outline: none; border-color: var(--focus); }
+.fl-zweck-l { display: grid; gap: 1px; max-height: 260px; overflow: auto; }
+.fl-zweck-o { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 5px; font-size: 13px; cursor: pointer; }
+.fl-zweck-o:hover { background: var(--hover); }

@@ -1,5 +1,18 @@
 [
   {
+    "version": "0.102.0",
+    "date": "2026-11-03T16:00",
+    "items": [
+      "Förderhöhe mit zwei Zahlenfeldern: Klick in die Zeile zeigt „von … € bis … €“ (nur Ziffern); Enter oder Klick daneben speichert. Nur „bis“ ausgefüllt: „bis … €“; nur „von“: der Wert gilt auch als Obergrenze; beide leer: blasses „Förderhöhe eintragen …“. Ein älterer Freitext bleibt stehen, bis man neu einträgt; auch in der Excel-Kopie (Spalten „Förderhöhe von/bis (€)“)",
+      "Fördergebiet: beim Tippen werden die bekannten Gliederungen vorgeschlagen (z. B. „Ges“ → Geseke); Enter übernimmt den obersten Eintrag, ein Klick daneben ebenso",
+      "Förderzweck: Freitext und Vorauswahl der Zwecke der Malteser in einem Auswahlfeld (mehrere ankreuzbar); im Feld steht erst der Freitext, dann – mit Komma getrennt – die Auswahl",
+      "„+ Frist“ steht als gestrichelter Knopf direkt neben den Fristen",
+      "Rechter Kasten: Überschrift mit Öffnen-Symbol dahinter, der Link darunter; die Abstände zwischen Überschriften und Angaben sind deutlich kleiner; Auswahlliste beim Antragsweg schmaler",
+      "Kopf der Seite: Name und Summe rücken nach innen (bis zur Rundung des Kastens); der rechte Kasten beginnt auf Höhe des linken, „+ Hinweis“ steht darüber",
+      "Fördererliste: Kurzname hinter dem Namen; Fördergebiet und Förderzweck höchstens zwei Zeilen mit „…“, beim Überfahren alle mit Komma getrennt; Krone näher am Namen; das Suchfeld der Einschätzung sitzt mittig unter dem Reiter"
+    ]
+  },
+  {
     "version": "0.101.0",
     "date": "2026-11-03T10:00",
     "items": [

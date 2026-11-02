@@ -134,9 +134,9 @@ const { chromium, ok, open, connect, finish } = require('./lib');
     const X = [H([]), H([2020]), H([2025]), H([2024, 2024, 2021])].join(' / '); e.foerderungen = alt; e.bew.aufwand = 1;   // H: dazu kommt die Förderung 2026 aus dem Bedarf
     const R = flLesen(await xlsxBook(await flBlob().arrayBuffer())), x = R.liste.find(f => f.id === 'F001'); e.bew.aufwand = 0;
     return [X, 'aufwand' in flBewAuto(e), x.bew.aufwand, x.bew.dauer, flExportZeilen()['Förderer'][0].length]; });
-  ok(r.join('|') === '- / 1:gefördert 2020, 2026 / 2:gefördert 2025 und 2026 / 3:2 Förderungen in 2024|false|1|0|23', 'Häufigkeit geschätzt (eine Förderung sagt nichts), Aufwand nicht; beide in der Excel-Kopie: ' + r.join('|'));
+  ok(r.join('|') === '- / 1:gefördert 2020, 2026 / 2:gefördert 2025 und 2026 / 3:2 Förderungen in 2024|false|1|0|25', 'Häufigkeit geschätzt (eine Förderung sagt nichts), Aufwand nicht; beide in der Excel-Kopie: ' + r.join('|'));
   // Antragsweg als Schalter, „nicht anschreiben“ blass ohne Stern, Fristen als Knöpfe je Fördertopf
-  ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-sel option')].map(b => b.textContent + (b.selected ? '*' : '')).join('/'), flEintrag('F001').weg.join(), flWegNorm('direkt'), flWegNorm('per Mail'), flWegNorm('Portal'), flWegNorm('vor Ort') || '-', !!document.querySelector('.fl-alt-weg')].join('|')) === 'Antragsweg …/E-Mail*/Portal|E-Mail|E-Mail|E-Mail|Portal|-|false',
+  ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-sel option')].map(b => b.textContent + (b.selected ? '*' : '')).join('/'), flEintrag('F001').weg.join(), flWegNorm('direkt'), flWegNorm('per Mail'), flWegNorm('Portal'), flWegNorm('vor Ort') || '-', !!document.querySelector('.fl-alt-weg')].join('|')) === '–/E-Mail*/Portal|E-Mail|E-Mail|E-Mail|Portal|-|false',
     'Antragsweg: nur E-Mail oder Portal, „direkt“ aus der alten Kartei wird zu E-Mail');
   await p.selectOption('.fl-weg-sel', 'Portal'); await p.waitForTimeout(100);
   await p.fill('.fl-antrag', 'portal.spk.example/antrag'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
@@ -271,17 +271,17 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.evaluate(() => flOeffnen('F002')); await p.waitForTimeout(300);
   await p.click('.fl-steck .pe[data-k="quote"]'); await p.keyboard.type('bis 90 % der Kosten'); await p.keyboard.press('Control+Enter'); await p.waitForTimeout(100);
   await p.click('[data-act="fl-topf-neu"]'); await p.keyboard.type('Programm Jugend'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
-  await p.click('.fl-steck .pe[data-k="topfe.0.schwer"]'); await p.keyboard.type('Jugendarbeit'); await p.keyboard.press('Control+Enter'); await p.waitForTimeout(100);
+  await p.click('.fl-steck .fl-zweck'); await p.waitForSelector('.fl-zweck-pop'); await p.keyboard.type('Jugendarbeit'); await p.click('.fl-zweck-pop label:has-text("Jugendhilfe") input'); await p.click('.fl-zweck-pop label:has-text("Gesundheit") input'); await p.mouse.click(20, 30); await p.waitForTimeout(150);   // Klick daneben übernimmt
   await p.click('.fl-frist-neu'); r = await p.evaluate(() => document.querySelector('.fl-frist-pop input[aria-label="Fördertopf"]').value);
   await p.fill('.fl-frist-pop input[type=date]', jahr + '-12-01'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
-  r = await p.evaluate(r0 => { const e = flEintrag('F002'); return [r0, e.quote, e.topfe.length, e.topfe[0].name, e.topfe[0].schwer, e.schwer !== 'Jugendarbeit', e.fristenL.filter(f => f.topf === 'Programm Jugend').map(f => f.d).join(), UI.flTopf === e.topfe[0].id,
+  r = await p.evaluate(r0 => { const e = flEintrag('F002'); return [r0, e.quote, e.topfe.length, e.topfe[0].name, e.topfe[0].schwer, e.schwer !== e.topfe[0].schwer, e.fristenL.filter(f => f.topf === 'Programm Jugend').map(f => f.d).join(), UI.flTopf === e.topfe[0].id,
     [...document.querySelectorAll('.fl-tpb')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join('/'), [...document.querySelectorAll('.fl-sg .fl-sl')].map(x => x.textContent).join(','), document.querySelectorAll('.fl-fd').length]; }, r);
-  ok(r.join('|') === `Programm Jugend|bis 90 % der Kosten|1|Programm Jugend|Jugendarbeit|true|12-01|true|Allgemein/Programm Jugend*/+ Fördertopf|Name,Kurzname,Zweck,Gebiet,Förderhöhe,Quote,Fristen ${new Date().getFullYear()}|1`,
+  ok(r.join('|') === `Programm Jugend|bis 90 % der Kosten|1|Programm Jugend|Jugendarbeit, Gesundheit, Jugendhilfe|true|12-01|true|Allgemein/Programm Jugend*/+ Fördertopf|Name,Kurzname,Zweck,Gebiet,Förderhöhe,Quote,Fristen ${new Date().getFullYear()}|1`,
     'Fördertopf: eigene Angaben und Fristen, Name vorbelegt, allgemeine Angaben bleiben: ' + r.join('|'));
   await p.fill('[data-fl="topfe.0.name"]', 'Jugendprogramm'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   r = await p.evaluate(async () => { const e = flEintrag('F002'), bk = await xlsxBook(await flBlob().arrayBuffer()), R = flLesen(bk), x = R.liste.find(y => y.id === 'F002');
     return [e.fristenL.filter(f => f.topf === 'Jugendprogramm').length, bk.sheets.find(s => s.name === 'Fördertöpfe').rows.length - 1, x.topfe.map(t => t.name + ':' + t.schwer).join(), x.quote, x.kurz, flStufe(FL_BEW[2], 'mehrmals jährlich'), flStufe(FL_BEW[2], 'jährlich'), flStufe(FL_BEW[2], 'einmal im Jahr'), flStufe(FL_BEW[2], 'alle paar Jahre')]; });
-  ok(r.join('|') === '1|1|Jugendprogramm:Jugendarbeit|bis 90 % der Kosten|DSE|3|2|2|1', 'Fördertopf umbenannt: Fristen gehen mit; Excel mit Blatt „Fördertöpfe“, Förderquote, Kurzname; Stufen „jährlich“ vs. „mehrmals jährlich“: ' + r.join('|'));
+  ok(r.join('|') === '1|1|Jugendprogramm:Jugendarbeit, Gesundheit, Jugendhilfe|bis 90 % der Kosten|DSE|3|2|2|1', 'Fördertopf umbenannt: Fristen gehen mit; Excel mit Blatt „Fördertöpfe“, Förderquote, Kurzname; Stufen „jährlich“ vs. „mehrmals jährlich“: ' + r.join('|'));
   await p.click('[data-act="fl-topf-weg"]'); await p.waitForTimeout(150);
   r = await p.evaluate(() => [flEintrag('F002').topfe.length, UI.flTopf, document.querySelectorAll('.fl-tpb').length, flEintrag('F002').fristenL.length > 0]);
   ok(r.join('|') === '0||1|true', 'Fördertopf entfernt: zurück auf „Allgemein“, Fristen bleiben: ' + r.join('|'));
@@ -350,6 +350,34 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.evaluate(() => { flEintrag('F002').topfe = []; flEintrag('F002').gross = true; flEintrag('F002').bew.summe = 0; changed(); flZurueck(); });
   r = await p.evaluate(async () => { const bk = await xlsxBook(await flBlob().arrayBuffer()), R = flLesen(bk); return [R.liste.find(e => e.id === 'F002').gross, R.liste.filter(e => e.gross).length]; });
   ok(r.join('|') === 'true|1', 'Großförderer in der Excel-Kopie und wieder eingelesen: ' + r.join('|'));
+  // 0.102: Förderhöhe von … bis …, Gebiet mit Vorschlägen, Fristen-Knopf, Liste mit Kurzname hinter dem Namen und zwei Zeilen
+  await p.evaluate(() => { const e = flEintrag('F002'); e.hoehe = 'bis 10.000 €'; e.hoeheVon = null; e.hoeheBis = null; e.gl = []; UI.flTopf = ''; changed(); flOeffnen('F002'); renderNow(); }); await p.waitForTimeout(300);
+  r = await p.evaluate(() => [document.querySelector('.fl-hoehe .val').textContent, !!document.querySelector('.fl-frg .fl-fds .fl-frist-neu'), getComputedStyle(document.querySelector('.fl-frist-neu')).borderStyle]);
+  ok(r.join('|') === 'bis 10.000 €|true|dashed', 'Förderhöhe: älterer Freitext bleibt; „+ Frist“ gestrichelt direkt bei den Fristen: ' + r.join('|'));
+  await p.click('.fl-hoehe'); r = await p.evaluate(() => [...document.querySelectorAll('.fl-hoehe-f')].map(x => x.value).join('/'));
+  await p.keyboard.type('1x2a00'); await p.keyboard.press('Tab'); await p.keyboard.press('Control+a'); await p.keyboard.press('Delete'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  r = [r, ...(await p.evaluate(() => { const e = flEintrag('F002'); return [e.hoeheVon, e.hoeheBis, e.hoehe, document.querySelector('.fl-hoehe .val').textContent.replace(/\s/g, ' ')]; }))];
+  ok(r.join('|') === '/10000|1200|1200||1.200 €', 'Förderhöhe: zwei Zahlenfelder (Freitext vorbelegt), nur Ziffern, nur „von“ → Betrag in beide Felder: ' + r.join('|'));
+  await p.click('.fl-hoehe'); await p.keyboard.press('Control+a'); await p.keyboard.press('Delete'); await p.keyboard.press('Tab'); await p.keyboard.type('7500'); await p.click('.fl-kopf .fl-name'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [flEintrag('F002').hoeheVon, flEintrag('F002').hoeheBis, document.querySelector('.fl-hoehe .val').textContent.replace(/\s/g, ' ')]);
+  ok(r.join('|') === '|7500|bis 7.500 €', 'Förderhöhe: nur „bis“; Klick daneben übernimmt: ' + r.join('|'));
+  await p.click('.fl-hoehe'); await p.keyboard.press('Control+a'); await p.keyboard.press('Delete'); await p.keyboard.press('Tab'); await p.keyboard.press('Control+a'); await p.keyboard.press('Delete'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [document.querySelector('.fl-hoehe .val').textContent, document.querySelector('.fl-hoehe .val').classList.contains('leer')]);
+  ok(r.join('|') === 'Förderhöhe eintragen …|true', 'Förderhöhe: beide leer → „Förderhöhe eintragen …“ blass: ' + r.join('|'));
+  await p.evaluate(() => { flEintrag('F002').hoeheVon = 1000; flEintrag('F002').hoeheBis = 15000; changed(); });
+  r = await p.evaluate(async () => { const bk = await xlsxBook(await flBlob().arrayBuffer()), x = flLesen(bk).liste.find(y => y.id === 'F002'); return [x.hoeheVon, x.hoeheBis, flHoeheKlar(x).replace(/\s/g, ' ')]; });
+  ok(r.join('|') === '1000|15000|von 1.000 € bis 15.000 €', 'Förderhöhe in der Excel-Kopie (von/bis) und wieder eingelesen: ' + r.join('|'));
+  await p.click('.fl-sg [data-fl="gl"]'); await p.keyboard.type('Ges'); await p.waitForSelector('.le-sug');
+  r = await p.evaluate(() => [...document.querySelectorAll('.le-sug .le-opt')].map(x => x.textContent).join()); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  await p.keyboard.type(', Bra'); await p.waitForSelector('.le-sug'); await p.click('.fl-kopf .fl-name'); await p.waitForTimeout(150);
+  r += '|' + await p.evaluate(() => flEintrag('F002').gl.join());
+  ok(/^Geseke/.test(r) && /\|Geseke,Brakel$/.test(r), 'Gebiet: Vorschläge beim Tippen, Enter übernimmt den obersten, Klick daneben ebenso: ' + r);
+  await p.click('.fl-steck .fl-zweck'); await p.waitForSelector('.fl-zweck-pop'); await p.keyboard.type('Eigener Zweck'); await p.click('.fl-zweck-pop label:has-text("Ehe und Familie") input'); await p.focus('.fl-zweck-frei'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => flEintrag('F002').schwer);
+  ok(r === 'Eigener Zweck, Ehe und Familie', 'Zweck: Freitext zuerst, dann die Auswahl, mit Komma: ' + r);
+  await p.evaluate(() => { const e = flEintrag('F002'); e.gl = ['Brakel', 'Geseke', 'Büren', 'Paderborn', 'Hagen', 'Dortmund', 'Siegen', 'Höxter', 'Warburg', 'Lippstadt', 'Soest', 'Iserlohn-Menden', 'Marsberg', 'Meschede']; e.kurz = 'DSE'; changed(); UI.view = 'flist'; renderNow(); }); await p.waitForTimeout(200);
+  r = await p.evaluate(() => { const t = document.querySelector('#fl-body tr[data-id="F002"]'), g = t.querySelector('.fl-g .fl-clamp'), n = t.querySelector('.fl-n'); return [g.scrollHeight > g.clientHeight, g.dataset.tip.split(', ').length, getComputedStyle(g).webkitLineClamp, n.querySelector('b + .fl-kurz') !== null, t.querySelector('.fl-z .fl-clamp').dataset.tip]; });
+  ok(r.join('|') === 'true|14|2|true|Eigener Zweck, Ehe und Familie', 'Liste: Gebiet auf zwei Zeilen gekürzt, alle im Hover-Text mit Komma; Kurzname hinter dem Namen: ' + r.join('|'));
   // gespeichert und wieder geladen: bleibt erhalten
   r = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [n.fl.liste.length, JSON.stringify(n.fl) === JSON.stringify(D.fl), n.bedarfe[0].foerderer[1].flAus.length, n.bedarfe[0].foerderer[3].flNein]; });
   ok(r.join('|') === '2|true|0|true', 'Speichern/Laden behält Fördererliste und Merker: ' + r.join('|'));
