@@ -1590,7 +1590,9 @@ table.fl-tab td.fl-te { padding-top: 6px; padding-bottom: 4px; }
 .fl-kz-b { color: var(--muted); font-size: 36px; font-weight: 600; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .fl-kz-b span { font-size: 28px; color: var(--faint); font-weight: 400; }
 .fl-kz-t { font-size: 13.5px; color: var(--muted); }
-.fl-punkte { display: grid; place-items: center; flex: none; width: 34px; height: 32px; padding: 0; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); color: var(--ink2); font-size: 16px; line-height: 1; }
+.fl-punkte { display: grid; place-items: center; flex: none; width: 28px; height: 24px; padding: 0; border: 1px solid var(--line2); border-radius: 6px; background: var(--bg); color: var(--faint); font-size: 16px; line-height: 1; }
+.fl-punkte svg { width: 13px; height: 13px; }
+.fl-punkte:hover, .fl-punkte:focus-visible { background: var(--card); color: var(--muted); }
 .fl-menue { width: 230px; padding: 6px; display: grid; gap: 4px; }
 .fl-mz { display: grid; grid-template-columns: 52px 1fr; align-items: center; gap: 8px; padding: 4px 6px; font-size: 13px; color: var(--muted); }
 .fl-mz select { width: 100%; }
@@ -1962,3 +1964,11 @@ table.fl-tab thead th.fl-te { text-align: center; }
 .fl-zweck-l { display: grid; gap: 1px; max-height: 260px; overflow: auto; }
 .fl-zweck-o { display: flex; align-items: center; gap: 6px; padding: 3px 4px; border-radius: 5px; font-size: 13px; cursor: pointer; }
 .fl-zweck-o:hover { background: var(--hover); }
+
+/* 0.103 */
+.fl-detail .card.fl-seite { gap: 26px; }
+.fl-krone-l { left: -7px; top: -7px; }
+.fl-rechts { display: flex; flex-direction: column; gap: 12px; }
+.fl-hinw { display: flex; flex-direction: column; gap: 6px; }
+.fl-sv .fl-hoehe-in { flex-wrap: nowrap; }
+.fl-sv .fl-hoehe-in input.fl-hoehe-f { flex: none; width: 108px; min-width: 0; box-sizing: border-box; }

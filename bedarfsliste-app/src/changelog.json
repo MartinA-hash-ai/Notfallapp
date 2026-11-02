@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.103.0",
+    "date": "2026-11-03T19:00",
+    "items": [
+      "Suche in der Fördererliste: Wer nach einer Gliederung sucht, sieht „alle Gliederungen“ immer mit – bei einem Teil des Namens („Dortmun“) genauso wie beim ausgeschriebenen",
+      "Förderhöhe bearbeiten in einer Zeile: „von … € bis … €“, die Felder sind nur so breit, dass eine siebenstellige Summe Platz hat",
+      "Rechter Kasten: größere Abstände zwischen Antragsweg, Förderrichtlinien, Homepage, Anschrift und Recherchestand",
+      "Ein Hinweis steht jetzt über dem Kasten mit dem Netz (eigener Kasten); „gilt für …“ entfällt",
+      "Krone etwas weiter links und tiefer am Namen; der ⋯-Knopf hinter dem Namen ist kleiner, grau wie der Hintergrund mit dezenten Punkten und wird beim Überfahren weiß"
+    ]
+  },
+  {
     "version": "0.102.0",
     "date": "2026-11-03T16:00",
     "items": [

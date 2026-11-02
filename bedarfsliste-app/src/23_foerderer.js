@@ -381,7 +381,8 @@ function flGefiltert() {
   const q = norm(UI.flq), gl = norm(UI.flGl || ''), L = flDaten().liste;
   const glBekannt = new Set([...L.flatMap(e => e.gl), ...D.bedarfe.map(b => b.gliederung)].map(norm).filter(g => g && g !== 'alle'));
   const Q = UI.flBewQ || {}, ks = FL_BEW.filter(x => Q[x.k] > 0);                // Suche nach Einschätzung: mindestens diese Stufe (gezeigter Wert, auch geschätzt)
-  return L.filter(e => (!gl || flInGl(e, gl)) && (!ks.length || (B => ks.every(x => B[x.k].v >= Q[x.k]))(flBew(e))) && (!q || (glBekannt.has(q) && flInGl(e, q))
+  const glTeil = q.length >= 3 && [...glBekannt].some(g => g.includes(q)), glWort = e => glTeil && e.gl.some(x => norm(x).includes(q) || /^alle$/i.test(x));   // Teil eines Gliederungsnamens: Förderer dieser Gliederung und „alle Gliederungen“ – einheitlich, ob ausgeschrieben oder nicht
+  return L.filter(e => (!gl || flInGl(e, gl)) && (!ks.length || (B => ks.every(x => B[x.k].v >= Q[x.k]))(flBew(e))) && (!q || glWort(e) || (glBekannt.has(q) && flInGl(e, q))
     || [e.name, e.kurz, e.art, e.notiz, e.schwer, e.quote, ...e.topfe.map(t => t.name + ' ' + t.schwer), ...e.gl, ...e.kontakte.map(k => k.n + ' ' + k.pos)].some(t => norm(t).includes(q))))
     .sort((a, c) => a.name.localeCompare(c.name, 'de'));
 }
@@ -647,12 +648,11 @@ function flDetailView() {
     return `<div class="fl-ak-box ${S.cls}">
       <div class="fl-ab-1">${flIn(`ansprache.${i}.kopf`, a.kopf, { ph: a.gl ? 'Ansprache · ' + a.gl : 'Hinweis', aria: 'Kopfzeile', cls: 'fl-ab-k' })}<button class="fl-x fl-ab-x" data-act="fl-a-weg" data-i="${i}" title="Hinweis entfernen" aria-label="Hinweis entfernen">×</button></div>
       <div class="fl-ab-2"><button class="fl-ab-kr" data-act="fl-ansp-menu" data-i="${i}" aria-haspopup="menu" title="Gelb (Hinweis) oder rot (nicht anschreiben)" aria-label="Farbe des Hinweises ändern">${S.sym}</button>${flTa(`ansprache.${i}.titel`, a.titel, { rows: 1, ph: 'Überschrift eintragen …', aria: 'Überschrift', cls: 'fl-ab-t' })}</div>
-      ${pe(e, `ansprache.${i}.hinweis`, '', 'area', { fmt: true, flpe: true, ph: 'Text eintragen …', aria: 'Text des Hinweises', cls: 'fl-ab-h' })}
-      <div class="fl-ab-gl">gilt für ${flIn(`ansprache.${i}.gl`, a.gl, { ph: 'alle Gliederungen', aria: 'gilt für Gliederung', cls: 'fl-auto' })}</div></div>`; };
+      ${pe(e, `ansprache.${i}.hinweis`, '', 'area', { fmt: true, flpe: true, ph: 'Text eintragen …', aria: 'Text des Hinweises', cls: 'fl-ab-h' })}</div>`; };
   const HL = e.ansprache.map((a, i) => ({ a, i }));
   const haupt = (ctx && HL.find(x => norm(x.a.gl) === norm(ctx))) || HL.find(x => !x.a.gl) || (!ctx && HL[0]) || null, sonst = HL.filter(x => x !== haupt);
   const hinweise = (haupt ? hBox(haupt) : '') + (sonst.length ? `<button class="fl-ab-alle" data-act="fl-alle-gl" aria-expanded="${!!UI.flAlleGl}">${UI.flAlleGl ? '▾' : '▸'} ${sonst.length} ${sonst.length === 1 ? 'Hinweis' : 'Hinweise'} für andere Gliederungen</button>${UI.flAlleGl ? sonst.map(hBox).join('') : ''}` : '');
-  const seite = `<div class="fl-rechts">${haupt ? '' : '<div class="fl-hz"><button class="fl-hinweis-neu" data-act="fl-ansp-neu" title="Gelben Hinweis anlegen, z. B. „Erst mit der Gliederung sprechen“">+ Hinweis</button></div>'}<aside class="card fl-seite">${hinweise}
+  const seite = `<div class="fl-rechts">${haupt ? '' : '<div class="fl-hz"><button class="fl-hinweis-neu" data-act="fl-ansp-neu" title="Gelben Hinweis anlegen, z. B. „Erst mit der Gliederung sprechen“">+ Hinweis</button></div>'}${hinweise ? `<div class="fl-hinw">${hinweise}</div>` : ''}<aside class="card fl-seite">
       <section class="fl-blk">${flNetz(e, true)}</section>
       <section class="fl-blk"><h3>Antragsweg</h3>${weg}</section>
       ${link('richtlinien', 'Förderrichtlinien', 'Förderrichtlinien')}

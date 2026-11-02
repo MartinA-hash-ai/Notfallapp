@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.103:** Die Suche nach einer Gliederung zeigt „alle Gliederungen“ immer mit; Hinweise zu einem Förderer stehen über dem Netz-Kasten; die Förderhöhe lässt sich in einer Zeile bearbeiten.
+
 **Seit 0.102:** Die Förderhöhe wird als „von … € bis … €“ (nur Zahlen) eingetragen, das Fördergebiet schlägt bekannte Gliederungen vor, beim Förderzweck lassen sich Freitext und eine Vorauswahl der Malteser-Zwecke mischen. In der Fördererliste stehen Kurzname hinter dem Namen und Gebiet/Zweck auf höchstens zwei Zeilen (Hover-Text: alles).
 
 **Seit 0.101:** Großförderer (> 10.000 € möglich) bekommen in der Fördererliste eine kleine Krone am Namen; gesetzt wird sie im Netz neben „> 3.000 €“. Der Antragsweg ist eine Auswahlliste mit Link und Öffnen-Symbol in einer Zeile, Homepage und Recherchestand stehen im rechten Kasten, Fristen werden im Kalender gewählt, „Weitere Angaben“ entfällt (Art oben auswählbar). Die Suche nach Einschätzung ist schmaler und schließt bei einem Klick daneben.
