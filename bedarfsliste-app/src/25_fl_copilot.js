@@ -83,8 +83,8 @@ function flcVorlageBlob(e, z) {
 
 // ---------- Auftrag für Copilot
 function flcPrompt(e, z) {
-  z = z || { modus: 'foerderer', topf: null, name: '' }; const topf = z.modus === 'topf', fn = e && e.name ? '„' + e.name + '“' : 'den Förderer, der im Blatt „Steckbrief“ steht';
-  const ziel = topf ? 'den Fördertopf (das Förderprogramm) „' + (z.name || 'siehe Blatt „Steckbrief“') + '“ des Förderers ' + fn : 'den Förderer ' + fn;
+  z = z || { modus: 'foerderer', topf: null, name: '' }; const topf = z.modus === 'topf', fn = e && e.name ? '„' + e.name + '“' : '[NAME DES FÖRDERERS]';
+  const ziel = topf ? 'den Fördertopf (das Förderprogramm) ' + (z.name ? '„' + z.name + '“' : '[NAME DES FÖRDERTOPFS]') + ' des Förderers ' + fn : 'den Förderer ' + fn;
   const L = [
     'Du bist Rechercheassistent im Fundraising der Malteser (Malteser Hilfsdienst e. V., Diözese Paderborn). Im Anhang liegt die Excel-Datei „' + FLC_DATEI + '“. Recherchiere im Web ' + ziel + (e && e.web && !topf ? ' (Homepage: ' + e.web + ')' : '') + ' und fülle die Datei aus. Ich lese sie danach in unser Programm ein.',
     ...(topf ? ['Wichtig: Die Datei gilt nur für diesen einen Fördertopf. Alle Angaben im Blatt „Steckbrief“ – auch Zweck, Gebiet, Förderhöhe, Quote, Fristen, Antragsweg, Links, Einschätzung und Notizen – beziehen sich ausschließlich auf dieses Programm, nicht auf den Förderer insgesamt. Andere Programme des Förderers ignorierst du.'] : []),
