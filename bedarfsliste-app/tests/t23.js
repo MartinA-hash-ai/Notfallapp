@@ -101,10 +101,12 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   // Kontakte über den Stift bearbeiten (wie „Zuständig“ beim Bedarf); Fristen als formatierter Text (Klick, Strg+Enter übernimmt)
   await p.click('[data-act="fl-k-edit"]'); await p.fill('[data-fl="kontakte.0.pos"]', 'Filialdirektion'); await p.click('[data-act="fl-k-fertig"]'); await p.waitForTimeout(100);
   await p.click('.fl-steck .pe[data-k="fristen"]'); await p.keyboard.type('31.03.'); await p.keyboard.press('Control+Enter'); await p.waitForTimeout(100);
-  await p.click('.fl-mehr-k'); await p.waitForTimeout(100);                     // Recherche-Stand steht unter „Weitere Angaben“
-  await p.fill('[data-fl="recherche"]', '5.2.2026'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
-  r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.kontakte[0].pos, e.fristen, e.recherche, document.querySelector('[data-fl="recherche"]').value]; });
-  ok(r.join('|') === 'Filialdirektion|31.03.|2026-02-05|05.02.2026', 'Bearbeiten: Kontakt, Fristen (formatierter Text), Datum: ' + r.join('|'));
+  await p.click('.fl-seite .pe[data-k="recherche"]'); await p.waitForSelector('.cal-pop');                // Recherchestand unten im rechten Kasten, per Kalender
+  await p.evaluate(() => document.querySelector('.cal-pop .cal-d[data-v$="-05"]').click()); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => /^\d{4}-\d{2}-05$/.test(flEintrag('F001').recherche)), 'Recherchestand per Kalender gesetzt');
+  await p.evaluate(() => { const e = flEintrag('F001'); e.recherche = '2026-02-05'; changed(); renderNow(); });
+  r = await p.evaluate(() => { const e = flEintrag('F001'); return [e.kontakte[0].pos, e.fristen, e.recherche, document.querySelector('.fl-seite .pe[data-k="recherche"] .pv').textContent, !document.querySelector('.fl-mehr'), !!document.querySelector('.fl-seite .fl-blk:last-child .pe[data-k="recherche"]'), !!document.querySelector('.fl-seite .fl-url[data-fl="web"]')]; });
+  ok(r.join('|') === 'Filialdirektion|31.03.|2026-02-05|05.02.2026|true|true|true', 'Bearbeiten: Kontakt, Fristen (Hinweistext), Recherchestand unten im rechten Kasten (Kalender), keine „Weitere Angaben“, Homepage rechts: ' + r.join('|'));
   await p.waitForTimeout(500);
   ok(await p.evaluate(() => kartei('Sparkasse Beispiel').kontakte[0].pos) === 'Filialdirektion', 'Kartei für Vorschläge nachgeführt');
   // Einschätzung: aus den Daten geschätzt (Summe aus den Förderungen), von Hand gesetzt, noch einmal geklickt wieder geschätzt
@@ -132,14 +134,14 @@ const { chromium, ok, open, connect, finish } = require('./lib');
     const X = [H([]), H([2020]), H([2025]), H([2024, 2024, 2021])].join(' / '); e.foerderungen = alt; e.bew.aufwand = 1;   // H: dazu kommt die Förderung 2026 aus dem Bedarf
     const R = flLesen(await xlsxBook(await flBlob().arrayBuffer())), x = R.liste.find(f => f.id === 'F001'); e.bew.aufwand = 0;
     return [X, 'aufwand' in flBewAuto(e), x.bew.aufwand, x.bew.dauer, flExportZeilen()['Förderer'][0].length]; });
-  ok(r.join('|') === '- / 1:gefördert 2020, 2026 / 2:gefördert 2025 und 2026 / 3:2 Förderungen in 2024|false|1|0|22', 'Häufigkeit geschätzt (eine Förderung sagt nichts), Aufwand nicht; beide in der Excel-Kopie: ' + r.join('|'));
+  ok(r.join('|') === '- / 1:gefördert 2020, 2026 / 2:gefördert 2025 und 2026 / 3:2 Förderungen in 2024|false|1|0|23', 'Häufigkeit geschätzt (eine Förderung sagt nichts), Aufwand nicht; beide in der Excel-Kopie: ' + r.join('|'));
   // Antragsweg als Schalter, „nicht anschreiben“ blass ohne Stern, Fristen als Knöpfe je Fördertopf
-  ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-z .fl-seg button')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join('/'), flEintrag('F001').weg.join(), flWegNorm('direkt'), flWegNorm('per Mail'), flWegNorm('Portal'), flWegNorm('vor Ort') || '-', !!document.querySelector('.fl-alt-weg')].join('|')) === 'E-Mail*/Portal|E-Mail|E-Mail|E-Mail|Portal|-|false',
+  ok(await p.evaluate(() => [[...document.querySelectorAll('.fl-weg-sel option')].map(b => b.textContent + (b.selected ? '*' : '')).join('/'), flEintrag('F001').weg.join(), flWegNorm('direkt'), flWegNorm('per Mail'), flWegNorm('Portal'), flWegNorm('vor Ort') || '-', !!document.querySelector('.fl-alt-weg')].join('|')) === 'Antragsweg …/E-Mail*/Portal|E-Mail|E-Mail|E-Mail|Portal|-|false',
     'Antragsweg: nur E-Mail oder Portal, „direkt“ aus der alten Kartei wird zu E-Mail');
-  await p.click('.fl-seg button[data-act="fl-antrag"][data-v="Portal"]'); await p.waitForTimeout(100);
-  await p.fill('.fl-antrag', 'https://portal.spk.example'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
-  r = await p.evaluate(() => [flEintrag('F001').antrag, document.querySelector('.fl-weg-z .fl-oeffnen').getAttribute('href'), document.querySelector('.fl-antrag').placeholder]);
-  ok(r.join('|') === 'https://portal.spk.example|https://portal.spk.example|Link zum Portal eintragen …', 'Antragsweg rechts: Portal mit Link direkt daneben: ' + r.join('|'));
+  await p.selectOption('.fl-weg-sel', 'Portal'); await p.waitForTimeout(100);
+  await p.fill('.fl-antrag', 'portal.spk.example/antrag'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [flEintrag('F001').antrag, document.querySelector('.fl-weg-z .fl-oeffnen').getAttribute('href'), document.querySelector('.fl-antrag').placeholder, document.querySelector('.fl-antrag').value, document.querySelectorAll('.fl-weg-z > *').length, Math.abs(document.querySelector('.fl-weg-sel').getBoundingClientRect().top - document.querySelector('.fl-oeffnen').getBoundingClientRect().top) < 12]);
+  ok(r.join('|') === 'https://portal.spk.example/antrag|https://portal.spk.example/antrag|Link zum Portal …|portal.spk.example/antrag|3|true', 'Antragsweg: Dropdown, Link ohne „https://“ angezeigt (wird ergänzt) und Pfeil zum Öffnen in einer Zeile: ' + r.join('|'));
   r = await p.evaluate(() => { const k = document.querySelectorAll('.fl-kliste .k1')[1]; return [k.className, k.dataset.tip, !!k.querySelector('[data-act="fl-k-an"]'), k.querySelector('.kb').className, k.querySelector('.kb').tagName, !!document.querySelector('.fl-k-legende, .fl-legende')]; });
   ok(r.join('|') === 'k1 fl-k1 an-nein|nicht anschreiben|false|kb kb-aus|SPAN|false', '„nicht anschreiben“: Karte blass mit Hinweis beim Überfahren, kein Stern, E-Mail durchgestrichen, keine Legende: ' + r.join('|'));
   await p.click('[data-act="fl-k-edit"]'); await p.click('[data-act="fl-k-an-setzen"][data-i="1"][data-v=""]'); await p.click('[data-act="fl-k-fertig"]'); await p.waitForTimeout(100);
@@ -149,9 +151,9 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => { const e = flEintrag('F001'); e.fristenL = []; changed(); renderNow(); return [fristParse('5.3.'), fristParse('31.03.2027'), fristParse('31.2.'), fristenAusText('31.03. und 30.09.').L.map(x => x.d).join(), fristenAusText('31.03. und 30.09.').text, fristenAusText('bis 15.10., Sitzung im Mai').text]; });
   ok(r.join('|') === '03-05|2027-03-31||03-31,09-30||bis 15.10., Sitzung im Mai', 'Frist lesen: jedes Jahr, einmalig, ungültig; aus dem alten Text, der Rest bleibt als Hinweis: ' + r.join('|'));
   const jahr = new Date().getFullYear();
-  await p.click('.fl-frist-neu'); await p.keyboard.type('01.01.'); await p.keyboard.press('Tab'); await p.keyboard.type('Programm A'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
-  await p.click('.fl-frist-neu'); await p.keyboard.type('31.12.'); await p.click('.fl-frist-pop button.primary'); await p.waitForTimeout(100);
-  await p.click('.fl-frist-neu'); await p.keyboard.type('15.6.' + (jahr + 1)); await p.keyboard.press('Tab'); await p.keyboard.type('Programm A'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  await p.click('.fl-frist-neu'); await p.fill('.fl-frist-pop input[type=date]', jahr + '-01-01'); await p.fill('.fl-frist-pop input[type=text]', 'Programm A'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  await p.click('.fl-frist-neu'); await p.fill('.fl-frist-pop input[type=date]', jahr + '-12-31'); await p.click('.fl-frist-pop button.primary'); await p.waitForTimeout(100);
+  await p.click('.fl-frist-neu'); await p.fill('.fl-frist-pop input[type=date]', (jahr + 1) + '-06-15'); await p.click('.fl-frist-pop .fl-jj input'); await p.fill('.fl-frist-pop input[type=text]', 'Programm A'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [flEintrag('F001').fristenL.map(f => f.d + '/' + f.topf).join(), [...document.querySelectorAll('.fl-frg')].map(g => (g.querySelector('.fl-topf')?.textContent || '-') + ':' + [...g.querySelectorAll('.fl-fd')].map(b => b.textContent + '=' + b.className.replace('fl-fd ', '')).join(' ')).join(' | '), document.querySelector('.fl-sg').textContent.includes('Fristen ' + new Date().getFullYear())]);
   ok(r.join('|') === `01-01/Programm A,12-31/,${jahr + 1}-06-15/Programm A|-:31.12.=naechste | Programm A:01.01.=vorbei 15.06.${jahr + 1}=naechste|true`, 'Fristen je Fördertopf: vorbei, nächste, einmalig mit Jahr: ' + r.join('|'));
   await p.click('.fl-fd.vorbei'); await p.waitForSelector('.fl-frist-pop'); await p.click('.fl-frist-pop button:text-is("Entfernen")'); await p.waitForTimeout(100);
@@ -184,8 +186,8 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => [[...document.querySelectorAll('.fl-sg .fl-sl')].map(x => x.textContent).join(','), !!document.querySelector('[data-fl="richtlinien"]'), document.querySelector('.fl-kopf .fl-kz') !== null,
     [...document.querySelectorAll('.fl-kliste .k1')].map(k => k.querySelector('.fl-st').textContent + k.querySelector('.kn').textContent + ':' + [...k.querySelectorAll('.kb')].map(b => b.dataset.tip).join('+')).join(' | '),
     document.querySelector('.fl-fn .fl-notizen h3').textContent]);
-  ok(r.join('|') === `Förderzweck,Fördergebiet,Förderhöhe,Förderquote,Fristen ${jahr},Homepage|true|true|★Erika B:erika@spk.example+05272 1 | ☆Hans V:hans@spk.example|Notizen`,
-    'Steckbrief immer vollständig mit Fristen und Homepage, Links immer da, Kontakte als Karten (★/☆, Adresse und Nummer beim Überfahren), Notizen neben den Förderungen: ' + r.join('|'));
+  ok(r.join('|') === `Zweck,Gebiet,Förderhöhe,Quote,Fristen ${jahr}|true|true|★Erika B:erika@spk.example+05272 1 | ☆Hans V:hans@spk.example|Notizen`,
+    'Steckbrief immer vollständig (Zweck, Gebiet, Förderhöhe, Quote, Fristen), Links immer da, Kontakte als Karten (★/☆, Adresse und Nummer beim Überfahren), Notizen neben den Förderungen: ' + r.join('|'));
   await p.click('[data-act="fl-k-neu"]'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [UI.flKEdit, document.activeElement.dataset.fl, flEintrag('F001').kontakte.length]);
   await p.click('[data-act="fl-k-fertig"]'); await p.waitForTimeout(100);
@@ -271,10 +273,10 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.click('[data-act="fl-topf-neu"]'); await p.keyboard.type('Programm Jugend'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   await p.click('.fl-steck .pe[data-k="topfe.0.schwer"]'); await p.keyboard.type('Jugendarbeit'); await p.keyboard.press('Control+Enter'); await p.waitForTimeout(100);
   await p.click('.fl-frist-neu'); r = await p.evaluate(() => document.querySelector('.fl-frist-pop input[aria-label="Fördertopf"]').value);
-  await p.keyboard.type('01.12.'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  await p.fill('.fl-frist-pop input[type=date]', jahr + '-12-01'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   r = await p.evaluate(r0 => { const e = flEintrag('F002'); return [r0, e.quote, e.topfe.length, e.topfe[0].name, e.topfe[0].schwer, e.schwer !== 'Jugendarbeit', e.fristenL.filter(f => f.topf === 'Programm Jugend').map(f => f.d).join(), UI.flTopf === e.topfe[0].id,
     [...document.querySelectorAll('.fl-tpb')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join('/'), [...document.querySelectorAll('.fl-sg .fl-sl')].map(x => x.textContent).join(','), document.querySelectorAll('.fl-fd').length]; }, r);
-  ok(r.join('|') === `Programm Jugend|bis 90 % der Kosten|1|Programm Jugend|Jugendarbeit|true|12-01|true|Allgemein/Programm Jugend*/+ Fördertopf|Fördertopf,Kurzname,Förderzweck,Fördergebiet,Förderhöhe,Förderquote,Fristen ${new Date().getFullYear()},Homepage|1`,
+  ok(r.join('|') === `Programm Jugend|bis 90 % der Kosten|1|Programm Jugend|Jugendarbeit|true|12-01|true|Allgemein/Programm Jugend*/+ Fördertopf|Name,Kurzname,Zweck,Gebiet,Förderhöhe,Quote,Fristen ${new Date().getFullYear()}|1`,
     'Fördertopf: eigene Angaben und Fristen, Name vorbelegt, allgemeine Angaben bleiben: ' + r.join('|'));
   await p.fill('[data-fl="topfe.0.name"]', 'Jugendprogramm'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   r = await p.evaluate(async () => { const e = flEintrag('F002'), bk = await xlsxBook(await flBlob().arrayBuffer()), R = flLesen(bk), x = R.liste.find(y => y.id === 'F002');
@@ -319,6 +321,35 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.click('.fl-ani .fl-ab-nein'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => flEintrag('F002').kontakte[0].anschreiben === 'nein' && document.querySelector('.fl-ani .fl-ab-nein').classList.contains('on')), 'Symbol „nicht anschreiben“ setzt den Wert');
   await p.click('[data-act="fl-k-fertig"]'); await p.evaluate(() => { flEintrag('F002').kontakte[0].anschreiben = 'ja'; flZurueck(); }); await p.waitForTimeout(150);
+  // 0.101: Krone (Großförderer), Art oben als Dropdown, Steckbrief mit Fördertöpfen ohne Überschrift, Suchfeld schließt bei Klick daneben
+  await p.evaluate(() => { const e = flEintrag('F002'); e.gross = false; e.bew.summe = 3; UI.flTopf = ''; changed(); flOeffnen('F002'); renderNow(); }); await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const k = document.querySelector('.fn-krone'); return [!!k, k.classList.contains('an'), k.dataset.tip, document.querySelector('.fn-v[data-k="summe"]').textContent]; });
+  ok(r.join('|') === 'true|false|> 10.000 € möglich|> 3.000 €', 'Netz: bei „> 3.000 €“ eine hellgraue Krone mit Hinweis „> 10.000 € möglich“: ' + r.join('|'));
+  await p.evaluate(() => document.querySelector('.fn-krone').dispatchEvent(new MouseEvent('click', { bubbles: true }))); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [flEintrag('F002').gross, document.querySelector('.fn-krone').classList.contains('an')]);
+  ok(r.join('|') === 'true|true', 'Klick auf die Krone: gelb, Förderer ist Großförderer: ' + r.join('|'));
+  await p.evaluate(() => { UI.view = 'flist'; renderNow(); }); await p.waitForTimeout(200);
+  r = await p.evaluate(() => { const z = document.querySelector('#fl-body tr[data-id="F002"] .fl-krone-l'); return [!!z, z && z.dataset.tip, document.querySelectorAll('#fl-body .fl-krone-l').length, getComputedStyle(document.querySelector('table.fl-tab')).tableLayout, getComputedStyle(document.querySelector('#fl-body td.fl-te')).verticalAlign]; });
+  ok(r.join('|') === 'true|> 10.000 € möglich|1|fixed|middle', 'Liste: kleine Krone am Namen nur beim Großförderer; feste Spaltenbreiten; Netz mittig in der Zeile: ' + r.join('|'));
+  const b0 = await p.evaluate(() => document.querySelector('table.fl-tab').getBoundingClientRect().width);
+  await p.click('.fl-lupe'); await p.waitForSelector('.fl-such');
+  r = await p.evaluate(() => [[...document.querySelectorAll('.fl-such .fl-l')].length || [...document.querySelectorAll('.fl-such .fn-l')].map(t => t.textContent).join(), document.querySelector('.fl-such').getBoundingClientRect().width <= 310, !document.querySelector('.fl-such-k'), document.querySelector('.fl-such-r').textContent]);
+  ok(r.join('|') === 'Erfolgschance,Fördersumme,Häufigkeit,Aufwand,Dauer|true|true|↶', 'Suchfeld: alle fünf Achsen benannt, schmal, kein Text darüber, Pfeil-zurück statt „zurücksetzen“: ' + r.join('|'));
+  await p.keyboard.press('Tab'); await p.focus('.fl-such .fn-griff[data-k="summe"]'); await p.keyboard.press('ArrowUp'); await p.keyboard.press('ArrowUp'); await p.keyboard.press('ArrowUp'); await p.waitForTimeout(150);
+  ok(Math.abs(await p.evaluate(() => document.querySelector('table.fl-tab').getBoundingClientRect().width) - b0) < 2, 'Suchergebnis ändert die Breite der Tabelle nicht');
+  await p.mouse.click(20, 700); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => !document.querySelector('.fl-such') && !UI.flSuch), 'Klick neben das Suchfeld schließt es');
+  await p.evaluate(() => { UI.flBewQ = flQNull(); flOeffnen('F002'); }); await p.waitForTimeout(300);
+  r = await p.evaluate(() => [!!document.querySelector('.fl-kopf-u select.fl-art-sel'), document.querySelector('.fl-kopf-u .fl-kurz-k').textContent, !document.querySelector('.fl-menue')]);
+  await p.selectOption('.fl-art-sel', 'Stiftung'); await p.waitForTimeout(150);
+  r.push(await p.evaluate(() => flEintrag('F002').art));
+  ok(r.join('|') === 'true|DSE|true|Stiftung', 'Art oben als Dropdown (Kurzname davor): ' + r.join('|'));
+  await p.evaluate(() => { const e = flEintrag('F002'); e.topfe = [{ id: 't9', name: 'Programm X', kurz: '', schwer: '', gl: [], hoehe: '', quote: '' }]; UI.flTopf = ''; changed(); renderNow(); }); await p.waitForTimeout(200);
+  r = await p.evaluate(() => [document.querySelector('.fl-steck h3') === null, getComputedStyle(document.querySelector('.fl-topfw')).justifyContent, document.querySelector('.fl-tpb.neu').getBoundingClientRect().left > document.querySelector('.fl-tpb.on').getBoundingClientRect().right]);
+  ok(r.join('|') === 'true|flex-start|true', 'Mit Fördertöpfen: Wort „Steckbrief“ entfällt, Knöpfe linksbündig, „+ Fördertopf“ rechts: ' + r.join('|'));
+  await p.evaluate(() => { flEintrag('F002').topfe = []; flEintrag('F002').gross = true; flEintrag('F002').bew.summe = 0; changed(); flZurueck(); });
+  r = await p.evaluate(async () => { const bk = await xlsxBook(await flBlob().arrayBuffer()), R = flLesen(bk); return [R.liste.find(e => e.id === 'F002').gross, R.liste.filter(e => e.gross).length]; });
+  ok(r.join('|') === 'true|1', 'Großförderer in der Excel-Kopie und wieder eingelesen: ' + r.join('|'));
   // gespeichert und wieder geladen: bleibt erhalten
   r = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [n.fl.liste.length, JSON.stringify(n.fl) === JSON.stringify(D.fl), n.bedarfe[0].foerderer[1].flAus.length, n.bedarfe[0].foerderer[3].flNein]; });
   ok(r.join('|') === '2|true|0|true', 'Speichern/Laden behält Fördererliste und Merker: ' + r.join('|'));

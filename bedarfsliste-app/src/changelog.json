@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.101.0",
+    "date": "2026-11-03T10:00",
+    "items": [
+      "Fördererliste: das Netz wird nur größer, wenn man mit der Maus über das Netz selbst fährt, und bleibt dabei immer vertikal mittig zur Zeile; die Spalten haben feste Breiten, ein Suchergebnis verändert die Breite der Tabelle nicht mehr",
+      "Suche nach Einschätzung: alle fünf Achsen sind benannt, der Text über dem Netz ist weg, „zurücksetzen“ ist ein Pfeil-zurück-Symbol, das Feld ist schmaler und schließt sich bei einem Klick daneben",
+      "Steckbrief: Fördertopf-Knöpfe linksbündig, „+ Fördertopf“ rechts; gibt es Fördertöpfe, entfällt das Wort „Steckbrief“; Name und Kurzname des Fördertopfs stehen dichter beieinander; Bezeichnungen kürzer (Zweck, Gebiet, Quote – Förderhöhe bleibt)",
+      "Frist eintragen per Kalender (mit „jedes Jahr wiederholen“) statt als Freitext",
+      "Rechter Kasten: Homepage unter den Förderrichtlinien, ganz unten der Recherchestand (per Kalender, auch von Hand änderbar)",
+      "Antragsweg als Auswahlliste (E-Mail / Portal), daneben der Link ohne „https://“ und ein Symbol zum Öffnen – alles in einer Zeile",
+      "Großförderer (> 10.000 € möglich): im Netz erscheint neben „> 3.000 €“ eine hellgraue Krone, ein Klick macht sie gelb; in der Fördererliste sitzt dann eine kleine schräge Krone oben links am Namen (Hinweis „> 10.000 € möglich“); auch in der Excel-Kopie (Spalte „Großförderer“)",
+      "„Weitere Angaben“ entfällt; die Art wählt man jetzt oben unter dem Namen aus einer Liste"
+    ]
+  },
+  {
     "version": "0.100.0",
     "date": "2026-11-02T14:00",
     "items": [
