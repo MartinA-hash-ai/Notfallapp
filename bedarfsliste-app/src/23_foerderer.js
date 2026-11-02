@@ -652,7 +652,7 @@ function flDetailView() {
   const HL = e.ansprache.map((a, i) => ({ a, i }));
   const haupt = (ctx && HL.find(x => norm(x.a.gl) === norm(ctx))) || HL.find(x => !x.a.gl) || (!ctx && HL[0]) || null, sonst = HL.filter(x => x !== haupt);
   const hinweise = (haupt ? hBox(haupt) : '') + (sonst.length ? `<button class="fl-ab-alle" data-act="fl-alle-gl" aria-expanded="${!!UI.flAlleGl}">${UI.flAlleGl ? '▾' : '▸'} ${sonst.length} ${sonst.length === 1 ? 'Hinweis' : 'Hinweise'} für andere Gliederungen</button>${UI.flAlleGl ? sonst.map(hBox).join('') : ''}` : '');
-  const seite = `<div class="fl-rechts">${haupt ? '' : '<div class="fl-hz"><button class="fl-hinweis-neu" data-act="fl-ansp-neu" title="Gelben Hinweis anlegen, z. B. „Erst mit der Gliederung sprechen“">+ Hinweis</button></div>'}${hinweise ? `<div class="fl-hinw">${hinweise}</div>` : ''}<aside class="card fl-seite">
+  const seite = `<div class="fl-rechts">${haupt ? '' : '<div class="fl-hz"><button class="fl-hinweis-neu" data-act="fl-ansp-neu" title="Gelben Hinweis anlegen, z. B. „Erst mit der Gliederung sprechen“">+ Hinweis</button></div>'}<aside class="card fl-seite">
       <section class="fl-blk">${flNetz(e, true)}</section>
       <section class="fl-blk"><h3>Antragsweg</h3>${weg}</section>
       ${link('richtlinien', 'Förderrichtlinien', 'Förderrichtlinien')}
@@ -660,7 +660,8 @@ function flDetailView() {
       <section class="fl-blk"><h3>Anschrift</h3>${flTa('anschrift', e.anschrift, { rows: 1, ph: 'Straße, PLZ Ort eintragen …', aria: 'Anschrift', cls: 'fl-anschrift' })}</section>
       <section class="fl-blk"><h3>Recherchestand</h3>${pe(e, 'recherche', '', 'date', { flpe: true, ph: 'Datum eintragen …', aria: 'Recherchestand' })}</section></aside></div>`;
 
-  return `<main class="fl-main fl-detail">${kopf}
+  // der Hinweis steht im Kopf, rechts neben dem Namen – der Kasten mit dem Netz bleibt auf Höhe des linken Kastens
+  return `<main class="fl-main fl-detail">${hinweise ? kopf.slice(0, -6) + `<div class="fl-hinw">${hinweise}</div></div>` : kopf}
     <div class="fl-raster">
       <div class="fl-links">
         <section class="card fl-ps">${personen}${steck}</section>
