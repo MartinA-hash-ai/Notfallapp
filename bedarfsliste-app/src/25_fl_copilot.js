@@ -1,4 +1,4 @@
-/* ===================================================================== Fördererliste: Excel-Vorlage und Auftrag für Copilot (ab 0.107, je Fördertopf ab 0.111)
+/* ===================================================================== Fördererliste: Excel-Vorlage und Auftrag für Copilot (ab 0.107, je Fördertopf ab 0.111, Töpfe mit allen Angaben ab 0.113)
    Im ⋯-Menü eines Förderers: „Recherche mit Copilot vorbereiten …“ (Vorlage herunterladen und Auftrag kopieren – für den Förderer als Ganzes, einen vorhandenen oder einen neuen
    Fördertopf) und „Ausgefüllte Vorlage einlesen …“ (mit Auswahl, in welchen Topf).
    Die Vorlage beschreibt EINEN Förderer oder EINEN Fördertopf: Blatt „Steckbrief“ (Feld · Wert · Sicherheit · Quelle · Anmerkung), „Fristen“, „Fördertöpfe“, „Kontakte“, „Quellen“;
@@ -35,6 +35,12 @@ const FLC_FELDER = [
   ['notiz', 'Weitere Notizen', 'Sonstige Besonderheiten für die Antragstellung (z. B. Zugang, Ansprechweg, Sitzungsrhythmus). Kurz; leer, wenn es nichts gibt.'],
 ];
 const FLC_SICHER = ['sicher', 'unsicher'];
+// Blatt „Fördertöpfe“ (nur Förderer-Vorlage): eine Zeile je Fördertopf mit ALLEN Angaben des Topfs (Spalte 0–8 wie bisher, danach die weiteren)
+const FLC_TSP = [['Fördertopf (voller Name)', 30], ['Kurzname', 18], ['Förderzweck', 34], ['Fördergebiet (Gliederungen)', 28], ['Förderhöhe von (€)', 14], ['Förderhöhe bis (€)', 14], ['Förderquote', 28], ['Sicherheit', 14], ['Quelle (Link)', 40],
+  ['Programmseite (Link)', 34], ['Förderrichtlinien (Link)', 34], ['Hinweis zu Fristen', 30], ['Antragsweg', 16], ['Antrag an (E-Mail oder Link)', 30], ['Häufigkeit', 18], ['Aufwand', 16], ['Dauer bis zur Entscheidung', 18], ['Großförderer (ja/nein)', 14],
+  ['Was wird gefördert?', 44], ['Was wird nicht gefördert?', 44], ['Wie tickt das Programm? (2–3 Sätze)', 44], ['Förderargumentation: Argumente, die ziehen', 44], ['Förderargumentation: Stolpersteine', 44], ['Weitere Notizen', 40]];
+const FLC_ABSCHNITTE = [['gefoerdert', 'Gefördert'], ['nicht', 'Nicht gefördert'], ['tickt', 'So tickt der Förderer'], ['zieht', 'Argumente, die ziehen'], ['stolper', 'Stolpersteine'], ['notiz', 'Weiteres']];
+const flcNotizText = get => FLC_ABSCHNITTE.filter(([k]) => get(k)).map(([k, t]) => '*' + t + ':*\n' + get(k).replace(/\r/g, '')).join('\n\n');
 const flcZweckeListe = () => MHD_ZWECKE.map(z => z.k);
 
 // ---------- Vorlage
@@ -52,8 +58,8 @@ function flcVorlageBlob(e, z) {
     lists: [...FELDER.map(([k, , , li], i) => li ? { ref: `B${i + 2}:B${i + 2}`, items: li() } : null).filter(Boolean), L('D', FELDER.length, FLC_SICHER)] };
   const fristen = topf ? bl('Fristen', [18, 14, 14, 40], ['Frist (TT.MM.JJJJ)', 'Jedes Jahr (ja/nein)', 'Sicherheit', 'Quelle (Link)'], 25, { lists: [L('B', 25, ['ja', 'nein']), L('C', 25, FLC_SICHER)] })
     : bl('Fristen', [18, 14, 34, 14, 40], ['Frist (TT.MM.JJJJ)', 'Jedes Jahr (ja/nein)', 'Fördertopf (leer = allgemein)', 'Sicherheit', 'Quelle (Link)'], 25, { lists: [L('B', 25, ['ja', 'nein']), L('D', 25, FLC_SICHER)] });
-  const toepfe = bl('Fördertöpfe', [30, 18, 34, 28, 14, 14, 28, 14, 40], ['Fördertopf (voller Name)', 'Kurzname', 'Förderzweck', 'Fördergebiet (Gliederungen)', 'Förderhöhe von (€)', 'Förderhöhe bis (€)', 'Förderquote', 'Sicherheit', 'Quelle (Link)'], 12,
-    { lists: [L('H', 12, FLC_SICHER)] });
+  const toepfe = bl('Fördertöpfe', FLC_TSP.map(c => c[1]), FLC_TSP.map(c => c[0]), 12,
+    { heights: { 0: 44 }, lists: [L('H', 12, FLC_SICHER), L('M', 12, FL_WEGE), L('O', 12, FLC_HAEUFIG), L('P', 12, FLC_AUFWAND), L('Q', 12, FLC_DAUER), L('R', 12, ['ja', 'nein'])] });
   const kontakte = bl('Kontakte', [28, 28, 32, 22, 26, 16, 14, 40], ['Name', 'Position', 'E-Mail', 'Telefon', 'Gliederungen (leer = alle)', 'Anschreiben (leer lassen)', 'Sicherheit', 'Quelle (Link)'], 15,
     { lists: [L('G', 15, FLC_SICHER)] });
   const quellen = bl('Quellen', [60, 60, 16], ['Link (wirklich geöffnet)', 'Was dort steht', 'Abgerufen am (TT.MM.JJJJ)'], 25);
@@ -72,7 +78,7 @@ function flcVorlageBlob(e, z) {
     ['4. Auswahlfelder nur mit den vorgegebenen Werten füllen (Blatt „Auswahlwerte“). Zahlen ohne Einheit und ohne Tausenderpunkt (z. B. 10000). Datum als TT.MM.JJJJ; eine Frist ohne Jahr (z. B. 31.03.) gilt jedes Jahr.'],
     ['5. Kontakte: nur Personen oder Funktionen, deren Kontaktdaten der Förderer selbst öffentlich nennt (Impressum, Seite „Ansprechpartner“). Keine privaten Daten, nichts aus sozialen Netzwerken. „Anschreiben“ leer lassen – das entscheiden wir.'],
     [topf ? '6. Alle Angaben im Blatt „Steckbrief“ beziehen sich nur auf diesen einen Fördertopf, nicht auf den Förderer insgesamt; auch Notizen und Förderargumentation. Fristen im Blatt „Fristen“ sind die Fristen dieses Topfs.'
-      : '6. Hat der Förderer mehrere Förderprogramme (Fördertöpfe), jedes in einer Zeile im Blatt „Fördertöpfe“ mit eigenem Zweck, Gebiet, Höhe und Quote; Fristen eines Programms im Blatt „Fristen“ mit demselben Namen in „Fördertopf“.'],
+      : '6. Hat der Förderer mehrere Förderprogramme (Fördertöpfe), steht jedes in einer eigenen Zeile im Blatt „Fördertöpfe“ – und zwar mit ALLEN Spalten ausgefüllt (Zweck, Gebiet, Höhe, Quote, Hinweis zu Fristen, Antragsweg, Links, Einschätzung, Notizen), soweit belegbar. Ein Fördertopf, der nur mit Namen eingetragen ist, ist unbrauchbar. Fristen eines Programms im Blatt „Fristen“ mit demselben Namen in „Fördertopf“. Im Blatt „Steckbrief“ steht, was für den Förderer insgesamt gilt.'],
     ['7. Zu jeder Einschätzung (Häufigkeit, Aufwand, Dauer) kurz in „Anmerkung“ begründen – oder leer lassen.'],
     [''],
     ['Stand: ' + (typeof today === 'function' ? fmtDate(today()) : '')],
@@ -92,7 +98,7 @@ function flcPrompt(e, z) {
     'So gehst du vor:',
     '1. Lies zuerst das Blatt „Anleitung“ und die Spalte „Format / Erklärung“ im Blatt „Steckbrief“ – dort steht, was in jede Zelle gehört.',
     topf ? '2. Recherchiere vor allem auf den eigenen Seiten des Förderers zu diesem Programm: Förderrichtlinie oder Programmbeschreibung, Antragsformular oder Antragsportal, Ausschreibung und Fristen, Jahresbericht, Seite „Ansprechpartner“ oder Impressum.'
-      : '2. Recherchiere vor allem auf den eigenen Seiten des Förderers: Satzung, Förderrichtlinien oder Vergaberichtlinien, Antragsformular, Jahresbericht, Seite „Ansprechpartner“ oder Impressum. Prüfe außerdem, ob es mehrere Förderprogramme (Fördertöpfe) gibt; jedes trägst du in einer eigenen Zeile im Blatt „Fördertöpfe“ ein.',
+      : '2. Recherchiere vor allem auf den eigenen Seiten des Förderers: Satzung, Förderrichtlinien oder Vergaberichtlinien, Antragsformular, Jahresbericht, Seite „Ansprechpartner“ oder Impressum. Prüfe außerdem, ob es mehrere Förderprogramme (Fördertöpfe) gibt. Gibt es welche, recherchierst du JEDES Programm eigens auf seiner Programmseite bzw. in seiner Richtlinie und trägst es in einer eigenen Zeile im Blatt „Fördertöpfe“ mit allen Spalten ein (Zweck, Gebiet, Höhe, Quote, Hinweis zu Fristen, Antragsweg, Links, Häufigkeit, Aufwand, Dauer, Großförderer und die Notiz-Spalten). Ein Programm, das nur mit seinem Namen eingetragen ist, ist unbrauchbar – zu jedem Programm brauche ich dieselbe Tiefe. Was du zu einer Zelle nicht belegen kannst, lässt du leer; die Zeile bleibt trotzdem so vollständig wie möglich. Das Blatt „Steckbrief“ beschreibt dann den Förderer insgesamt.',
     '3. Fülle nur die gelb hinterlegten Zellen: im Blatt „Steckbrief“ die Spalten Wert, Sicherheit, Quelle und Anmerkung; in ' + (topf ? '„Fristen“, „Kontakte“ und „Quellen“' : '„Fristen“, „Fördertöpfe“, „Kontakte“ und „Quellen“') + ' die Zeilen darunter. Ändere keine Überschriften, Blattnamen oder Spalten, füge nichts hinzu und lösche nichts. „Anleitung“ und „Auswahlwerte“ bleiben unverändert.',
     '4. Erfinde nichts und rate nicht. Was du nicht belegen kannst, bleibt leer. Trage bei jeder ausgefüllten Angabe in „Quelle“ den Link ein, den du tatsächlich geöffnet hast – keine Links aus dem Gedächtnis. Setze „Sicherheit“ auf „sicher“, wenn die Angabe so in der Quelle steht, sonst auf „unsicher“ (indirekt belegt, älter als zwei Jahre oder widersprüchlich).',
     '5. Formate: Auswahlfelder nur mit den Werten aus dem Blatt „Auswahlwerte“ (genau so geschrieben). Beträge als reine Zahl ohne Einheit und ohne Tausenderpunkt (10000). Datum als TT.MM.JJJJ; eine Frist ohne Jahr (31.03.) gilt jedes Jahr, bei einmaligen Fristen „Jedes Jahr“ = nein.',
@@ -132,9 +138,30 @@ function flcLesen(book) {
   const fs = blatt('Fristen'), mitTopf = !!fs && /^f(ö|oe)rdertopf/.test(norm(cellStr((fs.rows[0] || [])[2]))), sx = mitTopf ? 3 : 2;       // im Fördertopf-Blatt fehlt die Spalte „Fördertopf“
   return { modus, F,
     fristen: tab('Fristen').map(r => ({ d: flcFristDatum(r[0], norm(r[1])), topf: mitTopf ? strV(r[2]) : '', unsicher: norm(r[sx]) === 'unsicher', quelle: cellStr(r[sx + 1]), roh: cellStr(r[0]) })),
-    topfe: tab('Fördertöpfe').map(r => ({ name: strV(r[0]), kurz: strV(r[1]), schwer: strV(r[2]), gl: strL(r[3]), von: zahlOderLeer(r[4]), bis: zahlOderLeer(r[5]), quote: strV(r[6]), unsicher: norm(r[7]) === 'unsicher', quelle: cellStr(r[8]) })),
+    topfe: tab('Fördertöpfe').map(r => ({ name: strV(r[0]), kurz: strV(r[1]), schwer: strV(r[2]), gl: strL(r[3]), von: zahlOderLeer(r[4]), bis: zahlOderLeer(r[5]), quote: strV(r[6]), unsicher: norm(r[7]) === 'unsicher', quelle: cellStr(r[8]),
+      web: strV(r[9]), richtlinien: strV(r[10]), fristen: strV(r[11]), weg: strV(r[12]), antrag: strV(r[13]), haeufig: strV(r[14]), aufwand: strV(r[15]), dauer: strV(r[16]), gross: strV(r[17]),
+      gefoerdert: strV(r[18]), nicht: strV(r[19]), tickt: strV(r[20]), zieht: strV(r[21]), stolper: strV(r[22]), notiz: strV(r[23]) })),
     kontakte: tab('Kontakte').map(r => ({ n: strV(r[0]), pos: strV(r[1]), mail: mailRein(r[2]), tel: cellStr(r[3]), gl: strL(r[4]), unsicher: norm(r[6]) === 'unsicher', quelle: cellStr(r[7]) })),
     quellen: tab('Quellen').map(r => ({ url: cellStr(r[0]), was: cellStr(r[1]), am: cellStr(r[2]) })) };
+}
+// Angaben der Fördertopf-Zeile t, die dem Fördertopf x noch fehlen: [[Beschriftung, Setzer]] (vorhandene Angaben bleiben)
+function flcTopfFelder(x, t) {
+  const D = [], f = (lab, wenn, fn) => { if (wenn) D.push([lab, fn]); };
+  f('Kurzname', t.kurz && !x.kurz, () => { x.kurz = t.kurz; });
+  f('Zweck', t.schwer && !x.schwer, () => { x.schwer = t.schwer; });
+  f('Gebiet', t.gl.length && !x.gl.length, () => { x.gl = t.gl.slice(); });
+  f('Höhe', (t.von != null || t.bis != null) && x.hoeheVon == null && x.hoeheBis == null && !x.hoehe, () => { Object.assign(x, { hoeheVon: t.von == null ? t.bis : t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }); });
+  f('Quote', t.quote && !x.quote, () => { x.quote = t.quote; });
+  f('Hinweis zu Fristen', t.fristen && !x.fristen, () => { x.fristen = t.fristen; });
+  const weg = flWegNorm(t.weg), an = weg === 'Portal' ? flUrlVoll(t.antrag) : mailRein(t.antrag);
+  f('Antragsweg', weg && !x.weg.length, () => { x.weg = [weg]; });
+  f('Antrag an', an && !x.antrag, () => { x.antrag = an; });
+  f('Programmseite', t.web && !x.web, () => { x.web = flUrlVoll(t.web); });
+  f('Richtlinien', t.richtlinien && !x.richtlinien, () => { x.richtlinien = flUrlVoll(t.richtlinien); });
+  for (const [k, titel, b] of [['haeufig', 'Häufigkeit', FL_BEW[2]], ['aufwand', 'Aufwand', FL_BEW[3]], ['dauer', 'Dauer', FL_BEW[4]]]) { const v = flcStufe(b, t[k]); f(titel, v && !x.bew[b.k], () => { x.bew[b.k] = v; }); }
+  f('Großförderer', norm(t.gross) === 'ja' && !x.gross, () => { x.gross = true; });
+  const nt = flcNotizText(k => t[k]); f('Notizen', nt && !x.notiz, () => { x.notiz = nt; });
+  return D;
 }
 // Angaben als Liste von Änderungen für den Träger h (ein Fördertopf oder der Förderer selbst):
 // { bereich, titel, alt, neu, fn(wert), edit: '' | 'text' | 'rich' | 'sel', opts, unsicher, quelle, notiz, an }; „edit“: der neue Wert lässt sich im Fenster ändern
@@ -161,20 +188,24 @@ function flcAenderungen(e, R, h) {
   for (const [k, titel, x] of [['haeufig', 'Häufigkeit', FL_BEW[2]], ['aufwand', 'Aufwand', FL_BEW[3]], ['dauer', 'Dauer', FL_BEW[4]]]) { const v = flcStufe(x, w(k)); if (v) add(k, 'Einschätzung', titel, h.bew[x.k] ? x.bed[h.bew[x.k] - 1] : '', x.bed[v - 1], t => { const i = x.bed.indexOf(t); if (i >= 0) h.bew[x.k] = i + 1; }, { edit: 'sel', opts: x.bed }); }
   if (norm(w('gross')) === 'ja' && !h.gross) add('gross', 'Einschätzung', 'Großförderer', '', '> 10.000 € möglich', () => { h.gross = true; });
   // Notizen: gefördert / nicht gefördert / so tickt der Förderer / Argumente / Stolpersteine / Weiteres – als ein Block mit fetten Zwischenüberschriften, an die vorhandenen Notizen angehängt
-  const abschnitte = [['gefoerdert', 'Gefördert'], ['nicht', 'Nicht gefördert'], ['tickt', 'So tickt der Förderer'], ['zieht', 'Argumente, die ziehen'], ['stolper', 'Stolpersteine'], ['notiz', 'Weiteres']].filter(([k]) => w(k));
-  if (abschnitte.length) { const nt = abschnitte.map(([k, t]) => '*' + t + ':*\n' + w(k).replace(/\r/g, '')).join('\n\n'), u = abschnitte.some(([k]) => F[k].unsicher), q = (abschnitte.map(([k]) => F[k].quelle).find(Boolean)) || '';
+  const abschnitte = FLC_ABSCHNITTE.filter(([k]) => w(k));
+  if (abschnitte.length) { const nt = flcNotizText(w), u = abschnitte.some(([k]) => F[k].unsicher), q = (abschnitte.map(([k]) => F[k].quelle).find(Boolean)) || '';
     if (!(h.notiz || '').includes(w(abschnitte[0][0]))) L.push({ bereich: 'Notizen', titel: 'An die Notizen anhängen', alt: h.notiz ? '(Notizen vorhanden)' : '', neu: nt, fn: v => { h.notiz = [h.notiz, v].filter(Boolean).join('\n\n'); }, edit: 'rich', unsicher: u, quelle: q, notiz: '', an: !h.notiz && !u }); }
   const tname = istTopf ? h.name : null;
   for (const f of R.fristen) { if (!f.d) { L.push({ bereich: 'Fristen', titel: 'Frist', alt: '', neu: '„' + f.roh + '“ ist kein Datum – wird nicht übernommen', fn: null, unsicher: true, quelle: f.quelle, an: false }); continue; }
     const tp = tname != null ? tname : f.topf;
     if (e.fristenL.some(x => x.d === f.d && x.topf === tp)) continue;
     L.push({ bereich: 'Fristen', titel: 'Frist' + (tp ? ' · ' + tp : ''), alt: '', neu: fristText(f.d) + (f.d.length === 5 ? ' (jedes Jahr)' : ' (einmalig)'), fn: () => { e.fristenL.push({ id: uid('fr'), d: f.d, topf: tp }); }, unsicher: f.unsicher, quelle: f.quelle, an: !f.unsicher }); }
+  // Fördertöpfe aus dem Blatt „Fördertöpfe“: neue mit allen Angaben der Zeile anlegen, vorhandene nur in leeren Feldern ergänzen.
+  // Wurde der Förderer als Ganzes recherchiert (noch keine Töpfe), erbt JEDER neue Topf, was ihm in seiner Zeile fehlt, aus den Angaben des Förderers – nicht nur der erste.
+  const erbenAlle = h === e && !e.topfe.length;
   for (const t of R.topfe) { if (!t.name || (istTopf && norm(t.name) === norm(h.name))) continue; const x = e.topfe.find(y => norm(y.name) === norm(t.name)), B = 'Fördertöpfe';
-    if (!x) L.push({ bereich: B, titel: 'Weiterer Fördertopf', alt: '', neu: [t.name, t.kurz && '(' + t.kurz + ')', t.schwer, flHoeheKlar({ hoeheVon: t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }), t.quote].filter(Boolean).join(' · '),
-      fn: () => { const n = Object.assign(flTopfLeer(t.name), { kurz: t.kurz, schwer: t.schwer, gl: t.gl, quote: t.quote, hoeheVon: t.von == null ? t.bis : t.von, hoeheBis: t.bis == null ? t.von : t.bis }); flTopfEinfuegen(e, n); }, unsicher: t.unsicher, quelle: t.quelle, an: !t.unsicher });
-    else if ((!x.schwer && t.schwer) || (!x.gl.length && t.gl.length) || (!x.quote && t.quote) || (x.hoeheVon == null && x.hoeheBis == null && (t.von != null || t.bis != null)))
-      L.push({ bereich: B, titel: 'Fördertopf ergänzen · ' + t.name, alt: '', neu: 'leere Felder füllen: ' + [!x.schwer && t.schwer, !x.gl.length && t.gl.join(', '), !x.quote && t.quote].filter(Boolean).join(' · '),
-        fn: () => { if (!x.schwer) x.schwer = t.schwer; if (!x.gl.length) x.gl = t.gl; if (!x.quote) x.quote = t.quote; if (x.hoeheVon == null && x.hoeheBis == null && (t.von != null || t.bis != null)) Object.assign(x, { hoeheVon: t.von == null ? t.bis : t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }); }, unsicher: t.unsicher, quelle: t.quelle, an: !t.unsicher }); }
+    if (!x) { const n = flTopfLeer(t.name), D = flcTopfFelder(n, t);
+      const kopf = [t.name, t.kurz && '(' + t.kurz + ')', t.schwer, flHoeheKlar({ hoeheVon: t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }), t.quote].filter(Boolean).join(' · '), nurName = !D.length;
+      L.push({ bereich: B, titel: 'Weiterer Fördertopf', alt: '', neu: kopf + (D.length ? '\nAngaben: ' + D.map(d => d[0]).join(', ') : ''),
+        fn: () => { const m = flTopfLeer(t.name); flcTopfFelder(m, t).forEach(d => d[1]()); if (!nurName) m.recherche = today(); if (erbenAlle && e.topfe.length) flTopfErbt(m, e); flTopfEinfuegen(e, m); }, unsicher: t.unsicher, quelle: t.quelle,
+        notiz: nurName ? 'Zu diesem Fördertopf hat Copilot nur den Namen geliefert – besser einzeln recherchieren lassen (⋯ → „Recherche vorbereiten …“ → Fördertopf).' : '', an: !t.unsicher && !nurName }); }
+    else { const D = flcTopfFelder(x, t); if (D.length) L.push({ bereich: B, titel: 'Fördertopf ergänzen · ' + t.name, alt: '', neu: 'leere Felder füllen: ' + D.map(d => d[0]).join(', '), fn: () => { flcTopfFelder(x, t).forEach(d => d[1]()); }, unsicher: t.unsicher, quelle: t.quelle, an: !t.unsicher }); } }
   for (const k of R.kontakte) { if (!k.n) continue; const x = e.kontakte.find(y => kkey(y.n) === kkey(k.n));
     if (!x) L.push({ bereich: 'Kontakte', titel: 'Kontakt (des Förderers)', alt: '', neu: [k.n, k.pos, k.mail, k.tel].filter(Boolean).join(' · '), fn: () => { e.kontakte.push(Object.assign(flKontaktLeer(), { n: k.n, pos: k.pos, mail: k.mail, tel: k.tel, gl: k.gl })); }, unsicher: k.unsicher, quelle: k.quelle, an: !k.unsicher });
     else if ((!x.pos && k.pos) || (!x.mail && k.mail) || (!x.tel && k.tel))
@@ -257,17 +288,29 @@ async function flcEinlesen() {
 
 // ---------- „Recherche mit Copilot vorbereiten“: Ziel wählen, dann Vorlage herunterladen und Auftrag kopieren
 function flcDialog(e) {
-  const T = e.topfe, cur = flTopfWahl(e); let wahl = cur ? 't:' + cur.id : 'e';
-  const neuName = h('input', { type: 'text', class: 'flc-neuname', placeholder: 'Name des neuen Fördertopfs', 'aria-label': 'Name des neuen Fördertopfs', hidden: wahl !== 'neu' });
-  const opts = [...(T.length ? [] : [{ k: 'e', l: 'Förderer als Ganzes (ohne Fördertopf)' }]), ...T.map(t => ({ k: 't:' + t.id, l: t.name || '(ohne Namen)' })), { k: 'neu', l: 'Neuer Fördertopf' }];
-  const z = () => { if (wahl === 'e') return { modus: 'foerderer', topf: null, name: '' }; if (wahl === 'neu') return { modus: 'topf', topf: null, name: strV(neuName.value) }; const t = T.find(x => 't:' + x.id === wahl); return { modus: 'topf', topf: t, name: t ? t.name : '' }; };
-  const braucht = () => { if (wahl === 'neu' && !strV(neuName.value)) { toast('Bitte den Namen des neuen Fördertopfs eintragen.', 'warn'); neuName.focus(); return true; } return false; };
+  const T = e.topfe, cur = flTopfWahl(e), ohne = !T.length; let art = ohne ? 'e' : 't', tw = cur ? cur.id : T.length ? T[0].id : 'neu';       // art: Förderer allgemein | bestimmter Fördertopf; tw: Id des Topfs oder „neu“
+  const neuName = h('input', { type: 'text', class: 'flc-neuname', placeholder: 'Name des neuen Fördertopfs', 'aria-label': 'Name des neuen Fördertopfs' });
+  const sel = h('select', { class: 'flc-sel', 'aria-label': 'Fördertopf' }, ...T.map(t => h('option', { value: t.id, selected: t.id === tw }, (t.name || '(ohne Namen)') + (t.recherche ? '' : ' – noch nicht recherchiert'))), h('option', { value: 'neu', selected: tw === 'neu' }, 'Neuer Fördertopf …'));
+  const z = () => { if (art === 'e') return { modus: 'foerderer', topf: null, name: '' }; if (tw === 'neu') return { modus: 'topf', topf: null, name: strV(neuName.value) }; const t = T.find(x => x.id === tw); return { modus: 'topf', topf: t, name: t ? t.name : '' }; };
+  const braucht = () => { if (art === 't' && tw === 'neu' && !strV(neuName.value)) { toast('Bitte den Namen des neuen Fördertopfs eintragen.', 'warn'); neuName.focus(); return true; } return false; };
   const knoepfe = h('div', { class: 'flc-knoepfe' },
     h('button', { class: 'primary', onclick: () => { if (braucht()) return; download(FLC_DATEI, flcVorlageBlob(e, z())); } }, '1 · Vorlage herunterladen'),
     h('button', { class: 'primary', onclick: () => { if (braucht()) return; flcPromptKopieren(e, z()); } }, '2 · Auftrag kopieren'));
-  const body = h('div', { class: 'flc-dlg' }, h('p', { class: 'muted small' }, 'Für wen soll Copilot recherchieren? Die Vorlage und der Auftrag passen sich an: Ein Fördertopf hat seinen eigenen Steckbrief, seine Einschätzung und Notizen.'),
-    ...opts.map(o => h('label', { class: 'flc-zo' }, h('input', { type: 'radio', name: 'flc-d', checked: o.k === wahl, onchange: () => { wahl = o.k; neuName.hidden = wahl !== 'neu'; if (wahl === 'neu') neuName.focus(); } }), ' ' + o.l)),
-    neuName, knoepfe, h('p', { class: 'muted small' }, 'Danach in Copilot: den Auftrag einfügen, die Vorlage anhängen, die ausgefüllte Datei wieder herunterladen und hier über ⋯ → „Ausgefüllte Vorlage einlesen …“ einlesen.'));
+  const rE = h('input', { type: 'radio', name: 'flc-d', value: 'e', checked: art === 'e', disabled: !ohne, onchange: () => { art = 'e'; zeig(); } });
+  const rT = h('input', { type: 'radio', name: 'flc-d', value: 't', checked: art === 't', onchange: () => { art = 't'; zeig(); } });
+  const hinwE = h('p', { class: 'muted small flc-sub' }), hinwT = h('p', { class: 'muted small flc-sub' }), unter = h('div', { class: 'flc-sub flc-unter' }, sel, neuName);
+  const zeig = () => {
+    tw = sel.value; neuName.hidden = tw !== 'neu'; unter.hidden = art !== 't';
+    hinwE.textContent = ohne ? 'Überblick über den Förderer: Steckbrief, Kontakte und alle seine Fördertöpfe. Findet Copilot mehrere Töpfe, recherchiert er jeden vollständig mit (Zweck, Gebiet, Höhe, Quote, Antragsweg, Einschätzung, Notizen) – kein Topf bleibt nur mit Namen.' : 'Nicht mehr möglich, weil dieser Förderer schon Fördertöpfe hat: jeder Topf hat seinen eigenen Steckbrief. Bitte einen Fördertopf wählen.';
+    hinwT.textContent = art === 't' ? 'Auftrag und Vorlage gelten nur für diesen einen Fördertopf (eigener Steckbrief, eigene Einschätzung, eigene Notizen). Andere Programme des Förderers werden ignoriert.' : '';
+    hinwT.hidden = art !== 't';
+  };
+  sel.addEventListener('change', () => { zeig(); if (tw === 'neu') neuName.focus(); });
+  zeig();
+  const body = h('div', { class: 'flc-dlg' }, h('p', { class: 'muted small' }, 'Wofür soll Copilot recherchieren? Vorlage und Auftrag werden darauf zugeschnitten.'),
+    h('label', { class: 'flc-zo' + (ohne ? '' : ' aus') }, rE, h('b', {}, ' Förderer allgemein')), hinwE,
+    h('label', { class: 'flc-zo' }, rT, h('b', {}, ' Ein bestimmter Fördertopf')), unter, hinwT,
+    knoepfe, h('p', { class: 'muted small' }, 'Danach in Copilot: den Auftrag einfügen, die Vorlage anhängen, die ausgefüllte Datei wieder herunterladen und hier über ⋯ → „Ausgefüllte Vorlage einlesen …“ einlesen.'));
   modal('Recherche mit Copilot vorbereiten', body, [['Fertig', true, 'primary']]);
 }
 function flcPromptKopieren(e, z) {

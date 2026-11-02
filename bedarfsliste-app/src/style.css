@@ -2058,3 +2058,10 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 #fl-body tr.fl-tr-t .fl-nm { font-weight: 500; }
 #fl-body tr:has(+ tr.fl-tr-t) td { border-bottom-color: transparent; }
 #fl-body tr.fl-tr-t:not(.fl-tr-letzte) td { border-bottom-color: var(--line3); }
+
+/* 0.113: Recherche-Abfrage – Förderer allgemein oder ein bestimmter Fördertopf */
+.flc-dlg .flc-sub { margin: -2px 0 2px 24px; }
+.flc-dlg .flc-unter { display: grid; gap: 6px; margin-top: 2px; }
+.flc-dlg .flc-unter[hidden], .flc-dlg .flc-sub[hidden], .flc-dlg .flc-neuname[hidden] { display: none; }
+.flc-zo.aus { opacity: .55; cursor: not-allowed; }
+.flc-zo.aus input { cursor: not-allowed; }

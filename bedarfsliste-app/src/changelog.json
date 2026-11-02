@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.113.0",
+    "date": "2026-11-07T10:00",
+    "items": [
+      "Recherche vorbereiten (⋯): Die Abfrage steht jetzt am Anfang und ist eindeutig – „Förderer allgemein“ oder „Ein bestimmter Fördertopf“ (vorhandener oder neuer). Vorlage und Auftrag richten sich danach. „Förderer allgemein“ ist nur wählbar, solange der Förderer keine Fördertöpfe hat; Töpfe, die noch nicht recherchiert wurden, sind in der Auswahl gekennzeichnet",
+      "Förderer-Vorlage: Das Blatt „Fördertöpfe“ hat jetzt alle Angaben eines Topfs (zusätzlich Programmseite, Richtlinien, Hinweis zu Fristen, Antragsweg, Antrag an, Häufigkeit, Aufwand, Dauer, Großförderer, Gefördert/Nicht gefördert, So tickt es, Argumente, Stolpersteine, Weiteres). Der Auftrag verlangt, jedes gefundene Programm einzeln und vollständig zu recherchieren – ein Topf nur mit Namen ist ausdrücklich unbrauchbar",
+      "Einlesen einer Förderer-Vorlage ohne Fördertöpfe: Jeder neue Topf bekommt seine eigenen Angaben und erbt, was ihm fehlt, aus den Angaben des Förderers (bisher erbte nur der erste Topf – die übrigen blieben bis auf Name, Zweck, Gebiet, Höhe und Quote leer). Der Recherchestand wird je Topf gesetzt",
+      "Vorschau beim Einlesen: Je Fördertopf steht, welche Angaben er bekommt; ein Topf, zu dem Copilot nur den Namen geliefert hat, ist nicht vorgewählt und verweist auf die Einzelrecherche"
+    ]
+  },
+  {
     "version": "0.112.0",
     "date": "2026-11-06T14:00",
     "items": [
