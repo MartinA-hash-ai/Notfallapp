@@ -521,6 +521,16 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.evaluate(() => { UI.flBewQ = flQNull(); UI.flq = 'senioren'; renderNow(); }); await p.waitForTimeout(150);
   r = await p.evaluate(() => [...document.querySelectorAll('#fl-body tr[data-id="F002"]')].map(x => x.querySelector('.fl-tn b').textContent).join('+'));
   ok(r === 'Programm B', 'Suche nach „senioren“ (Zweck von Programm B): Förderer mit diesem Topf: ' + r);
+  // 0.116: Fördersumme aus der Förderhöhe; Warnhinweis unter dem Namen; kein blauer Rahmen; Ansprechperson-Zelle in der hinterlegten Zeile
+  r = await p.evaluate(() => { UI.flq = ''; const e = flEintrag('F002'), [A, B] = e.topfe; A.hoeheVon = null; A.hoeheBis = 500; B.hoeheVon = 1000; B.hoeheBis = 9000; A.bew.summe = 0; B.bew.summe = 0;
+    const a = flBew(e, A).summe, b = flBew(e, B).summe; A.bew.summe = 2; const c = flBew(e, A).summe; A.bew.summe = 0; return [a.v, a.hand, a.grund, b.v, b.grund, c.v, c.hand]; });
+  ok(r.join('|') === '1|false|Förderhöhe bis 500 €|3|Förderhöhe von 1.000 € bis 9.000 €|2|true', 'Fördersumme im Netz aus der Förderhöhe des Topfs geschätzt (Mitte bei „von … bis“); von Hand eingeschätzt geht vor: ' + r.join('|'));
+  await p.evaluate(() => { const e = flEintrag('F002'); e.kontakte = [Object.assign(flKontaktLeer(), { n: 'Frau K', pos: 'Leitung' })]; e.ansprache = [{ gl: 'Hagen', art: 'hinweis', titel: 'Über die Gliederung', kopf: '', hinweis: '' }]; changed(); renderNow(); }); await p.waitForTimeout(150);
+  await p.mouse.move(2, 2);
+  r = await p.evaluate(() => { const rows = [...document.querySelectorAll('#fl-body tr[data-id="F002"]')], n = rows[0].querySelector('td.fl-n'); rows[0].focus(); const k = rows[0].querySelector('td.fl-k'), soft = getComputedStyle(document.documentElement).getPropertyValue('--soft').trim();
+    return [!!n.querySelector('.fl-ansp'), n.querySelector('.fl-nm').compareDocumentPosition(n.querySelector('.fl-ansp')) & Node.DOCUMENT_POSITION_FOLLOWING ? 'unter' : 'davor', rows.some(x => x.querySelector('.fl-g .fl-ansp')), rows[0].querySelectorAll('.fl-te circle.auto').length, getComputedStyle(rows[0]).outlineStyle, (() => { const pr = document.createElement('div'); pr.style.background = 'var(--soft)'; document.body.appendChild(pr); const c = getComputedStyle(pr).backgroundColor; pr.remove(); return getComputedStyle(k).backgroundColor === c; })(), k.rowSpan, rows.length, k.className]; });
+  ok(r.join('|') === 'true|unter|false|1|none|true|2|2|fl-k fl-rs', 'Liste: Warndreieck unter dem Förderernamen, Netz mit geschätzter Fördersumme, kein Fokusrahmen, Ansprechperson-Zelle wie die Topf-Zeilen hinterlegt: ' + r.join('|'));
+  await p.evaluate(() => { const e = flEintrag('F002'); e.kontakte = []; e.ansprache = []; const [A, B] = e.topfe; A.hoeheBis = null; B.hoeheVon = null; B.hoeheBis = null; changed(); renderNow(); });
   await p.evaluate(() => { UI.flq = ''; renderNow(); }); await p.waitForTimeout(100);
   await p.click('#fl-body tr.fl-tr-t[data-topf="tb"]'); await p.waitForTimeout(300);
   r = await p.evaluate(() => [UI.view, UI.flId, UI.flTopf, document.querySelector('.fl-tpb.on').textContent]);

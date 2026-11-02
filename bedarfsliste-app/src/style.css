@@ -1518,7 +1518,7 @@ table.fl-tab th.fl-te, table.fl-tab td.fl-te { text-align: center; }
 table.fl-tab td.fl-te { padding-top: 6px; padding-bottom: 4px; }
 #fl-body tr[data-id] { cursor: pointer; }
 #fl-body tr[data-id]:hover td { background: var(--hover); }
-#fl-body tr[data-id]:focus { outline: 2px solid var(--focus); outline-offset: -2px; }
+#fl-body tr[data-id]:focus { outline: none; }
 #fl-body tr.fl-ruht { opacity: .55; }
 .fl-tab .fl-n { min-width: 180px; max-width: 280px; }
 .fl-tab .fl-n b { font-weight: 600; font-size: 13.5px; }
@@ -2080,3 +2080,9 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 .flc-tabinfo { margin: 10px 0 0; }
 .flc-r.erbe { background: var(--soft); }
 .flc-r.erbe .flc-w { color: var(--muted); }
+
+/* 0.116: keine blauen Rahmen um Zeilen (Fokus = leichte Hinterlegung); Ansprechperson bei mehreren Töpfen in der hinterlegten Zeile */
+#fl-body tr[data-id]:focus-visible > td:not(.fl-rs) { background: var(--hover); }
+#fl-body tr.fl-tr-t > td.fl-k.fl-rs { background: var(--soft); }
+#fl-body tr.fl-tr-t > td.fl-k.fl-rs:hover { background: var(--hover); }
+#fl-body tr.fl-tr-t:hover > td.fl-k.fl-rs:not(:hover) { background: var(--soft); }

@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.116.0",
+    "date": "2026-11-08T10:00",
+    "items": [
+      "Spinnennetz: Ist im Steckbrief eine Förderhöhe eingetragen (auch aus der Copilot-Recherche), schätzt das Programm daraus die Fördersumme – bei einem Fördertopf aus der Höhe dieses Topfs, bei „von … bis“ aus der Mitte. Beispiel: 500 € → „bis 1.000 €“. Ergeben die Förderungen eines Förderers schon eine Summe, gilt diese; von Hand Eingeschätztes geht immer vor. Die Schätzung steht im Netz als „geschätzt“ mit Begründung",
+      "Fördererliste: Das Warndreieck mit dem Hinweis zur Ansprache steht jetzt unter dem Förderernamen (statt im Fördergebiet)",
+      "Fördererliste: keine blauen Rahmen mehr um Zeilen – der Fokus (Tastatur, Rückkehr zur Liste) zeigt sich als leichte Hinterlegung. Bei mehreren Fördertöpfen ist die Ansprechperson in der hinterlegten Zeile mit hinterlegt"
+    ]
+  },
+  {
     "version": "0.115.0",
     "date": "2026-11-07T17:00",
     "items": [

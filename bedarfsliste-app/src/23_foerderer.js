@@ -301,7 +301,13 @@ function flBewAuto(e) {
 const flTopfWahl = e => e.topfe.length ? (e.topfe.find(t => t.id === UI.flTopf) || e.topfe[0]) : null;
 const flTraeger = e => flTopfWahl(e) || e;
 // aus den Daten geschätzt: Förderungen und Absagen gehören zum Förderer, nicht zu einem Topf – mit mehreren Töpfen deshalb keine Schätzung je Topf
-const flAutoFuer = (e, t) => t && e.topfe.length > 1 ? {} : flBewAuto(e);
+// Fördersumme zusätzlich aus der Förderhöhe im Steckbrief des Trägers (Förderer oder Topf), wenn die Förderungen nichts hergeben; bei „von … bis“ zählt die Mitte
+function flBewHoehe(o) {
+  const v = o.hoeheVon, b = o.hoeheBis; if (v == null && b == null) return null;
+  const m = ((v == null ? b : v) + (b == null ? v : b)) / 2;
+  return { v: m > 3000 ? 3 : m > 1000 ? 2 : 1, grund: 'Förderhöhe ' + flHoeheKlar(o) };
+}
+const flAutoFuer = (e, t) => { const A = t && e.topfe.length > 1 ? {} : flBewAuto(e); if (A.summe) return A; const H = flBewHoehe(t || e); return H ? Object.assign({}, A, { summe: H }) : A; };
 function flBew(e, t) {
   const A = flAutoFuer(e, t), bw = (t || e).bew;
   return Object.fromEntries(FL_BEW.map(x => [x.k, bw[x.k] ? { v: bw[x.k], hand: true, grund: 'von Hand eingeschätzt' } : A[x.k] ? Object.assign({ hand: false }, A[x.k]) : { v: 0, hand: false, grund: '' }]));
@@ -470,15 +476,15 @@ function flZeilen() {
     const lauf = flLaufend(e).filter(x => !x.b.archiv && !x.b.manuell), bea = lauf.filter(x => x.f.status === 'beantragt'), k = flKontaktHaupt(e), ruht = e0.status !== 'aktiv' ? ' fl-ruht' : '';
     const laufZ = bea.length ? 'Antrag läuft: ' + bea.map(x => short(x.b.titel)).join(', ') : lauf.length ? 'eingeplant: ' + lauf.map(x => short(x.b.titel)).join(', ') : '';
     const hinweis = ansp.length ? `<div class="fl-ansp" title="${esc(ansp.map(a => (a.gl || 'alle') + ': ' + (a.titel || 'Hinweis') + (a.hinweis ? ' – ' + flPlain(a.hinweis) : '')).join('\n'))}">${ICON_TRI}<span>${UI.flGl ? esc(ansp[0].titel || 'Hinweis') : esc(ansp.map(a => a.gl || 'alle').join(', ')) + ': ' + esc(ansp[0].titel || 'Hinweis')}</span></div>` : '';
-    const kontakt = (rs) => `<td class="fl-k${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}" data-act="fl-oeffnen" data-id="${e0.id}"` : ''}>${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}${rs || gruppe ? hinweis : ''}</td>`;
+    const kontakt = (rs) => `<td class="fl-k${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}" data-act="fl-oeffnen" data-id="${e0.id}"` : ''}>${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}</td>`;
     const status = e0.status !== 'aktiv' ? `<div class="muted small">${esc(e0.status)}</div>` : '', lz = laufZ ? `<div class="fl-lz small${bea.length ? ' an' : ''}">${esc(laufZ)}</div>` : '';
     if (!gruppe) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="${ruht.trim()}">
-      <td class="fl-n" colspan="2"><b class="fl-nm">${krone(e.gross)}${esc(e.name || '(ohne Namen)')}</b>${e.kurz ? ` <span class="fl-kurz">(${esc(e.kurz)})</span>` : ''}${status}${lz}</td>
-      <td class="fl-g">${gebiet(e)}${hinweis}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te">${flNetz(e0)}</td>${kontakt(0)}</tr>`];
+      <td class="fl-n" colspan="2"><b class="fl-nm">${krone(e.gross)}${esc(e.name || '(ohne Namen)')}</b>${e.kurz ? ` <span class="fl-kurz">(${esc(e.kurz)})</span>` : ''}${hinweis}${status}${lz}</td>
+      <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te">${flNetz(e0)}</td>${kontakt(0)}</tr>`];
     // mehrere Fördertöpfe: eine hohe Zeile – links der Förderer (Kurzform), rechts daneben die Töpfe untereinander, je Topf eine eigene Zeile
     const kurzname = e0.kurz || e0.name || '(ohne Namen)', tip = e0.kurz && e0.name ? ` data-tip="${esc(e0.name)}"` : '';
     const schalter = `<button class="fl-tg" data-act="fl-zu" data-id="${e0.id}" aria-expanded="${!zu}" title="Fördertöpfe ${zu ? 'zeigen' : 'einklappen'}">${zu ? '▸' : '▾'} ${T.length}${T.length < e0.topfe.length ? ' von ' + e0.topfe.length : ''} Fördertöpfe</button>`;
-    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(e.gross)}${esc(kurzname)}</b>${status}${lz}${schalter}</td>`;
+    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(e.gross)}${esc(kurzname)}</b>${hinweis}${status}${lz}${schalter}</td>`;
     if (zu) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="fl-kopf-tr${ruht}">${links(0)}<td class="fl-tn muted"><div class="fl-clamp">${esc(T.map(t => t.name || '(ohne Namen)').join(', '))}</div></td>
       <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te"></td>${kontakt(0)}</tr>`];
     return T.map((t, n) => {
