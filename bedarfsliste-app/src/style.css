@@ -1972,3 +1972,8 @@ table.fl-tab thead th.fl-te { text-align: center; }
 .fl-hinw { display: flex; flex-direction: column; gap: 6px; }
 .fl-sv .fl-hoehe-in { flex-wrap: nowrap; }
 .fl-sv .fl-hoehe-in input.fl-hoehe-f { flex: none; width: 108px; min-width: 0; box-sizing: border-box; }
+
+/* 0.105: der Hinweis liegt über dem Kopf-Raster und verschiebt nichts */
+.fl-kopf { position: relative; }
+.fl-kopf > .fl-hinw { position: absolute; right: 0; bottom: 0; width: 380px; z-index: 2; }
+@media (max-width: 900px) { .fl-kopf > .fl-hinw { position: static; width: auto; } }

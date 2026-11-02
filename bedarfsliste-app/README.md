@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.105:** Der Hinweis zu einem Förderer hat nur noch Kopfzeile und Überschrift und verschiebt die Seite nicht mehr.
+
 **Seit 0.104:** Ein Hinweis zu einem Förderer steht im Kopf neben dem Namen; der Kasten mit dem Netz bleibt auf Höhe des linken Kastens.
 
 **Seit 0.103:** Die Suche nach einer Gliederung zeigt „alle Gliederungen“ immer mit; Hinweise zu einem Förderer stehen über dem Netz-Kasten; die Förderhöhe lässt sich in einer Zeile bearbeiten.

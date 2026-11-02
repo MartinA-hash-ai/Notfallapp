@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.105.0",
+    "date": "2026-11-04T09:00",
+    "items": [
+      "Hinweis zu einem Förderer: die leere Textzeile darunter entfällt (ein vorhandener Text bleibt sichtbar); der Hinweis liegt über dem Kopf und verschiebt nichts – Abstand zwischen Seitenkopf und den weißen Kästen bleibt wie ohne Hinweis"
+    ]
+  },
+  {
     "version": "0.104.0",
     "date": "2026-11-03T20:00",
     "items": [

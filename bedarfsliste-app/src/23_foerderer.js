@@ -648,7 +648,7 @@ function flDetailView() {
     return `<div class="fl-ak-box ${S.cls}">
       <div class="fl-ab-1">${flIn(`ansprache.${i}.kopf`, a.kopf, { ph: a.gl ? 'Ansprache · ' + a.gl : 'Hinweis', aria: 'Kopfzeile', cls: 'fl-ab-k' })}<button class="fl-x fl-ab-x" data-act="fl-a-weg" data-i="${i}" title="Hinweis entfernen" aria-label="Hinweis entfernen">×</button></div>
       <div class="fl-ab-2"><button class="fl-ab-kr" data-act="fl-ansp-menu" data-i="${i}" aria-haspopup="menu" title="Gelb (Hinweis) oder rot (nicht anschreiben)" aria-label="Farbe des Hinweises ändern">${S.sym}</button>${flTa(`ansprache.${i}.titel`, a.titel, { rows: 1, ph: 'Überschrift eintragen …', aria: 'Überschrift', cls: 'fl-ab-t' })}</div>
-      ${pe(e, `ansprache.${i}.hinweis`, '', 'area', { fmt: true, flpe: true, ph: 'Text eintragen …', aria: 'Text des Hinweises', cls: 'fl-ab-h' })}</div>`; };
+      ${a.hinweis ? pe(e, `ansprache.${i}.hinweis`, '', 'area', { fmt: true, flpe: true, ph: 'Text eintragen …', aria: 'Text des Hinweises', cls: 'fl-ab-h' }) : ''}</div>`; };
   const HL = e.ansprache.map((a, i) => ({ a, i }));
   const haupt = (ctx && HL.find(x => norm(x.a.gl) === norm(ctx))) || HL.find(x => !x.a.gl) || (!ctx && HL[0]) || null, sonst = HL.filter(x => x !== haupt);
   const hinweise = (haupt ? hBox(haupt) : '') + (sonst.length ? `<button class="fl-ab-alle" data-act="fl-alle-gl" aria-expanded="${!!UI.flAlleGl}">${UI.flAlleGl ? '▾' : '▸'} ${sonst.length} ${sonst.length === 1 ? 'Hinweis' : 'Hinweise'} für andere Gliederungen</button>${UI.flAlleGl ? sonst.map(hBox).join('') : ''}` : '');
