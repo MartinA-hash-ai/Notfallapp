@@ -274,7 +274,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.keyboard.type('01.12.'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   r = await p.evaluate(r0 => { const e = flEintrag('F002'); return [r0, e.quote, e.topfe.length, e.topfe[0].name, e.topfe[0].schwer, e.schwer !== 'Jugendarbeit', e.fristenL.filter(f => f.topf === 'Programm Jugend').map(f => f.d).join(), UI.flTopf === e.topfe[0].id,
     [...document.querySelectorAll('.fl-tpb')].map(b => b.textContent + (b.classList.contains('on') ? '*' : '')).join('/'), [...document.querySelectorAll('.fl-sg .fl-sl')].map(x => x.textContent).join(','), document.querySelectorAll('.fl-fd').length]; }, r);
-  ok(r.join('|') === `Programm Jugend|bis 90 % der Kosten|1|Programm Jugend|Jugendarbeit|true|12-01|true|Allgemein/Programm Jugend*/+ Fördertopf|Fördertopf,Förderzweck,Fördergebiet,Förderhöhe,Förderquote,Fristen ${new Date().getFullYear()},Homepage|1`,
+  ok(r.join('|') === `Programm Jugend|bis 90 % der Kosten|1|Programm Jugend|Jugendarbeit|true|12-01|true|Allgemein/Programm Jugend*/+ Fördertopf|Fördertopf,Kurzname,Förderzweck,Fördergebiet,Förderhöhe,Förderquote,Fristen ${new Date().getFullYear()},Homepage|1`,
     'Fördertopf: eigene Angaben und Fristen, Name vorbelegt, allgemeine Angaben bleiben: ' + r.join('|'));
   await p.fill('[data-fl="topfe.0.name"]', 'Jugendprogramm'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
   r = await p.evaluate(async () => { const e = flEintrag('F002'), bk = await xlsxBook(await flBlob().arrayBuffer()), R = flLesen(bk), x = R.liste.find(y => y.id === 'F002');
@@ -284,10 +284,41 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => [flEintrag('F002').topfe.length, UI.flTopf, document.querySelectorAll('.fl-tpb').length, flEintrag('F002').fristenL.length > 0]);
   ok(r.join('|') === '0||1|true', 'Fördertopf entfernt: zurück auf „Allgemein“, Fristen bleiben: ' + r.join('|'));
   await p.evaluate(() => flZurueck()); await p.waitForTimeout(150);
-  await p.evaluate(() => { UI.view = 'flist'; renderNow(); }); await p.click('[data-act="fl-zwecke"]'); await p.waitForSelector('.mhd-zw');
-  r = await p.evaluate(() => [document.querySelectorAll('.mhd-zw li').length, mhdZweckeIn('Kultur und Musik').length, mhdZweckeIn('Bevölkerungsschutz, Ehrenamt, Jugend').map(z => z.nr).join()]);
-  ok(r.join('|') === '12|0|4,12,25', 'Zwecke der Malteser hinterlegt (Liste im Fenster); Kultur zählt nicht, Bevölkerungsschutz, Ehrenamt, Jugend schon: ' + r.join('|'));
-  await p.keyboard.press('Escape'); await p.evaluate(() => { document.querySelector('.backdrop') && document.querySelector('.backdrop').remove(); });
+  await p.evaluate(() => { UI.view = 'flist'; renderNow(); });
+  r = await p.evaluate(() => [!document.querySelector('[data-act="fl-zwecke"]'), MHD_ZWECKE.length, mhdZweckeIn('Kultur und Musik').length, mhdZweckeIn('Bevölkerungsschutz, Ehrenamt, Jugend').map(z => z.nr).join(), [...new Set(MHD_ZWECKE.map(z => z.nr).filter(Boolean))].join()]);
+  ok(r.join('|') === 'true|14|0|4,12,25|2,3,4,7,9,10,11,12,15,19,25', 'Zwecke der Malteser nur als Abgleich hinterlegt (kein Knopf), Nummern wie im Freistellungsbescheid; Kultur zählt nicht: ' + r.join('|'));
+  // 0.100: Netz in der Liste ohne Beschriftung und Tooltip, Suche nach Einschätzung, Fördertopf mit Kurzname, Jahresspalte, Kontakt-Symbole
+  await p.evaluate(() => { UI.flBewQ = flQNull(); UI.flSuch = false; UI.flq = ''; UI.flGl = ''; UI.view = 'flist'; renderNow(); }); await p.waitForTimeout(200);
+  r = await p.evaluate(() => { const n = document.querySelector('#fl-body .fl-netz'); return [n.hasAttribute('data-tip'), !!n.querySelector('.fn-l'), getComputedStyle(n.querySelector('.fn-l')).opacity, !!document.querySelector('.fl-lupe'), getComputedStyle(document.querySelector('table.fl-tab thead th')).position]; });
+  ok(r.join('|') === 'false|true|0|true|sticky', 'Liste: Netz ohne Tooltip, Beschriftung zunächst unsichtbar, Lupe im Reiter, Kopfzeile dockt an: ' + r.join('|'));
+  await p.hover('#fl-body tr[data-id] .fl-netz'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => +getComputedStyle(document.querySelector('#fl-body tr[data-id]:hover .fn-l')).opacity > 0.5), 'Beim Überfahren der Zeile erscheint die Beschriftung');
+  await p.click('.fl-lupe'); await p.waitForSelector('.fl-such .fn-griff'); const alle = await p.evaluate(() => flGefiltert().length);
+  r = await p.evaluate(() => [[...document.querySelectorAll('.fl-such .fn-v')].map(t => t.textContent).join('/'), document.querySelector('.fl-such .fn-l') && [...document.querySelectorAll('.fl-such .fn-l')].map(t => t.textContent).join()]);
+  ok(r.join('|') === 'egal/egal/egal/egal/egal|Erfolgschance,Fördersumme,Häufigkeit,Aufwand,Dauer', 'Suchfeld unter dem Reiter: Netz mit „egal“ an jeder Achse: ' + r.join('|'));
+  await p.focus('.fl-such .fn-griff[data-k="summe"]'); await p.keyboard.press('ArrowUp'); await p.keyboard.press('ArrowUp'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [UI.flBewQ.summe, flGefiltert().map(e => flBew(e).summe.v).every(v => v >= 2), document.querySelector('.fl-such .fn-v[data-k="summe"]').textContent, document.querySelector('#fl-such-n').textContent === flGefiltert().length + ' Treffer', document.querySelector('.fl-lupe').classList.contains('an')]);
+  ok(r.join('|') === '2|true|1.000–3.000 €|true|true', 'Suche: Fördersumme mindestens „mittel“ – alle Treffer haben mittel oder besser: ' + r.join('|'));
+  r = await p.evaluate(() => { const n = flGefiltert().length; UI.flBewQ.chance = 3; const m = flGefiltert().map(e => flBew(e).chance.v); UI.flBewQ = flQNull(); return [n < D.fl.liste.length || n === D.fl.liste.length, m.every(v => v === 3), flGefiltert().length === D.fl.liste.length]; });
+  ok(r.join('|') === 'true|true|true', 'Suche mit mehreren Achsen: alle müssen erfüllt sein; zurückgesetzt: alle Förderer');
+  await p.click('.fl-lupe'); ok(await p.evaluate(() => !document.querySelector('.fl-such')), 'Lupe schließt das Suchfeld wieder');
+  await p.evaluate(() => { flEintrag('F002').topfe = [{ id: 't1', name: 'Ehrenamt gewinnen. Engagement binden. Zivilgesellschaft stärken.', kurz: 'EGE', schwer: '', gl: [], hoehe: '', quote: '' }]; flEintrag('F002').fristenL = []; UI.flTopf = 't1'; flOeffnen('F002'); UI.flTopf = 't1'; renderNow(); }); await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const b = document.querySelector('.fl-tpb.on'); return [b.textContent, b.title, getComputedStyle(b).backgroundColor === getComputedStyle(document.querySelector('.fl-seg button.on') || b).backgroundColor || true, document.querySelector('.fl-tpn .fl-in').value.slice(0, 12), !!document.querySelector('.fl-muell svg'), !document.querySelector('[data-act="fl-topf-weg"].link')]; });
+  ok(r.join('|') === 'EGE|Ehrenamt gewinnen. Engagement binden. Zivilgesellschaft stärken.|true|Ehrenamt gew|true|true', 'Fördertopf: Kurzname auf dem Knopf, voller Name beim Überfahren und in der Zeile, Mülleimer statt „entfernen“: ' + r.join('|'));
+  await p.fill('[data-fl="topfe.0.kurz"]', 'EGS'); await p.keyboard.press('Enter'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [document.querySelector('.fl-tpb.on').textContent, flEintrag('F002').topfe[0].kurz]);
+  ok(r.join('|') === 'EGS|EGS', 'Kurzname des Fördertopfs änderbar: ' + r.join('|'));
+  await p.evaluate(() => { const e = flEintrag('F002'); e.topfe = []; UI.flTopf = ''; e.foerderungen = [Object.assign(flFoerderungLeer(), { jahr: '2025', betrag: 500, zweck: 'Helme', gl: ['Brakel'], quelle: 'Kartei' })]; e.kontakte = [Object.assign(flKontaktLeer(), { n: 'Karla K', pos: 'Leitung', mail: 'k@vb.example', anschreiben: 'ja' })]; changed(); flOeffnen('F002'); }); await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const g = [...document.querySelectorAll('.fl-gk')].find(x => /^20\d\d$/.test(x.querySelector('b').textContent)); return [...g.children].map(c => c.textContent.replace(/\s/g, ' ')).join(' / '); });
+  ok(/^20\d\d \/ Förderungen \d+( · \d+ Absagen?)? \/ [\d.]+ €$/.test(r), 'Jahresspalte in drei Zeilen: ' + r);
+  r = await p.evaluate(() => [!document.querySelector('.fl-seite .fl-h-z'), !!document.querySelector('.fl-rechts > .fl-hz .fl-hinweis-neu') || !!document.querySelector('.fl-seite .fl-ak-box'), !document.querySelector('.fl-seite .fl-sub2')]);
+  ok(r.join('|') === 'true|true|true', 'Rechts: keine Überschrift „Einschätzung / außen = günstiger“; „+ Hinweis“ über dem Kasten (nur ohne Hinweis)');
+  await p.click('[data-act="fl-k-edit"]');
+  r = await p.evaluate(() => [[...document.querySelectorAll('.fl-ani')[0].querySelectorAll('.fl-ab')].map(b => b.dataset.v + ':' + b.dataset.tip).join(' | '), document.querySelector('.fl-an-z span').textContent, document.querySelectorAll('.fl-ani')[0].querySelectorAll('svg').length]);
+  ok(r.join('|') === 'ja:Priorität – wird zuerst angeschrieben | :Offen – nicht festgelegt, z. B. in CC | nein:Nicht anschreiben|anschreiben:|3', 'Kontakt bearbeiten: drei Sprechblasen-Symbole mit Erklärung beim Überfahren: ' + r.join('|'));
+  await p.click('.fl-ani .fl-ab-nein'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => flEintrag('F002').kontakte[0].anschreiben === 'nein' && document.querySelector('.fl-ani .fl-ab-nein').classList.contains('on')), 'Symbol „nicht anschreiben“ setzt den Wert');
+  await p.click('[data-act="fl-k-fertig"]'); await p.evaluate(() => { flEintrag('F002').kontakte[0].anschreiben = 'ja'; flZurueck(); }); await p.waitForTimeout(150);
   // gespeichert und wieder geladen: bleibt erhalten
   r = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [n.fl.liste.length, JSON.stringify(n.fl) === JSON.stringify(D.fl), n.bedarfe[0].foerderer[1].flAus.length, n.bedarfe[0].foerderer[3].flNein]; });
   ok(r.join('|') === '2|true|0|true', 'Speichern/Laden behält Fördererliste und Merker: ' + r.join('|'));

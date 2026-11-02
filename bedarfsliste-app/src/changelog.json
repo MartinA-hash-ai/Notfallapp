@@ -1,5 +1,19 @@
 [
   {
+    "version": "0.100.0",
+    "date": "2026-11-02T14:00",
+    "items": [
+      "Fördererliste: das Netz steht ohne Beschriftung und ohne Hover-Text in der Zeile (Zeilen werden schmaler); beim Überfahren der Zeile wird es etwas größer und die Beschriftung erscheint",
+      "Kopfzeile der Fördererliste dockt beim Scrollen unter dem Kopf der Seite an",
+      "Suche nach Einschätzung: kleine Lupe neben „Einschätzung“ im Reiter – darunter klappt ein Netz auf, an dem man die Mindestwerte einstellt (ziehen oder Pfeiltasten); angezeigt werden alle Förderer mit diesem Wert oder einem besseren, „egal“ = nicht beachtet",
+      "Seite eines Förderers: Kontakt bearbeiten läuft nicht mehr über den Rand; „anschreiben:“ mit drei Symbolen – Sprechblase mit goldenem Stern (Priorität), Sprechblase (offen), durchgestrichene Sprechblase (nicht anschreiben, beim Überfahren rot) – mit erklärendem Text beim Überfahren",
+      "Förderungen: links Jahr, darunter „Förderungen X“, darunter der Gesamtbetrag des Jahres",
+      "Fördertopf mit Kurzname: auf dem Knopf steht der Kurzname (sonst der volle Name), beim Überfahren und in der Zeile „Fördertopf“ der volle Name; der gewählte Topf ist schwarz hervorgehoben; Mülleimer statt „entfernen“; auch in der Excel-Kopie (Blatt „Fördertöpfe“)",
+      "Rechts: „Einschätzung · außen = günstiger“ entfällt; „+ Hinweis“ steht dezent über dem Kasten",
+      "Zwecke der Malteser nach dem Freistellungsbescheid (Anlage 1, 29.05.2026) geprüft: es fehlte die Förderung der Religion (Nr. 2); der Knopf „Malteser-Zwecke“ ist wieder weg – die Zwecke dienen nur dem Programm als Abgleich"
+    ]
+  },
+  {
     "version": "0.99.0",
     "date": "2026-11-02T09:00",
     "items": [

@@ -897,10 +897,10 @@ span.st-btn { display: inline-block; }
 .kadd i { display: grid; place-items: center; width: 20px; height: 20px; border: 1.5px dashed var(--line2); border-radius: 50%; font-style: normal; }
 .kadd:hover { color: var(--ink); }
 .ksep { border-top: 1px solid var(--line3); margin: 10px 0 8px; }
-.k-ed { position: relative; display: grid; gap: 2px; padding-right: 26px; margin-bottom: 14px; }
+.k-ed { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 2px; padding-right: 26px; margin-bottom: 14px; min-width: 0; }
 .k-ed .x { position: absolute; right: 0; top: 2px; }
 /* Kontakt bearbeiten: schlichte Linien, der Hinweis blass grau */
-.k-li { border: 0; border-bottom: 1px solid var(--line2); border-radius: 0; background: transparent; padding: 3px 0; width: 100%; font-size: 13.5px; color: var(--ink2); }
+.k-li { border: 0; border-bottom: 1px solid var(--line2); border-radius: 0; background: transparent; padding: 3px 0; width: 100%; min-width: 0; box-sizing: border-box; font-size: 13.5px; color: var(--ink2); }
 .k-li::placeholder { color: var(--faint); }
 .k-li:focus { outline: none; border-bottom-color: var(--focus); }
 .k-li-n { font-weight: 600; color: var(--ink); }
@@ -1645,8 +1645,12 @@ table.fl-tab td.fl-te { padding-top: 6px; padding-bottom: 4px; }
 .fl-ked { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
 .fl-ked .k-ed { margin: 0; }
 .fl-an-z { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 8px; margin-top: 6px; font-size: 12px; color: var(--muted); }
-.fl-an-seg { justify-self: start; }
-.fl-an-seg button { padding: 2px 9px; font-size: 12px; }
+.fl-ani { display: inline-flex; gap: 2px; }
+.fl-ab { display: inline-grid; place-items: center; width: 30px; height: 26px; padding: 0; border: 1px solid transparent; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+.fl-ab:hover { background: var(--hover); color: var(--ink); }
+.fl-ab.on { border-color: var(--ink); color: var(--ink); background: var(--card); }
+.fl-ab-nein:hover { color: var(--red); background: var(--hover); }
+.fl-ab-nein.on { color: var(--red); border-color: var(--red); }
 /* Steckbrief: Felder wie beim Bedarf – Text, beim Überfahren hinterlegt mit Stift, Klick zum Bearbeiten (freie Texte mit Formatierung) */
 .fl-sv .pe { margin: -5px -8px 0; }
 .fl-sv .pe .val.leer, .fl-notizen .pe .val.leer { color: var(--faint); }
@@ -1671,6 +1675,7 @@ table.fl-tab td.fl-te { padding-top: 6px; padding-bottom: 4px; }
 .fl-gk { border-top: 1px solid var(--line3); padding: 10px 0; display: grid; align-content: start; gap: 1px; }
 .fl-gk b { font-size: 16px; font-weight: 600; }
 .fl-gk span { font-size: 12.5px; color: var(--muted); }
+.fl-gk .fl-gk-sum { color: var(--ink2); font-size: 13px; }
 .fl-gk.offen b { font-size: 14px; color: var(--warn); }
 .fl-gl { border-top: 1px solid var(--line3); padding: 6px 0; display: grid; gap: 4px; min-width: 0; }
 .fl-ge { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto 78px 14px; align-items: start; gap: 0 10px; padding: 4px 0; }
@@ -1717,8 +1722,10 @@ button.fl-kr { cursor: pointer; }
 .fl-ak-box.neutral .fl-ab-1 { color: var(--muted); }
 .fl-ak-box.nein .fl-ab-kr { background: var(--red); border-color: var(--red); color: #fff; }
 .fl-hinweise { display: flex; flex-direction: column; gap: 10px; }
-.fl-hinweis-neu { flex: none; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); padding: 2px 9px; font-size: 12px; font-weight: 600; color: var(--ink2); cursor: pointer; }
-.fl-hinweis-neu:hover, .fl-hinweis-neu:focus-visible { background: var(--warnbg); border-color: var(--warnline); color: var(--warn); }
+.fl-rechts { min-width: 0; }
+.fl-hz { display: flex; justify-content: flex-end; margin: -6px 2px 4px; }
+.fl-hinweis-neu { border: 0; background: none; padding: 2px 4px; font-size: 12.5px; color: var(--faint); cursor: pointer; }
+.fl-hinweis-neu:hover, .fl-hinweis-neu:focus-visible { color: var(--warn); text-decoration: underline; }
 .fl-h-z > h3:has(+ .fl-sub2) { margin-right: 0; }
 .fl-h-z .fl-sub2 { margin-right: auto; }
 .fl-ak-box .fl-ab-x { opacity: .65; font-size: 17px; }
@@ -1817,7 +1824,7 @@ button.fl-fd:hover { border-color: var(--faint); }
 @media (prefers-reduced-motion: reduce) { .fl-netz .fn-h { transition: none; } }
 /* schmal: eine Spalte, Ansprache und Netz zuerst (Entwurf 1c) */
 @media (max-width: 1180px) { .fl-ps, .fl-detail .card.fl-fn { grid-template-columns: minmax(0, 1fr); } .fl-notizen { border-left: 0; padding-left: 0; border-top: 1px solid var(--line3); padding-top: 16px; } .fl-steck { border-left: 0; padding-left: 0; border-top: 1px solid var(--line3); padding-top: 16px; } }
-@media (max-width: 900px) { .fl-raster, .fl-kopf { grid-template-columns: minmax(0, 1fr); } .fl-kz { text-align: left; } .fl-seite { order: -1; } .fl-mehr-i { padding-left: 20px; } }
+@media (max-width: 900px) { .fl-raster, .fl-kopf { grid-template-columns: minmax(0, 1fr); } .fl-kz { text-align: left; } .fl-rechts { order: -1; } .fl-mehr-i { padding-left: 20px; } }
 @media (max-width: 600px) {
   .fl-detail { gap: 14px; padding-top: 18px; }
   .fl-kopf { flex-wrap: wrap; gap: 10px 14px; }
@@ -1872,7 +1879,34 @@ button.fl-fd:hover { border-color: var(--faint); }
 .fl-topfw { display: flex; flex-wrap: wrap; gap: 4px; justify-content: flex-end; }
 .fl-tpb { border: 1px solid var(--line); background: var(--card); color: var(--muted); border-radius: 999px; padding: 2px 10px; font-size: 12.5px; cursor: pointer; }
 .fl-tpb:hover { color: var(--ink); border-color: var(--line2); }
-.fl-tpb.on { background: var(--strong); border-color: var(--strong); color: #fff; }
+
 .fl-tpb.neu { border-style: dashed; background: none; }
 .fl-tpn { display: flex; align-items: baseline; gap: 10px; }
 .fl-tpn .fl-in { flex: 1 1 auto; min-width: 0; }
+
+/* 0.100: Fördertopf-Knöpfe, Mülleimer, Netz in der Liste (erst beim Überfahren groß und beschriftet), angedockte Kopfzeile, Suche nach Einschätzung */
+.fl-tpb { max-width: 230px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fl-tpb.on { background: var(--ink); border-color: var(--ink); color: var(--card); font-weight: 600; }
+.fl-muell { flex: none; align-self: center; display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--faint); cursor: pointer; }
+.fl-muell:hover, .fl-muell:focus-visible { color: var(--red); background: var(--hover); }
+.fl-muell svg { width: 15px; height: 15px; }
+table.fl-tab td.fl-te { padding-top: 4px; padding-bottom: 3px; }
+.fl-tab .fl-netz svg { overflow: visible; display: block; margin: 0 auto; transition: transform .14s ease; position: relative; }
+.fl-tab .fl-netz .fn-l { opacity: 0; transition: opacity .12s; font-size: 9px; }
+.fl-tab .fl-netz .fn-bg { opacity: 0; fill: var(--card); stroke: var(--line2); transition: opacity .12s; }
+#fl-body tr[data-id]:hover td.fl-te, #fl-body tr[data-id]:focus td.fl-te { position: relative; z-index: 4; }
+#fl-body tr[data-id]:hover .fl-netz svg, #fl-body tr[data-id]:focus .fl-netz svg { transform: scale(1.25); }
+#fl-body tr[data-id]:hover .fl-netz .fn-l, #fl-body tr[data-id]:focus .fl-netz .fn-l, #fl-body tr[data-id]:hover .fl-netz .fn-bg, #fl-body tr[data-id]:focus .fl-netz .fn-bg { opacity: 1; }
+#fl-body tr[data-id]:hover .fl-netz .fn-l.leer { opacity: .6; }
+@media (prefers-reduced-motion: reduce) { .fl-tab .fl-netz svg, .fl-tab .fl-netz .fn-l, .fl-tab .fl-netz .fn-bg { transition: none; } }
+.fl-main .tablewrap { overflow: visible; }
+table.fl-tab thead th { position: sticky; top: var(--kopfh, 108px); z-index: 6; background: var(--card); box-shadow: 0 1px 0 var(--line); }
+table.fl-tab thead th.fl-te { text-align: center; }
+.fl-lupe { display: inline-grid; place-items: center; vertical-align: -2px; margin-left: 5px; width: 22px; height: 22px; padding: 0; border: 0; border-radius: 6px; background: none; color: var(--muted); cursor: pointer; }
+.fl-lupe:hover, .fl-lupe[aria-expanded="true"] { background: var(--hover); color: var(--ink); }
+.fl-lupe.an { color: var(--card); background: var(--ink); }
+.fl-such { text-transform: none; letter-spacing: normal; font-size: 13px; color: var(--ink); line-height: 1.4; position: absolute; top: 100%; right: 0; z-index: 8; width: 360px; padding: 12px 14px 10px; text-align: left; font-weight: 400; white-space: normal; background: var(--card); border: 1px solid var(--line2); border-radius: 0 0 10px 10px; box-shadow: var(--shadow); }
+.fl-such-k { display: flex; flex-direction: column; gap: 2px; margin-bottom: 4px; }
+.fl-such-k b { font-size: 13px; color: var(--ink); }
+.fl-such .fl-netz.gross { max-width: 330px; }
+.fl-such-f { display: flex; justify-content: space-between; align-items: baseline; font-size: 12.5px; color: var(--muted); margin-top: 2px; }

@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { flId: null, flTopf: '', flq: '', flArt: '', flGl: '', vonFl: null, flKEdit: false, flAlt: false, flMehr: false, flAlleGl: false, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { flId: null, flTopf: '', flSuch: false, flBewQ: {}, flq: '', flArt: '', flGl: '', vonFl: null, flKEdit: false, flAlt: false, flMehr: false, flAlleGl: false, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw', 'flId'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -194,13 +194,16 @@ function renderNow() {
     }
     PIE_HOLD = false;
     app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : UI.view === 'flist' ? flListView() : UI.view === 'fdetail' ? flDetailView() : listView());
-    aufMass();
+    aufMass(); kopfHoehe();
     strgSet(CTRL_NOW);
     if (fk) { const e = $(fk, app); if (e) { e.focus({ preventScroll: true }); if (sel && 'setSelectionRange' in e) try { e.setSelectionRange(sel[0], sel[1]); } catch (x) { /* */ } } }
     document.title = (isDirty() ? '● ' : '') + 'Bedarfsliste';
     saveUI();
   } finally { _rendering = false; }
 }
+// Höhe des angedockten Kopfs (Titelleiste + Unterleiste): darunter dockt die Kopfzeile der Fördererliste an
+const kopfHoehe = () => { const k = $('header.top'); if (k) document.documentElement.style.setProperty('--kopfh', k.offsetHeight + 'px'); };
+window.addEventListener('resize', kopfHoehe);
 function keep(fn) { const y = window.scrollY, tw = $('.tablewrap'), x = tw ? tw.scrollLeft : 0; fn(); window.scrollTo(0, y); const t2 = $('.tablewrap'); if (t2 && x) t2.scrollLeft = x; }
 // wird gerade getippt oder ist ein Feld zum Bearbeiten offen (auch Schreibfelder mit Formatierung, Übergabe-Fenster)? Dann nicht
 // neu zeichnen – und keinen Stand von außen still übernehmen, der Text im offenen Feld ginge sonst verloren
