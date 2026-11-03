@@ -86,8 +86,10 @@ function flcVorlageBlob(e, z) {
     ['9. Notizen knapp: nur kurze Stichpunkte (je höchstens etwa 10 Wörter, höchstens 4 je Feld); „Wie tickt …“ in höchstens zwei kurzen Sätzen. Beispiele geförderter Projekte nicht in die Notizen, sondern ins Blatt „Beispiele“ (Schlagwort aus 1–3 Wörtern, ein Satz Beschreibung).'],
     [''],
     ['Stand: ' + (typeof today === 'function' ? fmtDate(today()) : '')],
+    ...(e && e.id ? [['Förderer-ID: ' + e.id + ' (nicht ändern – damit ordnet die Bedarfsliste die Datei zu)', { color: '#6B6B6B' }]] : []),
   ];
   const anl = { name: 'Anleitung', cols: [130], grid: false, rows: text.map(([t, st]) => [{ v: t, st: Object.assign({ wrap: true, v: 'top' }, st || {}) }]) };
+  if (!topf && e && e.topfe && e.topfe.length) e.topfe.slice(0, 12).forEach((t, i) => { toepfe.rows[i + 1][0] = { v: t.name, st: leer }; toepfe.rows[i + 1][1] = { v: t.kurz || '', st: leer }; });   // vorhandene Töpfe vorbelegen
   return xlsxBlob([anl, steck, fristen, ...(topf ? [] : [toepfe]), beispiele, kontakte, quellen, auswahl]);
 }
 
@@ -143,7 +145,8 @@ function flcLesen(book) {
   if (!n) return null;
   const tab = (name, k0) => { const s = blatt(name); return s ? s.rows.slice(1).filter(r => r && cellStr(r[k0 || 0])) : []; };
   const fs = blatt('Fristen'), mitTopf = !!fs && /^f(ö|oe)rdertopf/.test(norm(cellStr((fs.rows[0] || [])[2]))), sx = mitTopf ? 3 : 2;       // im Fördertopf-Blatt fehlt die Spalte „Fördertopf“
-  return { modus, F,
+  const anl = blatt('Anleitung'), fid = anl ? ((anl.rows.map(r => cellStr((r || [])[0])).join('\n').match(/F(ö|oe)rderer-ID:\s*(F\d+)/) || [])[2] || '') : '';
+  return { modus, F, fid,
     fristen: tab('Fristen').map(r => ({ d: flcFristDatum(r[0], norm(r[1])), topf: mitTopf ? strV(r[2]) : '', unsicher: norm(r[sx]) === 'unsicher', quelle: cellStr(r[sx + 1]), roh: cellStr(r[0]) })),
     topfe: tab('Fördertöpfe').map(r => ({ name: strV(r[0]), kurz: strV(r[1]), schwer: strV(r[2]), gl: strL(r[3]), von: zahlOderLeer(r[4]), bis: zahlOderLeer(r[5]), quote: strV(r[6]), unsicher: norm(r[7]) === 'unsicher', quelle: cellStr(r[8]),
       web: strV(r[9]), richtlinien: strV(r[10]), fristen: strV(r[11]), weg: strV(r[12]), antrag: strV(r[13]), haeufig: strV(r[14]), aufwand: strV(r[15]), dauer: strV(r[16]), gross: strV(r[17]),
@@ -258,9 +261,9 @@ function flTopfEinfuegen(e, t) {
   if (!e.topfe.length) { flTopfErbt(t, e); e.fristenL.forEach(f => { if (!f.topf) f.topf = t.name; }); }
   e.topfe.push(t); e.topfMig = true; return t;
 }
-async function flcEinlesen(datei) {
+async function flcEinlesen(datei, e0, info) {          // e0: Förderer (sonst der geöffnete); info: { nr, von } beim Einlesen mehrerer Dateien
   if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; }
-  const e = flCur(); if (!e) return;
+  const e = e0 || flCur(); if (!e) return;
   const f = datei || await pickFile('.xlsx'); if (!f) return;
   let R = null; try { R = flcLesen(await xlsxBook(await f.arrayBuffer())); } catch (x) { console.warn(x); }
   if (!R) { modal('Keine Copilot-Vorlage erkannt', h('p', {}, 'In „' + f.name + '“ fehlt das Blatt „Steckbrief“ mit den Feldern der Vorlage. Bitte die Vorlage über ⋯ → „Mit Copilot ausfüllen …“ holen und von Copilot ausfüllen lassen.')); return; }
@@ -329,7 +332,7 @@ async function flcEinlesen(datei) {
   const ziel = h('div', { class: 'flc-ziel' }, h('b', {}, 'Einlesen in:'), ...optionen.map(o => h('label', { class: 'flc-zo' }, h('input', { type: 'radio', name: 'flc-ziel', checked: o.k === wahl, onchange: () => { wahl = o.k; neuName.hidden = wahl !== 'neu'; baue(); } }), ' ' + o.l)), neuName);
   neuName.hidden = wahl !== 'neu'; neuName.addEventListener('input', () => { if (wahl === 'neu') { traeger(); const t = liste.querySelector('.flc-r b'); } });
   neuName.addEventListener('change', () => { if (wahl === 'neu') baue(); });
-  const bar = h('div', { class: 'flc-bar' }, h('div', { class: 'flc-bt' }, h('b', {}, '„' + f.name + '“'), R.modus === 'topf' ? ' (Fördertopf-Vorlage)' : ' (Förderer-Vorlage)', ' für ', h('b', {}, e.name || 'diesen Förderer')),
+  const bar = h('div', { class: 'flc-bar' }, h('div', { class: 'flc-bt' }, h('b', {}, '„' + f.name + '“'), R.modus === 'topf' ? ' (Fördertopf-Vorlage)' : ' (Förderer-Vorlage)', ' für ', h('b', {}, e.name || 'diesen Förderer'), info ? h('span', { class: 'flc-nr' }, ' · Datei ' + info.nr + ' von ' + info.von) : null),
     ...(optionen.length > 1 || wahl === 'neu' ? [ziel] : []),
     h('div', { class: 'flc-bw' }, zaehl, h('button', { class: 'link small', onclick: alle(() => true) }, 'Alle'), h('button', { class: 'link small', onclick: alle(() => false) }, 'Keine'), h('button', { class: 'link small', onclick: alle(x => x.an) }, 'Vorauswahl')),
     h('p', { class: 'muted small flc-hint' }, 'Vorgewählt sind neue, sichere Angaben. Angaben, die etwas Vorhandenes ersetzen würden, und unsichere sind nicht angekreuzt – bitte einzeln prüfen. Texte lassen sich per Klick ändern.' + (mitTabs ? ' Die Reiter zeigen, welche Angaben in welchen Fördertopf kommen.' : '')), tabBar);

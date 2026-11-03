@@ -2109,3 +2109,10 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 .fl-bsp-lab { font-size: 13px; color: var(--ink2); }
 .fl-bsp-f { width: 100%; box-sizing: border-box; font: inherit; font-size: 14px; }
 @media (max-width: 900px) { .fl-detail .card.fl-bsp { contain: none; max-height: 320px; } }
+
+/* 0.121: KI-Recherche für mehrere Förderer – Auswahl in der Liste und Fenster */
+.fl-serie-btn .ki-ico-s, .fl-serie-btn svg { width: 15px; height: 15px; }
+#fl-body tr.fl-gew > td, #fl-body tr.fl-gew.fl-tr-t > td:not(.fl-rs), #fl-body tr.fl-gew.fl-tr-t > td.fl-rs { background: var(--errbg); }
+#fl-body tr.fl-gew > td:first-child { box-shadow: inset 3px 0 0 var(--red); }
+.fl-serie-l { margin: 0 0 4px; padding-left: 18px; display: grid; gap: 3px; font-size: 14px; max-height: 240px; overflow-y: auto; }
+.flc-nr { color: var(--muted); font-weight: 400; }

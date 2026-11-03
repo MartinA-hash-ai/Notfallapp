@@ -6,7 +6,7 @@ Offline-Tool als **eine einzige HTML-Datei**. Projektordner: `bedarfsliste-app/`
 - Quellen: `bedarfsliste-app/src/NN_*.js`, `style.css`, `changelog.json`, `demo.js`. Gebaut wird mit `python3 build.py` (im Ordner `bedarfsliste-app/`) → `Bedarfsliste.html`, `Bedarfsliste_Update.zip`, die Vorlagen-xlsx und `vorschau/Bedarfsliste_Vorschau.html` (gitignored).
 - Tests: `bedarfsliste-app/tests/tXX.js` (Playwright), Aufruf `sh tests/run.sh t23 t06 …`, parallel mit `J=4`. Üblicher Satz vor jedem Commit: `J=4 sh tests/run.sh t23 t06 t03 t07 t20 t22 t08 t09 t11`.
 - Bekannt rot, unabhängig von neuen Änderungen: **t01, t10, t12** – nicht „reparieren“, nur erwähnen.
-- Fördererliste: `src/23_foerderer.js` (Modell, Liste, Seite, Excel), `src/25_fl_copilot.js` (Copilot-Vorlage, Auftrag, Einlesen mit Reitern), `src/24_zwecke.js`.
+- Fördererliste: `src/23_foerderer.js` (Modell, Liste, Seite, Excel), `src/25_fl_copilot.js` (Copilot-Vorlage, Auftrag, Einlesen mit Reitern), `src/26_fl_serie.js` (KI-Recherche für mehrere Förderer: Auswahl, ZIP, gemeinsamer Auftrag, mehrere Dateien einlesen), `src/24_zwecke.js`.
 
 ## Pro Version (Reihenfolge)
 1. Ändern → `python3 build.py` → Tests (siehe oben).

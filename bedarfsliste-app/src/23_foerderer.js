@@ -482,7 +482,7 @@ function flZeilen() {
   const zweck = e => e.schwer ? `<div class="fl-clamp" data-tip="${esc(flKomma(e.schwer))}">${esc(flKomma(e.schwer))}</div>` : '<span class="muted">–</span>';
   return R.flatMap(({ e: e0, T }) => {
     const gruppe = e0.topfe.length >= 2, zu = gruppe && !!UI.flZu[e0.id], e = flEff(e0, gruppe ? T : null), ansp = e.ansprache.filter(a => !UI.flGl || !a.gl || norm(a.gl) === norm(UI.flGl));
-    const lauf = flLaufend(e).filter(x => !x.b.archiv && !x.b.manuell), bea = lauf.filter(x => x.f.status === 'beantragt'), k = flKontaktHaupt(e), ruht = e0.status !== 'aktiv' ? ' fl-ruht' : '';
+    const lauf = flLaufend(e).filter(x => !x.b.archiv && !x.b.manuell), bea = lauf.filter(x => x.f.status === 'beantragt'), k = flKontaktHaupt(e), ruht = (e0.status !== 'aktiv' ? ' fl-ruht' : '') + (UI.flWahl && UI.flWahl.has(e0.id) ? ' fl-gew' : '');
     const laufZ = bea.length ? 'Antrag läuft: ' + bea.map(x => short(x.b.titel)).join(', ') : lauf.length ? 'eingeplant: ' + lauf.map(x => short(x.b.titel)).join(', ') : '';
     const hinweis = ansp.length ? `<div class="fl-ansp" title="${esc(ansp.map(a => (a.gl || 'alle') + ': ' + (a.titel || 'Hinweis') + (a.hinweis ? ' – ' + flPlain(a.hinweis) : '')).join('\n'))}">${ICON_TRI}<span>${UI.flGl ? esc(ansp[0].titel || 'Hinweis') : esc(ansp.map(a => a.gl || 'alle').join(', ')) + ': ' + esc(ansp[0].titel || 'Hinweis')}</span></div>` : '';
     const kontakt = (rs) => `<td class="fl-k${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}" data-act="fl-oeffnen" data-id="${e0.id}"` : ''}>${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}</td>`;
@@ -510,6 +510,7 @@ function flBar() {
       <div class="tools">
         <select data-ui="flGl" class="fl-glw${UI.flGl ? ' an' : ''}" aria-label="Nach Gliederung filtern"><option value="">Gliederung: alle</option>${GL.map(x => `<option${x === UI.flGl ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select>
         <input type="search" id="flq" data-ui="flq" value="${esc(UI.flq || '')}" placeholder="Suchen: Name, Gliederung, Zweck …" aria-label="Förderer suchen (Strg+F)">
+        ${UI.flWahl ? flSerieLeiste() : flSerieKnopf()}
         <button data-act="fl-excel-menu" aria-haspopup="menu" title="Excel: herunterladen oder einlesen">Excel ▾</button>
       </div>
     </div>`;
@@ -909,7 +910,8 @@ document.addEventListener('keydown', ev => {
   if (ev.key === 'Enter' && document.activeElement && document.activeElement.id === 'flq') { const r = $('#fl-body tr[data-id]'); if (r) { ev.preventDefault(); r.focus(); } return; }
   if (taste(ev, 'l-suche')) { const q = $('#flq'); if (q && document.activeElement !== q) { ev.preventDefault(); q.focus(); q.select(); } return; }
   const tr = document.activeElement && document.activeElement.closest && document.activeElement.closest('#fl-body tr[data-id]');
-  if (tr && ev.key === 'Enter') { ev.preventDefault(); flOeffnen(tr.dataset.id, tr.dataset.topf); return; }
+  if (tr && ev.key === 'Enter') { ev.preventDefault(); if (UI.flWahl) flSerieUmschalten(tr.dataset.id); else flOeffnen(tr.dataset.id, tr.dataset.topf); return; }
+  if (UI.flWahl && ev.key === 'Escape' && !$('.menu')) { ev.preventDefault(); UI.flWahl = null; keep(renderNow); return; }
   // ↓ aus der Suche in die erste Zeile, ↑/↓ von Zeile zu Zeile
   const el = document.activeElement;
   if (ev.key === 'ArrowDown' && el && el.id === 'flq') { const r = $('#fl-body tr[data-id]'); if (r) { ev.preventDefault(); r.focus(); } return; }
@@ -1028,7 +1030,12 @@ async function flAct(k, a) {
   const neu = () => { changed(); keep(renderNow); };
   switch (k) {
     case 'flist': flListe(); return true;
-    case 'fl-oeffnen': flOeffnen(a.dataset.id, a.dataset.topf); return true;
+    case 'fl-oeffnen': if (UI.flWahl && UI.view === 'flist') { flSerieUmschalten(a.dataset.id); return true; } flOeffnen(a.dataset.id, a.dataset.topf); return true;
+    case 'fl-serie': UI.flWahl = new Set(); keep(renderNow); return true;
+    case 'fl-serie-alle': if (UI.flWahl) { flGefiltert().forEach(x => UI.flWahl.add(x.id)); keep(renderNow); } return true;
+    case 'fl-serie-leer': if (UI.flWahl) { UI.flWahl.clear(); keep(renderNow); } return true;
+    case 'fl-serie-ende': UI.flWahl = null; keep(renderNow); return true;
+    case 'fl-serie-los': flSerieDialog(); return true;
     case 'fl-zu': UI.flZu[a.dataset.id] = !UI.flZu[a.dataset.id]; flListeNeu(); return true;
     case 'fl-zurueck': flZurueck(); return true;
     case 'fl-excel-menu': if ($('.menu')) closeMenus(); else flExcelMenu(a); return true;

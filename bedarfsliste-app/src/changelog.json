@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.121.0",
+    "date": "2026-11-09T14:00",
+    "items": [
+      "Fördererliste: neuer Knopf „KI-Recherche“ oben neben „Excel“. Danach Förderer anklicken (oder „Alle“ – mit Suche und Filtern), die Zeilen werden rot markiert; „Recherche für n Förderer …“ öffnet das Fenster, ↶ hebt die Auswahl auf, × bzw. Esc beendet sie",
+      "Fenster „KI-Recherche“: 1 · alle Vorlagen als ZIP (je Förderer eine Datei, Förderer-ID im Dateinamen und im Blatt „Anleitung“; vorhandene Fördertöpfe sind im Blatt „Fördertöpfe“ schon eingetragen), 2 · ein gemeinsamer Auftrag für alle (Liste der Förderer mit Homepage und Datei, Hinweis: je Förderer nur seine Datei, gern parallel, Dateien direkt ausfüllen – passt für Copilot, Cowork und Claude Code; danach dieselben Regeln wie beim einzelnen Förderer), 3 · Ablagefeld für die ausgefüllten Dateien – mehrere Excel-Dateien oder eine ZIP",
+      "Einlesen mehrerer Dateien: Jede Datei wird ihrem Förderer zugeordnet (über die ID, sonst über den Namen, sonst fragt das Programm), dann folgt nacheinander das bekannte Fenster „Angaben übernehmen?“ mit „Datei 1 von 3“ usw."
+    ]
+  },
+  {
     "version": "0.120.0",
     "date": "2026-11-09T10:00",
     "items": [

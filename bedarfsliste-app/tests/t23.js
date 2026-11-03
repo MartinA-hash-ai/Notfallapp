@@ -627,6 +627,33 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(async () => { const R = flLesen(await xlsxBook(await flBlob().arrayBuffer())), e = R.liste.find(x => x.id === 'F002'); return e.topfe.map(t => t.name + ':' + t.beispiele.map(b => b.titel + '/' + b.jahr).join('+')).join(' '); });
   ok(r === 'Projektförderung:Ehrenamtstag/2026 Local Hero:Ehrenamtstag/2026+Sanitätsrucksack/', 'Excel-Kopie: Beispiele je Topf hin und zurück: ' + r);
   await p.evaluate(() => { const e = flEintrag('F002'); e.topfe = []; e.topfMig = false; e.beispiele = []; UI.flTopf = ''; changed(); flZurueck(); });
+  // 0.121: KI-Recherche für mehrere Förderer: auswählen, Vorlagen als ZIP, gemeinsamer Auftrag, mehrere Dateien/ZIP einlesen
+  await p.evaluate(() => { const a = D.fl.liste.find(x => x.id !== 'F002'), b = flEintrag('F002'); UI.flTestA = a.id; a.quote = ''; b.quote = ''; a.anschrift = ''; b.anschrift = ''; UI.view = 'flist'; UI.flq = ''; UI.flGl = ''; changed(); renderNow(); }); await p.waitForTimeout(200);
+  await p.click('[data-act="fl-serie"]'); await p.click('#fl-body tr[data-id="' + await p.evaluate(() => UI.flTestA) + '"]'); await p.click('#fl-body tr[data-id="F002"]'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [[...UI.flWahl].sort().join() === [UI.flTestA, 'F002'].sort().join(), document.querySelector('[data-act="fl-serie-los"]').textContent, document.querySelectorAll('#fl-body tr.fl-gew').length, UI.view]);
+  ok(r.join('|') === 'true|Recherche für 2 Förderer …|2|flist', 'KI-Recherche: Förderer anklicken markiert sie (öffnet sie nicht): ' + r.join('|'));
+  await p.click('[data-act="fl-serie-los"]'); await p.waitForSelector('.fl-serie-dlg');
+  const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.fl-serie-dlg .flc-knoepfe button:first-child')]);
+  r = await p.evaluate(async () => { const L = D.fl.liste.filter(e => UI.flWahl.has(e.id)), out = [];
+    for (const e of L) { const R = flcLesen(await xlsxBook(await flcVorlageBlob(e).arrayBuffer())); out.push(flSerieDatei(e) === flSerieDatei(e) && R.fid === e.id); }
+    const pr = flcSeriePrompt(L); return [out.join(' ') + ' ' + flSerieDatei(flEintrag('F002')), L.every(e => pr.includes(e.name) && pr.includes(flSerieDatei(e))) && pr.includes('Für JEDE Datei') && pr.includes('So gehst du vor:') && pr.includes('Keine Wiederholungen') && !pr.includes('[NAME DES FÖRDERERS]')]; });
+  ok(dl.suggestedFilename() === 'KI-Recherche_2_Foerderer.zip' && r.join('|') === 'true true Recherche_F002_VBT.xlsx|true', 'Vorlagen als ZIP (je Förderer eine Datei mit ID), gemeinsamer Auftrag mit allen Förderern und den Regeln: ' + dl.suggestedFilename() + ' ' + r.join('|'));
+  await p.evaluate(async () => { const mk = async (e, quote, mitId) => { const bk = await flcVorlageBlob(e).arrayBuffer(), B = await xlsxBook(bk);
+      const S = [['Feld', 'Wert', 'E', 'Sicherheit', 'Quelle', 'Anm'], ['Name des Förderers (voller Name)', e.name, '', 'sicher', '', ''], ['Förderquote', quote, '', 'sicher', 'https://q.example', '']];
+      const bl = (name, rows) => ({ name, cols: rows[0].map(() => 20), rows });
+      const sh = [bl('Steckbrief', S)]; if (mitId) sh.unshift(bl('Anleitung', [['Förderer-Vorlage'], ['Förderer-ID: ' + e.id + ' (nicht ändern)']]));
+      return new Uint8Array(await xlsxBlob(sh).arrayBuffer()); };
+    const z = zipBlob([{ name: 'x/Recherche_eins_ausgefuellt.xlsx', data: await mk(flEintrag(UI.flTestA), 'bis 50 %', true) }, { name: 'zwei_ausgefuellt.xlsx', data: await mk(flEintrag('F002'), 'bis 70 %', false) }], 'application/zip');
+    const dt = new DataTransfer(); dt.items.add(new File([z], 'ergebnis.zip')); const d = document.querySelector('.fl-serie-dlg .flc-drop');
+    d.dispatchEvent(new DragEvent('dragover', { dataTransfer: dt, bubbles: true, cancelable: true })); d.dispatchEvent(new DragEvent('drop', { dataTransfer: dt, bubbles: true, cancelable: true })); });
+  await p.waitForSelector('.flc-r'); const flTestName = await p.evaluate(() => flEintrag(UI.flTestA).name); r = await p.evaluate(() => document.querySelector('.flc-bt').textContent);
+  ok(r.includes(flTestName) && /Datei 1 von 2/.test(r), 'ZIP mit zwei Dateien: erste Datei dem Förderer per ID zugeordnet, Fenster zeigt „Datei 1 von 2“: ' + r);
+  await p.click('.modal footer button.primary'); await p.waitForFunction(() => /Datei 2 von 2/.test((document.querySelector('.flc-bt') || {}).textContent || ''));
+  r = await p.evaluate(() => document.querySelector('.flc-bt').textContent);
+  ok(/Volksbank Test eG/.test(r), 'Zweite Datei ohne ID über den Namen zugeordnet: ' + r);
+  await p.click('.modal footer button.primary'); await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const x = [flEintrag(UI.flTestA).quote, flEintrag('F002').quote, UI.flWahl, !!document.querySelector('.modal')]; delete UI.flTestA; return x; });
+  ok(r.join('|') === 'bis 50 %|bis 70 %||false', 'Beide Förderer haben ihre eigenen Angaben, Auswahl beendet: ' + r.join('|'));
   // gespeichert und wieder geladen: bleibt erhalten
   r = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [n.fl.liste.length, JSON.stringify(n.fl) === JSON.stringify(D.fl), n.bedarfe[0].foerderer[1].flAus.length, n.bedarfe[0].foerderer[3].flNein]; });
   ok(r.join('|') === '2|true|0|true', 'Speichern/Laden behält Fördererliste und Merker: ' + r.join('|'));

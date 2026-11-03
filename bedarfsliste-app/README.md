@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.121:** „KI-Recherche“ in der Fördererliste: mehrere Förderer anklicken, dann alle Vorlagen als ZIP herunterladen, einen gemeinsamen Auftrag kopieren und die ausgefüllten Dateien (mehrere .xlsx oder eine ZIP) wieder hineinziehen – jede Datei geht an ihren Förderer, das Übernehmen-Fenster kommt nacheinander je Datei.
+
 **Seit 0.120:** Beim Einlesen einer Förderer-Recherche mit Fördertöpfen bleibt nichts verborgen beim Förderer (jeder neue Topf übernimmt Fehlendes, Notizen und Beispiele des Förderers). Der Auftrag trennt Allgemeines (Steckbrief) und Programmbezogenes (Töpfe) und verlangt knappe Stichpunkte. Neu ist der Kasten „Beispiele“ (geförderte Projekte als Schlagworte, Klick zeigt die Beschreibung) samt Blatt „Beispiele“ in Vorlage und Excel-Kopie. Die Fördersumme im Netz richtet sich nach dem Höchstbetrag der Förderhöhe.
 
 **Seit 0.119:** Im ⋯-Menü eines Förderers gibt es nur noch „Mit Copilot ausfüllen …“ (Vorlage, Auftrag und Ablagefeld für die ausgefüllte Excel in einem Fenster); das Feld „Status“ ist dort entfernt. Der Auftrag an Copilot schließt Wiederholungen aus (z. B. Förderzweck nicht noch einmal in den Notizen).
