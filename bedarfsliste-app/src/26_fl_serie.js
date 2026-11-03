@@ -15,27 +15,8 @@ function flSerieUmschalten(id) {
 }
 const flSerieDatei = e => 'Recherche_' + e.id + '_' + String(e.kurz || e.name || 'Foerderer').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) + '.xlsx';
 
-// gemeinsamer Auftrag: Liste der Förderer, dann der bekannte Auftrag für eine Datei (gilt für jede)
-function flcSeriePrompt(L) {
-  const einzel = flcPrompt(null).split('\n'), a = einzel.indexOf('So gehst du vor:'), b = einzel.findIndex((t, i) => i > a && /^Gib mir die ausgefüllte Datei/.test(t));
-  const regeln = einzel.slice(a, b).join('\n').trim();
-  return [
-    'Du bist Rechercheassistent im Fundraising der Malteser (Malteser Hilfsdienst e. V., Diözese Paderborn). Im Anhang liegen ' + L.length + ' Excel-Dateien – je Förderer eine (der Dateiname und das Blatt „Anleitung“ nennen die Förderer-ID). Recherchiere im Web jeden der folgenden Förderer und fülle seine Datei aus. Ich lese die Dateien danach in unser Programm ein.',
-    '',
-    ...L.map((e, i) => (i + 1) + '. ' + e.name + (e.kurz ? ' (' + e.kurz + ')' : '') + (e.web ? ' – Homepage: ' + e.web : '') + ' – Datei: ' + flSerieDatei(e) + (e.topfe.length ? ' – hat bei uns schon die Fördertöpfe: ' + e.topfe.map(t => '„' + t.name + '“').join(', ') + ' (im Blatt „Fördertöpfe“ schon eingetragen – diese Zeilen mit genau diesen Namen ausfüllen, weitere Programme darunter)' : '')),
-    '',
-    'Wichtig für mehrere Förderer:',
-    '- Jeder Förderer bekommt nur seine eigene Datei. Nichts zwischen den Förderern vermischen, keine Angaben von einem Förderer in die Datei eines anderen.',
-    '- Arbeite die Förderer einzeln ab – wenn du kannst, gleichzeitig (z. B. ein Unterauftrag je Förderer). Jeder Förderer bekommt dieselbe Gründlichkeit.',
-    '- Fülle die Dateien direkt aus (z. B. mit Python und openpyxl), ohne Blätter, Spalten, Überschriften oder Formate zu ändern. Wenn du die Dateien nicht direkt bearbeiten kannst, gib je Förderer den Inhalt jedes Blatts als Tabelle mit denselben Überschriften aus.',
-    '',
-    'Für JEDE Datei gilt der folgende Auftrag:',
-    '',
-    regeln,
-    '',
-    'Gib mir alle ausgefüllten Dateien zum Herunterladen zurück – mit demselben Dateinamen und dem Zusatz „_ausgefuellt“, gern zusammen als ZIP. Schreibe darunter je Förderer höchstens drei Sätze, was du nicht gefunden hast und wo du unsicher bist.',
-  ].join('\n');
-}
+// gemeinsamer Auftrag: Variante A (klein) oder B (groß) für alle ausgewählten Förderer (27_fl_auftrag.js)
+const flcSeriePrompt = (L, v) => flcAuftrag(L, v || flcVariante(L[0]), flSerieDatei);
 function flcTextKopieren(t, ok) {
   const fail = () => { modal('Auftrag für die KI', h('textarea', { class: 'rech-prompt', rows: 14, spellcheck: false, value: t, readonly: true })); };
   try { navigator.clipboard.writeText(t).then(() => toast(ok, 'ok'), fail); } catch (x) { fail(); }
@@ -53,15 +34,22 @@ async function flSerieDialog() {
   ablage.addEventListener('dragover', ev => { ev.preventDefault(); ev.stopPropagation(); ablage.classList.add('ueber'); });
   ablage.addEventListener('dragleave', () => ablage.classList.remove('ueber'));
   ablage.addEventListener('drop', ev => { ev.preventDefault(); ev.stopPropagation(); ablage.classList.remove('ueber'); nimm(ev.dataTransfer && ev.dataTransfer.files); });
+  // Variante: Vorschlag nach „Art“; gemischte Auswahl → die häufigere, mit Hinweis (besser getrennt recherchieren)
+  const V = L.map(flcVariante), nB = V.filter(x => x === 'B').length; let variante = nB > L.length - nB ? 'B' : 'A';
+  const abw = () => L.filter((e, i) => V[i] !== variante);
+  const hinw = h('p', { class: 'muted small flc-var-h' });
+  const zeigHinw = () => { const A = abw(); hinw.hidden = !A.length; hinw.textContent = A.length ? 'Gemischte Auswahl: ' + A.map(e => e.kurz || e.name).join(', ') + (A.length === 1 ? ' wäre' : ' wären') + ' eher „' + FLC_VARIANTEN[variante === 'A' ? 'B' : 'A'] + '“. Der Auftrag gilt mit dem gewählten Umfang für alle – besser getrennt recherchieren (Auswahl anpassen).' : ''; };
+  const varWahl = flcVarianteWahl(variante, k => { variante = k; zeigHinw(); }); zeigHinw();
   const zipLaden = async () => {
     const files = []; for (const e of L) files.push({ name: flSerieDatei(e), data: new Uint8Array(await flcVorlageBlob(e).arrayBuffer()) });
     download('KI-Recherche_' + L.length + '_Foerderer.zip', zipBlob(files, 'application/zip'));
   };
   const body = h('div', { class: 'flc-dlg fl-serie-dlg' },
     h('ul', { class: 'fl-serie-l' }, ...L.map(e => h('li', {}, h('b', {}, e.kurz || e.name), e.kurz ? h('span', { class: 'muted' }, ' ' + e.name) : null, e.topfe.length ? h('span', { class: 'muted small' }, ' · ' + e.topfe.length + (e.topfe.length === 1 ? ' Fördertopf' : ' Fördertöpfe')) : null))),
+    varWahl, hinw,
     h('div', { class: 'flc-knoepfe' },
       h('button', { class: 'primary', onclick: zipLaden }, '1 · Vorlagen herunterladen (ZIP)'),
-      h('button', { class: 'primary', onclick: () => flcTextKopieren(flcSeriePrompt(L), 'Auftrag kopiert – in die KI einfügen und die Dateien aus der ZIP anhängen') }, '2 · Auftrag kopieren')),
+      h('button', { class: 'primary', onclick: () => flcTextKopieren(flcSeriePrompt(L, variante), 'Auftrag kopiert – in die KI einfügen und die Dateien aus der ZIP anhängen') }, '2 · Auftrag kopieren')),
     ablage);
   modal('KI-Recherche für ' + L.length + ' Förderer', body, [['Fertig', true, 'primary']], { expose: c => { zu = c; } });
 }

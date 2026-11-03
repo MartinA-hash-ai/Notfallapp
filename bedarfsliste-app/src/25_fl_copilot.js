@@ -95,7 +95,9 @@ function flcVorlageBlob(e, z) {
 
 // ---------- Auftrag für Copilot
 function flcPrompt(e, z) {
-  z = z || { modus: 'foerderer', topf: null, name: '' }; const topf = z.modus === 'topf', fn = e && e.name ? '„' + e.name + '“' : '[NAME DES FÖRDERERS]';
+  z = z || { modus: 'foerderer', topf: null, name: '' };
+  if (z.modus !== 'topf') return flcAuftrag([e || {}], z.variante || flcVariante(e), () => FLC_DATEI);   // Förderer allgemein: Variante A/B (27_fl_auftrag.js)
+  const topf = z.modus === 'topf', fn = e && e.name ? '„' + e.name + '“' : '[NAME DES FÖRDERERS]';
   const ziel = topf ? 'den Fördertopf (das Förderprogramm) ' + (z.name ? '„' + z.name + '“' : '[NAME DES FÖRDERTOPFS]') + ' des Förderers ' + fn : 'den Förderer ' + fn;
   const L = [
     'Du bist Rechercheassistent im Fundraising der Malteser (Malteser Hilfsdienst e. V., Diözese Paderborn). Im Anhang liegt die Excel-Datei „' + FLC_DATEI + '“. Recherchiere im Web ' + ziel + (e && e.web && !topf ? ' (Homepage: ' + e.web + ')' : '') + ' und fülle die Datei aus. Ich lese sie danach in unser Programm ein.',
@@ -353,7 +355,9 @@ function flcDialog(e) {
   const T = e.topfe, cur = flTopfWahl(e), ohne = !T.length; let art = ohne ? 'e' : 't', tw = cur ? cur.id : T.length ? T[0].id : 'neu';       // art: Förderer allgemein | bestimmter Fördertopf; tw: Id des Topfs oder „neu“
   const neuName = h('input', { type: 'text', class: 'flc-neuname', placeholder: 'Name des neuen Fördertopfs', 'aria-label': 'Name des neuen Fördertopfs' });
   const sel = h('select', { class: 'flc-sel', 'aria-label': 'Fördertopf' }, ...T.map(t => h('option', { value: t.id, selected: t.id === tw }, (t.name || '(ohne Namen)') + (t.recherche ? '' : ' – noch nicht recherchiert'))), h('option', { value: 'neu', selected: tw === 'neu' }, 'Neuer Fördertopf …'));
-  const z = () => { if (art === 'e') return { modus: 'foerderer', topf: null, name: '' }; if (tw === 'neu') return { modus: 'topf', topf: null, name: strV(neuName.value) }; const t = T.find(x => x.id === tw); return { modus: 'topf', topf: t, name: t ? t.name : '' }; };
+  let variante = flcVariante(e);
+  const varWahl = flcVarianteWahl(variante, k => { variante = k; });
+  const z = () => { if (art === 'e') return { modus: 'foerderer', topf: null, name: '', variante }; if (tw === 'neu') return { modus: 'topf', topf: null, name: strV(neuName.value) }; const t = T.find(x => x.id === tw); return { modus: 'topf', topf: t, name: t ? t.name : '' }; };
   const braucht = () => { if (art === 't' && tw === 'neu' && !strV(neuName.value)) { toast('Bitte den Namen des neuen Fördertopfs eintragen.', 'warn'); neuName.focus(); return true; } return false; };
   // Feld zum Hineinziehen (oder Auswählen) der ausgefüllten Excel – öffnet gleich das Einlesen
   let zu = null; const nimm = f => { if (!f) return; if (!/\.xlsx$/i.test(f.name)) { toast('Bitte die ausgefüllte Excel-Datei (.xlsx) nehmen.', 'warn'); return; } if (zu) zu(true); flcEinlesen(f); };
@@ -380,7 +384,7 @@ function flcDialog(e) {
   sel.addEventListener('change', () => { zeig(); if (tw === 'neu') neuName.focus(); });
   zeig();
   const body = h('div', { class: 'flc-dlg' },
-    h('label', { class: 'flc-zo' + (ohne ? '' : ' aus') }, rE, h('b', {}, ' Förderer allgemein')), hinwE,
+    h('label', { class: 'flc-zo' + (ohne ? '' : ' aus') }, rE, h('b', {}, ' Förderer allgemein')), hinwE, ohne ? h('div', { class: 'flc-sub' }, varWahl) : null,
     h('label', { class: 'flc-zo' }, rT, h('b', {}, ' Ein bestimmter Fördertopf')), unter, hinwT,
     knoepfe, ablage);
   modal('Mit Copilot ausfüllen', body, [['Fertig', true, 'primary']], { expose: c => { zu = c; } });

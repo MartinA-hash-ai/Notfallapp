@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.122.0",
+    "date": "2026-11-10T10:00",
+    "items": [
+      "Recherche-Auftrag in zwei Varianten: A „klein / lokal“ (Bürgerstiftungen, kleine Stiftungen, örtliche Sparkassen- und Volksbank-Stiftungen: Budget 12 Seiten / 25 Tool-Aufrufe, Stichwortsuche statt Komplett-Lektüre von News und Berichten, meist ohne Fördertöpfe, bis 4 Beispiele) und B „groß / überregional“ (Soziallotterien, große Stiftungen, Landes- und Bundesprogramme: Budget 40 Seiten / 80 Tool-Aufrufe, Programmübersicht mit Vorfilter auf Malteser-relevante Programme, Prüfung der Antragsberechtigung, bis 8 Beispiele mit Topf-Name)",
+      "Beide Varianten mit den Erkenntnissen aus dem Testlauf: offizieller Name und Startseite statt Unterseite, „Antrag an“ nur E-Mail oder Portal-Link, Häufigkeit/Dauer nur aus der Richtlinie, Einzelpersonen-Programme sind kein Fördertopf, Gebiet ohne passende Gliederung leer lassen und vermerken, Förderhöhe aus der Förderhistorie „unsicher“, Abbruch mit Meldung, wenn die Seiten des Förderers nicht erreichbar sind",
+      "Vorschlag nach „Art“: Soziallotterie und Öffentlich → groß, alles andere → klein; im Fenster („Mit Copilot ausfüllen“ → Förderer allgemein, und „KI-Recherche“) über „Umfang: klein / lokal · groß / überregional“ umstellbar. Mischt die Auswahl kleine und große Förderer, weist das Fenster darauf hin (der Auftrag gilt dann mit dem gewählten Umfang für alle)",
+      "Der Auftrag für einen einzelnen Fördertopf bleibt unverändert; Vorlage und Einlesen sind unverändert"
+    ]
+  },
+  {
     "version": "0.121.0",
     "date": "2026-11-09T14:00",
     "items": [

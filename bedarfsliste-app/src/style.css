@@ -2116,3 +2116,11 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 #fl-body tr.fl-gew > td:first-child { box-shadow: inset 3px 0 0 var(--red); }
 .fl-serie-l { margin: 0 0 4px; padding-left: 18px; display: grid; gap: 3px; font-size: 14px; max-height: 240px; overflow-y: auto; }
 .flc-nr { color: var(--muted); font-weight: 400; }
+
+/* 0.122: Recherche-Umfang A (klein / lokal) oder B (groß / überregional) */
+.flc-var { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin: 2px 0; }
+.flc-var-l { font-size: 13px; color: var(--ink2); margin-right: 2px; }
+.flc-var-k { border: 1px solid var(--line2); background: var(--card); border-radius: 999px; padding: 3px 11px; font-size: 13px; cursor: pointer; color: var(--ink2); }
+.flc-var-k.on { background: var(--ink); border-color: var(--ink); color: var(--card); }
+.flc-var-h { margin: 0; color: var(--warn); }
+.flc-var-h[hidden] { display: none; }
