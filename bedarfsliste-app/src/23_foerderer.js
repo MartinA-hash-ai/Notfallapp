@@ -493,7 +493,7 @@ function flZeilen() {
     // mehrere Fördertöpfe: eine hohe Zeile – links der Förderer (Kurzform), rechts daneben die Töpfe untereinander, je Topf eine eigene Zeile
     const kurzname = e0.kurz || e0.name || '(ohne Namen)', tip = e0.kurz && e0.name ? ` data-tip="${esc(e0.name)}"` : '';
     const schalter = `<button class="fl-tg" data-act="fl-zu" data-id="${e0.id}" aria-expanded="${!zu}" title="Fördertöpfe ${zu ? 'zeigen' : 'einklappen'}">${zu ? '▸' : '▾'} ${T.length}${T.length < e0.topfe.length ? ' von ' + e0.topfe.length : ''} Fördertöpfe</button>`;
-    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(e.gross)}${esc(kurzname)}</b>${hinweis}${status}${lz}${schalter}</td>`;
+    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(e.gross)}${esc(kurzname)}</b>${hinweis}${status}${lz}${schalter}${rs ? '<span class="fl-split" title="Ziehen: Trennlinie zwischen Förderer und Fördertöpfen verschieben (gilt für alle)" aria-hidden="true"></span>' : ''}</td>`;
     if (zu) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="fl-kopf-tr${ruht}">${links(0)}<td class="fl-tn muted"><div class="fl-clamp">${esc(T.map(t => t.name || '(ohne Namen)').join(', '))}</div></td>
       <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te"></td>${kontakt(0)}</tr>`];
     return T.map((t, n) => {
@@ -503,6 +503,20 @@ function flZeilen() {
       <td class="fl-g">${gebiet(t)}</td><td class="fl-z">${zweck(t)}</td><td class="fl-tf">${flFristenHtml(et)}</td><td class="fl-te">${flNetz(e0, false, { t })}</td>${n ? '' : kontakt(T.length)}</tr>`; });
   }).join('');
 }
+// Trennlinie zwischen Förderer und Fördertöpfen: verschiebbar, gilt für alle Zeilen; Spalte „Förderer“ + „Fördertopf“ zusammen 26 %
+const FL_SPLIT_KEY = 'bl-fl-split';
+function flSplit() { let v = 12; try { v = +localStorage.getItem(FL_SPLIT_KEY) || 12; } catch (e) { /* ohne Speicher */ } return Math.min(20, Math.max(6, v)); }
+document.addEventListener('pointerdown', ev => {
+  const g = ev.target.closest && ev.target.closest('.fl-split'); if (!g) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const tab = g.closest('table'), c1 = tab && tab.querySelector('col.fl-c1'), c2 = tab && tab.querySelector('col.fl-c2'); if (!c1 || !c2) return;
+  const breite = tab.getBoundingClientRect().width, x0 = ev.clientX, p0 = flSplit(); let p = p0;
+  document.body.classList.add('fl-ziehen');
+  const zieh = e2 => { p = Math.min(20, Math.max(6, Math.round((p0 + (e2.clientX - x0) / breite * 100) * 2) / 2)); c1.style.width = p + '%'; c2.style.width = (26 - p) + '%'; };
+  const los = () => { document.removeEventListener('pointermove', zieh); document.removeEventListener('pointerup', los); document.body.classList.remove('fl-ziehen'); try { localStorage.setItem(FL_SPLIT_KEY, String(p)); } catch (e) { /* ohne Speicher */ } };
+  document.addEventListener('pointermove', zieh); document.addEventListener('pointerup', los);
+}, true);
+document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('.fl-split')) { ev.stopPropagation(); ev.preventDefault(); } }, true);
 function flBar() {
   const D0 = flDaten(), n = flGefiltert().length, GL = uniq(D0.liste.flatMap(e => flEff(e).gl)).filter(g => !/^alle$/i.test(g)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<div class="subbar list-head fl-head">
@@ -510,7 +524,7 @@ function flBar() {
       <div class="tools">
         <select data-ui="flGl" class="fl-glw${UI.flGl ? ' an' : ''}" aria-label="Nach Gliederung filtern"><option value="">Gliederung: alle</option>${GL.map(x => `<option${x === UI.flGl ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select>
         <input type="search" id="flq" data-ui="flq" value="${esc(UI.flq || '')}" placeholder="Suchen: Name, Gliederung, Zweck …" aria-label="Förderer suchen (Strg+F)">
-        ${UI.flWahl ? flSerieLeiste() : flSerieKnopf()}
+        ${flSerieKnopf()}
         <button data-act="fl-excel-menu" aria-haspopup="menu" title="Excel: herunterladen oder einlesen">Excel ▾</button>
       </div>
     </div>`;
@@ -521,7 +535,7 @@ function flSuchPanel() {
     <div class="fl-such-f"><span id="fl-such-n">${flGefiltert().length} Treffer</span><button class="fl-such-r" data-act="fl-such-reset" data-tip="Zurücksetzen" aria-label="Zurücksetzen">↶</button></div></div>`;
 }
 function flListView() {
-  return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><colgroup><col style="width:12%"><col style="width:14%"><col style="width:13%"><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:17%"></colgroup><thead><tr><th colspan="2">Förderer</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
+  return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><colgroup><col class="fl-c1" style="width:${flSplit()}%"><col class="fl-c2" style="width:${26 - flSplit()}%"><col style="width:13%"><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:17%"></colgroup><thead><tr><th colspan="2">Förderer</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
     <th class="fl-te">Einschätzung<button class="fl-lupe${flQAktiv() ? ' an' : ''}" data-act="fl-such" aria-expanded="${!!UI.flSuch}" aria-label="Nach Einschätzung suchen" data-tip="Nach Einschätzung suchen">${ICON_LUPE}</button>${UI.flSuch ? flSuchPanel() : ''}</th><th>Ansprechperson</th></tr></thead><tbody id="fl-body">${flZeilen()}</tbody></table></div></section></main>`;
 }
 function flExcelMenu(btn) {
@@ -905,24 +919,38 @@ document.addEventListener('input', ev => {
   const el = ev.target; if (!el.dataset || el.dataset.ui !== 'flq') return;
   UI.flq = el.value; swap('fl-body', flZeilen(), true); const c = $('#fl-count'); if (c) c.textContent = flGefiltert().length + ' von ' + D.fl.liste.length + ' Förderern';
 });
+// Fördererliste mit der Tastatur – dieselben (frei belegbaren) Tasten wie in der Bedarfsliste: nächster/vorheriger, erster/letzter, öffnen
 document.addEventListener('keydown', ev => {
   if (UI.view !== 'flist' || ev.defaultPrevented || $('.modal')) return;
-  if (ev.key === 'Enter' && document.activeElement && document.activeElement.id === 'flq') { const r = $('#fl-body tr[data-id]'); if (r) { ev.preventDefault(); r.focus(); } return; }
-  if (taste(ev, 'l-suche')) { const q = $('#flq'); if (q && document.activeElement !== q) { ev.preventDefault(); q.focus(); q.select(); } return; }
-  const tr = document.activeElement && document.activeElement.closest && document.activeElement.closest('#fl-body tr[data-id]');
-  if (tr && ev.key === 'Enter') { ev.preventDefault(); if (UI.flWahl) flSerieUmschalten(tr.dataset.id); else flOeffnen(tr.dataset.id, tr.dataset.topf); return; }
-  if (UI.flWahl && ev.key === 'Escape' && !$('.menu')) { ev.preventDefault(); UI.flWahl = null; keep(renderNow); return; }
-  // ↓ aus der Suche in die erste Zeile, ↑/↓ von Zeile zu Zeile
   const el = document.activeElement;
-  if (ev.key === 'ArrowDown' && el && el.id === 'flq') { const r = $('#fl-body tr[data-id]'); if (r) { ev.preventDefault(); r.focus(); } return; }
-  if (tr && (ev.key === 'ArrowDown' || ev.key === 'ArrowUp')) { const n = ev.key === 'ArrowDown' ? tr.nextElementSibling : tr.previousElementSibling; ev.preventDefault(); if (n) n.focus(); else if (ev.key === 'ArrowUp') { const q = $('#flq'); if (q) q.focus(); } }
+  if (ev.key === 'Enter' && el && el.id === 'flq') { const r = $('#fl-body tr[data-id]'); if (r) { ev.preventDefault(); r.focus(); } return; }
+  if (taste(ev, 'l-suche')) { const q = $('#flq'); if (q && el !== q) { ev.preventDefault(); q.focus(); q.select(); } return; }
+  if (UI.flWahl && ev.key === 'Escape' && !$('.menu')) { ev.preventDefault(); UI.flWahl = null; keep(renderNow); return; }
+  if (el && el.id === 'flq' && ev.key === 'ArrowDown') { const r = $('#fl-body tr[data-id]'); if (r) { ev.preventDefault(); r.focus(); } return; }
+  if (el && el.closest && el.closest('input, textarea, select, [contenteditable], .menu')) return;
+  const rows = [...document.querySelectorAll('#fl-body tr[data-id]')], tr = el && el.closest && el.closest('#fl-body tr[data-id]');
+  const geh = r => { ev.preventDefault(); if (!r) return; r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); };
+  const runter = taste(ev, 'l-runter'), hoch = !runter && taste(ev, 'l-hoch');
+  if (runter || hoch) {
+    if (!tr) return geh(runter ? rows[0] : rows[rows.length - 1]);
+    const r = rows[rows.indexOf(tr) + (runter ? 1 : -1)];
+    if (!r && hoch) { const q = $('#flq'); if (q) { ev.preventDefault(); q.focus(); } return; }
+    return geh(r);
+  }
+  if (!tr) return;
+  if (taste(ev, 'l-erster')) return geh(rows[0]);
+  if (taste(ev, 'l-letzter')) return geh(rows[rows.length - 1]);
+  if (taste(ev, 'l-oeffnen') || taste(ev, 'l-enter') || ev.key === 'Enter') { ev.preventDefault(); if (UI.flWahl) flSerieUmschalten(tr.dataset.id, tr.dataset.topf); else flOeffnen(tr.dataset.id, tr.dataset.topf); }
 });
 // Seite eines Förderers: Esc (nicht in einem Feld) zurück zur Liste; Enter in einem Feld übernimmt
 document.addEventListener('keydown', ev => {
   if (UI.view !== 'fdetail' || ev.defaultPrevented) return;
   const el = document.activeElement, imFeld = el && el.closest && el.closest('input, textarea, select, [contenteditable]');
   if (ev.key === 'Enter' && !ev.shiftKey && imFeld && el.classList.contains('fl-in') && (el.tagName === 'INPUT' || el.classList.contains('fl-ab-t'))) { ev.preventDefault(); el.blur(); return; }   // Überschrift eines Hinweises: wächst mit, Enter übernimmt
-  if (!taste(ev, 'd-zurueck') || imFeld || $('.menu, .modal, .cal-pop, .fmt-bar, .pe-in')) return;
+  if (imFeld || $('.menu, .modal, .cal-pop, .fmt-bar, .pe-in') || (el && el.closest && el.closest('.fn-griff, [role="slider"]'))) return;
+  const vor = taste(ev, 'd-naechster'), zur = !vor && taste(ev, 'd-voriger');
+  if (vor || zur) { const L = flGefiltert().map(x => x.id), i = L.indexOf(UI.flId), n = L[i < 0 ? 0 : i + (vor ? 1 : -1)]; ev.preventDefault(); if (n) flOeffnen(n); return; }   // nächster / voriger Förderer der Liste
+  if (!taste(ev, 'd-zurueck')) return;
   ev.preventDefault(); flZurueck();
 }, true);
 // Seitenwechsel
@@ -1030,7 +1058,7 @@ async function flAct(k, a) {
   const neu = () => { changed(); keep(renderNow); };
   switch (k) {
     case 'flist': flListe(); return true;
-    case 'fl-oeffnen': if (UI.flWahl && UI.view === 'flist') { flSerieUmschalten(a.dataset.id); return true; } flOeffnen(a.dataset.id, a.dataset.topf); return true;
+    case 'fl-oeffnen': if (UI.flWahl && UI.view === 'flist') { flSerieUmschalten(a.dataset.id, a.dataset.topf); return true; } flOeffnen(a.dataset.id, a.dataset.topf); return true;
     case 'fl-serie': UI.flWahl = new Set(); keep(renderNow); return true;
     case 'fl-serie-alle': if (UI.flWahl) { flGefiltert().forEach(x => UI.flWahl.add(x.id)); keep(renderNow); } return true;
     case 'fl-serie-leer': if (UI.flWahl) { UI.flWahl.clear(); keep(renderNow); } return true;

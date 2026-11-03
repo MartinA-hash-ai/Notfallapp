@@ -3,15 +3,22 @@
    Das Fenster bietet: 1 · alle Vorlagen als ZIP (je Förderer eine Datei, Förderer-ID im Dateinamen und im Blatt „Anleitung“), 2 · einen gemeinsamen
    Auftrag (für Copilot, Cowork, Claude Code …), 3 · ein Ablagefeld für die ausgefüllten Dateien (mehrere .xlsx oder eine ZIP). Beim Einlesen ordnet
    das Programm jede Datei ihrem Förderer zu (ID, sonst Name) und zeigt nacheinander für jede Datei das bekannte Fenster „Angaben übernehmen?“. */
-const flSerieKnopf = () => `<button class="heute-btn fl-serie-btn" data-act="fl-serie" title="Mehrere Förderer auswählen und gemeinsam mit KI recherchieren lassen">${ICON_KI}<span>KI-Recherche</span></button>`;
-const flSerieText = n => n ? 'Recherche für ' + n + (n === 1 ? ' Förderer' : ' Förderer') + ' …' : 'Recherche …';
-function flSerieLeiste() {
-  const n = UI.flWahl.size;
-  return `<span class="heute-hw"><b>Förderer anklicken</b></span><button class="small" data-act="fl-serie-alle" title="alle Förderer, die gerade in der Liste stehen (mit Suche und Filtern)">Alle</button><button class="primary small" data-act="fl-serie-los"${n ? '' : ' disabled'}>${flSerieText(n)}</button><button class="undo-btn" data-act="fl-serie-leer" title="Auswahl aufheben – alle Haken weg" aria-label="Auswahl aufheben">↶</button><button class="undo-btn ende-x" data-act="fl-serie-ende" title="Auswahl beenden (Esc)" aria-label="Auswahl beenden">×</button>`;
+// Knopf „KI-Recherche“; ist er an, klappt darunter ein kleines Fenster auf: Hinweis zum Anklicken, dann „Recherche für n Förderer …“
+function flSerieKnopf() {
+  const an = !!UI.flWahl, n = an ? UI.flWahl.size : 0;
+  const pop = an ? `<div class="fl-serie-pop" role="dialog" aria-label="KI-Recherche">
+      <div class="fl-sp-t">${ICON_KI}<b>KI-Recherche</b><button class="fl-sp-x" data-act="fl-serie-ende" title="Beenden (Esc)" aria-label="KI-Recherche beenden">×</button></div>
+      <p class="fl-sp-h">${n ? n + (n === 1 ? ' Förderer ausgewählt.' : ' Förderer ausgewählt.') + ' Weitere in der Liste anklicken – oder:' : 'Wähle einen oder mehrere Förderer aus – einfach in der Liste anklicken.'}</p>
+      ${n ? `<button class="primary fl-sp-los" data-act="fl-serie-los">${flSerieText(n)}</button>` : ''}
+      <div class="fl-sp-f"><button class="link small" data-act="fl-serie-alle" title="alle Förderer, die gerade in der Liste stehen (mit Suche und Filtern)">alle angezeigten</button>${n ? '<button class="link small" data-act="fl-serie-leer">Auswahl aufheben</button>' : ''}</div>
+    </div>` : '';
+  return `<span class="fl-serie-w"><button class="heute-btn fl-serie-btn${an ? ' an' : ''}" data-act="${an ? 'fl-serie-ende' : 'fl-serie'}" aria-expanded="${an}" title="Mehrere Förderer auswählen und gemeinsam mit KI recherchieren lassen">${ICON_KI}<span>KI-Recherche</span></button>${pop}</span>`;
 }
-function flSerieUmschalten(id) {
+const flSerieText = n => 'Recherche für ' + n + ' Förderer …';
+function flSerieUmschalten(id, topf) {
   if (!UI.flWahl || !id) return; if (UI.flWahl.has(id)) UI.flWahl.delete(id); else UI.flWahl.add(id);
   keep(renderNow);
+  const r = $(`#fl-body tr[data-id="${id}"]${topf ? `[data-topf="${topf}"]` : ''}`) || $(`#fl-body tr[data-id="${id}"]`); if (r && document.activeElement === document.body) r.focus({ preventScroll: true });
 }
 const flSerieDatei = e => 'Recherche_' + e.id + '_' + String(e.kurz || e.name || 'Foerderer').normalize('NFKD').replace(/[̀-ͯ]/g, '').replace(/ß/g, 'ss').replace(/[^A-Za-z0-9]+/g, '_').replace(/^_|_$/g, '').slice(0, 40) + '.xlsx';
 
@@ -79,13 +86,20 @@ async function flSerieZuordnen(f, R) {
 async function flSerieEinlesen(fl) {
   if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; }
   const F = await flSerieDateien(fl); if (!F.length) { toast('Keine Excel-Datei gefunden.', 'warn'); return; }
-  let fertig = 0, ohne = 0;
-  for (let i = 0; i < F.length; i++) {
-    const f = F[i]; let R = null; try { R = flcLesen(await xlsxBook(await f.arrayBuffer())); } catch (x) { console.warn(x); }
-    if (!R) { ohne++; toast('„' + f.name + '“ ist keine ausgefüllte Recherche-Vorlage – übersprungen.', 'warn'); continue; }
-    const e = await flSerieZuordnen(f, R); if (!e) { ohne++; continue; }
-    await flcEinlesen(f, e, { nr: i + 1, von: F.length }); fertig++;
+  const J = []; let fremd = 0;                                                     // erst alle zuordnen, dann der Reihe nach übernehmen
+  for (const f of F) {
+    let R = null; try { R = flcLesen(await xlsxBook(await f.arrayBuffer())); } catch (x) { console.warn(x); }
+    if (!R) { fremd++; continue; }
+    const e = await flSerieZuordnen(f, R); if (e) J.push({ f, e, name: e.kurz || e.name, st: 'wartet' }); else fremd++;
+  }
+  if (!J.length) { toast('Keine Datei ließ sich einem Förderer zuordnen.', 'warn'); return; }
+  for (const j of J) {
+    j.st = 'jetzt';
+    const r = await flcEinlesen(j.f, j.e, J.length > 1 ? { liste: J } : null);
+    j.st = r === 'ok' ? 'ok' : 'skip';
+    if (r === 'stop') break;
   }
   UI.flWahl = null; keep(renderNow);
-  if (F.length > 1) toast(fertig + ' von ' + F.length + ' Dateien durchgesehen' + (ohne ? ', ' + ohne + ' übersprungen' : ''), 'ok');
+  const ok = J.filter(j => j.st === 'ok').length;
+  toast(ok + ' von ' + J.length + ' Förderern übernommen' + (fremd ? ' · ' + fremd + (fremd === 1 ? ' Datei' : ' Dateien') + ' ohne Zuordnung' : '') + ' – mit ↶ (Strg+Z) rückgängig zu machen', ok ? 'ok' : undefined);
 }

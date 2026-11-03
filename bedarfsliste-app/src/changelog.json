@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.123.0",
+    "date": "2026-11-10T16:00",
+    "items": [
+      "KI-Recherche: Der Knopf öffnet ein kleines Fenster direkt darunter („Wähle einen oder mehrere Förderer aus …“). Sobald Förderer angeklickt sind, erscheint dort „Recherche für n Förderer …“; dazu „alle angezeigten“ und „Auswahl aufheben“. Knopf noch einmal, × oder Esc beendet die Auswahl. Die Leiste oben ist weg",
+      "Übernehmen-Fenster neu: Überschrift „Welche Angaben sollen übernommen werden?“; ohne Dateizeile, Zähler und Erklärtext. Jede Angabe trägt ein Kennzeichen: neu (Feld bisher leer), ersetzt (der bisherige Wert steht durchgestrichen darunter), ergänzt (wird an die Notizen angehängt), unsicher belegt (Quelle sagt es nicht direkt, ist älter als zwei Jahre oder widersprüchlich – Hinweis beim Darüberfahren; nicht vorgewählt). Oben eine kleine Legende und „alle / keine / Vorschlag“",
+      "Mehrere Dateien: links stehen die Förderer der Recherche – der aktuelle hervorgehoben, erledigte mit ✓, übersprungene durchgestrichen, die übrigen folgen. Knöpfe: Übernehmen, Überspringen, Recherche beenden. Am Ende eine Meldung, wie viele übernommen wurden",
+      "Förderhöhe aus der Recherche: Ein einzelner Betrag (oder zweimal derselbe) wird als Obergrenze eingetragen („bis 12.000 €“), „von“ nur bei einer echten Spanne. Vorlage und Auftrag sagen das entsprechend",
+      "Fördererliste mit der Tastatur: dieselben Tasten wie in der Bedarfsliste (Zahnrad → Tastaturbefehle) – nächster/vorheriger, erster/letzter Förderer, öffnen; auf der Seite eines Förderers nächster/voriger Förderer der Liste und zurück",
+      "Fördererliste: Die Trennlinie zwischen Förderer und Fördertöpfen lässt sich mit der Maus verschieben; gilt für alle Zeilen und bleibt gespeichert"
+    ]
+  },
+  {
     "version": "0.122.0",
     "date": "2026-11-10T10:00",
     "items": [

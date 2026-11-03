@@ -14,8 +14,8 @@ const FLC_FELDER = [
   ['frei', 'Förderzweck (Freitext)', 'Wofür fördert der Förderer? Kurze Stichworte, mit Komma getrennt (z. B. Ehrenamt, Jugend, Gesundheit).'],
   ['zw', 'Zwecke der Malteser (Auswahl, mehrere mit Komma)', 'Nur Zwecke aus der Liste im Blatt „Auswahlwerte“, die zum Förderzweck des Förderers passen (z. B. Gesundheit, Jugendhilfe). Kultur o. Ä. weglassen.'],
   ['gl', 'Fördergebiet (Gliederungen, Komma getrennt)', 'Gliederungen der Malteser aus „Auswahlwerte“, in deren Gebiet der Förderer fördert (z. B. Stadt Dortmund → Dortmund). Gilt es für das ganze Erzbistum, NRW oder bundesweit: alle'],
-  ['von', 'Förderhöhe von (€)', 'Nur eine Zahl, ohne Einheit (z. B. 1000). Kleinster übliche Betrag; leer, wenn unbekannt.'],
-  ['bis', 'Förderhöhe bis (€)', 'Nur eine Zahl, ohne Einheit (z. B. 10000). Höchster Betrag laut Richtlinie oder Förderhistorie; ist die Höhe fest, hier und bei „von“ denselben Betrag.'],
+  ['von', 'Förderhöhe von (€)', 'Nur eine Zahl, ohne Einheit (z. B. 1000). Nur, wenn ein Mindestbetrag genannt ist; sonst leer.'],
+  ['bis', 'Förderhöhe bis (€)', 'Nur eine Zahl, ohne Einheit (z. B. 10000). Höchster Betrag laut Richtlinie oder Förderhistorie. Gibt es nur einen Betrag, steht er nur hier (nicht zusätzlich bei „von“).'],
   ['quote', 'Förderquote', 'Freitext wie in der Richtlinie, z. B. bis 90 % der Kosten, Eigenanteil 10 %. Leer, wenn nicht genannt.'],
   ['fristen', 'Hinweis zu Fristen', 'Nur wenn es keine festen Termine gibt, z. B. laufend, Sitzung des Gremiums im März und September. Feste Termine gehören ins Blatt „Fristen“.'],
   ['web', 'Homepage', 'Link zur Seite des Förderers.'],
@@ -158,6 +158,8 @@ function flcLesen(book) {
     beispiele: (() => { const s = blatt('Beispiele'); if (!s) return []; const mt = /^f(ö|oe)rdertopf/.test(norm(cellStr((s.rows[0] || [])[0]))), o = mt ? 1 : 0;   // in der Fördertopf-Vorlage ohne Spalte „Fördertopf“
       return s.rows.slice(1).filter(r => r && (cellStr(r[o]) || cellStr(r[o + 1]))).map(r => ({ topf: mt ? strV(r[0]) : '', titel: strV(r[o]), text: strV(r[o + 1]), ort: strV(r[o + 2]), jahr: cellStr(r[o + 3]), betrag: zahlOderLeer(r[o + 4]), unsicher: norm(r[o + 5]) === 'unsicher', quelle: cellStr(r[o + 6]) })); })() };
 }
+// Förderhöhe aus der Recherche: ein einzelner Betrag oder zweimal derselbe gilt als Obergrenze („bis …“), „von“ nur bei einer echten Spanne
+const flcHoehe = (von, bis) => { const hi = bis != null ? bis : von, lo = von != null && bis != null && von < bis ? von : null; return { hoeheVon: lo, hoeheBis: hi }; };
 // Angaben der Fördertopf-Zeile t, die dem Fördertopf x noch fehlen (vorhandene Angaben bleiben):
 // [{ lab, key (Feld des Topfs), bereich, neu (Text), fn(wert), edit, opts }]
 function flcTopfFelder(x, t) {
@@ -166,8 +168,9 @@ function flcTopfFelder(x, t) {
   f('Kurzname', 'kurz', S, t.kurz && !x.kurz, t.kurz, v => { x.kurz = v; }, T);
   f('Förderzweck', 'schwer', S, t.schwer && !x.schwer, t.schwer, v => { x.schwer = v; }, T);
   f('Fördergebiet', 'gl', S, t.gl.length && !x.gl.length, t.gl.join(', '), v => { x.gl = strL(v); }, T);
-  f('Förderhöhe', 'hoehe', S, (t.von != null || t.bis != null) && x.hoeheVon == null && x.hoeheBis == null && !x.hoehe, flHoeheKlar({ hoeheVon: t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }),
-    () => { Object.assign(x, { hoeheVon: t.von == null ? t.bis : t.von, hoeheBis: t.bis == null ? t.von : t.bis, hoehe: '' }); x.bew.summe = 0; });
+  const H = flcHoehe(t.von, t.bis);
+  f('Förderhöhe', 'hoehe', S, (t.von != null || t.bis != null) && x.hoeheVon == null && x.hoeheBis == null && !x.hoehe, flHoeheKlar(Object.assign({ hoehe: '' }, H)),
+    () => { Object.assign(x, H, { hoehe: '' }); x.bew.summe = 0; });
   f('Förderquote', 'quote', S, t.quote && !x.quote, t.quote, v => { x.quote = v; }, T);
   f('Hinweis zu Fristen', 'fristen', S, t.fristen && !x.fristen, t.fristen, v => { x.fristen = v; }, T);
   const weg = flWegNorm(t.weg), an = weg === 'Portal' ? flUrlVoll(t.antrag) : mailRein(t.antrag);
@@ -197,7 +200,7 @@ function flcAenderungen(e, R, h) {
   add('frei', S, 'Förderzweck', h.schwer, zNeu, v => { h.schwer = v; }, { edit: 'text', unsicher: !!(F.zw && F.zw.unsicher), quelle: (F.zw || {}).quelle });
   add('gl', S, 'Fördergebiet', h.gl.join(', '), strL(w('gl')).join(', '), v => { h.gl = strL(v); }, T);
   const von = zahlOderLeer(F.von && F.von.wert), bis = zahlOderLeer(F.bis && F.bis.wert);
-  if (von != null || bis != null) { const t = flHoeheKlar({ hoeheVon: von, hoeheBis: bis == null ? von : bis, hoehe: '' }); add('von', S, 'Förderhöhe', flHoeheKlar(h), t, () => { Object.assign(h, { hoeheVon: von == null ? bis : von, hoeheBis: bis == null ? von : bis, hoehe: '' }); h.bew.summe = 0; }, { unsicher: !!(F.bis && F.bis.unsicher), quelle: (F.bis || {}).quelle }); }
+  if (von != null || bis != null) { const H = flcHoehe(von, bis), t = flHoeheKlar(Object.assign({ hoehe: '' }, H)); add('von', S, 'Förderhöhe', flHoeheKlar(h), t, () => { Object.assign(h, H, { hoehe: '' }); h.bew.summe = 0; }, { unsicher: !!(F.bis && F.bis.unsicher), quelle: (F.bis || {}).quelle }); }
   add('quote', S, 'Förderquote', h.quote, w('quote'), v => { h.quote = v; }, T);
   add('fristen', S, 'Hinweis zu Fristen', h.fristen, w('fristen'), v => { h.fristen = v; }, T);
   add('web', S, 'Homepage', h.web, flUrlVoll(w('web')), v => { h.web = flUrlVoll(v); }, T);
@@ -263,12 +266,13 @@ function flTopfEinfuegen(e, t) {
   if (!e.topfe.length) { flTopfErbt(t, e); e.fristenL.forEach(f => { if (!f.topf) f.topf = t.name; }); }
   e.topfe.push(t); e.topfMig = true; return t;
 }
-async function flcEinlesen(datei, e0, info) {          // e0: Förderer (sonst der geöffnete); info: { nr, von } beim Einlesen mehrerer Dateien
-  if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return; }
-  const e = e0 || flCur(); if (!e) return;
-  const f = datei || await pickFile('.xlsx'); if (!f) return;
+// Ergebnis: 'ok' (übernommen), 'skip' (übersprungen / abgebrochen), 'stop' (bei mehreren Dateien: ganz aufhören)
+async function flcEinlesen(datei, e0, info) {          // e0: Förderer (sonst der geöffnete); info: { liste: [{ name, st: 'ok'|'skip'|'jetzt'|'wartet' }] } beim Einlesen mehrerer Dateien
+  if (DEMO) { toast('In der Vorschau lassen sich keine Dateien einlesen. In der Programmdatei geht das.', 'warn'); return 'skip'; }
+  const e = e0 || flCur(); if (!e) return 'skip';
+  const f = datei || await pickFile('.xlsx'); if (!f) return 'skip';
   let R = null; try { R = flcLesen(await xlsxBook(await f.arrayBuffer())); } catch (x) { console.warn(x); }
-  if (!R) { modal('Keine Copilot-Vorlage erkannt', h('p', {}, 'In „' + f.name + '“ fehlt das Blatt „Steckbrief“ mit den Feldern der Vorlage. Bitte die Vorlage über ⋯ → „Mit Copilot ausfüllen …“ holen und von Copilot ausfüllen lassen.')); return; }
+  if (!R) { modal('Keine Copilot-Vorlage erkannt', h('p', {}, 'In „' + f.name + '“ fehlt das Blatt „Steckbrief“ mit den Feldern der Vorlage. Bitte die Vorlage über ⋯ → „Mit Copilot ausfüllen …“ holen und von Copilot ausfüllen lassen.')); return 'skip'; }
   // Ziel: der Förderer selbst (nur ohne Fördertöpfe, Vorlage „Förderer“) oder ein vorhandener bzw. neuer Fördertopf
   const dName = strV(R.F.name && R.F.name.text), mitTopf = e.topfe.length > 0 || R.modus === 'topf';
   const optionen = [...(e.topfe.length ? [] : R.modus === 'topf' ? [] : [{ k: 'e', l: 'Förderer als Ganzes (ohne Fördertopf)' }]), ...e.topfe.map(t => ({ k: 't:' + t.id, l: t.name || '(ohne Namen)', t })), ...(mitTopf ? [{ k: 'neu', l: 'Neuer Fördertopf' + (R.modus === 'topf' && dName ? ' „' + dName + '“' : '') }] : [])];
@@ -306,9 +310,13 @@ async function flcEinlesen(datei, e0, info) {          // e0: Förderer (sonst d
     box.addEventListener('keydown', ev => { if (ev.key === 'Enter') { ev.preventDefault(); oeffnen(); } });
     return box;
   };
+  const art = x => !x.fn ? '' : /anhängen/.test(x.titel) ? 'ergänzt' : x.alt && !/^\(/.test(x.alt) ? 'ersetzt' : 'neu';
+  const ART_TIP = { neu: 'Feld ist bisher leer – wird neu eingetragen', ersetzt: 'ersetzt den bisherigen Wert (darunter durchgestrichen)', ergänzt: 'wird an die vorhandenen Notizen angehängt' };
   const zeile = (x, i) => h('div', { class: 'flc-r' + (x.unsicher ? ' unsicher' : '') + (x.fn ? '' : ' aus') },
     h('label', { class: 'flc-cb' }, cbs[i]),
-    h('div', { class: 'flc-k' }, h('b', {}, x.titel), x.unsicher ? h('span', { class: 'fl-pill warn' }, 'unsicher') : null, x.alt ? h('span', { class: 'flc-alt', title: 'bisher: ' + x.alt }, 'bisher: ' + x.alt) : null),
+    h('div', { class: 'flc-k' }, h('b', {}, x.titel), h('span', { class: 'flc-tags' }, art(x) ? h('span', { class: 'flc-tag ' + art(x), title: ART_TIP[art(x)] }, art(x)) : null,
+      x.unsicher ? h('span', { class: 'flc-tag unsicher', title: FLC_UNSICHER_TIP }, 'unsicher belegt') : null),
+      x.alt && art(x) === 'ersetzt' ? h('span', { class: 'flc-alt', title: 'bisher: ' + x.alt }, h('s', {}, x.alt)) : null),
     h('div', { class: 'flc-v' }, wert(x), (x.quelle || x.notiz) ? h('div', { class: 'flc-m' }, x.quelle ? h('a', { href: /^https?:\/\//i.test(x.quelle) ? x.quelle : null, target: '_blank', rel: 'noopener', 'data-act': 'link', title: x.quelle }, 'Quelle: ' + kurzUrl(x.quelle)) : null, x.notiz ? h('span', {}, x.notiz) : null) : null));
   const liste = h('div', { class: 'flc-liste' });
   const tabKopf = () => { if (!tabsAn()) return null; const anl = L.some(x => x.anlegen && x.tab === aktiv), n = L.tabNamen[aktiv] || '';
@@ -334,21 +342,30 @@ async function flcEinlesen(datei, e0, info) {          // e0: Förderer (sonst d
   const ziel = h('div', { class: 'flc-ziel' }, h('b', {}, 'Einlesen in:'), ...optionen.map(o => h('label', { class: 'flc-zo' }, h('input', { type: 'radio', name: 'flc-ziel', checked: o.k === wahl, onchange: () => { wahl = o.k; neuName.hidden = wahl !== 'neu'; baue(); } }), ' ' + o.l)), neuName);
   neuName.hidden = wahl !== 'neu'; neuName.addEventListener('input', () => { if (wahl === 'neu') { traeger(); const t = liste.querySelector('.flc-r b'); } });
   neuName.addEventListener('change', () => { if (wahl === 'neu') baue(); });
-  const bar = h('div', { class: 'flc-bar' }, h('div', { class: 'flc-bt' }, h('b', {}, '„' + f.name + '“'), R.modus === 'topf' ? ' (Fördertopf-Vorlage)' : ' (Förderer-Vorlage)', ' für ', h('b', {}, e.name || 'diesen Förderer'), info ? h('span', { class: 'flc-nr' }, ' · Datei ' + info.nr + ' von ' + info.von) : null),
-    ...(optionen.length > 1 || wahl === 'neu' ? [ziel] : []),
-    h('div', { class: 'flc-bw' }, zaehl, h('button', { class: 'link small', onclick: alle(() => true) }, 'Alle'), h('button', { class: 'link small', onclick: alle(() => false) }, 'Keine'), h('button', { class: 'link small', onclick: alle(x => x.an) }, 'Vorauswahl')),
-    h('p', { class: 'muted small flc-hint' }, 'Vorgewählt sind neue, sichere Angaben. Angaben, die etwas Vorhandenes ersetzen würden, und unsichere sind nicht angekreuzt – bitte einzeln prüfen. Texte lassen sich per Klick ändern.' + (mitTabs ? ' Die Reiter zeigen, welche Angaben in welchen Fördertopf kommen.' : '')), tabBar);
+  const legende = h('div', { class: 'flc-leg' }, ...['neu', 'ersetzt', 'ergänzt'].map(k => h('span', { class: 'flc-tag ' + k, title: ART_TIP[k] }, k)), h('span', { class: 'flc-tag unsicher', title: FLC_UNSICHER_TIP }, 'unsicher belegt'),
+    h('span', { class: 'flc-leg-r' }, h('button', { class: 'link small', onclick: alle(() => true) }, 'alle'), h('button', { class: 'link small', onclick: alle(() => false) }, 'keine'), h('button', { class: 'link small', onclick: alle(x => x.an), title: 'neue, sicher belegte Angaben' }, 'Vorschlag')));
+  const bar = h('div', { class: 'flc-bar' },
+    ...(optionen.length > 1 || wahl === 'neu' ? [ziel] : []), legende,
+    tabBar);
   baue();
-  const body = h('div', { class: 'flc' }, bar, liste);
-  const ok = await modal('Angaben aus Copilot übernehmen?', body, [['Abbrechen', false], ['Ausgewählte übernehmen', true, 'primary']], { wide: true, cls: 'flc-modal' });
-  if (!ok) return;
+  // mehrere Dateien: links die Förderer der Recherche, abgearbeitet von oben nach unten
+  const ST = { ok: ['✓', 'übernommen'], skip: ['–', 'übersprungen'], jetzt: ['▶', 'jetzt'], wartet: ['', 'folgt'] };
+  const seite = info && info.liste ? h('aside', { class: 'flc-seite', 'aria-label': 'Förderer dieser Recherche' }, h('div', { class: 'flc-seite-t' }, 'Recherche'),
+    ...info.liste.map(x => h('div', { class: 'flc-sf ' + x.st, title: ST[x.st][1] }, h('span', { class: 'flc-sf-i' }, ST[x.st][0]), h('span', { class: 'flc-sf-n' }, x.name)))) : null;
+  const body = seite ? h('div', { class: 'flc-mit-seite' }, seite, h('div', { class: 'flc' }, bar, liste)) : h('div', { class: 'flc' }, bar, liste);
+  const knoepfe = info ? [['Recherche beenden', 'stop'], ['Überspringen', 'skip'], ['Übernehmen', true, 'primary']] : [['Abbrechen', false], ['Übernehmen', true, 'primary']];
+  const kopfName = info ? null : h('span', { class: 'flc-kopf-n' }, e.kurz || e.name);
+  const ok = await modal('Welche Angaben sollen übernommen werden?', body, knoepfe, { wide: true, cls: 'flc-modal' + (seite ? ' mit-seite' : ''), kopf: kopfName });
+  if (ok !== true) return info && (ok === 'stop' || ok == null) ? 'stop' : 'skip';
   let n = 0; const t = traeger(); if (t._neu) { delete t._neu; flTopfEinfuegen(e, t); UI.flTopf = t.id; }
   const ids = L.map((x, i) => i).filter(i => L[i].fn && gilt(i));
   [...ids.filter(i => !L[i].spaet), ...ids.filter(i => L[i].spaet)].forEach(i => { L[i].fn(L[i].neu); n++; });          // „Fördertopf anlegen“ zuletzt: der Topf erbt dann, was ihm fehlt
   if (t !== e) UI.flTopf = t.id;
   if (n || t !== e) { e.fristenL.sort((a, c) => a.d.localeCompare(c.d)); flZuKartei(); changed(); keep(renderNow); }
-  toast(n ? n + (n === 1 ? ' Angabe' : ' Angaben') + ' übernommen – mit ↶ (Strg+Z) wieder rückgängig zu machen' : 'Nichts übernommen', n ? 'ok' : undefined);
+  if (!info) toast(n ? n + (n === 1 ? ' Angabe' : ' Angaben') + ' übernommen – mit ↶ (Strg+Z) wieder rückgängig zu machen' : 'Nichts übernommen', n ? 'ok' : undefined);
+  return 'ok';
 }
+const FLC_UNSICHER_TIP = 'Unsicher belegt: Die Quelle sagt es nicht direkt, ist älter als zwei Jahre oder widerspricht sich – bitte über „Quelle“ prüfen. Deshalb nicht vorgewählt.';
 
 // ---------- „Mit Copilot ausfüllen“: Ziel wählen, dann Vorlage herunterladen und Auftrag kopieren
 function flcDialog(e) {
