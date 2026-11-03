@@ -2150,11 +2150,6 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 .flc-mit-seite { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 0 18px; align-items: start; }
 .flc-seite { position: sticky; top: 0; border-right: 1px solid var(--line); padding: 10px 14px 10px 0; display: grid; gap: 2px; }
 .flc-seite-t { font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
-.flc-sf { display: grid; grid-template-columns: 16px minmax(0, 1fr); gap: 6px; align-items: start; padding: 6px 8px; border-radius: 6px; font-size: 13.5px; color: var(--muted); }
-.flc-sf.jetzt { background: var(--ink); color: var(--card); font-weight: 600; }
-.flc-sf.ok { color: var(--ink2); }
-.flc-sf.ok .flc-sf-i { color: var(--okink); }
-.flc-sf.skip { text-decoration: line-through; }
 .flc-sf-n { overflow-wrap: anywhere; }
 .flc-kopf-n { font-size: 13px; color: var(--muted); margin-left: 8px; font-weight: 400; }
 #fl-body td.fl-rs.fl-n { position: relative; }
@@ -2164,3 +2159,16 @@ input.flc-c:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px
 body.fl-ziehen, body.fl-ziehen * { cursor: col-resize !important; user-select: none; }
 @media (max-width: 900px) { .flc-mit-seite { grid-template-columns: minmax(0, 1fr); } .flc-seite { position: static; border-right: 0; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; } }
 body:has(.backdrop) .fl-serie-pop { display: none; }
+
+/* 0.124: Recherche-Leiste mit Kreisen wie bei den Freigaben; „ergänzt“ grau; Quellen dezenter; alle/keine/Vorschlag grau */
+.flc-sf { display: grid; grid-template-columns: 26px minmax(0, 1fr); gap: 8px; align-items: center; min-height: 32px; padding: 3px 8px; border-radius: 6px; font-size: 13.5px; color: var(--faint); }
+.flc-sf .circ { cursor: default; }
+.flc-sf.jetzt { background: var(--hover); color: var(--ink); font-weight: 600; }
+.flc-sf.ok { color: var(--okink); }
+.flc-sf.skip { color: var(--muted); text-decoration: line-through; }
+.flc-tag.ergänzt { background: var(--chipbg); color: var(--ink2); }
+.flc-m, .flc-m a { color: var(--faint); font-size: 11.5px; }
+.flc-m a { text-decoration-color: var(--line); }
+.flc-m a:hover { color: var(--muted); }
+.flc-leg-r .link { color: var(--muted); text-decoration: none; border-radius: 5px; padding: 1px 6px; transition: background .12s, color .12s; }
+.flc-leg-r .link:hover, .flc-leg-r .link:focus-visible { color: var(--ink); background: var(--hover); outline: none; }

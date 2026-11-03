@@ -349,9 +349,10 @@ async function flcEinlesen(datei, e0, info) {          // e0: Förderer (sonst d
     tabBar);
   baue();
   // mehrere Dateien: links die Förderer der Recherche, abgearbeitet von oben nach unten
-  const ST = { ok: ['✓', 'übernommen'], skip: ['–', 'übersprungen'], jetzt: ['▶', 'jetzt'], wartet: ['', 'folgt'] };
+  // Kreise wie bei den Freigaben eines Bedarfs: grün ✓ = übernommen, gelb … = gerade dran, leer = folgt, grau – = übersprungen
+  const ST = { ok: ['ok', 'übernommen'], skip: ['na', 'übersprungen'], jetzt: ['run', 'wird gerade bearbeitet'], wartet: ['off', 'folgt'] };
   const seite = info && info.liste ? h('aside', { class: 'flc-seite', 'aria-label': 'Förderer dieser Recherche' }, h('div', { class: 'flc-seite-t' }, 'Recherche'),
-    ...info.liste.map(x => h('div', { class: 'flc-sf ' + x.st, title: ST[x.st][1] }, h('span', { class: 'flc-sf-i' }, ST[x.st][0]), h('span', { class: 'flc-sf-n' }, x.name)))) : null;
+    ...info.liste.map(x => h('div', { class: 'flc-sf ' + x.st, title: ST[x.st][1] }, h('span', { class: 'circ c-' + ST[x.st][0], 'aria-hidden': 'true', html: CIRC_SYM[ST[x.st][0]] || '' }), h('span', { class: 'flc-sf-n' }, x.name)))) : null;
   const body = seite ? h('div', { class: 'flc-mit-seite' }, seite, h('div', { class: 'flc' }, bar, liste)) : h('div', { class: 'flc' }, bar, liste);
   const knoepfe = info ? [['Recherche beenden', 'stop'], ['Überspringen', 'skip'], ['Übernehmen', true, 'primary']] : [['Abbrechen', false], ['Übernehmen', true, 'primary']];
   const kopfName = info ? null : h('span', { class: 'flc-kopf-n' }, e.kurz || e.name);

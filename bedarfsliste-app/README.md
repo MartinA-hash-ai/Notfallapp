@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.124:** Die Recherche-Leiste im Übernehmen-Fenster zeigt den Stand je Förderer mit Kreisen wie bei den Freigaben (grün übernommen, gelb in Arbeit, leer folgt); „ergänzt“, Quellen und „alle / keine / Vorschlag“ sind dezenter grau.
+
 **Seit 0.123:** KI-Recherche als kleines Fenster unter dem Knopf; das Übernehmen-Fenster zeigt je Angabe „neu / ersetzt / ergänzt / unsicher belegt“ und bei mehreren Dateien links die Förderer der Recherche. Ein einzelner recherchierter Betrag gilt als „bis …“. Die Fördererliste geht mit denselben Tasten wie die Bedarfsliste; die Trennlinie zwischen Förderer und Töpfen ist verschiebbar.
 
 **Seit 0.122:** Der Recherche-Auftrag hat zwei Varianten – „klein / lokal“ (knappes Budget, Stichwortsuche, bis 4 Beispiele) und „groß / überregional“ (Programmübersicht mit Vorfilter, Antragsberechtigung, bis 8 Beispiele). Vorschlag nach „Art“, im Fenster umstellbar; die Ausfüllregeln stehen nur einmal im Code (`src/27_fl_auftrag.js`).

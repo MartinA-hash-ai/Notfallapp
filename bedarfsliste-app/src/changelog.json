@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.124.0",
+    "date": "2026-11-10T18:00",
+    "items": [
+      "Übernehmen-Fenster, linke Leiste „Recherche“: Kreise wie bei den Freigaben eines Bedarfs – grün mit ✓ und grüne Schrift = übernommen, gelb … = wird gerade bearbeitet (leicht grau hinterlegt statt schwarz), leerer Kreis und hellgraue Schrift = folgt, grau durchgestrichen = übersprungen",
+      "Kennzeichen „ergänzt“ jetzt grau; Quellen kleiner und hellgrau; „alle · keine · Vorschlag“ grau ohne Unterstreichung, beim Darüberfahren dunkler und hinterlegt"
+    ]
+  },
+  {
     "version": "0.123.0",
     "date": "2026-11-10T16:00",
     "items": [
