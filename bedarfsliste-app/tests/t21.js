@@ -23,22 +23,26 @@ const { chromium, ok, open, finish } = require('./lib');
     { gl: 'Brakel', konten: [{ art: 'Pax-Bank', iban: ibanBauen('37060120', 2) }, { art: 'Sparkasse', iban: ibanBauen('47251550', 2) }] },
     { gl: 'Hagen', konten: [{ art: 'Volksbank', iban: ibanBauen('47260121', 3) }, { art: 'Sparkasse', iban: ibanBauen('45050001', 3) }] }] } } }); SAVED_JSON = JSON.stringify(D); renderNow(); });
   ok(await p.evaluate(() => !!D.settings.konten && D.settings.konten.liste.length === 2), 'Kontenliste bleibt beim Laden erhalten (settings)');
-  await p.click('header.top [data-act="konten"]'); await p.waitForTimeout(150);
+  // 0.125: Kontenliste über den Knopf in der Seitenleiste links (oben kein Reiter mehr)
+  ok(await p.evaluate(() => !document.querySelector('header.top [data-act="konten"]') && [...document.querySelectorAll('.seitenleiste .sl-k')].map(b => b.getAttribute('aria-label')).join() === 'Verwendungszweck,Kontenliste,Gebietsnummern'), 'Seitenleiste links: Verwendungszweck, Kontenliste, Gebietsnummern; Kontenliste nicht mehr oben');
+  await p.click('.seitenleiste [data-act="konten"]', { force: true }); await p.waitForTimeout(150);
   r = await p.evaluate(() => [document.querySelector('.modal.k-modal h2').textContent, [...document.querySelectorAll('.k-tab thead th')].map(t => t.querySelector('.k-th') ? t.querySelector('.k-th').textContent : t.textContent).join(','),
-    document.querySelectorAll('.k-tab tbody tr').length, document.querySelector('.k-tab thead th.k-haupt .k-bic').textContent.trim(), document.activeElement.className, !document.querySelector('.k-fuss'), !!document.querySelector('.k-modal header .k-stift')]);
-  ok(r.join('|') === 'Kontenliste der Gliederungen|Gliederung,Spendenkonto,Sparkasse,Volksbank|2|BIC GENODED1PA7|k-such|true|true', 'Fenster: Spalten, BIC im Kopf, Suche hat den Fokus, ohne Stand/Einlesen, Stift oben: ' + r.join('|'));
-  // ohne Suche: in der Spalte Sparkasse zwei verschiedene Banken → BIC und Bank unter der IBAN
-  r = await p.evaluate(() => [...document.querySelectorAll('.k-tab tbody tr')].map(t => t.querySelector('.k-gl').textContent + ':' + [...t.querySelectorAll('td')].map(td => td.querySelector('.k-iban') ? (td.querySelector('.k-bic') ? td.querySelector('.k-bic').textContent.trim() + '+' + (td.querySelector('.k-bank') ? 'Bank' : '') : 'iban') : '-').join('/')).join(','));
-  ok(r === 'Brakel:iban/BIC WELADED1HXB+Bank/-,Hagen:-/BIC WELADE3HXXX+Bank/iban', 'ohne Suche: BIC und Bank unter der IBAN, wenn die Spalte verschiedene Banken hat: ' + r);
-  await p.keyboard.type('hag'); await p.waitForTimeout(80);
-  r = await p.evaluate(() => [[...document.querySelectorAll('.k-tab tbody .k-gl')].map(x => x.textContent).join(','), [...document.querySelectorAll('.k-tab thead th')].slice(1).map(t => t.querySelector('.k-bic') ? t.querySelector('.k-bic').textContent.trim() + '|' + t.querySelector('.k-bank').textContent : '-').join(','), !document.querySelector('.k-tab tbody .k-bic')]);
-  ok(r[0] === 'Hagen' && /BIC WELADE3HXXX\|Sparkasse/.test(r[1]) && /BIC DGPBDE3MXXX\|/.test(r[1]) && r[2], 'Suche „hag“: nur Hagen, BIC und Name der Bank stehen jetzt im Kopf: ' + r.join(' # '));
+    document.querySelectorAll('.k-tab tbody tr').length, !document.querySelector('.k-tab thead .k-bic'), document.activeElement.className, !document.querySelector('.k-fuss'), !!document.querySelector('.k-modal header .k-stift')]);
+  ok(r.join('|') === 'Kontenliste der Gliederungen|Gliederung,Spendenkonto,Sparkasse,Volksbank|2|true|k-such|true|true', 'Fenster: Spalten ohne BIC im Kopf, Suche hat den Fokus, Stift oben: ' + r.join('|'));
+  r = await p.evaluate(() => { const td = document.querySelector('.k-tab tbody tr:first-child td.k-haupt'), m = td.querySelector('.k-mehr'), cs = getComputedStyle(td);
+    return [td.querySelector('.k-bic').textContent.trim(), td.querySelector('.k-bank').tagName, getComputedStyle(m).opacity, cs.textAlign, cs.verticalAlign, (() => { const w = document.querySelector('.k-wrap'); return w.scrollWidth <= w.clientWidth; })()]; });
+  ok(r.join('|') === 'BIC GENODED1PA7|BUTTON|0|center|middle|true', 'Jede Zelle: BIC und Bank (kopierbar) zunächst verborgen, Inhalt zentriert, kein waagerechter Scrollbalken: ' + r.join('|'));
+  await p.hover('.k-tab tbody tr:first-child td.k-haupt'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => getComputedStyle(document.querySelector('.k-tab tbody tr:first-child td.k-haupt .k-mehr')).opacity) === '1', 'Beim Darüberfahren erscheinen BIC und Bank');
   await p.evaluate(() => { window.KOPIE = []; navigator.clipboard.writeText = t => { KOPIE.push(t); return Promise.resolve(); }; });
-  await p.fill('.k-such', ''); await p.waitForTimeout(50);
   await p.click('.k-tab tbody tr:first-child td.k-haupt .k-iban'); await p.waitForTimeout(60);
-  await p.click('.k-tab thead th.k-haupt .k-bic'); await p.waitForTimeout(60);
-  r = await p.evaluate(() => [KOPIE[0] === ibanBauen('37060120', 2), KOPIE[1], document.querySelector('.k-tab tbody tr:first-child td.k-haupt .k-iban').classList.contains('ok')]);
-  ok(r.join('|') === 'true|GENODED1PA7|true', 'Klick auf die IBAN kopiert sie, Klick auf die BIC die BIC, mit Haken: ' + r.join('|'));
+  await p.click('.k-tab tbody tr:first-child td.k-haupt .k-bic'); await p.waitForTimeout(60);
+  await p.click('.k-tab tbody tr:first-child td.k-haupt .k-bank'); await p.waitForTimeout(60);
+  r = await p.evaluate(() => [KOPIE[0] === ibanBauen('37060120', 2), KOPIE[1], !!KOPIE[2] && KOPIE[2].length > 3, document.querySelector('.k-tab tbody tr:first-child td.k-haupt .k-iban').classList.contains('ok')]);
+  ok(r.join('|') === 'true|GENODED1PA7|true|true', 'Klick kopiert IBAN, BIC und den Namen der Bank, mit Haken: ' + r.join('|'));
+  await p.focus('.k-such'); await p.keyboard.type('hag'); await p.waitForTimeout(80);
+  ok(await p.evaluate(() => [...document.querySelectorAll('.k-tab tbody .k-gl')].map(x => x.textContent).join(',')) === 'Hagen', 'Suche „hag“: nur Hagen');
+  await p.fill('.k-such', ''); await p.waitForTimeout(50);
   // Stift: bearbeiten statt kopieren
   await p.click('.k-modal .k-stift'); await p.waitForTimeout(60);
   ok(await p.evaluate(() => document.querySelector('.k-modal .k-stift').classList.contains('on') && document.querySelectorAll('.k-tab .k-in').length === 2 * 4), 'Stift: Felder zum Bearbeiten (Name und drei Konten je Gliederung)');
@@ -50,5 +54,16 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(await p.evaluate(() => D.settings.konten.liste.length === 3 && document.activeElement.classList.contains('k-gl-in')), '„+ Gliederung“ legt eine Zeile an, der Name ist gleich zum Tippen bereit');
   await p.click('.k-modal .k-stift'); await p.keyboard.press('Escape'); await p.waitForTimeout(80);
   ok(await p.evaluate(() => !document.querySelector('.k-modal')), 'Esc schließt das Fenster');
+  // 0.125: Gebietsnummern und Verwendungszweck aus der Seitenleiste
+  await p.evaluate(() => { document.querySelectorAll('.backdrop').forEach(b => b.remove()); });
+  await p.click('.seitenleiste [data-act="sl-gebiet"]', { force: true }); await p.waitForSelector('.sl-tab');
+  r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelectorAll('.sl-tab tbody tr').length]);
+  ok(r.join('|') === 'Gebietsnummern|45', 'Gebietsnummern: Fenster mit allen 45 Gliederungen: ' + r.join('|'));
+  await p.fill('.sl-modal .k-such', 'brak'); await p.waitForTimeout(60);
+  ok(await p.evaluate(() => [...document.querySelectorAll('.sl-tab tbody tr')].map(t => t.textContent.trim()).join()) === '160808Brakel', 'Suche „brak“ findet Brakel mit 160808');
+  await p.evaluate(() => { document.querySelectorAll('.backdrop').forEach(b => b.remove()); });
+  await p.click('.seitenleiste [data-act="sl-zweck"]', { force: true }); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => document.querySelector('.modal h2').textContent) === 'Verwendungszweck', 'Verwendungszweck: Fenster (Inhalt folgt)');
+  await p.evaluate(() => { document.querySelectorAll('.backdrop').forEach(b => b.remove()); });
   await finish(b, [p]);
 })();

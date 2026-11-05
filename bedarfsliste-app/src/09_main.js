@@ -131,7 +131,7 @@ function headerHtml() {
   const tab = (k, l, n) => `<button class="tab ${UI.tab === k && UI.view === 'list' ? 'on' : ''}" data-act="tab" data-v="${k}">${l}<span class="cnt">${n}</span></button>`;
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
-    <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}<button class="tab${UI.view === 'flist' || UI.view === 'fdetail' ? ' on' : ''}" data-act="flist" title="Förderer mit Kontakten, Ansprache je Gliederung und allen Förderungen">Fördererliste<span class="beta">Beta</span></button><button class="tab" data-act="konten" title="Konten der Gliederungen mit IBAN und BIC (Fenster)">Kontenliste</button></nav>
+    <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}${tab('archiv', 'Archiv', nR)}<button class="tab${UI.view === 'flist' || UI.view === 'fdetail' ? ' on' : ''}" data-act="flist" title="Förderer mit Kontakten, Ansprache je Gliederung und allen Förderungen">Fördererliste<span class="beta">Beta</span></button></nav>
     <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button>${UI.view === 'list' ? kiListeKnopf() : ''}${UI.view === 'flist' || UI.view === 'fdetail' ? '<button class="primary" data-act="fl-neu-leer" title="Neuen Förderer anlegen">+ Förderer</button>' : '<button class="primary" data-act="new">+ Bedarf</button>'}<button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
     ${b ? `<div class="subbar"><button class="back" data-act="back">‹ ${UI.vonFl && flEintrag(UI.vonFl) ? esc(flEintrag(UI.vonFl).name || 'Fördererliste') : 'Alle Bedarfe'}</button><div id="d-steps">${steps(b)}</div></div>`
       : UI.view === 'flist' ? flBar() : UI.view === 'fdetail' ? flDetailBar() : listBar()}
@@ -193,7 +193,7 @@ function renderNow() {
       if (z) setTimeout(() => wennFrei(() => zustFertig(z)), 0);
     }
     PIE_HOLD = false;
-    app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : UI.view === 'flist' ? flListView() : UI.view === 'fdetail' ? flDetailView() : listView());
+    app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : UI.view === 'flist' ? flListView() : UI.view === 'fdetail' ? flDetailView() : listView()) + seitenleisteHtml();
     aufMass(); kopfHoehe();
     strgSet(CTRL_NOW);
     if (fk) { const e = $(fk, app); if (e) { e.focus({ preventScroll: true }); if (sel && 'setSelectionRange' in e) try { e.setSelectionRange(sel[0], sel[1]); } catch (x) { /* */ } } }
@@ -555,6 +555,8 @@ async function act(k, a, e) {
   switch (k) {
     case 'tab': if (UI.tab !== a.dataset.v) { UI.fSw = []; UI.heuteWahl = null; UI.paketWahl = null; UI.mehrWahl = null; } UI.tab = a.dataset.v; UI.view = 'list'; UI.vonFl = null; ORDER.ids = null; renderNow(); scrollTo(0, 0); return;   // Stichwörter je Reiter verschieden: Filter dort nicht unsichtbar weiterwirken lassen
     case 'konten': kontenDialog(); return;
+    case 'sl-gebiet': gebieteDialog(); return;
+    case 'sl-zweck': zweckDialog(); return;
     case 'konten-ein': closeMenus(); kontenEinlesen(); return;
     case 'konto-kopie': kontoKopieren(a.dataset.v); return;
     case 'open': oeffnen(a.dataset.id); return;

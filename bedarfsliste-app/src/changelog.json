@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.125.0",
+    "date": "2026-11-11T10:00",
+    "items": [
+      "Neue Seitenleiste links: drei weiße Knöpfe (Zielscheibe = Verwendungszweck, Tempel = Kontenliste, Standort = Gebietsnummern), immer etwa auf halber Bildschirmhöhe, auch beim Scrollen. Sie stecken halb hinter dem Rand; kommt die Maus in die Nähe, lugen sie ein paar Pixel hervor, beim Darüberfahren etwas mehr, daneben erscheint ihr Name. Ein Klick öffnet das Fenster",
+      "Kontenliste: Der Reiter oben entfällt, sie öffnet sich über den Tempel-Knopf links",
+      "Gebietsnummern: Fenster mit allen 45 Gebietsnummern der Diözese und Suche (Nummer oder Gliederung); ein Klick kopiert Nummer bzw. Namen",
+      "Verwendungszweck: Fenster als Platzhalter – die Kostenstellen kommen später",
+      "Kontenliste-Tabelle: alle Zellen mittig; BIC und Name der Bank erscheinen erst beim Darüberfahren unter der IBAN (die IBAN rückt dafür nach oben), beides lässt sich wie die IBAN per Klick kopieren; der Spaltenkopf zeigt nur noch die Bank-Art. Das Fenster ist breiter, ohne waagerechten Scrollbalken"
+    ]
+  },
+  {
     "version": "0.124.0",
     "date": "2026-11-10T18:00",
     "items": [

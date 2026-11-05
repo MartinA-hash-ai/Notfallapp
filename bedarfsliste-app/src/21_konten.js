@@ -66,14 +66,12 @@ function kZelle(x, art, kopf, haupt, bearb) {
   if (bearb) return td + `<input type="text" class="k-in" data-gl="${esc(x.gl)}" data-art="${esc(art)}" value="${esc(k ? ibanSchoen(k.iban) : '')}" placeholder="IBAN" aria-label="IBAN ${esc(x.gl)} ${esc(art)}" spellcheck="false"></td>`;
   if (!k) return td + '<span class="k-leer">–</span></td>';
   const bk = ibanBank(k.iban), ok = ibanOk(k.iban), roh = ibanRein(k.iban);
-  return td + kKopierbar(roh, 'k-iban' + (ok ? '' : ' falsch'), ok ? 'Klicken: IBAN kopieren' : 'Die Prüfziffer dieser IBAN stimmt nicht – bitte prüfen', esc(ibanSchoen(roh)))
-    + (bk && (!kopf || bk[0] !== kopf[0]) ? kKopierbar(bk[0], 'k-bic', 'Klicken: BIC kopieren', 'BIC ' + esc(bk[0])) + `<span class="k-bank">${esc(bk[1])}</span>` : '')
-    + (!bk ? '<span class="k-bank">BIC unbekannt</span>' : '') + '</td>';
+  return td + '<div class="k-zi">' + kKopierbar(roh, 'k-iban' + (ok ? '' : ' falsch'), ok ? 'Klicken: IBAN kopieren' : 'Die Prüfziffer dieser IBAN stimmt nicht – bitte prüfen', esc(ibanSchoen(roh)))
+    + '<div class="k-mehr">' + (bk ? kKopierbar(bk[0], 'k-bic', 'Klicken: BIC kopieren', 'BIC ' + esc(bk[0])) + kKopierbar(bk[1], 'k-bank', 'Klicken: Namen der Bank kopieren', esc(bk[1])) : '<span class="k-bank">BIC unbekannt</span>') + '</div></div></td>';
 }
 function kTabelle(K, q, bearb) {
   const L = K.liste.filter(x => !q || norm(x.gl).includes(q)), kopfBank = K_SPALTEN.map(([art]) => kSpalteBank(L, art));
-  const kopf = K_SPALTEN.map(([art, t], i) => `<th class="${i ? '' : 'k-haupt'}"><span class="k-th">${t}</span>`
-    + (kopfBank[i] && !bearb ? kKopierbar(kopfBank[i][0], 'k-bic k-th-bic', 'Klicken: BIC kopieren', 'BIC ' + kopfBank[i][0]) + `<span class="k-bank">${esc(kopfBank[i][1])}</span>` : '') + '</th>').join('');
+  const kopf = K_SPALTEN.map(([art, t], i) => `<th class="${i ? '' : 'k-haupt'}"><span class="k-th">${t}</span></th>`).join('');
   const zeile = x => `<tr>${bearb ? `<td class="k-gl"><div class="k-gl-z"><input type="text" class="k-in k-gl-in" data-gl="${esc(x.gl)}" value="${esc(x.gl)}" aria-label="Name der Gliederung"><button type="button" class="k-weg" data-gl="${esc(x.gl)}" title="Gliederung aus der Kontenliste entfernen" aria-label="Gliederung entfernen">×</button></div></td>` : `<th scope="row" class="k-gl">${esc(x.gl)}</th>`}${K_SPALTEN.map(([art], i) => kZelle(x, art, kopfBank[i], !i, bearb)).join('')}</tr>`;
   return `<table class="k-tab${bearb ? ' k-bearb' : ''}"><thead><tr><th class="k-gl">Gliederung</th>${kopf}</tr></thead><tbody>${L.map(zeile).join('') || `<tr><td colspan="${K_SPALTEN.length + 1}" class="muted k-nix">Keine Gliederung passt zu „${esc(q)}“.</td></tr>`}`
     + (bearb ? `<tr><td colspan="${K_SPALTEN.length + 1}"><button type="button" class="link small k-neu">+ Gliederung</button></td></tr>` : '') + '</tbody></table>';
