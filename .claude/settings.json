@@ -1,0 +1,10 @@
+{
+  "extraKnownMarketplaces": {
+    "martina-mods": {
+      "source": { "source": "github", "repo": "MartinA-hash-ai/Mods" }
+    }
+  },
+  "enabledPlugins": {
+    "token-waechter@martina-mods": true
+  }
+}
