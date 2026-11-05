@@ -1,7 +1,7 @@
 /* ===================================================================== Rahmen: Kopfzeile, Hinweise, Zeichnen, Bedienung, Start */
 
 const DEMO_KEY = 'bedarfsliste-vorschau-4';
-const UI = { flWahl: null, flId: null, flTopf: '', flZu: {}, flSuch: false, flBewQ: {}, flq: '', flArt: '', flGl: '', vonFl: null, flKEdit: false, flAlt: false, flMehr: false, flAlleGl: false, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
+const UI = { flWahl: null, flId: null, flTopf: '', flZu: {}, flSuch: false, flBewQ: {}, flq: '', flF: [], flArt: '', flGl: '', vonFl: null, flKEdit: false, flAlt: false, flMehr: false, flAlleGl: false, mehrWahl: null, fEdit: null, pEdit: null, paketWahl: null, heuteWahl: null, view: 'list', id: null, tab: 'aktiv', q: '', fSw: [], prioKopf: 0, det: null, kEdit: null, zEdit: null, ansicht: 'voll', auf: null, sort: [] };
 const UI_KEEP = ['view', 'id', 'tab', 'ansicht', 'sort', 'prioKopf', 'fSw', 'flId'];             // auch Prio-Sortierung und Stichwort-Filter (ab 0.62)
 const uiKey = () => (DEMO ? 'bl-ui-demo' : 'bl-ui:' + location.pathname);
 const SORT_SPALTEN = ['titel', 'summe', 'ort', 'fr', 'fin', 'vn', 'ueb'];
@@ -73,12 +73,12 @@ function infosAlle() {
   }
   return L;
 }
-function hinweise() { const F = D ? fristenBald() : []; return { jetzt: F.filter(x => x.n <= 0), bald: F.filter(x => x.n > 0), infos: D ? infosAlle() : [] }; }
+function hinweise() { const F = D ? fristenBald() : []; return { jetzt: F.filter(x => x.n <= 0), bald: F.filter(x => x.n > 0), infos: D ? infosAlle() : [], fl: D ? flFristenInfos() : [] }; }
 function fristChip() {
-  const H = hinweise(), n = H.jetzt.length + H.bald.length + H.infos.length, ni = H.infos.length;
+  const H = hinweise(), ni = H.infos.length + H.fl.length, n = H.jetzt.length + H.bald.length + ni;
   if (!n) return '<span id="frist-chip" hidden></span>';
   const [cls, k, w] = H.jetzt.length ? [' over', H.jetzt.length, 'jetzt fällig'] : H.bald.length ? ['', H.bald.length, 'bald fällig'] : [' nur-info', ni, ni === 1 ? 'Info' : 'Infos'];
-  const tip = [H.jetzt.length && H.jetzt.length + ' jetzt fällig', H.bald.length && H.bald.length + ' in den nächsten ' + FRIST_TAGE + ' Tagen fällig', ni && ni + (ni === 1 ? ' Info' : ' Infos')].filter(Boolean).join(', ');
+  const tip = [H.jetzt.length && H.jetzt.length + ' jetzt fällig', H.bald.length && H.bald.length + ' in den nächsten ' + FRIST_TAGE + ' Tagen fällig', H.infos.length && H.infos.length + (H.infos.length === 1 ? ' Info' : ' Infos'), H.fl.length && H.fl.length + (H.fl.length === 1 ? ' Förderer-Frist' : ' Förderer-Fristen') + ' in den nächsten 2 Monaten'].filter(Boolean).join(', ');
   return `<button id="frist-chip" class="frist-chip${cls}" data-act="fristen" aria-haspopup="menu" title="${tip} – klicken für die Liste">${ICON_TRI}<span>${k} ${w}</span></button>`;
 }
 function fristPop(btn) {
@@ -88,8 +88,10 @@ function fristPop(btn) {
   const bed = x => h('span', { class: 'fp-b' }, (x.b.titel || '(ohne Namen)') + (x.b.archiv ? ' · im Archiv' : x.b.manuell ? ' · ' + x.b.manuell : ''));
   const frist = x => h('button', ziel(x, x.n <= 0 ? ' over' : ''), h('span', { class: 'fp-d' }, fmtDate(x.d)), h('span', { class: 'fp-t' }, x.t), h('span', { class: 'fp-r' }, rel(x.n)), bed(x));
   const info = x => h('button', ziel(x, ' fp-info'), h('span', { class: 'fp-d', html: '<i class="fp-i">i</i>' }), h('span', { class: 'fp-t' }, x.t), bed(x));
+  const flf = x => h('button', { class: 'fp-row fp-fl', role: 'menuitem', 'data-act': 'fl-fziel', 'data-id': x.e.id, 'data-topf': x.topf || null, 'data-iso': x.iso },
+    h('span', { class: 'fp-d' }, fmtDate(x.iso)), h('span', { class: 'fp-t' }, (x.e.kurz || x.e.name || '(ohne Namen)') + (x.topf && x.e.topfe.length > 1 ? ' · ' + x.topf : '')), h('span', { class: 'fp-r' }, rel(x.n)), h('span', { class: 'fp-b' }, 'Frist in der Fördererliste'));
   const grp = (t, M, f) => M.length ? [h('div', { class: 'fp-h' }, t), ...M.map(f)] : [];
-  placePop(h('div', { class: 'menu frist-pop', role: 'menu' }, ...grp('Jetzt fällig', H.jetzt, frist), ...grp('Bald fällig · in den nächsten ' + FRIST_TAGE + ' Tagen', H.bald, frist), ...grp('Infos', H.infos, info)), btn, 'right');
+  placePop(h('div', { class: 'menu frist-pop', role: 'menu' }, ...grp('Jetzt fällig', H.jetzt, frist), ...grp('Bald fällig · in den nächsten ' + FRIST_TAGE + ' Tagen', H.bald, frist), ...grp('Förderer-Fristen · in den nächsten 2 Monaten', H.fl, flf), ...grp('Infos', H.infos, info)), btn, 'right');
 }
 // Eintrag im Feld der Hinweise: zur Stelle, die ihn auslöst, und sie kurz aufleuchten lassen. In der Liste in der Zeile des Bedarfs (kompakt:
 // aufgeklappt); steht er dort nicht (Suche, Filter, Archiv, zurückgestellt) oder ist man auf der Seite eines Bedarfs: auf seiner Seite

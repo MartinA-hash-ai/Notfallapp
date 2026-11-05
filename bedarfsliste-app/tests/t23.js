@@ -230,12 +230,25 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   // Einstieg über die Gliederung: Suche nach ihrem Namen oder Filter (zählt auch Förderer für alle); Spalten der Übersicht
   await p.fill('#flq', 'geseke'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => [...document.querySelectorAll('#fl-body tr[data-id]')].map(x => x.dataset.id).join()) === 'F001', 'Suche nach einer Gliederung findet ihre Förderer');
-  await p.fill('#flq', ''); await p.evaluate(() => { flEintrag('F002').gl = ['alle']; }); await p.selectOption('select[data-ui="flGl"]', 'Brakel'); await p.waitForTimeout(100);
+  await p.fill('#flq', ''); await p.evaluate(() => { flEintrag('F002').gl = ['alle']; }); await p.evaluate(() => { UI.flGl = 'Brakel'; renderNow(); }); await p.waitForTimeout(100);
   r = await p.evaluate(() => [[...document.querySelectorAll('#fl-body tr[data-id]')].map(x => x.dataset.id).join(), [...document.querySelectorAll('.fl-tab thead th')].map(t => t.textContent).join(','),
     document.querySelector('#fl-body tr[data-id="F001"] .fl-kn').textContent, document.querySelectorAll('#fl-body tr[data-id="F001"] .fl-fi').length, document.querySelector('#fl-body tr[data-id="F002"] .fl-g').textContent, !!document.querySelector('section.card.list-card #fl-body')]);
   ok(r[0] === 'F004,F001,F002' && r[1] === 'Förderer,Fördergebiet,Förderzweck,Fristen ' + new Date().getFullYear() + ',Einschätzung,Ansprechperson' && r[2] === 'Erika B' && r[3] === 2 && r[4] === 'alle Gliederungen' && r[5],
     'Filter Brakel (mit „alle“), Spalten, Ansprechperson mit Telefon und E-Mail, weißer Kasten: ' + r.join(' | '));
-  await p.selectOption('select[data-ui="flGl"]', '');
+  await p.evaluate(() => { UI.flGl = ''; renderNow(); });
+  // 0.131: Filter mit Häkchen statt Gliederungs-Auswahl; Krone ab 10.000 €; Leiste gleich hoch
+  ok(await p.evaluate(() => !document.querySelector('select[data-ui="flGl"]') && !!document.querySelector('.fl-filter-btn')), 'Leiste: Filter-Knopf statt Gliederungs-Auswahl');
+  await p.click('.fl-filter-btn'); await p.waitForSelector('.fl-filter-pop');
+  r = await p.evaluate(() => [...document.querySelectorAll('.fl-filter-pop .fl-fi-z')].map(l => l.querySelector('.fl-fi-t').textContent.split(' ')[0]).join('/'));
+  ok(/^Banken\//.test(r) && /über/.test(r), 'Filter: Arten mit Banken zuerst, dazu „über 10.000 €“: ' + r);
+  await p.click('.fl-filter-pop label:has-text("Banken")'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [flGefiltert().every(e => FL_BANK.includes(e.art)), flGefiltert().length > 0, document.querySelector('.fl-filter-btn').textContent.trim()]);
+  ok(r[0] && r[1] && /Filter · 1/.test(r[2]), 'Filter „Banken“: nur Sparkassen, Volksbanken, Banken; Knopf zeigt die Anzahl: ' + r.join('|'));
+  await p.click('.fl-filter-pop button:has-text("Filter aufheben")'); await p.keyboard.press('Escape');
+  r = await p.evaluate(() => { const e = flEintrag('F001'), alt = [e.hoeheBis, e.gross]; e.gross = false; e.hoeheBis = 15000; UI.flF = ['gross']; renderNow(); const o = [flGefiltert().some(x => x.id === 'F001'), !!document.querySelector('#fl-body tr[data-id="F001"] .fl-krone-l')]; e.hoeheBis = 10000; o.push(flGrossT(e)); e.hoeheBis = alt[0]; e.gross = alt[1]; UI.flF = []; renderNow(); return o; });
+  ok(r.join() === 'true,true,false', 'Krone und Filter „über 10.000 €“ auch aus der Förderhöhe (bis 15.000 € ja, bis 10.000 € nein): ' + r.join());
+  r = await p.evaluate(() => [...document.querySelectorAll('.fl-head .fl-filter-btn, .fl-head .fl-serie-btn, .fl-head .tools > button, .fl-head input[type=search]')].map(x => Math.round(x.getBoundingClientRect().height)));
+  ok(new Set(r).size === 1, 'Leiste: Suche, Filter, KI-Recherche und Excel gleich hoch: ' + r.join());
   // Excel einlesen: ersetzt die Liste (nach Rückfrage); weggefallene Einträge verlieren ihre Verknüpfung
   const buf = await p.evaluate(async () => { const L = D.fl.liste; const alt = D.fl; D.fl = flNorm({ liste: JSON.parse(JSON.stringify(L.filter(e => e.id !== 'F004'))) }); D.fl.liste[0].notiz = 'neu eingelesen';
     const blob = flBlob(); D.fl = alt; return [...new Uint8Array(await blob.arrayBuffer())]; });
@@ -391,9 +404,10 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.keyboard.press('Escape'); await p.evaluate(() => flZurueck());
   // 0.107: Excel-Vorlage und Auftrag für Copilot, Einlesen über das ⋯-Menü
   await p.evaluate(() => { const e = flEintrag('F002'); Object.assign(e, { notiz: '', art: '', kurz: '', schwer: '', gl: [], quote: 'alt', web: '', weg: [], antrag: '', gross: false, hoeheVon: null, hoeheBis: null, hoehe: '', recherche: '' }); e.bew = { chance: 0, summe: 0, haeufig: 0, aufwand: 0, dauer: 0 }; e.fristenL = []; e.topfe = []; e.kontakte = []; UI.view = 'flist'; changed(); flOeffnen('F002'); renderNow(); }); await p.waitForTimeout(300);
-  await p.click('.fl-punkte'); r = await p.evaluate(() => [...document.querySelectorAll('.fl-menue [data-act^="fl-copilot"]')].map(b => b.dataset.act).join());
-  ok(r === 'fl-copilot-dialog', '⋯-Menü: ein Eintrag „Mit Copilot ausfüllen …“ (Vorlage, Auftrag und Einlesen in einem Fenster): ' + r);
-  ok(await p.evaluate(() => !document.querySelector('.fl-menue [data-fl="status"]') && /Mit Copilot ausfüllen/.test(document.querySelector('.fl-menue').textContent) && !/Recherche vorbereiten|Ausgefüllte Vorlage/.test(document.querySelector('.fl-menue').textContent)), '⋯-Menü: ohne Status, ohne die beiden alten Einträge');
+  await p.click('.fl-punkte'); r = await p.evaluate(() => [document.querySelectorAll('.fl-menue [data-act^="fl-copilot"]').length, !!document.querySelector('.fl-dbar .fl-ki-d[data-act="fl-copilot-dialog"]')].join());
+  ok(r === '0,true', '0.131: KI-Recherche als Knopf oben rechts auf der Seite des Förderers, nicht mehr im ⋯-Menü: ' + r);
+  ok(await p.evaluate(() => !document.querySelector('.fl-menue [data-fl="status"]') && !/Recherche vorbereiten|Ausgefüllte Vorlage/.test(document.querySelector('.fl-menue').textContent)), '⋯-Menü: ohne Status, ohne die alten Einträge');
+  await p.keyboard.press('Escape');
   r = await p.evaluate(async () => { const e = flEintrag('F002'), bk = await xlsxBook(await flcVorlageBlob(e).arrayBuffer()), st = bk.sheets.find(x => x.name === 'Steckbrief'), pr = flcPrompt(e);
     return [bk.sheets.map(x => x.name).join('+'), st.rows.length - 1, FLC_FELDER.length, st.rows[1][1], pr.includes('Volksbank Test eG') && pr.includes(FLC_DATEI) && /Quelle/.test(pr) && /nichts/i.test(pr), flcLesen(bk) !== null]; });
   ok(r.join('|') === 'Anleitung+Steckbrief+Fristen+Fördertöpfe+Beispiele+Kontakte+Quellen+Auswahlwerte|25|25|Volksbank Test eG|true|true', 'Vorlage: sieben Blätter, ein Feld je Zeile, Name vorbelegt; Auftrag nennt Förderer, Datei und Quellenpflicht: ' + r.join('|'));
@@ -475,7 +489,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.evaluate(() => undo()); await p.waitForTimeout(200);
   ok(await p.evaluate(() => flEintrag('F002').topfe.length) === 2, 'Rückgängig holt den entfernten Fördertopf zurück');
   // Copilot je Fördertopf: Dialog, Vorlage, Auftrag
-  await p.evaluate(() => { UI.flTopf = flEintrag('F002').topfe[1].id; renderNow(); }); await p.click('.fl-punkte'); await p.click('[data-act="fl-copilot-dialog"]'); await p.waitForSelector('.flc-dlg');
+  await p.evaluate(() => { UI.flTopf = flEintrag('F002').topfe[1].id; renderNow(); }); await p.click('.fl-ki-d'); await p.waitForSelector('.flc-dlg');
   r = await p.evaluate(async () => { const e = flEintrag('F002'), b = e.topfe[1], z = { modus: 'topf', topf: b, name: b.name }, bk = await xlsxBook(await flcVorlageBlob(e, z).arrayBuffer()), st = bk.sheets.find(x => x.name === 'Steckbrief'), pr = flcPrompt(e, z);
     return [[...document.querySelectorAll('.flc-dlg .flc-zo')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '*' : '') + (l.querySelector('input').disabled ? '(aus)' : '')).join('/'), [...document.querySelectorAll('.flc-dlg select option')].map(o => o.textContent + (o.selected ? '*' : '')).join('/'), bk.sheets.map(x => x.name).join('+'), st.rows[1][0], st.rows[1][1], st.rows.some(x => /^Art$/.test(x[0])), pr.includes('„Programm B“') && pr.includes('nur für diesen einen Fördertopf'), flcLesen(bk).modus]; });
   ok(r.join('|') === 'Förderer allgemein(aus)/Ein bestimmter Fördertopf*|Programm A – noch nicht recherchiert/Programm B – noch nicht recherchiert*/Neuer Fördertopf …|Anleitung+Steckbrief+Fristen+Beispiele+Kontakte+Quellen+Auswahlwerte|Name des Fördertopfs (voller Name)|Programm B|false|true|topf', 'Dialog: erst „Förderer allgemein“ oder „bestimmter Fördertopf“ (allgemein gesperrt, sobald es Töpfe gibt), Töpfe ohne Recherche gekennzeichnet; Vorlage je Topf ohne Blatt „Fördertöpfe“ und ohne „Art“, Auftrag nennt den Topf: ' + r.join('|'));
@@ -544,7 +558,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.evaluate(() => { flEintrag('F002').topfe = []; flEintrag('F002').topfMig = false; UI.flTopf = ''; changed(); flZurueck(); });
   // 0.113: Abfrage „Förderer allgemein oder bestimmter Fördertopf“; Förderer-Vorlage mit allen Angaben je Topf; jeder neue Topf erbt vom Förderer
   await p.evaluate(() => { const e = flEintrag('F002'); Object.assign(e, { notiz: '', anschrift: '', schwer: '', gl: [], recherche: '', web: '', weg: [], antrag: '', gross: false }); e.bew = { chance: 0, summe: 0, haeufig: 0, aufwand: 0, dauer: 0 }; e.fristenL = []; e.topfe = []; e.topfMig = false; e.kontakte = []; UI.flTopf = ''; changed(); flOeffnen('F002'); renderNow(); }); await p.waitForTimeout(250);
-  await p.click('.fl-punkte'); await p.click('[data-act="fl-copilot-dialog"]'); await p.waitForSelector('.flc-dlg');
+  await p.click('.fl-ki-d'); await p.waitForSelector('.flc-dlg');
   r = await p.evaluate(async () => { const e = flEintrag('F002'), bk = await xlsxBook(await flcVorlageBlob(e).arrayBuffer()), tp = bk.sheets.find(x => x.name === 'Fördertöpfe'), pr = flcPrompt(e);
     return [[...document.querySelectorAll('.flc-dlg .flc-zo')].map(l => l.textContent.trim() + (l.querySelector('input').checked ? '*' : '') + (l.querySelector('input').disabled ? '(aus)' : '')).join('/'), [...document.querySelectorAll('.flc-dlg select option')].map(o => o.textContent).join('/'), document.querySelector('.flc-unter').hidden, tp.rows[0].length, pr.includes('BUDGET je Förderer: höchstens 12') && flcPrompt(e, { modus: 'foerderer', variante: 'B' }).includes('Vorfilter')]; });
   ok(r.join('|') === 'Förderer allgemein*/Ein bestimmter Fördertopf|Neuer Fördertopf …|true|24|true', 'Dialog ohne Töpfe: „Förderer allgemein“ vorgewählt, Topf-Auswahl erst nach Klick; Vorlage: Töpfe-Blatt mit allen Angaben (24 Spalten), Auftrag Variante A (klein), umstellbar auf B (groß, mit Vorfilter): ' + r.join('|'));
@@ -553,7 +567,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   // 0.118: ohne Erklärtexte; nach „Vorlage herunterladen“ erscheint ein Feld zum Hineinziehen der ausgefüllten Excel
   await p.click('.flc-dlg input[value="e"]');
   r = await p.evaluate(() => [/Wofür soll Copilot|Danach in Copilot/.test(document.querySelector('.flc-dlg').textContent), document.querySelector('.flc-drop').hidden, document.querySelector('.modal h2').textContent]);
-  ok(r.join() === 'false,false,Mit Copilot ausfüllen', 'Fenster „Mit Copilot ausfüllen“: ohne Erklärtexte, Ablagefeld sofort sichtbar: ' + r.join());
+  ok(/^false,false,KI-Recherche: /.test(r.join()), 'Fenster „KI-Recherche“: ohne Erklärtexte, Ablagefeld sofort sichtbar: ' + r.join());
   r = await p.evaluate(() => { const pr = flcPrompt(flEintrag('F002')); return [/Keine Wiederholungen/.test(pr), /nicht in den Notizen wiederholen/.test(pr), /nur, was über den Förderzweck hinausgeht/.test(pr)]; });
   ok(r.join() === 'true,true,true', 'Auftrag: Wiederholungen ausdrücklich ausgeschlossen (Förderzweck nicht noch einmal in den Notizen): ' + r.join());
   const ablegen = (name, xlsx) => p.evaluate(async ([name, xlsx]) => { const e = flEintrag('F002'), dt = new DataTransfer(), b = xlsx ? await flcVorlageBlob(e) : new Blob(['x']);
@@ -707,6 +721,14 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.click('[data-act="fl-serie"]'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => !!document.querySelector('.fl-serie-pop .fl-sp-drop')), 'KI-Recherche: Ablagefeld gleich im kleinen Fenster (ohne vorher Förderer auszuwählen)');
   await p.evaluate(() => { const e = flEintrag('F002'); e.topfe = []; e.topfMig = false; UI.flWahl = null; changed(); renderNow(); });
+  // 0.131: Fristen der Fördererliste in den nächsten zwei Monaten im Feld der Hinweise oben rechts; Klick springt zur Frist auf der Seite des Förderers
+  r = await p.evaluate(() => { const e = D.fl.liste[0], d = new Date(Date.parse(today()) + 20 * 864e5).toISOString().slice(0, 10), d2 = new Date(Date.parse(today()) + 90 * 864e5).toISOString().slice(0, 10); e.status = 'aktiv';
+    e.fristenL.push({ id: 'tfr1', d, topf: '' }, { id: 'tfr2', d: d2, topf: '' }); UI.view = 'flist'; changed(); renderNow(); const H = hinweise().fl.filter(x => x.e === e); return [H.length, H[0] && H[0].iso === d, H[0] && H[0].n, /Förderer-Frist/.test(document.querySelector('#frist-chip').title)]; });
+  ok(r.join() === '1,true,20,true', 'Förderer-Fristen: nur die in den nächsten zwei Monaten, im Hinweis-Feld genannt: ' + r.join());
+  await p.click('#frist-chip'); await p.click('.frist-pop .fp-fl'); await p.waitForTimeout(800);
+  r = await p.evaluate(() => [UI.view, UI.flId === D.fl.liste[0].id, !!document.querySelector('.fl-fr .fl-fd.blitz, .fl-fr.blitz')]);
+  ok(r.join() === 'fdetail,true,true', 'Klick auf eine Förderer-Frist: Seite des Förderers, die Frist leuchtet auf: ' + r.join());
+  await p.evaluate(() => { const e = D.fl.liste[0]; e.fristenL = e.fristenL.filter(f => !/^tfr/.test(f.id)); flGrossE(e) && (e.gross = !!e.gross); UI.view = 'flist'; changed(); renderNow(); });
   // gespeichert und wieder geladen: bleibt erhalten
   r = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [n.fl.liste.length, JSON.stringify(n.fl) === JSON.stringify(D.fl), n.bedarfe[0].foerderer[1].flAus.length, n.bedarfe[0].foerderer[3].flNein]; });
   ok(r.join('|') === '2|true|0|true', 'Speichern/Laden behält Fördererliste und Merker: ' + r.join('|'));

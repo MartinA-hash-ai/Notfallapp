@@ -334,6 +334,52 @@ function flEff(e, T0) {
   return Object.assign({}, e, { gl: T.some(t => t.gl.some(g => /^alle$/i.test(g))) ? ['alle'] : uniq(T.flatMap(t => t.gl)), schwer: uniq(T.flatMap(t => flKomma(t.schwer).split(', ').filter(Boolean))).join(', '),
     weg: (T.find(t => t.weg.length) || { weg: [] }).weg, web: erst('web'), antrag: erst('antrag'), gross: T.some(t => t.gross), quote: erst('quote'), fristen: T.map(t => strV(t.fristen)).filter(Boolean).join('; '), notiz: T.map(t => strV(t.notiz)).filter(Boolean).join('\n\n') });
 }
+// Krone „> 10.000 € möglich“: von Hand gesetzt oder Förderhöhe (von/bis) über 10.000 €; beim Förderer auch, wenn ein Topf sie hat
+const flGrossT = x => !!x && (x.gross === true || Math.max(+x.hoeheBis || 0, +x.hoeheVon || 0) > 10000);
+const flGrossE = e => flGrossT(e) || e.topfe.some(flGrossT);
+// Fristen in den nächsten zwei Monaten (dieses und nächstes Jahr), je Fördertopf; topf = Name des Topfs oder ''
+const FL_FRIST_TAGE = 61;
+function flFristenBald(e, tName) {
+  const heute = today(), y = +heute.slice(0, 4), L = [], seen = new Set();
+  for (const j of [y, y + 1]) for (const x of flFristenDaten(e, j)) {
+    const n = Math.round((Date.parse(x.iso) - Date.parse(heute)) / 864e5), topf = x.topf || (e.topfe.length ? e.topfe[0].name : '');
+    if (n < 0 || n > FL_FRIST_TAGE || seen.has(x.iso + '|' + topf) || (tName != null && topf !== tName)) continue;
+    seen.add(x.iso + '|' + topf); L.push({ iso: x.iso, n, topf });
+  }
+  return L.sort((a, c) => a.n - c.n);
+}
+// für das Feld der Hinweise oben rechts: je aktivem Förderer (und Topf) die nächste Frist in den nächsten zwei Monaten
+function flFristenInfos() {
+  if (!D || !D.fl) return [];
+  const L = [];
+  for (const e of D.fl.liste) { if (e.status !== 'aktiv') continue; const s0 = new Set(); for (const x of flFristenBald(e)) { if (s0.has(x.topf)) continue; s0.add(x.topf); L.push(Object.assign({ e }, x)); } }
+  return L.sort((a, c) => a.n - c.n || a.e.name.localeCompare(c.e.name, 'de'));
+}
+// Sprung aus dem Feld der Hinweise: Seite des Förderers (Topf) öffnen, die Frist leuchtet auf, sobald die Seite da ist
+function flFristSprung(id, topfName, iso) {
+  const e = flEintrag(id); if (!e) return; closeMenus();
+  const t = topfName ? e.topfe.find(x => x.name === topfName) : null;
+  const los = () => blitz([$(`.fl-fr .fl-fd[data-iso="${CSS.escape(iso || '')}"]`) || $('.fl-fr')], 'gelb');
+  if (UI.view === 'fdetail' && UI.flId === id && (!t || UI.flTopf === t.id)) return los();
+  if (UI.view === 'fdetail' && UI.flId === id && t) { UI.flTopf = t.id; keep(renderNow); return los(); }
+  flOeffnen(id, t ? t.id : '', los);
+}
+// Filter der Fördererliste (Häkchen, mehrere möglich): Arten sind „oder“, „über 10.000 €“ und „Frist bald“ kommen „und“ dazu
+const FL_BANK = ['Sparkasse', 'Volks- und Raiffeisenbank', 'Bank'];
+const flBuerger = e => /b(ü|ue)rgerstiftung/i.test((e.name || '') + ' ' + (e.kurz || ''));
+const FL_FILTER = [
+  { k: 'bank', t: 'Banken', s: 'Sparkassen, Volksbanken und andere Banken', f: e => FL_BANK.includes(e.art) },
+  { k: 'buerger', t: 'Bürgerstiftungen', f: flBuerger },
+  { k: 'stiftung', t: 'Stiftungen', s: 'ohne Bürgerstiftungen', f: e => /stiftung/i.test(e.art || '') && !flBuerger(e) },
+  { k: 'lotterie', t: 'Soziallotterien', f: e => e.art === 'Soziallotterie' },
+  { k: 'unternehmen', t: 'Unternehmen', f: e => e.art === 'Unternehmen' },
+  { k: 'kirche', t: 'Kirche', f: e => e.art === 'Kirche' },
+  { k: 'oeffentlich', t: 'Öffentliche Förderer', f: e => e.art === 'Öffentlich' },
+  { k: 'ohne', t: 'ohne Art', f: e => !e.art }];
+const FL_FILTER_X = [
+  { k: 'gross', t: 'über 10.000 € möglich', krone: true, f: (e, t) => flGrossT(t || e) },
+  { k: 'frist', t: 'Frist in den nächsten 2 Monaten', f: (e, t) => flFristenBald(e, t ? t.name : null).length > 0 }];
+const flFilterAn = () => (UI.flF || []).length;
 const flBewText = (B, x) => x.t + ': ' + (B[x.k].v ? x.st[B[x.k].v - 1] + (B[x.k].hand ? '' : ' (geschätzt: ' + B[x.k].grund + ')') : 'noch nicht eingeschätzt');
 // Netz mit fünf Achsen (Fünfeck): oben Erfolgschance, im Uhrzeigersinn Fördersumme, Häufigkeit, Aufwand, Dauer; je weiter außen, desto günstiger.
 // Groß (Seite eines Förderers): die Ecken lassen sich ziehen (auch mit den Pfeiltasten), unter jeder Achse steht, was der Wert bedeutet;
@@ -454,10 +500,13 @@ function flTreffer() {
   const qTraeger = c => !q || (glTeil && c.gl.some(x => norm(x).includes(q) || alle(x))) || (glBekannt.has(q) && c.gl.some(x => norm(x) === q || alle(x)))
     || [c.name || '', c.kurz || '', c.notiz, c.schwer, c.quote, ...c.gl].some(t => norm(t).includes(q));
   const qFoerderer = e => !q || [e.name, e.kurz, e.art, ...e.kontakte.map(k => k.n + ' ' + k.pos)].some(t => norm(t).includes(q));
+  const F = new Set(UI.flF || []), AF = FL_FILTER.filter(x => F.has(x.k)), XF = FL_FILTER_X.filter(x => F.has(x.k));
+  const artOk = e => !AF.length || AF.some(x => x.f(e)), xOk = (e, t) => XF.every(x => x.f(e, t));
   const R = [];
   for (const e of L) {
-    if (!e.topfe.length) { if (glOk(e) && netOk(e, e) && (qFoerderer(e) || qTraeger(e))) R.push({ e, T: null }); continue; }
-    const T = e.topfe.filter(t => glOk(t) && netOk(e, t) && (qFoerderer(e) || qTraeger(t)));
+    if (!artOk(e)) continue;
+    if (!e.topfe.length) { if (glOk(e) && netOk(e, e) && xOk(e, null) && (qFoerderer(e) || qTraeger(e))) R.push({ e, T: null }); continue; }
+    const T = e.topfe.filter(t => glOk(t) && netOk(e, t) && xOk(e, t) && (qFoerderer(e) || qTraeger(t)));
     if (T.length) R.push({ e, T });
   }
   return R.sort((a, c) => a.e.name.localeCompare(c.e.name, 'de'));
@@ -488,18 +537,18 @@ function flZeilen() {
     const kontakt = (rs) => `<td class="fl-k${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}" data-act="fl-oeffnen" data-id="${e0.id}"` : ''}>${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}</td>`;
     const status = e0.status !== 'aktiv' ? `<div class="muted small">${esc(e0.status)}</div>` : '', lz = laufZ ? `<div class="fl-lz small${bea.length ? ' an' : ''}">${esc(laufZ)}</div>` : '';
     if (!gruppe) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="${ruht.trim()}">
-      <td class="fl-n" colspan="2"><b class="fl-nm">${krone(e.gross)}${esc(e.name || '(ohne Namen)')}</b>${e.kurz ? ` <span class="fl-kurz">(${esc(e.kurz)})</span>` : ''}${hinweis}${status}${lz}</td>
+      <td class="fl-n" colspan="2"><b class="fl-nm">${krone(flGrossT(e0))}${esc(e.name || '(ohne Namen)')}</b>${e.kurz ? ` <span class="fl-kurz">(${esc(e.kurz)})</span>` : ''}${hinweis}${status}${lz}</td>
       <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te">${flNetz(e0)}</td>${kontakt(0)}</tr>`];
     // mehrere Fördertöpfe: eine hohe Zeile – links der Förderer (Kurzform), rechts daneben die Töpfe untereinander, je Topf eine eigene Zeile
     const kurzname = e0.kurz || e0.name || '(ohne Namen)', tip = e0.kurz && e0.name ? ` data-tip="${esc(e0.name)}"` : '';
     const schalter = `<button class="fl-tg" data-act="fl-zu" data-id="${e0.id}" aria-expanded="${!zu}" title="Fördertöpfe ${zu ? 'zeigen' : 'einklappen'}">${zu ? '<span class="fl-tg-p">▾</span> ausklappen' : '<span class="fl-tg-p">▴</span> einklappen'}</button>`;
-    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(e.gross)}${esc(kurzname)}</b>${hinweis}${status}${lz}${schalter}${rs ? '<span class="fl-split" title="Ziehen: Trennlinie zwischen Förderer und Fördertöpfen verschieben (gilt für alle)" aria-hidden="true"></span>' : ''}</td>`;
+    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(flGrossT(e0) || T.some(flGrossT))}${esc(kurzname)}</b>${hinweis}${status}${lz}${schalter}${rs ? '<span class="fl-split" title="Ziehen: Trennlinie zwischen Förderer und Fördertöpfen verschieben (gilt für alle)" aria-hidden="true"></span>' : ''}</td>`;
     if (zu) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="fl-kopf-tr${ruht}">${links(0)}<td class="fl-tn muted"><div class="fl-clamp">${esc(T.map(t => t.name || '(ohne Namen)').join(', '))}</div></td>
       <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te"></td>${kontakt(0)}</tr>`];
     return T.map((t, n) => {
       const et = Object.assign({}, e0, { fristenL: e0.fristenL.filter(f => f.topf === t.name || (!f.topf && t === e0.topfe[0])), fristen: t.fristen });
       return `<tr class="fl-tr-t${n === T.length - 1 ? ' fl-tr-letzte' : ''}${ruht}" data-act="fl-oeffnen" data-id="${e0.id}" data-topf="${t.id}" tabindex="0">${n ? '' : links(T.length)}
-      <td class="fl-tn"><b class="fl-nm">${krone(t.gross)}${esc(t.name || '(ohne Namen)')}</b>${t.kurz ? ` <span class="fl-kurz">(${esc(t.kurz)})</span>` : ''}</td>
+      <td class="fl-tn"><b class="fl-nm">${krone(flGrossT(t))}${esc(t.name || '(ohne Namen)')}</b>${t.kurz ? ` <span class="fl-kurz">(${esc(t.kurz)})</span>` : ''}</td>
       <td class="fl-g">${gebiet(t)}</td><td class="fl-z">${zweck(t)}</td><td class="fl-tf">${flFristenHtml(et)}</td><td class="fl-te">${flNetz(e0, false, { t })}</td>${n ? '' : kontakt(T.length)}</tr>`; });
   }).join('');
 }
@@ -523,14 +572,33 @@ function flAlleZuKnopf() {
   const zu = G.every(e => UI.flZu[e.id]);
   return `<div class="seg fl-ansicht" role="group" aria-label="Ansicht der Fördererliste"><button data-act="fl-zu-alle" data-v="auf" class="${zu ? '' : 'on'}" title="Bei allen Förderern die Fördertöpfe zeigen">Ausgeklappt</button><button data-act="fl-zu-alle" data-v="zu" class="${zu ? 'on' : ''}" title="Förderer mit mehreren Töpfen in einer Zeile">Kompakt</button></div>`;
 }
+// Knopf „Filter“: Häkchen-Liste (Banken, Bürgerstiftungen, Stiftungen …, über 10.000 €, Frist bald)
+const flFilterText = () => { const n = flFilterAn(); return n ? 'Filter · ' + n : 'Filter'; };
+const flFilterKnopf = () => `<button class="fl-filter-btn${flFilterAn() ? ' an' : ''}" data-act="fl-filter" aria-haspopup="dialog" aria-expanded="false" title="Förderer nach Art, Größe oder Fristen filtern"><span>${flFilterText()}</span> ▾</button>`;
+function flFilterPop(btn) {
+  if ($('.fl-filter-pop')) { closeMenus(); return; }
+  closeMenus();
+  const L = flDaten().liste, F = new Set(UI.flF || []);
+  const zahl = x => L.filter(e => FL_FILTER.includes(x) ? x.f(e) : (e.topfe.length ? e.topfe.some(t => x.f(e, t)) : x.f(e, null))).length;
+  const neu = () => { UI.flF = [...F]; flListeNeu(); const b = $('.fl-filter-btn'); if (b) { b.classList.toggle('an', !!F.size); b.querySelector('span').textContent = flFilterText(); } r.hidden = !F.size; };
+  const zeile = x => { const n = zahl(x); if (!n && !F.has(x.k) && FL_FILTER.includes(x)) return null;   // Arten ohne Förderer weglassen
+    const c = h('input', { type: 'checkbox', checked: F.has(x.k) }); c.addEventListener('change', () => { if (c.checked) F.add(x.k); else F.delete(x.k); neu(); });
+    return h('label', { class: 'fl-fi-z', title: x.s || '' }, c, h('span', { class: 'fl-fi-t', html: (x.krone ? `<span class="fl-krone-l">${ICON_KRONE}</span>` : '') + esc(x.t) + (x.s ? ` <span class="muted small">${esc(x.s)}</span>` : '') }), h('span', { class: 'fl-fi-n' }, String(n))); };
+  const r = h('button', { class: 'link small', onclick: () => { F.clear(); m.querySelectorAll('input').forEach(c => { c.checked = false; }); neu(); } }, 'Filter aufheben'); r.hidden = !F.size;
+  const m = h('div', { class: 'menu fl-filter-pop', role: 'dialog', 'aria-label': 'Förderer filtern' },
+    h('div', { class: 'fl-fi-h' }, 'Art'), ...FL_FILTER.map(zeile).filter(Boolean),
+    h('div', { class: 'fl-fi-h' }, 'Außerdem'), ...FL_FILTER_X.map(zeile).filter(Boolean),
+    h('div', { class: 'fl-fi-f' }, r));
+  placePop(m, btn, 'right'); btn.setAttribute('aria-expanded', 'true');
+  const c0 = m.querySelector('input'); if (c0) c0.focus({ preventScroll: true });
+}
 function flBar() {
-  const D0 = flDaten(), n = flGefiltert().length, GL = uniq(D0.liste.flatMap(e => flEff(e).gl)).filter(g => !/^alle$/i.test(g)).sort((a, c) => a.localeCompare(c, 'de'));
+  const D0 = flDaten(), n = flGefiltert().length;
   return `<div class="subbar list-head fl-head">
       <span class="muted" id="fl-count">${n} von ${D0.liste.length} Förderern</span>
       <div class="tools">
-        <select data-ui="flGl" class="fl-glw${UI.flGl ? ' an' : ''}" aria-label="Nach Gliederung filtern"><option value="">Gliederung: alle</option>${GL.map(x => `<option${x === UI.flGl ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select>
         <input type="search" id="flq" data-ui="flq" value="${esc(UI.flq || '')}" placeholder="Suchen: Name, Gliederung, Zweck …" aria-label="Förderer suchen (Strg+F)">
-        ${flAlleZuKnopf()}${flSerieKnopf()}
+        ${flFilterKnopf()}${flAlleZuKnopf()}${flSerieKnopf()}
         <button data-act="fl-excel-menu" aria-haspopup="menu" title="Excel: herunterladen oder einlesen">Excel ▾</button>
       </div>
     </div>`;
@@ -645,7 +713,7 @@ function flKennzahl(H) {
 const flRechercheAlt = e => !!e.recherche && (Date.parse(today()) - Date.parse(e.recherche)) / 864e5 > 365;
 function flDetailBar() {
   const g = flKontextGl();
-  return `<div class="subbar"><button class="back" data-act="fl-zurueck">‹ Fördererliste</button>${g ? `<span class="fl-sub-gl">gefiltert nach Gliederung <b>${esc(g)}</b></span>` : ''}</div>`;
+  return `<div class="subbar fl-dbar"><button class="back" data-act="fl-zurueck">‹ Fördererliste</button>${g ? `<span class="fl-sub-gl">gefiltert nach Gliederung <b>${esc(g)}</b></span>` : ''}<button class="heute-btn fl-serie-btn fl-ki-d" data-act="fl-copilot-dialog" title="Diesen Förderer mit KI recherchieren: Vorlage, Auftrag und Ablagefeld">${ICON_KI}<span>KI-Recherche</span></button></div>`;
 }
 // Kontakte bearbeiten: Ausgangsstand merken (für den Abgleich mit derselben Person bei anderen Förderern)
 let FL_K0 = null;
@@ -685,7 +753,7 @@ function flDetailView() {
   const rech = !W.recherche ? '' : flRechercheAlt(W) ? `<span class="fl-pill warn">Recherche veraltet · ${fmtDate(W.recherche)}</span>` : `<span class="fl-rech">recherchiert ${fmtDate(W.recherche)}</span>`;
   // Kopf: links Name, darunter Art und Recherche; die bisher geförderte Summe rechts bündig mit der linken Spalte (grau)
   const kopf = `<div class="fl-kopf"><div class="fl-kopf-in">
-      <div class="fl-kopf-l"><div class="fl-kopf-z">${flIn('name', e.name, { ph: 'Name des Förderers', aria: 'Name des Förderers', cls: 'fl-name' })}<button class="fl-punkte" data-act="fl-menue" aria-haspopup="menu" title="Art, Status, Förderer löschen" aria-label="Weitere Aktionen">${ICON_PUNKTE}</button></div>
+      <div class="fl-kopf-l"><div class="fl-kopf-z">${flGrossE(e) ? `<span class="fl-krone-d" data-tip="> 10.000 € möglich" aria-label="über 10.000 € möglich">${ICON_KRONE}</span>` : ''}${flIn('name', e.name, { ph: 'Name des Förderers', aria: 'Name des Förderers', cls: 'fl-name' })}<button class="fl-punkte" data-act="fl-menue" aria-haspopup="menu" title="Art, Status, Förderer löschen" aria-label="Weitere Aktionen">${ICON_PUNKTE}</button></div>
         <div class="fl-kopf-u"><span class="fl-kopf-art">${e.kurz ? `<b class="fl-kurz-k">${esc(e.kurz)}</b> · ` : ''}${flSel('art', e.art, uniq([...FL_ARTEN, e.art]).filter(Boolean), { leer: 'Art wählen', aria: 'Art', cls: 'fl-art-sel' })}</span>${e.status !== 'aktiv' ? `<span class="fl-pill">${esc(e.status)}</span>` : ''}${rech}</div></div>
       <div class="fl-kz"><div class="fl-kz-b">${fmtNum(K.sum) || '0'}<span> €</span></div><div class="fl-kz-t">${kz}${K.a ? ` · ${K.a} ${K.a === 1 ? 'Absage' : 'Absagen'}` : ''}</div></div>
     </div></div>`;
@@ -724,7 +792,7 @@ function flDetailView() {
   // Fristen dieses Jahres je Fördertopf als Knöpfe (vorbei durchgestrichen, nächste fett, bald orange); Klick ändert, „+ Frist“ fügt hinzu; darunter ein Hinweis-Text
   const FD = flFristenDaten(e), toepfe = uniq(FD.filter(x => !tp || x.topf === tp.name || (!x.topf && tp === TP[0])).map(x => x.topf || ' ')).sort((a, b) => (b === ' ') - (a === ' '));   // ohne Fördertopf zuerst
   const pill = x => { const { t, st } = fristStand(x, FD, heute);
-    return `<button class="fl-fd ${st}" data-act="fl-frist" data-i="${x.i}" title="${esc((x.einmalig ? 'einmalig' : 'jedes Jahr') + (x.topf ? ' · ' + x.topf : '') + ' · ' + (st === 'vorbei' ? 'vorbei' : t === 0 ? 'heute' : 'in ' + t + (t === 1 ? ' Tag' : ' Tagen')) + ' – Klick: ändern')}">${x.einmalig ? fmtDate(x.iso) : fmtDate(x.iso).slice(0, 6)}</button>`; };
+    return `<button class="fl-fd ${st}" data-act="fl-frist" data-i="${x.i}" data-iso="${x.iso}" title="${esc((x.einmalig ? 'einmalig' : 'jedes Jahr') + (x.topf ? ' · ' + x.topf : '') + ' · ' + (st === 'vorbei' ? 'vorbei' : t === 0 ? 'heute' : 'in ' + t + (t === 1 ? ' Tag' : ' Tagen')) + ' – Klick: ändern')}">${x.einmalig ? fmtDate(x.iso) : fmtDate(x.iso).slice(0, 6)}</button>`; };
   const fBtn = `<button class="fl-frist-neu" data-act="fl-frist-neu"${tp ? ` data-topf="${esc(tp.name)}"` : ''}>+ Frist</button>`;
   const fGrp = (t, plus) => `<div class="fl-frg">${t.trim() && !tp ? `<span class="fl-topf" title="${esc(t)}">${esc((TP.find(x => x.name === t) || {}).kurz || t)}</span>` : ''}<span class="fl-fds">${FD.filter(x => tp ? (x.topf === tp.name || (!x.topf && tp === TP[0])) : (x.topf || ' ') === t).map(pill).join('')}${plus}</span></div>`;
   const fristen = (toepfe.length ? toepfe.map((t, n) => fGrp(t, n === toepfe.length - 1 ? fBtn : '')).join('') : `<div class="fl-frg"><span class="fl-fds">${fBtn}</span></div>`)
@@ -816,7 +884,7 @@ document.addEventListener('input', ev => { if (ev.target.closest && ev.target.cl
 function flMenue(btn) {
   closeMenus(); const e = flCur(); if (!e) return;
   placePop(h('div', { class: 'menu fl-menue', role: 'menu', html: `<label class="fl-mz"><span>Kurzname</span>${flIn('kurz', e.kurz, { ph: 'z. B. DSEE', aria: 'Kurzname', title: 'So nennt ihr den Förderer intern; in den Bedarfen gelten Kurzname und voller Name' })}</label>
-<hr><button role="menuitem" data-act="fl-copilot-dialog">Mit Copilot ausfüllen …</button><hr><button role="menuitem" class="fl-rot-t" data-act="fl-weg">Förderer löschen …</button>` }), btn, 'right');
+<hr><button role="menuitem" class="fl-rot-t" data-act="fl-weg">Förderer löschen …</button>` }), btn, 'right');
 }
 // Frist anlegen oder ändern: Datum im Kalender wählen; „jedes Jahr“ (Standard) merkt nur Tag und Monat, sonst gilt sie einmalig; Fördertopf frei (Vorschläge: die schon benutzten)
 function flFristMenue(btn, i, topf = '') {
@@ -961,7 +1029,7 @@ document.addEventListener('keydown', ev => {
 }, true);
 // Seitenwechsel
 function flListe() { closeMenus(); UI.view = 'flist'; flDaten(); renderNow(); scrollTo(0, 0); }
-function flOeffnen(id, topfId) { if (!flEintrag(id)) return; closeMenus(); const von = UI.view; if (UI.flId !== id) { flKontakteFertig(); Object.assign(UI, { flAlt: false, flTopf: '' }); } UI.flId = id; if (topfId) UI.flTopf = topfId; UI.view = 'fdetail'; uebergang(von === 'flist' ? 'vor' : 'zurueck', () => { renderNow(); scrollTo(0, 0); }); }
+function flOeffnen(id, topfId, nach) { if (!flEintrag(id)) return; closeMenus(); const von = UI.view; if (UI.flId !== id) { flKontakteFertig(); Object.assign(UI, { flAlt: false, flTopf: '' }); } UI.flId = id; if (topfId) UI.flTopf = topfId; UI.view = 'fdetail'; uebergang(von === 'flist' ? 'vor' : 'zurueck', () => { renderNow(); scrollTo(0, 0); }, nach); }
 // eine neue, unberührte Seite („+ Förderer“ und nichts eingetragen) verschwindet beim Verlassen wieder
 function flLeerEntfernen(id) {
   const e = flEintrag(id); if (!e || e.name.trim() || e.kurz || e.web || e.schwer || e.hoehe || e.hoeheVon != null || e.hoeheBis != null || e.quote || e.notiz || e.anschrift || e.kontakte.length || e.foerderungen.length || e.fristenL.length || e.topfe.length || e.ansprache.length) return;
@@ -1071,6 +1139,8 @@ async function flAct(k, a) {
     case 'fl-serie-ende': UI.flWahl = null; keep(renderNow); return true;
     case 'fl-serie-los': flSerieDialog(); return true;
     case 'fl-zu': UI.flZu[a.dataset.id] = !UI.flZu[a.dataset.id]; flListeNeu(); return true;
+    case 'fl-filter': flFilterPop(a); return true;
+    case 'fl-fziel': flFristSprung(a.dataset.id, a.dataset.topf || '', a.dataset.iso); return true;
     case 'fl-zu-alle': { const G = flDaten().liste.filter(e => e.topfe.length >= 2), zu = a.dataset.v ? a.dataset.v === 'zu' : !G.every(e => UI.flZu[e.id]); UI.flZu = zu ? Object.fromEntries(G.map(e => [e.id, true])) : {}; keep(renderNow); return true; }
     case 'fl-zurueck': flZurueck(); return true;
     case 'fl-excel-menu': if ($('.menu')) closeMenus(); else flExcelMenu(a); return true;

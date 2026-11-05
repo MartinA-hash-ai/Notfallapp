@@ -1,5 +1,5 @@
 /* ===================================================================== Fördererliste: Excel-Vorlage und Auftrag für Copilot (ab 0.107, je Fördertopf ab 0.111, Töpfe mit allen Angaben ab 0.113)
-   Im ⋯-Menü eines Förderers: „Mit Copilot ausfüllen …“ – ein Fenster mit Vorlage herunterladen, Auftrag kopieren (für den Förderer als Ganzes, einen vorhandenen oder einen neuen
+   Auf der Seite eines Förderers oben rechts: „KI-Recherche“ – ein Fenster mit Vorlage herunterladen, Auftrag kopieren (für den Förderer als Ganzes, einen vorhandenen oder einen neuen
    Fördertopf) und Ablagefeld für die ausgefüllte Excel (das Einlesen fragt, in welchen Topf).
    Die Vorlage beschreibt EINEN Förderer oder EINEN Fördertopf: Blatt „Steckbrief“ (Feld · Wert · Sicherheit · Quelle · Anmerkung), „Fristen“, „Fördertöpfe“, „Kontakte“, „Quellen“;
    dazu „Anleitung“ und „Auswahlwerte“. Beim Einlesen zeigt das Programm jede Angabe einzeln zum Ankreuzen: neue Angaben sind vorgewählt, Angaben, die
@@ -71,7 +71,7 @@ function flcVorlageBlob(e, z) {
   const wer = topf ? 'einen Fördertopf (ein Förderprogramm)' + (e && e.name ? ' des Förderers „' + e.name + '“' : '') : 'einen Förderer';
   const text = [
     [topf ? 'Fördertopf-Vorlage für Copilot' : 'Förderer-Vorlage für Copilot', { b: true, sz: 15 }],
-    ['Diese Datei beschreibt ' + wer + ' der Malteser (Diözese Paderborn). Sie wird recherchiert und ausgefüllt und danach in die Bedarfsliste eingelesen (Fördererliste → Seite des Förderers → ⋯ → „Mit Copilot ausfüllen …“).'],
+    ['Diese Datei beschreibt ' + wer + ' der Malteser (Diözese Paderborn). Sie wird recherchiert und ausgefüllt und danach in die Bedarfsliste eingelesen (Fördererliste → Seite des Förderers → „KI-Recherche“).'],
     [''],
     ['Regeln für das Ausfüllen', { b: true }],
     ['1. Nur die gelb hinterlegten Zellen ausfüllen: im Blatt „Steckbrief“ die Spalten „Wert“, „Sicherheit“, „Quelle“ und „Anmerkung“, in ' + (topf ? '„Fristen“, „Beispiele“, „Kontakte“ und „Quellen“' : '„Fristen“, „Fördertöpfe“, „Beispiele“, „Kontakte“ und „Quellen“') + ' die Zeilen darunter. Keine Blätter, Spalten oder Überschriften ändern, umbenennen, löschen oder hinzufügen. „Anleitung“ und „Auswahlwerte“ nicht ändern.'],
@@ -226,7 +226,7 @@ function flcAenderungen(e, R, h) {
     if (!x) { const m = flTopfLeer(t.name), D = flcTopfFelder(m, t), nurName = !D.length && !R.beispiele.some(b => norm(b.topf) === norm(t.name));
       const kopf = { bereich: 'Fördertopf', titel: 'Fördertopf anlegen', alt: '', neu: t.name + (t.kurz ? ' (' + t.kurz + ')' : ''), tab: tk, anlegen: true, spaet: true, unsicher: t.unsicher, quelle: t.quelle,
         fn: () => { if (!nurName) m.recherche = today(); if (erbenAlle) flcErbeAlles(m, e); flTopfEinfuegen(e, m); },
-        notiz: nurName ? 'Zu diesem Fördertopf hat Copilot nur den Namen geliefert – besser einzeln recherchieren lassen (⋯ → „Mit Copilot ausfüllen …“ → Fördertopf).' : '', an: !t.unsicher && !nurName };
+        notiz: nurName ? 'Zu diesem Fördertopf hat Copilot nur den Namen geliefert – besser einzeln recherchieren lassen (Seite des Förderers → „KI-Recherche“ → Fördertopf).' : '', an: !t.unsicher && !nurName };
       NEU[tk] = { m, kopf }; L.push(kopf); D.forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, topfNeu: kopf, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
     else flcTopfFelder(x, t).forEach(d => L.push({ bereich: d.bereich, titel: d.lab, alt: '', neu: d.neu, fn: d.fn, edit: d.edit, opts: d.opts, key: d.key, tab: tk, unsicher: t.unsicher, quelle: t.quelle, notiz: '', an: !t.unsicher })); }
   // Beispiele geförderter Projekte: zum Topf mit dem Namen in „Fördertopf“, sonst zum Ziel des Einlesens
@@ -272,7 +272,7 @@ async function flcEinlesen(datei, e0, info) {          // e0: Förderer (sonst d
   const e = e0 || flCur(); if (!e) return 'skip';
   const f = datei || await pickFile('.xlsx'); if (!f) return 'skip';
   let R = null; try { R = flcLesen(await xlsxBook(await f.arrayBuffer())); } catch (x) { console.warn(x); }
-  if (!R) { modal('Keine Copilot-Vorlage erkannt', h('p', {}, 'In „' + f.name + '“ fehlt das Blatt „Steckbrief“ mit den Feldern der Vorlage. Bitte die Vorlage über ⋯ → „Mit Copilot ausfüllen …“ holen und von Copilot ausfüllen lassen.')); return 'skip'; }
+  if (!R) { modal('Keine Copilot-Vorlage erkannt', h('p', {}, 'In „' + f.name + '“ fehlt das Blatt „Steckbrief“ mit den Feldern der Vorlage. Bitte die Vorlage über „KI-Recherche“ auf der Seite des Förderers holen und von Copilot ausfüllen lassen.')); return 'skip'; }
   // Ziel: der Förderer selbst (nur ohne Fördertöpfe, Vorlage „Förderer“) oder ein vorhandener bzw. neuer Fördertopf
   const dName = strV(R.F.name && R.F.name.text), mitTopf = e.topfe.length > 0 || R.modus === 'topf';
   const optionen = [...(e.topfe.length ? [] : R.modus === 'topf' ? [] : [{ k: 'e', l: 'Förderer als Ganzes (ohne Fördertopf)' }]), ...e.topfe.map(t => ({ k: 't:' + t.id, l: t.name || '(ohne Namen)', t })), ...(mitTopf ? [{ k: 'neu', l: 'Neuer Fördertopf' + (R.modus === 'topf' && dName ? ' „' + dName + '“' : '') }] : [])];
@@ -415,7 +415,7 @@ function flcDialog(e) {
     h('label', { class: 'flc-zo' + (ohne ? '' : ' aus') }, rE, h('b', {}, ' Förderer allgemein')), hinwE, ohne ? h('div', { class: 'flc-sub' }, varWahl) : null,
     h('label', { class: 'flc-zo' }, rT, h('b', {}, ' Ein bestimmter Fördertopf')), unter, hinwT,
     knoepfe, ablage);
-  modal('Mit Copilot ausfüllen', body, [['Fertig', true, 'primary']], { expose: c => { zu = c; } });
+  modal('KI-Recherche: ' + (e.kurz || e.name || 'Förderer'), body, [['Fertig', true, 'primary']], { expose: c => { zu = c; } });
 }
 function flcPromptKopieren(e, z) {
   const t = flcPrompt(e, z), fail = () => { modal('Auftrag für Copilot', h('textarea', { class: 'rech-prompt', rows: 14, spellcheck: false, value: t, readonly: true })); };

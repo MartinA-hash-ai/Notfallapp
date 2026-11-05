@@ -2269,3 +2269,31 @@ table.sl-kst tbody tr.sl-gr-meist > th { color: var(--ink2); }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .blitz.b-info { --blitz: #1f3550; --blitz-rand: #6aa3e8; } }
 :root[data-theme="dark"] .blitz.b-info { --blitz: #1f3550; --blitz-rand: #6aa3e8; }
 .blitz, .blitz * { color: var(--ink) !important; }
+
+/* 0.131: Fördererliste – Leiste gleich hoch, Ausklappen als Knopf, Filter mit Häkchen, Krone auf der Seite, KI-Recherche oben rechts */
+.fl-head .tools { align-items: center; }
+.fl-head .tools > input[type=search], .fl-head .fl-filter-btn, .fl-head .fl-serie-btn, .fl-head .tools > button, .fl-head .fl-ansicht { height: 32px; box-sizing: border-box; margin-top: 0; margin-bottom: 0; }
+.fl-head .fl-ansicht { align-self: center; align-items: stretch; }
+.fl-head .fl-ansicht button { display: inline-flex; align-items: center; height: 100%; }
+.fl-head .fl-serie-w { display: inline-flex; align-items: center; }
+.fl-filter-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; font-size: 13px; }
+.fl-filter-btn.an { border-color: var(--ink2); font-weight: 600; background: var(--hover); }
+.fl-filter-pop { min-width: 270px; padding: 6px 0; }
+.fl-fi-h { padding: 6px 14px 3px; font-size: 11px; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.fl-fi-z { display: grid; grid-template-columns: 18px minmax(0, 1fr) auto; align-items: center; gap: 8px; padding: 5px 14px; cursor: pointer; font-size: 13.5px; }
+.fl-fi-z:hover { background: var(--hover); }
+.fl-fi-z input { margin: 0; }
+.fl-fi-t .fl-krone-l { margin-right: 4px; }
+.fl-fi-n { color: var(--muted); font-size: 12px; font-variant-numeric: tabular-nums; }
+.fl-fi-f { padding: 6px 14px 2px; border-top: 1px solid var(--line); margin-top: 6px; }
+.fl-fi-f .link { color: var(--muted); }
+.fl-fi-f .link:hover { color: var(--ink); }
+.fl-tg { display: inline-flex; align-items: center; gap: 4px; margin-top: 5px; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); padding: 2px 8px; font-size: 12px; color: var(--ink2); }
+.fl-tg:hover { background: var(--hover); color: var(--ink); text-decoration: none; border-color: var(--faint); }
+.fl-kopf-z { position: relative; }
+.fl-krone-d { position: absolute; left: -13px; top: -14px; transform: rotate(-24deg); color: #d29a17; line-height: 0; z-index: 1; cursor: default; }
+.fl-krone-d svg { width: 21px; height: 18px; }
+.fl-fi-t .fl-krone-l { position: static; transform: none; display: inline-block; vertical-align: -1px; line-height: 0; }
+.fl-dbar { display: flex; align-items: center; }
+.fl-dbar .fl-ki-d { margin-left: auto; height: 32px; box-sizing: border-box; }
+.fp-row.fp-fl .fp-d { color: var(--ink2); }

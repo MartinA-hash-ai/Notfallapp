@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.131.0",
+    "date": "2026-11-14T10:00",
+    "items": [
+      "Fördererliste: „ausklappen / einklappen“ beim Förderer als Knopf mit Rahmen; oben Suche, Filter, Ausgeklappt/Kompakt, KI-Recherche und Excel gleich hoch",
+      "Fördererliste: statt der Auswahl „Gliederung“ ein Knopf „Filter“ mit Häkchen – Banken (Sparkasse, Volksbank und andere zusammen), Bürgerstiftungen, Stiftungen und weitere Arten, dazu „über 10.000 € möglich“ und „Frist in den nächsten 2 Monaten“; mehrere gleichzeitig möglich. Gliederungen findet die Suche",
+      "Krone für Förderer über 10.000 €: auch aus der Förderhöhe (bis über 10.000 €), nicht nur von Hand; auf der Seite des Förderers oben links am Namen",
+      "Seite eines Förderers: Knopf „KI-Recherche“ oben rechts – Vorlage, Auftrag und Ablagefeld gleich für diesen Förderer, ohne ihn erst auszuwählen (ersetzt „Mit Copilot ausfüllen …“ im ⋯-Menü)",
+      "Feld der Hinweise oben rechts: Fristen der Fördererliste in den nächsten 2 Monaten als eigene Gruppe; ein Klick öffnet den Förderer und lässt die Frist aufleuchten"
+    ]
+  },
+  {
     "version": "0.130.0",
     "date": "2026-11-13T10:00",
     "items": [

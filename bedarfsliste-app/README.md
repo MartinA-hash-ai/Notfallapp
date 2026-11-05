@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.131:** Fördererliste: Filter mit Häkchen (Banken zusammengefasst, Bürgerstiftungen, Stiftungen …, über 10.000 €, Frist in 2 Monaten) statt Gliederungs-Auswahl; Krone auch aus der Förderhöhe und auf der Seite des Förderers; „KI-Recherche“ direkt auf der Seite eines Förderers; Förderer-Fristen der nächsten 2 Monate im Hinweis-Feld oben rechts; Leiste einheitlich hoch, „ausklappen / einklappen“ als Knopf.
+
 **Seit 0.130:** In den Fenstern Kontenliste, Gebietsnummern und Verwendungszweck wechseln Symbole links direkt zwischen ihnen (Suchbegriff bleibt); Kostenstellen mit „meistverwendete“. Der Sprung aus den Fälligkeiten markiert sofort. Fördererliste: Hinweis nur als Dreieck, „Ausgeklappt / Kompakt“ oben, „ausklappen / einklappen“ je Förderer; Netzpunkte einheitlich.
 
 **Seit 0.129:** Knöpfe links in der Reihenfolge Kontenliste, Gebietsnummern, Verwendungszweck; Kostenstellen linksbündig mit mitlaufender Bereichs-Überschrift; Kontenliste schmaler; Gebietsnummern flacher.
