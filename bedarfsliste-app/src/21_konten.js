@@ -99,7 +99,7 @@ async function kontenDialog() {
     return;
   }
   let bearb = false;
-  const such = h('input', { type: 'search', class: 'k-such', placeholder: 'Gliederung suchen, z. B. Brakel …', 'aria-label': 'Gliederung suchen' });
+  const such = slSuche('Gliederung suchen, z. B. Brakel …', 'Gliederung suchen');
   const wrap = h('div', { class: 'k-wrap' });
   const zeig = () => { wrap.innerHTML = kTabelle(K, norm(such.value), bearb); };
   const stift = h('button', { type: 'button', class: 'k-stift', title: 'Kontenliste bearbeiten', 'aria-label': 'Kontenliste bearbeiten', 'aria-pressed': 'false', html: ICON_PEN, onclick: () => {
@@ -117,5 +117,5 @@ async function kontenDialog() {
     kontoSetzen(K, f.dataset.gl, f.dataset.art, f.value); f.value = ibanSchoen(f.value);
   });
   zeig();
-  await modal('Kontenliste der Gliederungen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal', kopf: stift, expose: () => setTimeout(() => such.focus(), 40) });
+  await modal('Kontenliste der Gliederungen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal', kopf: stift, expose: zu => { slMiniAn('konten', zu); setTimeout(() => such.focus(), 40); } });
 }

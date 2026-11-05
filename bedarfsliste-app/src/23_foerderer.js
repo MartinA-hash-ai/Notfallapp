@@ -484,7 +484,7 @@ function flZeilen() {
     const gruppe = e0.topfe.length >= 2, zu = gruppe && !!UI.flZu[e0.id], e = flEff(e0, gruppe ? T : null), ansp = e.ansprache.filter(a => !UI.flGl || !a.gl || norm(a.gl) === norm(UI.flGl));
     const lauf = flLaufend(e).filter(x => !x.b.archiv && !x.b.manuell), bea = lauf.filter(x => x.f.status === 'beantragt'), k = flKontaktHaupt(e), ruht = (e0.status !== 'aktiv' ? ' fl-ruht' : '') + (UI.flWahl && UI.flWahl.has(e0.id) ? ' fl-gew' : '');
     const laufZ = bea.length ? 'Antrag läuft: ' + bea.map(x => short(x.b.titel)).join(', ') : lauf.length ? 'eingeplant: ' + lauf.map(x => short(x.b.titel)).join(', ') : '';
-    const hinweis = ansp.length ? `<div class="fl-ansp" title="${esc(ansp.map(a => (a.gl || 'alle') + ': ' + (a.titel || 'Hinweis') + (a.hinweis ? ' – ' + flPlain(a.hinweis) : '')).join('\n'))}">${ICON_TRI}<span>${UI.flGl ? esc(ansp[0].titel || 'Hinweis') : esc(ansp.map(a => a.gl || 'alle').join(', ')) + ': ' + esc(ansp[0].titel || 'Hinweis')}</span></div>` : '';
+    const hinweis = ansp.length ? `<span class="fl-ansp-i" data-tip="${esc(ansp.map(a => (a.gl || 'alle') + ': ' + (a.titel || 'Hinweis') + (a.hinweis ? ' – ' + flPlain(a.hinweis) : '')).join(' · '))}" aria-label="Hinweis zur Ansprache">${ICON_TRI}</span>` : '';   // nur das Dreieck; der Hinweis beim Darüberfahren
     const kontakt = (rs) => `<td class="fl-k${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}" data-act="fl-oeffnen" data-id="${e0.id}"` : ''}>${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}</td>`;
     const status = e0.status !== 'aktiv' ? `<div class="muted small">${esc(e0.status)}</div>` : '', lz = laufZ ? `<div class="fl-lz small${bea.length ? ' an' : ''}">${esc(laufZ)}</div>` : '';
     if (!gruppe) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="${ruht.trim()}">
@@ -492,7 +492,7 @@ function flZeilen() {
       <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te">${flNetz(e0)}</td>${kontakt(0)}</tr>`];
     // mehrere Fördertöpfe: eine hohe Zeile – links der Förderer (Kurzform), rechts daneben die Töpfe untereinander, je Topf eine eigene Zeile
     const kurzname = e0.kurz || e0.name || '(ohne Namen)', tip = e0.kurz && e0.name ? ` data-tip="${esc(e0.name)}"` : '';
-    const schalter = `<button class="fl-tg" data-act="fl-zu" data-id="${e0.id}" aria-expanded="${!zu}" title="Fördertöpfe ${zu ? 'zeigen' : 'einklappen'}">${zu ? '▸' : '▾'} ${T.length}${T.length < e0.topfe.length ? ' von ' + e0.topfe.length : ''} Fördertöpfe</button>`;
+    const schalter = `<button class="fl-tg" data-act="fl-zu" data-id="${e0.id}" aria-expanded="${!zu}" title="Fördertöpfe ${zu ? 'zeigen' : 'einklappen'}">${zu ? '<span class="fl-tg-p">▾</span> ausklappen' : '<span class="fl-tg-p">▴</span> einklappen'}</button>`;
     const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(e.gross)}${esc(kurzname)}</b>${hinweis}${status}${lz}${schalter}${rs ? '<span class="fl-split" title="Ziehen: Trennlinie zwischen Förderer und Fördertöpfen verschieben (gilt für alle)" aria-hidden="true"></span>' : ''}</td>`;
     if (zu) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="fl-kopf-tr${ruht}">${links(0)}<td class="fl-tn muted"><div class="fl-clamp">${esc(T.map(t => t.name || '(ohne Namen)').join(', '))}</div></td>
       <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te"></td>${kontakt(0)}</tr>`];
@@ -521,7 +521,7 @@ document.addEventListener('click', ev => { if (ev.target.closest && ev.target.cl
 function flAlleZuKnopf() {
   const G = flDaten().liste.filter(e => e.topfe.length >= 2); if (!G.length) return '';
   const zu = G.every(e => UI.flZu[e.id]);
-  return `<button class="fl-zu-alle" data-act="fl-zu-alle" title="${zu ? 'Alle Fördertöpfe aufklappen' : 'Alle Fördertöpfe einklappen'}">${zu ? '▸ Töpfe aufklappen' : '▾ Töpfe einklappen'}</button>`;
+  return `<div class="seg fl-ansicht" role="group" aria-label="Ansicht der Fördererliste"><button data-act="fl-zu-alle" data-v="auf" class="${zu ? '' : 'on'}" title="Bei allen Förderern die Fördertöpfe zeigen">Ausgeklappt</button><button data-act="fl-zu-alle" data-v="zu" class="${zu ? 'on' : ''}" title="Förderer mit mehreren Töpfen in einer Zeile">Kompakt</button></div>`;
 }
 function flBar() {
   const D0 = flDaten(), n = flGefiltert().length, GL = uniq(D0.liste.flatMap(e => flEff(e).gl)).filter(g => !/^alle$/i.test(g)).sort((a, c) => a.localeCompare(c, 'de'));
@@ -530,7 +530,7 @@ function flBar() {
       <div class="tools">
         <select data-ui="flGl" class="fl-glw${UI.flGl ? ' an' : ''}" aria-label="Nach Gliederung filtern"><option value="">Gliederung: alle</option>${GL.map(x => `<option${x === UI.flGl ? ' selected' : ''}>${esc(x)}</option>`).join('')}</select>
         <input type="search" id="flq" data-ui="flq" value="${esc(UI.flq || '')}" placeholder="Suchen: Name, Gliederung, Zweck …" aria-label="Förderer suchen (Strg+F)">
-        ${flSerieKnopf()}
+        ${flAlleZuKnopf()}${flSerieKnopf()}
         <button data-act="fl-excel-menu" aria-haspopup="menu" title="Excel: herunterladen oder einlesen">Excel ▾</button>
       </div>
     </div>`;
@@ -541,7 +541,7 @@ function flSuchPanel() {
     <div class="fl-such-f"><span id="fl-such-n">${flGefiltert().length} Treffer</span><button class="fl-such-r" data-act="fl-such-reset" data-tip="Zurücksetzen" aria-label="Zurücksetzen">↶</button></div></div>`;
 }
 function flListView() {
-  return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><colgroup><col class="fl-c1" style="width:${flSplit()}%"><col class="fl-c2" style="width:${26 - flSplit()}%"><col style="width:13%"><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:17%"></colgroup><thead><tr><th colspan="2">Förderer${flAlleZuKnopf()}</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
+  return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><colgroup><col class="fl-c1" style="width:${flSplit()}%"><col class="fl-c2" style="width:${26 - flSplit()}%"><col style="width:13%"><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:17%"></colgroup><thead><tr><th colspan="2">Förderer</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
     <th class="fl-te">Einschätzung<button class="fl-lupe${flQAktiv() ? ' an' : ''}" data-act="fl-such" aria-expanded="${!!UI.flSuch}" aria-label="Nach Einschätzung suchen" data-tip="Nach Einschätzung suchen">${ICON_LUPE}</button>${UI.flSuch ? flSuchPanel() : ''}</th><th>Ansprechperson</th></tr></thead><tbody id="fl-body">${flZeilen()}</tbody></table></div></section></main>`;
 }
 function flExcelMenu(btn) {
@@ -1071,7 +1071,7 @@ async function flAct(k, a) {
     case 'fl-serie-ende': UI.flWahl = null; keep(renderNow); return true;
     case 'fl-serie-los': flSerieDialog(); return true;
     case 'fl-zu': UI.flZu[a.dataset.id] = !UI.flZu[a.dataset.id]; flListeNeu(); return true;
-    case 'fl-zu-alle': { const G = flDaten().liste.filter(e => e.topfe.length >= 2), zu = !G.every(e => UI.flZu[e.id]); UI.flZu = zu ? Object.fromEntries(G.map(e => [e.id, true])) : {}; keep(renderNow); return true; }
+    case 'fl-zu-alle': { const G = flDaten().liste.filter(e => e.topfe.length >= 2), zu = a.dataset.v ? a.dataset.v === 'zu' : !G.every(e => UI.flZu[e.id]); UI.flZu = zu ? Object.fromEntries(G.map(e => [e.id, true])) : {}; keep(renderNow); return true; }
     case 'fl-zurueck': flZurueck(); return true;
     case 'fl-excel-menu': if ($('.menu')) closeMenus(); else flExcelMenu(a); return true;
     case 'fl-neu-leer': { const x = Object.assign(flLeer(), { id: flNeueId() }); D.fl.liste.push(x); changed(); flOeffnen(x.id); setTimeout(() => { const n = $('.fl-name'); if (n) n.focus(); }, 60); return true; }

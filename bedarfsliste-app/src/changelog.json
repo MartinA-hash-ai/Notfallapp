@@ -1,5 +1,17 @@
 [
   {
+    "version": "0.130.0",
+    "date": "2026-11-13T10:00",
+    "items": [
+      "Kontenliste, Gebietsnummern, Verwendungszweck: links neben dem offenen Fenster schweben die drei Symbole – ein Klick wechselt direkt; der Suchbegriff (z. B. „Geseke“) bleibt dabei stehen",
+      "Verwendungszweck: Knopf „meistverwendete“ neben der Suche – zeigt oben die am häufigsten kopierten Kostenstellen (gezählt in diesem Browser), darunter die ganze Liste",
+      "Sprung aus „jetzt / bald fällig“ (auch von der Fördererliste oder einem Förderer aus): die Stelle leuchtet jetzt gleich beim ersten Klick auf, erst nachdem die Seite eingeblendet ist; Infos leuchten blau statt hellgrau, der Text in der Markierung bleibt dunkel und lesbar",
+      "Fördererliste: Hinweis zur Ansprache nur noch als kleines Dreieck neben dem Namen, der Text erscheint beim Darüberfahren",
+      "Fördererliste: oben „Ausgeklappt / Kompakt“ für alle Förderer mit mehreren Töpfen; beim Förderer selbst „▾ ausklappen“ bzw. „▴ einklappen“ statt „▾ 2 Fördertöpfe“",
+      "Spinnennetz: alle Eckpunkte als gefüllte Punkte (geschätzte etwas heller statt als Kreis); beim ersten Förderer wird das vergrößerte Netz nicht mehr vom Spaltenkopf verdeckt"
+    ]
+  },
+  {
     "version": "0.129.0",
     "date": "2026-11-12T16:00",
     "items": [

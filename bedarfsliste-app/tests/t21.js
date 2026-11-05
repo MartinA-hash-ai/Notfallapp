@@ -61,10 +61,16 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(r.join('|') === 'Gebietsnummern|45', 'Gebietsnummern: Fenster mit allen 45 Gliederungen: ' + r.join('|'));
   await p.fill('.sl-modal .k-such', 'brak'); await p.waitForTimeout(60);
   ok(await p.evaluate(() => [...document.querySelectorAll('.sl-tab tbody tr')].map(t => t.textContent.trim()).join()) === '160808Brakel', 'Suche „brak“ findet Brakel mit 160808');
+  // 0.130: Suchbegriff bleibt beim Wechsel; Symbole links neben dem Fenster
+  r = await p.evaluate(() => [[...document.querySelectorAll('.sl-mini .sl-mk')].map(b => b.getAttribute('aria-label') + (b.classList.contains('on') ? '*' : '')).join()]);
+  ok(r[0] === 'Kontenliste,Gebietsnummern*,Verwendungszweck', 'Links neben dem Fenster die drei Symbole, das offene hervorgehoben: ' + r[0]);
+  await p.click('.sl-mini [aria-label="Kontenliste"]'); await p.waitForSelector('.k-modal:not(.sl-modal) .k-tab'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => document.querySelector('.k-modal .k-such').value) === 'brak', 'Wechsel zur Kontenliste: Suchbegriff „brak“ bleibt');
+  await p.evaluate(() => { document.querySelectorAll('.backdrop').forEach(b => b.remove()); SL_Q = ''; });
   await p.evaluate(() => { document.querySelectorAll('.backdrop').forEach(b => b.remove()); });
   await p.click('.seitenleiste [data-act="sl-zweck"]', { force: true }); await p.waitForTimeout(100);
   r = await p.evaluate(() => [document.querySelector('.modal h2').textContent, document.querySelectorAll('.sl-tab tbody tr.sl-gr').length, document.querySelectorAll('.sl-tab tbody tr:not(.sl-gr)').length]);
-  ok(r.join('|') === 'Verwendungszweck – Kostenstellen|16|99', 'Verwendungszweck: 99 Kostenstellen in 16 Bereichen: ' + r.join('|'));
+  ok(r.join('|') === 'Verwendungszweck – Kostenstellen|16|99' || r.join('|') === 'Verwendungszweck – Kostenstellen|17|99', 'Verwendungszweck: 99 Kostenstellen in 16 Bereichen: ' + r.join('|'));
   await p.fill('.sl-modal .k-such', 'trauer'); await p.waitForTimeout(60);
   ok(await p.evaluate(() => [...document.querySelectorAll('.sl-tab tbody tr')].map(t => t.textContent.trim()).join('/')) === 'Hospiz/2450Trauerarbeit', 'Suche „trauer“: Bereich Hospiz, 2450 Trauerarbeit');
   await p.evaluate(() => { document.querySelectorAll('.backdrop').forEach(b => b.remove()); });

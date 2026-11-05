@@ -24,9 +24,20 @@ const GEBIETE = [['160101', 'DGS Paderborn'], ['160102', 'Hospizdienste Dortmund
   ['163737', 'Olpe Stadt'], ['163838', 'Bielefeld'], ['163939', 'Paderborn Stadt'], ['164040', 'Rheda-Wiedenbrück'], ['164747', 'Steinheim'], ['164949', 'Herne'], ['165151', 'Warstein'],
   ['165252', 'Wenden'], ['165858', 'Arnsberg-Meschede'], ['165959', 'Balve'], ['167070', 'Netphen'], ['168181', 'Hagen'], ['168282', 'Siegen'], ['168306', 'Malteserladen Dortmund'],
   ['168383', 'Dortmund'], ['168484', 'Hamm'], ['168585', 'Rietberg'], ['168686', 'Gütersloh'], ['168888', 'Kreis Unna / Schwerte'], ['168989', 'Werl-Soest']];
+// gemeinsamer Suchbegriff der drei Fenster: beim Wechsel bleibt er stehen
+let SL_Q = '';
+const slSuche = (ph, lab) => { const i = h('input', { type: 'search', class: 'k-such', placeholder: ph, 'aria-label': lab }); i.value = SL_Q; i.addEventListener('input', () => { SL_Q = i.value; }); return i; };
+// links neben dem offenen Fenster: die drei Symbole zum Wechseln
+const SL_DLG = { konten: () => kontenDialog(), 'sl-gebiet': () => gebieteDialog(), 'sl-zweck': () => zweckDialog() };
+function slMini(aktiv, schliessen) {
+  return h('nav', { class: 'sl-mini', 'aria-label': 'Wechseln zu' }, ...SEITE_KNOEPFE.map(([act, ic, t]) => h('button', { type: 'button', class: 'sl-k sl-mk' + (act === aktiv ? ' on' : ''), title: t, 'aria-label': t, 'aria-current': act === aktiv ? 'true' : null, html: ic + `<span class="sl-t">${t}</span>`,
+    onclick: () => { if (act === aktiv) return; schliessen(); setTimeout(SL_DLG[act], 0); } })));
+}
+// nach dem Öffnen: die Symbole an das Fenster hängen (links daneben)
+function slMiniAn(aktiv, zu) { setTimeout(() => { const box = document.querySelector('.modal.k-modal'); if (box && !box.querySelector('.sl-mini')) box.append(slMini(aktiv, () => zu && zu(null))); }, 0); }
 async function gebieteDialog() {
   closeMenus();
-  const such = h('input', { type: 'search', class: 'k-such', placeholder: 'Gliederung oder Nummer suchen …', 'aria-label': 'Gebietsnummer suchen' });
+  const such = slSuche('Gliederung oder Nummer suchen …', 'Gebietsnummer suchen');
   const wrap = h('div', { class: 'k-wrap sl-wrap' });
   const zeig = () => { const q = norm(such.value);
     const L = GEBIETE.filter(([n, g]) => !q || n.includes(q) || norm(g).includes(q));
@@ -35,7 +46,7 @@ async function gebieteDialog() {
   such.addEventListener('input', zeig);
   wrap.addEventListener('click', e => { const c = e.target.closest('.k-c'); if (c) kopiereZeichen(c); });
   zeig();
-  await modal('Gebietsnummern', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal sl-modal', expose: () => setTimeout(() => such.focus(), 40) });
+  await modal('Gebietsnummern', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal sl-modal', expose: zu => { slMiniAn('sl-gebiet', zu); setTimeout(() => such.focus(), 40); } });
 }
 // Verwendungszweck: Kostenstellen nach Bereichen (Liste „Kostenstellen“); Suche nach Nummer, Name oder Bereich, ein Klick kopiert
 const KOSTEN = [
@@ -55,18 +66,30 @@ const KOSTEN = [
   ["wirt. Geschäftsbetr. Betreuungsdienst", [["2810", "Küchenumsätze"], ["2820", "Cafeteria"]]],
   ["wirt. Geschäftsbetr. Rettungsdienst/Kranentransport", [["3380", "Rückholdfahrdienste mit PKW"], ["3810", "Transport von Kranken im PKW"], ["3820", "Beförderung gesunder Personen"], ["3830", "Medikamententransport"], ["3840", "Ärzte im Notfall-Vertretungsdienst"], ["3850", "Kfz-Verkauf"]]],
   ["wirt. Geschäftsbetr. Sonstiges", [["9811", "Altkleidersammlung"], ["9812", "Altkleidersammlung mit fremden Containern"], ["9813", "Verwertung Alt-Handys"], ["9815", "Altpapier-/Altglasverkäufe"], ["9821", "Materialverkäufe"], ["9823", "Projekte im WGB"], ["9831", "Gesellige Veranstaltungen"], ["9832", "Basare und Malteserläden"], ["9843", "Lotterien in eigener Regie"], ["9850", "Transport von Sachgütern"], ["9861", "Werkstattleistungen für Dritte"], ["9862", "Personalgestellung"], ["9870", "Vermietung beweglicher Sachen"], ["9880", "Verkauf von Tankstellenprodukten"], ["9885", "(Haus-)Notrufbesetzungen ggü. gewerbl. Auftraggebern"], ["9886", "Sicherheit Plus und Rauchmelder"], ["9890", "Verwertung von Nachlässen"], ["9892", "Parkplatzdienst"], ["9893", "Steuerpflichtige Verwaltungsleistungen/Umlagen an Orts e. V."], ["9894", "Hotelähnliche Leistungen"], ["9895", "Automatenverkäufe"], ["9896", "Einnahmen aus Inseraten"], ["9898", "Einnahmen aus aktivem Sponsoring"], ["9899", "Sonstige WG"]]]];
+// Kostenstellen, die man kopiert, werden gezählt (nur in diesem Browser) – „meistverwendete“ zeigt sie oben als eigenen Block
+const KST_KEY = 'bl-kst-nutzung', KST_AN = 'bl-kst-meist';
+const kstNutzung = () => { try { return JSON.parse(localStorage.getItem(KST_KEY) || '{}') || {}; } catch (e) { return {}; } };
+function kstZaehlen(nr) { try { const N = kstNutzung(), x = N[nr] || { n: 0, t: 0 }; x.n++; x.t = Date.now(); N[nr] = x; localStorage.setItem(KST_KEY, JSON.stringify(N)); } catch (e) { /* ohne Speicher */ } }
+const kstMeist = () => { const N = kstNutzung(), alle = KOSTEN.flatMap(([b, L]) => L.map(([n, t]) => [n, t, b])); return Object.keys(N).sort((a, c) => N[c].n - N[a].n || N[c].t - N[a].t).slice(0, 10).map(n => alle.find(x => x[0] === n)).filter(Boolean); };
 async function zweckDialog() {
   closeMenus();
-  const such = h('input', { type: 'search', class: 'k-such', placeholder: 'Kostenstelle suchen, z. B. Hospiz oder 2400 …', 'aria-label': 'Kostenstelle suchen' });
+  const such = slSuche('Kostenstelle suchen, z. B. Hospiz oder 2400 …', 'Kostenstelle suchen');
+  let meist = false; try { meist = localStorage.getItem(KST_AN) === '1'; } catch (e) { /* */ }
+  const knopf = h('button', { type: 'button', class: 'sl-meist' + (meist ? ' on' : ''), 'aria-pressed': String(meist), title: 'Die am häufigsten kopierten Kostenstellen oben zeigen' }, 'meistverwendete');
+  knopf.addEventListener('click', () => { meist = !meist; knopf.classList.toggle('on', meist); knopf.setAttribute('aria-pressed', String(meist)); try { localStorage.setItem(KST_AN, meist ? '1' : '0'); } catch (e) { /* */ } zeig(); });
   const wrap = h('div', { class: 'k-wrap sl-wrap' });
+  const zeile = ([n, t]) => `<tr><td>${kKopierbar(n, 'k-iban', 'Klicken: Kostenstelle kopieren', n)}</td><td>${kKopierbar(t, 'sl-gl', 'Klicken: Bezeichnung kopieren', esc(t))}</td></tr>`;
   const zeig = () => { const q = norm(such.value);
     const T = KOSTEN.map(([b, L]) => [b, norm(b).includes(q) ? L : L.filter(([n, t]) => n.includes(q) || norm(t).includes(q))]).filter(([, L]) => L.length);
-    wrap.innerHTML = `<table class="k-tab sl-tab sl-kst"><thead><tr><th>Kostenstelle</th><th>Bezeichnung</th></tr></thead><tbody>${T.map(([b, L]) => `<tr class="sl-gr"><th colspan="2">${esc(b)}</th></tr>`
-      + L.map(([n, t]) => `<tr><td>${kKopierbar(n, 'k-iban', 'Klicken: Kostenstelle kopieren', n)}</td><td>${kKopierbar(t, 'sl-gl', 'Klicken: Bezeichnung kopieren', esc(t))}</td></tr>`).join('')).join('')
+    const M = meist ? kstMeist().filter(([n, t, b]) => !q || n.includes(q) || norm(t).includes(q) || norm(b).includes(q)) : [];
+    wrap.innerHTML = `<table class="k-tab sl-tab sl-kst"><thead><tr><th>Kostenstelle</th><th>Bezeichnung</th></tr></thead><tbody>`
+      + (meist ? `<tr class="sl-gr sl-gr-meist"><th colspan="2">Meistverwendet</th></tr>` + (M.map(zeile).join('') || `<tr><td colspan="2" class="muted k-nix">Noch keine – eine Kostenstelle anklicken (kopieren), dann erscheint sie hier.</td></tr>`) : '')
+      + `${T.map(([b, L]) => `<tr class="sl-gr"><th colspan="2">${esc(b)}</th></tr>`
+      + L.map(zeile).join('')).join('')
       || `<tr><td colspan="2" class="muted k-nix">Nichts passt zu „${esc(such.value)}“.</td></tr>`}</tbody></table>`;
     requestAnimationFrame(() => { const th = wrap.querySelector('thead'); if (th) wrap.style.setProperty('--kst-kopf', th.getBoundingClientRect().height + 'px'); }); };   // Bereichs-Überschrift klebt direkt unter dem Spaltenkopf
   such.addEventListener('input', zeig);
-  wrap.addEventListener('click', e => { const c = e.target.closest('.k-c'); if (c) kopiereZeichen(c); });
+  wrap.addEventListener('click', e => { const c = e.target.closest('.k-c'); if (!c) return; kopiereZeichen(c); const tr = c.closest('tr'), nr = tr && tr.querySelector('.k-iban'); if (nr) kstZaehlen(nr.dataset.v); });
   zeig();
-  await modal('Verwendungszweck – Kostenstellen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal sl-modal', expose: () => setTimeout(() => such.focus(), 40) });
+  await modal('Verwendungszweck – Kostenstellen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such, knopf), wrap), [], { wide: true, cls: 'k-modal sl-modal', expose: zu => { slMiniAn('sl-zweck', zu); setTimeout(() => such.focus(), 40); } });
 }

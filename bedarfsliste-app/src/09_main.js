@@ -108,7 +108,7 @@ function springZu(id, z, fid, farbe) {
     return;
   }
   const ber = ZIEL_BEREICH[z], los = () => blitz([$(sel(ZIEL_SEITE)) || $('#f-titel')], farbe);
-  if (UI.view !== 'detail' || UI.id !== id) return oeffnen(id, { offen: ber, danach: los });
+  if (UI.view !== 'detail' || UI.id !== id) return oeffnen(id, { offen: ber, nachher: los });   // aufleuchten erst, wenn die Seite sichtbar ist
   if (ber && zuGet(b, ber)) { zuSet(b, ber, false); keep(renderNow); }
   los();
 }
@@ -378,13 +378,13 @@ function swPop(btn) {
 // Wechsel Liste ↔ Bedarf: der Bedarf gleitet von rechts über die Liste und beim Zurückgehen wieder hinaus (ohne Bewegung, wenn der
 // Browser das nicht kann oder in Windows die Animationen ausgeschaltet sind). Die Liste steht danach wieder an derselben Stelle.
 let LISTE_Y = 0, FL_Y = 0;
-function uebergang(r, fn) {
-  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { fn(); return; }
+function uebergang(r, fn, nach) {                                                // nach: erst wenn der Wechsel sichtbar fertig ist (z. B. eine Stelle aufleuchten lassen)
+  if (!document.startViewTransition || matchMedia('(prefers-reduced-motion: reduce)').matches) { fn(); if (nach) nach(); return; }
   const html = document.documentElement; html.dataset.vt = r;
   // Seite wechseln: die alte Seite bekommt eine eigene Ebene und bleibt, wo sie war – sonst übernähme sie die Scrollposition
   // der neuen (zurück zur weiter unten stehenden Liste: der Bedarf sprang beim Hinausgleiten nach oben)
   const alt = (r === 'vor' || r === 'zurueck') && $('#app > main'); if (alt) alt.classList.add('vt-alt');
-  document.startViewTransition(() => { fn(); if (alt) alt.classList.remove('vt-alt'); }).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; });
+  document.startViewTransition(() => { fn(); if (alt) alt.classList.remove('vt-alt'); }).finished.finally(() => { if (html.dataset.vt === r) delete html.dataset.vt; if (nach) nach(); });
 }
 // o.offen: Förderplan bzw. Nacharbeit gleich aufgeklappt ('foe', 'nach'); o.danach: nach dem Zeichnen (z. B. zur Stelle springen)
 // „+ Bedarf“ auf der Seite eines Bedarfs: gleich eine leere Seite zum Ausfüllen; bleibt sie unberührt, verschwindet sie beim Verlassen wieder
@@ -405,7 +405,7 @@ function oeffnen(id, o = {}) {
   if (UI.view === 'fdetail' || UI.view === 'flist') { FL_Y = scrollY; UI.vonFl = UI.view === 'fdetail' ? UI.flId : null; }   // aus der Fördererliste geöffnet: „zurück“ führt dorthin
   closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; ZU = null;
   const b = D.bedarfe.find(x => x.id === id); if (b && o.offen) { ZU = zuStd(b); ZU[o.offen] = false; }
-  uebergang('vor', () => { renderNow(); scrollTo(0, 0); if (o.danach) o.danach(); });
+  uebergang('vor', () => { renderNow(); scrollTo(0, 0); if (o.danach) o.danach(); }, o.nachher);   // o.nachher: erst wenn der Wechsel fertig zu sehen ist
   setTimeout(kiCheck, 300);                                                        // Ergebnis von Copilot oder Cowork da?
 }
 // ins Archiv (Seite des Bedarfs: zurück zur Liste); „Rückgängig“ im Hinweis holt ihn zurück

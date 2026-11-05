@@ -2245,3 +2245,27 @@ table.sl-geb .k-c { padding-top: 0; padding-bottom: 0; }
 .k-modal:not(.sl-modal) .k-iban { letter-spacing: .01em; }
 .k-modal:not(.sl-modal) table.k-tab thead th.k-gl, .k-modal:not(.sl-modal) table.k-tab tbody th.k-gl { width: 140px; }
 .k-modal:not(.sl-modal) table.k-tab tbody td.k-z, .k-modal:not(.sl-modal) table.k-tab thead th:not(.k-gl) { padding-left: 6px; padding-right: 6px; }
+
+/* 0.130: Symbole zum Wechseln links neben den Fenstern; „meistverwendete“; Hinweis nur als Dreieck; Netzpunkte; Ansicht der Fördererliste; Markierungsfarben */
+.modal.k-modal { position: relative; overflow: visible; }
+.sl-mini { position: absolute; left: -54px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; }
+.sl-mini .sl-mk { transform: none; }
+.sl-mini .sl-mk:hover, .sl-mini .sl-mk:focus-visible { transform: translateX(-3px); }
+.sl-mini .sl-mk.on { color: var(--card); background: var(--ink2); border-color: var(--ink2); cursor: default; }
+.sl-mini .sl-t { left: auto; right: calc(100% + 8px); transform: translate(6px, -50%); }
+.sl-mini .sl-mk:hover .sl-t { transform: translate(0, -50%); }
+.k-kopf { display: flex; gap: 8px; align-items: center; }
+.sl-meist { border: 1px solid var(--line2); background: var(--card); color: var(--ink2); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.sl-meist:hover { background: var(--hover); }
+.sl-meist.on { background: var(--ink2); border-color: var(--ink2); color: var(--card); }
+table.sl-kst tbody tr.sl-gr-meist > th { color: var(--ink2); }
+.fl-ansp-i { display: inline-flex; vertical-align: -1px; margin-left: 6px; color: var(--warn); cursor: help; }
+.fl-ansp-i svg { width: 13px; height: 13px; }
+.fl-netz .fn-p.auto { fill: var(--strong); stroke: none; opacity: .65; }
+#fl-body td.fl-te:hover { z-index: 8; }
+.fl-tg-p { font-size: 11px; }
+.fl-head .fl-ansicht { margin-right: 4px; }
+.blitz.b-info { --blitz: #dde9f8; --blitz-rand: #2a5ea8; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .blitz.b-info { --blitz: #1f3550; --blitz-rand: #6aa3e8; } }
+:root[data-theme="dark"] .blitz.b-info { --blitz: #1f3550; --blitz-rand: #6aa3e8; }
+.blitz, .blitz * { color: var(--ink) !important; }
