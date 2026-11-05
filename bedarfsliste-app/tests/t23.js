@@ -415,6 +415,11 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   ok(r.join('|') === 'true|1|Gefördert:|true', 'Fenster: alle Häkchen in einer Spalte, Formatierung (fett, Aufzählung) direkt dargestellt: ' + r.join('|'));
   await p.click('.flc-r:has-text("Förderzweck") .flc-w'); await p.keyboard.type(', Zusatz'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => [...document.querySelectorAll('.flc-r')].find(z => z.querySelector('b').textContent === 'Förderzweck').querySelector('.flc-w').textContent.includes('Jugendhilfe, Zusatz')), 'Fenster: Text einer Angabe per Klick änderbar');
+  await p.click('.flc-r:has-text("An die Notizen anhängen") .flc-w'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => { const ed = document.querySelector('.flc-r .pe-rich'); return [!!ed, !!(ed && ed.querySelector('b')), !!(ed && /\*Gefördert/.test(ed.textContent))]; });
+  ok(r.join('|') === 'true|true|false', '0.127: Notizen im Übernehmen-Fenster formatiert bearbeiten (fett bleibt fett, keine Sternchen): ' + r.join('|'));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => !document.querySelector('.flc-r .pe-rich') && !!document.querySelector('.flc-modal')), 'Esc beendet das Bearbeiten, das Fenster bleibt offen');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(300);
   r = await p.evaluate(() => { const e = flEintrag('F002'); return [e.kurz, e.art, e.schwer, e.gl.join(', '), e.hoeheVon + '-' + e.hoeheBis, e.quote, e.web, e.weg.join(), e.antrag, [e.bew.haeufig, e.bew.aufwand, e.bew.dauer].join(), e.gross, e.fristenL.map(f => f.d + '/' + f.topf).sort().join(), e.topfe.map(t => t.name + ':' + t.hoeheVon).join(), e.kontakte.map(k => k.n + ':' + k.mail).join(), e.notiz.includes('https://q.example'), e.notiz.includes('*Gefördert:*\n- Ausstattung für Ehrenamtliche') && e.notiz.includes('*Stolpersteine:*\n- Eigenanteil 20 %') && e.notiz.includes('*So tickt der Förderer:*'), e.recherche === today()]; });
   ok(r.join('|') === '|Stiftung|Ehrenamt, Gesundheit, Jugendhilfe, Zusatz|Dortmund, Hagen|1000-10000|alt|https://www.x.example|Portal|https://portal.x.example|2,2,2|true|03-31/Topf A,2027-09-15/Topf A|Topf A:500|Frau K:K@X.example|false|true|true',

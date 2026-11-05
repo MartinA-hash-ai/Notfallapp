@@ -2220,3 +2220,11 @@ td.k-z:hover .k-mehr, td.k-z:focus-within .k-mehr { max-height: 40px; }
 main, header.top { padding-left: max(62px, env(safe-area-inset-left, 0px)); }
 .subbar { padding-inline: max(0px, (100% - 1602px) / 2); }   /* bündig mit dem Kasten: 1680 px minus 62 + 16 px Rand */
 @media (max-width: 700px) { main, header.top { padding-left: max(16px, env(safe-area-inset-left, 0px)); } .subbar { padding-inline: max(0px, (100% - 1648px) / 2); } .seitenleiste { display: none; } }
+
+/* 0.127: Übernehmen-Fenster – links (Förderer) und rechts (Angaben) scrollen unabhängig; formatiert bearbeiten */
+.flc-modal.mit-seite .modal-body { overflow: hidden; display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; padding-bottom: 0; }
+.flc-modal.mit-seite .flc-mit-seite { flex: 1 1 auto; min-height: 0; height: 70vh; align-items: stretch; }
+.flc-modal.mit-seite .flc-seite { position: static; overflow-y: auto; min-height: 0; max-height: 100%; align-content: start; }
+.flc-modal.mit-seite .flc-mit-seite > .flc { overflow-y: auto; min-height: 0; max-height: 100%; padding-right: 4px; padding-bottom: 12px; }
+.flc-ed-rich { min-height: 3em; border: 1px solid var(--line2); border-radius: 6px; padding: 6px 8px; background: var(--input); font-size: 13.5px; line-height: 1.45; outline: none; }
+.flc-ed-rich:focus { border-color: var(--faint); }

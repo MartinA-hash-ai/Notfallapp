@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.127.0",
+    "date": "2026-11-12T10:00",
+    "items": [
+      "Übernehmen-Fenster: Notizen lassen sich formatiert weiterbearbeiten – fett, Aufzählungen usw. bleiben sichtbar, keine Sternchen mehr (Formatleiste beim Markieren wie bei den Notizen auf der Seite; Strg+Enter übernimmt, Esc verwirft)",
+      "Übernehmen-Fenster mit mehreren Förderern: Die Liste links und die Angaben rechts scrollen unabhängig voneinander",
+      "Auftrag und Vorlage: „Was wird gefördert?“ zeigt die Förderlogik (bevorzugte Themen und Zielgruppen, Kostenarten, was ausdrücklich erwünscht ist) – Selbstverständliches wie „Projekte gemeinnütziger Vereine/Institutionen“ bleibt weg",
+      "Seitenleiste links: Die Knöpfe kommen früher ein Stück heraus (ab etwa 70 px Abstand, auf ihrer Höhe), beim Darüberfahren weiter"
+    ]
+  },
+  {
     "version": "0.126.0",
     "date": "2026-11-11T14:00",
     "items": [

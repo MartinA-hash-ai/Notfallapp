@@ -27,7 +27,7 @@ const FLC_FELDER = [
   ['aufwand', 'Aufwand', 'Aufwand des Antrags: einfach = E-Mail/kurzes Formular; mäßig = Formular mit Kosten- und Finanzierungsplan; sehr aufwendig = ausführlicher Antrag mit vielen Anlagen oder Verwendungsnachweis. Nur wenn ableitbar; Begründung in „Anmerkung“.', () => FLC_AUFWAND],
   ['dauer', 'Dauer bis zur Entscheidung', 'Nur wenn der Förderer eine Bearbeitungszeit nennt.', () => FLC_DAUER],
   ['gross', 'Großförderer (ja = über 10.000 € möglich)', 'ja nur, wenn laut Quelle Förderungen über 10.000 € möglich sind. Sonst leer.', () => ['ja', 'nein']],
-  ['gefoerdert', 'Was wird gefördert?', 'Konkret, was der Förderer fördert (Projekte, Anschaffungen, Zielgruppen) – kurze Stichpunkte, jeder in einer neuen Zeile mit „- “ am Anfang. Nur Belegtes.'],
+  ['gefoerdert', 'Was wird gefördert?', 'Die Förderlogik: welche Themen und Zielgruppen bevorzugt werden, welche Kostenarten oder Anschaffungen, was ausdrücklich erwünscht ist – kurze Stichpunkte, jeder in einer neuen Zeile mit „- “ am Anfang. Nur Belegtes; Selbstverständliches wie „Projekte gemeinnütziger Vereine“ weglassen.'],
   ['nicht', 'Was wird nicht gefördert?', 'Ausschlüsse laut Satzung oder Richtlinie (z. B. laufende Kosten, Personal, Rückwirkendes, bestimmte Zwecke) – Stichpunkte wie oben.'],
   ['tickt', 'Wie tickt der Förderer? (Zusammenfassung, 2–3 Sätze)', 'Worum geht es dem Förderer? Was ist ihm wichtig, welcher Ton, welche Haltung, wer entscheidet, wie fördert er (z. B. oft kleine Beträge an Vereine vor Ort)? Nur 2–3 Sätze, aus Satzung, Leitbild, Richtlinien und veröffentlichten Förderungen abgeleitet.'],
   ['zieht', 'Förderargumentation: Argumente, die ziehen', 'Welche Argumente überzeugen diesen Förderer für ein Vorhaben der Malteser? Nach Gewicht sortiert, je Stichpunkt kurz begründen und die Fundstelle nennen (z. B. „Satzungszweck: Förderung des Ehrenamts“).'],
@@ -299,7 +299,17 @@ async function flcEinlesen(datei, e0, info) {          // e0: Förderer (sonst d
     if (!x.edit) return box;
     box.tabIndex = 0; box.title = 'Klicken zum Ändern'; box.setAttribute('role', 'button');
     const oeffnen = () => {
-      if (box.querySelector('textarea')) return;
+      if (box.querySelector('textarea, .pe-rich')) return;
+      if (x.edit === 'rich') {                                                   // formatiert weiterschreiben: fett, Aufzählung usw. bleiben sichtbar
+        const ed = h('div', { class: 'pe-in pe-rich flc-ed-rich', contenteditable: 'true', role: 'textbox', 'aria-multiline': 'true', 'aria-label': x.titel + ' ändern' });
+        ed.innerHTML = fmtText(x.neu || '', true) || '<div><br></div>'; box.replaceChildren(ed); box.classList.add('offen'); ed.focus();
+        const rg = document.createRange(); rg.selectNodeContents(ed); rg.collapse(false); getSelection().removeAllRanges(); getSelection().addRange(rg);
+        const leiste = richEdit(ed); let fertig = false;
+        const zu = ok => { if (fertig) return; fertig = true; if (leiste) leiste(); const v = richText(ed).trim(); if (ok && v) x.neu = v; box.classList.remove('offen'); box.innerHTML = anzeige(x); };
+        ed.addEventListener('blur', () => setTimeout(() => { if (!ed.contains(document.activeElement) && !document.querySelector('.fmt-bar:hover')) zu(true); }, 0));
+        ed.addEventListener('keydown', ev => { ev.stopPropagation(); if (ev.key === 'Escape') zu(false); else if (ev.key === 'Enter' && ev.ctrlKey) { ev.preventDefault(); zu(true); } });
+        return;
+      }
       const ta = h('textarea', { class: 'flc-ed', rows: 1, 'aria-label': x.titel + ' ändern' }); ta.value = x.neu; box.replaceChildren(ta); box.classList.add('offen'); ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length);
       let fertig = false;
       const zu = ok => { if (fertig) return; fertig = true; const v = ta.value.trim(); if (ok && v) x.neu = v; box.classList.remove('offen'); box.innerHTML = anzeige(x); };

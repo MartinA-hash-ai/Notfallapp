@@ -8,10 +8,10 @@ const ICON_PIN = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="t
 const SEITE_KNOEPFE = [['sl-zweck', ICON_ZIEL, 'Verwendungszweck'], ['konten', ICON_TEMPEL, 'Kontenliste'], ['sl-gebiet', ICON_PIN, 'Gebietsnummern']];
 const seitenleisteHtml = () => `<nav class="seitenleiste" aria-label="Nachschlagen">${SEITE_KNOEPFE.map(([act, ic, t]) => `<button type="button" class="sl-k" data-act="${act}" aria-label="${t}">${ic}<span class="sl-t">${t}</span></button>`).join('')}</nav>`;
 // Maus in der Nähe (linker Rand, ungefähr auf Höhe der Knöpfe): Knöpfe lugen hervor
-// jeder Knopf für sich: nur wenn die Maus auf seiner Höhe und nah am linken Rand ist (etwa 20 px neben dem Knopf)
+// jeder Knopf für sich: wenn die Maus auf seiner Höhe bis etwa 70 px an den Knopf herankommt
 document.addEventListener('mousemove', ev => {
   for (const k of document.querySelectorAll('.seitenleiste .sl-k')) {
-    const r = k.getBoundingClientRect(), nah = ev.clientX < r.right + 22 && ev.clientY >= r.top - 3 && ev.clientY <= r.bottom + 3;
+    const r = k.getBoundingClientRect(), nah = ev.clientX < r.right + 70 && ev.clientY >= r.top - 3 && ev.clientY <= r.bottom + 3;
     if (k.classList.contains('nah') !== nah) k.classList.toggle('nah', nah);
   }
 }, { passive: true });
