@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.126.0",
+    "date": "2026-11-11T14:00",
+    "items": [
+      "Seitenleiste links: Die drei Knöpfe sind jetzt ganz zu sehen, mit etwas Abstand zum Rand; der Inhalt beginnt rechts davon, nichts wird verdeckt. Jeder Knopf kommt einzeln ein Stück heraus, wenn die Maus auf seiner Höhe nah heranrückt (etwa ein Viertel der bisherigen Entfernung)",
+      "Kontenliste: Die Zeilen sind so hoch, dass IBAN, BIC und Bank Platz haben – beim Darüberfahren erscheinen BIC und Bank, die Zeile bleibt gleich hoch. Lange Banknamen werden mit „…“ gekürzt (kopiert wird der volle Name)",
+      "Reiter oben: Archiv steht jetzt rechts nach der Fördererliste und ist leicht ausgegraut",
+      "KI-Recherche: Das kleine Fenster unter dem Knopf hat gleich ein Feld zum Hineinziehen der Ergebnisse (Excel-Dateien oder ZIP, auch per Klick) – ohne vorher Förderer auszuwählen",
+      "Fördererliste: Im Spaltenkopf „Förderer“ klappt „▾ Töpfe einklappen“ bzw. „▸ Töpfe aufklappen“ alle Fördertöpfe auf einmal zu oder auf"
+    ]
+  },
+  {
     "version": "0.125.0",
     "date": "2026-11-11T10:00",
     "items": [

@@ -517,6 +517,12 @@ document.addEventListener('pointerdown', ev => {
   document.addEventListener('pointermove', zieh); document.addEventListener('pointerup', los);
 }, true);
 document.addEventListener('click', ev => { if (ev.target.closest && ev.target.closest('.fl-split')) { ev.stopPropagation(); ev.preventDefault(); } }, true);
+// Kopf der Spalte „Förderer“: alle Fördertöpfe auf einmal auf- bzw. zuklappen (nur wenn es Förderer mit mehreren Töpfen gibt)
+function flAlleZuKnopf() {
+  const G = flDaten().liste.filter(e => e.topfe.length >= 2); if (!G.length) return '';
+  const zu = G.every(e => UI.flZu[e.id]);
+  return `<button class="fl-zu-alle" data-act="fl-zu-alle" title="${zu ? 'Alle Fördertöpfe aufklappen' : 'Alle Fördertöpfe einklappen'}">${zu ? '▸ Töpfe aufklappen' : '▾ Töpfe einklappen'}</button>`;
+}
 function flBar() {
   const D0 = flDaten(), n = flGefiltert().length, GL = uniq(D0.liste.flatMap(e => flEff(e).gl)).filter(g => !/^alle$/i.test(g)).sort((a, c) => a.localeCompare(c, 'de'));
   return `<div class="subbar list-head fl-head">
@@ -535,7 +541,7 @@ function flSuchPanel() {
     <div class="fl-such-f"><span id="fl-such-n">${flGefiltert().length} Treffer</span><button class="fl-such-r" data-act="fl-such-reset" data-tip="Zurücksetzen" aria-label="Zurücksetzen">↶</button></div></div>`;
 }
 function flListView() {
-  return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><colgroup><col class="fl-c1" style="width:${flSplit()}%"><col class="fl-c2" style="width:${26 - flSplit()}%"><col style="width:13%"><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:17%"></colgroup><thead><tr><th colspan="2">Förderer</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
+  return `<main class="fl-main"><section class="card list-card"><div class="tablewrap"><table class="list fl-tab"><colgroup><col class="fl-c1" style="width:${flSplit()}%"><col class="fl-c2" style="width:${26 - flSplit()}%"><col style="width:13%"><col style="width:18%"><col style="width:16%"><col style="width:10%"><col style="width:17%"></colgroup><thead><tr><th colspan="2">Förderer${flAlleZuKnopf()}</th><th>Fördergebiet</th><th>Förderzweck</th><th>Fristen ${today().slice(0, 4)}</th>
     <th class="fl-te">Einschätzung<button class="fl-lupe${flQAktiv() ? ' an' : ''}" data-act="fl-such" aria-expanded="${!!UI.flSuch}" aria-label="Nach Einschätzung suchen" data-tip="Nach Einschätzung suchen">${ICON_LUPE}</button>${UI.flSuch ? flSuchPanel() : ''}</th><th>Ansprechperson</th></tr></thead><tbody id="fl-body">${flZeilen()}</tbody></table></div></section></main>`;
 }
 function flExcelMenu(btn) {
@@ -1065,6 +1071,7 @@ async function flAct(k, a) {
     case 'fl-serie-ende': UI.flWahl = null; keep(renderNow); return true;
     case 'fl-serie-los': flSerieDialog(); return true;
     case 'fl-zu': UI.flZu[a.dataset.id] = !UI.flZu[a.dataset.id]; flListeNeu(); return true;
+    case 'fl-zu-alle': { const G = flDaten().liste.filter(e => e.topfe.length >= 2), zu = !G.every(e => UI.flZu[e.id]); UI.flZu = zu ? Object.fromEntries(G.map(e => [e.id, true])) : {}; keep(renderNow); return true; }
     case 'fl-zurueck': flZurueck(); return true;
     case 'fl-excel-menu': if ($('.menu')) closeMenus(); else flExcelMenu(a); return true;
     case 'fl-neu-leer': { const x = Object.assign(flLeer(), { id: flNeueId() }); D.fl.liste.push(x); changed(); flOeffnen(x.id); setTimeout(() => { const n = $('.fl-name'); if (n) n.focus(); }, 60); return true; }

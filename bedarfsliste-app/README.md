@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.126:** Die Knöpfe links sind ganz sichtbar und kommen einzeln heraus; die Kontenliste springt beim Darüberfahren nicht mehr; Archiv steht rechts und dezent; das KI-Recherche-Fenster nimmt Ergebnisse direkt an; alle Fördertöpfe lassen sich auf einmal auf- oder zuklappen.
+
 **Seit 0.125:** Links am Rand stehen drei Knöpfe zum Nachschlagen – Verwendungszweck (folgt), Kontenliste und Gebietsnummern; sie lugen hervor, wenn die Maus in die Nähe kommt. Die Kontenliste ist zentriert, BIC und Bank erscheinen beim Darüberfahren und sind kopierbar.
 
 **Seit 0.124:** Die Recherche-Leiste im Übernehmen-Fenster zeigt den Stand je Förderer mit Kreisen wie bei den Freigaben (grün übernommen, gelb in Arbeit, leer folgt); „ergänzt“, Quellen und „alle / keine / Vorschlag“ sind dezenter grau.

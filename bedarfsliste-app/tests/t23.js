@@ -692,6 +692,16 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => [document.querySelector('col.fl-c1').style.width, document.querySelector('col.fl-c2').style.width, localStorage.getItem('bl-fl-split'), UI.view]);
   ok(parseFloat(r[0]) > 12 && parseFloat(r[0]) + parseFloat(r[1]) === 26 && r[2] === String(parseFloat(r[0])) && r[3] === 'flist', 'Trennlinie gezogen: Förderer-Spalte breiter, Töpfe schmaler (zusammen gleich), gemerkt, Förderer nicht geöffnet: ' + r.join('|'));
   await p.evaluate(() => { localStorage.removeItem('bl-fl-split'); const e = flEintrag('F002'); e.topfe = []; e.topfMig = false; changed(); renderNow(); });
+  // 0.126: alle Fördertöpfe auf/zu; KI-Recherche mit Ablagefeld gleich im kleinen Fenster
+  await p.evaluate(() => { const e = flEintrag('F002'); e.topfe = [flTopfLeer('Topf X'), flTopfLeer('Topf Y')]; e.topfMig = true; UI.flZu = {}; UI.flWahl = null; UI.view = 'flist'; changed(); renderNow(); }); await p.waitForTimeout(150);
+  r = await p.evaluate(() => document.querySelector('.fl-zu-alle').textContent.trim()); await p.click('.fl-zu-alle'); await p.waitForTimeout(100);
+  const r2 = await p.evaluate(() => [document.querySelector('.fl-zu-alle').textContent.trim(), document.querySelectorAll('#fl-body tr[data-id="F002"]').length, !!UI.flZu.F002]);
+  ok(r === '▾ Töpfe einklappen' && r2.join('|') === '▸ Töpfe aufklappen|1|true', 'Alle Fördertöpfe mit einem Klick einklappen: ' + r + ' → ' + r2.join('|'));
+  await p.click('.fl-zu-alle'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => document.querySelectorAll('#fl-body tr[data-id="F002"]').length) === 2, 'und wieder aufklappen');
+  await p.click('[data-act="fl-serie"]'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => !!document.querySelector('.fl-serie-pop .fl-sp-drop')), 'KI-Recherche: Ablagefeld gleich im kleinen Fenster (ohne vorher Förderer auszuwählen)');
+  await p.evaluate(() => { const e = flEintrag('F002'); e.topfe = []; e.topfMig = false; UI.flWahl = null; changed(); renderNow(); });
   // gespeichert und wieder geladen: bleibt erhalten
   r = await p.evaluate(() => { const n = normalize(JSON.parse(JSON.stringify(D))); return [n.fl.liste.length, JSON.stringify(n.fl) === JSON.stringify(D.fl), n.bedarfe[0].foerderer[1].flAus.length, n.bedarfe[0].foerderer[3].flNein]; });
   ok(r.join('|') === '2|true|0|true', 'Speichern/Laden behält Fördererliste und Merker: ' + r.join('|'));

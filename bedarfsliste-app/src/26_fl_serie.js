@@ -11,6 +11,7 @@ function flSerieKnopf() {
       <p class="fl-sp-h">${n ? n + (n === 1 ? ' Förderer ausgewählt.' : ' Förderer ausgewählt.') + ' Weitere in der Liste anklicken – oder:' : 'Wähle einen oder mehrere Förderer aus – einfach in der Liste anklicken.'}</p>
       ${n ? `<button class="primary fl-sp-los" data-act="fl-serie-los">${flSerieText(n)}</button>` : ''}
       <div class="fl-sp-f"><button class="link small" data-act="fl-serie-alle" title="alle Förderer, die gerade in der Liste stehen (mit Suche und Filtern)">alle angezeigten</button>${n ? '<button class="link small" data-act="fl-serie-leer">Auswahl aufheben</button>' : ''}</div>
+      <div class="flc-drop fl-sp-drop" role="button" tabindex="0" aria-label="Ausgefüllte Recherche-Dateien einlesen"><b>Ergebnisse hier hineinziehen</b><span class="muted small">Excel-Dateien oder ZIP – oder klicken</span></div>
     </div>` : '';
   return `<span class="fl-serie-w"><button class="heute-btn fl-serie-btn${an ? ' an' : ''}" data-act="${an ? 'fl-serie-ende' : 'fl-serie'}" aria-expanded="${an}" title="Mehrere Förderer auswählen und gemeinsam mit KI recherchieren lassen">${ICON_KI}<span>KI-Recherche</span></button>${pop}</span>`;
 }
@@ -103,3 +104,13 @@ async function flSerieEinlesen(fl) {
   const ok = J.filter(j => j.st === 'ok').length;
   toast(ok + ' von ' + J.length + ' Förderern übernommen' + (fremd ? ' · ' + fremd + (fremd === 1 ? ' Datei' : ' Dateien') + ' ohne Zuordnung' : '') + ' – mit ↶ (Strg+Z) rückgängig zu machen', ok ? 'ok' : undefined);
 }
+
+// Ablagefeld im kleinen Fenster: Dateien hineinziehen oder anklicken → einlesen (ohne erst Förderer auszuwählen)
+const flSpDrop = t => t && t.closest && t.closest('.fl-sp-drop');
+document.addEventListener('dragover', ev => { const d = flSpDrop(ev.target); if (!d) return; ev.preventDefault(); ev.stopPropagation(); d.classList.add('ueber'); }, true);
+document.addEventListener('dragleave', ev => { const d = flSpDrop(ev.target); if (d) d.classList.remove('ueber'); }, true);
+document.addEventListener('drop', ev => { const d = flSpDrop(ev.target); if (!d) return; ev.preventDefault(); ev.stopPropagation(); d.classList.remove('ueber');
+  const fl = [...((ev.dataTransfer && ev.dataTransfer.files) || [])].filter(f => /\.(xlsx|zip)$/i.test(f.name)); if (fl.length) flSerieEinlesen(fl); else toast('Bitte die ausgefüllten Excel-Dateien (.xlsx) oder eine ZIP nehmen.', 'warn'); }, true);
+document.addEventListener('click', ev => { if (!flSpDrop(ev.target)) return; ev.stopPropagation();
+  const inp = h('input', { type: 'file', accept: '.xlsx,.zip', multiple: true }); inp.addEventListener('change', () => { if (inp.files.length) flSerieEinlesen([...inp.files]); }); inp.click(); }, true);
+document.addEventListener('keydown', ev => { if ((ev.key === 'Enter' || ev.key === ' ') && flSpDrop(ev.target)) { ev.preventDefault(); ev.target.click(); } });

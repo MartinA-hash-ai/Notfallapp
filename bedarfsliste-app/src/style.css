@@ -2199,3 +2199,24 @@ table.k-tab tbody td.k-z, table.k-tab tbody th.k-gl { height: 54px; }
 td.k-z:hover .k-mehr, td.k-z:focus-within .k-mehr { max-height: 60px; opacity: 1; }
 .k-mehr .k-bank { display: flex; max-width: 100%; white-space: normal; text-align: center; }
 .k-zi .k-iban { transition: transform .2s ease; }
+
+/* 0.126: Seitenleiste ganz sichtbar mit Abstand zum Rand, jeder Knopf kommt einzeln heraus; Kontenliste ohne springende Zeilen; Archiv dezent; alle Töpfe auf/zu */
+.seitenleiste { left: 8px; }
+.sl-k { border-left: 1px solid var(--line2); border-radius: 10px; padding: 0; width: 40px; height: 40px; transform: none; }
+.sl-k.nah { transform: translateX(6px); color: var(--ink); box-shadow: 0 4px 12px rgba(0,0,0,.12); }
+.sl-k:hover, .sl-k:focus-visible { transform: translateX(10px); }
+.seitenleiste.nah .sl-k:not(.nah):not(:hover) { transform: none; }
+table.k-tab tbody td.k-z, table.k-tab tbody th.k-gl { height: 74px; }
+.k-mehr { max-height: 0; }
+td.k-z:hover .k-mehr, td.k-z:focus-within .k-mehr { max-height: 40px; }
+.k-mehr .k-bank { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; max-width: 100%; }
+.k-mehr .k-c { max-width: 100%; }
+.tab.tab-dezent { color: var(--muted); opacity: .75; margin-left: 10px; }
+.tab.tab-dezent.on, .tab.tab-dezent:hover { opacity: 1; }
+.fl-zu-alle { margin-left: 10px; border: 0; background: none; padding: 1px 6px; border-radius: 5px; font: inherit; font-size: 11px; letter-spacing: .02em; text-transform: none; color: var(--muted); cursor: pointer; }
+.fl-zu-alle:hover { background: var(--hover); color: var(--ink); }
+.fl-sp-drop { margin-top: 0; padding: 12px 10px; }
+/* Platz für die Seitenleiste: der Inhalt beginnt rechts von den Knöpfen (nur wenn der Bildschirm nicht ohnehin breiter ist als der Inhalt) */
+main, header.top { padding-left: max(62px, env(safe-area-inset-left, 0px)); }
+.subbar { padding-inline: max(0px, (100% - 1602px) / 2); }   /* bündig mit dem Kasten: 1680 px minus 62 + 16 px Rand */
+@media (max-width: 700px) { main, header.top { padding-left: max(16px, env(safe-area-inset-left, 0px)); } .subbar { padding-inline: max(0px, (100% - 1648px) / 2); } .seitenleiste { display: none; } }

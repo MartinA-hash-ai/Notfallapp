@@ -8,10 +8,12 @@ const ICON_PIN = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="t
 const SEITE_KNOEPFE = [['sl-zweck', ICON_ZIEL, 'Verwendungszweck'], ['konten', ICON_TEMPEL, 'Kontenliste'], ['sl-gebiet', ICON_PIN, 'Gebietsnummern']];
 const seitenleisteHtml = () => `<nav class="seitenleiste" aria-label="Nachschlagen">${SEITE_KNOEPFE.map(([act, ic, t]) => `<button type="button" class="sl-k" data-act="${act}" aria-label="${t}">${ic}<span class="sl-t">${t}</span></button>`).join('')}</nav>`;
 // Maus in der Nähe (linker Rand, ungefähr auf Höhe der Knöpfe): Knöpfe lugen hervor
+// jeder Knopf für sich: nur wenn die Maus auf seiner Höhe und nah am linken Rand ist (etwa 20 px neben dem Knopf)
 document.addEventListener('mousemove', ev => {
-  const n = document.querySelector('.seitenleiste'); if (!n) return;
-  const r = n.getBoundingClientRect(), nah = ev.clientX < r.right + 70 && ev.clientY > r.top - 90 && ev.clientY < r.bottom + 90;
-  if (n.classList.contains('nah') !== nah) n.classList.toggle('nah', nah);
+  for (const k of document.querySelectorAll('.seitenleiste .sl-k')) {
+    const r = k.getBoundingClientRect(), nah = ev.clientX < r.right + 22 && ev.clientY >= r.top - 3 && ev.clientY <= r.bottom + 3;
+    if (k.classList.contains('nah') !== nah) k.classList.toggle('nah', nah);
+  }
 }, { passive: true });
 
 // Gebietsnummern der Diözese Paderborn (Liste der Diözesangeschäftsstelle)
