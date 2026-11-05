@@ -24,3 +24,36 @@ Offline-Tool als **eine einzige HTML-Datei**. Projektordner: `bedarfsliste-app/`
 ## Eigenheiten
 - UI-Texte sind deutsch; Fördertöpfe: Förderer und Topf sind „Träger“ derselben Felder (`FL_TF`); mit Töpfen zeigt die Seite nur die Töpfe.
 - Excel-Kopie und Copilot-Vorlage müssen zusammenpassen (`FLC_TSP`, Blätter Fördertöpfe/Beispiele); bei Änderungen an Spalten beides und die Tests (`t23`) anpassen.
+
+## Übergabe (Stand 0.126, 11.11.2026)
+**Ziel:** Offline-HTML-Tool „Bedarfsliste“ für das Fundraising der Malteser Diözese Paderborn: Bedarfe, Fördererliste mit KI-Recherche, Kontenliste, Gebietsnummern.
+
+**Fertig (bis 0.126):**
+- Fördererliste: Förderer mit Fördertöpfen (hohe Zeile, Kurzform, verschiebbare Trennlinie, „▾ Töpfe einklappen“ für alle), Tasten wie Bedarfsliste, Beispiele-Kasten, Fördersumme im Netz aus Höchstbetrag der Förderhöhe.
+- KI-Recherche: Knopf → kleines Fenster (Auswahl + Ablagefeld), Vorlagen als ZIP, gemeinsamer Auftrag Variante A „klein / lokal“ (Budget 12 Seiten/25 Tool-Aufrufe, 4 Beispiele) bzw. B „groß / überregional“ (40/80, Vorfilter, 8 Beispiele); Vorschlag nach „Art“ (Soziallotterie, Öffentlich → B).
+- Übernehmen-Fenster: „Welche Angaben sollen übernommen werden?“, Kennzeichen neu/ersetzt/ergänzt/unsicher belegt, links Förderer-Liste mit Kreisen (grün/gelb/leer).
+- Seitenleiste links: Verwendungszweck (Platzhalter), Kontenliste, Gebietsnummern (45 Nummern aus PDF, im Code).
+- Kontenliste: zentriert, BIC/Bank beim Darüberfahren, kopierbar, feste Zeilenhöhe.
+- Reiter: Bedarfe, Fördererliste, Archiv (rechts, grau).
+
+**Entscheidungen:**
+- Ein recherchierter Einzelbetrag = „bis …“ (`flcHoehe`).
+- Förderer-Angaben bei neuen Töpfen: jeder Topf erbt Fehlendes, Notizen/Beispiele werden angehängt.
+- Gemischte Auswahl klein/groß: nur Hinweis, keine getrennten Aufträge.
+- Variante A/B wird nicht am Förderer gespeichert.
+
+**Verworfen:**
+- Spalten „Anmerkung“/„Zwecke der Malteser“ im Blatt „Fördertöpfe“ – Nutzen zu klein.
+- Status-Feld im ⋯-Menü – entfernt auf Wunsch.
+
+**Offen, nach Priorität:**
+1. Verwendungszweck/Kostenstellen: Inhalt kommt vom Nutzer.
+2. Offene Frage: Feld „Größe“ (klein/groß) am Förderer anlegen?
+3. Offene Frage: Gliederungsfilter bei Gebieten ohne Gliederung (z. B. Bielefeld) – Freitext nur anzeigen oder filterbar?
+4. Import prüfen: Beträge mit Cent (3155.88), Telefonnummern-Schreibweisen.
+5. Offene Frage: im Screenshot war die Ansprechperson-Zelle eingekreist – Bedeutung unklar.
+6. t14 einmal kurz flaky (Prio nach Neuladen) – beobachten.
+
+**Dateien/Links:** Vorschau https://claude.ai/artifact/QVFzanYvWFA6kPyK46Nnhx · Branch `claude/vibrant-goldberg-3cv36n` · Repo `martina-hash-ai/notfallapp`.
+
+**Arbeitsweise:** Deutsch, knapp, keine Floskeln; Widerspruch erwünscht; Unsicherheit offen sagen; bei Unklarheit fragen. Nutzer diktiert (Tippfehler möglich), ist Fundraiser, kein Entwickler. Pro Version: kurze Zusammenfassung, ZIP + Screenshots (Demodaten) schicken.
