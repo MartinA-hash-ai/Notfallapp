@@ -39,8 +39,12 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   // Seite des Bedarfs: Zeile „Fördererliste: …“, roter Knopf, Grund der Absage
   await p.evaluate(() => oeffnen('a', { offen: 'foe' })); await p.waitForTimeout(200);
   r = await p.evaluate(() => ['f1', 'f2', 'f3'].map(id => { const c = document.querySelector('#foe-' + id); return (c.querySelector('.fl-zeile') ? c.querySelector('.fl-zeile').textContent.trim() : '') + ' / ' + ((c.querySelector('.fl-grund-link') || {}).textContent || ''); }));
-  ok(r[0].startsWith('Fördererliste: Sparkasse Beispiel') && r[1].startsWith('In Fördererliste übernehmen?') && r[2].startsWith('Fördererliste: Volksbank Test eG') && r[2].endsWith('→ Grund der Absage eintragen'),
-    'Kacheln: verknüpft als Link, nach dem Geldeingang roter Knopf, bei der Absage „Grund eintragen“ statt Geldeingang: ' + r.join(' | '));
+  ok(r[0] === ' / ' && r[1].startsWith('In Fördererliste übernehmen?') && r[2] === ' / → Grund der Absage eintragen',
+    '0.132 Kacheln: Verknüpfung nicht mehr in der Kachel, nach dem Geldeingang roter Knopf, bei der Absage „Grund eintragen“ statt Geldeingang: ' + r.join(' | '));
+  await p.evaluate(() => { UI.det = 'f1'; renderNow(); });
+  r = await p.evaluate(() => (document.querySelector('.foe-pop .fl-zeile') || {}).textContent || '');
+  ok(r.startsWith('Fördererliste: Sparkasse Beispiel'), 'Weitere Infos: Verknüpfung mit der Fördererliste als Link: ' + r);
+  await p.evaluate(() => { UI.det = null; renderNow(); });
   r = await p.evaluate(() => infosAlle().filter(x => x.z === 'fl').map(x => x.t).join());
   ok(r === 'Neue Stiftung X – Geld da, in Fördererliste übernehmen?', 'Hinweis oben: Geld da, Förderer fehlt in der Liste: ' + r);
   await p.click('#foe-f3 .fl-grund-link'); await p.waitForSelector('.modal textarea');
@@ -55,7 +59,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.selectOption('.modal .fl-kw select', 'ja');
   await p.click('.modal footer button:text-is("Übernehmen")'); await p.waitForTimeout(150);
   r = await p.evaluate(() => { const e = D.fl.liste.find(x => x.name === 'Neue Stiftung X'); return [e.id, e.art, e.gl.join(), e.kontakte.map(k => k.n + '/' + k.pos + '/' + k.anschreiben + '/' + k.gl).join(), D.bedarfe[0].foerderer[1].flId,
-    document.querySelector('#foe-f2 .fl-zeile').textContent.trim().startsWith('Fördererliste: Neue Stiftung X'), flHistorie(e).map(x => x.betrag + '/' + x.zweck).join()]; });
+    flZeile(D.bedarfe[0], D.bedarfe[0].foerderer[1], true).includes('Neue Stiftung X'), flHistorie(e).map(x => x.betrag + '/' + x.zweck).join()]; });
   ok(r.join('|') === 'F004|Stiftung|Brakel|Eva Neu/Vorstand/ja/Brakel|F004|true|500/Zelt Brakel', 'übernommen: neuer Eintrag mit Kontakt, verknüpft, Förderung steht von selbst drin: ' + r.join('|'));
   // neuer Kontakt bei einem verknüpften Förderer → „übernehmen?“; „Nicht übernehmen“ fragt nicht wieder
   await p.evaluate(() => { D.bedarfe[0].foerderer[0].kontakte.push({ n: 'Max Neu', rolle: 'Marktbereichsleitung', mail: '', tel: '' }); changed(); renderNow(); });
@@ -76,7 +80,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.click('#foe-f4 .fl-rot'); await p.waitForSelector('.modal .fl-maske'); await p.click('.modal footer button:text-is("Nicht in die Liste")'); await p.waitForTimeout(150);
   r = await p.evaluate(() => [D.bedarfe[0].foerderer[3].flNein, !!document.querySelector('#foe-f4 .fl-rot'), infosAlle().filter(x => x.z === 'fl').length]);
   ok(r.join('|') === 'true|false|0', '„Nicht in die Liste“: kein Knopf, kein Hinweis mehr: ' + r.join('|'));
-  await p.evaluate(() => document.querySelector('#foe-f3 .fl-mini').click()); await p.waitForTimeout(500);
+  await p.evaluate(() => { UI.det = 'f3'; renderNow(); document.querySelector('.foe-pop .fl-mini').click(); }); await p.waitForTimeout(500); await p.evaluate(() => { UI.det = null; renderNow(); });
   r = await p.evaluate(() => [D.bedarfe[0].foerderer[2].flId, D.bedarfe[0].foerderer[2].flNein, flHistorie(flEintrag('F002')).length]);
   ok(r.join('|') === '|true|0', 'Verknüpfung gelöst: bleibt gelöst (trotz gleichem Namen): ' + r.join('|'));
 
@@ -721,6 +725,14 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.click('[data-act="fl-serie"]'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => !!document.querySelector('.fl-serie-pop .fl-sp-drop')), 'KI-Recherche: Ablagefeld gleich im kleinen Fenster (ohne vorher Förderer auszuwählen)');
   await p.evaluate(() => { const e = flEintrag('F002'); e.topfe = []; e.topfMig = false; UI.flWahl = null; changed(); renderNow(); });
+  // 0.132: „recherchierte anzeigen“ im Fenster der KI-Recherche: KI-Zeichen vor Förderern mit Recherche-Stand
+  r = await p.evaluate(() => { const e = D.fl.liste[0], alt = e.recherche; e.recherche = '2026-01-15'; UI.view = 'flist'; UI.flWahl = new Set(); changed(); renderNow(); window.__alt = alt; return [document.querySelectorAll('#fl-body .fl-ki-m').length, !!document.querySelector('.fl-serie-pop [data-act="fl-ki-zeig"]')]; });
+  await p.click('.fl-serie-pop [data-act="fl-ki-zeig"]');
+  r = r.concat(await p.evaluate(() => [!!document.querySelector(`#fl-body tr[data-id="${D.fl.liste[0].id}"] .fl-ki-m`), document.querySelector('.fl-serie-pop [data-act="fl-ki-zeig"]').textContent]));
+  await p.click('.fl-serie-pop [data-act="fl-ki-zeig"]');
+  r.push(await p.evaluate(() => document.querySelectorAll('#fl-body .fl-ki-m').length));
+  ok(r.join() === '0,true,true,recherchierte ausblenden,0', 'recherchierte anzeigen / ausblenden: ' + r.join());
+  await p.evaluate(() => { D.fl.liste[0].recherche = window.__alt; UI.flWahl = null; changed(); renderNow(); });
   // 0.131: Fristen der Fördererliste in den nächsten zwei Monaten im Feld der Hinweise oben rechts; Klick springt zur Frist auf der Seite des Förderers
   r = await p.evaluate(() => { const e = D.fl.liste[0], d = new Date(Date.parse(today()) + 20 * 864e5).toISOString().slice(0, 10), d2 = new Date(Date.parse(today()) + 90 * 864e5).toISOString().slice(0, 10); e.status = 'aktiv';
     e.fristenL.push({ id: 'tfr1', d, topf: '' }, { id: 'tfr2', d: d2, topf: '' }); UI.view = 'flist'; changed(); renderNow(); const H = hinweise().fl.filter(x => x.e === e); return [H.length, H[0] && H[0].iso === d, H[0] && H[0].n, /Förderer-Frist/.test(document.querySelector('#frist-chip').title)]; });

@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.132.0",
+    "date": "2026-11-15T10:00",
+    "items": [
+      "Kopfzeile wieder wie vor den Knöpfen links (Logo am Rand); der Inhalt steht wieder mittig – links und rechts gleicher Rand, die Knöpfe links bleiben ganz sichtbar",
+      "Förderer im Bedarf: die Zeile „Fördererliste: …“ steht nicht mehr in der Kachel, sondern unter „Weitere Infos“ (mit Link und ×); in der Kachel bleibt nur der rote Knopf, wenn es neue Kontakte zu übernehmen gibt",
+      "KI-Recherche in der Fördererliste: neben „alle angezeigten“ rechts „recherchierte anzeigen“ – setzt das KI-Zeichen vor jeden Förderer (bzw. Topf) mit Recherche-Stand, auch bei früheren Recherchen; ein zweiter Klick blendet es wieder aus",
+      "Filter: kein blauer Rahmen mehr beim Anklicken eines Häkchens"
+    ]
+  },
+  {
     "version": "0.131.0",
     "date": "2026-11-14T10:00",
     "items": [

@@ -1971,8 +1971,8 @@ table.fl-tab thead th.fl-te { text-align: center; }
 .fl-krone-l { left: -7px; top: -7px; }
 .fl-rechts { display: flex; flex-direction: column; gap: 12px; }
 .fl-hinw { display: flex; flex-direction: column; gap: 6px; }
-.fl-sv .fl-hoehe-in { flex-wrap: nowrap; }
-.fl-sv .fl-hoehe-in input.fl-hoehe-f { flex: none; width: 108px; min-width: 0; box-sizing: border-box; }
+.fl-sv .fl-hoehe-in { flex-wrap: nowrap; white-space: nowrap; }
+.fl-sv .fl-hoehe-in input.fl-hoehe-f { flex: none; width: 100px; min-width: 0; box-sizing: border-box; }
 
 /* 0.105: der Hinweis liegt über dem Kopf-Raster und verschiebt nichts */
 .fl-kopf { position: relative; }
@@ -2217,9 +2217,9 @@ td.k-z:hover .k-mehr, td.k-z:focus-within .k-mehr { max-height: 40px; }
 .fl-zu-alle:hover { background: var(--hover); color: var(--ink); }
 .fl-sp-drop { margin-top: 0; padding: 12px 10px; }
 /* Platz für die Seitenleiste: der Inhalt beginnt rechts von den Knöpfen (nur wenn der Bildschirm nicht ohnehin breiter ist als der Inhalt) */
-main, header.top { padding-left: max(62px, env(safe-area-inset-left, 0px)); }
-.subbar { padding-inline: max(0px, (100% - 1602px) / 2); }   /* bündig mit dem Kasten: 1680 px minus 62 + 16 px Rand */
-@media (max-width: 700px) { main, header.top { padding-left: max(16px, env(safe-area-inset-left, 0px)); } .subbar { padding-inline: max(0px, (100% - 1648px) / 2); } .seitenleiste { display: none; } }
+main { padding-left: max(62px, env(safe-area-inset-left, 0px)); padding-right: max(62px, env(safe-area-inset-right, 0px)); }   /* mittig: links Platz für die Knöpfe, rechts gleich viel */
+.subbar { padding-inline: max(46px, (100% - 1556px) / 2); }   /* bündig mit dem Kasten: 1680 px minus 2 × 62 px Rand */
+@media (max-width: 700px) { main { padding-inline: max(16px, env(safe-area-inset-left, 0px)); } .subbar { padding-inline: max(0px, (100% - 1648px) / 2); } .seitenleiste { display: none; } }
 
 /* 0.127: Übernehmen-Fenster – links (Förderer) und rechts (Angaben) scrollen unabhängig; formatiert bearbeiten */
 .flc-modal.mit-seite .modal-body { overflow: hidden; display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; padding-bottom: 0; }
@@ -2297,3 +2297,13 @@ table.sl-kst tbody tr.sl-gr-meist > th { color: var(--ink2); }
 .fl-dbar { display: flex; align-items: center; }
 .fl-dbar .fl-ki-d { margin-left: auto; height: 32px; box-sizing: border-box; }
 .fp-row.fp-fl .fp-d { color: var(--ink2); }
+
+/* 0.132: Filter ohne blauen Rahmen beim Anklicken; KI-Zeichen vor recherchierten Förderern */
+.fl-fi-z input:focus { outline: none; box-shadow: none; }
+.fl-fi-z:focus-within { background: var(--hover); }
+.fl-sp-f { align-items: baseline; }
+.fl-sp-f .fl-sp-rech { margin-left: auto; }
+.fl-sp-f .fl-sp-rech.an { color: var(--ink); font-weight: 600; }
+.fl-ki-m { display: inline-flex; vertical-align: -2px; margin-right: 5px; color: #7c5cd6; }
+.fl-ki-m svg { width: 14px; height: 14px; }
+.foe-pop .fl-zeile { margin-top: 8px; }

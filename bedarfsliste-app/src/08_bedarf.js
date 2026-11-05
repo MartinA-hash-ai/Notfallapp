@@ -295,7 +295,7 @@ function foePop(b) {
       <div class="pop-body">
         <div class="pA-box">${flLive(b, f) ? '<div class="sub">Kontakte</div>' : kKopf('Kontakte', UI.kEdit === f.id, a)}
           ${kontaktListe(f, b)}<div class="ksep"></div>
-          ${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}</div>
+          ${pe(f, 'web', 'Website oder Portal', 'line', { fx: 'web' })}${pe(f, 'weg', 'Antragsweg')}${f.status === 'zugesagt' ? pe(f, 'betrag', 'Beantragt waren', 'num') : ''}${flZeile(b, f, true)}</div>
         <div class="pA-bed">${f.status === 'abgelehnt' ? pe(f, 'grund', 'Grund der Ablehnung', 'area', { ph: 'Warum abgelehnt? z. B. Satzungszweck passt nicht, Budget ausgeschöpft, Region – hilft bei späteren Recherchen' }) : ''}${f.datei ? pe(f, 'datei', 'Ausführliche Recherche (Datei im Ordner des Bedarfs)') : ''}${pe(f, 'fristInfo', 'Fristen und Termine', 'area', { fmt: true })}${pe(f, 'hoehe', 'Übliche Fördersumme', 'area', { fmt: true })}${pe(f, 'eigenInfo', 'Eigenanteil', 'area', { fmt: true })}</div>
         <div class="pA-q"><div class="sub">Quellen</div>${pe(f, 'quellen', '', 'area', { html: `<span class="ql">${quellenListe(f.quellen)}</span>`, ph: 'Links eintragen, je Link eine Zeile', cls: 'pe-q' })}</div>
         <div class="pA-n"><div class="sub">Notizen ${FMT_I}</div>${pe(f, 'notiz', '', 'area', { ph: 'Notizen eintragen – „* “ am Zeilenanfang macht eine Aufzählung', fmt: true })}</div>

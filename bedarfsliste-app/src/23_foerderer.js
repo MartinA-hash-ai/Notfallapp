@@ -527,6 +527,7 @@ function flZeilen() {
   const R = flTreffer();
   if (!R.length) return `<tr><td colspan="7"><div class="empty">${flDaten().liste.length ? 'Kein Förderer passt zur Suche.' : 'Noch keine Fördererliste – „Excel ▾ → Excel einlesen …“ übernimmt die umgebaute Fördererliste.'}</div></td></tr>`;
   const krone = g => g ? `<span class="fl-krone-l" data-tip="> 10.000 € möglich">${ICON_KRONE}</span>` : '';
+  const ki = x => UI.flKiZeig && x && x.recherche ? `<span class="fl-ki-m" data-tip="recherchiert ${esc(fmtDate(x.recherche))}" aria-label="mit KI recherchiert">${ICON_KI}</span>` : '';   // „recherchierte anzeigen“
   const gebiet = e => e.gl.length ? `<div class="fl-clamp" data-tip="${esc(e.gl.map(g => /^alle$/i.test(g) ? 'alle Gliederungen' : g).join(', '))}">${flGebiet(e)}</div>` : '<span class="muted">–</span>';
   const zweck = e => e.schwer ? `<div class="fl-clamp" data-tip="${esc(flKomma(e.schwer))}">${esc(flKomma(e.schwer))}</div>` : '<span class="muted">–</span>';
   return R.flatMap(({ e: e0, T }) => {
@@ -537,18 +538,18 @@ function flZeilen() {
     const kontakt = (rs) => `<td class="fl-k${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}" data-act="fl-oeffnen" data-id="${e0.id}"` : ''}>${k ? `<div class="fl-kp"><div><span class="fl-kn">${esc(k.n)}</span>${k.pos ? `<div class="muted small">${esc(k.pos)}</div>` : ''}</div><span class="fl-fis">${flKontaktKnoepfe(k)}</span></div>` : '<span class="muted">–</span>'}</td>`;
     const status = e0.status !== 'aktiv' ? `<div class="muted small">${esc(e0.status)}</div>` : '', lz = laufZ ? `<div class="fl-lz small${bea.length ? ' an' : ''}">${esc(laufZ)}</div>` : '';
     if (!gruppe) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="${ruht.trim()}">
-      <td class="fl-n" colspan="2"><b class="fl-nm">${krone(flGrossT(e0))}${esc(e.name || '(ohne Namen)')}</b>${e.kurz ? ` <span class="fl-kurz">(${esc(e.kurz)})</span>` : ''}${hinweis}${status}${lz}</td>
+      <td class="fl-n" colspan="2"><b class="fl-nm">${krone(flGrossT(e0))}${ki(e0)}${esc(e.name || '(ohne Namen)')}</b>${e.kurz ? ` <span class="fl-kurz">(${esc(e.kurz)})</span>` : ''}${hinweis}${status}${lz}</td>
       <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te">${flNetz(e0)}</td>${kontakt(0)}</tr>`];
     // mehrere Fördertöpfe: eine hohe Zeile – links der Förderer (Kurzform), rechts daneben die Töpfe untereinander, je Topf eine eigene Zeile
     const kurzname = e0.kurz || e0.name || '(ohne Namen)', tip = e0.kurz && e0.name ? ` data-tip="${esc(e0.name)}"` : '';
     const schalter = `<button class="fl-tg" data-act="fl-zu" data-id="${e0.id}" aria-expanded="${!zu}" title="Fördertöpfe ${zu ? 'zeigen' : 'einklappen'}">${zu ? '<span class="fl-tg-p">▾</span> ausklappen' : '<span class="fl-tg-p">▴</span> einklappen'}</button>`;
-    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(flGrossT(e0) || T.some(flGrossT))}${esc(kurzname)}</b>${hinweis}${status}${lz}${schalter}${rs ? '<span class="fl-split" title="Ziehen: Trennlinie zwischen Förderer und Fördertöpfen verschieben (gilt für alle)" aria-hidden="true"></span>' : ''}</td>`;
+    const links = rs => `<td class="fl-n${rs ? ' fl-rs' : ''}"${rs ? ` rowspan="${rs}"` : ''} data-act="fl-oeffnen" data-id="${e0.id}"${tip}><b class="fl-nm">${krone(flGrossT(e0) || T.some(flGrossT))}${ki(e0.recherche ? e0 : e0.topfe.find(t => t.recherche))}${esc(kurzname)}</b>${hinweis}${status}${lz}${schalter}${rs ? '<span class="fl-split" title="Ziehen: Trennlinie zwischen Förderer und Fördertöpfen verschieben (gilt für alle)" aria-hidden="true"></span>' : ''}</td>`;
     if (zu) return [`<tr data-act="fl-oeffnen" data-id="${e0.id}" tabindex="0" class="fl-kopf-tr${ruht}">${links(0)}<td class="fl-tn muted"><div class="fl-clamp">${esc(T.map(t => t.name || '(ohne Namen)').join(', '))}</div></td>
       <td class="fl-g">${gebiet(e)}</td><td class="fl-z">${zweck(e)}</td><td class="fl-tf">${flFristenHtml(e)}</td><td class="fl-te"></td>${kontakt(0)}</tr>`];
     return T.map((t, n) => {
       const et = Object.assign({}, e0, { fristenL: e0.fristenL.filter(f => f.topf === t.name || (!f.topf && t === e0.topfe[0])), fristen: t.fristen });
       return `<tr class="fl-tr-t${n === T.length - 1 ? ' fl-tr-letzte' : ''}${ruht}" data-act="fl-oeffnen" data-id="${e0.id}" data-topf="${t.id}" tabindex="0">${n ? '' : links(T.length)}
-      <td class="fl-tn"><b class="fl-nm">${krone(flGrossT(t))}${esc(t.name || '(ohne Namen)')}</b>${t.kurz ? ` <span class="fl-kurz">(${esc(t.kurz)})</span>` : ''}</td>
+      <td class="fl-tn"><b class="fl-nm">${krone(flGrossT(t))}${ki(t)}${esc(t.name || '(ohne Namen)')}</b>${t.kurz ? ` <span class="fl-kurz">(${esc(t.kurz)})</span>` : ''}</td>
       <td class="fl-g">${gebiet(t)}</td><td class="fl-z">${zweck(t)}</td><td class="fl-tf">${flFristenHtml(et)}</td><td class="fl-te">${flNetz(e0, false, { t })}</td>${n ? '' : kontakt(T.length)}</tr>`; });
   }).join('');
 }
@@ -1040,13 +1041,14 @@ function flZurueck() { closeMenus(); flKontakteFertig(); const id = UI.flId; flL
 // ---------- im Bedarf: Verknüpfung, roter Knopf „In Fördererliste übernehmen?“, neue Kontakte, Grund einer Absage
 const flNeueKontakte = (f, e) => f.kontakte.filter(c => (c.n || '').trim() && !e.kontakte.some(k => kkey(k.n) === kkey(c.n)) && !(f.flAus || []).includes(kkey(c.n)));
 const flOffen = f => flAktiv() && f.status === 'zugesagt' && f.eingegangen > 0 && !f.flId && !f.flNein;
-function flZeile(b, f) {
+function flZeile(b, f, imFenster) {
   if (!flAktiv() || !f.name.trim()) return '';
   const e = flVon(f), a = `data-fid="${f.id}"`;
-  if (e) {
+  if (imFenster) return e ? `<div class="fl-zeile"><span class="muted small">Fördererliste:</span> <button class="link small" data-act="fl-oeffnen" data-id="${e.id}" title="Eintrag in der Fördererliste öffnen">${esc(e.name)}</button>`
+      + `<button class="fl-mini" data-act="fl-loesen" ${a} title="Verknüpfung lösen (gehört nicht zu diesem Eintrag)" aria-label="Verknüpfung lösen">×</button></div>` : '';   // „Weitere Infos“: Verknüpfung mit der Fördererliste
+  if (e) {                                                                       // Kachel: nur, wenn etwas zu tun ist (neue Kontakte)
     const neu = flNeueKontakte(f, e);
-    return `<div class="fl-zeile"><span class="muted small">Fördererliste:</span> <button class="link small" data-act="fl-oeffnen" data-id="${e.id}" title="Eintrag in der Fördererliste öffnen">${esc(e.name)}</button>`
-      + `<button class="fl-mini" data-act="fl-loesen" ${a} title="Verknüpfung lösen (gehört nicht zu diesem Eintrag)" aria-label="Verknüpfung lösen">×</button>`
+    return !neu.length ? '' : '<div class="fl-zeile">'
       + (neu.length ? `<button class="fl-rot" data-act="fl-kontakte" ${a}>${neu.length === 1 ? 'Neuer Kontakt' : neu.length + ' neue Kontakte'} – übernehmen?</button>` : '') + '</div>';
   }
   if (flOffen(f)) return `<div class="fl-zeile"><button class="fl-rot" data-act="fl-neu" ${a} title="Geld ist eingegangen – Förderer in die Fördererliste aufnehmen oder einem Eintrag zuordnen">In Fördererliste übernehmen?</button></div>`;
@@ -1134,6 +1136,7 @@ async function flAct(k, a) {
     case 'flist': flListe(); return true;
     case 'fl-oeffnen': if (UI.flWahl && UI.view === 'flist') { flSerieUmschalten(a.dataset.id, a.dataset.topf); return true; } flOeffnen(a.dataset.id, a.dataset.topf); return true;
     case 'fl-serie': UI.flWahl = new Set(); keep(renderNow); return true;
+    case 'fl-ki-zeig': UI.flKiZeig = !UI.flKiZeig; keep(renderNow); return true;
     case 'fl-serie-alle': if (UI.flWahl) { flGefiltert().forEach(x => UI.flWahl.add(x.id)); keep(renderNow); } return true;
     case 'fl-serie-leer': if (UI.flWahl) { UI.flWahl.clear(); keep(renderNow); } return true;
     case 'fl-serie-ende': UI.flWahl = null; keep(renderNow); return true;
