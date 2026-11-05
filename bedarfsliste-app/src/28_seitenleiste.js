@@ -1,11 +1,11 @@
 /* ===================================================================== Seitenleiste links (ab 0.125)
-   Drei weiße Knöpfe am linken Rand, immer etwa auf halber Höhe (auch beim Scrollen): Verwendungszweck, Kontenliste, Gebietsnummern.
+   Drei weiße Knöpfe am linken Rand, immer etwa auf halber Höhe (auch beim Scrollen): Kontenliste, Gebietsnummern, Verwendungszweck.
    Sie stecken zum Teil hinter dem Rand; kommt die Maus in die Nähe, lugen sie ein paar Pixel hervor, beim Darüberfahren noch etwas mehr,
    daneben erscheint der Name. Ein Klick öffnet das jeweilige Fenster. */
 const ICON_ZIEL = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><circle cx="11" cy="13" r="8.2" fill="none" stroke="currentColor" stroke-width="2.2"/><circle cx="11" cy="13" r="4.2" fill="none" stroke="currentColor" stroke-width="2.2"/><path d="M11 13 19.5 4.5" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/><path d="M17 3.2 20.8 3.2 20.8 7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const ICON_TEMPEL = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 2.5 21.5 7.2H2.5z" fill="currentColor"/><rect x="3" y="8.3" width="18" height="1.8" rx=".9" fill="currentColor"/><path d="M5.6 11.2h2.2v6.6H5.6zM10.9 11.2h2.2v6.6h-2.2zM16.2 11.2h2.2v6.6h-2.2z" fill="currentColor"/><rect x="3" y="18.6" width="18" height="1.6" rx=".8" fill="currentColor"/><rect x="2" y="20.8" width="20" height="1.6" rx=".8" fill="currentColor"/></svg>';
 const ICON_PIN = '<svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true"><path d="M12 1.8a7.6 7.6 0 0 0-7.6 7.6c0 5.6 7.6 12.8 7.6 12.8s7.6-7.2 7.6-12.8A7.6 7.6 0 0 0 12 1.8zm0 10.5a2.9 2.9 0 1 1 0-5.8 2.9 2.9 0 0 1 0 5.8z" fill="currentColor"/></svg>';
-const SEITE_KNOEPFE = [['sl-zweck', ICON_ZIEL, 'Verwendungszweck'], ['konten', ICON_TEMPEL, 'Kontenliste'], ['sl-gebiet', ICON_PIN, 'Gebietsnummern']];
+const SEITE_KNOEPFE = [['konten', ICON_TEMPEL, 'Kontenliste'], ['sl-gebiet', ICON_PIN, 'Gebietsnummern'], ['sl-zweck', ICON_ZIEL, 'Verwendungszweck']];
 const seitenleisteHtml = () => `<nav class="seitenleiste" aria-label="Nachschlagen">${SEITE_KNOEPFE.map(([act, ic, t]) => `<button type="button" class="sl-k" data-act="${act}" aria-label="${t}">${ic}<span class="sl-t">${t}</span></button>`).join('')}</nav>`;
 // Maus in der Nähe (linker Rand, ungefähr auf Höhe der Knöpfe): Knöpfe lugen hervor
 // jeder Knopf für sich: wenn die Maus auf seiner Höhe bis etwa 70 px an den Knopf herankommt
@@ -30,7 +30,7 @@ async function gebieteDialog() {
   const wrap = h('div', { class: 'k-wrap sl-wrap' });
   const zeig = () => { const q = norm(such.value);
     const L = GEBIETE.filter(([n, g]) => !q || n.includes(q) || norm(g).includes(q));
-    wrap.innerHTML = `<table class="k-tab sl-tab"><thead><tr><th>Gebietsnummer</th><th>Gliederung</th></tr></thead><tbody>${L.map(([n, g]) => `<tr><td>${kKopierbar(n, 'k-iban', 'Klicken: Gebietsnummer kopieren', n)}</td><td>${kKopierbar(g, 'sl-gl', 'Klicken: Namen kopieren', esc(g))}</td></tr>`).join('')
+    wrap.innerHTML = `<table class="k-tab sl-tab sl-geb"><thead><tr><th>Gebietsnummer</th><th>Gliederung</th></tr></thead><tbody>${L.map(([n, g]) => `<tr><td>${kKopierbar(n, 'k-iban', 'Klicken: Gebietsnummer kopieren', n)}</td><td>${kKopierbar(g, 'sl-gl', 'Klicken: Namen kopieren', esc(g))}</td></tr>`).join('')
       || `<tr><td colspan="2" class="muted k-nix">Nichts passt zu „${esc(such.value)}“.</td></tr>`}</tbody></table>`; };
   such.addEventListener('input', zeig);
   wrap.addEventListener('click', e => { const c = e.target.closest('.k-c'); if (c) kopiereZeichen(c); });
@@ -61,9 +61,10 @@ async function zweckDialog() {
   const wrap = h('div', { class: 'k-wrap sl-wrap' });
   const zeig = () => { const q = norm(such.value);
     const T = KOSTEN.map(([b, L]) => [b, norm(b).includes(q) ? L : L.filter(([n, t]) => n.includes(q) || norm(t).includes(q))]).filter(([, L]) => L.length);
-    wrap.innerHTML = `<table class="k-tab sl-tab"><thead><tr><th>Kostenstelle</th><th>Bezeichnung</th></tr></thead><tbody>${T.map(([b, L]) => `<tr class="sl-gr"><th colspan="2">${esc(b)}</th></tr>`
+    wrap.innerHTML = `<table class="k-tab sl-tab sl-kst"><thead><tr><th>Kostenstelle</th><th>Bezeichnung</th></tr></thead><tbody>${T.map(([b, L]) => `<tr class="sl-gr"><th colspan="2">${esc(b)}</th></tr>`
       + L.map(([n, t]) => `<tr><td>${kKopierbar(n, 'k-iban', 'Klicken: Kostenstelle kopieren', n)}</td><td>${kKopierbar(t, 'sl-gl', 'Klicken: Bezeichnung kopieren', esc(t))}</td></tr>`).join('')).join('')
-      || `<tr><td colspan="2" class="muted k-nix">Nichts passt zu „${esc(such.value)}“.</td></tr>`}</tbody></table>`; };
+      || `<tr><td colspan="2" class="muted k-nix">Nichts passt zu „${esc(such.value)}“.</td></tr>`}</tbody></table>`;
+    requestAnimationFrame(() => { const th = wrap.querySelector('thead'); if (th) wrap.style.setProperty('--kst-kopf', th.getBoundingClientRect().height + 'px'); }); };   // Bereichs-Überschrift klebt direkt unter dem Spaltenkopf
   such.addEventListener('input', zeig);
   wrap.addEventListener('click', e => { const c = e.target.closest('.k-c'); if (c) kopiereZeichen(c); });
   zeig();

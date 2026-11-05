@@ -24,7 +24,7 @@ const { chromium, ok, open, finish } = require('./lib');
     { gl: 'Hagen', konten: [{ art: 'Volksbank', iban: ibanBauen('47260121', 3) }, { art: 'Sparkasse', iban: ibanBauen('45050001', 3) }] }] } } }); SAVED_JSON = JSON.stringify(D); renderNow(); });
   ok(await p.evaluate(() => !!D.settings.konten && D.settings.konten.liste.length === 2), 'Kontenliste bleibt beim Laden erhalten (settings)');
   // 0.125: Kontenliste über den Knopf in der Seitenleiste links (oben kein Reiter mehr)
-  ok(await p.evaluate(() => !document.querySelector('header.top [data-act="konten"]') && [...document.querySelectorAll('.seitenleiste .sl-k')].map(b => b.getAttribute('aria-label')).join() === 'Verwendungszweck,Kontenliste,Gebietsnummern'), 'Seitenleiste links: Verwendungszweck, Kontenliste, Gebietsnummern; Kontenliste nicht mehr oben');
+  ok(await p.evaluate(() => !document.querySelector('header.top [data-act="konten"]') && [...document.querySelectorAll('.seitenleiste .sl-k')].map(b => b.getAttribute('aria-label')).join() === 'Kontenliste,Gebietsnummern,Verwendungszweck'), 'Seitenleiste links: Kontenliste, Gebietsnummern, Verwendungszweck; Kontenliste nicht mehr oben');
   await p.click('.seitenleiste [data-act="konten"]', { force: true }); await p.waitForTimeout(150);
   r = await p.evaluate(() => [document.querySelector('.modal.k-modal h2').textContent, [...document.querySelectorAll('.k-tab thead th')].map(t => t.querySelector('.k-th') ? t.querySelector('.k-th').textContent : t.textContent).join(','),
     document.querySelectorAll('.k-tab tbody tr').length, !document.querySelector('.k-tab thead .k-bic'), document.activeElement.className, !document.querySelector('.k-fuss'), !!document.querySelector('.k-modal header .k-stift')]);

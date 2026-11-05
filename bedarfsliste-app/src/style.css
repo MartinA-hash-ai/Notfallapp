@@ -2233,3 +2233,15 @@ main, header.top { padding-left: max(62px, env(safe-area-inset-left, 0px)); }
 table.sl-tab tbody tr.sl-gr > th { background: var(--head); font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); height: auto; padding: 6px 10px; }
 table.sl-tab tbody tr.sl-gr:hover > th { background: var(--head); }
 .sl-modal table.k-tab tbody td { height: auto; }
+
+/* 0.129: Kostenstellen linksbündig, Bereichs-Überschrift bleibt beim Scrollen oben stehen; Gebietsnummern flacher; Kontenliste schmaler */
+table.sl-kst thead th, table.sl-kst tbody td, table.sl-kst tbody tr.sl-gr > th { text-align: left; }
+table.sl-kst .k-c { margin: 0 -4px; }
+table.sl-kst thead th:first-child { width: 130px; }
+table.sl-kst tbody tr.sl-gr > th { position: sticky; top: calc(var(--kst-kopf, 33px) - 1px); z-index: 1; }
+table.sl-geb tbody td { padding-top: 2px; padding-bottom: 2px; }
+table.sl-geb .k-c { padding-top: 0; padding-bottom: 0; }
+.modal.wide.k-modal:not(.sl-modal) { width: min(920px, 98vw); }
+.k-modal:not(.sl-modal) .k-iban { letter-spacing: .01em; }
+.k-modal:not(.sl-modal) table.k-tab thead th.k-gl, .k-modal:not(.sl-modal) table.k-tab tbody th.k-gl { width: 140px; }
+.k-modal:not(.sl-modal) table.k-tab tbody td.k-z, .k-modal:not(.sl-modal) table.k-tab thead th:not(.k-gl) { padding-left: 6px; padding-right: 6px; }

@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.129.0",
+    "date": "2026-11-12T16:00",
+    "items": [
+      "Seitenleiste links: neue Reihenfolge – Kontenliste oben, darunter Gebietsnummern, dann Verwendungszweck",
+      "Kostenstellen: alles linksbündig (auch die Überschriften); die Überschrift des Bereichs bleibt beim Scrollen oben unter dem Spaltenkopf stehen, bis der nächste Bereich sie ablöst",
+      "Kontenliste schmaler (920 statt 1.180 px) – Konto-Spalten enger, ohne waagerechten Scrollbalken",
+      "Gebietsnummern: flachere Zeilen"
+    ]
+  },
+  {
     "version": "0.128.0",
     "date": "2026-11-12T14:00",
     "items": [
