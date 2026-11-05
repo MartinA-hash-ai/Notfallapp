@@ -91,7 +91,7 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   await p.click('header.top [data-act="flist"]'); await p.waitForTimeout(150);
   r = await p.evaluate(() => [document.querySelector('header.top .tab.on').textContent, document.querySelectorAll('#fl-body tr[data-id]').length, document.querySelector('#fl-count').textContent,
     [...document.querySelectorAll('#fl-body tr[data-id] .fl-n b')].map(x => x.textContent).join(',')]);
-  ok(r.join('|') === 'FördererlisteBeta|4|4 von 4 Förderern|Neue Stiftung X,Ohne ID,Sparkasse Beispiel,Volksbank Test eG', 'Reiter „Fördererliste Beta“, alphabetisch: ' + r.join('|'));
+  ok(r.join('|') === 'Fördererliste|4|4 von 4 Förderern|Neue Stiftung X,Ohne ID,Sparkasse Beispiel,Volksbank Test eG', 'Reiter „Fördererliste“ (ohne Beta), alphabetisch: ' + r.join('|'));
   await p.fill('#flq', 'filial'); await p.waitForTimeout(100);
   r = await p.evaluate(() => [...document.querySelectorAll('#fl-body tr[data-id]')].map(x => x.dataset.id).join());
   ok(r === 'F001', 'Suche findet auch Positionen der Kontakte: ' + r);

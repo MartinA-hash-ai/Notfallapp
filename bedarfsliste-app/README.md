@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.128:** Der Knopf „Verwendungszweck“ links zeigt die Kostenstellen (nach Bereichen, mit Suche, kopierbar); die Fördererliste trägt kein „Beta“ mehr.
+
 **Seit 0.127:** Im Übernehmen-Fenster werden Notizen formatiert bearbeitet, links und rechts scrollen getrennt; der Auftrag verlangt bei „Was wird gefördert?“ die Förderlogik statt Selbstverständlichem; die Knöpfe links reagieren früher.
 
 **Seit 0.126:** Die Knöpfe links sind ganz sichtbar und kommen einzeln heraus; die Kontenliste springt beim Darüberfahren nicht mehr; Archiv steht rechts und dezent; das KI-Recherche-Fenster nimmt Ergebnisse direkt an; alle Fördertöpfe lassen sich auf einmal auf- oder zuklappen.

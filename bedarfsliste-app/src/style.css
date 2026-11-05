@@ -2228,3 +2228,8 @@ main, header.top { padding-left: max(62px, env(safe-area-inset-left, 0px)); }
 .flc-modal.mit-seite .flc-mit-seite > .flc { overflow-y: auto; min-height: 0; max-height: 100%; padding-right: 4px; padding-bottom: 12px; }
 .flc-ed-rich { min-height: 3em; border: 1px solid var(--line2); border-radius: 6px; padding: 6px 8px; background: var(--input); font-size: 13.5px; line-height: 1.45; outline: none; }
 .flc-ed-rich:focus { border-color: var(--faint); }
+
+/* 0.128: Kostenstellen – Zwischenzeile je Bereich */
+table.sl-tab tbody tr.sl-gr > th { background: var(--head); font-size: 11.5px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); height: auto; padding: 6px 10px; }
+table.sl-tab tbody tr.sl-gr:hover > th { background: var(--head); }
+.sl-modal table.k-tab tbody td { height: auto; }

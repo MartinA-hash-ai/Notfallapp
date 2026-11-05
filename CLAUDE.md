@@ -32,7 +32,7 @@ Offline-Tool als **eine einzige HTML-Datei**. Projektordner: `bedarfsliste-app/`
 - Fördererliste: Förderer mit Fördertöpfen (hohe Zeile, Kurzform, verschiebbare Trennlinie, „▾ Töpfe einklappen“ für alle), Tasten wie Bedarfsliste, Beispiele-Kasten, Fördersumme im Netz aus Höchstbetrag der Förderhöhe.
 - KI-Recherche: Knopf → kleines Fenster (Auswahl + Ablagefeld), Vorlagen als ZIP, gemeinsamer Auftrag Variante A „klein / lokal“ (Budget 12 Seiten/25 Tool-Aufrufe, 4 Beispiele) bzw. B „groß / überregional“ (40/80, Vorfilter, 8 Beispiele); Vorschlag nach „Art“ (Soziallotterie, Öffentlich → B).
 - Übernehmen-Fenster: „Welche Angaben sollen übernommen werden?“, Kennzeichen neu/ersetzt/ergänzt/unsicher belegt, links Förderer-Liste mit Kreisen (grün/gelb/leer).
-- Seitenleiste links: Verwendungszweck (Platzhalter), Kontenliste, Gebietsnummern (45 Nummern aus PDF, im Code).
+- Seitenleiste links: Verwendungszweck (99 Kostenstellen in 16 Bereichen, im Code), Kontenliste, Gebietsnummern (45 Nummern aus PDF, im Code).
 - Kontenliste: zentriert, BIC/Bank beim Darüberfahren, kopierbar, feste Zeilenhöhe.
 - Reiter: Bedarfe, Fördererliste, Archiv (rechts, grau).
 
@@ -47,7 +47,6 @@ Offline-Tool als **eine einzige HTML-Datei**. Projektordner: `bedarfsliste-app/`
 - Status-Feld im ⋯-Menü – entfernt auf Wunsch.
 
 **Offen, nach Priorität:**
-1. Verwendungszweck/Kostenstellen: Inhalt kommt vom Nutzer.
 2. Offene Frage: Feld „Größe“ (klein/groß) am Förderer anlegen?
 3. Offene Frage: Gliederungsfilter bei Gebieten ohne Gliederung (z. B. Bielefeld) – Freitext nur anzeigen oder filterbar?
 4. Import prüfen: Beträge mit Cent (3155.88), Telefonnummern-Schreibweisen.

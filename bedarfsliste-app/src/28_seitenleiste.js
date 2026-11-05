@@ -37,8 +37,35 @@ async function gebieteDialog() {
   zeig();
   await modal('Gebietsnummern', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal sl-modal', expose: () => setTimeout(() => such.focus(), 40) });
 }
-// Verwendungszweck (Kostenstellen): Inhalt folgt
-function zweckDialog() {
+// Verwendungszweck: Kostenstellen nach Bereichen (Liste „Kostenstellen“); Suche nach Nummer, Name oder Bereich, ein Klick kopiert
+const KOSTEN = [
+  ["Verwaltung", [["9100", "Mitglieder"], ["9140", "abzugsfähige Kosten Mitgliederumlage"], ["9150", "Fundraising"], ["9151", "Mailingmittel"], ["9200", "Vermögensverwaltung"], ["9300", "Veranstaltungen MHD-intern"], ["9400", "Veranstaltungen MHD-extern"], ["9510", "GF/allg. Verwaltung"], ["9520", "Umlagen"], ["9550", "Presse- und Öffentlichkeitsarbeit"], ["9600", "Hausverwaltung"], ["9700", "Werkstatt/Tankstelle/Kfz"], ["9988", "Sanierungskosten"]]],
+  ["Ausbildung", [["1100", "Erste Hilfe"], ["1500", "RD/extern"], ["1650", "Sozialpflegerische Ausbildung"], ["1200", "Abenteuer Helfen"], ["1400", "EH-Bundesprogramm"], ["1700", "Helfer intern"], ["1800", "Hilfskostenstelle Ausbildung"]]],
+  ["Soziales Ehrenamt", [["2300", "ehrenamtliche Sozialdienste"], ["2310", "Besuchs- und Betreuungsdienste"], ["2311", "Einsamkeit"], ["2320", "Migrantenmedizin"], ["2330", "Demenzdienste"], ["2340", "Flüchtlingsbetreuung"], ["2341", "Ehrenamtskoordinator"], ["2342", "Erstorientierung"], ["2343", "Sonstige Projekte FLUE"], ["2360", "Herzenswunsch-KTW"], ["2370", "Teilhabeberatung EUTB"], ["2830", "Betreuung bei Blutspende (DRK)"]]],
+  ["Hospiz", [["2400", "Hospizarbeit"], ["2410", "besondere Hospizdienste"], ["2450", "Trauerarbeit"]]],
+  ["Notfallvorsorge", [["5100", "Katastrophenschutz Bund"], ["5200", "Katastrophenschutz Land"], ["2100", "Einsätze"], ["2150", "Psychosoziale Begleitung"]]],
+  ["Jugend und Schule", [["6100", "Malteser Jugend"], ["6200", "Schulsanitätsdienst"], ["6300", "Schulprojekte"]]],
+  ["Auslandsdienst", [["9410", "Auslandsdienst"]]],
+  ["Rettungsdienst / Krankentransport", [["3100", "Öffentlicher Rettungsdienst"], ["3200", "Sonstige Rettungs- und Krankentransporte"], ["3300", "Rückholdienst"]]],
+  ["Fahrdienste", [["4100", "Behindertenfahrdienst"], ["4200", "Individual Transport für Behinderte"], ["4300", "Behinderten-Reisedienst"]]],
+  ["Hausnotruf", [["2200", "Hausnotruf"]]],
+  ["Mahlzeitendienst", [["2500", "Mahlzeitendienst"], ["2510", "MZD steuerpflichtig"]]],
+  ["Pflege", [["2350", "Stationäre Einrichtungen"], ["2670", "Leistungskomplexe ohne Pflegegrad"], ["2600", "Leistungskomplexe Pflegegrad 1"], ["2610", "Leistungskomplexe Pflegegrad 2"], ["2620", "Leistungskomplexe Pflegegrad 3"], ["2630", "Leistungskomplexe Pflegegrad 4"], ["2640", "Leistungskomplexe Pflegegrad 5"], ["2650", "Verhinderungspflege gem. §39"], ["2660", "Sonstige Leistungen nach SGB XI"], ["2665", "Sonstige Erträge aus ambulanten Leistungen"], ["2680", "Entlastungsleistungen gem. §45"], ["2690", "Investitionskosten"], ["2710", "Leistungen nach SGB V"], ["2730", "Leistungen nach BSHG"]]],
+  ["Betreutes Wohnen", [["2380", "Betreutes Wohnen"]]],
+  ["wirt. Geschäftsbetr. Betreuungsdienst", [["2810", "Küchenumsätze"], ["2820", "Cafeteria"]]],
+  ["wirt. Geschäftsbetr. Rettungsdienst/Kranentransport", [["3380", "Rückholdfahrdienste mit PKW"], ["3810", "Transport von Kranken im PKW"], ["3820", "Beförderung gesunder Personen"], ["3830", "Medikamententransport"], ["3840", "Ärzte im Notfall-Vertretungsdienst"], ["3850", "Kfz-Verkauf"]]],
+  ["wirt. Geschäftsbetr. Sonstiges", [["9811", "Altkleidersammlung"], ["9812", "Altkleidersammlung mit fremden Containern"], ["9813", "Verwertung Alt-Handys"], ["9815", "Altpapier-/Altglasverkäufe"], ["9821", "Materialverkäufe"], ["9823", "Projekte im WGB"], ["9831", "Gesellige Veranstaltungen"], ["9832", "Basare und Malteserläden"], ["9843", "Lotterien in eigener Regie"], ["9850", "Transport von Sachgütern"], ["9861", "Werkstattleistungen für Dritte"], ["9862", "Personalgestellung"], ["9870", "Vermietung beweglicher Sachen"], ["9880", "Verkauf von Tankstellenprodukten"], ["9885", "(Haus-)Notrufbesetzungen ggü. gewerbl. Auftraggebern"], ["9886", "Sicherheit Plus und Rauchmelder"], ["9890", "Verwertung von Nachlässen"], ["9892", "Parkplatzdienst"], ["9893", "Steuerpflichtige Verwaltungsleistungen/Umlagen an Orts e. V."], ["9894", "Hotelähnliche Leistungen"], ["9895", "Automatenverkäufe"], ["9896", "Einnahmen aus Inseraten"], ["9898", "Einnahmen aus aktivem Sponsoring"], ["9899", "Sonstige WG"]]]];
+async function zweckDialog() {
   closeMenus();
-  modal('Verwendungszweck', h('div', { class: 'sl-leer' }, h('div', { class: 'sl-leer-i', html: ICON_ZIEL }), h('p', {}, 'Hier stehen bald die Kostenstellen bzw. Verwendungszwecke zum Nachschlagen.')), [['Schließen', true, 'primary']], { cls: 'sl-modal' });
+  const such = h('input', { type: 'search', class: 'k-such', placeholder: 'Kostenstelle suchen, z. B. Hospiz oder 2400 …', 'aria-label': 'Kostenstelle suchen' });
+  const wrap = h('div', { class: 'k-wrap sl-wrap' });
+  const zeig = () => { const q = norm(such.value);
+    const T = KOSTEN.map(([b, L]) => [b, norm(b).includes(q) ? L : L.filter(([n, t]) => n.includes(q) || norm(t).includes(q))]).filter(([, L]) => L.length);
+    wrap.innerHTML = `<table class="k-tab sl-tab"><thead><tr><th>Kostenstelle</th><th>Bezeichnung</th></tr></thead><tbody>${T.map(([b, L]) => `<tr class="sl-gr"><th colspan="2">${esc(b)}</th></tr>`
+      + L.map(([n, t]) => `<tr><td>${kKopierbar(n, 'k-iban', 'Klicken: Kostenstelle kopieren', n)}</td><td>${kKopierbar(t, 'sl-gl', 'Klicken: Bezeichnung kopieren', esc(t))}</td></tr>`).join('')).join('')
+      || `<tr><td colspan="2" class="muted k-nix">Nichts passt zu „${esc(such.value)}“.</td></tr>`}</tbody></table>`; };
+  such.addEventListener('input', zeig);
+  wrap.addEventListener('click', e => { const c = e.target.closest('.k-c'); if (c) kopiereZeichen(c); });
+  zeig();
+  await modal('Verwendungszweck – Kostenstellen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal sl-modal', expose: () => setTimeout(() => such.focus(), 40) });
 }
