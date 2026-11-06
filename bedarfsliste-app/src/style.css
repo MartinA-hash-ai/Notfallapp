@@ -2401,3 +2401,10 @@ html.modal-offen { overflow: hidden; }
 .pl2-nav, .pl2-main { overflow-x: hidden; }
 .pl2-ni > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pl2-modal .modal-body { overflow-x: hidden; }
+/* 0.138: Personenliste – Karten leicht grau, ohne Kürzel-Kreis; Überschriften links wie „Alle Personen“ */
+.pl2-k { background: color-mix(in srgb, var(--ink) 3%, var(--card)); }
+.pl2-k.ohne-st { grid-template-columns: minmax(0, 1fr) 26px; }
+.pl2-k.ohne-st .pl2-kt { grid-column: 1 / 3; }
+.pl2-form { background: var(--card); }
+.pl2-nk { padding: 14px 18px 4px; font-size: 13.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink); }
+.pl2-nk ~ .pl2-ni { padding-left: 26px; }

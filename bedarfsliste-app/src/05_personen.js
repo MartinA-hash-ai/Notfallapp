@@ -221,8 +221,8 @@ async function personenListeDialog() {
     if (edit === p) return formular(p);
     const fg = grp.t === 'fach' && !q, k = kkey(p.n), ist = fg && !!k && haupt(grp.n) === k;
     const tags = [grp.t !== 'gl' && glName(p) ? glName(p) : null, grp.t !== 'fach' && fachK(p).length ? 'FR ' + fachK(p).join(', ') : null].filter(Boolean);
-    return h('div', { class: 'pl2-k' + (ist ? ' haupt' : '') },
-      fg ? h('button', { type: 'button', class: 'pl2-st', title: ist ? 'Hauptansprechperson des Fachreferats – noch einmal: zurücknehmen' : 'Zur Hauptansprechperson des Fachreferats machen', 'aria-pressed': String(ist), onclick: () => { HW[norm(grp.n)] = ist ? '' : k; zeigMain(); } }, ist ? '★' : '☆') : h('span', { class: 'pl2-av', 'aria-hidden': 'true' }, (p.n || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()),
+    return h('div', { class: 'pl2-k' + (ist ? ' haupt' : '') + (fg ? '' : ' ohne-st') },
+      fg ? h('button', { type: 'button', class: 'pl2-st', title: ist ? 'Hauptansprechperson des Fachreferats – noch einmal: zurücknehmen' : 'Zur Hauptansprechperson des Fachreferats machen', 'aria-pressed': String(ist), onclick: () => { HW[norm(grp.n)] = ist ? '' : k; zeigMain(); } }, ist ? '★' : '☆') : null,
       h('div', { class: 'pl2-kk' }, h('b', null, p.n || '(ohne Namen)'), h('div', { class: 'pl2-pos' }, p.rolle || '', ...tags.map(t => h('span', { class: 'pl2-tag' }, t)))),
       h('button', { type: 'button', class: 'pl2-pen', title: 'Bearbeiten', 'aria-label': 'Bearbeiten: ' + p.n, html: ICON_PEN, onclick: () => { edit = p; zeigMain(); const i = main.querySelector('.pl2-form input'); if (i) i.focus(); } }),
       kontakt(p));
