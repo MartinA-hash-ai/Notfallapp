@@ -2213,3 +2213,6 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .sp-ar-dl { font-size: 14px; } .sp-ar-dl .sp-ar-sl { margin-right: 8px; }
 .sp-ar-foot .sp-ar-tog { font-size: 13.5px; font-weight: 600; } .sp-ar-copy { text-decoration: none; color: var(--muted); }
 .sp-ar-skip { margin: 6px 0 0; }
+/* Auswertung: „Vergleichen“ – andere Maßnahmen als dünne Linien in der ersten Grafik */
+.sp-cline { stroke-width: 1.8; opacity: .85; } .sp-cl { font-size: 11px; fill: var(--ink2); }
+.sp-cmppop { min-width: 280px; max-height: 60vh; overflow: auto; }

@@ -1027,10 +1027,13 @@ function spmHead(x, cmp) {
     h('span', { class: 'spj-zst muted' }, x.pal != null ? 'PAL ' + fmtD(x.pal) : 'ohne PAL'),
     neu ? h('span', { class: 'spj-newbar' }, h('span', { class: 'spj-neu' }, neu + ' neu'),
       h('button', { class: 'link small spj-shownew', onclick: () => { SPUI.tab = 'zu'; SPUI.onlyNew = true; SPUI.typed = ''; SPUI.more = 0; renderNow(); } }, 'ansehen'),
-      h('button', { class: 'spj-ok', tip: 'Die neuen Spenden gehören zu „' + (x.m.name || '') + '“ – Markierung „neu“ aufheben. Falsche vorher markieren und herausnehmen.', onclick: () => spChecked(x.id) }, '✓ geprüft')) : null);
+      h('button', { class: 'spj-ok', tip: 'Die neuen Spenden gehören zu „' + (x.m.name || '') + '“ – Markierung „neu“ aufheben. Falsche vorher markieren und herausnehmen.', onclick: () => spChecked(x.id) }, '✓ geprüft')) : null,
+    h('span', { class: 'spj-togs' }, h('button', { class: 'spj-tog' + (UI.spmRulesOpen ? ' on' : ''), 'aria-expanded': String(!!UI.spmRulesOpen), tip: 'Schlagworte und Zeitraum, nach denen die Maßnahme Spenden zuordnet',
+      onclick: () => { UI.spmRulesOpen = !UI.spmRulesOpen; if (!UI.spmRulesOpen) SPUI.typed = ''; renderNow(); } }, 'Regeln' + (((x.m.regel || {}).worte || []).length ? ' (' + x.m.regel.worte.length + ')' : ''), UI.spmRulesOpen ? ' ▴' : ' ▾')));
 }
 // Regel in einer Zeile: Schlagworte, „+ Schlagwort“ (Tippen = Vorschau), Zeitraum ab PAL, ohne Daueraufträge, ausgeschlossene
 function spmRules(x, cmp) {
+  if (!SPUI.klaeren && !UI.spmRulesOpen) return null;
   if (SPUI.klaeren) return h('div', { class: 'spj-rules none muted small' }, 'Diese Spenden passen zu den Regeln mehrerer Maßnahmen – in der Zeile die richtige wählen oder markieren und zuordnen.');
   const m = x.m, r = m.regel || { worte: [] }, pal = x.pal, rg = spRange(m), mid = x.id, rej = spRejected(mid, cmp).length;
   let tq = null;
@@ -1149,7 +1152,7 @@ function spmList(x, cmp) {
     selUpd(ev.currentTarget); };
   // hervorheben, worauf die Regel greift: bei „Zugeordnet“ (per Regel) die Schlagworte dieser Maßnahme, bei „zu klären“ die aller passenden
   const wordsOf = id => ((spMObj(D, id) || {}).regel || {}).worte || [];
-  const hlW = (rec, z) => tab === 'zu' && z && z.r ? wordsOf(mid) : tab === 'klaeren' ? (cmp.hits.get(rec.k) || []).flatMap(g => wordsOf(g.id)) : [];
+  const hlW = (rec, z) => tab === 'zu' ? wordsOf(mid) : tab === 'klaeren' ? (cmp.hits.get(rec.k) || []).flatMap(g => wordsOf(g.id)) : [];
   const row = (rec, i) => { const on = SPUI.sel.has(rec.k), z = S.zu[rec.k];
     return h('div', { class: 'spj-row' + (tab === 'klaeren' ? ' offen' : '') + (on ? ' sel' : '') + (SPJ.flash && SPJ.flash.keys.has(rec.k) ? ' jump' : ''), dataset: { k: rec.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(rec),
       onmousedown: ev => { if (ev.shiftKey) ev.preventDefault(); }, onclick: ev => pick(ev, i) },
@@ -1167,8 +1170,8 @@ function spmList(x, cmp) {
   const seg = (k, label) => h('button', { class: 'seg-btn' + (tab === k ? ' on' : ''), dataset: { tab: k }, onclick: () => { SPUI.tab = k; SPUI.more = 0; renderNow(); } }, label);
   return h('div', { class: 'spj-listbox spm-listbox' },
     h('div', { class: 'spj-lh' }, allBox(),
-      tab === 'klaeren' ? h('b', null, 'Zu klären') : h('span', { class: 'segs spj-lv' }, seg('zu', 'Zugeordnet (' + P.R.length.toLocaleString('de-DE') + ')'), seg('offen', 'Offen'), nAus ? seg('aus', 'Ausgeschlossen (' + nAus + ')') : null),
-      h('span', { class: 'spj-sub muted small' }, spCount(list.length) + ' · ' + eur(sumOf(list)) + (tab === 'offen' && list.length !== P.L.length ? ' (im Filter)' : '')),
+      tab === 'klaeren' ? h('b', null, 'Zu klären') : h('span', { class: 'segs spj-lv' }, seg('zu', 'Zugeordnet'), seg('offen', 'Offen'), nAus ? seg('aus', 'Ausgeschlossen (' + nAus + ')') : null),
+      tab === 'offen' && list.length !== P.L.length ? h('span', { class: 'spj-sub muted small' }, 'im Filter') : null,
       tab === 'zu' && neuK.size ? h('button', { class: 'spj-onlynew' + (SPUI.onlyNew ? ' on' : ''), 'aria-pressed': String(!!SPUI.onlyNew), onclick: () => { SPUI.onlyNew = !SPUI.onlyNew; SPUI.more = 0; renderNow(); } }, 'nur neue (' + neuK.size + ')') : null,
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen')),
     tab === 'offen' ? h('div', { class: 'spm-filter' },
@@ -1219,7 +1222,7 @@ VIEW_FN.spenden = main => {
       info: 'Alle Spenden des Jahres aus den eingelesenen Dateien – egal, ob sie einer Maßnahme zugeordnet sind. Mit „Herkunft“ lassen sich die Spenden aus Maßnahmen oder die ohne Maßnahme getrennt ansehen.',
       closedSummary: () => { if (!SP.rows.length) return 'Spendendateien noch nicht eingelesen'; const J = spjCompute(y), st = spjStats(spjBase(J)), n = spjOut(J).length; return eur0(st.sum) + ' aus ' + spCount(st.n) + (n ? ' · ' + n + ' Ausreißer ausgeblendet' : ''); } }) :
     section('sp-m', h('span', { class: 'sp-mname', style: { color: inkC(x.color) } }, x.m.name || '(ohne Namen)'),
-      () => ({ body: h('div', { class: 'sp-kpi' }, spTiles(x, s), spCharts(x, by.get(mid))) }),
+      () => ({ tools: [spCmpButton(x)], body: h('div', { class: 'sp-kpi' }, spTiles(x, s), spCharts(x, by.get(mid))) }),
       { closedSummary: () => s.n ? eur0(s.sum) + ' aus ' + spCount(s.n) : 'noch keine Spenden zugeordnet' }),
     x.allg ? section('sp-zu', 'Spendenzwecke zuordnen', () => spjAssign(y), {          // Auswertung oben, Zuordnung der Zwecke hier – getrennt
       info: 'Links die Zwecke, rechts der gewählte Zweck mit seinen Regeln (Schlagworte im Verwendungszweck, Konten, Maßnahmen) – die Spenden des ganzen Jahres zählen dann automatisch. Darunter die Spenden ohne Zweck: Klick markiert, die Leiste unten verschiebt. Passt eine Spende zu mehreren Zwecken, steht sie unter „zu klären“.',
@@ -1272,21 +1275,27 @@ function spCharts(x, list) {
       sr.pre ? h('span', { class: 'warn small' }, ' · inkl. ' + spCount(sr.pre) + ' vor dem PAL (' + eur(sr.preSum) + ')') : null),
     h('div', { class: 'sp-chart', style: { height: '150px' }, dataset: { chart: 'span', mid: x.id } }),
     h('div', { class: 'sp-cht' }, h('b', null, 'Spenden pro Tag'), h('span', { class: 'muted' }, ' · grau hinterlegt: Wochenenden')),
-    h('div', { class: 'sp-chart', style: { height: '150px' }, dataset: { chart: 'day', mid: x.id } }),
-    UI.printing ? null : spCmpBlock(x));
+    h('div', { class: 'sp-chart', style: { height: '150px' }, dataset: { chart: 'day', mid: x.id } }));
 }
-// Rücklauf im Vergleich (kumuliert, Tage nach PAL) – im Kasten der gewählten Maßnahme zum Aufklappen; sie selbst ist hervorgehoben, die anderen lassen sich aus- und einblenden
-function spCmpBlock(x) {
-  const by = spByM(), ids = C.ms.filter(o => inYear(o, UI.year) && o.pal != null && !isAllg(o.id) && (by.get(o.id) || []).length).map(o => o.id);
-  if (ids.length < 2 || !ids.includes(x.id)) return null;
-  const offs = new Set((UI.spCmpOff || []).filter(id => id !== x.id));
-  return h('div', { class: 'sp-cmpbox' }, h('button', { class: 'link sp-cmptog', 'aria-expanded': String(!!UI.spCmp), onclick: () => { UI.spCmp = !UI.spCmp; renderNow(); } },
-    (UI.spCmp ? '▾ ' : '▸ ') + 'Rücklauf im Vergleich', h('span', { class: 'muted' }, ' · kumuliert, Tage nach PAL')),
-    UI.spCmp ? [h('div', { class: 'sp-cpills' }, ids.map(id => { const o = C.byId.get(id), me = id === x.id, off = offs.has(id);
-      return h('button', { class: 'sp-cpill' + (off ? ' off' : '') + (me ? ' me' : ''), 'aria-pressed': String(!off), disabled: me, tip: me ? 'die gewählte Maßnahme' : off ? 'im Vergleich einblenden' : 'im Vergleich ausblenden',
-        onclick: () => { const q = new Set(UI.spCmpOff || []); if (off) q.delete(id); else q.add(id); UI.spCmpOff = [...q]; renderNow(); } },
-        h('span', { class: 'sp-cdot', style: { background: off ? 'transparent' : o.color, borderColor: o.color } }), o.m.name || '(ohne Namen)'); })),
-      h('div', { class: 'sp-chart', style: { height: '230px' }, dataset: { chart: 'cmp', hl: x.id, ids: ids.filter(id => !offs.has(id)).join(',') } })] : null);
+// „Vergleichen“ oben rechts im Kasten der Maßnahme: andere Maßnahmen wählen (mehrere), ihr Rücklauf ab PAL steht dann als Linie in der ersten Grafik
+const spCmpIds = x => { const by = spByM(); return C.ms.filter(o => o.id !== x.id && o.pal != null && !isAllg(o.id) && (by.get(o.id) || []).length).sort((a, b) => b.pal - a.pal).map(o => o.id); };
+const spCmpSel = x => { const ok = new Set(spCmpIds(x)); return (UI.spCmpWith || []).filter(id => ok.has(id)); };
+function spCmpButton(x) {
+  const ids = spCmpIds(x); if (!ids.length) return null;
+  const sel = spCmpSel(x), pane = h('div', { class: 'tagflt sp-cmppop' });
+  const fill = () => { const on = new Set(spCmpSel(x));
+    setKids(pane, h('div', { class: 'tagflt-h' }, h('b', null, 'Vergleichen mit'), h('span', { class: 'sp' }),
+      h('button', { class: 'link small', disabled: !on.size, onclick: () => { UI.spCmpWith = []; saveUI(); renderNow(); fill(); } }, 'keine')),
+      ids.map(id => { const o = C.byId.get(id), y = ymd(o.pal)[0];
+        return h('div', { class: 'tagrow' + (on.has(id) ? ' on' : ''), role: 'menuitemcheckbox', 'aria-checked': String(on.has(id)), tabindex: 0,
+          onclick: () => { const q = new Set(UI.spCmpWith || []); if (q.has(id)) q.delete(id); else q.add(id); UI.spCmpWith = [...q]; saveUI(); renderNow(); fill(); } },
+          h('input', { type: 'checkbox', checked: on.has(id), tabindex: -1, 'aria-hidden': 'true' }), h('span', { class: 'vdot', style: { background: o.color } }),
+          h('span', { class: 'nm' }, o.m.name || '(ohne Namen)'), h('span', { class: 'muted small tag-n' }, String(y))); }),
+      h('p', { class: 'muted small tagflt-n' }, 'Rücklauf ab dem jeweiligen PAL – in der Grafik „Zeitspanne der Eingänge“.')); };
+  const b = h('button', { class: 'fbtn sp-cmpbtn' + (sel.length ? ' act' : ''), tip: 'andere Maßnahmen in der ersten Grafik zum Vergleich einblenden',
+    onclick: e => { e.stopPropagation(); fill(); popover(b, pane, { keep: true, reanchor: () => $('.sp-cmpbtn') }); } },
+    'Vergleichen', sel.length ? [': ', h('b', null, String(sel.length))] : null, ' ▾');
+  return b;
 }
 const spDayLab = (sr, n) => fmtW(n) + (sr.pal != null && n >= sr.pal ? ' · Tag ' + (n - sr.pal) + ' ab PAL' : sr.pal != null ? ' · vor dem PAL' : '');
 function spXTicks(svg, g, sr, X) {
@@ -1316,10 +1325,17 @@ function spDraw(el) {
   if (kind === 'cmp') { const ids = el.dataset.ids.split(',').filter(id => C.byId.has(id) && by.get(id)); if (!ids.length) { el.replaceChildren(h('p', { class: 'muted small' }, 'Alle Maßnahmen ausgeblendet – oben wieder einblenden.')); return; } return spDrawCmp(el, ids, by); }
   const x = spX(el.dataset.mid), list = x && by.get(x.id);
   if (!list || !list.length) return;
-  const sr = spSeries(x.m, list), { svg, g } = spFrame(el, 150, 62);
+  let sr = spSeries(x.m, list), cmpS = [];
+  if (kind === 'span') {                                             // Vergleich: Rücklauf anderer Maßnahmen ab ihrem PAL, Tag für Tag neben diesem
+    cmpS = spCmpSel(x).map(id => { const o = C.byId.get(id); return { x: o, sr: spSeries(o.m, by.get(id)) }; });
+    const n = Math.min(730, Math.max(sr.days, ...cmpS.map(c => c.sr.last + 1)));
+    if (n > sr.days) { const ext = a => a.concat(new Array(n - sr.days).fill(a === sr.cum ? sr.cum[sr.days - 1] : 0));
+      sr = Object.assign({}, sr, { day: ext(sr.day), cnt: ext(sr.cnt), cum: ext(sr.cum), days: n, d1: sr.d0 + n - 1 }); }
+  }
+  const { svg, g } = spFrame(el, 150, 62);
   const X = i => g.ml + (i + 0.5) / sr.days * g.pw, y0 = g.mt + g.ph;
   spWeekends(svg, g, sr);
-  if (kind === 'span') spDrawSpan(svg, g, x, sr, X); else spDrawDay(svg, g, x, sr, X);
+  if (kind === 'span') spDrawSpan(svg, g, x, sr, X, cmpS); else spDrawDay(svg, g, x, sr, X);
   svg.append(sv('line', { class: 'sp-base', x1: g.ml, x2: g.ml + g.pw, y1: y0, y2: y0 }));
   spXTicks(svg, g, sr, X);
   if (sr.pal != null) spPalMark(svg, g, g.ml + (sr.pal - sr.d0) / sr.days * g.pw);
@@ -1335,8 +1351,14 @@ function spWeekends(svg, g, sr) {
   }
 }
 // Zeitspanne: Summe der zugeordneten Spenden, aufaddiert vom PAL bis zur letzten Spende
-function spDrawSpan(svg, g, x, sr, X) {
-  const Y = spYAxis(svg, g, sr.cum[sr.days - 1] / 100), y0 = g.mt + g.ph, L = sr.last;
+function spDrawSpan(svg, g, x, sr, X, cmpS = []) {
+  const cv = (c, i) => c.sr.cum[Math.min(i, c.sr.last)];
+  const Y = spYAxis(svg, g, Math.max(sr.cum[sr.days - 1], ...cmpS.map(c => cv(c, sr.days - 1))) / 100), y0 = g.mt + g.ph, L = sr.last;
+  for (const c of cmpS) {                                             // Vergleich: dünnere Linien in der Farbe der anderen Maßnahme, Name am Ende
+    const Lc = Math.min(c.sr.last, sr.days - 1), pc = c.sr.cum.slice(0, Lc + 1).map((v, i) => X(i).toFixed(1) + ',' + Y(v / 100).toFixed(1));
+    svg.append(sv('polyline', { class: 'sp-line sp-cline', stroke: c.x.color, points: pc.join(' ') }), sv('circle', { class: 'sp-dot', cx: X(Lc), cy: Y(c.sr.cum[Lc] / 100), r: 3.5, fill: c.x.color }),
+      sv('text', { class: 'sp-endl sp-cl', x: X(Lc) + 7, y: Y(c.sr.cum[Lc] / 100) + 4 }, (c.x.m.name || '?').slice(0, 24)));
+  }
   const pts = sr.cum.slice(0, L + 1).map((v, i) => X(i).toFixed(1) + ',' + Y(v / 100).toFixed(1));
   svg.append(sv('path', { class: 'sp-area', fill: x.color, d: 'M' + X(0) + ',' + y0 + 'L' + pts.join('L') + 'L' + X(L) + ',' + y0 + 'Z' }),
     sv('polyline', { class: 'sp-line', stroke: x.color, points: pts.join(' ') }),
@@ -1344,8 +1366,9 @@ function spDrawSpan(svg, g, x, sr, X) {
     sv('text', { class: 'sp-endl', x: X(L) + 9, y: Y(sr.cum[L] / 100) + 4 }, eur0(sr.cum[L])));
   spCross(svg, g, {
     at: px => clamp(Math.round((px - g.ml) / g.pw * sr.days - 0.5), 0, L), x: X,
-    dots: i => [sv('circle', { class: 'sp-dot', cx: X(i), cy: Y(sr.cum[i] / 100), r: 4.5, fill: x.color })],
+    dots: i => [sv('circle', { class: 'sp-dot', cx: X(i), cy: Y(sr.cum[i] / 100), r: 4.5, fill: x.color }), ...cmpS.map(c => sv('circle', { class: 'sp-dot', cx: X(i), cy: Y(cv(c, i) / 100), r: 3.5, fill: c.x.color }))],
     tip: i => h('div', null, h('b', null, eur(sr.cum[i])), h('div', { class: 'muted small' }, 'bis ' + spDayLab(sr, sr.d0 + i)),
+      cmpS.length ? cmpS.map(c => h('div', { class: 'sp-tiprow' }, h('span', { class: 'sp-lkey', style: { background: c.x.color } }), h('b', null, eur0(cv(c, i))), ' ', h('span', { class: 'muted' }, (c.x.m.name || '?') + ' · Tag ' + i + ' ab PAL'))) : null,
       sr.cnt[i] ? h('div', null, 'an diesem Tag: ' + eur(sr.day[i]) + ' (' + spCount(sr.cnt[i]) + ')') : null,
       h('div', { class: 'muted small' }, 'Klick: Spenden dieses Tages unten in der Liste heraussuchen')),
     click: i => spmJump(x.id, sr.d0 + i, sr.d0 + i) });

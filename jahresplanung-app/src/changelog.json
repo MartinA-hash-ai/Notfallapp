@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.47.0",
+    "version": "0.48.0",
     "date": "",
+    "items": [
+      "Auswertung: „Rücklauf im Vergleich“ unten im Kasten entfällt – stattdessen oben rechts der Knopf „Vergleichen“: andere Maßnahmen ankreuzen (mehrere möglich, Klick daneben schließt), ihr Rücklauf ab PAL erscheint als dünne Linie in „Zeitspanne der Eingänge“ (wird gemerkt)",
+      "Spenden zuordnen (Maßnahme): Regeln anfangs zu – oben der Knopf „Regeln“ (wird gemerkt); Reiter „Zugeordnet“ ohne Zahl, die Angabe „N Spenden · Summe“ daneben entfällt",
+      "Gelbe Treffer jetzt bei allen zugeordneten Spenden einer Maßnahme – vorher nur bei denen, die seit 0.4x per Regel zugeordnet wurden",
+      "Spendenzwecke zuordnen: links „zweckungebunden“ direkt unter „Alle Spenden“, danach die Zwecke"
+    ]
+  },
+  {
+    "version": "0.47.0",
+    "date": "2026-11-06T15:02",
     "items": [
       "Kopfzeile: Zahnrad statt ⋯ (Einstellungen zuerst, dann Daten prüfen, zurücksetzen, Design, Programm-Update); Speichern mit Diskettensymbol",
       "„Buchungen hinzugefügt“: unter den neuen Spenden zwei Bereiche – Maßnahmen und Spendenzwecke – je Ziel mit Anzahl; „Zuordnungen prüfen →“ führt Schritt für Schritt durch alle Ziele, erst die Maßnahmen, dann die Zwecke",

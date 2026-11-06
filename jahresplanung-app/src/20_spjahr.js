@@ -295,12 +295,11 @@ function spjSide(J) {
     h('div', { class: 'spj-zi alle' + (onAll ? ' on' : ''), dataset: { z: '' }, role: 'button', tabindex: '0', 'aria-pressed': String(onAll),
       onclick: () => { if (onAll) return; SPJ.z = null; SPJ.more = 0; SPJ.onlyNew = false; renderNow(); }, onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } } },
       h('span', { class: 'spj-zn' }, 'Alle Spenden ' + J.y), h('span', { class: 'spj-zs' }, nAll.toLocaleString('de-DE') + ' · ' + eur0(J.list.reduce((t, e) => t + e.rec.b, 0)))),
+    item(SPJ_FREI, 'zweckungebunden', null, 'frei'),                // erst „zweckungebunden“ (und „zu klären“), dann die Zwecke
+    st.get(SPJ_OFFEN) || SPJ.z === SPJ_OFFEN ? item(SPJ_OFFEN, 'zu klären', null, 'offen') : null,
     h('div', { class: 'spj-sh' }, h('span', null, 'Zwecke'), h('button', { class: 'link spj-add', onclick: spjAddZweck }, '+ Zweck')),
     D.zwecke.map(z => item(z.id, z.name, z.farbe)),
-    !D.zwecke.length ? h('p', { class: 'muted small spj-side0' }, 'Noch keine Zwecke – mit „+ Zweck“ beginnen, z. B. „Hospizarbeit“ mit dem Schlagwort Hospiz*, oder bei einem Vorschlag auf „+“ klicken.') : null,
-    h('div', { class: 'spj-sep' }),
-    item(SPJ_FREI, 'zweckungebunden', null, 'frei'),
-    st.get(SPJ_OFFEN) || SPJ.z === SPJ_OFFEN ? item(SPJ_OFFEN, 'zu klären', null, 'offen') : null));
+    !D.zwecke.length ? h('p', { class: 'muted small spj-side0' }, 'Noch keine Zwecke – mit „+ Zweck“ beginnen, z. B. „Hospizarbeit“ mit dem Schlagwort Hospiz*, oder bei einem Vorschlag auf „+“ klicken.') : null));
 }
 // rechts oben: Name (zum Umbenennen anklicken), Farbe, ⋯ (Farbe, Reihenfolge, löschen); Anzahl und Summe stehen links in der Liste.
 // „Regeln“ und „Vorschläge“ sind anfangs zu und lassen sich hier einblenden (wird gemerkt)

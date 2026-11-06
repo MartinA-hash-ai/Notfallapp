@@ -50,7 +50,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
     const want = getComputedStyle(c).color; c.remove(); return [n && n.textContent, n && getComputedStyle(n).color === want, !document.querySelector('[data-sec="sp-m"] select, [data-sec="sp-m"] input'), !!document.querySelector('[data-fk="sp-kos:m5"]'),
       document.querySelector('.spm .spj-zi.on .spj-zn')?.textContent, document.querySelector('.spm .spj-zh .spj-zt')?.textContent, !!document.querySelector('.spm-rules .sp-wordin'), [...document.querySelectorAll('.spm-listbox .seg-btn')].map(b => b.textContent).join('|')]; });
   ok(a2[0] === 'Jahresbericht' && a2[1] && a2[2] && a2[3], 'A2: „Jahresbericht“ groß in Maßnahmenfarbe; Auflage und Kosten in der Übersicht');
-  ok(a2[4] === 'Jahresbericht' && a2[5] === 'Jahresbericht' && a2[6] && a2[7] === 'Zugeordnet (0)|Offen', 'A2: links die Maßnahmen (Jahresbericht gewählt), rechts Kopf, Regelzeile mit „+ Schlagwort“, Reiter „' + a2[7] + '“');
+  ok(a2[4] === 'Jahresbericht' && a2[5] === 'Jahresbericht' && a2[6] && a2[7] === 'Zugeordnet|Offen', 'A2: links die Maßnahmen (Jahresbericht gewählt), rechts Kopf, Regelzeile mit „+ Schlagwort“, Reiter „' + a2[7] + '“');
   await tab('offen');
   const a3 = await p.evaluate(() => [document.querySelector('[data-fk="sp-fvon"]')?.value, document.querySelector('[data-fk="sp-fbis"]')?.value, [...document.querySelectorAll('.spm-filter .sp-da select option')].map(o => o.textContent).join('|'), !!document.querySelector('.spm-filter .sp-q'), !document.querySelector('.sp-min')]);
   ok(a3[0] === '2027-08-27' && a3[1] === '2028-02-25' && a3[2] === 'einblenden|ausblenden|nur Daueraufträge' && a3[3] && a3[4], 'A3: „Offen“ mit Filter – Zeitraum ab PAL (' + a3[0] + ' – ' + a3[1] + '), Daueraufträge, Suche; kein Betragsfilter');
@@ -211,13 +211,11 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.fill('.spm-filter .sp-q', 'Lautsprecher'); await p.waitForTimeout(450);
   await p.click('[data-sec="sp-zu"] .spj-row .sp-z'); await p.click('.spj-act .spj-go'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => Object.values(D.spenden.zu).filter(z => z.m === 'm4').length === 1), 'H: „JBL Lautsprecher“ von Hand „Sommermailing“ zugeordnet');
-  ok(await p.evaluate(() => !document.querySelector('[data-chart="cmp"]') && /▸ Rücklauf im Vergleich/.test(document.querySelector('.sp-cmptog').textContent) && !/Responsequote =/.test(document.querySelector('[data-sec="sp-ueb"]').textContent)),
-    'H: „Rücklauf im Vergleich“ eingeklappt; Erklärzeile zur Responsequote entfernt');
-  await p.click('.sp-cmptog'); await p.waitForTimeout(250);
-  const h1 = await p.evaluate(() => ({ cmp: document.querySelectorAll('[data-chart="cmp"] .sp-line').length, leg: document.querySelector('.sp-cpills')?.textContent,
+  ok(await p.evaluate(() => !document.querySelector('[data-chart="cmp"]') && !!document.querySelector('.sp-cmpbtn') && !/Responsequote =/.test(document.querySelector('[data-sec="sp-ueb"]').textContent)),
+    'H: Knopf „Vergleichen“ statt eigener Vergleichsgrafik; Erklärzeile zur Responsequote entfernt');
+  const h1 = await p.evaluate(() => ({
     rows: [...document.querySelectorAll('.sp-ueb tbody tr')].filter(r => r.children[6].textContent !== '–').map(r => r.children[0].querySelector('.sp-unm').textContent.trim() + '=' + r.children[5].textContent).join(' | '),
     cols: [...document.querySelectorAll('.sp-ueb thead th')].map(t => t.textContent).join(','), foot: document.querySelector('.sp-ueb tfoot')?.textContent }));
-  ok(h1.cmp === 2 && /Sommermailing/.test(h1.leg) && /Jahresbericht/.test(h1.leg), 'H: Vergleich der Rückläufe mit 2 Linien und Legende');
   ok(/^Spenden 2027=[\d.]+ € \| Sommermailing=35 € \| Jahresbericht=9\.876 €$/.test(h1.rows) && !/Prüfung/.test(h1.cols) && /Summe.*9\.911 €/.test(h1.foot), 'H: Übersicht – ' + h1.rows + ' (oben alle Spenden des Jahres), ohne Spalte „in Prüfung“, Summenzeile nur der Maßnahmen');
 
   const rs = await p.$('.sp-ueb thead th:first-child .col-rs'); await rs.evaluate(e => e.scrollIntoView({ block: 'center' })); const rb = await rs.boundingBox(), w0 = await p.evaluate(() => Math.round(document.querySelector('.sp-ueb thead th').getBoundingClientRect().width));

@@ -48,7 +48,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(c1[0] === 'Anna Probe, Emil Klein, Erika Test, Max Muster' && /^Vorschau „JB“/.test(c1[1]) && c1[2] && c1[3] === 'sp-wordin', 'C: beim Tippen zeigt die Liste sofort die passenden (' + c1[0] + '), Regel noch unverändert, Eingabe behält den Fokus');
   await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   const c2 = await p.evaluate(() => [JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte), Object.values(D.spenden.zu).filter(z => z.m === 'm5').length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, document.querySelector('.spm-listbox .seg-btn.on')?.textContent]);
-  ok(c2[0] === '["JB"]' && c2[1] === 4 && c2[2] === 4 && c2[3] === 'Zugeordnet (4)', 'C: Enter übernimmt „JB“ – die Regel ordnet die 4 zu, Liste zeigt „Zugeordnet (4)“');
+  ok(c2[0] === '["JB"]' && c2[1] === 4 && c2[2] === 4 && c2[3] === 'Zugeordnet', 'C: Enter übernimmt „JB“ – die Regel ordnet die 4 zu (0.48: ohne Zahl am Reiter)');
 
   // ---- D: Abbrechen lässt die Regel unverändert; Esc ebenso
   await p.click('.sp-wordin'); await p.keyboard.type('Danke'); await p.waitForTimeout(450);
@@ -85,17 +85,21 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.evaluate(() => { SPUI.tab = 'offen'; renderNow(); }); await p.waitForTimeout(100);
   await p.fill('.spm-filter .sp-q', 'Lautsprecher'); await p.waitForTimeout(450);
   await p.click('[data-sec="sp-zu"] .spj-row .sp-z'); await p.click('.spj-act .spj-go'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => !document.querySelector('[data-sec="sp-ueb"] .sp-cmpbox') && !!document.querySelector('[data-sec="sp-m"] .sp-charts .sp-cmpbox')), 'F: „Rücklauf im Vergleich“ steht im Kasten der Maßnahme (rechts bei den Grafiken), nicht mehr unter der Übersicht');
-  await p.click('.sp-cmptog'); await p.waitForTimeout(250);
-  const f0 = await p.evaluate(() => [[...document.querySelectorAll('.sp-cpill')].map(b => b.textContent).join(','), document.querySelectorAll('[data-chart="cmp"] .sp-line').length,
-    document.querySelector('.sp-cpill.me')?.textContent, document.querySelectorAll('[data-chart="cmp"] .sp-line.hl').length, document.querySelectorAll('[data-chart="cmp"] .sp-line.dim').length]);
-  ok(f0[0] === 'Sommermailing,Jahresbericht' && f0[1] === 2 && f0[2] === 'Sommermailing' && f0[3] === 1 && f0[4] === 1, 'F: Knöpfe je Maßnahme über dem Vergleich, beide Linien sichtbar, „Sommermailing“ (gewählt) hervorgehoben ' + JSON.stringify(f0));
-  await p.click('.sp-cpill:has-text("Jahresbericht")'); await p.waitForTimeout(250);
-  const f1 = await p.evaluate(() => [document.querySelectorAll('[data-chart="cmp"] .sp-line').length, document.querySelector('.sp-cpill.off')?.textContent, (UI.spCmpOff || []).length, document.querySelector('.sp-ueb tbody tr.on')?.dataset.mid]);
-  ok(f1[0] === 1 && f1[1] === 'Jahresbericht' && f1[2] === 1 && f1[3] === 'm4', 'F: Klick blendet „Jahresbericht“ im Vergleich aus – die Auswahl in der Tabelle bleibt');
-  ok(await p.evaluate(() => document.querySelector('.sp-cpill.me').disabled), 'F: die gewählte Maßnahme bleibt immer im Vergleich');
-  await p.click('.sp-cpill:has-text("Jahresbericht")'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => document.querySelectorAll('[data-chart="cmp"] .sp-line').length === 2), 'F: nochmal klicken blendet sie wieder ein');
+  const cl = () => p.evaluate(() => [...document.querySelectorAll('[data-chart="span"] .sp-cline')].length);
+  ok(await p.evaluate(() => !document.querySelector('.sp-cmpbox') && !document.querySelector('[data-chart="cmp"]') && !!document.querySelector('[data-sec="sp-m"] .sec-tools .sp-cmpbtn, [data-sec="sp-m"] .sp-cmpbtn')) && await cl() === 0,
+    'F: (0.48) keine eigene Vergleichsgrafik mehr – oben rechts im Kasten der Knopf „Vergleichen“, ohne Auswahl keine Vergleichslinie');
+  await p.click('.sp-cmpbtn'); await p.waitForTimeout(200);
+  const f0 = await p.evaluate(() => [...document.querySelectorAll('.sp-cmppop .tagrow .nm')].map(e => e.textContent).join(','));
+  ok(f0 === 'Jahresbericht', 'F: Auswahl zeigt die anderen Maßnahmen mit Spenden (nicht die gewählte) – ' + f0);
+  await p.click('.sp-cmppop .tagrow:has-text("Jahresbericht")'); await p.waitForTimeout(250);
+  const f1 = await p.evaluate(() => [!!document.querySelector('.sp-cmppop'), JSON.stringify(UI.spCmpWith), document.querySelector('.sp-cmpbtn').textContent, document.querySelector('[data-chart="span"] .sp-cl')?.textContent, document.querySelector('.sp-ueb tbody tr.on')?.dataset.mid]);
+  ok(f1[0] && JSON.parse(f1[1]).length === 1 && /Vergleichen: 1/.test(f1[2]) && /Jahresbericht/.test(f1[3] || '') && await cl() === 1 && f1[4] === 'm4',
+    'F: Häkchen → Auswahl bleibt offen, Linie „Jahresbericht“ in „Zeitspanne der Eingänge“, Knopf zeigt die Anzahl ' + JSON.stringify(f1));
+  await p.mouse.click(5, 500); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !document.querySelector('.sp-cmppop')), 'F: Klick daneben schließt die Auswahl');
+  await p.click('.sp-cmpbtn'); await p.waitForTimeout(200); await p.click('.sp-cmppop .tagrow:has-text("Jahresbericht")'); await p.waitForTimeout(250);
+  ok(await cl() === 0 && /^Vergleichen ▾$/.test(await p.textContent('.sp-cmpbtn')), 'F: nochmal klicken nimmt sie wieder heraus');
+  await p.mouse.click(5, 500); await p.waitForTimeout(150);
 
   // ---- G: Spaltenbreite wie in der Jahresplanung (wie in Excel) – nur die gezogene Spalte ändert sich, die rechts davon rücken mit, der leere Rest gleicht aus
   const ths = () => p.evaluate(() => [...document.querySelectorAll('.sp-ueb thead th')].map(t => Math.round(t.getBoundingClientRect().width)));
