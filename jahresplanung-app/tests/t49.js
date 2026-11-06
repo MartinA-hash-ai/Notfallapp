@@ -1,6 +1,6 @@
 // 0.13: drei Reiter (Jahresplanung mit Zeitleiste und „Was steht an?“, Detailpläne, Auswertung); Urlaub & Feiertage über ⋯ und Einstellungen;
 // Mausrad blättert (nur Strg+Mausrad zoomt), Zeitleiste ohne eigene Filter, Detailpläne nur mit PAL im gewählten Jahr, wenn das Blättern außerhalb der Zeitleiste begann; Spenden markieren und zuordnen; Alle markieren; Update direkt aus dem ZIP-Paket
-const { chromium, ok, open, connect, finish, fs, T, ORIG } = require('./lib');
+const { chromium, ok, open, connect, finish, fs, T, ORIG, ruleIn } = require('./lib');
 const { execSync } = require('child_process');
 const DIR = 'Spendeneingänge 2027/';
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -103,11 +103,11 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   await p.waitForFunction(() => SP.at && SP.rows.length > 0); await p.waitForTimeout(300);
   const e0 = await p.evaluate(() => [document.querySelector('[data-sec="sp-ueb"] .sec-t').textContent, document.querySelector('.sp-hin').placeholder]);
   ok(e0[0] === 'Maßnahmen 2027' && e0[1] === '–', 'E: Überschrift „' + e0[0] + '“, leerer Hinweis zeigt „' + e0[1] + '“ wie in der Jahresplanung');
-  await p.click('.sp-wordin'); await p.keyboard.type('JB'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  await p.click('.sp-wordin'); await p.keyboard.type('Jahresbericht'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  const w0 = await p.evaluate(() => { const i = document.querySelector('.spm-rules .sp-wordin').getBoundingClientRect(), w = [...document.querySelectorAll('.spm-rules .sp-word')];
+  await p.click(await ruleIn(p)); await p.keyboard.type('JB'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  await p.click(await ruleIn(p)); await p.keyboard.type('Jahresbericht'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  const w0 = await p.evaluate(() => { const i = document.querySelector('.spm-rules .sp-newrule').getBoundingClientRect(), w = [...document.querySelectorAll('.spm-rules .sp-word')];
     return [w.map(e => e.firstChild.textContent).join(','), w.every(e => Math.abs(e.getBoundingClientRect().top + e.getBoundingClientRect().height / 2 - i.top - i.height / 2) < 4)]; });
-  ok(w0[0] === 'JB,Jahresbericht' && w0[1], 'E: Schlagworte stehen in der Regelzeile vor dem Eingabefeld (' + w0[0] + ')');
+  ok(w0[0] === 'JB,Jahresbericht' && w0[1], 'E: Regeln stehen in der Regelzeile vor „+ neue Regel“ (' + w0[0] + ')');
   await p.evaluate(() => commit(d => { findM(d, 'm5').auflage = 1000; })); await p.waitForTimeout(200);
   const t0 = await p.evaluate(() => { const c = e => { const r = e.getBoundingClientRect(); return r.left + r.width / 2; }, rg = document.createRange();
     const tv = [...document.querySelectorAll('.sp-tile .sp-tv')].map(e => { rg.selectNodeContents(e); return Math.abs(c(rg) - c(e.closest('.sp-tile'))) < 3; });

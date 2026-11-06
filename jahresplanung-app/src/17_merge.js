@@ -105,7 +105,7 @@ function valText(coll, field, v, rec) {
   if (field === 'plan') return v && v.steps ? v.steps.length + ' Schritte' : 'kein Detailplan';
   if (field === 'kosten') return eur(Math.round(+v * 100));
   if (field === 'regel') { const r = v || {}, p = dn(rec && rec.pal), zr = o => p != null && (isNum(o.ab) || isNum(o.bis)) ? ' (' + (isNum(o.ab) ? fmtS(p + o.ab) : '…') + '–' + (isNum(o.bis) ? fmtS(p + o.bis) : '…') + ')' : '';
-    return ((r.worte || []).map(w => '„' + w + '“' + (r.zr && r.zr[w] ? zr(r.zr[w]) : '')).join(', ') || 'ohne Schlagwort') + zr(r) + (r.ohneDA ? ', ohne Daueraufträge' : ''); }
+    return ((r.worte || []).map(w => '„' + w + '“' + (r.zr && r.zr[w] ? zr(r.zr[w]) + (r.zr[w].k ? ' Konto ' + r.zr[w].k.map(spGlied).join('/') : '') : '')).join(', ') || 'ohne Schlagwort') + zr(r) + (r.ohneDA ? ', ohne Daueraufträge' : ''); }
   if ((field === 'worte' || field === 'konten' || field === 'tags') && Array.isArray(v)) return v.length ? v.map(w => '„' + (field === 'konten' ? spGlied(w) : w) + '“').join(', ') : '–';
   if (field === 'massnahmen' && Array.isArray(v)) return v.length ? v.map(id => '„' + ((C.byId.get(id) || { m: {} }).m.name || '?') + '“').join(', ') : '–';
   if (typeof v === 'object') return JSON.stringify(v).slice(0, 60);

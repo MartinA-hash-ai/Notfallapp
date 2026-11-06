@@ -1,6 +1,6 @@
 // 0.19 Spenden JJJJ: Liste ohne Zweck = alle Spenden; Zweckwechsel behält „Bei Zweck“; Jahreswechsel behält den Zweck; Treffer der Regel hervorgehoben;
 // Klick in die Jahresgrafik sucht den Tag in der Liste (ohne Seitensprung, Aufleuchten erst im Bild); Ausreißer-Grenze; ⓘ zum Anklicken; 0.19.2 Schalter „Treffer hervorheben“
-const { chromium, ok, open, connect, finish } = require('./lib');
+const { chromium, ok, open, connect, finish, ruleIn } = require('./lib');
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 let n = 0;
 const p2 = x => String(x).padStart(2, '0');
@@ -42,7 +42,7 @@ const csv = '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
   ok(await rowOf('Probe ABC', '.sp-z') === 'Spende ABC Lage, Probe', 'B: von Hand zugeordnet – nichts hervorgehoben');
   await p.evaluate(() => undo()); await p.waitForTimeout(200);
   await p.click('.spj-zi[data-z="za"]'); await p.waitForTimeout(150);
-  await p.fill('.spj-rules .sp-wordin', 'Nachlass'); await p.waitForTimeout(450);
+  await p.fill(await ruleIn(p, '.spj-main'), 'Nachlass'); await p.waitForTimeout(450);
   ok(await rowOf('Probe Erbe', '.sp-z') === '<mark class="sp-hl">Nachlass</mark> Probe', 'B: Vorschau – das getippte Schlagwort ist hervorgehoben');
   await p.evaluate(() => { SPJ.typed = ''; renderNow(); }); await p.waitForTimeout(150);
   // Maßnahmen: Regelwort in „Zugeordnet“

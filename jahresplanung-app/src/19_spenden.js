@@ -648,11 +648,14 @@ function spRange(m) {                                                 // Gesamtz
   return { a: gs.some(g => g.a == null) ? null : Math.min(...gs.map(g => g.a)), b: gs.some(g => g.b == null) ? null : Math.max(...gs.map(g => g.b)) };
 }
 // Schlagworte mit gleichem Zeitraum zusammen prüfen
-function spGroups(m) {
+function spGroups(m) {                                              // ab 0.51 auch je Konto (regel.zr[Wort].k = [Konten]; leer = jedes Konto)
   const r = m.regel, neg = r.worte.filter(spNegW), by = new Map();
-  for (const w of r.worte) { if (spNegW(w)) continue; const g = spWRange(m, w), k = g.a + '|' + g.b; if (!by.has(k)) by.set(k, { a: g.a, b: g.b, w: [] }); by.get(k).w.push(w); }
-  return [...by.values()].map(g => ({ a: g.a, b: g.b, f: spMatcher(g.w.concat(neg)) }));
+  for (const w of r.worte) { if (spNegW(w)) continue; const g = spWRange(m, w), o = spWR(r, w), ks = Array.isArray(o.k) && o.k.length ? o.k.slice().sort() : null, k = g.a + '|' + g.b + '|' + (ks ? ks.join('\u0001') : '');
+    if (!by.has(k)) by.set(k, { a: g.a, b: g.b, k: ks ? new Set(ks) : null, w: [] }); by.get(k).w.push(w); }
+  return [...by.values()].map(g => ({ a: g.a, b: g.b, k: g.k, f: spMatcher(g.w.concat(neg)) }));
 }
+// Text des Treffers: „*“ (jeder Verwendungszweck) zeigt das Konto
+const spHitW = (w, rec, g) => w === '*' ? (g && g.k ? 'Konto ' + spGlied(rec.konto) : 'jede Spende') : w;
 // Ab 0.18 ordnen die Regeln der Maßnahmen selbst zu (wie bei den Spendenzwecken): passt genau eine Regel, ist die Spende der Maßnahme zugeordnet
 // (gespeichert in D.spenden.zu mit r: 1 – so stimmt die Auswertung auch ohne die Dateien); passen mehrere, ist sie „zu klären“ (nicht zugeordnet).
 // Von Hand Zugeordnetes (ohne r) bleibt, wie es ist; ausgeschlossene Spenden (nein) ordnet die Regel dieser Maßnahme nicht zu.
@@ -699,11 +702,11 @@ function spRuleOf(m) {
   return { id: m.id, test: rec => {
     let da = null;
     for (const g of groups) {
-      if ((g.a != null && rec.d < g.a) || (g.b != null && rec.d > g.b)) continue;
+      if ((g.a != null && rec.d < g.a) || (g.b != null && rec.d > g.b) || (g.k && !g.k.has(rec.konto))) continue;
       if (da == null) da = spIsDA(rec);
       if (noDA && da) return null;
       if (allDA && da) return 'Dauerauftrag';
-      const w = g.f ? g.f(rec) : null; if (w) return w;
+      const w = g.f ? g.f(rec) : null; if (w) return spHitW(w, rec, g);
     }
     return null;
   } };
@@ -807,20 +810,33 @@ function spSetRule(mid, fn, msg) {
   }, msg);
 }
 // Schlagwort übernehmen (Enter oder „Regel übernehmen“): abgewählte Spenden der Vorschau werden ausgeschlossen, die übrigen ordnet die Regel zu
-function spAddWord(mid, w, skip) {
-  w = str(w).trim().replace(/\s+/g, ' ');
-  if (!w) return;
-  const m = spMObj(D, mid); if (!m) return;
-  if (((m.regel || {}).worte || []).some(x => x.toLowerCase() === w.toLowerCase())) { toast('„' + w + '“ steht schon in der Regel.'); return; }
-  const before = spPart(mid, spCompute()).R.length;
-  if (spSetRule(mid, (r, mm) => {
-    if (!mm.allg && !spNegW(w)) { const pos = r.worte.filter(z => !spNegW(z)), last = pos[pos.length - 1];   // neues Schlagwort: Zeitraum des vorigen
-      if (last && r.zr && r.zr[last]) r.zr = Object.assign({}, r.zr, { [w]: Object.assign({}, r.zr[last]) }); }
-    r.worte.push(w); if (!mm.allg && dn(mm.pal) != null && !isNum(r.ab) && !isNum(r.bis)) { r.ab = 0; r.bis = SP_TAGE; }
-    for (const k of skip || []) D.spenden.nein[k] = [...new Set([...(D.spenden.nein[k] || []), mid])]; })) {
-    const n = spPart(mid, spCompute()).R.length - before;
-    toast('Regel um „' + w + '“ ergänzt – ' + (n > 0 ? spCount(n) + ' zugeordnet' : 'im Moment keine weitere Spende zugeordnet') + (skip && skip.size ? ', ' + skip.size + ' ausgeschlossen' : '') + '.', 'ok');
-  }
+// Regel übernehmen (0.51): Schlagwort (leer = jeder Verwendungszweck „*“), Zeitraum in Tagen ab PAL, Konten; orig = bisheriges Schlagwort beim Ändern.
+// Abgewählte Spenden der Vorschau werden ausgeschlossen, die übrigen ordnet die Regel zu.
+function spAddRule(mid, o, skip) {
+  let w = str(o.w).trim().replace(/\s+/g, ' ');
+  const k = [...new Set((o.k || []).filter(Boolean))], m = spMObj(D, mid); if (!m) return false;
+  if (!w && !k.length) { toast('Bitte ein Schlagwort oder ein Konto angeben.', 'warn'); return false; }
+  if (!w) w = '*';
+  if (((m.regel || {}).worte || []).some(x => x.toLowerCase() === w.toLowerCase() && x !== o.orig)) { toast('„' + (w === '*' ? 'jeder Verwendungszweck' : w) + '“ steht schon in der Regel – dort anklicken, um es zu ändern.', 'warn'); return false; }
+  const before = spPart(mid, spCompute()).R.length, label = w === '*' ? 'Konto ' + k.map(spGlied).join(', ') : '„' + w + '“';
+  const ok = spSetRule(mid, (r, mm) => {
+    if (o.orig != null) { const i = r.worte.indexOf(o.orig); if (i >= 0) r.worte[i] = w; else r.worte.push(w); if (r.zr) { r.zr = Object.assign({}, r.zr); delete r.zr[o.orig]; } }
+    else r.worte.push(w);
+    if (!mm.allg && dn(mm.pal) != null && !isNum(r.ab) && !isNum(r.bis)) { r.ab = 0; r.bis = SP_TAGE; }
+    if (!mm.allg && !spNegW(w)) {                                       // eigener Zeitraum/Konten nur, wenn sie vom gemeinsamen Zeitraum abweichen
+      const z = {}; if (isNum(o.ab)) z.ab = Math.round(+o.ab); if (isNum(o.bis)) z.bis = Math.round(+o.bis); if (k.length) z.k = k;
+      if (k.length || z.ab !== r.ab || z.bis !== r.bis) r.zr = Object.assign({}, r.zr, { [w]: z });
+      else if (r.zr && r.zr[w]) { r.zr = Object.assign({}, r.zr); delete r.zr[w]; }
+      if (r.zr && !Object.keys(r.zr).length) delete r.zr;
+    }
+    for (const kk of skip || []) D.spenden.nein[kk] = [...new Set([...(D.spenden.nein[kk] || []), mid])]; }, (o.orig != null ? 'Regel geändert: ' : 'Regel: ') + label);
+  if (ok) { const n = spPart(mid, spCompute()).R.length - before;
+    toast((o.orig != null ? 'Regel ' + label + ' geändert' : 'Regel ' + label + ' hinzugefügt') + ' – ' + (n > 0 ? spCount(n) + ' zugeordnet' : n < 0 ? spCount(-n) + ' weniger' : 'im Moment keine weitere Spende zugeordnet') + (skip && skip.size ? ', ' + skip.size + ' ausgeschlossen' : '') + '.', 'ok'); }
+  return !!ok;
+}
+function spAddWord(mid, w, skip) {                                   // Schlagwort mit dem Zeitraum der vorigen Regel
+  const m = spMObj(D, mid); if (!m) return false; const o = spNewWR(m.regel || {});
+  return spAddRule(mid, { w, ab: isNum(o.ab) ? o.ab : 0, bis: isNum(o.bis) ? o.bis : SP_TAGE }, skip);
 }
 // ausgeschlossene Spenden, die zur Regel passen
 function spRejected(mid, cmp) {
@@ -1083,28 +1099,103 @@ function spmHead(x, cmp) {
       h('button', { class: 'link small spj-shownew', onclick: () => { SPUI.tab = SPUI.tab === 'beide' ? 'beide' : 'zu'; SPUI.onlyNew = true; SPUI.typed = ''; SPUI.more = 0; renderNow(); } }, 'ansehen'),
       h('button', { class: 'spj-ok', tip: 'Die neuen Spenden gehören zu „' + (x.m.name || '') + '“ – Markierung „neu“ aufheben. Falsche vorher markieren und herausnehmen.', onclick: () => spChecked(x.id) }, '✓ geprüft')) : null,
     h('span', { class: 'spj-togs' }, h('button', { class: 'spj-tog' + (UI.spmRulesOpen ? ' on' : ''), 'aria-expanded': String(!!UI.spmRulesOpen), tip: 'Schlagworte und Zeitraum, nach denen die Maßnahme Spenden zuordnet',
-      onclick: () => { UI.spmRulesOpen = !UI.spmRulesOpen; if (!UI.spmRulesOpen) SPUI.typed = ''; renderNow(); } }, 'Regeln' + (((x.m.regel || {}).worte || []).length ? ' (' + x.m.regel.worte.length + ')' : ''), UI.spmRulesOpen ? ' ▴' : ' ▾')));
+      onclick: () => { UI.spmRulesOpen = !UI.spmRulesOpen; if (!UI.spmRulesOpen) { SPUI.typed = ''; SPUI.ed = null; } renderNow(); } }, 'Regeln' + (((x.m.regel || {}).worte || []).length ? ' (' + x.m.regel.worte.length + ')' : ''), UI.spmRulesOpen ? ' ▴' : ' ▾'),
+      h('button', { class: 'spj-tog spm-sugtog' + (UI.spmSugOpen ? ' on' : ''), 'aria-expanded': String(!!UI.spmSugOpen), tip: 'Begriffe und Konten, die bei den offenen Spenden ab dem PAL auffällig häufig vorkommen',
+        onclick: () => { UI.spmSugOpen = !UI.spmSugOpen; saveUI(); renderNow(); } }, 'Vorschläge', UI.spmSugOpen ? ' ▴' : ' ▾')));
 }
-// Zeitraum eines Schlagworts: Knopf am Schlagwort, Klick öffnet Beginn und Ende (Tage ab PAL, wandern mit)
-function spWzrBtn(x, w) {
-  const mid = x.id, pane = h('div', { class: 'tagflt sp-wzrpop' }), cur = () => spMObj(D, mid), lab = g => (g.a != null ? fmtS(g.a) : '…') + '–' + (g.b != null ? fmtS(g.b) : '…');
-  const setDay = (which, v) => { const n = dn(v), m = cur(), pal = dn(m && m.pal); if (pal == null) return;
-    spSetRule(mid, rr => { const o = Object.assign({}, spWR(rr, w));
-      if (n == null) delete o[which]; else o[which] = n - pal;
-      if (isNum(o.ab) && isNum(o.bis) && o.ab > o.bis) { if (which === 'ab') o.bis = o.ab; else o.ab = o.bis; }   // Ende nie vor dem Beginn
-      for (const k of ['ab', 'bis']) if (!isNum(o[k])) delete o[k];
-      rr.zr = Object.assign({}, rr.zr, { [w]: o }); }, 'Zeitraum für „' + w + '“ geändert');
-    fill(); };
-  const fill = () => { const m = cur(); if (!m) return; const g = spWRange(m, w), pal = dn(m.pal), n = ((m.regel || {}).worte || []).filter(z => !spNegW(z)).length;
-    const rel = v => v == null ? '…' : (v - pal >= 0 ? '+' : '') + (v - pal);
-    setKids(pane, h('div', { class: 'tagflt-h' }, h('b', null, 'Zeitraum für „' + w + '“')),
-      h('div', { class: 'sp-wzr-in' }, dateInput(g.a != null ? ds(g.a) : '', 'sp-rab:' + w, v => setDay('ab', v)), '–', dateInput(g.b != null ? ds(g.b) : '', 'sp-rbis:' + w, v => setDay('bis', v))),
-      h('p', { class: 'muted small tagflt-n' }, rel(g.a) + ' bis ' + rel(g.b) + ' Tage ab PAL – wandert mit, wenn sich der PAL verschiebt'),
-      n > 1 ? h('button', { class: 'link small sp-wzr-all', tip: 'diesen Zeitraum für alle Schlagworte der Maßnahme übernehmen',
-        onclick: () => { const o = spWR((cur().regel || {}), w); spSetRule(mid, rr => { delete rr.zr; for (const k of ['ab', 'bis']) if (isNum(o[k])) rr[k] = o[k]; else delete rr[k]; }, 'Zeitraum für alle Schlagworte übernommen'); fill(); } }, 'für alle Schlagworte übernehmen') : null); };
-  const b = h('button', { class: 'sp-wzr', dataset: { w }, tip: 'Zeitraum, in dem „' + w + '“ zuordnet – klicken zum Ändern',
-    onclick: e => { e.stopPropagation(); fill(); popover(b, pane, { keep: true, reanchor: () => $$('.sp-wzr').find(q => q.dataset.w === w) }); } }, lab(spWRange(x.m, w)));
-  return b;
+/* ---------- Regel-Editor (0.51): „+ neue Regel“ bzw. Klick auf eine Regel öffnet darunter Schlagwort, Zeitraum und Konten;
+   rechts zeigt die Vorschau die passenden offenen Spenden („Zugeordnet“ links bleibt stehen) */
+const spKonten = (a, b) => { const c = new Map(); for (const r of SP.rows) if (r.konto && (a == null || r.d >= a) && (b == null || r.d <= b)) c.set(r.konto, (c.get(r.konto) || 0) + 1);
+  return [...c].sort((p, q) => spGlied(p[0]).localeCompare(spGlied(q[0]), 'de')); };
+function spmEdOpen(x, orig, init = {}) {
+  const r = x.m.regel || { worte: [] }, o = orig != null ? spWR(r, orig) : spNewWR(r);
+  SPUI.ed = { orig: orig != null ? orig : null, ab: isNum(o.ab) ? +o.ab : orig != null ? null : 0, bis: isNum(o.bis) ? +o.bis : orig != null ? null : SP_TAGE, k: (orig != null ? o.k || [] : init.k || []).slice() };
+  SPUI.typed = orig != null ? (orig === '*' ? '' : orig) : init.w || ''; SPUI.skip = new Set(); SPUI.skipFor = '';
+  UI.spmRulesOpen = true; renderNow();
+  setTimeout(() => { const i = $('.spm-red .sp-wordin'); if (i) { i.focus(); if (!init.k) i.select(); } }, 30);
+}
+function spmEdClose() { SPUI.ed = null; SPUI.typed = ''; SPUI.skip = new Set(); renderNow(); }
+function spmEdApply(x) {
+  const ed = SPUI.ed; if (!ed) return;
+  if (spAddRule(x.id, { w: SPUI.typed, ab: ed.ab, bis: ed.bis, k: ed.k, orig: ed.orig }, new Set(SPUI.skip))) { SPUI.ed = null; SPUI.typed = ''; SPUI.skip = new Set(); }
+}
+// Prüfung für die Vorschau: Schlagwort (leer = jeder), Zeitraum, Konten, ohne Daueraufträge
+function spEdTest(x, ed, w) {
+  const pal = x.pal, a = pal != null && isNum(ed.ab) ? pal + ed.ab : null, b = pal != null && isNum(ed.bis) ? pal + ed.bis : null, ks = ed.k.length ? new Set(ed.k) : null, f = spMatcher([w || '*']), noDA = (x.m.regel || {}).ohneDA === true;
+  return rec => (a == null || rec.d >= a) && (b == null || rec.d <= b) && (!ks || ks.has(rec.konto)) && !(noDA && spIsDA(rec)) && !!f(rec);
+}
+// Konten zum Ankreuzen (mit Anzahl der Spenden im Zeitraum); keins = jedes Konto
+function spKontoPick(list, sel, onToggle, onAll) {
+  const has = new Set(list.map(e => e[0])), all = list.concat(sel.filter(k => !has.has(k)).map(k => [k, 0]));
+  return h('span', { class: 'sp-kopts' },
+    h('button', { class: 'sp-kopt' + (!sel.length ? ' on' : ''), 'aria-pressed': String(!sel.length), onclick: onAll }, 'jedes Konto'),
+    all.map(([k, n]) => h('button', { class: 'sp-kopt' + (sel.includes(k) ? ' on' : ''), dataset: { k }, 'aria-pressed': String(sel.includes(k)), onclick: () => onToggle(k) },
+      spGlied(k), h('span', { class: 'sp-kn' }, n.toLocaleString('de-DE')))));
+}
+function spmEditor(x) {
+  const ed = SPUI.ed; if (!ed || SPUI.klaeren || !UI.spmRulesOpen) return null;
+  const pal = x.pal, mid = x.id, set = fn => { fn(ed); SPUI.skipFor = ''; renderNow(); };
+  const a = pal != null && isNum(ed.ab) ? pal + ed.ab : null, b = pal != null && isNum(ed.bis) ? pal + ed.bis : null;
+  const rel = v => v == null ? '…' : (v - pal >= 0 ? '+' : '') + (v - pal), nPos = (((x.m.regel || {}).worte) || []).filter(w => !spNegW(w)).length;
+  let tq = null;
+  const day = which => v => set(e => { const n = dn(v); e[which] = n == null ? null : n - pal;
+    if (isNum(e.ab) && isNum(e.bis) && e.ab > e.bis) { if (which === 'ab') e.bis = e.ab; else e.ab = e.bis; } });   // Ende nie vor dem Beginn
+  return h('div', { class: 'sp-red spm-red' },
+    h('div', { class: 'sp-red-h' }, h('b', null, ed.orig != null ? 'Regel ändern' : 'Neue Regel'), h('span', { class: 'muted small' }, ' – eine Spende passt, wenn Schlagwort, Zeitraum und Konto zutreffen. Rechts die Vorschau.')),
+    h('div', { class: 'sp-red-r' }, h('span', { class: 'sp-red-l' }, 'Schlagwort'),
+      spDelayTip(h('input', { class: 'sp-wordin', value: SPUI.typed, placeholder: 'im Verwendungszweck – leer = jeder', 'aria-label': 'Schlagwort', 'data-fk': 'sp-word',
+        oninput: e => { SPUI.typed = e.target.value; clearTimeout(tq); tq = setTimeout(renderNow, 180); },
+        onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); clearTimeout(tq); spmEdApply(x); } else if (e.key === 'Escape') { e.preventDefault(); spmEdClose(); } } }), spHelp)),
+    h('div', { class: 'sp-red-r' }, h('span', { class: 'sp-red-l' }, 'Zeitraum'),
+      pal == null ? h('span', { class: 'warn small' }, 'ohne PAL ist die Regel aus – bitte PAL eintragen') : [
+        dateInput(a != null ? ds(a) : '', 'sp-eab', day('ab')), '–', dateInput(b != null ? ds(b) : '', 'sp-ebis', day('bis')),
+        h('span', { class: 'muted small' }, rel(a) + ' bis ' + rel(b) + ' Tage ab PAL – wandert mit dem PAL' + (ed.orig == null && nPos ? ' · vorbelegt mit dem Zeitraum der letzten Regel' : ''))]),
+    h('div', { class: 'sp-red-r' }, h('span', { class: 'sp-red-l' }, 'Konto'),
+      spKontoPick(spKonten(a ?? pal, b ?? (pal != null ? pal + SP_TAGE : null)), ed.k, k => set(e => { e.k = e.k.includes(k) ? e.k.filter(v => v !== k) : e.k.concat(k); }), () => set(e => { e.k = []; }))),
+    h('div', { class: 'sp-red-f' },
+      h('button', { class: 'primary spm-apply', disabled: pal == null, onclick: () => spmEdApply(x) }, ed.orig != null ? 'Änderung übernehmen' : 'Regel übernehmen'),
+      h('button', { class: 'link small spj-prevx', onclick: spmEdClose }, 'Abbrechen'),
+      ed.orig != null && nPos > 1 ? h('button', { class: 'link small sp-wzr-all', tip: 'diesen Zeitraum für alle Regeln der Maßnahme übernehmen (Konten bleiben)',
+        onclick: () => { const ab = ed.ab, bis = ed.bis; spSetRule(mid, rr => { for (const k of ['ab', 'bis']) { const v = k === 'ab' ? ab : bis; if (isNum(v)) rr[k] = v; else delete rr[k]; }
+          if (rr.zr) { const z = {}; for (const [w, o] of Object.entries(rr.zr)) if (o.k && o.k.length) z[w] = { k: o.k }; if (Object.keys(z).length) rr.zr = z; else delete rr.zr; } }, 'Zeitraum für alle Regeln übernommen'); } }, 'Zeitraum für alle Regeln übernehmen') : null));
+}
+/* ---------- Vorschläge (0.51): Begriffe und Konten, die bei den offenen Spenden ab dem PAL (bis 90 Tage, höchstens bis heute) deutlich häufiger
+   vorkommen als in den 120 Tagen davor – Klick bereitet eine neue Regel vor (Zeitraum und Konto lassen sich dort anpassen) */
+let _spmSug = { key: null, val: null };
+function spmSuggest(x, cmp) {
+  const pal = x.pal; if (pal == null) return { list: [], konten: [] };
+  const key = _spCmp.key + '|' + x.id + '|' + pal + '|' + todayDn();
+  if (_spmSug.key === key && _spmSug.rows === SP.rows) return _spmSug.val;
+  const days = Math.max(14, Math.min(90, todayDn() - pal + 1)), a = pal, b = pal + days - 1, bdays = 120;
+  const have = new Set(((x.m.regel || {}).worte || []).map(w => w.toLowerCase().replace(/\*$/, '')));
+  const pool = SP.rows.filter(r => r.d >= a && r.d <= b && !cmp.assigned(r.k)), base = SP.rows.filter(r => r.d >= pal - bdays && r.d < pal);
+  const toks = rec => { const raw = rec.zweck || '', own = new Set(spWords(rec.name)), out = new Set();
+    if (!/\p{Lu}{5,}/u.test(raw)) for (const c of raw.match(/(?<![\p{L}\p{N}])\p{Lu}{2,4}(?![\p{L}\p{N}])/gu) || []) { const l = c.toLowerCase(); if (!SPJ_CODE_STOP.has(l) && !SPJ_STOP.has(l)) out.add('#' + c); }
+    for (const w of spWords(raw)) if (w.length >= 4 && !/\d/.test(w) && !SPJ_STOP.has(w) && !SPJ_ADDR.test(w) && !own.has(w) && !out.has('#' + w.toUpperCase())) out.add(w);
+    return out; };
+  const cnt = recs => { const mp = new Map(); for (const r of recs) for (const t of toks(r)) { let o = mp.get(t); if (!o) mp.set(t, o = { n: 0, sum: 0 }); o.n++; o.sum += r.b; } return mp; };
+  const P = cnt(pool), B = cnt(base), lift = (n, nb) => (n / days) / ((nb + 0.5) / bdays);
+  const list = [...P].filter(([t, o]) => o.n >= 2 && !have.has(t.replace(/^#/, '').toLowerCase()))
+    .map(([t, o]) => { const nb = (B.get(t) || {}).n || 0; return { word: t[0] === '#' ? t.slice(1) : spjCap(t), n: o.n, sum: o.sum, nb, L: lift(o.n, nb) }; })
+    .filter(g => g.nb === 0 || g.L >= 3).sort((p, q) => q.n - p.n || q.L - p.L).slice(0, 16);
+  const kc = recs => { const mp = new Map(); for (const r of recs) if (r.konto) mp.set(r.konto, (mp.get(r.konto) || 0) + 1); return mp; };
+  const KP = kc(pool), KB = kc(base);
+  const konten = [...KP].map(([k, n]) => ({ k, n, nb: KB.get(k) || 0, L: lift(n, KB.get(k) || 0) })).filter(g => g.n >= 3 && g.L >= 3).sort((p, q) => q.n - p.n).slice(0, 4);
+  _spmSug = { key, rows: SP.rows, val: { list, konten, a, b } };
+  return _spmSug.val;
+}
+function spmSugBar(x, cmp) {
+  if (!UI.spmSugOpen || SPUI.klaeren) return null;
+  if (x.pal == null) return h('div', { class: 'spj-sugbar spm-sugbar' }, h('span', { class: 'muted small' }, 'Ohne PAL keine Vorschläge.'));
+  const S = spmSuggest(x, cmp), ed = SPUI.ed, why = g => g.nb ? Math.round(g.L) + '× häufiger' : 'nur ab PAL';
+  const chip = g => h('span', { class: 'spj-sug spm-sug' + (ed && ed.orig == null && SPUI.typed === g.word && !ed.k.length ? ' on' : ''), dataset: { w: g.word } },
+    h('button', { class: 'spj-sw-l', tip: spCount(g.n) + ' (' + eur(g.sum) + ') ab dem PAL, ' + (g.nb ? g.nb + ' in den 120 Tagen davor' : 'davor keine') + ' – Klick: als neue Regel vorbereiten', onclick: () => spmEdOpen(x, null, { w: g.word }) }, g.word),
+    h('span', { class: 'spj-sug-n' }, g.n.toLocaleString('de-DE')), h('span', { class: 'spm-sug-why' }, why(g)));
+  const kchip = g => h('span', { class: 'spj-sug spm-sug konto' + (ed && ed.orig == null && !SPUI.typed && ed.k.length === 1 && ed.k[0] === g.k ? ' on' : ''), dataset: { k: g.k } },
+    h('button', { class: 'spj-sw-l', tip: spCount(g.n) + ' ab dem PAL auf diesem Konto, ' + g.nb + ' in den 120 Tagen davor – Klick: Regel „alles auf diesem Konto“ vorbereiten', onclick: () => spmEdOpen(x, null, { k: [g.k] }) }, 'Konto ' + spGlied(g.k)),
+    h('span', { class: 'spj-sug-n' }, g.n.toLocaleString('de-DE')), h('span', { class: 'spm-sug-why' }, Math.round(g.L) + '× mehr'));
+  return h('div', { class: 'spj-sugbar spm-sugbar' }, h('span', { class: 'spj-sugt', tip: 'offene Spenden vom ' + fmtS(S.a) + ' bis ' + fmtS(S.b) + ' im Vergleich zu den 120 Tagen vor dem PAL' }, 'Vorschläge'),
+    h('div', { class: 'spj-sugs spm-sugs' }, S.list.length || S.konten.length ? [S.list.map(chip), S.konten.map(kchip)] : h('span', { class: 'muted spj-sug0' }, 'Keine auffälligen Begriffe bei den offenen Spenden ab dem PAL.')));
 }
 // Regel in einer Zeile: Schlagworte, „+ Schlagwort“ (Tippen = Vorschau), Zeitraum ab PAL, ohne Daueraufträge, ausgeschlossene
 function spmRules(x, cmp) {
@@ -1112,16 +1203,20 @@ function spmRules(x, cmp) {
   if (SPUI.klaeren) return h('div', { class: 'spj-rules none muted small' }, 'Diese Spenden passen zu den Regeln mehrerer Maßnahmen – in der Zeile die richtige wählen oder markieren und zuordnen.');
   const m = x.m, r = m.regel || { worte: [] }, pal = x.pal, rg = spRange(m), mid = x.id, rej = spRejected(mid, cmp).length;
   let tq = null;
-  const add = () => { const w = SPUI.typed.trim(), skip = new Set(SPUI.skip); SPUI.typed = ''; SPUI.skip = new Set(); if (w) spAddWord(mid, w, skip); else renderNow(); };
+  const lab = g => (g.a != null ? fmtS(g.a) : '…') + '–' + (g.b != null ? fmtS(g.b) : '…'), ed = SPUI.ed;
   return h('div', { class: 'spj-rules spm-rules' },
     h('span', { class: 'spj-rl', tip: () => h('div', null, h('div', { class: 'sp-help-lead' }, 'Spenden, deren Verwendungszweck zu einem Schlagwort passt und die im Zeitraum eingehen, ordnet die Regel der Maßnahme zu – auch aus später eingelesenen Dateien (dann als „neu“ markiert). ' +
-      'Beim Tippen zeigt die Liste, welche Spenden dazukämen; Häkchen weg = ausschließen. Passt eine Spende zu mehreren Maßnahmen, steht sie unter „zu klären“. Jedes Schlagwort hat seinen Zeitraum (Datum am Schlagwort anklicken) – ein neues übernimmt den des vorigen; er hängt am PAL und wandert mit.'), spHelp()) }, 'ordnet zu:'),
-    (r.worte || []).map(w => h('span', { class: 'sp-word' }, w, pal != null && !spNegW(w) ? spWzrBtn(x, w) : null, h('button', { class: 'sp-x', 'aria-label': w + ' entfernen', tip: '„' + w + '“ aus der Regel nehmen – die Spenden, die nur darüber zugeordnet sind, fallen wieder heraus',
-      onclick: () => spSetRule(mid, rr => { rr.worte = rr.worte.filter(z => z !== w); if (rr.zr) { rr.zr = Object.assign({}, rr.zr); delete rr.zr[w]; if (!Object.keys(rr.zr).length) delete rr.zr; } }, 'Schlagwort „' + w + '“ entfernt') }, '×'))),
-    !(r.worte || []).length ? h('span', { class: 'muted small' }, 'noch kein Schlagwort') : null,
-    h('span', { class: 'spj-ein' }, spDelayTip(h('input', { class: 'sp-wordin', value: SPUI.typed, placeholder: '+ Schlagwort', 'aria-label': 'Schlagwort hinzufügen', 'data-fk': 'sp-word',
-      oninput: e => { SPUI.typed = e.target.value; clearTimeout(tq); tq = setTimeout(renderNow, 180); },
-      onkeydown: e => { if (e.key === 'Enter' || e.key === ',' || e.key === ';') { e.preventDefault(); clearTimeout(tq); add(); } else if (e.key === 'Escape') { SPUI.typed = ''; renderNow(); } } }), spHelp)),
+      'Jede Regel besteht aus Schlagwort, Zeitraum und Konto – alle drei müssen passen (leeres Schlagwort = jeder Verwendungszweck, kein Konto = jedes Konto). „+ neue Regel“ bzw. Klick auf eine Regel öffnet sie; rechts zeigt die Vorschau, welche Spenden dazukämen (Häkchen weg = ausschließen). Eine neue Regel übernimmt den Zeitraum der vorigen; er hängt am PAL und wandert mit. Passt eine Spende zu mehreren Maßnahmen, steht sie unter „zu klären“.'), spHelp()) }, 'ordnet zu:'),
+    (r.worte || []).map(w => { const neg = spNegW(w), o = spWR(r, w), ks = !neg && Array.isArray(o.k) ? o.k : [], on = !!ed && ed.orig === w;
+      return h('span', { class: 'sp-word sp-rule' + (on ? ' on' : '') + (neg ? ' neg' : ''), dataset: { w }, tabindex: neg ? null : '0', role: neg ? null : 'button',
+        tip: neg ? 'schließt Spenden mit diesem Wort aus – immer, ohne Zeitraum' : 'Klick: Regel ändern (Schlagwort, Zeitraum, Konto)',
+        onclick: neg ? null : e => { if (e.target.closest('.sp-x')) return; if (on) spmEdClose(); else spmEdOpen(x, w); },
+        onkeydown: neg ? null : e => { if (e.key === 'Enter' && !e.target.closest('.sp-x')) { e.preventDefault(); spmEdOpen(x, w); } } },
+        h('span', { class: 'sp-rw' }, w === '*' ? 'jeder Verwendungszweck' : w), !neg && pal != null ? h('span', { class: 'sp-wzr' }, lab(spWRange(m, w))) : null,
+        ks.length ? h('span', { class: 'sp-wk', tip: ks.map(spGlied).join(', ') }, ks.length === 1 ? spGlied(ks[0]) : ks.length + ' Konten') : null,
+        h('button', { class: 'sp-x', 'aria-label': w + ' entfernen', tip: 'Regel entfernen – die Spenden, die nur darüber zugeordnet sind, fallen wieder heraus',
+          onclick: () => { if (on) SPUI.ed = null; spSetRule(mid, rr => { rr.worte = rr.worte.filter(z => z !== w); if (rr.zr) { rr.zr = Object.assign({}, rr.zr); delete rr.zr[w]; if (!Object.keys(rr.zr).length) delete rr.zr; } }, 'Regel „' + (w === '*' ? 'jeder Verwendungszweck' : w) + '“ entfernt'); } }, '×')); }),
+    h('button', { class: 'sp-newrule' + (ed && ed.orig == null ? ' on' : ''), 'aria-expanded': String(!!ed && ed.orig == null), onclick: () => { if (ed && ed.orig == null) spmEdClose(); else spmEdOpen(x, null); } }, '+ neue Regel'),
     pal == null ? h('span', { class: 'warn small' }, 'ohne PAL ist die Regel aus – bitte PAL eintragen') : null,
     h('label', { class: 'check small sp-noda', tip: 'Daueraufträge (laut Buchungstext) ordnet die Regel nicht zu' },
       h('input', { type: 'checkbox', checked: r.ohneDA === true, onchange: e => spSetRule(mid, rr => { if (e.target.checked) rr.ohneDA = true; else delete rr.ohneDA; }, e.target.checked ? 'Regel: Daueraufträge ausgeschlossen' : 'Regel: Daueraufträge wieder eingeschlossen') }),
@@ -1135,7 +1230,7 @@ function spmList(x, cmp) {
   const tagsOf = (rec, mode) => {
     const t = [], hl = cmp.hits.get(rec.k) || [], z = S.zu[rec.k];
     if (mode === 'zu') { const my = hl.find(g => g.id === mid);
-      t.push(z && !z.r ? h('span', { class: 'sp-tag hand', tip: 'von Hand zugeordnet' }, 'von Hand') : my ? h('span', { class: 'sp-tag rule', tip: 'passt zur Regel (Schlagwort „' + my.w + '“)' }, my.w) : null); }
+      t.push(z && !z.r ? h('span', { class: 'sp-tag hand', tip: 'von Hand zugeordnet' }, 'von Hand') : my ? h('span', { class: 'sp-tag rule', tip: 'passt zur Regel („' + my.w + '“)' }, my.w) : null); }
     if (mode !== 'zu' && hl.length > 1 && !cmp.assigned(rec.k)) t.push(h('span', { class: 'sp-tag other', tip: 'passt zu mehreren Regeln – unter „zu klären“ entscheiden' }, 'zu klären: ' + hl.map(g => nm(g.id)).join(' / ')));
     if (mode === 'offen' && (S.nein[rec.k] || []).includes(mid)) t.push(h('span', { class: 'sp-tag gone', tip: 'aus dieser Maßnahme herausgenommen' }, 'ausgeschlossen'));
     if (rec.gone) t.push(h('span', { class: 'sp-tag gone' }, 'nicht mehr im Ordner'));
@@ -1145,26 +1240,27 @@ function spmList(x, cmp) {
   };
   if (SPUI.fmid !== mid || SPUI.fpal !== x.pal) { spResetFilter(x.m); SPUI.fmid = mid; SPUI.fpal = x.pal; SPUI.tab = spmView(); SPUI.onlyNew = false; SPUI.more = 0; }
   // ---- Vorschau beim Tippen: was die Regel mit diesem Schlagwort zuordnen würde
-  if (typed && !SPUI.klaeren) {
-    const rg0 = spAbs(x.m, spNewWR(x.m.regel || {})), pal = x.pal, a = rg0.a ?? pal, b = rg0.b ?? (pal != null ? pal + SP_TAGE : null), noDA = ((x.m.regel || {}).ohneDA === true), f = spMatcher([typed]);
-    const match = pal == null ? [] : SP.rows.filter(rec => (a == null || rec.d >= a) && (b == null || rec.d <= b) && !(noDA && spIsDA(rec)) && f(rec));
+  const ed = SPUI.ed, prevOn = !!ed && !SPUI.klaeren && UI.spmRulesOpen && (!!typed || ed.k.length > 0);
+  let prevBox = null;
+  if (prevOn) {
+    const pal = x.pal, tst = spEdTest(x, ed, typed), ptitle = typed ? '„' + typed + '“' : 'Konto ' + ed.k.map(spGlied).join(', ');
+    const match = pal == null ? [] : SP.rows.filter(tst);
     const cand = match.filter(rec => !cmp.assigned(rec.k)).sort(byDate), mine = match.filter(rec => cmp.assigned(rec.k) === mid).length, other = match.length - cand.length - mine;
-    if (SPUI.skipFor !== mid + '|' + typed) { SPUI.skipFor = mid + '|' + typed; SPUI.skip = new Set(cand.filter(rec => (S.nein[rec.k] || []).includes(mid)).map(rec => rec.k)); }
+    const sk = mid + '|' + typed + '|' + JSON.stringify(ed);
+    if (SPUI.skipFor !== sk) { SPUI.skipFor = sk; SPUI.skip = new Set(cand.filter(rec => (S.nein[rec.k] || []).includes(mid)).map(rec => rec.k)); }
     const ticked = () => cand.filter(rec => !SPUI.skip.has(rec.k));
     const head = () => { const tk = ticked();
       const cb = h('input', { type: 'checkbox', class: 'spj-all', checked: cand.length > 0 && !SPUI.skip.size, disabled: !cand.length, 'aria-label': 'alle an/aus',
         onchange: () => { SPUI.skip = SPUI.skip.size ? new Set() : new Set(cand.map(r => r.k)); upd(); } });
       cb.indeterminate = SPUI.skip.size > 0 && SPUI.skip.size < cand.length;
-      return h('div', { class: 'spj-lh' }, cb, h('b', null, 'Vorschau „' + typed + '“'),
+      return h('div', { class: 'spj-lh' }, cb, h('b', null, 'Vorschau ' + ptitle),
         h('span', { class: 'spj-sub muted small' }, tk.length + ' von ' + spCount(cand.length) + ' (' + eur(sumOf(tk)) + ') würden zugeordnet' + (mine ? ' · ' + mine + ' schon hier' : '') + (other ? ' · ' + other + ' bei anderen Maßnahmen' : '')),
-        h('button', { class: 'primary spm-apply', disabled: pal == null, tip: 'Schlagwort in die Regel übernehmen – Spenden ohne Häkchen werden ausgeschlossen', onclick: () => {
-          const skip = new Set(SPUI.skip); SPUI.typed = ''; SPUI.skip = new Set(); spAddWord(mid, typed, skip); } }, 'Regel übernehmen'),
-        h('button', { class: 'link small spj-prevx', onclick: () => { SPUI.typed = ''; renderNow(); } }, 'Abbrechen')); };
+        ); };
     const row = rec => { const on = !SPUI.skip.has(rec.k);
       return h('div', { class: 'spj-row' + (on ? ' sel' : ''), dataset: { k: rec.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(rec),
         onclick: ev => { if (ev.target.closest('button, a, input, select')) return; if (SPUI.skip.has(rec.k)) SPUI.skip.delete(rec.k); else SPUI.skip.add(rec.k); upd(); } },
         h('span', { class: 'spj-cb', 'aria-hidden': 'true' }), h('span', { class: 'sp-d' }, fmtD(rec.d)), h('span', { class: 'sp-b' }, eur(rec.b)), h('span', { class: 'spj-g' }, spGlied(rec.konto)),
-        UI.spDet ? h('span', { class: 'sp-n' }, rec.name || '') : null, h('span', { class: 'sp-z' }, rec.zweck ? spHl(rec.zweck, [typed]) : '–'),
+        UI.spDet ? h('span', { class: 'sp-n' }, rec.name || '') : null, h('span', { class: 'sp-z' }, rec.zweck ? spHl(rec.zweck, typed ? [typed] : []) : '–'),
         h('span', { class: 'spj-tags' }, (cmp.hits.get(rec.k) || []).filter(g => g.id !== mid).length ? h('span', { class: 'sp-tag other', tip: 'passt auch zur Regel einer anderen Maßnahme – steht danach unter „zu klären“' },
           'auch: ' + (cmp.hits.get(rec.k) || []).filter(g => g.id !== mid).map(g => nm(g.id)).join(', ')) : null,
           (S.nein[rec.k] || []).includes(mid) ? h('span', { class: 'sp-tag gone' }, 'ausgeschlossen') : null, spIsDA(rec) ? h('span', { class: 'sp-tag da' }, 'Dauerauftrag') : null),
@@ -1172,11 +1268,11 @@ function spmList(x, cmp) {
     let box = null;
     const upd = () => { if (!box) return; box.querySelector('.spj-lh').replaceWith(head());
       for (const el of box.querySelectorAll('.spj-row')) { const on = !SPUI.skip.has(el.dataset.k); el.classList.toggle('sel', on); el.setAttribute('aria-selected', String(on)); } };
-    box = h('div', { class: 'spj-listbox spm-listbox prev' }, head(),
+    box = h('div', { class: 'spj-listbox spm-listbox prev', dataset: { pane: 'prev' } }, head(),
       h('div', { class: 'spj-listwrap' }, h('div', { class: 'spj-list', 'data-keep-scroll': 'spm-list', role: 'listbox', 'aria-multiselectable': 'true' },
         cand.slice(0, SP_MAX).map(row), cand.length > SP_MAX ? h('div', { class: 'sp-more muted small' }, '… und ' + (cand.length - SP_MAX) + ' weitere') : null,
-        !cand.length ? h('div', { class: 'sp-empty muted small' }, pal == null ? 'Ohne PAL ist die Regel aus.' : 'Keine offene Spende im Zeitraum passt zu „' + typed + '“.') : null)));
-    return box;
+        !cand.length ? h('div', { class: 'sp-empty muted small' }, pal == null ? 'Ohne PAL ist die Regel aus.' : 'Keine offene Spende passt zu ' + ptitle + ' im Zeitraum.') : null)));
+    prevBox = box;
   }
   // ---- Listen mit Markieren – ab 0.49 „Zugeordnet“ links und „Offen“ rechts nebeneinander (Umschalter: Zugeordnet | beide | Offen), Spenden lassen sich hinüberziehen
   const nAus = spRejected(mid, cmp).length;
@@ -1196,7 +1292,7 @@ function spmList(x, cmp) {
   let tq = null;
   const fset = (k, v, now) => { SPUI.f[k] = v; clearTimeout(tq); if (now) renderNow(); else tq = setTimeout(renderNow, 250); };
   // hervorheben, worauf die Regel greift: bei „Zugeordnet“ die Schlagworte dieser Maßnahme, bei „zu klären“ die aller passenden
-  const wordsOf = id => ((spMObj(D, id) || {}).regel || {}).worte || [];
+  const wordsOf = id => (((spMObj(D, id) || {}).regel || {}).worte || []).filter(w => w !== '*');
   const pane = tab => {
     const list = lists.get(tab);
     const selRecs = () => list.filter(r => SPUI.sel.has(r.k)), keys = () => selRecs().map(r => r.k);
@@ -1271,20 +1367,22 @@ function spmList(x, cmp) {
       let nv = k;
       if (k !== 'aus' && view !== 'aus') { const st = new Set(tabs); if (st.has(k)) { if (st.size > 1) st.delete(k); } else st.add(k); nv = st.size > 1 ? 'beide' : [...st][0]; }
       SPUI.tab = nv; SPUI.more = 0; if (nv !== 'aus') { UI.spmView = nv; saveUI(); } renderNow(); } }, label); };
-  return h('div', { class: 'spm-lists' + (two ? ' two' : '') },
+  const shown = prevBox ? tabs.filter(t => t === 'zu') : tabs, twoS = prevBox ? shown.length > 0 : two;   // Vorschau: rechts statt „Offen“, „Zugeordnet“ bleibt
+  return h('div', { class: 'spm-lists' + (twoS ? ' two' : '') + (prevBox ? ' prevon' : '') },
     view === 'klaeren' ? null : h('div', { class: 'spm-vbar' },
       h('span', { class: 'segs spj-lv' }, seg('zu', 'Zugeordnet', 'ein- oder ausblenden – sind „Zugeordnet“ und „Offen“ an, stehen sie nebeneinander'), seg('offen', 'Offen', 'ein- oder ausblenden – sind „Zugeordnet“ und „Offen“ an, stehen sie nebeneinander'), nAus ? seg('aus', 'Ausgeschlossen (' + nAus + ')') : null),
       two ? h('span', { class: 'muted small spm-dnd' }, 'Spenden lassen sich zwischen den Spalten und links auf eine andere Maßnahme ziehen') : null,
       h('span', { class: 'sp' }),
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen')),
-    h('div', { class: 'spm-panes' }, tabs.map(pane)));
+    h('div', { class: 'spm-panes' }, shown.map(pane), prevBox));
 }
 function spAssign(x, cmp) {
   const ms = C.ms.filter(o => inYear(o, UI.year));
   if (SPUI.klaeren && !cmp.konf.length) SPUI.klaeren = false;
   const R = spPart(x.id, cmp).R;
+  if (SPUI.edFor !== x.id) { if (SPUI.ed) { SPUI.ed = null; SPUI.typed = ''; } SPUI.edFor = x.id; }   // andere Maßnahme: offene Regel verwerfen
   return { body: h('div', null, SPUI.klaeren ? null : spPreNotice(x, R),
-    h('div', { class: 'spj-zu spm' }, spmSide(ms, cmp, x), h('div', { class: 'spj-main' }, spmHead(x, cmp), spmRules(x, cmp), spmList(x, cmp)))) };
+    h('div', { class: 'spj-zu spm' }, spmSide(ms, cmp, x), h('div', { class: 'spj-main' }, spmHead(x, cmp), spmRules(x, cmp), spmEditor(x), spmSugBar(x, cmp), spmList(x, cmp)))) };
 }
 VIEW_FN.spenden = main => {
   const y = UI.year;

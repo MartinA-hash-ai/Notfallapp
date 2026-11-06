@@ -2246,3 +2246,25 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .spm-fbtn { max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .spm-fbtn.act { background: var(--runbg); color: var(--runink); border-color: var(--focus); font-weight: 600; }
 .spm-freset { white-space: nowrap; }
+/* 0.51: Regeln aus Schlagwort, Zeitraum und Konto – Kästchen je Regel, „+ neue Regel“, Editor darunter */
+.sp-word.sp-rule { cursor: pointer; padding-left: 10px; gap: 2px; }
+.sp-word.sp-rule:hover { box-shadow: inset 0 0 0 1.5px var(--focus); }
+.sp-word.sp-rule.on { box-shadow: inset 0 0 0 2px var(--focus); }
+.sp-word.sp-rule.neg { cursor: default; background: var(--warnbg); color: var(--ink); }
+.sp-word .sp-wzr { cursor: inherit; }
+.sp-wk { font: 500 11.5px/1.2 inherit; font-family: inherit; padding: 2px 7px; border-radius: 9px; margin-left: 3px; background: var(--chipbg); color: var(--ink2); white-space: nowrap; max-width: 160px; overflow: hidden; text-overflow: ellipsis; }
+.sp-newrule { border: 1px dashed var(--line2); background: var(--chipbg); color: var(--ink2); border-radius: 12px; padding: 2px 11px; font-size: 13px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+.sp-newrule:hover, .sp-newrule.on { border-style: solid; border-color: var(--focus); color: var(--ink); }
+.sp-red { margin: 0 14px 10px; padding: 10px 14px; border: 1.5px solid var(--focus); border-radius: 10px; background: var(--card); box-shadow: 0 4px 14px rgba(0,0,0,.08); display: flex; flex-direction: column; gap: 8px; }
+.sp-red-h { font-size: 13px; }
+.sp-red-r { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.sp-red-l { width: 84px; flex: none; color: var(--muted); font-size: 12.5px; font-weight: 600; }
+.sp-red .sp-wordin { min-width: 280px; }
+.sp-red-f { display: flex; align-items: center; gap: 12px; padding-left: 92px; }
+.sp-kopts { display: flex; flex-wrap: wrap; gap: 5px; flex: 1; min-width: 0; max-height: 92px; overflow-y: auto; }
+.sp-kopt { border: 1px solid var(--line2); background: var(--card); color: var(--ink2); border-radius: 12px; padding: 1px 9px; font-size: 12.5px; cursor: pointer; display: inline-flex; gap: 5px; align-items: center; }
+.sp-kopt.on { background: var(--runbg); border-color: var(--focus); color: var(--runink); font-weight: 600; }
+.sp-kn { color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.spm-sug-why { color: var(--muted); font-size: 11px; padding-right: 6px; }
+.spm-sug.konto { border-style: dashed; }
+.prevon .spj-listbox.prev { flex: 1 1 0; min-width: 0; }

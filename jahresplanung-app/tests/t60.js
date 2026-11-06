@@ -111,19 +111,22 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.click('.spj-unhand'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !Object.values(D.spenden.zweck).some(v => v === '-') && !document.querySelector('.spj-unhand')), 'G: „… wieder automatisch“ hebt die Markierung von Hand auf');
 
-  // ---- H: gewählter Vorschlag bleibt beim Wechsel des Zwecks stehen; „von Hand“ nur beim Zweck, nicht in „Zweckungebunden“
+  // ---- H (0.51): Vorschlag bei gewähltem Zweck → „Neue Regel“ mit dem Wort, Vorschau rechts; anderer Zweck verwirft sie. Ohne Zweck: Vorschau mit „+ als neuer Zweck“;
+  //      „von Hand“ nur beim Zweck, nicht in „Zweckungebunden“
   await p.evaluate(() => { if (D.zwecke.length < 2) commit(d => { d.zwecke.push({ id: 'zt', name: 'Testzweck', farbe: '#1565c0', worte: [], konten: [], massnahmen: [] }); }, 'Testzweck'); });
   const pills = await p.evaluate(() => D.zwecke.slice(0, 2).map(z => z.id));
   await p.click('.spj-zi[data-z="' + pills[0] + '"]'); await p.waitForTimeout(150);
   const w = await p.evaluate(() => document.querySelector('.spj-sug').dataset.w);
-  await p.click('.spj-sug[data-w="' + w + '"] .spj-sw-l'); await p.waitForTimeout(200);
+  await p.click('.spj-sug[data-w="' + w + '"] .spj-sw-l'); await p.waitForTimeout(250);
+  const hh0 = await p.evaluate(w => [SPJ.z, SPJ.typed, document.querySelector('.spj-sug[data-w="' + w + '"]').classList.contains('on'), document.querySelector('.spj-panes > .spj-listbox:last-child .spj-lh b')?.textContent,
+    document.querySelector('.spj-red .sp-wordin')?.value, document.querySelector('.spj-red .sp-red-h b')?.textContent], w);
+  ok(hh0[0] === pills[0] && hh0[1] && hh0[2] && /^Vorschau/.test(hh0[3]) && hh0[4] === hh0[1] && hh0[5] === 'Neue Regel', 'H: Klick auf den Vorschlag „' + hh0[1] + '“ öffnet „Neue Regel“ mit dem Wort, rechts die Vorschau ' + JSON.stringify(hh0));
   await p.click('.spj-zi[data-z="' + pills[1] + '"]'); await p.waitForTimeout(200);
-  const hh0 = await p.evaluate(w => [SPJ.z, SPJ.typed, document.querySelector('.spj-sug[data-w="' + w + '"]').classList.contains('on'), document.querySelector('.spj-lh b')?.textContent, document.querySelector('.spj-rules .sp-wordin').value], w);
-  ok(hh0[0] === pills[1] && hh0[1] && hh0[2] && /^Vorschau/.test(hh0[3]) && hh0[4] === hh0[1], 'H: Vorschlag „' + hh0[1] + '“ bleibt nach dem Zweckwechsel gewählt (Vorschau und Eingabefeld)');
-  ok(await p.evaluate(n => document.querySelector('.spj-prev-add').textContent === '+ zu „' + n + '“' && document.querySelector('.spj-prev-new').textContent === '+ als neuer Zweck', await p.evaluate(id => D.zwecke.find(z => z.id === id).name, pills[1])),
-    'H: im Kopf der Vorschau „+ zu „…““ (gewählter Zweck) und „+ als neuer Zweck“');
-  await p.click('.spj-zi[data-z="' + pills[0] + '"]'); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => !!SPJ.typed), 'H: auch beim Zurückwechseln');
+  ok(await p.evaluate(() => !SPJ.ed && !SPJ.typed && !document.querySelector('.spj-red')), 'H: anderer Zweck – die vorbereitete Regel wird verworfen');
+  await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(150);
+  await p.click('.spj-sug[data-w="' + w + '"] .spj-sw-l'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !document.querySelector('.spj-prev-add') && document.querySelector('.spj-prev-new')?.textContent === '+ als neuer Zweck' && /^Vorschau/.test(document.querySelector('.spj-lh b').textContent)),
+    'H: ohne gewählten Zweck – Vorschau mit „+ als neuer Zweck“');
   await p.click('.spj-prevx'); await p.waitForTimeout(150);
   await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(150);          // 0.47: Spenden ohne Zweck links unter „zweckungebunden“
   const k0 = await p.evaluate(() => document.querySelector('[data-sec="sp-zu"] .spj-row').dataset.k);

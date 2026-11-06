@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.50.0",
+    "version": "0.51.0",
     "date": "",
+    "items": [
+      "Regeln aus drei Teilen: Schlagwort, Zeitraum und Konto – eine Spende passt, wenn alle drei zutreffen (leeres Schlagwort = jeder Verwendungszweck, kein Konto = jedes Konto). Jede Regel steht als Kästchen mit Datum (und Konto) in der Regelzeile",
+      "„+ neue Regel“ öffnet darunter Schlagwort, Zeitraum (vorbelegt mit dem der letzten Regel) und Konten zum Ankreuzen; Klick auf eine Regel ändert sie. Rechts zeigt die Vorschau die passenden offenen Spenden, „Zugeordnet“ links bleibt stehen (auch wenn vorher nur „Zugeordnet“ an war)",
+      "Gleiches Regel-Fenster bei den Spendenzwecken (Zeitraum dort mit Datum, leer = immer); nur Konten ohne Schlagwort und Zeitraum = wie bisher „alle Spenden auf diesem Konto“",
+      "Vorschläge jetzt auch bei Maßnahmen (Knopf „Vorschläge“ oben): Begriffe und Konten, die bei den offenen Spenden ab dem PAL deutlich häufiger vorkommen als in den 120 Tagen davor – Klick bereitet eine neue Regel vor, Zeitraum und Konto lassen sich noch ändern",
+      "Bei den Zwecken bereitet ein Klick auf einen Vorschlag (bei gewähltem Zweck) ebenfalls eine neue Regel vor"
+    ]
+  },
+  {
+    "version": "0.50.0",
+    "date": "2026-11-06T16:13",
     "items": [
       "Spenden zuordnen: „beide“ entfällt – „Zugeordnet“ und „Offen“ (bei den Zwecken „Zugeordnet“ und „Zweckungebunden“) lassen sich einzeln ein- und ausschalten; sind beide an, stehen sie nebeneinander. Eine bleibt immer an",
       "„Offen“: Zeitraum, Daueraufträge und Suche sind hinter dem Knopf „Zeitraum ändern“ rechts eingeklappt – die Liste beginnt direkt oben. Zugeklappt bleibt der Filter bestehen, der Knopf zeigt dann, was eingestellt ist (z. B. „30.06.–31.12. · Suche …“); „zurücksetzen“ im Filter",

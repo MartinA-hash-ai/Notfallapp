@@ -17,7 +17,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   const a0 = await p.evaluate(() => [!!document.querySelector('.spm .spj-rules'), document.querySelector('.spm .spj-tog')?.textContent, Object.values(D.spenden.zu).filter(z => z.m === 'sm').length]);
   ok(!a0[0] && a0[1] === 'Regeln (1) ▾' && a0[2] === 6, 'A: Regeln der Maßnahme anfangs zu, im Kopf „Regeln (1)“ – die Regel ordnet trotzdem zu ' + JSON.stringify(a0));
   await p.click('.spm .spj-tog'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => !!document.querySelector('.spm .spj-rules .sp-wordin') && UI.spmRulesOpen === true && UI_KEYS.includes('spmRulesOpen') && /▴/.test(document.querySelector('.spm .spj-tog').textContent)), 'A: Klick öffnet die Regeln (mit Schlagwort-Feld), wird gemerkt');
+  ok(await p.evaluate(() => !!document.querySelector('.spm .spj-rules .sp-newrule') && UI.spmRulesOpen === true && UI_KEYS.includes('spmRulesOpen') && /▴/.test(document.querySelector('.spm .spj-tog').textContent)), 'A: Klick öffnet die Regeln (mit „+ neue Regel“), wird gemerkt');
   await p.click('.spm .spj-tog'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.spm .spj-rules')), 'A: nochmal Klick – wieder zu');
   // ---- B: Liste „Zugeordnet“ – ohne Zahl, ohne „N Spenden · Summe“; alle Treffer gelb, auch ohne gespeicherte Regel

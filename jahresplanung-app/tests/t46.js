@@ -1,6 +1,6 @@
 // 0.12.5 Stresstest-Funde: PAL nachträglich geändert (Zuordnungen vor dem PAL lösen), Reiterwechsel liest neue Dateien, Regel ohne PAL aus,
 // Zeitraum nie verkehrt, deutsche Zahleneingabe (Kosten/Auflage), Zusammenführen ohne Rückfrage zu Ausschlüssen; ab 0.18: die Regel wandert mit dem PAL, Hinweis nur für von Hand Zugeordnetes
-const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN } = require('./lib');
+const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN, ruleIn } = require('./lib');
 const path = require('path');
 const DIR = 'Spendeneingänge 2027/';
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -35,7 +35,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
 
   // ---- A: PAL zuerst falsch (einen Monat zu früh), Regel ordnet zu, dann PAL korrigiert – die Regel wandert mit
   await p.evaluate(() => { commit(d => { d.massnahmen.find(m => m.id === 'm5').pal = '2027-07-27'; }); renderNow(); }); await p.waitForTimeout(200);
-  await p.fill('.sp-wordin', 'JB'); await p.press('.sp-wordin', 'Enter'); await p.waitForTimeout(300);
+  await p.fill(await ruleIn(p), 'JB'); await p.press(await ruleIn(p), 'Enter'); await p.waitForTimeout(300);
   const a0 = await st();
   ok(a0.zu === 5 && !a0.pre && !a0.warn, 'A: mit falschem PAL (27.07.) ordnet die Regel 5 zu, kein Hinweis');
   await p.evaluate(() => { UI.view = 'jahr'; renderNow(); commit(d => { d.massnahmen.find(m => m.id === 'm5').pal = '2027-09-17'; }); }); await p.waitForTimeout(200);
@@ -66,10 +66,10 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(c[0] && c[1] === null && !c[2], 'C: Maßnahme ohne PAL – ihre Regel ordnet nichts zu (sonst unbegrenzt über alle Jahre)');
   await p.evaluate(() => undo());
   await p.evaluate(() => { UI.view = 'spenden'; renderNow(); }); await p.waitForTimeout(150);
-  await p.click('.sp-wzr'); await p.waitForTimeout(150);   // 0.49: Zeitraum je Schlagwort
-  await p.fill('[data-fk^="sp-rbis:"]', '2027-09-01'); await p.press('[data-fk^="sp-rbis:"]', 'Enter'); await p.waitForTimeout(150);
-  await p.fill('[data-fk^="sp-rab:"]', '2027-10-01'); await p.press('[data-fk^="sp-rab:"]', 'Enter'); await p.waitForTimeout(200);
-  await p.mouse.click(5, 300);
+  await p.click('.spm-rules .sp-rule .sp-rw'); await p.waitForTimeout(150);   // 0.51: Klick auf die Regel öffnet Schlagwort, Zeitraum, Konto
+  await p.fill('[data-fk="sp-ebis"]', '2027-09-01'); await p.press('[data-fk="sp-ebis"]', 'Enter'); await p.waitForTimeout(150);
+  await p.fill('[data-fk="sp-eab"]', '2027-10-01'); await p.press('[data-fk="sp-eab"]', 'Enter'); await p.waitForTimeout(200);
+  await p.click('.spm-apply'); await p.waitForTimeout(250);
   const dd = await p.evaluate(() => { const r = D.massnahmen.find(m => m.id === 'm5').regel, o = r.zr[r.worte[0]]; return [o.ab, o.bis]; });
   ok(dd[0] === 14 && dd[1] === 14, 'D: Beginn nach dem Ende gesetzt → Ende rückt mit (beide +14 Tage ab PAL)');
 

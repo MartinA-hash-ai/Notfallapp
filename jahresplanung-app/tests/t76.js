@@ -29,13 +29,13 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   ok(!b0.lv && b0.title === 'Zugeordnet' && b0.n === 6 && !b0.hlt && b0.marks === 6, 'B: beim Zweck „Zugeordnet“ mit seinen 6 Spenden – ohne Umschalter, Treffer immer gelb, ohne Schalter dafür');
   ok(!b0.hint && !b0.zst, 'B: kein Hinweis „Klick = Zweck wählen …“ links, keine Anzahl/Summe neben dem Namen');
   await p.click('.spj-tog:has-text("Regeln")'); await p.click('.spj-tog:has-text("Vorschläge")'); await p.waitForTimeout(250);
-  const b1 = await p.evaluate(() => [!!document.querySelector('.spj-rules .sp-wordin'), !!document.querySelector('.spj-sugbar'), UI.spjRulesOpen, UI.spjSugOpen, UI_KEYS.includes('spjRulesOpen') && UI_KEYS.includes('spjSugOpen')]);
-  ok(b1.every(Boolean), 'B: Klick blendet Regeln (mit Schlagwort-Feld) und Vorschläge ein – wird gemerkt');
+  const b1 = await p.evaluate(() => [!!document.querySelector('.spj-rules .sp-newrule'), !!document.querySelector('.spj-sugbar'), UI.spjRulesOpen, UI.spjSugOpen, UI_KEYS.includes('spjRulesOpen') && UI_KEYS.includes('spjSugOpen')]);
+  ok(b1.every(Boolean), 'B: Klick blendet Regeln (mit „+ neue Regel“) und Vorschläge ein – wird gemerkt');
   await p.click('.spj-tog:has-text("Regeln")'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.spj-rules')), 'B: nochmal Klick – Regeln wieder zu');
   // ---- C: neuer Zweck – Regeln gleich offen; zweckungebunden links
   await p.click('.spj-add'); await p.waitForTimeout(250);
-  ok(await p.evaluate(() => !!document.querySelector('.spj-rules .sp-wordin') && document.activeElement === document.querySelector('.spj-name')), 'C: „+ Zweck“ – Regeln offen, damit gleich ein Schlagwort hineinkann');
+  ok(await p.evaluate(() => !!document.querySelector('.spj-red .sp-wordin') && document.activeElement === document.querySelector('.spj-name')), 'C: „+ Zweck“ – Regeln und „Neue Regel“ offen, damit gleich ein Schlagwort hineinkann');
   await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => document.querySelector('.spj-lh b').textContent === 'Zweckungebunden' && document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length === 12), 'C: links „zweckungebunden“ – die 12 Spenden ohne Zweck');
   // ---- D: Maßnahme – im Kopf nur der PAL, kein „Treffer hervorheben“

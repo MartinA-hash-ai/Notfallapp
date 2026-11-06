@@ -40,4 +40,7 @@ const finish = async (b, pages) => {
   await b.close();
   if (failures) process.exitCode = 1;
 };
-module.exports = { chromium, T, ORIG, MAIN, ok, open, skip, readF, writeF, connect, dataOf, withData, verOf, banners, finish, fs };
+// Eingabefeld „Schlagwort“ einer neuen Regel (ab 0.51 hinter „+ neue Regel“) – öffnet sie bei Bedarf und gibt den Selektor zurück
+async function ruleIn(p, scope = '') { const sel = (scope ? scope + ' ' : '') + '.sp-wordin';
+  if (!await p.$(sel)) { await p.click((scope ? scope + ' ' : '') + '.sp-newrule'); await p.waitForTimeout(150); } return sel; }
+module.exports = { ruleIn, chromium, T, ORIG, MAIN, ok, open, skip, readF, writeF, connect, dataOf, withData, verOf, banners, finish, fs };

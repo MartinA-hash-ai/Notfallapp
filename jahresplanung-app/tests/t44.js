@@ -1,6 +1,6 @@
 // 0.12 Spenden (Beta): Exporte (CSV/Excel) aus „Spendeneingänge …“ einlesen, doppelte Buchungen nur einmal, Regeln → zuordnen (ab 0.18 ohne „Prüfen“: Vorschau mit Häkchen, neu Eingelesenes markiert),
 // Kennzahlen und Grafiken (0.12.6: Klick in „Offen“ schiebt nach „Prüfen“, Filter oben rechts, „Prüfen“ ohne Kopf, Vergleich zum Ausklappen; 0.12.4: Filter eingeklappt, Regel ohne Daueraufträge, „Regel neu anwenden“, Erlös, Spaltenbreiten; 0.12.3: Kasten einklappbar, Wochenenden, Richtwerte aus den Einstellungen, Listen bündig, Häkchen für Daueraufträge; 0.12.2: Name groß in Maßnahmenfarbe, Auflage/Kosten in der Übersicht, Filter ab PAL, Daueraufträge ausblendbar, Grafik ab PAL; 0.12.1: Verwendungszweck immer sichtbar, Daueraufträge markiert, „Alle zurück“), Datenschutz (keine Namen/IBAN in der Planungsdatei), Zusammenführen, Löschen einer Maßnahme
-const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN } = require('./lib');
+const { chromium, ok, open, connect, readF, dataOf, finish, fs, MAIN, ruleIn } = require('./lib');
 const path = require('path');
 const DIR = 'Spendeneingänge 2027/';
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
@@ -39,18 +39,18 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(!/~\$/.test(a.files) && /3 Dateien · 11 Buchungen/.test(a.status), 'A: Excel-Sperrdatei übergangen, Status „' + a.status + '“');
 
   // Hilfen für den Bereich „Spenden zuordnen“ (ab 0.18: links die Maßnahmen, rechts Regel und Liste)
-  const names = () => p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(e => (SP.byKey.get(e.dataset.k) || {}).name).sort().join(', '));
-  const rowK = name => p.evaluate(n => { const e = [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].find(e => (SP.byKey.get(e.dataset.k) || {}).name === n); return e && e.dataset.k; }, name);
-  const clickRow = async (name, mod) => { const k = await rowK(name); await p.click('[data-sec="sp-zu"] .spj-row[data-k="' + k + '"] .sp-z', mod ? { modifiers: [mod] } : {}); await p.waitForTimeout(80); };
+  const names = () => p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row')].map(e => (SP.byKey.get(e.dataset.k) || {}).name).sort().join(', '));
+  const rowK = name => p.evaluate(n => { const e = [...document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row')].find(e => (SP.byKey.get(e.dataset.k) || {}).name === n); return e && e.dataset.k; }, name);
+  const clickRow = async (name, mod) => { const k = await rowK(name); await p.click('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row[data-k="' + k + '"] .sp-z', mod ? { modifiers: [mod] } : {}); await p.waitForTimeout(80); };
   const tab = async t => { await (t === 'aus' ? p.click('.spm-lists .seg-btn[data-tab="aus"]') : p.evaluate(t => { SPUI.tab = t; SPUI.more = 0; renderNow(); }, t)); await p.waitForTimeout(200); };   // nur diese Liste
-  const typeWord = async w => { await p.fill('[data-sec="sp-zu"] .sp-wordin', ''); await p.click('[data-sec="sp-zu"] .sp-wordin'); await p.keyboard.type(w); await p.waitForTimeout(450); };
+  const typeWord = async w => { await p.fill(await ruleIn(p, '[data-sec="sp-zu"]'), ''); await p.click(await ruleIn(p, '[data-sec="sp-zu"]')); await p.keyboard.type(w); await p.waitForTimeout(450); };
 
   // ---- A2: Kasten der Maßnahme – Name groß in ihrer Farbe; darunter links die Maßnahmen, rechts Regel und Liste
   const a2 = await p.evaluate(() => { const n = document.querySelector('[data-sec="sp-m"] .sec-h .sp-mname'), c = document.createElement('i'); c.style.color = inkC(C.byId.get('m5').color); document.body.append(c);
     const want = getComputedStyle(c).color; c.remove(); return [n && n.textContent, n && getComputedStyle(n).color === want, !document.querySelector('[data-sec="sp-m"] select, [data-sec="sp-m"] input'), !!document.querySelector('[data-fk="sp-kos:m5"]'),
-      document.querySelector('.spm .spj-zi.on .spj-zn')?.textContent, document.querySelector('.spm .spj-zh .spj-zt')?.textContent, !!document.querySelector('.spm-rules .sp-wordin'), [...document.querySelectorAll('.spm-lists .seg-btn')].map(b => b.textContent).join('|')]; });
+      document.querySelector('.spm .spj-zi.on .spj-zn')?.textContent, document.querySelector('.spm .spj-zh .spj-zt')?.textContent, !!document.querySelector('.spm-rules .sp-newrule'), [...document.querySelectorAll('.spm-lists .seg-btn')].map(b => b.textContent).join('|')]; });
   ok(a2[0] === 'Jahresbericht' && a2[1] && a2[2] && a2[3], 'A2: „Jahresbericht“ groß in Maßnahmenfarbe; Auflage und Kosten in der Übersicht');
-  ok(a2[4] === 'Jahresbericht' && a2[5] === 'Jahresbericht' && a2[6] && a2[7] === 'Zugeordnet|Offen', 'A2: links die Maßnahmen (Jahresbericht gewählt), rechts Kopf, Regelzeile mit „+ Schlagwort“, Reiter „' + a2[7] + '“');
+  ok(a2[4] === 'Jahresbericht' && a2[5] === 'Jahresbericht' && a2[6] && a2[7] === 'Zugeordnet|Offen', 'A2: links die Maßnahmen (Jahresbericht gewählt), rechts Kopf, Regelzeile mit „+ neue Regel“, Reiter „' + a2[7] + '“');
   await tab('offen');
   const a3 = await p.evaluate(() => [document.querySelector('[data-fk="sp-fvon"]')?.value, document.querySelector('[data-fk="sp-fbis"]')?.value, [...document.querySelectorAll('.spm-filter .sp-da select option')].map(o => o.textContent).join('|'), !!document.querySelector('.spm-filter .sp-q'), !document.querySelector('.sp-min')]);
   ok(a3[0] === '2027-01-01' && a3[1] === '2028-02-25' && a3[2] === 'einblenden|ausblenden|nur Daueraufträge' && a3[3] && a3[4], 'A3: „Offen“ mit Filter – Zeitraum ganzes Jahr bis Regel-Ende (0.50) (' + a3[0] + ' – ' + a3[1] + '), Daueraufträge, Suche; kein Betragsfilter');
@@ -62,7 +62,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
 
   // ---- B: Schlagwort tippen → Vorschau mit Häkchen (ganzes Wort, im Zeitraum ab PAL); Enter übernimmt – die Regel ordnet selbst zu
   await typeWord('JB');
-  const b0 = await p.evaluate(() => [document.querySelector('.spm-listbox .spj-lh').textContent, document.querySelectorAll('.spm-listbox .spj-row.sel').length]);
+  const b0 = await p.evaluate(() => [document.querySelector('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-lh').textContent, document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row.sel').length]);
   ok(/^Vorschau „JB“4 von 4 Spenden \(175,50 €\) würden zugeordnet/.test(b0[0]) && b0[1] === 4 && await names() === 'Anna Probe, Emil Klein, Erika Test, Max Muster',
     'B: Vorschau „JB“ – ' + await names() + ' mit Häkchen (nicht „JBL“, nicht vor dem PAL)');
   await p.keyboard.press('Enter'); await p.waitForTimeout(300);
@@ -71,9 +71,9 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(bb.regel === '{"worte":["JB"],"ab":0,"bis":182}' && bb.zu === 'm5/r,m5/r,m5/r,m5/r' && bb.badge === '' && bb.tag === 'JB' && bb.side === '4 · 176 €' && await names() === 'Anna Probe, Emil Klein, Erika Test, Max Muster',
     'B: Regel JB (Zeitraum PAL … +182 T.) ordnet die vier zu (von der Regel, nicht „neu“ – die Vorschau war die Prüfung); links „' + bb.side + '“');
   await typeWord('Jahresbericht');
-  ok(await names() === 'Bernd Probe' && /1 von 1 Spende/.test(await p.evaluate(() => document.querySelector('.spm-listbox .spj-lh').textContent)), 'B: „Jahresbericht“ findet auch „JAHRESBE RICHT“ (Zeilenumbruch der Bank)');
+  ok(await names() === 'Bernd Probe' && /1 von 1 Spende/.test(await p.evaluate(() => document.querySelector('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-lh').textContent)), 'B: „Jahresbericht“ findet auch „JAHRESBE RICHT“ (Zeilenumbruch der Bank)');
   await clickRow('Bernd Probe');
-  const b1 = await p.evaluate(() => [document.querySelectorAll('.spm-listbox .spj-row.sel').length, document.querySelector('.spm-listbox .spj-lh').textContent]);
+  const b1 = await p.evaluate(() => [document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row.sel').length, document.querySelector('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-lh').textContent]);
   ok(b1[0] === 0 && /^Vorschau „Jahresbericht“0 von 1 Spende/.test(b1[1]), 'B: Klick nimmt das Häkchen weg – „' + b1[1].split('würden')[0] + '“');
   await p.click('.spm-apply'); await p.waitForTimeout(300);
   const kB = await p.evaluate(() => SP.rows.find(r => r.name === 'Bernd Probe').k);
@@ -106,7 +106,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   await p.fill('.spm-filter .sp-q', 'Hospiz'); await p.waitForTimeout(450);
   const d0 = (await names()).split(', ');
   ok(d0.length === 2 && d0.includes('Henriette Probe') && d0.includes('Firma Beispiel GmbH'), 'D: Suche „Hospiz“ findet ' + d0.join(', ') + ' (auch „HOSPIZDIENSTE“)');
-  const dk = await p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(e => e.dataset.k));
+  const dk = await p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row')].map(e => e.dataset.k));
   await p.click('[data-sec="sp-zu"] .spj-row[data-k="' + dk[0] + '"] .sp-z'); await p.click('[data-sec="sp-zu"] .spj-row[data-k="' + dk[1] + '"] .sp-z', { modifiers: ['Shift'] }); await p.waitForTimeout(100);
   const d1 = await p.evaluate(() => [SPUI.sel.size, document.querySelector('.spj-act .spj-move').value, document.querySelector('.spj-act').textContent]);
   ok(d1[0] === 2 && d1[1] === 'm5' && /2 Spenden markiert/.test(d1[2]), 'D: Klick + Umschalt-Klick markiert beide – Ziel „Jahresbericht“ vorbelegt');
@@ -135,13 +135,13 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(await p.evaluate(k => D.spenden.zu[k]?.m === 'm5' && !D.spenden.neu[k] && !document.querySelector('.tab-badge') && !document.querySelector('.spm .spj-newbar'), kN), 'E: oder „✓ geprüft“ – bleibt zugeordnet, Markierung „neu“ weg');
   await clickRow('Neu Nachzügler'); await p.click('.spj-act .spm-excl'); await p.waitForTimeout(250);   // für die Zahlen unten wieder heraus
   await tab('offen');
-  const da = await p.evaluate(() => { const r = [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].filter(e => e.querySelector('.sp-tag.da')); return [r.length, r[0] && r[0].querySelector('.sp-tag.da').textContent, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length]; });
+  const da = await p.evaluate(() => { const r = [...document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row')].filter(e => e.querySelector('.sp-tag.da')); return [r.length, r[0] && r[0].querySelector('.sp-tag.da').textContent, document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row').length]; });
   ok(da[0] === 1 && da[1] === 'Dauerauftrag' && da[2] > 1, 'E: Dauerauftrag steht in „Offen“, markiert mit „Dauerauftrag“');
   await p.selectOption('.spm-filter .sp-da select', 'ohne'); await p.waitForTimeout(200);
-  const da2 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.da')].length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, UI.spDA]);
+  const da2 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.da')].length, document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row').length, UI.spDA]);
   ok(da2[0] === 0 && da2[1] > 0 && da2[2] === 'ohne', 'E: „Daueraufträge: ausblenden“ blendet sie aus');
   await p.selectOption('.spm-filter .sp-da select', 'nur'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length === 1), 'E: „nur Daueraufträge“ zeigt nur den einen Dauerauftrag');
+  ok(await p.evaluate(() => document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row').length === 1), 'E: „nur Daueraufträge“ zeigt nur den einen Dauerauftrag');
   await p.selectOption('.spm-filter .sp-da select', 'alle'); await p.waitForTimeout(200);
   await typeWord('Lage'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   const kD = await p.evaluate(() => SP.rows.find(r => r.name === 'Dora Dauer').k);
@@ -297,7 +297,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   // ---- L: ohne Ordner – Hinweis statt Fehler; Auswertung aus der Planungsdatei bleibt
   const p2 = await open(b); pages.push(p2);
   await p2.evaluate(d => { loadData(normalize(d)); UI.year = 2027; UI.view = 'spenden'; UI.spMid = 'm5'; renderNow(); }, data); await p2.waitForTimeout(300);
-  const l = await p2.evaluate(() => [!!document.querySelector('.banner.sp-notice'), document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.gone').length, document.querySelector('.sp-tile .sp-tv').textContent]);
+  const l = await p2.evaluate(() => [!!document.querySelector('.banner.sp-notice'), document.querySelectorAll('[data-sec="sp-zu"] .spm-panes > .spj-listbox:last-child .spj-row').length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.gone').length, document.querySelector('.sp-tile .sp-tv').textContent]);
   ok(l[0] && l[1] === 6 && l[2] === 6 && l[3] === '9.876 €', 'L: ohne verbundenen Ordner Hinweis; Zugeordnetes und Kennzahlen kommen aus der Planungsdatei (' + l[3] + ')');
   await finish(b, pages);
 })();

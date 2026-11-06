@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'calHide', 'spjRulesOpen', 'spjSugOpen', 'spmRulesOpen', 'spmView', 'spmFOpen', 'spjView', 'spCmpWith', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV', 'jvMv', 'jvBindY', 'jvSegFull', 'jvPiFull', 'jvVp', 'tagHide', 'phMini', 'respHide'];
+const UI_KEYS = ['colW', 'calHide', 'spjRulesOpen', 'spjSugOpen', 'spmRulesOpen', 'spmView', 'spmSugOpen', 'spmFOpen', 'spjView', 'spCmpWith', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV', 'jvMv', 'jvBindY', 'jvSegFull', 'jvPiFull', 'jvVp', 'tagHide', 'phMini', 'respHide'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -280,7 +280,9 @@ function normalizeData(d) {
       for (const k of ['ab', 'bis']) if (isNum(m.regel[k])) r[k] = Math.round(+m.regel[k]);
       if (m.regel.ohneDA === true) r.ohneDA = true;                // Daueraufträge nicht vorschlagen
       if (isObj(m.regel.zr)) for (const w of r.worte) { const o = m.regel.zr[w]; if (!isObj(o)) continue;   // Zeitraum je Schlagwort (ab 0.49)
-        const q = {}; for (const k of ['ab', 'bis']) if (isNum(o[k])) q[k] = Math.round(+o[k]); (r.zr || (r.zr = {}))[w] = q; }
+        const q = {}; for (const k of ['ab', 'bis']) if (isNum(o[k])) q[k] = Math.round(+o[k]);
+        const kk = [...new Set((Array.isArray(o.k) ? o.k : []).map(v => str(v).trim()).filter(Boolean))]; if (kk.length) q.k = kk;   // Konten (ab 0.51)
+        (r.zr || (r.zr = {}))[w] = q; }
       if (r.worte.length || 'ab' in r || 'bis' in r) m.regel = r; else delete m.regel;
     } else delete m.regel;
     if (m.plan != null && !isObj(m.plan)) m.plan = null;
@@ -301,7 +303,10 @@ function normalizeData(d) {
   // Spendenzwecke (für alle Jahre): Name, Farbe, Schlagworte im Verwendungszweck, Konten (Spalte „Personenname“ = Gliederung), Maßnahmen
   const uniq = a => [...new Set((Array.isArray(a) ? a : []).map(w => str(w).trim()).filter(Boolean))];
   d.zwecke.forEach(z => { z.id = freshId(z.id); z.name = str(z.name).trim() || 'Zweck'; z.farbe = typeof z.farbe === 'string' && /^#[0-9a-f]{6}$/i.test(z.farbe) ? z.farbe : '#7F7F7F';
-    z.worte = uniq(z.worte); z.konten = uniq(z.konten); z.massnahmen = uniq(z.massnahmen).filter(id => d.massnahmen.some(m => m.id === id)); });   // Maßnahmen: alle ihre zugeordneten Spenden
+    z.worte = uniq(z.worte); z.konten = uniq(z.konten); z.massnahmen = uniq(z.massnahmen).filter(id => d.massnahmen.some(m => m.id === id));
+    const zr = {}; if (isObj(z.zr)) for (const w of z.worte) { const o = z.zr[w]; if (!isObj(o)) continue;   // Zeitraum und Konten je Schlagwort (ab 0.51)
+      const q = {}; for (const k of ['von', 'bis']) if (dateStr(o[k]) && dn(o[k]) != null) q[k] = o[k]; const kk = uniq(o.k); if (kk.length) q.k = kk; if (Object.keys(q).length) zr[w] = q; }
+    if (Object.keys(zr).length) z.zr = zr; else delete z.zr; });   // Maßnahmen: alle ihre zugeordneten Spenden
   // Spenden-Zuordnungen (ohne Namen/IBAN): Schlüssel → { m, d, b, r? } (r = von der Regel der Maßnahme, sonst von Hand); ausgeschlossen (nein);
   // neu = nach dem Einlesen neu bei einer Maßnahme (m) oder einem Zweck (z), noch nicht geprüft; bek = schon eingelesene Spenden je Jahr
   // (ab 0.18 ordnen Regeln selbst zu – die Vormerkungen zur Prüfung „vor“ entfallen)

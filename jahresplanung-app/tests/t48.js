@@ -1,6 +1,6 @@
 // 0.12.8 Auswertung: Suchausdrücke (* ? ~ + -) für Regeln und Suche; Hilfe erst nach Verweilen; Daueraufträge einblenden/ausblenden/nur;
 // (seit 0.18: Vorschau beim Tippen, Regel ordnet selbst zu, Filter unter „Offen“); „Stk.“ und „€“ in der Übersicht; jede Spalte (auch ROI) verstellbar
-const { chromium, ok, open, connect, finish } = require('./lib');
+const { chromium, ok, open, connect, finish, ruleIn } = require('./lib');
 const DIR = 'Spendeneingänge 2027/';
 const HEAD = 'Buchungsdatum;Valuta;Betrag €;BLZ / BIC;Kontonummer / IBAN;Kontoinhaber;Typ;Verwendungszweck;Buchungstext;Personenname';
 let n = 0;
@@ -48,18 +48,18 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   ok(names.jb === 'Fritz,Gina' && names.star3 === '', 'A: „JB“ bleibt ganzes Wort; „Hos*JB“ greift nicht über Wortgrenzen (' + names.jb + '|' + names.star3 + ')');
 
   // ---- B: Regel mit Platzhalter über die Oberfläche – Vorschau beim Tippen, dann ordnet die Regel selbst zu
-  await p.click('.sp-wordin'); await p.keyboard.type('*bericht'); await p.waitForTimeout(450);
+  await p.click(await ruleIn(p)); await p.keyboard.type('*bericht'); await p.waitForTimeout(450);
   const b0 = await p.evaluate(() => [...document.querySelectorAll('.spm-listbox.prev .spj-row.sel')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
   ok(b0 === 'Anna,Bernd,Carla,Emil', 'B: Live-Vorschau mit „*bericht“: ' + b0);
   await p.keyboard.press('Enter'); await p.waitForTimeout(250);
-  await p.click('.sp-wordin'); await p.keyboard.type('-Trauer'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
+  await p.click(await ruleIn(p)); await p.keyboard.type('-Trauer'); await p.keyboard.press('Enter'); await p.waitForTimeout(300);
   const b1 = await p.evaluate(() => [JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte), [...document.querySelectorAll('.spm-listbox .spj-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','),
     [...document.querySelectorAll('.spm-listbox .spj-row .sp-tag.rule')].map(t => t.textContent).join(',')]);
   ok(b1[0] === '["*bericht","-Trauer"]' && b1[1] === 'Anna,Bernd,Carla' && b1[2] === '*bericht,*bericht,*bericht', 'B: Regel „*bericht“ + „-Trauer“ ordnet drei zu (' + b1[1] + '), markiert mit „*bericht“');
 
   // ---- C: Hilfe erst nach Verweilen über dem Schlagwort-Feld, „ordnet zu:“ sofort
   await p.mouse.move(5, 5); await p.waitForTimeout(100);
-  const wi = await p.$('.sp-wordin'); await wi.scrollIntoViewIfNeeded(); const wb = await wi.boundingBox();
+  const wi = await p.$(await ruleIn(p)); await wi.scrollIntoViewIfNeeded(); const wb = await wi.boundingBox();
   await p.mouse.move(wb.x + 20, wb.y + wb.height / 2, { steps: 3 }); await p.waitForTimeout(800);
   const c0 = await p.evaluate(() => document.getElementById('tip').classList.contains('on'));
   await p.waitForTimeout(1600);
@@ -89,6 +89,7 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   ok(await p.evaluate(() => spDAMode() === 'ohne' && document.querySelector('.spm-filter .sp-da select').value === 'ohne'), 'D: alte Einstellung „Daueraufträge ausblenden“ wird übernommen');
   await p.evaluate(() => { UI.spHideDA = false; UI.spDA = 'alle'; SPUI.tab = 'zu'; renderNow(); }); await p.waitForTimeout(150);
 
+  await p.evaluate(() => { SPUI.ed = null; SPUI.typed = ''; renderNow(); }); await p.waitForTimeout(150);   // Regel-Fenster (0.51) zu
   // ---- E: Listen (ab 0.49 mit Umschaltleiste darüber) direkt unter der Regelzeile, Maßnahmen links oben bündig mit dem rechten Teil
   const e0 = await p.evaluate(() => { const r = q => document.querySelector(q).getBoundingClientRect(), sd = r('.spm .spj-side'), mn = r('.spm .spj-main'), ru = r('.spm .spj-rules'), lb = r('.spm .spm-lists');
     return [Math.round(sd.top - mn.top), Math.round(lb.top - ru.bottom), Math.round(lb.width - (mn.width))]; });
