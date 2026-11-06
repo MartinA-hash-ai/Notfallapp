@@ -85,8 +85,14 @@ function exAuswahlTabelle() {
   const kopie = tab.cloneNode(true), RK = exRaster(kopie);
   RK.forEach((z, i) => { const n = [...Array(z.bis - z.von + 1).keys()].filter(k => !sp.has(z.von + k)).length; if (!n) z.c.remove(); else if (n < (z.bis - z.von + 1)) z.c.colSpan = n; });
   kopie.querySelectorAll('tbody tr').forEach(tr => { if (exZeilenId(tr) && EXM.aus.has(exZeilenId(tr))) tr.remove(); else if (!exZeilenId(tr) && !tr.closest('thead')) tr.remove(); });
+  // Breite je Spalte wie auf dem Bildschirm: aus Zellen, die genau eine Spalte belegen (sonst anteilig)
+  const n = Math.max(0, ...R.map(z => z.bis)) + 1, W = Array(n).fill(0);
+  for (const z of R) if (z.von === z.bis) W[z.von] = Math.max(W[z.von], z.c.getBoundingClientRect().width);
+  for (const z of R) { const k = z.bis - z.von + 1, fehlt = [...Array(k).keys()].map(i => z.von + i).filter(i => !W[i]); if (fehlt.length) { const rest = z.c.getBoundingClientRect().width - [...Array(k).keys()].reduce((a, i) => a + W[z.von + i], 0); fehlt.forEach(i => { W[i] = Math.max(40, rest / fehlt.length); }); } }
   kopie.querySelectorAll('colgroup').forEach(x => x.remove());
-  kopie.removeAttribute('style'); kopie.querySelectorAll('[style*="width"]').forEach(x => x.style.width = '');
+  const bleibt = W.map((w, i) => sp.has(i) ? 0 : Math.round(w)).filter(Boolean);
+  kopie.insertBefore(h('colgroup', null, ...bleibt.map(w => h('col', { style: 'width:' + w + 'px' }))), kopie.firstChild);
+  kopie.removeAttribute('style'); kopie.style.width = bleibt.reduce((a, w) => a + w, 0) + 'px'; kopie.style.tableLayout = 'fixed';
   kopie.querySelectorAll('.fl-split, .fl-lupe, .fl-such, .fl-tg, .k-pen, .ex-z-aus, .peek, input, textarea, .fl-fis, .le-pen, .le-cal, .le-plus, .le-ue, .zu-det, tfoot').forEach(x => x.remove());
   kopie.querySelectorAll('.ex-sp-aus').forEach(x => x.classList.remove('ex-sp-aus'));
   kopie.querySelectorAll('[data-act]').forEach(x => x.removeAttribute('data-act'));
@@ -145,16 +151,33 @@ function exTabelleXlsx(kopie, name) {
 function exDruckSeite(titel, zahl, inhalt, quer) {
   const kopf = `<div class="ex-pk"><div><b>${esc(titel)}</b><span>Malteser · Diözese Paderborn · Fundraising</span></div><span>Stand ${fmtDate(today())} · ${esc(zahl)}</span></div>`;
   let d = document.getElementById('ex-druck'); if (d) d.remove();
-  d = h('div', { id: 'ex-druck', class: quer ? 'quer' : 'hoch', html: quer ? kopf + inhalt : inhalt }); document.body.append(d);
-  if (quer) { d.classList.add('ex-mess-an'); const t = d.querySelector('table'); if (t) { const w = t.scrollWidth, max = 1040; if (w > max) d.style.zoom = String(Math.max(.45, max / w)); } d.classList.remove('ex-mess-an'); }
+  d = h('div', { id: 'ex-druck', class: quer ? 'quer' : 'hoch', html: quer || /ex-seitenklon/.test(inhalt) ? kopf + inhalt : inhalt }); document.body.append(d);
+  if (quer) { d.classList.add('ex-mess-an'); const t = d.querySelector('table'); if (t) { const w = t.scrollWidth, max = 1030; d.style.zoom = String(Math.min(1, Math.max(.4, max / w))); } d.classList.remove('ex-mess-an'); }
+  else if (d.querySelector('.ex-seitenklon')) { d.classList.add('ex-detail'); d.style.zoom = String(1030 / 1320); }   // Seite in 1320 px Breite wie am Bildschirm, auf A4 quer verkleinert
   const alt = document.title; document.title = dateiName(titel + ' ' + today());
-  const pg = h('style', { id: 'ex-page' }, '@page { size: A4 ' + (quer ? 'landscape' : 'portrait') + '; margin: 12mm; }'); document.head.append(pg);
+  const pg = h('style', { id: 'ex-page' }, '@page { size: A4 ' + (quer || /ex-seitenklon/.test(inhalt) ? 'landscape' : 'portrait') + '; margin: 12mm; }'); document.head.append(pg);
   document.documentElement.classList.add('ex-drucken');
   const weg = () => { document.documentElement.classList.remove('ex-drucken'); document.title = alt; d.remove(); pg.remove(); removeEventListener('afterprint', weg); };
   addEventListener('afterprint', weg);
   setTimeout(() => { try { window.print(); } catch (e) { weg(); } }, 60);
 }
+// Seite eines Bedarfs bzw. Förderers als Abbild: Kopie der Seite, Knöpfe und leere Felder weg, Eingabefelder als Text
+function exSeiteKlon() {
+  const m = $('#app > main'); if (!m) return '';
+  const k = m.cloneNode(true), feld = [...m.querySelectorAll('input, textarea, select')], kf = [...k.querySelectorAll('input, textarea, select')];
+  kf.forEach((el, i) => { const o = feld[i], v = o ? (o.tagName === 'SELECT' ? (o.selectedOptions[0] && o.value ? o.selectedOptions[0].textContent : '') : o.value) : '';
+    if (!String(v).trim() || o.type === 'checkbox' || o.type === 'search') { el.remove(); return; }
+    const sp = h('span', { class: 'ex-wert ' + (el.className || ''), id: el.id || null }, v); const st = getComputedStyle(o); sp.style.fontSize = st.fontSize; sp.style.fontWeight = st.fontWeight; sp.style.lineHeight = st.lineHeight; el.replaceWith(sp); });   // Größe und Stärke wie im Feld
+  k.querySelectorAll('.sw-plus, .rm, .ff-mehr, .fk-neu, .fl-verkn, a.btn, .fl-x, .fl-ab-kr, .fl-tpb.neu, .fl-plus-t, .fl-oeffnen.fl-ico, .val.leer, .info, .sec-zu + .sec-plus, .fl-punkte, .fl-hinweis-neu, .fl-frist-neu, .fl-topf-neu, .k-pen, .k-plus, .k-pliste, .pen, .le-pen, .x, .fl-mini, .fl-ki-d, .ki-btn, .icon-btn, .fl-lupe, .fl-ab-alle, .fl-hz, .rund-btn, .fl-a-neu, .fn-griff, .ph, .peek, [data-act="more"], [data-act="k-neu"], [data-act="fl-k-neu"], .add, .plus').forEach(x => x.remove());
+  k.querySelectorAll('[data-act]').forEach(x => x.removeAttribute('data-act'));
+  k.classList.add('ex-seitenklon');
+  return k.outerHTML;
+}
 function exDrucken(was, L, umfang) {
+  if (L.length === 1 && (UI.view === 'detail' || UI.view === 'fdetail')) {
+    const x = L[0], titel = was === 'f' ? (x.name || 'Förderer') : (x.titel || 'Bedarf');
+    return exDruckSeite(titel, was === 'f' ? 'Fördererliste' : 'Bedarf', exSeiteKlon(), false);
+  }
   const titel = (was === 'f' ? 'Fördererliste' : 'Bedarfe') + ' – Detail';
   const kopf = `<div class="ex-pk"><div><b>${esc(titel)}</b><span>Malteser · Diözese Paderborn · Fundraising</span></div><span>Stand ${fmtDate(today())}</span></div>`;
   exDruckSeite(titel, '', L.map((x, i) => `<section class="ex-seite${i ? ' neu' : ''}">${kopf}${was === 'f' ? exFDetail(x) : exBDetail(x)}</section>`).join(''), false);

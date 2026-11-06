@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.141:** PDF der Liste mit Bildschirm-Spaltenbreiten auf A4 quer verkleinert; PDF einer Detailseite als Abbild der Seite.
+
 **Seit 0.140:** Exportieren über einen Auswahlmodus direkt in der Liste: Zeilen und Spalten per Klick ab- und anwählen, dann PDF (wie angezeigt, A4 quer), Excel oder Termine; auf einer Detailseite gleich das Format.
 
 **Seit 0.139:** Knopf „Exportieren“ oben: Bedarfe oder Förderer als PDF (kompakt, ausführlich mit wählbaren Spalten, Detail), Excel oder Termine für Outlook mit Erinnerung; „Excel ▾“ in der Fördererliste entfällt.

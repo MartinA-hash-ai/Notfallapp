@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.141.0",
+    "date": "2026-11-23T10:00",
+    "items": [
+      "PDF der Liste: Spalten so breit wie auf dem Bildschirm, das Ganze auf A4 quer verkleinert – nichts wird mehr zusammengequetscht (z. B. „Delta“, „Eigenmittel“), die ganze Seitenbreite wird genutzt",
+      "PDF der Seite eines Bedarfs bzw. Förderers: ein Abbild der Seite wie am Bildschirm (Kästen, Förderplan mit Kreisdiagramm, Netz, Freigabe …), A4 quer; Knöpfe, Stifte und leere Felder fallen weg"
+    ]
+  },
+  {
     "version": "0.140.0",
     "date": "2026-11-22T10:00",
     "items": [

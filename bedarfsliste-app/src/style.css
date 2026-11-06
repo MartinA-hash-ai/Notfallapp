@@ -2490,7 +2490,7 @@ html.ex-modus .seitenleiste { z-index: 10; }
 .ex-mess { position: absolute; left: -99999px; top: 0; width: 1600px; }
 #ex-druck.ex-mess-an { display: block !important; position: absolute; left: -99999px; top: 0; width: 1040px; }
 @media print {
-  #ex-druck .ex-kopie { width: 100% !important; min-width: 0 !important; font-size: 9pt; table-layout: auto !important; }
+  #ex-druck .ex-kopie { min-width: 0 !important; }
   #ex-druck .ex-kopie th, #ex-druck .ex-kopie td { position: static !important; background: none !important; }
   #ex-druck .ex-kopie tr { break-inside: avoid; }
   #ex-druck .ex-kopie thead { display: table-header-group; }
@@ -2504,3 +2504,33 @@ html.modal-offen .ex-leiste { display: none; }
 .modal.ex-modal { width: min(720px, 96vw); }
 @media (max-width: 1000px) { .ex-leiste { flex-wrap: wrap; white-space: normal; width: auto; } }
 @media print { #ex-druck .ex-kopie td *:not(svg):not(svg *) { background-color: transparent !important; box-shadow: none !important; } }
+
+/* 0.141: Export – Liste mit den Spaltenbreiten vom Bildschirm; Detailseite als Abbild der Seite */
+@media print {
+  #ex-druck.ex-detail { width: 1320px; }
+  #ex-druck .ex-seitenklon { max-width: none !important; width: 1320px !important; padding: 0 !important; margin: 0 !important; }
+  #ex-druck .ex-seitenklon .st-btn { border: 0 !important; } #ex-druck .ex-seitenklon .st-btn span[aria-hidden] { display: none; }
+  #ex-druck .ex-seitenklon * { animation: none !important; transition: none !important; }
+  #ex-druck .ex-seitenklon .sticky, #ex-druck .ex-seitenklon [class*='sticky'] { position: static !important; }
+  #ex-druck .ex-seitenklon button { border: 0 !important; background: none !important; padding: 0 !important; color: inherit !important; font: inherit !important; cursor: default; }
+  #ex-druck .ex-seitenklon .ex-wert { white-space: pre-wrap; }
+  #ex-druck.ex-detail .ex-pk { width: 1320px; }
+}
+/* Druck der Seite eines Bedarfs bzw. Förderers: das Druckblatt ist schmal – die breite Anordnung wie am Bildschirm erzwingen */
+@media print {
+  #ex-druck .ex-seitenklon .d-grid { grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "head act" "main side"; }
+  #ex-druck .ex-seitenklon .grid.two { grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); }
+  #ex-druck .ex-seitenklon .eck { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  #ex-druck .ex-seitenklon .fl-kopf, #ex-druck .ex-seitenklon .fl-raster { grid-template-columns: minmax(0, 1fr) 380px; }
+  #ex-druck .ex-seitenklon .fl-ps { grid-template-columns: minmax(0, 1fr) minmax(0, 1.15fr); }
+  #ex-druck .ex-seitenklon .card.fl-fn { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0; }
+  #ex-druck .ex-seitenklon .card.fl-fn .fl-foerd { padding-right: 28px; }
+  #ex-druck .ex-seitenklon .fl-notizen, #ex-druck .ex-seitenklon .fl-steck { border-left: 1px solid var(--line3); padding-left: 28px; border-top: 0; padding-top: 0; }
+  #ex-druck .ex-seitenklon .fl-rechts { order: 0; }
+  #ex-druck .ex-seitenklon .fl-kz { text-align: right; }
+}
+@media print {
+  #ex-druck .ex-seitenklon .g12 .s2 { grid-column: span 2; } #ex-druck .ex-seitenklon .g12 .s3 { grid-column: span 3; } #ex-druck .ex-seitenklon .g12 .s4 { grid-column: span 4; }
+  #ex-druck .ex-seitenklon .g12 .s5 { grid-column: span 5; } #ex-druck .ex-seitenklon .g12 .s6 { grid-column: span 6; } #ex-druck .ex-seitenklon .g12 .s8 { grid-column: span 8; }
+  #ex-druck .ex-seitenklon .eck-r { border-left: 1px solid var(--line3); padding-left: 28px; border-top: 0; margin-top: 0; padding-top: 0; }
+}
