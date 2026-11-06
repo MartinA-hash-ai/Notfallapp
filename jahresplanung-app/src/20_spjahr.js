@@ -278,13 +278,19 @@ function spjSide(J) {
   const clear = () => $$('.spj-zi.dropa, .spj-zi.dropb').forEach(e => e.classList.remove('dropa', 'dropb'));
   const item = (id, name, color, cls) => {
     const o = st.get(id) || { n: 0, sum: 0, neu: 0 }, real = !cls, on = SPJ.z === id;
+    const take = () => SPDRAG && /^z-/.test(SPDRAG.from) && id !== SPJ_OFFEN && !(on && SPDRAG.from === 'z-zweck');   // Spenden auf einen Zweck bzw. „zweckungebunden“ ziehen
     return h('div', { class: 'spj-zi' + (on ? ' on' : '') + (cls ? ' ' + cls : ''), dataset: { z: id }, role: 'button', tabindex: '0', 'aria-pressed': String(on),
       style: color ? { '--zc': color } : null, draggable: real && D.zwecke.length > 1 ? 'true' : null,
       onclick: () => { if (SPJ.z === id) return; SPJ.z = id; SPJ.more = 0; SPJ.onlyNew = false; renderNow(); },          // Vorschau und Listenansicht („Bei Zweck“) bleiben
       onkeydown: e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.currentTarget.click(); } },
       ondragstart: real ? e => { SPJ.drag = id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', name); e.currentTarget.classList.add('drag'); } : null,
-      ondragover: real ? e => { if (!SPJ.drag || SPJ.drag === id) return; e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); clear(); e.currentTarget.classList.add(e.clientY > r.top + r.height / 2 ? 'dropa' : 'dropb'); } : null,
-      ondrop: real ? e => { if (!SPJ.drag || SPJ.drag === id) return; e.preventDefault(); const after = e.currentTarget.classList.contains('dropa'), from = SPJ.drag; SPJ.drag = null; clear(); spjReorder(from, id, after); } : null,
+      ondragover: e => { if (SPDRAG) { if (!take()) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; if (!e.currentTarget.classList.contains('dropok')) { spDropClear(); e.currentTarget.classList.add('dropok'); } return; }   // gezogene Spenden (0.49)
+        if (!real || !SPJ.drag || SPJ.drag === id) return; e.preventDefault(); const r = e.currentTarget.getBoundingClientRect(); clear(); e.currentTarget.classList.add(e.clientY > r.top + r.height / 2 ? 'dropa' : 'dropb'); },
+      ondragleave: e => { if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.classList.remove('dropok'); },
+      ondrop: e => { if (SPDRAG) { if (!take()) return; e.preventDefault(); e.stopPropagation(); const ks = SPDRAG.keys; SPDRAG = null; spDropClear(); document.body.classList.remove('sp-dragging');
+          const n = ks.length === 1 ? 'Eine Spende' : ks.length.toLocaleString('de-DE') + ' Spenden'; SPJ.sel = new Set(); SPJ.anchor = null;
+          spjSetZweck(ks, id, id === SPJ_FREI ? n + ' auf „zweckungebunden“ gesetzt' : n + ' dem Zweck „' + spjZn(id) + '“ zugeordnet'); return; }
+        if (!real || !SPJ.drag || SPJ.drag === id) return; e.preventDefault(); const after = e.currentTarget.classList.contains('dropa'), from = SPJ.drag; SPJ.drag = null; clear(); spjReorder(from, id, after); },
       ondragend: real ? e => { SPJ.drag = null; clear(); e.currentTarget.classList.remove('drag'); } : null },
       h('span', { class: 'spj-zn' }, cls === 'offen' ? '⚠ ' : h('span', { class: 'dot' + (color ? '' : ' ring'), style: color ? { background: color } : null }), name),
       h('span', { class: 'spj-zs' }, o.neu ? h('span', { class: 'spj-neu', tip: o.neu + (o.neu === 1 ? ' Spende ist' : ' Spenden sind') + ' nach dem Einlesen neu dazugekommen – bitte einmal prüfen' }, o.neu + ' neu') : null,
@@ -454,104 +460,122 @@ function spjSugBar(J, zSel) {
     S.ign ? h('button', { class: 'spj-sugign' + (ignView ? ' on' : ''), 'aria-pressed': String(ignView), tip: ignView ? 'zurück zu den Vorschlägen' : 'ausgeblendete Vorschläge ansehen und wieder einblenden',
       onclick: () => { SPJ.ign = !ignView; renderNow(); } }, 'Ausgeblendet (' + S.ign + ')') : null);
 }
-// Liste: standardmäßig alle zweckungebundenen Spenden (beim Tippen bzw. bei einem gewählten Vorschlag nur die passenden) – umschaltbar auf die Spenden,
-// die schon beim gewählten Zweck sind; „zu klären“ über die Seitenleiste. Die Filter der Auswertung oben gelten hier nicht. Feste Höhe.
 // Klick markiert eine Zeile (Umschalt-Klick einen Bereich, Häkchen oben alle); markierte Spenden verschiebt die Leiste, die dann unten erscheint.
+// Liste rechts – ab 0.49 beim gewählten Zweck auf Wunsch zweispaltig: links seine Spenden, rechts „zweckungebunden“ (Umschalter Zugeordnet | beide | Zweckungebunden);
+// Spenden lassen sich zwischen den Spalten und links auf einen Zweck ziehen
+const spjLView = () => ['eins', 'beide', 'frei'].includes(UI.spjView) ? UI.spjView : 'beide';
 function spjList(J) {
   const typed = SPJ.typed.trim(), zn = spjZn, sumOf = l => l.reduce((t, e) => t + e.rec.b, 0), all = !typed && SPJ.z == null;
   const zSel = SPJ.z != null && SPJ.z !== SPJ_FREI && SPJ.z !== SPJ_OFFEN && D.zwecke.some(z => z.id === SPJ.z) ? SPJ.z : null, zObj = zSel ? D.zwecke.find(z => z.id === zSel) : null, base = J.list;
-  const frei = base.filter(e => e.z === SPJ_FREI);
-  let list, title, sub, lv = null;
+  const frei = base.filter(e => e.z === SPJ_FREI), byDate = (a, b) => b.rec.d - a.rec.d || b.rec.b - a.rec.b;
+  const view = zSel ? spjLView() : null;   // Umschalter bleibt auch beim Tippen stehen (die Seite springt nicht)
+  // Spalten: { kind, list, title, sub, lv }
+  const panes = [];
   if (typed) {
-    const f = spjMatcher({ worte: [typed], konten: [] }), hit = base.filter(e => f(e.rec));
-    list = hit.filter(e => e.z === SPJ_FREI);                               // nur die zweckungebundenen – auch von Hand markierte wandern beim Übernehmen mit
-    title = 'Vorschau „' + typed + '“';
-    sub = spCount(list.length) + ' zweckungebunden (' + eur(sumOf(list)) + ')' + (hit.length > list.length ? ' · ' + (hit.length - list.length) + ' weitere schon erfasst' : '');
-  } else {
-    if (SPJ.z === SPJ_OFFEN) { list = base.filter(e => e.z === SPJ_OFFEN); title = 'Zu klären'; }
-    else if (zSel) { list = base.filter(e => e.z === zSel); lv = 'zweck'; title = 'Zugeordnet'; if (!list.some(e => e.neu)) SPJ.onlyNew = false; else if (SPJ.onlyNew) list = list.filter(e => e.neu); }
-    else if (SPJ.z == null) { list = base; title = 'Alle Spenden ' + J.y; }          // kein Zweck gewählt: alle Spenden des Jahres
-    else { list = frei; title = 'Zweckungebunden'; }
-    sub = spCount(list.length) + ' · ' + eur(sumOf(list));
-  }
-  list = list.slice().sort((a, b) => b.rec.d - a.rec.d || b.rec.b - a.rec.b);
-  const lim = SPJ_MAX + SPJ.more;
-  // die Markierung gilt für die gezeigte Liste – wechselt sie (Umschalter, Vorschau, „zu klären“), beginnt sie neu; bei gleicher Liste (anderer Zweck) bleibt sie
-  const ctx = UI.year + '|' + (typed ? 'v:' + typed : lv === 'zweck' ? 'z:' + zSel + (SPJ.onlyNew ? ':neu' : '') : title === 'Zweckungebunden' ? 'frei' : SPJ.z == null ? 'alle' : 'offen');
+    const f = spjMatcher({ worte: [typed], konten: [] }), hit = base.filter(e => f(e.rec)), list = hit.filter(e => e.z === SPJ_FREI);   // nur die zweckungebundenen – auch von Hand markierte wandern beim Übernehmen mit
+    panes.push({ kind: 'prev', list, title: 'Vorschau „' + typed + '“',
+      sub: spCount(list.length) + ' zweckungebunden (' + eur(sumOf(list)) + ')' + (hit.length > list.length ? ' · ' + (hit.length - list.length) + ' weitere schon erfasst' : '') });
+  } else if (SPJ.z === SPJ_OFFEN) panes.push({ kind: 'offen', list: base.filter(e => e.z === SPJ_OFFEN), title: 'Zu klären' });
+  else if (zSel) {
+    let list = base.filter(e => e.z === zSel); if (!list.some(e => e.neu)) SPJ.onlyNew = false; else if (SPJ.onlyNew) list = list.filter(e => e.neu);
+    if (view !== 'frei') panes.push({ kind: 'zweck', list, title: view === 'beide' ? zObj.name : 'Zugeordnet', lv: 'zweck' });
+    if (view !== 'eins') panes.push({ kind: 'frei', list: frei, title: 'Zweckungebunden' });
+  } else if (SPJ.z == null) panes.push({ kind: 'alle', list: base, title: 'Alle Spenden ' + J.y });          // kein Zweck gewählt: alle Spenden des Jahres
+  else panes.push({ kind: 'frei', list: frei, title: 'Zweckungebunden' });
+  for (const P of panes) { P.list = P.list.slice().sort(byDate); if (P.sub == null) P.sub = P.kind === 'zweck' && view === 'beide' ? '' : spCount(P.list.length) + ' · ' + eur(sumOf(P.list)); }
+  const two = panes.length > 1, lim = SPJ_MAX + SPJ.more;
+  // die Markierung gilt für die gezeigten Listen – wechseln sie (Umschalter, Vorschau, „zu klären“), beginnt sie neu; bei gleicher Liste (anderer Zweck) bleibt sie
+  const ctx = UI.year + '|' + (typed ? 'v:' + typed : zSel ? 'z:' + zSel + ':' + view + (SPJ.onlyNew ? ':neu' : '') : panes[0].kind);
   if (SPJ.selCtx !== ctx) { SPJ.sel = new Set(); SPJ.anchor = null; SPJ.selCtx = ctx; SPJ.moveTo = null; }
-  const inList = new Set(list.map(e => e.rec.k));
+  const inList = new Set(panes.flatMap(P => P.list.map(e => e.rec.k)));
   for (const k of SPJ.sel) if (!inList.has(k)) SPJ.sel.delete(k);
-  const moveTo = v => { const ks = list.filter(e => SPJ.sel.has(e.rec.k)).map(e => e.rec.k); if (!ks.length) return;
+  const moveKeys = (ks, v) => { if (!ks.length) return;
     const n = ks.length === 1 ? 'Eine Spende' : ks.length.toLocaleString('de-DE') + ' Spenden';
     SPJ.sel = new Set(); SPJ.anchor = null;
     spjSetZweck(ks, v, v === SPJ_FREI ? n + ' auf „zweckungebunden“ gesetzt' : v ? n + ' dem Zweck „' + zn(v) + '“ zugeordnet' : n + ' wieder automatisch (nicht festgelegt)'); };
-  const allBox = () => { const n = list.filter(e => SPJ.sel.has(e.rec.k)).length, full = n > 0 && n === list.length;
-    const cb = h('input', { type: 'checkbox', class: 'spj-all', checked: full, disabled: !list.length, 'aria-label': full ? 'Auswahl aufheben' : 'alle auswählen',
-      tip: full ? 'Auswahl aufheben' : 'alle ' + list.length.toLocaleString('de-DE') + ' auswählen',
-      onchange: ev => { SPJ.sel = full ? new Set() : new Set(list.map(e => e.rec.k)); SPJ.anchor = null; selUpd(ev.currentTarget); } });
-    cb.indeterminate = n > 0 && !full;
-    return cb; };
-  // Leiste unten (über der Liste, nur wenn etwas markiert ist): Anzahl, Summe, Ziel – vorbelegt mit dem gewählten Zweck
-  const act = () => { const sel = list.filter(e => SPJ.sel.has(e.rec.k));
-    const ok = v => v === SPJ_FREI || v === '*' || D.zwecke.some(z => z.id === v);
-    const def = ok(SPJ.moveTo) && SPJ.moveFor === SPJ.z ? SPJ.moveTo : zSel && lv !== 'zweck' ? zSel : '';   // selbst gewähltes Ziel gilt, bis links ein anderer Zweck gewählt wird
-    let go = null;
-    const s = h('select', { class: 'spj-zsel spj-move', 'aria-label': 'Ziel', onchange: e => { SPJ.moveTo = e.target.value; SPJ.moveFor = SPJ.z; go.disabled = !e.target.value; } },
-      h('option', { value: '', selected: !def, disabled: true }, 'Ziel wählen …'),
-      D.zwecke.map(z => h('option', { value: z.id, selected: def === z.id }, z.name)),
-      h('option', { value: SPJ_FREI, selected: def === SPJ_FREI }, 'zweckungebunden'),
-      h('option', { value: '*', selected: def === '*' }, 'nicht festgelegt (automatisch)'));
-    go = h('button', { class: 'primary spj-go', disabled: !def, onclick: () => { if (s.value) moveTo(s.value === '*' ? '' : s.value); } }, 'Verschieben');
-    return h('div', { class: 'spj-act' + (sel.length ? ' on' : '') },
-      h('b', { class: 'spj-selinfo' }, spCount(sel.length) + ' markiert · ' + eur(sumOf(sel))), h('span', { class: 'muted' }, 'verschieben nach'), s, go,
-      h('button', { class: 'link small spj-selx', onclick: ev => { SPJ.sel = new Set(); SPJ.anchor = null; selUpd(ev.currentTarget); } }, 'Auswahl aufheben')); };
-  // nach dem Markieren nur Zeilen, Häkchen oben und Leiste anpassen statt alles neu zu zeichnen
-  const selUpd = el => { const box = el.closest('.spj-listbox'); if (!box) return;
-    for (const r of box.querySelectorAll('.spj-row')) { const on = SPJ.sel.has(r.dataset.k); r.classList.toggle('sel', on); r.setAttribute('aria-selected', String(on)); }
-    box.querySelector('.spj-all').replaceWith(allBox()); box.querySelector('.spj-act').replaceWith(act()); };
-  const pick = (ev, i) => { if (ev.target.closest('button, select, input, a')) return;
-    const k = list[i].rec.k;
-    if (ev.shiftKey && SPJ.anchor != null) { const a = list.findIndex(e => e.rec.k === SPJ.anchor);
-      if (a >= 0) { for (let j = Math.min(a, i); j <= Math.max(a, i); j++) SPJ.sel.add(list[j].rec.k); selUpd(ev.currentTarget); return; } }
-    if (SPJ.sel.has(k)) { SPJ.sel.delete(k); if (SPJ.anchor === k) SPJ.anchor = null; }      // Bereich (Umschalt) beginnt bei der zuletzt markierten Zeile
-    else { SPJ.sel.add(k); SPJ.anchor = k; }
-    selUpd(ev.currentTarget); };
   // hervorheben, worauf die Regel greift: in der Vorschau das getippte Schlagwort, sonst die Schlagworte bzw. das Konto des Zwecks (nicht bei „von Hand“)
   const ruleZ = e => typed || e.hand ? [] : (e.z === SPJ_OFFEN ? e.hits.map(t => t.id) : [e.z]).map(id => D.zwecke.find(q => q.id === id)).filter(Boolean);
   const hlW = e => typed ? [typed] : ruleZ(e).flatMap(z => z.worte), hlK = e => spHlOn() && ruleZ(e).some(z => z.konten.includes(e.rec.konto));
-  const row = (e, i) => { const r = e.rec, on = SPJ.sel.has(r.k);
-    return h('div', { class: 'spj-row' + (e.z === SPJ_OFFEN ? ' offen' : '') + (e.hand ? ' hand' : '') + (on ? ' sel' : '') + (SPJ.flash && SPJ.flash.keys.has(r.k) ? ' jump' : ''), dataset: { k: r.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(r),
-      onmousedown: ev => { if (ev.shiftKey) ev.preventDefault(); }, onclick: ev => pick(ev, i) },
-      h('span', { class: 'spj-cb', 'aria-hidden': 'true' }),
-      h('span', { class: 'sp-d' }, fmtD(r.d)), h('span', { class: 'sp-b' }, eur(r.b)), h('span', { class: 'spj-g' }, hlK(e) ? h('mark', { class: 'sp-hl' }, spGlied(r.konto)) : spGlied(r.konto)),
-      UI.spDet ? h('span', { class: 'sp-n' }, r.name || '') : null, h('span', { class: 'sp-z' }, r.zweck ? spHl(r.zweck, hlW(e)) : '–'),
-      h('span', { class: 'spj-tags' }, e.da ? h('span', { class: 'sp-tag da' }, 'Dauerauftrag') : null,
-        all && e.z !== SPJ_OFFEN ? (e.z !== SPJ_FREI ? h('span', { class: 'sp-tag rule', style: { borderColor: (D.zwecke.find(z => z.id === e.z) || {}).farbe },
-          tip: 'Zweck „' + zn(e.z) + '“ – ' + (e.hand ? 'von Hand' : 'per Regel (' + ((e.hits.find(t => t.id === e.z) || {}).w || '') + ')') }, zn(e.z)) : null) :
-        e.hits.map(t => h('span', { class: 'sp-tag rule', style: { borderColor: (D.zwecke.find(z => z.id === t.id) || {}).farbe }, tip: 'passt zu „' + zn(t.id) + '“ (' + t.w + ')' },
-        e.z === SPJ_OFFEN && !e.hand ? h('button', { class: 'spj-pick', tip: 'dem Zweck „' + zn(t.id) + '“ zuordnen', onclick: ev => { ev.stopPropagation(); spjSetZweck([r.k], t.id, 'Spende dem Zweck „' + zn(t.id) + '“ zugeordnet'); } }, '→ ' + zn(t.id)) :
-        SPJ.z === t.id ? t.w : zn(t.id)))),         // im gewählten Zweck: warum die Spende passt (Schlagwort oder Konto)
-      // beim Zweck: „von Hand“ zugeordnet oder per Regel; in „Zweckungebunden“ ohne Kennzeichen
-      h('span', { class: 'spj-how' }, e.hand && e.z !== SPJ_FREI ? h('span', { class: 'sp-tag hand', tip: 'von Hand zugeordnet' }, 'von Hand') : e.neu ? h('span', { class: 'sp-tag neu', tip: 'nach dem Einlesen neu beim Zweck – noch nicht geprüft' }, 'neu') : null));
+  const pane = P => {
+    const list = P.list, selL = () => list.filter(e => SPJ.sel.has(e.rec.k));
+    const allBox = () => { const n = selL().length, full = n > 0 && n === list.length;
+      const cb = h('input', { type: 'checkbox', class: 'spj-all', checked: full, disabled: !list.length, 'aria-label': full ? 'Auswahl aufheben' : 'alle auswählen',
+        tip: full ? 'Auswahl aufheben' : 'alle ' + list.length.toLocaleString('de-DE') + ' auswählen',
+        onchange: ev => { for (const e of list) { if (full) SPJ.sel.delete(e.rec.k); else SPJ.sel.add(e.rec.k); } SPJ.anchor = null; selUpd(ev.currentTarget); } });
+      cb.indeterminate = n > 0 && !full;
+      return cb; };
+    // Leiste unten (über der Liste, nur wenn etwas markiert ist): Anzahl, Summe, Ziel – vorbelegt mit dem gewählten Zweck bzw. (in seiner Spalte) mit „zweckungebunden“
+    const act = () => { const sel = selL();
+      const ok = v => v === SPJ_FREI || v === '*' || D.zwecke.some(z => z.id === v);
+      const def = ok(SPJ.moveTo) && SPJ.moveFor === SPJ.z ? SPJ.moveTo : zSel && P.kind !== 'zweck' ? zSel : two && P.kind === 'zweck' ? SPJ_FREI : '';   // selbst gewähltes Ziel gilt, bis links ein anderer Zweck gewählt wird
+      let go = null;
+      const s = h('select', { class: 'spj-zsel spj-move', 'aria-label': 'Ziel', onchange: e => { SPJ.moveTo = e.target.value; SPJ.moveFor = SPJ.z; go.disabled = !e.target.value; } },
+        h('option', { value: '', selected: !def, disabled: true }, 'Ziel wählen …'),
+        D.zwecke.map(z => h('option', { value: z.id, selected: def === z.id }, z.name)),
+        h('option', { value: SPJ_FREI, selected: def === SPJ_FREI }, 'zweckungebunden'),
+        h('option', { value: '*', selected: def === '*' }, 'nicht festgelegt (automatisch)'));
+      go = h('button', { class: 'primary spj-go', disabled: !def, onclick: () => { if (s.value) moveKeys(selL().map(e => e.rec.k), s.value === '*' ? '' : s.value); } }, 'Verschieben');
+      return h('div', { class: 'spj-act' + (sel.length ? ' on' : '') },
+        h('b', { class: 'spj-selinfo' }, spCount(sel.length) + ' markiert · ' + eur(sumOf(sel))), h('span', { class: 'muted' }, 'verschieben nach'), s, go,
+        h('button', { class: 'link small spj-selx', onclick: ev => { for (const e of list) SPJ.sel.delete(e.rec.k); SPJ.anchor = null; selUpd(ev.currentTarget); } }, 'Auswahl aufheben')); };
+    // nach dem Markieren nur Zeilen, Häkchen oben und Leiste anpassen statt alles neu zu zeichnen
+    const selUpd = el => { const box = el.closest('.spj-listbox'); if (!box) return;
+      for (const r of box.querySelectorAll('.spj-row')) { const on = SPJ.sel.has(r.dataset.k); r.classList.toggle('sel', on); r.setAttribute('aria-selected', String(on)); }
+      box.querySelector('.spj-all').replaceWith(allBox()); box.querySelector('.spj-act').replaceWith(act()); };
+    const pick = (ev, i) => { if (ev.target.closest('button, select, input, a')) return;
+      const k = list[i].rec.k;
+      if (ev.shiftKey && SPJ.anchor != null) { const a = list.findIndex(e => e.rec.k === SPJ.anchor);
+        if (a >= 0) { for (let j = Math.min(a, i); j <= Math.max(a, i); j++) SPJ.sel.add(list[j].rec.k); selUpd(ev.currentTarget); return; } }
+      if (SPJ.sel.has(k)) { SPJ.sel.delete(k); if (SPJ.anchor === k) SPJ.anchor = null; }      // Bereich (Umschalt) beginnt bei der zuletzt markierten Zeile
+      else { SPJ.sel.add(k); SPJ.anchor = k; }
+      selUpd(ev.currentTarget); };
+    const dragKeys = k => SPJ.sel.has(k) ? selL().map(e => e.rec.k) : [k];
+    const row = (e, i) => { const r = e.rec, on = SPJ.sel.has(r.k);
+      return h('div', Object.assign({ class: 'spj-row' + (e.z === SPJ_OFFEN ? ' offen' : '') + (e.hand ? ' hand' : '') + (on ? ' sel' : '') + (SPJ.flash && SPJ.flash.keys.has(r.k) ? ' jump' : ''), dataset: { k: r.k }, role: 'option', 'aria-selected': String(on), tip: () => spTip(r),
+        onmousedown: ev => { if (ev.shiftKey) ev.preventDefault(); }, onclick: ev => pick(ev, i) }, P.kind === 'prev' ? {} : spDragRow(() => dragKeys(r.k), 'z-' + P.kind)),
+        h('span', { class: 'spj-cb', 'aria-hidden': 'true' }),
+        h('span', { class: 'sp-d' }, fmtD(r.d)), h('span', { class: 'sp-b' }, eur(r.b)), h('span', { class: 'spj-g' }, hlK(e) ? h('mark', { class: 'sp-hl' }, spGlied(r.konto)) : spGlied(r.konto)),
+        UI.spDet ? h('span', { class: 'sp-n' }, r.name || '') : null, h('span', { class: 'sp-z' }, r.zweck ? spHl(r.zweck, hlW(e)) : '–'),
+        h('span', { class: 'spj-tags' }, e.da ? h('span', { class: 'sp-tag da' }, 'Dauerauftrag') : null,
+          all && e.z !== SPJ_OFFEN ? (e.z !== SPJ_FREI ? h('span', { class: 'sp-tag rule', style: { borderColor: (D.zwecke.find(z => z.id === e.z) || {}).farbe },
+            tip: 'Zweck „' + zn(e.z) + '“ – ' + (e.hand ? 'von Hand' : 'per Regel (' + ((e.hits.find(t => t.id === e.z) || {}).w || '') + ')') }, zn(e.z)) : null) :
+          e.hits.map(t => h('span', { class: 'sp-tag rule', style: { borderColor: (D.zwecke.find(z => z.id === t.id) || {}).farbe }, tip: 'passt zu „' + zn(t.id) + '“ (' + t.w + ')' },
+          e.z === SPJ_OFFEN && !e.hand ? h('button', { class: 'spj-pick', tip: 'dem Zweck „' + zn(t.id) + '“ zuordnen', onclick: ev => { ev.stopPropagation(); spjSetZweck([r.k], t.id, 'Spende dem Zweck „' + zn(t.id) + '“ zugeordnet'); } }, '→ ' + zn(t.id)) :
+          SPJ.z === t.id ? t.w : zn(t.id)))),         // im gewählten Zweck: warum die Spende passt (Schlagwort oder Konto)
+        // beim Zweck: „von Hand“ zugeordnet oder per Regel; in „Zweckungebunden“ ohne Kennzeichen
+        h('span', { class: 'spj-how' }, e.hand && e.z !== SPJ_FREI ? h('span', { class: 'sp-tag hand', tip: 'von Hand zugeordnet' }, 'von Hand') : e.neu ? h('span', { class: 'sp-tag neu', tip: 'nach dem Einlesen neu beim Zweck – noch nicht geprüft' }, 'neu') : null));
+    };
+    // Ablegen: auf den Zweck = zuordnen, auf „Zweckungebunden“ = ohne Zweck
+    const drop = two && P.kind === 'zweck' ? spDropZone(from => from === 'z-frei', ks => moveKeys(ks, zSel)) :
+      two && P.kind === 'frei' ? spDropZone(from => from === 'z-zweck', ks => moveKeys(ks, SPJ_FREI)) : {};
+    return h('div', Object.assign({ class: 'spj-listbox' + (typed ? ' prev' : ''), dataset: { pane: P.kind } }, drop),
+      h('div', { class: 'spj-lh' }, allBox(),
+        two && P.kind === 'zweck' ? h('span', { class: 'dot', style: { background: zObj.farbe } }) : null,
+        h('b', null, P.title),
+        h('span', { class: 'spj-sub muted small' }, P.sub),
+        P.lv === 'zweck' && base.some(e => e.z === zSel && e.neu) ? h('button', { class: 'spj-onlynew' + (SPJ.onlyNew ? ' on' : ''), 'aria-pressed': String(!!SPJ.onlyNew), onclick: () => { SPJ.onlyNew = !SPJ.onlyNew; SPJ.more = 0; renderNow(); } },
+          'nur neue (' + base.filter(e => e.z === zSel && e.neu).length + ')') : null,
+        typed ? [zObj ? h('button', { class: 'spj-to spj-prev-add', tip: 'Schlagwort „' + typed + '“ zum Zweck „' + zObj.name + '“ hinzufügen', onclick: () => spjSugAdd(zObj, typed) }, '+ zu „' + zObj.name + '“') : null,
+          h('button', { class: 'spj-to ghost spj-prev-new', tip: 'neuen Zweck mit dem Schlagwort „' + typed + '“ anlegen', onclick: () => spjSugNew(typed) }, '+ als neuer Zweck'),
+          h('button', { class: 'link small spj-prevx', onclick: () => { SPJ.typed = ''; renderNow(); } }, 'Vorschau schließen')] : null,
+        !typed && P.kind === 'frei' && list.some(e => e.hand) ? (() => { const ks = list.filter(e => e.hand).map(e => e.rec.k);
+          return h('button', { class: 'link small spj-unhand', tip: ks.length + (ks.length === 1 ? ' Spende wurde' : ' Spenden wurden') + ' von Hand auf „zweckungebunden“ gesetzt – die Regeln der Zwecke lassen sie deshalb aus. Klick: die Regeln dürfen sie wieder einem Zweck zuordnen (Strg+Z macht es rückgängig).',
+            onclick: () => spjSetZweck(ks, '', ks.length + ' Spenden wieder den Regeln überlassen') }, '↺ ' + (two ? ks.length + ' von Hand gesetzte' : ks.length + ' von Hand gesetzte wieder den Regeln überlassen')); })() : null,
+        two ? null : h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen')),
+      h('div', { class: 'spj-listwrap' },
+        h('div', { class: 'spj-list', 'data-keep-scroll': 'spj-list-' + P.kind, role: 'listbox', 'aria-multiselectable': 'true' }, list.slice(0, lim).map(row),
+          list.length > lim ? h('button', { class: 'link spj-more', onclick: () => { SPJ.more += 300; renderNow(); } }, '… ' + (list.length - lim).toLocaleString('de-DE') + ' weitere anzeigen') : null,
+          !list.length ? h('div', { class: 'sp-empty muted small' }, typed ? 'Keine weiteren Spenden ohne Zweck mit diesem Schlagwort.' : two && P.kind === 'zweck' ? 'Noch keine Spenden – von rechts hierher ziehen oder ein Schlagwort eintragen.' : 'Keine Spenden.') : null),
+        act()));
   };
-  return h('div', { class: 'spj-listbox' + (typed ? ' prev' : '') },
-    h('div', { class: 'spj-lh' }, allBox(),
-      h('b', null, title),
-      h('span', { class: 'spj-sub muted small' }, sub),
-      lv === 'zweck' && base.some(e => e.z === zSel && e.neu) ? h('button', { class: 'spj-onlynew' + (SPJ.onlyNew ? ' on' : ''), 'aria-pressed': String(!!SPJ.onlyNew), onclick: () => { SPJ.onlyNew = !SPJ.onlyNew; SPJ.more = 0; renderNow(); } },
-        'nur neue (' + base.filter(e => e.z === zSel && e.neu).length + ')') : null,
-      typed ? [zObj ? h('button', { class: 'spj-to spj-prev-add', tip: 'Schlagwort „' + typed + '“ zum Zweck „' + zObj.name + '“ hinzufügen', onclick: () => spjSugAdd(zObj, typed) }, '+ zu „' + zObj.name + '“') : null,
-        h('button', { class: 'spj-to ghost spj-prev-new', tip: 'neuen Zweck mit dem Schlagwort „' + typed + '“ anlegen', onclick: () => spjSugNew(typed) }, '+ als neuer Zweck'),
-        h('button', { class: 'link small spj-prevx', onclick: () => { SPJ.typed = ''; renderNow(); } }, 'Vorschau schließen')] : null,
-      !typed && title === 'Zweckungebunden' && list.some(e => e.hand) ? (() => { const ks = list.filter(e => e.hand).map(e => e.rec.k);
-        return h('button', { class: 'link small spj-unhand', tip: ks.length + (ks.length === 1 ? ' Spende wurde' : ' Spenden wurden') + ' von Hand auf „zweckungebunden“ gesetzt – die Regeln der Zwecke lassen sie deshalb aus. Klick: die Regeln dürfen sie wieder einem Zweck zuordnen (Strg+Z macht es rückgängig).',
-          onclick: () => spjSetZweck(ks, '', ks.length + ' Spenden wieder den Regeln überlassen') }, '↺ ' + ks.length + ' von Hand gesetzte wieder den Regeln überlassen'); })() : null,
-      h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen')),
-    h('div', { class: 'spj-listwrap' },
-      h('div', { class: 'spj-list', 'data-keep-scroll': 'spj-list', role: 'listbox', 'aria-multiselectable': 'true' }, list.slice(0, lim).map(row),
-        list.length > lim ? h('button', { class: 'link spj-more', onclick: () => { SPJ.more += 300; renderNow(); } }, '… ' + (list.length - lim).toLocaleString('de-DE') + ' weitere anzeigen') : null,
-        !list.length ? h('div', { class: 'sp-empty muted small' }, typed ? 'Keine weiteren Spenden ohne Zweck mit diesem Schlagwort.' : 'Keine Spenden.') : null),
-      act()));
+  const seg = (k, label, tip) => h('button', { class: 'seg-btn' + (view === k ? ' on' : ''), dataset: { v: k }, tip, onclick: () => { UI.spjView = k; SPJ.more = 0; saveUI(); renderNow(); } }, label);
+  return h('div', { class: 'spj-lists' + (two ? ' two' : '') },
+    view ? h('div', { class: 'spm-vbar spj-vbar' },
+      h('span', { class: 'segs spj-vv' }, seg('eins', 'Zugeordnet'), seg('beide', 'beide', 'die Spenden des Zwecks und die zweckungebundenen nebeneinander – Spenden lassen sich hinüberziehen'), seg('frei', 'Zweckungebunden')),
+      two ? h('span', { class: 'muted small spm-dnd' }, 'Spenden lassen sich zwischen den Spalten und links auf einen Zweck ziehen') : null,
+      h('span', { class: 'sp' }),
+      two ? h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen') : null) : null,
+    h('div', { class: 'spm-panes spj-panes' }, panes.map(pane)));
 }
 
 /* ---------- Klick in die Jahresgrafik: die Spenden dieses Tages (bzw. dieser Woche) unten in der Liste heraussuchen. Die Seite springt nicht –
@@ -579,7 +603,7 @@ let _spjFlashObs = null;
 function spjFlashRun(main) {
   if (_spjFlashObs) { _spjFlashObs.disconnect(); _spjFlashObs = null; }
   const fl = SPJ.flash; if (!fl) return;
-  const list = $('[data-sec="sp-zu"] .spj-list', main), first = list && list.querySelector('.spj-row[data-k="' + CSS.escape(fl.first) + '"]');
+  const sel = '.spj-row[data-k="' + CSS.escape(fl.first) + '"]', list = $$('[data-sec="sp-zu"] .spj-list', main).find(l => l.querySelector(sel)), first = list && list.querySelector(sel);   // bei zwei Spalten: die mit der Spende
   if (!list || !first) { SPJ.flash = null; return; }
   if (!fl.scrolled) { list.scrollTop += first.getBoundingClientRect().top - list.getBoundingClientRect().top - 6; fl.scrolled = true; }   // nur die Liste rollt, nicht die Seite
   const go = () => {

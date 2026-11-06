@@ -21,8 +21,8 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.click('.spm .spj-tog'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.spm .spj-rules')), 'A: nochmal Klick – wieder zu');
   // ---- B: Liste „Zugeordnet“ – ohne Zahl, ohne „N Spenden · Summe“; alle Treffer gelb, auch ohne gespeicherte Regel
-  const b0 = await p.evaluate(() => [[...document.querySelectorAll('.spm-listbox .spj-lv .seg-btn')].map(e => e.textContent).join('|'), document.querySelector('.spm-listbox .spj-lh').textContent, document.querySelectorAll('.spm-listbox mark.sp-hl').length]);
-  ok(b0[0] === 'Zugeordnet|Offen' && !/Spenden ·|€/.test(b0[1]) && b0[2] === 6, 'B: Reiter „Zugeordnet|Offen“ ohne Zahl, keine Anzahl/Summe daneben, 6 Treffer gelb ' + JSON.stringify(b0));
+  const b0 = await p.evaluate(() => [[...document.querySelectorAll('.spm-lists .spj-lv .seg-btn')].map(e => e.textContent).join('|'), document.querySelector('.spm-listbox .spj-lh').textContent, document.querySelectorAll('.spm-listbox mark.sp-hl').length]);
+  ok(b0[0] === 'Zugeordnet|beide|Offen' && !/Spenden ·|€/.test(b0[1]) && b0[2] === 6, 'B: Reiter „Zugeordnet|beide|Offen“ ohne Zahl, keine Anzahl/Summe daneben, 6 Treffer gelb ' + JSON.stringify(b0));
   await p.evaluate(() => { for (const z of Object.values(D.spenden.zu)) if (z.m === 'sm') delete z.r; renderNow(); }); await p.waitForTimeout(150);
   ok(await p.evaluate(() => document.querySelectorAll('.spm-listbox mark.sp-hl').length === 6), 'B: auch ältere Zuordnungen ohne gespeicherte Regel sind gelb markiert');
   // ---- C: „Vergleichen“ – nur da, wenn eine andere Maßnahme Spenden hat

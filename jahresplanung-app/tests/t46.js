@@ -66,9 +66,11 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   ok(c[0] && c[1] === null && !c[2], 'C: Maßnahme ohne PAL – ihre Regel ordnet nichts zu (sonst unbegrenzt über alle Jahre)');
   await p.evaluate(() => undo());
   await p.evaluate(() => { UI.view = 'spenden'; renderNow(); }); await p.waitForTimeout(150);
-  await p.fill('[data-fk="sp-rbis"]', '2027-09-01'); await p.press('[data-fk="sp-rbis"]', 'Tab'); await p.waitForTimeout(150);
-  await p.fill('[data-fk="sp-rab"]', '2027-10-01'); await p.press('[data-fk="sp-rab"]', 'Tab'); await p.waitForTimeout(200);
-  const dd = await p.evaluate(() => { const r = D.massnahmen.find(m => m.id === 'm5').regel; return [r.ab, r.bis]; });
+  await p.click('.sp-wzr'); await p.waitForTimeout(150);   // 0.49: Zeitraum je Schlagwort
+  await p.fill('[data-fk^="sp-rbis:"]', '2027-09-01'); await p.press('[data-fk^="sp-rbis:"]', 'Enter'); await p.waitForTimeout(150);
+  await p.fill('[data-fk^="sp-rab:"]', '2027-10-01'); await p.press('[data-fk^="sp-rab:"]', 'Enter'); await p.waitForTimeout(200);
+  await p.mouse.click(5, 300);
+  const dd = await p.evaluate(() => { const r = D.massnahmen.find(m => m.id === 'm5').regel, o = r.zr[r.worte[0]]; return [o.ab, o.bis]; });
   ok(dd[0] === 14 && dd[1] === 14, 'D: Beginn nach dem Ende gesetzt → Ende rückt mit (beide +14 Tage ab PAL)');
 
   // ---- E: deutsche Zahleneingabe

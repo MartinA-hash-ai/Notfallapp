@@ -13,7 +13,7 @@ const UI = {
   showVac: true, monthLists: true, tlPxd: 0, tlPlans: false, agendaWeeks: 4, agendaFrom: null, planSel: null,
   planPxd: 0, planColl: {}, theme: 'light', warnOpen: false, allYears: false, sidebar: true, userName: '',
 };
-const UI_KEYS = ['colW', 'calHide', 'spjRulesOpen', 'spjSugOpen', 'spmRulesOpen', 'spCmpWith', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV', 'jvMv', 'jvBindY', 'jvSegFull', 'jvPiFull', 'jvVp', 'tagHide', 'phMini', 'respHide'];
+const UI_KEYS = ['colW', 'calHide', 'spjRulesOpen', 'spjSugOpen', 'spmRulesOpen', 'spmView', 'spjView', 'spCmpWith', 'planCompact', 'view', 'show', 'showVac', 'monthLists', 'tlPlans', 'agendaWeeks', 'planPxd', 'userName', 'secOpen', 'planColl', 'theme', 'pdfOpts', 'icsOpts', 'splash', 'verbund', 'copiesSeen', 'checkSeen', 'startView', 'spMid', 'spDet', 'spHideDA', 'spFilt', 'spColW', 'spCmp', 'spCmpOff', 'spDA', 'spMidF', 'settTab', 'spHer', 'spjSug', 'spHl', 'jvOff', 'jvZeit', 'jvMail', 'jvHide', 'jvKHide', 'jvZHide', 'jvKonten', 'jvSx', 'jvQsx', 'jvSegY', 'jvDaZu', 'jvSxIn', 'jvOrder', 'jvGrp', 'jvDaReg', 'jvMiss', 'jvOrdV', 'jvMv', 'jvBindY', 'jvSegFull', 'jvPiFull', 'jvVp', 'tagHide', 'phMini', 'respHide'];
 function loadUI() {
   try {
     const s = JSON.parse(localStorage.getItem('jp-ui') || '{}');
@@ -279,6 +279,8 @@ function normalizeData(d) {
       const r = { worte: [...new Set((Array.isArray(m.regel.worte) ? m.regel.worte : []).map(w => str(w).trim()).filter(Boolean))] };
       for (const k of ['ab', 'bis']) if (isNum(m.regel[k])) r[k] = Math.round(+m.regel[k]);
       if (m.regel.ohneDA === true) r.ohneDA = true;                // Daueraufträge nicht vorschlagen
+      if (isObj(m.regel.zr)) for (const w of r.worte) { const o = m.regel.zr[w]; if (!isObj(o)) continue;   // Zeitraum je Schlagwort (ab 0.49)
+        const q = {}; for (const k of ['ab', 'bis']) if (isNum(o[k])) q[k] = Math.round(+o[k]); (r.zr || (r.zr = {}))[w] = q; }
       if (r.worte.length || 'ab' in r || 'bis' in r) m.regel = r; else delete m.regel;
     } else delete m.regel;
     if (m.plan != null && !isObj(m.plan)) m.plan = null;

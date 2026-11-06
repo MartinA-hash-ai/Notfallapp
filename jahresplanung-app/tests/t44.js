@@ -42,15 +42,15 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   const names = () => p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(e => (SP.byKey.get(e.dataset.k) || {}).name).sort().join(', '));
   const rowK = name => p.evaluate(n => { const e = [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].find(e => (SP.byKey.get(e.dataset.k) || {}).name === n); return e && e.dataset.k; }, name);
   const clickRow = async (name, mod) => { const k = await rowK(name); await p.click('[data-sec="sp-zu"] .spj-row[data-k="' + k + '"] .sp-z', mod ? { modifiers: [mod] } : {}); await p.waitForTimeout(80); };
-  const tab = async t => { await p.click('.spm-listbox .seg-btn[data-tab="' + t + '"]'); await p.waitForTimeout(200); };
+  const tab = async t => { await p.click('.spm-lists .seg-btn[data-tab="' + t + '"]'); await p.waitForTimeout(200); };
   const typeWord = async w => { await p.fill('[data-sec="sp-zu"] .sp-wordin', ''); await p.click('[data-sec="sp-zu"] .sp-wordin'); await p.keyboard.type(w); await p.waitForTimeout(450); };
 
   // ---- A2: Kasten der Maßnahme – Name groß in ihrer Farbe; darunter links die Maßnahmen, rechts Regel und Liste
   const a2 = await p.evaluate(() => { const n = document.querySelector('[data-sec="sp-m"] .sec-h .sp-mname'), c = document.createElement('i'); c.style.color = inkC(C.byId.get('m5').color); document.body.append(c);
     const want = getComputedStyle(c).color; c.remove(); return [n && n.textContent, n && getComputedStyle(n).color === want, !document.querySelector('[data-sec="sp-m"] select, [data-sec="sp-m"] input'), !!document.querySelector('[data-fk="sp-kos:m5"]'),
-      document.querySelector('.spm .spj-zi.on .spj-zn')?.textContent, document.querySelector('.spm .spj-zh .spj-zt')?.textContent, !!document.querySelector('.spm-rules .sp-wordin'), [...document.querySelectorAll('.spm-listbox .seg-btn')].map(b => b.textContent).join('|')]; });
+      document.querySelector('.spm .spj-zi.on .spj-zn')?.textContent, document.querySelector('.spm .spj-zh .spj-zt')?.textContent, !!document.querySelector('.spm-rules .sp-wordin'), [...document.querySelectorAll('.spm-lists .seg-btn')].map(b => b.textContent).join('|')]; });
   ok(a2[0] === 'Jahresbericht' && a2[1] && a2[2] && a2[3], 'A2: „Jahresbericht“ groß in Maßnahmenfarbe; Auflage und Kosten in der Übersicht');
-  ok(a2[4] === 'Jahresbericht' && a2[5] === 'Jahresbericht' && a2[6] && a2[7] === 'Zugeordnet|Offen', 'A2: links die Maßnahmen (Jahresbericht gewählt), rechts Kopf, Regelzeile mit „+ Schlagwort“, Reiter „' + a2[7] + '“');
+  ok(a2[4] === 'Jahresbericht' && a2[5] === 'Jahresbericht' && a2[6] && a2[7] === 'Zugeordnet|beide|Offen', 'A2: links die Maßnahmen (Jahresbericht gewählt), rechts Kopf, Regelzeile mit „+ Schlagwort“, Reiter „' + a2[7] + '“');
   await tab('offen');
   const a3 = await p.evaluate(() => [document.querySelector('[data-fk="sp-fvon"]')?.value, document.querySelector('[data-fk="sp-fbis"]')?.value, [...document.querySelectorAll('.spm-filter .sp-da select option')].map(o => o.textContent).join('|'), !!document.querySelector('.spm-filter .sp-q'), !document.querySelector('.sp-min')]);
   ok(a3[0] === '2027-08-27' && a3[1] === '2028-02-25' && a3[2] === 'einblenden|ausblenden|nur Daueraufträge' && a3[3] && a3[4], 'A3: „Offen“ mit Filter – Zeitraum ab PAL (' + a3[0] + ' – ' + a3[1] + '), Daueraufträge, Suche; kein Betragsfilter');

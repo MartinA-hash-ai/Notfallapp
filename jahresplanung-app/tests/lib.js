@@ -8,8 +8,8 @@ let failures = 0;
 const ok = (c, m) => { if (!c) failures++; console.log((c ? 'OK   ' : 'FAIL ') + m); };
 
 // clock: Uhr der Seite steuerbar – die Zeit läuft normal, mit skip(p, ms) springt sie vor (statt echt auf Speichern/Überwachung zu warten); ein Datum legt „heute“ fest
-async function open(b, { file = T.HTML, fakefs = true, width = 1600, clock = false, ui = { spmRulesOpen: true } } = {}) {
-  // ui: Startwerte der Ansicht (sonst leer) – die Maßnahmen-Regeln sind in den Tests offen, damit man sie bedienen kann
+async function open(b, { file = T.HTML, fakefs = true, width = 1600, clock = false, ui = { spmRulesOpen: true, spmView: 'zu', spjView: 'eins' } } = {}) {
+  // ui: Startwerte der Ansicht (sonst leer) – in den Tests sind die Maßnahmen-Regeln offen und die Listen einspaltig (wie vor 0.49)
   const ctx = await b.newContext({ viewport: { width, height: 1000 }, locale: 'de-DE', timezoneId: 'Europe/Berlin', acceptDownloads: true });
   if (clock) await ctx.clock.install(clock instanceof Date ? { time: clock } : undefined);   // clock: true – oder ein Datum, das dann „heute“ ist
   if (fakefs) await ctx.addInitScript({ path: T.FAKEFS });

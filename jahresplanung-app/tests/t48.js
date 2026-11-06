@@ -73,7 +73,7 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   await p.mouse.move(5, 5, { steps: 2 });
 
   // ---- D: Suche in „Offen“ versteht dieselben Ausdrücke; Daueraufträge: einblenden / ausblenden / nur
-  await p.click('.spm-listbox .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
+  await p.click('.spm-lists .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
   const offen = () => p.evaluate(() => [...document.querySelectorAll('.spm-listbox .spj-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
   const dAll = await offen();
   await p.fill('.spm-filter .sp-q', '~Weihnachtspende'); await p.waitForTimeout(450);
@@ -89,8 +89,8 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   ok(await p.evaluate(() => spDAMode() === 'ohne' && document.querySelector('.spm-filter .sp-da select').value === 'ohne'), 'D: alte Einstellung „Daueraufträge ausblenden“ wird übernommen');
   await p.evaluate(() => { UI.spHideDA = false; UI.spDA = 'alle'; SPUI.tab = 'zu'; renderNow(); }); await p.waitForTimeout(150);
 
-  // ---- E: Liste direkt unter der Regelzeile, Maßnahmen links oben bündig mit dem rechten Teil
-  const e0 = await p.evaluate(() => { const r = q => document.querySelector(q).getBoundingClientRect(), sd = r('.spm .spj-side'), mn = r('.spm .spj-main'), ru = r('.spm .spj-rules'), lb = r('.spm .spm-listbox');
+  // ---- E: Listen (ab 0.49 mit Umschaltleiste darüber) direkt unter der Regelzeile, Maßnahmen links oben bündig mit dem rechten Teil
+  const e0 = await p.evaluate(() => { const r = q => document.querySelector(q).getBoundingClientRect(), sd = r('.spm .spj-side'), mn = r('.spm .spj-main'), ru = r('.spm .spj-rules'), lb = r('.spm .spm-lists');
     return [Math.round(sd.top - mn.top), Math.round(lb.top - ru.bottom), Math.round(lb.width - (mn.width))]; });
   ok(Math.abs(e0[0]) <= 2 && e0[1] >= 0 && e0[1] <= 16 && Math.abs(e0[2]) <= 2, 'E: Seitenleiste und rechter Teil oben bündig, Liste direkt unter der Regel, volle Breite (' + e0.join(' / ') + ')');
 

@@ -47,7 +47,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   const c1 = await p.evaluate(() => [[...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(e => SP.byKey.get(e.dataset.k).name).sort().join(', '), document.querySelector('.spm-listbox .spj-lh').textContent, !(D.massnahmen.find(m => m.id === 'm5').regel), document.activeElement && document.activeElement.className]);
   ok(c1[0] === 'Anna Probe, Emil Klein, Erika Test, Max Muster' && /^Vorschau „JB“/.test(c1[1]) && c1[2] && c1[3] === 'sp-wordin', 'C: beim Tippen zeigt die Liste sofort die passenden (' + c1[0] + '), Regel noch unverändert, Eingabe behält den Fokus');
   await p.keyboard.press('Enter'); await p.waitForTimeout(300);
-  const c2 = await p.evaluate(() => [JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte), Object.values(D.spenden.zu).filter(z => z.m === 'm5').length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, document.querySelector('.spm-listbox .seg-btn.on')?.textContent]);
+  const c2 = await p.evaluate(() => [JSON.stringify(D.massnahmen.find(m => m.id === 'm5').regel.worte), Object.values(D.spenden.zu).filter(z => z.m === 'm5').length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, document.querySelector('.spm-lists .seg-btn.on')?.textContent]);
   ok(c2[0] === '["JB"]' && c2[1] === 4 && c2[2] === 4 && c2[3] === 'Zugeordnet', 'C: Enter übernimmt „JB“ – die Regel ordnet die 4 zu (0.48: ohne Zahl am Reiter)');
 
   // ---- D: Abbrechen lässt die Regel unverändert; Esc ebenso

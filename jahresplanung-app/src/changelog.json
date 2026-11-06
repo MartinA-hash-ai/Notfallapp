@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.48.0",
+    "version": "0.49.0",
     "date": "",
+    "items": [
+      "Maßnahmen-Regeln: jedes Schlagwort hat seinen eigenen Zeitraum – das Datum am Schlagwort anklicken, Beginn und Ende ändern (Tage ab PAL, wandern mit). Ein neues Schlagwort übernimmt den Zeitraum des vorigen; „für alle Schlagworte übernehmen“ setzt einen gemeinsamen. Bestehende Regeln behalten ihren Zeitraum",
+      "Spenden zuordnen (Maßnahme): „Zugeordnet“ links und „Offen“ rechts nebeneinander – Umschalter „Zugeordnet | beide | Offen“ (wird gemerkt). Spenden lassen sich hinüberziehen (nach links = zuordnen, nach rechts = herausnehmen) oder links auf eine andere Maßnahme; markierte wandern zusammen",
+      "Spendenzwecke zuordnen: beim gewählten Zweck links seine Spenden, rechts „Zweckungebunden“ – Umschalter „Zugeordnet | beide | Zweckungebunden“; Ziehen zwischen den Spalten und links auf einen Zweck bzw. „zweckungebunden“",
+      "Alles mit Strg+Z rückgängig"
+    ]
+  },
+  {
+    "version": "0.48.0",
+    "date": "2026-11-06T15:30",
     "items": [
       "Auswertung: „Rücklauf im Vergleich“ unten im Kasten entfällt – stattdessen oben rechts der Knopf „Vergleichen“: andere Maßnahmen ankreuzen (mehrere möglich, Klick daneben schließt), ihr Rücklauf ab PAL erscheint als dünne Linie in „Zeitspanne der Eingänge“ (wird gemerkt)",
       "Spenden zuordnen (Maßnahme): Regeln anfangs zu – oben der Knopf „Regeln“ (wird gemerkt); Reiter „Zugeordnet“ ohne Zahl, die Angabe „N Spenden · Summe“ daneben entfällt",
