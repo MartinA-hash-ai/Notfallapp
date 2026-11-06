@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.134.0",
+    "date": "2026-11-17T10:00",
+    "items": [
+      "Zahnrad oben rechts entschlackt: nur noch Darstellung (Sonne = hell, Mond = dunkel), „Programm-Update einspielen …“ und „Einstellungen …“",
+      "Neues Fenster „Einstellungen“ mit Gruppen: Personen (Personenliste, Hauptansprechpersonen), E-Mail und Adressen (E-Mail-Vorlagen, Adressen der Gliederungen), Bedienung (Tastaturbefehle), Daten einlesen (UPL, Kontenliste, ggf. Förder-Kartei), Datensicherung; unten „Über die Bedarfsliste“. Nach einem Unterfenster geht es zurück in die Einstellungen",
+      "Entfernt: „Kontakte für die Personenliste …“ (einmaliges Einlesen, auch die Frage beim Start), „UPL-Vorlage für Copilot/Cowork“ und „Förderplan-Vorlage (leer)“ aus dem Menü"
+    ]
+  },
+  {
     "version": "0.133.0",
     "date": "2026-11-16T10:00",
     "items": [

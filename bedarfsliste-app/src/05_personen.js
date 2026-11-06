@@ -54,7 +54,6 @@ async function personenScan(force) {
     const fs = [];
     for await (const [n, e] of ST.htmlDir.entries()) if (e.kind === 'file' && PERS_RE.test(n) && !n.startsWith('~$')) fs.push(await e.getFile());
     fs.sort((a, b) => a.lastModified - b.lastModified);                  // die neueste zuletzt: ihre Angaben gelten
-    if (!fs.length) setTimeout(personenFrage, 0);                          // noch keine Kontakte-Excel: einmal fragen
     const stamp = fs.map(f => f.name + '@' + f.lastModified).join('|');
     if (!force && stamp === PR.stamp && !PR.err) return false;
     const L = []; let err = null;
@@ -227,7 +226,7 @@ async function personenSuche(b) {
         h('span', { class: 'ps-n' }, p.n, schon ? h('span', { class: 'muted small' }, ' · schon zuständig') : null),
         h('span', { class: 'ps-i small muted' }, [p.rolle, p.gl, p.fach && 'Fachreferat ' + p.fach].filter(Boolean).join(' · ')),
         h('span', { class: 'ps-k small muted' }, [p.mail, p.tel || p.mobil].filter(Boolean).join(' · '))); })
-      : [h('p', { class: 'muted small' }, PR.list.length ? 'Niemand gefunden.' : 'Die Personenliste ist noch leer – über „Personenliste“ oder Zahnrad → „Kontakte für die Personenliste …“ füllen.')]));
+      : [h('p', { class: 'muted small' }, PR.list.length ? 'Niemand gefunden.' : 'Die Personenliste ist noch leer – über Zahnrad → Einstellungen → „Personenliste“ füllen.')]));
     zahl.textContent = q.length ? S.length + (S.length === 60 ? '+' : '') + ' gefunden' : PR.list.length + ' Personen';
   };
   const such = h('input', { type: 'search', class: 'ps-such', placeholder: 'Name, Position, Gliederung, Fachreferat, E-Mail …', oninput: e => { q = norm(e.target.value).split(/\s+/).filter(Boolean); zeig(); } });

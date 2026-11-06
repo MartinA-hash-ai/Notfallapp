@@ -2323,3 +2323,29 @@ table.sl-kst tbody tr.sl-gr-meist > th { color: var(--ink2); }
 table.k-tab tbody td.k-treffer, table.k-tab tbody tr:hover > td.k-treffer { background: var(--okbg, #e8f5e9); box-shadow: inset 0 0 0 1px var(--okline, #a5d6a7); }
 .k-zus { display: inline-block; margin-left: 6px; font-size: 11px; color: var(--muted); border: 1px solid var(--line2); border-radius: 4px; padding: 0 4px; vertical-align: 1px; }
 @media (max-width: 1200px) { .k-modal:not(.sl-modal) .k-iban { font-size: 12px; letter-spacing: 0; } .k-modal:not(.sl-modal) table.k-tab thead th.k-gl, .k-modal:not(.sl-modal) table.k-tab tbody th.k-gl { width: 118px; } }
+
+/* 0.134: Zahnrad schlank (Sonne/Mond), Fenster „Einstellungen“ */
+.mmenu-s { min-width: 250px; }
+.mmenu-s > button { font-size: 13.5px; }
+.th-seg { display: inline-flex; border: 1px solid var(--line2); border-radius: 8px; overflow: hidden; }
+.th-btn { display: inline-flex; align-items: center; justify-content: center; width: 34px; height: 28px; border: 0; border-radius: 0; background: transparent; color: var(--muted); padding: 0; }
+.th-btn + .th-btn { border-left: 1px solid var(--line2); }
+.th-btn:hover { background: var(--hover); color: var(--ink); }
+.th-btn.on { background: var(--ink2); color: var(--card); }
+.modal.einst-modal { width: min(620px, 96vw); }
+.einst-modal footer:empty { display: none; }
+.einst { display: grid; gap: 18px; padding-bottom: 4px; }
+.einst-g h3 { margin: 0 0 6px; font-size: 11px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; color: var(--faint); }
+.einst-l { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
+.einst-e { display: grid; grid-template-columns: 34px minmax(0, 1fr) 16px; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border: 0; border-radius: 0; background: transparent; text-align: left; color: var(--ink); font: inherit; cursor: pointer; }
+.einst-e + .einst-e { border-top: 1px solid var(--line3); }
+.einst-e:hover, .einst-e:focus-visible { background: var(--hover); outline: none; }
+.einst-ic { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 8px; background: var(--chipbg); color: var(--ink2); }
+.einst-t { display: grid; gap: 1px; min-width: 0; }
+.einst-t b { font-weight: 600; font-size: 14px; }
+.einst-t span { font-size: 12.5px; color: var(--muted); }
+.einst-pf { color: var(--faint); font-size: 20px; line-height: 1; }
+.einst-fuss { display: flex; justify-content: center; }
+.einst-ueber { display: inline-flex; align-items: center; gap: 6px; border: 0; background: none; color: var(--muted); font-size: 12.5px; padding: 4px 8px; border-radius: 6px; cursor: pointer; }
+.einst-ueber:hover { color: var(--ink); background: var(--hover); }
+.einst-e { white-space: normal; } .einst-t b, .einst-t span { overflow-wrap: anywhere; }

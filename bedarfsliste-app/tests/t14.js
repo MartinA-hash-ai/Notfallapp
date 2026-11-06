@@ -24,7 +24,7 @@ const { chromium, ok, open, finish } = require('./lib');
   // 1. Tastaturbefehle: J statt ↓ (zusätzlich), Strg+K für die Suche – im Fenster belegt
   let r = await p.evaluate(() => [tasteText(new KeyboardEvent('keydown', { key: 'f', ctrlKey: true })), tasteText(new KeyboardEvent('keydown', { key: 'Enter', shiftKey: true })), tasteText(new KeyboardEvent('keydown', { key: ' ' })), tasteText(new KeyboardEvent('keydown', { key: 'Control', ctrlKey: true }))]);
   ok(r.join('|') === 'Strg+F|Umschalt+Enter|Leertaste|', 'Tastendruck als Text: ' + r.join('|'));
-  await p.click('button[data-act="menu"]'); await p.click('#mmenu button[data-act="tasten"]');
+  await p.click('button[data-act="menu"]'); await p.click('#mmenu button[data-act="einst"]'); await p.click('.einst-modal .einst-e[data-k="tasten"]');
   r = await p.$$eval('.modal table.tasten tr:not(.kz-g)', L => L.length);
   ok(r === 15, 'Fenster „Tastaturbefehle“: 15 Funktionen mit je zwei Feldern: ' + r);
   const zeile = t => `.modal table.tasten tr:has(td:text-is("${t}"))`;
@@ -37,7 +37,7 @@ const { chromium, ok, open, finish } = require('./lib');
   const rot = await p.evaluate(() => [...document.querySelectorAll('.modal table.tasten tr.doppelt')].length);
   ok(r === 0 && rot === 2, 'doppelt belegt (J zweimal in der Liste): beide Zeilen rot: ' + r + '/' + rot);
   await p.click(zeile('vorheriger Bedarf bzw. Förderer') + ' td:nth-child(3) button.x');
-  await p.click('.modal footer button.primary');
+  await p.click('.modal footer button.primary'); await p.waitForSelector('.einst-modal'); await p.keyboard.press('Escape'); await p.waitForTimeout(150);   // zurück in den Einstellungen – schließen
   r = await p.evaluate(() => JSON.parse(localStorage.getItem('bl-tasten')));
   ok(JSON.stringify(r) === '{"l-runter":["ArrowDown","J"],"l-suche":["Strg+K",""]}', 'gespeichert (nur Abweichungen): ' + JSON.stringify(r));
   await p.focus('#list-body tr[data-id="k0"]'); await K.press('j'); await K.press('ArrowDown');

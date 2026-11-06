@@ -417,9 +417,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await q.click('button[data-act="menu"]'); await q.click('#mmenu button[data-act="theme"][data-v="dark"]');
   r = await q.evaluate(() => [document.documentElement.scrollWidth, innerWidth, getComputedStyle(document.body).backgroundColor, localStorage.getItem('bl-theme')]);
   ok(r[0] <= r[1] && r[2] === 'rgb(20, 21, 22)' && r[3] === 'dark', 'schmal und dunkel (Einstellung): Bedarfsseite passt (' + r[0] + '), dunkler Hintergrund');
-  await q.click('#mmenu button[data-act="theme"][data-v="system"]');
-  ok(await q.evaluate(() => !document.documentElement.dataset.blTheme && getComputedStyle(document.body).backgroundColor === 'rgb(20, 21, 22)'), '„wie Windows“ folgt dem System (hier dunkel)');
-  await q.click('#mmenu button[data-act="theme"][data-v="dark"]'); await q.keyboard.press('Escape');
+  ok(await q.evaluate(() => [...document.querySelectorAll('#mmenu .th-btn')].map(b => b.dataset.v + (b.classList.contains('on') ? '*' : '')).join()) === 'light,dark*', '0.134: Darstellung mit Sonne und Mond, Mond an');
+  await q.keyboard.press('Escape');
   await q.screenshot({ path: 'vorschau_handy_dunkel.png', fullPage: true });
   // mit Animationen: Strg+Klick lässt den Bedarf von rechts hereingleiten, „‹ Alle Bedarfe“ wieder hinaus
   const m = await open(b, { file, fakefs: false, motion: true });

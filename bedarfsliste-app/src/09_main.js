@@ -273,36 +273,20 @@ function addUl(refocus) {
 }
 // Übersicht der Tastaturbefehle („i“ oben rechts in der Liste, Zahnrad → „Tastaturbefehle …“)
 function kuerzelInfo() { closeMenus(); modal('Tastaturbefehle', h('div', null, kuerzelTabelle()), [['Tasten anpassen …', 'anp', 'link'], ['Schließen', false, 'primary']]).then(v => { if (v === 'anp') tastenDialog(); }); }
+// Zahnrad oben rechts (ab 0.134 schlank): Darstellung hell/dunkel, Programm-Update, Einstellungen – alles andere steht im Fenster „Einstellungen“
 function mainMenu(btn) {
   closeMenus();
-  const item = (act, label, v, cls) => h('button', { role: 'menuitem', 'data-act': act, 'data-v': v || '', class: cls || null }, label), kopf = t => h('div', { class: 'menu-kopf' }, t);
-  const th = themeGet();
-  const m = h('div', { class: 'menu', id: 'mmenu', role: 'menu' },
-    h('div', { class: 'menu-row' }, h('span', null, 'Darstellung'), ...[['light', 'hell'], ['dark', 'dunkel'], ['system', 'wie Windows']].map(([v, l]) =>
-      h('button', { class: 'mini-btn' + (th === v ? ' on' : ''), 'data-act': 'theme', 'data-v': v }, l))),
-    DEMO ? null : h('hr'), DEMO ? null : item('update', 'Programm-Update einspielen …', '', 'dick'),
-    h('hr'), kopf('Excel einlesen'),
-    DEMO ? null : item('upl', 'UPL (Investitionsabfrage) …'),
-    DEMO ? null : item('pers-import', 'Kontakte für die Personenliste …'),
-    DEMO ? null : item('konten-ein', 'Kontenliste einlesen (Excel) …'),
-    DEMO || flAktiv() ? null : item('kartei', 'Förder-Kartei' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : '') + ' – wählen oder verknüpfen …'),
-    h('hr'), kopf('Vorlagen herunterladen'),
-    item('upl-vorlage', 'UPL-Vorlage für Copilot/Cowork'),
-    item('vorlage-leer', 'Förderplan-Vorlage (leer)'),
-    DEMO ? null : h('hr'), DEMO ? null : kopf('Datensicherung'),
-    DEMO ? null : item('backup', 'Herunterladen (.json)'),
-    DEMO ? null : item('restore', 'Laden …'),
-    h('hr'), kopf('Einstellungen'),
-    item('vorlagen', 'E-Mail-Vorlagen (Rundmail) …'),
-    item('pers-liste', 'Personenliste bearbeiten …'),
-    item('fach-haupt', 'Hauptansprechpersonen der Fachreferate …'),
-    item('adressen-alle', 'Adressen der Gliederungen …'),
-    item('tasten', 'Tastaturbefehle …'),
-    item('about', 'Über die Bedarfsliste und Tastaturbefehle (Version ' + APP_INFO.version + ')'));
+  const th = themeGet() === 'system' ? (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : themeGet();
+  const thKnopf = (v, ic, t) => h('button', { class: 'th-btn' + (th === v ? ' on' : ''), 'data-act': 'theme', 'data-v': v, title: t, 'aria-label': t, 'aria-pressed': String(th === v), html: ic });
+  const m = h('div', { class: 'menu mmenu-s', id: 'mmenu', role: 'menu' },
+    h('div', { class: 'menu-row' }, h('span', null, 'Darstellung'), h('div', { class: 'th-seg' }, thKnopf('light', ICON_HELL, 'Hell'), thKnopf('dark', ICON_DUNKEL, 'Dunkel'))),
+    h('hr'),
+    DEMO ? null : h('button', { role: 'menuitem', 'data-act': 'update' }, 'Programm-Update einspielen …'),
+    h('button', { role: 'menuitem', 'data-act': 'einst', class: 'dick' }, 'Einstellungen …'));
   document.body.append(m);
   const r = btn.getBoundingClientRect();
   m.style.top = (r.bottom + 4) + 'px'; m.style.right = Math.max(8, innerWidth - r.right) + 'px';
-  const f = m.querySelector('button'); if (f) f.focus();
+  const f = m.querySelector('[data-act="einst"]'); if (f) f.focus();
 }
 // Erklärung der Textformatierung (Zahnrad und „i“ bei den Notizen)
 function fmtInfo() {
@@ -317,7 +301,7 @@ function fmtInfo() {
     [['OK', true, 'primary']]);
 }
 function about() {
-  modal('Bedarfsliste ' + APP_INFO.version, h('div', { class: 'help' },
+  return modal('Bedarfsliste ' + APP_INFO.version, h('div', { class: 'help' },
     h('p', null, 'Strategischer Überblick über die Bedarfe der Diözese: Freigabe, Unterlagen, Förderplan und Nacharbeit. Programm und Daten stecken zusammen in dieser einen Datei; es wird nichts ins Internet gesendet.'),
     h('h3', null, 'Tastaturbefehle'), kuerzelTabelle(), h('h3', null, 'Was zuletzt neu ist'),
     ...CHANGELOG.slice(0, 5).map(c => h('div', null, h('h3', null, 'Version ' + c.version + (c.date ? ' · ' + fmtDate(c.date.slice(0, 10)) : '')), h('ul', null, c.items.map(i => h('li', null, i)))))), null, { wide: true });
@@ -574,7 +558,8 @@ async function act(k, a, e) {
     case 'pen': { const el = $(`#foe-${a.dataset.fid} .fp-h`); if (el) { el.focus(); el.select(); } return; }
     case 'menu': if ($('#mmenu')) closeMenus(); else mainMenu(a); return;
     case 'colw-reset': colwSet(null, false); colwSet(null, true); closeMenus(); keep(renderNow); return;
-    case 'theme': applyTheme(a.dataset.v); $$('#mmenu .mini-btn').forEach(x => x.classList.toggle('on', x === a)); return;
+    case 'theme': applyTheme(a.dataset.v); $$('#mmenu .th-btn').forEach(x => { x.classList.toggle('on', x === a); x.setAttribute('aria-pressed', String(x === a)); }); return;
+    case 'einst': einstellungen(); return;
     case 'about': closeMenus(); about(); return;
     case 'undo': undo(); return;
     case 'fristen': if ($('.frist-pop')) closeMenus(); else fristPop(a); return;
@@ -589,8 +574,8 @@ async function act(k, a, e) {
     case 'backup': closeMenus(); saveBackup(); return;
     case 'restore': closeMenus(); openBackup(); return;
     case 'kuerzel': closeMenus(); kuerzelInfo(); return;
-    case 'tasten': tastenDialog(); return;
-    case 'adressen-alle': adressenDialog(); return;
+    case 'tasten': closeMenus(); tastenDialog(); return;
+    case 'adressen-alle': closeMenus(); adressenDialog(); return;
     case 'ki-liste': kiListeDialog(); return;
     case 'sw-filter': if ($('.swf-pop')) closeMenus(); else swFilterPop(a); return;
     case 'heute-wahl': UI.paketWahl = null; UI.mehrWahl = null; heuteWaehlen(); return;

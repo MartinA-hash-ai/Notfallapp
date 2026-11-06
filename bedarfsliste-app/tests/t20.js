@@ -40,6 +40,15 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => { colwSet([100, 100, 100, 100, 100, 100, 100, 100], false); renderNow(); });
   await p.click('header.top [data-act="menu"]'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => !!document.querySelector('#mmenu') && !document.querySelector('[data-act="colw-reset"]')), 'Menü: „Spaltenbreiten zurücksetzen“ ist weg');
+  r = await p.evaluate(() => [...document.querySelectorAll('#mmenu > button')].map(b => b.textContent.trim()).join('/'));
+  ok(/^(Programm-Update einspielen …\/)?Einstellungen …$/.test(r) && true, '0.134: Zahnrad schlank – nur Darstellung, Update und Einstellungen: ' + r);
+  await p.click('#mmenu [data-act="einst"]'); await p.waitForSelector('.einst-modal');
+  r = await p.evaluate(() => [[...document.querySelectorAll('.einst-g h3')].map(x => x.textContent).join('/'), [...document.querySelectorAll('.einst-e')].map(x => x.dataset.k).join(','), !/Kontakte für die Personenliste|Vorlage/.test(document.querySelector('.einst').textContent) || !/UPL-Vorlage|Förderplan-Vorlage/.test(document.querySelector('.einst').textContent)]);
+  ok(r[0].startsWith('Personen/E-Mail und Adressen/Bedienung') && r[1].startsWith('pers-liste,fach-haupt,vorlagen,adressen-alle,tasten') && r[2], 'Fenster „Einstellungen“ mit Gruppen, ohne Kontakte-Import und Vorlagen: ' + r.join(' | '));
+  await p.click('.einst-modal .einst-e[data-k="tasten"]'); await p.waitForSelector('.modal table.tasten');
+  await p.click('.modal footer button.primary'); await p.waitForTimeout(300);
+  ok(await p.evaluate(() => !!document.querySelector('.einst-modal')), 'Nach dem Schließen eines Fensters zurück in die Einstellungen');
+  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   await p.keyboard.press('Escape'); await p.evaluate(() => { colwSet(null, false); renderNow(); });
   // Suche + Enter → erster Bedarf
   await p.keyboard.press('Control+f'); await p.keyboard.type('Brakel'); await p.keyboard.press('Enter'); await p.waitForTimeout(100);

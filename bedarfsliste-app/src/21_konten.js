@@ -103,7 +103,7 @@ async function kontenDialog() {
   const K = kontenDaten();
   if (!K || !K.liste.length) {
     if (DEMO) { toast('In der Vorschau gibt es keine Kontenliste.', 'warn'); return; }
-    if (await confirmBox('Kontenliste', 'Noch keine Kontenliste hinterlegt. Die Excel „Kontenliste der Gliederungen“ einlesen? (Später geht das über das Zahnrad → „Kontenliste einlesen …“.)', 'Excel einlesen …') && await kontenEinlesen()) kontenDialog();
+    if (await confirmBox('Kontenliste', 'Noch keine Kontenliste hinterlegt. Die Excel „Kontenliste der Gliederungen“ einlesen? (Später geht das über Zahnrad → Einstellungen → „Kontenliste einlesen“.)', 'Excel einlesen …') && await kontenEinlesen()) kontenDialog();
     return;
   }
   let bearb = false;
