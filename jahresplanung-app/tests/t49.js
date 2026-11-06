@@ -69,7 +69,7 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   ok(c0[0] === 'einstellungen' && c0[1] === 'urlaub' && c0[2] === 'Einstellungen' && /^Urlaub & Feiertage 2027/.test(c0[3]) && c0[4] === 0 && c0[5] && c0[6] === 'Urlaub & Feiertage', 'C: „Urlaub & Feiertage“ öffnet die Einstellungen bei „Urlaub & Feiertage“ (kein Reiter markiert, Knopf „← zurück“)');
   await p.click('.view-head .backbtn'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => UI.view === 'plaene'), 'C: „← zurück“ führt zu den Detailplänen zurück');
-  await p.evaluate(() => { UI.settTab = 'allgemein'; }); await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(250);
+  await p.evaluate(() => { UI.settTab = 'allgemein'; }); await p.click('header .actions .menu-btn.gear'); await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(250);
   await p.click('.sett-tab[data-tab="urlaub"]'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => !document.querySelector('.modal') && UI.view === 'einstellungen' && !!document.querySelector('.sett-body .umatrix') && !!document.querySelector('.sett-body .hcard')), 'C: Einstellungen → Rubrik „Urlaub & Feiertage“ mit Übersicht, Urlauben und Feiertagen');
   await p.click('.sett-body .view-head button.primary'); await p.waitForTimeout(250);
@@ -151,7 +151,7 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   await p.evaluate(() => commit(d => { d.massnahmen[0].hinweis = 'MEINE DATEN 0.13'; })); await p.waitForTimeout(100);
   await p.click('#savebox'); await p.waitForTimeout(500);
   mkZip('upd_a.zip', withVer('99.0'));
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Programm-Update")'); await p.waitForTimeout(150);
+  await p.click('header .actions .menu-btn.gear'); await p.click('.menu button:has-text("Programm-Update")'); await p.waitForTimeout(150);
   const f0 = await p.evaluate(() => document.querySelector('.modal').innerText);
   const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('.modal footer button.primary')]);
   ok(/\.zip/.test(fc.element ? await fc.element().getAttribute('accept') : '') && /entpacken ist nicht nötig/.test(f0), 'F: Dialog nimmt das ZIP-Paket („entpacken ist nicht nötig“)');

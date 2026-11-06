@@ -1,7 +1,20 @@
 [
   {
-    "version": "0.46.0",
+    "version": "0.47.0",
     "date": "",
+    "items": [
+      "Kopfzeile: Zahnrad statt ⋯ (Einstellungen zuerst, dann Daten prüfen, zurücksetzen, Design, Programm-Update); Speichern mit Diskettensymbol",
+      "„Buchungen hinzugefügt“: unter den neuen Spenden zwei Bereiche – Maßnahmen und Spendenzwecke – je Ziel mit Anzahl; „Zuordnungen prüfen →“ führt Schritt für Schritt durch alle Ziele, erst die Maßnahmen, dann die Zwecke",
+      "Je Schritt die Spenden mit Häkchen: passt alles, „✓ bestätigen“ – Häkchen weg nimmt die Spende aus der Maßnahme bzw. setzt sie auf zweckungebunden; „zu klären“ mit Auswahl je Spende; „überspringen“ lässt sie für später als „neu“ stehen; am Ende eine kurze Bilanz",
+      "Auswertung: „Rücklauf im Vergleich“ steht jetzt im Kasten der gewählten Maßnahme rechts bei den Grafiken – die Maßnahme selbst ist hervorgehoben, die anderen lassen sich aus- und einblenden",
+      "Spendenzwecke zuordnen: Regeln und Vorschläge anfangs zu – oben die Knöpfe „Regeln“ und „Vorschläge“ (wird gemerkt); bei einem neuen Zweck sind die Regeln gleich offen",
+      "Beim gewählten Zweck zeigt die Liste immer seine Spenden („Zugeordnet“) – der Umschalter „Zweckungebunden | Bei …“ entfällt, die Spenden ohne Zweck stehen links unter „zweckungebunden“",
+      "Treffer der Regel sind immer gelb (der Schalter entfällt); Hinweis links und Anzahl/Summe neben dem Namen von Zweck bzw. Maßnahme entfallen; „von Hand“ bei zweckungebunden heißt jetzt „↺ … wieder den Regeln überlassen“"
+    ]
+  },
+  {
+    "version": "0.46.0",
+    "date": "2026-10-21T10:10",
     "items": [
       "Kalender: neuer Knopf „Monate ausblenden“ – im Fenster die zwölf Monate zum An- und Abwählen (Umschalt+Klick für einen Bereich) und „bis heute“ (blendet die vergangenen Monate aus, der laufende bleibt); „alle zeigen“ holt alles zurück",
       "Die übrigen Monate rücken nach und behalten ihre Breite – der Kalender wird entsprechend niedriger; der Knopf zeigt, wie viele Monate ausgeblendet sind",

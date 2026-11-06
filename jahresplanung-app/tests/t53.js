@@ -7,7 +7,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => { UI.year = 2027; UI.view = 'plaene'; renderNow(); }); await p.waitForTimeout(200);
 
   // ---- A: ⋯ → Einstellungen öffnet die Seite mit Rubriken
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(250);
+  await p.click('header .actions .menu-btn.gear'); await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(250);
   const a0 = await p.evaluate(() => [UI.view, !document.querySelector('.modal'), [...document.querySelectorAll('.sett-tab')].map(t => t.textContent).join(' | '), document.querySelector('#main h1').textContent]);
   ok(a0[0] === 'einstellungen' && a0[1] && a0[2] === 'Allgemein | Bereiche & Personen | Urlaub & Feiertage | Vorlagen für Detailpläne | Version' && a0[3] === 'Einstellungen', 'A: Einstellungen als Seite – ' + a0[2]);
   await p.click('.sett-tab[data-tab="urlaub"]'); await p.waitForTimeout(200);

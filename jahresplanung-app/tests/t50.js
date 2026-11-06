@@ -18,7 +18,7 @@ const files = p => p.evaluate(() => Object.keys(__fs.files).filter(k => /Spenden
 
   // ---- A: Export mit Buchungen aus 2026 landet in „Spendeneingänge 2026“ (nicht im vorhandenen Ordner 2027)
   await p.evaluate(t => spAddFiles([new File([t], '20261005_export.csv')]), csv([line('05.10.2026', '50', 'Bernd Probe', 'Herbst'), line('06.10.2026', '30', 'Carla Probe', 'Herbst')]));
-  await p.waitForSelector('.modal'); await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  await p.waitForSelector('.modal'); await p.click('.modal footer button:has-text("Schließen")'); await p.waitForTimeout(150);
   ok(await files(p) === 'Spendeneingänge 2026/20261005_export.csv,Spendeneingänge 2027/alt.csv', 'A: 2026er Export im Ordner „Spendeneingänge 2026“ abgelegt (' + await files(p) + ')');
 
   // ---- B: Testdaten: zwei Maßnahmen mit PAL 2026, Zuordnungen von Hand, eine ausgeschlossene Spende, allgemeine Regel
@@ -34,7 +34,7 @@ const files = p => p.evaluate(() => Object.keys(__fs.files).filter(k => /Spenden
   const n27 = await p.evaluate(() => D.massnahmen.filter(m => m.pal && m.pal.startsWith('2027')).length);
 
   // ---- C: Dialog „Daten zurücksetzen …“
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Daten zurücksetzen")'); await p.waitForTimeout(250);
+  await p.click('header .actions .menu-btn.gear'); await p.click('.menu button:has-text("Daten zurücksetzen")'); await p.waitForTimeout(250);
   const c0 = await p.evaluate(() => { const m = document.querySelector('.modal'); return [m.querySelector('h2').textContent, [...m.querySelectorAll('.rs-opt')].map(l => (l.querySelector('input').checked ? '☑' : '☐') + l.querySelector('b').textContent).join(' | '), m.querySelector('.rs-yr select').value, m.querySelector('.rs-ms').textContent, m.textContent]; });
   ok(c0[0] === 'Daten zurücksetzen' && /^☑Alle Spenden-Zuordnungen entfernen \| ☐Auch die Schlagwort-Regeln/.test(c0[1]) && /☐Exportdateien der Spendeneingänge löschen \| ☐Maßnahmen löschen/.test(c0[1]) && c0[2] === '2026' && /^2 Maßnahmen: Test 2026 A, Test 2026 B/.test(c0[3]),
     'C: Auswahl – ' + c0[1] + ' · Jahr ' + c0[2] + ': ' + c0[3]);

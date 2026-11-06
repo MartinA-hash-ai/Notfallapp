@@ -15,7 +15,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
 
 (async () => {
   const b = await chromium.launch(), pages = [];
-  const p = await open(b, { width: 1400, height: 1000 }); pages.push(p);
+  const p = await open(b, { width: 1400, height: 1000, clock: new Date('2026-10-20T10:00:00') }); pages.push(p);   // „heute“ fest: die erfundenen Buchungen reichen bis Dezember 2026
   ok(await connect(p) === 'ok', 'Mailing-Ordner verbunden');
   await p.evaluate(F => { __fs.files['/Mailing/Spendeneingänge 2025/e.csv'] = { data: new TextEncoder().encode(F[0]), lm: 81000 }; __fs.files['/Mailing/Spendeneingänge 2026/e.csv'] = { data: new TextEncoder().encode(F[1]), lm: 81000 }; }, [csv(y25), csv(y26)]);
   await p.evaluate(() => { commit(d => { d.zwecke.push({ id: 'zh', name: 'Hospizarbeit', farbe: '#2e7d32', worte: ['Hospizarbeit'], konten: [], massnahmen: [] }, { id: 'zr', name: 'Rikscha', farbe: '#1565c0', worte: ['Rikscha'], konten: [], massnahmen: [] });
@@ -65,7 +65,8 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
       document.querySelector('.jv-ins')?.textContent, !document.querySelector('.jv-gctl'), Math.round(c.getBoundingClientRect().height)]; });
   ok(d0[0] === 'bis 100 €|101–249 €|250–499 €|500–999 €|1.000–4.999 €|ab 5.000 €' && d0[1] === 'Spender:innen|Spendensumme' && d0[2] === '2025|2026*' && d0[3] === 10 && d0[4] === 0,
     'D: Legende von klein nach groß; je Jahr (2025, 2026) eine Zeile – Spender:innen und Summe nebeneinander; keine Bänder dazwischen');
-  ok(d0[5] === '25 %|75 %|91 %|50 %|25 %|25 %|87 %' && d0[6] === '4|560 €|4|5.780 €' && d0[7] == null && d0[8] && await p.evaluate(() => { const c = document.querySelector('[data-chart="jvseg"]'), l = document.querySelector('.jv-seglg'); return !!(c.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING); }),
+  ok(['25 %|75 %|91 %|50 %|25 %|25 %|87 %', '25 %|75 %|9%|91 %|50 %|25 %|25 %|87 %'].includes(d0[5])   // ob der knappe 9-%-Abschnitt seine kleine Zahl bekommt, hängt von der Schriftbreite ab
+    && d0[6] === '4|560 €|4|5.780 €' && d0[7] == null && d0[8] && await p.evaluate(() => { const c = document.querySelector('[data-chart="jvseg"]'), l = document.querySelector('.jv-seglg'); return !!(c.compareDocumentPosition(l) & Node.DOCUMENT_POSITION_FOLLOWING); }),
     'D: Anteile im Balken (knappe Abschnitte kleiner ohne Leerzeichen), hinter jedem Balken die Gesamtzahl; Legende unter der Grafik, kein Satz mehr; keine eigene Auswahl im Abschnitt');
   const dt = await p.evaluate(() => [...document.querySelectorAll('[data-chart="jvseg"] .jv-sgrow.main .jv-sgb')].map(r => { const f = TIPS.get(r); const v = typeof f === 'function' ? f() : f; return typeof v === 'string' ? v : v.textContent; }).join(' | '));
   ok(dt === '50 % · 2 Spender:innen | 25 % · 1 Spender:in | 25 % · 1 Spender:in | 8 % · 480 € | 5 % · 300 € | 87 % · 5.000 €', 'D: Zeigen nennt nur Anteil und absolute Zahl: ' + dt);

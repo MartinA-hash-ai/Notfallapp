@@ -7,10 +7,10 @@ const MAIN = 'Jahresplanung_Aussenkommunikation.html';
 let failures = 0;
 const ok = (c, m) => { if (!c) failures++; console.log((c ? 'OK   ' : 'FAIL ') + m); };
 
-// clock: Uhr der Seite steuerbar – die Zeit läuft normal, mit skip(p, ms) springt sie vor (statt echt auf Speichern/Überwachung zu warten)
+// clock: Uhr der Seite steuerbar – die Zeit läuft normal, mit skip(p, ms) springt sie vor (statt echt auf Speichern/Überwachung zu warten); ein Datum legt „heute“ fest
 async function open(b, { file = T.HTML, fakefs = true, width = 1600, clock = false } = {}) {
   const ctx = await b.newContext({ viewport: { width, height: 1000 }, locale: 'de-DE', timezoneId: 'Europe/Berlin', acceptDownloads: true });
-  if (clock) await ctx.clock.install();
+  if (clock) await ctx.clock.install(clock instanceof Date ? { time: clock } : undefined);   // clock: true – oder ein Datum, das dann „heute“ ist
   if (fakefs) await ctx.addInitScript({ path: T.FAKEFS });
   const p = await ctx.newPage(); p.setDefaultTimeout(8000); p.errs = [];
   p.on('pageerror', e => p.errs.push(e.message));

@@ -262,15 +262,21 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
       low: [...m.querySelectorAll('.sp-ar-row .sp-ar-tx')].map(d => d.textContent).join(' | '), rows: l ? [...l.querySelectorAll('tr')].map(q => q.textContent).join(' / ') : '', n: l ? l.querySelectorAll('tr').length : 0,
       lanes: [...m.querySelectorAll('.sp-ar-lane')].map(d => d.querySelector('.sp-ar-nm').textContent + ':' + d.querySelector('.sp-ar-rt').textContent).join(' | '),
       scroll: l ? [l.scrollHeight > l.clientHeight, Math.round(l.clientHeight / r.getBoundingClientRect().height)] : null,
-      chips: [...m.querySelectorAll('.sp-addlist .sp-rc .sp-rchip')].map(c => c.textContent + '@' + c.style.borderColor), rchips: [...m.querySelectorAll('.sp-ar-row.todo .sp-rchip')].map(c => c.textContent) }; });
+      chips: [...m.querySelectorAll('.sp-addlist .sp-rc .sp-rchip')].map(c => c.textContent + '@' + c.style.borderColor),
+      asg: [...m.querySelectorAll('.sp-ar-col')].map(c => c.querySelector('.sp-ar-ch').textContent + ':' + [...c.querySelectorAll('.sp-ar-trow')].map(r => r.textContent).join(',')).join(' | '), start: !!m.querySelector('.sp-ar-start') }; });
   const rep = await repOf();
   ok(rep && rep.h2 === 'Buchungen hinzugefügt' && rep.res === '✓1 neue Spende · 60,00 €26.09.2027 · aus 1 Datei' && !rep.warn && /^Keine Buchung war schon da – nichts doppelt \| /.test(rep.low) && /26\.09\.2027.*60,00 €.*JB Upload/.test(rep.rows) && /^(bisher eingelesen:[^|]+ \| )?export1 \(2\)\.csv:1 neu$/.test(rep.lanes),
     'K: Zusammenfassung – Ergebnis, „Was kam hinzu“, je Punkt eine Zeile: ' + (rep ? rep.res + ' || ' + rep.lanes + ' || ' + rep.low + ' · ' + rep.rows : 'fehlt'));
   const mc = await p.evaluate(() => { const c = C.byId.get('m5').color, t = document.createElement('i'); t.style.borderColor = c; return t.style.borderColor; });
-  ok(rep && rep.rchips.join() === 'Jahresbericht1' && rep.chips.length === 1 && rep.chips[0] === 'Jahresbericht@' + mc && /1 neue Spende automatisch einer Maßnahme zugeordnetJahresbericht1 \| Keine neue Spende passt zu einem Spendenzweck/.test(rep.low),
-    'K: von der Regel zugeordnet – Feld „' + (rep && rep.rchips.join()) + '“, Zeilenende mit der Maßnahme in ihrer Farbe (' + (rep && rep.chips.join()) + ')');
+  ok(rep && rep.asg === 'Maßnahmen1:Jahresbericht1 | Spendenzwecke–:' && rep.start && rep.chips.length === 1 && rep.chips[0] === 'Jahresbericht@' + mc,
+    'K: von der Regel zugeordnet – unter „Maßnahmen“ die Zeile „' + (rep && rep.asg) + '“, „Zuordnungen prüfen“; Zeilenende mit der Maßnahme in ihrer Farbe (' + (rep && rep.chips.join()) + ')');
   ok(await p.evaluate(() => { const r = SP.rows.find(r => r.name === 'Upload Test'); return D.spenden.zu[r.k]?.m === 'm5' && D.spenden.neu[r.k] === 'm'; }), 'K: und als „neu“ markiert');
-  await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
+  await p.click('.sp-ar-start'); await p.waitForTimeout(200);
+  const kst = await p.evaluate(() => [document.querySelector('.sp-ar-area').textContent, document.querySelector('.sp-ar-st b').textContent, document.querySelectorAll('.sp-ar-list .sp-ar-sr:not(.head)').length, document.querySelector('.sp-ar-ok').textContent]);
+  ok(kst.join('|') === 'Maßnahme|Jahresbericht|1|✓ 1 bestätigen', 'K: „Zuordnungen prüfen“ – Schritt „Maßnahme · Jahresbericht“ mit der einen Spende ' + JSON.stringify(kst));
+  await p.click('.sp-ar-ok'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => { const r = SP.rows.find(r => r.name === 'Upload Test'); return D.spenden.zu[r.k]?.m === 'm5' && !D.spenden.neu[r.k] && document.querySelector('.sp-ar-dt').textContent === 'Alles geprüft'; }), 'K: bestätigt – zugeordnet, nicht mehr „neu“, „Alles geprüft“');
+  await p.click('.modal footer button:has-text("Schließen")'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.modal')), 'K: Zusammenfassung lässt sich wegklicken');
   const k = await p.evaluate(() => [Object.keys(__fs.files).filter(n => n.includes('Spendeneingänge 2027/')).map(n => n.split('/').pop()).sort().join(','), SP.rows.some(r => r.name === 'Upload Test')]);
   ok(/export1 \(2\)\.csv/.test(k[0]) && k[1], 'K: Datei abgelegt als „export1 (2).csv“ (nichts überschrieben) und eingelesen');
@@ -286,7 +292,7 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
     && /export1\.csv:identisch mit „export1 \(2\)\.csv“/.test(rep2.lanes) && /export_sept\.csv:24 neu · 1 schon da · \d+ Tage prüfen/.test(rep2.lanes),
     'K: zweimal dieselbe Buchung + 24 neue: ' + (rep2 ? rep2.res + ' || ' + rep2.lanes + ' || ' + rep2.low : 'fehlt'));
   ok(rep2 && rep2.n === 24 && rep2.scroll[0] && rep2.scroll[1] >= 9 && rep2.scroll[1] <= 11, 'K: Liste der neuen Spenden zeigt etwa ' + (rep2 && rep2.scroll[1]) + ' Zeilen, der Rest ist rollbar');
-  ok(rep2 && /\| Keine neue Spende passt zu einer Maßnahme oder einem Spendenzweck$/.test(rep2.low) && !/automatisch/.test(rep2.low) && !rep2.chips.length, 'K: keine Regel passt → eine graue Zeile „Keine neue Spende passt …“');
+  ok(rep2 && rep2.asg === 'Maßnahmen–: | Spendenzwecke–:' && !rep2.start && !rep2.chips.length, 'K: keine Regel passt → beide Bereiche „keine“, nichts zu prüfen');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.modal')), 'K: auch mit Esc wegklickbar');
 

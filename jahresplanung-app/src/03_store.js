@@ -383,17 +383,17 @@ function updateSaveUI() {
 function saveBox() {
   const dirty = isDirty(), t = ST.lastSave ? ST.lastSave.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : null;
   let label, cls = 'save', tip;
-  if (!FSA) { label = dirty ? '● Speichern' : '✓ Gespeichert'; cls += dirty ? ' primary dirty' : ''; tip = 'Speichern lädt die Datei herunter (Browser ohne Ordnerzugriff)'; }
+  if (!FSA) { label = dirty ? 'Speichern' : 'Gespeichert'; cls += dirty ? ' primary dirty' : ' ok'; tip = 'Speichern lädt die Datei herunter (Browser ohne Ordnerzugriff)'; }
   else if (ST.saving) { label = 'Speichert …'; tip = 'wird gespeichert'; }
   else if (BROKEN) { label = '⚠ Speichern gesperrt'; cls += ' primary'; tip = 'Die Daten dieser Datei waren beschädigt – siehe Hinweis oben'; }
   else if (ST.newer) { label = '⚠ Neustart nötig'; cls += ' primary'; tip = 'Im Ordner liegt eine neuere Programmversion – siehe Hinweis oben'; }
   else if (ST.conflict) { label = '⚠ Konflikt'; cls += ' primary'; tip = 'Jemand anderes hat zwischendurch gespeichert – siehe Hinweis oben'; }
   else if (ST.conn === 'none') { label = 'Speichern …'; cls += ' primary' + (dirty ? ' dirty' : ''); tip = 'Einmal den Mailing-Ordner wählen – danach speichert die App automatisch'; }
-  else if (ST.conn === 'needs-permission') { label = '🔓 Speichern aktivieren'; cls += ' primary'; tip = 'Ein Klick: der Browser fragt, ob die App den Ordner bearbeiten darf'; }
+  else if (ST.conn === 'needs-permission') { label = 'Speichern aktivieren'; cls += ' primary'; tip = 'Ein Klick: der Browser fragt, ob die App den Ordner bearbeiten darf'; }
   else if (ST.fail && dirty) { label = '⚠ Nicht gespeichert'; cls += ' primary dirty'; tip = 'Speichern fehlgeschlagen: ' + ST.fail.msg + '. Neuer Versuch läuft automatisch – oder hier klicken.'; }
-  else if (dirty) { label = UI.autoSave === false ? '● Speichern' : '● wird gespeichert …'; cls += ' primary dirty'; tip = 'Jetzt speichern (Strg+S)'; }
-  else { label = '✓ Gespeichert' + (t ? ' ' + t : ''); cls += ' ok'; tip = 'Programm und Excel-Ansicht sind aktuell' + (ST.xlsxErr ? ' (Excel-Ansicht: Fehler)' : ''); }
-  return h('button', { id: 'savebox', class: cls, tip, onclick: () => save() }, label);
+  else if (dirty) { label = UI.autoSave === false ? 'Speichern' : 'wird gespeichert …'; cls += ' primary dirty'; tip = 'Jetzt speichern (Strg+S)'; }
+  else { label = 'Gespeichert' + (t ? ' ' + t : ''); cls += ' ok'; tip = 'Programm und Excel-Ansicht sind aktuell' + (ST.xlsxErr ? ' (Excel-Ansicht: Fehler)' : ''); }
+  return h('button', { id: 'savebox', class: cls, tip, onclick: () => save() }, icon('disk'), h('span', { class: 'save-t' }, label));   // Diskette: Speichern
 }
 
 function pickFileText(accept = '.html,.htm,.json') {

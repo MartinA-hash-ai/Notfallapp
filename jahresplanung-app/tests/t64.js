@@ -15,6 +15,7 @@ const csv = '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
 (async () => {
   const b = await chromium.launch(), pages = [];
   const p = await open(b, { width: 1400, height: 900 }); pages.push(p);
+  await p.evaluate(() => { UI.spjRulesOpen = true; UI.spjSugOpen = true; });   // ab 0.47 sind Regeln und Vorschläge anfangs zu – hier offen wie bisher
   ok(await connect(p) === 'ok', 'Mailing-Ordner verbunden');
   await p.evaluate(t => { __fs.files['/Mailing/Spendeneingänge 2027/e.csv'] = { data: new TextEncoder().encode(t), lm: 81000 }; }, csv);
   await p.evaluate(() => { UI.year = 2027; UI.view = 'spenden'; UI.spMid = 'allg:2027'; UI.secOpen['sp-ueb'] = false; SP.at = null; renderNow(); });
@@ -28,21 +29,15 @@ const csv = '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
   const a0 = await p.evaluate(() => [document.querySelector('.spj-lh b').textContent, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length, spjCompute(2027).list.length,
     /Klick auf einen Zweck oder eine Gliederung filtert/.test(document.getElementById('main').textContent), /Links einen Zweck wählen/.test(document.getElementById('main').textContent)]);
   ok(a0[0] === 'Alle Spenden 2027' && a0[1] === Math.min(200, a0[2]) && !a0[3] && !a0[4], 'A: ohne gewählten Zweck „Alle Spenden 2027“ (' + a0[1] + ' von ' + a0[2] + ' gezeigt), keine Hinweistexte');
-  await p.click('.spj-rules .infobtn'); await p.waitForTimeout(150);
-  ok(await p.evaluate(() => /Links einen Zweck wählen oder mit „\+ Zweck“ anlegen/.test(document.querySelector('.infopop')?.textContent || '')), 'A: Klick auf ⓘ zeigt die Erklärung');
-  await p.keyboard.press('Escape'); await p.waitForTimeout(100);
   ok(await p.evaluate(() => !document.querySelector('.infopop')), 'A: Esc schließt sie wieder');
 
   // ---- B: Hervorhebung – Schlagwort im Verwendungszweck, von der Bank getrennt, Konto als Gliederung; in der Vorschau das getippte Wort
   const b0 = [await rowOf('Probe ABC', '.sp-z'), await rowOf('Probe Hospiz', '.sp-z'), await rowOf('Probe Konto', '.spj-g'), await rowOf('Probe 3', '.sp-z')];
   ok(b0[0] === 'Spende <mark class="sp-hl">ABC</mark> Lage, Probe' && b0[1] === 'Danke <mark class="sp-hl">HOSPIZ BE RICHT</mark>' && b0[2] === '<mark class="sp-hl">Brakel</mark>' && b0[3] === 'Spende',
     'B: Regel „ABC“ hervorgehoben, „Hospizbericht“ auch getrennt geschrieben, Konto-Regel markiert die Gliederung (' + b0.slice(0, 3).join(' | ') + ')');
-  // 0.19.2: oben rechts statt „Klick auf eine Zeile markiert“ der Schalter „Treffer hervorheben“
-  const tg = () => p.evaluate(() => [document.querySelector('[data-sec="sp-zu"] .spj-lh .sp-hltog input').checked, document.querySelectorAll('[data-sec="sp-zu"] mark.sp-hl').length, !!document.querySelector('.spj-clickhint')]);
-  const bt0 = await tg(); await p.click('[data-sec="sp-zu"] .sp-hltog input'); await p.waitForTimeout(200); const bt1 = await tg();
-  await p.click('[data-sec="sp-zu"] .sp-hltog input'); await p.waitForTimeout(200); const bt2 = await tg();
-  ok(bt0[0] && bt0[1] > 0 && !bt0[2] && !bt1[0] && bt1[1] === 0 && bt2[0] && bt2[1] === bt0[1] && await p.evaluate(() => UI.spHl === true && UI_KEYS.includes('spHl')),
-    'B: Schalter „Treffer hervorheben“ oben rechts (statt des Hinweises) blendet die Markierungen aus und wieder ein (' + bt0[1] + ' → ' + bt1[1] + ' → ' + bt2[1] + '), gemerkt');
+  // 0.47: Treffer sind immer hervorgehoben – den Schalter „Treffer hervorheben“ gibt es nicht mehr
+  ok(await p.evaluate(() => !document.querySelector('.sp-hltog') && document.querySelectorAll('[data-sec="sp-zu"] mark.sp-hl').length > 0 && !document.querySelector('.spj-clickhint')),
+    'B: Treffer immer gelb hervorgehoben – ohne Schalter');
   await p.evaluate(() => { const k = SP.rows.find(r => r.name === 'Probe ABC').k; spjSetZweck([k], 'zh', 'von Hand'); }); await p.waitForTimeout(200);
   ok(await rowOf('Probe ABC', '.sp-z') === 'Spende ABC Lage, Probe', 'B: von Hand zugeordnet – nichts hervorgehoben');
   await p.evaluate(() => undo()); await p.waitForTimeout(200);
@@ -58,13 +53,13 @@ const csv = '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
 
   // ---- C: Zweckwechsel behält „Bei Zweck“; Jahreswechsel: Spenden des neuen Jahres mit demselben Zweck (gibt es ihn nicht: alle)
   await p.evaluate(() => { UI.spMid = 'allg:2027'; renderNow(); }); await p.waitForTimeout(200);
-  await p.click('.spj-zi[data-z="za"]'); await p.waitForTimeout(150); await p.click('.spj-lv [data-lv="zweck"]'); await p.waitForTimeout(150);
+  await p.click('.spj-zi[data-z="za"]'); await p.waitForTimeout(150);
   await p.click('.spj-zi[data-z="zh"]'); await p.waitForTimeout(200);
-  const c0 = await p.evaluate(() => [SPJ.lv, document.querySelector('.spj-lv .seg-btn.on').textContent, [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(e => SP.byKey.get(e.dataset.k).name).sort().join(',')]);
-  ok(c0[0] === 'zweck' && /^Bei „Hospiz“/.test(c0[1]) && c0[2] === 'Probe Hospiz,Probe Konto', 'C: Zweck gewechselt – die Liste zeigt weiter die Spenden beim Zweck (' + c0[2] + ')');
+  const c0 = await p.evaluate(() => [!!document.querySelector('.spj-lv'), document.querySelector('.spj-lh b').textContent, [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row')].map(e => SP.byKey.get(e.dataset.k).name).sort().join(',')]);
+  ok(!c0[0] && c0[1] === 'Zugeordnet' && c0[2] === 'Probe Hospiz,Probe Konto', 'C: Zweck gewählt – die Liste zeigt immer seine Spenden, ohne Umschalter (' + c0[2] + ')');
   await p.evaluate(() => { const x = C.ms.find(o => o.pal != null && ymd(o.pal)[0] === 2027); UI.spMid = x.id; renderNow(); UI.year = 2028; renderNow(); }); await p.waitForTimeout(250);
-  const c1 = await p.evaluate(() => [UI.spMid, SPJ.z, SPJ.lv, document.querySelector('[data-sec="sp-m"] .sec-t').textContent]);
-  ok(c1.join() === 'allg:2028,zh,zweck,Spenden 2028', 'C: von einer Maßnahme 2027 ins Jahr 2028 – „Spenden 2028“, Zweck „Hospiz“ bleibt gewählt (' + c1.join() + ')');
+  const c1 = await p.evaluate(() => [UI.spMid, SPJ.z, document.querySelector('[data-sec="sp-m"] .sec-t').textContent]);
+  ok(c1.join() === 'allg:2028,zh,Spenden 2028', 'C: von einer Maßnahme 2027 ins Jahr 2028 – „Spenden 2028“, Zweck „Hospiz“ bleibt gewählt (' + c1.join() + ')');
   await p.evaluate(() => { commit(d => { d.zwecke = d.zwecke.filter(z => z.id !== 'zh'); }); UI.year = 2027; renderNow(); }); await p.waitForTimeout(250);
   ok(await p.evaluate(() => UI.spMid === 'allg:2027' && SPJ.z == null && document.querySelector('.spj-lh b').textContent === 'Alle Spenden 2027'), 'C: Zweck gibt es nicht mehr – alle Spenden');
   await p.evaluate(() => undo()); await p.waitForTimeout(200);

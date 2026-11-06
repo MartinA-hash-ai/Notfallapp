@@ -31,7 +31,7 @@ const path = require('path');
   // ---- B: 150 % Skalierung (1280 px): Warnliste verdeckt die Knöpfe nicht; ⋯-Menü der letzten Zeile bleibt im Fenster
   { const p = await open(b, { width: 1280 }); pages.push(p);
     await p.evaluate(() => { UI.warnOpen = true; renderNow(); }); await p.waitForTimeout(150);
-    const r = await p.evaluate(() => { const hd = document.querySelector('header.top').getBoundingClientRect(), wp = document.querySelector('.warnpanel').getBoundingClientRect(); const sv = document.querySelector('#savebox').getBoundingClientRect(); return [Math.round(hd.bottom), Math.round(wp.top), document.elementFromPoint(sv.x + sv.width / 2, sv.y + sv.height / 2).id]; });
+    const r = await p.evaluate(() => { const hd = document.querySelector('header.top').getBoundingClientRect(), wp = document.querySelector('.warnpanel').getBoundingClientRect(); const sv = document.querySelector('#savebox').getBoundingClientRect(); return [Math.round(hd.bottom), Math.round(wp.top), (document.elementFromPoint(sv.x + sv.width / 2, sv.y + sv.height / 2).closest('#savebox') || {}).id]; });
     ok(r[1] >= r[0] && r[2] === 'savebox', 'B: Warnliste beginnt unter der Kopfzeile (' + r[1] + ' ≥ ' + r[0] + '), Speichern bleibt klickbar');
     await p.evaluate(() => { UI.warnOpen = false; renderNow(); });
     await p.setViewportSize({ width: 1280, height: 600 });

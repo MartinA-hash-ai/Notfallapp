@@ -80,18 +80,21 @@ const writeText = (p, name, text) => writeBytes(p, name, Buffer.from(text, 'utf8
   const e5 = await p.evaluate(() => { const base = JSON.parse(JSON.stringify(D)), mine = JSON.parse(JSON.stringify(D)), theirs = JSON.parse(JSON.stringify(D)); theirs.spenden.zu.xyz = { m: 'm5', d: '2027-09-01', b: 100 }; const r = merge3(base, mine, theirs); return [JSON.stringify(r.data.spenden.allg), !!r.data.spenden.zu.xyz, r.conflicts.length]; });
   ok(e5[0] === '{"2027":{"regel":{"worte":[],"da":true}}}' && e5[1] && e5[2] === 0, 'E: Zusammenführen behält die Regel der allgemeinen Spenden');
 
-  // ---- F: Vergleich – Maßnahmen ein- und ausblenden
+  // ---- F: Vergleich (0.47: im Kasten der gewählten Maßnahme, rechts) – die gewählte ist hervorgehoben, die anderen lassen sich aus- und einblenden
   await p.click('.sp-ueb tr[data-mid="m4"] td:first-child'); await p.waitForTimeout(250);
   await p.evaluate(() => { SPUI.tab = 'offen'; renderNow(); }); await p.waitForTimeout(100);
   await p.fill('.spm-filter .sp-q', 'Lautsprecher'); await p.waitForTimeout(450);
   await p.click('[data-sec="sp-zu"] .spj-row .sp-z'); await p.click('.spj-act .spj-go'); await p.waitForTimeout(250);
+  ok(await p.evaluate(() => !document.querySelector('[data-sec="sp-ueb"] .sp-cmpbox') && !!document.querySelector('[data-sec="sp-m"] .sp-charts .sp-cmpbox')), 'F: „Rücklauf im Vergleich“ steht im Kasten der Maßnahme (rechts bei den Grafiken), nicht mehr unter der Übersicht');
   await p.click('.sp-cmptog'); await p.waitForTimeout(250);
-  const f0 = await p.evaluate(() => [[...document.querySelectorAll('.sp-cpill')].map(b => b.textContent).join(','), document.querySelectorAll('[data-chart="cmp"] .sp-line').length]);
-  ok(f0[0] === 'Sommermailing,Jahresbericht' && f0[1] === 2, 'F: Knöpfe je Maßnahme über dem Vergleich, beide Linien sichtbar');
-  await p.click('.sp-cpill:has-text("Sommermailing")'); await p.waitForTimeout(250);
-  const f1 = await p.evaluate(() => [document.querySelectorAll('[data-chart="cmp"] .sp-line').length, document.querySelector('.sp-cpill.off')?.textContent, JSON.stringify(UI.spCmpOff), document.querySelector('.sp-ueb tbody tr.on')?.dataset.mid]);
-  ok(f1[0] === 1 && f1[1] === 'Sommermailing' && f1[2] === '["m4"]' && f1[3] === 'm4', 'F: Klick blendet „Sommermailing“ im Vergleich aus – die Auswahl in der Tabelle bleibt');
-  await p.click('.sp-cpill:has-text("Sommermailing")'); await p.waitForTimeout(250);
+  const f0 = await p.evaluate(() => [[...document.querySelectorAll('.sp-cpill')].map(b => b.textContent).join(','), document.querySelectorAll('[data-chart="cmp"] .sp-line').length,
+    document.querySelector('.sp-cpill.me')?.textContent, document.querySelectorAll('[data-chart="cmp"] .sp-line.hl').length, document.querySelectorAll('[data-chart="cmp"] .sp-line.dim').length]);
+  ok(f0[0] === 'Sommermailing,Jahresbericht' && f0[1] === 2 && f0[2] === 'Sommermailing' && f0[3] === 1 && f0[4] === 1, 'F: Knöpfe je Maßnahme über dem Vergleich, beide Linien sichtbar, „Sommermailing“ (gewählt) hervorgehoben ' + JSON.stringify(f0));
+  await p.click('.sp-cpill:has-text("Jahresbericht")'); await p.waitForTimeout(250);
+  const f1 = await p.evaluate(() => [document.querySelectorAll('[data-chart="cmp"] .sp-line').length, document.querySelector('.sp-cpill.off')?.textContent, (UI.spCmpOff || []).length, document.querySelector('.sp-ueb tbody tr.on')?.dataset.mid]);
+  ok(f1[0] === 1 && f1[1] === 'Jahresbericht' && f1[2] === 1 && f1[3] === 'm4', 'F: Klick blendet „Jahresbericht“ im Vergleich aus – die Auswahl in der Tabelle bleibt');
+  ok(await p.evaluate(() => document.querySelector('.sp-cpill.me').disabled), 'F: die gewählte Maßnahme bleibt immer im Vergleich');
+  await p.click('.sp-cpill:has-text("Jahresbericht")'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => document.querySelectorAll('[data-chart="cmp"] .sp-line').length === 2), 'F: nochmal klicken blendet sie wieder ein');
 
   // ---- G: Spaltenbreite wie in der Jahresplanung (wie in Excel) – nur die gezogene Spalte ändert sich, die rechts davon rücken mit, der leere Rest gleicht aus

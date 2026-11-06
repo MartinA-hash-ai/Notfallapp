@@ -77,6 +77,12 @@ nav.tabs { display: flex; gap: 2px; flex-wrap: wrap; }
 .save { min-width: 124px; }
 .save { background: var(--card); border-color: var(--line2); }
 .save.ok { color: var(--ok); }
+.ico { display: inline-flex; align-items: center; justify-content: center; line-height: 0; }
+.ico svg { display: block; }
+.save { display: inline-flex; align-items: center; gap: 7px; }
+.save.ok .ico { color: var(--ok); }
+.menu-btn.gear { padding: 5px 8px; color: var(--ink2); }
+.menu-btn.gear .ico svg { width: 18px; height: 18px; }
 .menu { position: fixed; z-index: 85; background: var(--card); border: 1px solid var(--line2); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.14); padding: 4px; min-width: 200px; }
 .menu > button { display: block; width: 100%; text-align: left; border: 0; padding: 8px 12px; border-radius: 5px; }
 .menu > button:hover { background: var(--bg); }
@@ -783,7 +789,9 @@ input.numf { text-align: right; }
 .sp-wordin { width: 230px; }
 .sp-q { flex: 1 1 160px; min-width: 120px; }
 .sp-da, .sp-noda { white-space: nowrap; }
-.sp-cmpbox { margin-top: 10px; }
+.sp-cmpbox { margin: 6px 0 8px; padding-top: 8px; border-top: 1px solid var(--line); }
+.sp-cpill.me { font-weight: 700; opacity: 1; cursor: default; }
+.sp-line.hl { stroke-width: 3.5; } .sp-line.dim { opacity: .45; } .sp-dot.dim { opacity: .45; }
 .sp-cmptog { font-size: 13px; text-decoration: none; color: var(--ink2); font-weight: 600; }
 .sp-cmpbox .sp-chart { margin-top: 8px; }
 .sp-ueb { table-layout: fixed; }
@@ -2048,6 +2056,10 @@ button.jv-pill { border: 0; cursor: pointer; font-size: 11px; line-height: 16px;
 .fbtn.act { border-color: var(--focus); color: var(--focus); }
 /* Kalender: Monate ausblenden */
 .calmbtn.act { border-color: var(--line2); }
+/* Spendenzwecke: Regeln und Vorschläge zum Einblenden */
+.spj-togs { display: inline-flex; gap: 6px; margin-left: auto; } .spj-zh .spj-newbar + .spj-togs { margin-left: 8px; }
+.spj-tog { padding: 3px 10px; border-radius: 14px; font-size: 12.5px; background: var(--card); border: 1px solid var(--line2); color: var(--ink2); }
+.spj-tog.on { background: var(--soft); border-color: var(--muted); }
 .calm-pop { min-width: 250px; }
 .calm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; margin: 4px 0 8px; }
 .calm { padding: 4px 0; border-radius: 6px; border: 1px solid var(--line2); background: var(--card); color: var(--ink); font-weight: 600; font-size: 13px; }
@@ -2157,5 +2169,47 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .sp-ar-t { width: 100%; margin: 0; table-layout: auto; } .sp-ar-t td { padding: 3px 6px; white-space: nowrap; font-size: 12.5px; }
 .sp-ar-t td.sp-z { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 0; width: 100%; } .sp-ar-from { font-size: 12px; }
 .sp-ar-foot { display: flex; justify-content: space-between; align-items: center; margin: 12px 0 6px; }
+/* „Buchungen hinzugefügt“: Zuordnungen prüfen – Übersicht (Maßnahmen | Spendenzwecke), Schritte, Abschluss */
+.sp-ar-asg { margin-top: 12px; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: color-mix(in srgb, var(--focus) 4%, var(--card)); }
+.sp-ar-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.sp-ar-col { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sp-ar-ch { display: flex; justify-content: space-between; align-items: baseline; font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); padding: 0 8px 4px; border-bottom: 1px solid var(--line); margin-bottom: 3px; }
+.sp-ar-ch b { font-size: 13px; color: var(--ink); letter-spacing: 0; }
+.sp-ar-trow { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; padding: 6px 8px; border: 0; border-radius: 7px; background: transparent; font-size: 14px; color: var(--ink); cursor: pointer; }
+.sp-ar-trow:hover { background: var(--soft); } .sp-ar-trow .nm { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sp-ar-trow b { font-variant-numeric: tabular-nums; } .sp-ar-trow.fin { color: var(--muted); } .sp-ar-trow.fin b { color: var(--ok); }
+.sp-ar-trow .dot, .sp-ar-stp .dot, .sp-ar-pick .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.sp-ar-nil { padding: 6px 8px; }
+.sp-ar-asgf { display: flex; justify-content: space-between; align-items: center; margin-top: 10px; gap: 10px; }
+.sp-ar-start { padding: 7px 18px; font-size: 14.5px; font-weight: 700; } .sp-ar-alldone { color: var(--ok); font-weight: 700; }
+.sp-ar-stepper { display: flex; flex-wrap: wrap; gap: 8px 18px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
+.sp-ar-sgrp { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
+.sp-ar-sl { font-size: 11px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); margin-right: 3px; }
+.sp-ar-stp { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 14px; border: 1px solid var(--line2); background: var(--card); font-size: 12.5px; color: var(--ink2); }
+.sp-ar-stp b { font-size: 12px; } .sp-ar-stp.fin { color: var(--muted); } .sp-ar-stp.fin b { color: var(--ok); }
+.sp-ar-stp.cur { border-color: var(--focus); box-shadow: 0 0 0 2px color-mix(in srgb, var(--focus) 25%, transparent); color: var(--ink); font-weight: 700; }
+.sp-ar-step { margin-top: 14px; }
+.sp-ar-sh { display: flex; justify-content: space-between; align-items: baseline; }
+.sp-ar-area { font-size: 11.5px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--muted); }
+.sp-ar-st { display: flex; align-items: center; gap: 10px; margin: 4px 0 10px; } .sp-ar-st b { font-size: 21px; }
+.dot.big { display: inline-block; width: 16px; height: 16px; border-radius: 50%; } .sp-ar-w.big { font-size: 20px; }
+.sp-ar-list { border: 1px solid var(--line); border-radius: 10px; max-height: min(46vh, 420px); overflow: auto; --chk-mark: #fff; }
+.sp-ar-list input[type=checkbox] { width: 17px; height: 17px; } .sp-ar-list input[type=checkbox]:indeterminate { background: var(--ok); border-color: var(--ok); }
+.sp-ar-list input[type=checkbox]:indeterminate::after { content: ''; width: 9px; height: 0; margin: 0; border: 0; border-bottom: 2px solid #fff; transform: none; } .sp-ar-list input[type=checkbox]:checked { background: var(--ok); border-color: var(--ok); }
+.sp-ar-sr { display: grid; grid-template-columns: 22px 92px 96px minmax(0, 1fr); align-items: center; gap: 8px; padding: 6px 12px; border-top: 1px solid var(--line3); font-size: 13.5px; cursor: pointer; }
+.sp-ar-sr:first-child { border-top: 0; } .sp-ar-sr .sp-b { text-align: right; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sp-ar-sr .sp-z { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink2); }
+.sp-ar-sr.off { color: var(--faint); background: var(--soft); } .sp-ar-sr.off .sp-z { color: var(--faint); text-decoration: line-through; }
+.sp-ar-sr.head { grid-template-columns: 22px 1fr; font-size: 12.5px; color: var(--muted); background: var(--soft); position: sticky; top: 0; z-index: 1; }
+.sp-ar-sr:has(.sp-n) { grid-template-columns: 22px 92px 96px 160px minmax(0, 1fr); }
+.sp-ar-sr.kl { grid-template-columns: 92px 96px minmax(0, 1fr) auto; cursor: default; } .sp-ar-sr.kl:has(.sp-n) { grid-template-columns: 92px 96px 160px minmax(0, 1fr) auto; }
+.sp-ar-picks { display: inline-flex; gap: 5px; flex-wrap: wrap; justify-content: flex-end; }
+.sp-ar-pick { display: inline-flex; align-items: center; gap: 5px; padding: 2px 9px; border-radius: 12px; border: 1px solid var(--line2); background: var(--card); font-size: 12.5px; }
+.sp-ar-pick.on { border-color: var(--c); background: color-mix(in srgb, var(--c) 16%, var(--card)); font-weight: 700; }
+.sp-ar-sf { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
+.sp-ar-sf .sp-ar-hint { flex: 1; } .sp-ar-ok { padding: 7px 18px; font-size: 14.5px; font-weight: 700; } .sp-ar-back, .sp-ar-skip { text-decoration: none; }
+.sp-ar-done { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 26px 0 10px; text-align: center; }
+.sp-ar-done .sp-ar-big { width: 52px; height: 52px; font-size: 28px; } .sp-ar-dt { font-size: 21px; font-weight: 700; margin-bottom: 4px; }
+.sp-ar-dl { font-size: 14px; } .sp-ar-dl .sp-ar-sl { margin-right: 8px; }
 .sp-ar-foot .sp-ar-tog { font-size: 13.5px; font-weight: 600; } .sp-ar-copy { text-decoration: none; color: var(--muted); }
 .sp-ar-skip { margin: 6px 0 0; }

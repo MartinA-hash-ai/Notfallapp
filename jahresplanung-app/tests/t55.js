@@ -82,7 +82,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => openSettings('allgemein')); await p.waitForTimeout(200);
   const e0 = await p.evaluate(() => [[...document.querySelectorAll('.sett-backup button')].map(x => x.textContent).join(' | ')]);
   ok(e0[0] === 'Sicherung speichern … | Sicherung hochladen …', 'E: Einstellungen → Allgemein: ' + e0[0]);
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.waitForTimeout(100);
+  await p.click('header .actions .menu-btn.gear'); await p.waitForTimeout(100);
   const e1 = await p.evaluate(() => [...document.querySelectorAll('.menu button')].map(x => x.textContent).join(' | '));
   await p.evaluate(() => document.body.click()); await p.keyboard.press('Escape');
   await p.click('header .actions .menu-btn:has-text("Export")'); await p.waitForTimeout(100);

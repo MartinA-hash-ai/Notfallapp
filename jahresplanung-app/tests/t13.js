@@ -129,7 +129,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.evaluate(() => { undo(); undo(); undo(); });
 
   // ---------- Einstellungen
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.waitForTimeout(80);
+  await p.click('header .actions .menu-btn.gear'); await p.waitForTimeout(80);
   await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(150);
   const st = await p.evaluate(async () => { let t = ''; for (const k of ['allgemein', 'bereiche', 'version']) { UI.settTab = k; renderNow(); t += document.querySelector('.sett-body').textContent; } return t; });
   ok(!/Vorlauf|Max\. Starts/.test(st) && st.includes('Programmversion ' + T.VERSION) && /Datenstand Nr\./.test(st) && /Personen/.test(st), 'Einstellungen: ' + (st.match(/Programmversion[^·]*·[^D]*/) || [''])[0] + ' | ' + (st.match(/Datenstand[^W]*/) || [''])[0]);
@@ -208,7 +208,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.click('#savebox'); await p.waitForTimeout(200); await p.click('.modal footer button.primary'); await p.waitForTimeout(800);
   const newer = orig.replace('const APP_INFO = {"version": "' + T.VERSION + '"', 'const APP_INFO = {"version": "' + T.NEWER + '"').replace('Programm-Update einspielen', 'Programm-Update einspielen');
   fs.writeFileSync('update_test.html', newer.replace('<title>Jahresplanung Außenkommunikation</title>', '<title>Jahresplanung Außenkommunikation</title>'));
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Programm-Update")'); await p.waitForTimeout(100);
+  await p.click('header .actions .menu-btn.gear'); await p.click('.menu button:has-text("Programm-Update")'); await p.waitForTimeout(100);
   const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('.modal footer button.primary')]);
   await fc.setFiles('update_test.html'); await p.waitForTimeout(300);
   const q = await p.evaluate(() => document.querySelector('.modal') ? document.querySelector('.modal').innerText.replace(/\n/g, ' / ') : '');

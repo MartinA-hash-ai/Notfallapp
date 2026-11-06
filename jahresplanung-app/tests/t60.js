@@ -15,6 +15,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
 (async () => {
   const b = await chromium.launch(), pages = [];
   const p = await open(b, { width: 1500 }); pages.push(p);
+  await p.evaluate(() => { UI.spjRulesOpen = true; UI.spjSugOpen = true; });   // ab 0.47 sind Regeln und Vorschläge anfangs zu – hier offen wie bisher
   ok(await connect(p) === 'ok', 'Mailing-Ordner verbunden');
   await p.evaluate(t => { __fs.files['/Mailing/Spendeneingänge 2027/export.csv'] = { data: new TextEncoder().encode(t), lm: 81000 }; }, csv);
   await p.evaluate(() => { UI.year = 2027; UI.view = 'spenden'; UI.spMid = 'allg:2027'; SP.at = null; renderNow(); });
@@ -31,7 +32,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   ok(await p.evaluate(() => [...document.querySelectorAll('.spj-sw-l')].every(b => !/Müller|Hauptstr|^Spende|Danke|Geburtstag/.test(b.textContent))), 'A: keine Namen der Spender:innen, Adressteile, Füllwörter oder Einzelfälle');
   ok(await p.evaluate(() => document.querySelectorAll('.spj-sug .spj-to').length === 4 && [...document.querySelectorAll('.spj-sug .spj-to')].every(b => b.textContent === '+' && b.getAttribute('aria-haspopup') === 'dialog')), 'A: „+“ an jedem Vorschlag öffnet die Auswahl (neuer oder bestehender Zweck)');
   const a1 = await p.evaluate(() => { const r = q => document.querySelector(q).getBoundingClientRect(), sb = r('.spj-sugbar'), m = r('.spj-main');
-    return [r('.spj-rules').bottom <= sb.top + 1, sb.bottom <= r('.spj-listbox').top + 1, Math.round(sb.height), Math.round(sb.width) === Math.round(m.width), getComputedStyle(document.querySelector('.spj-sugbar')).backgroundColor]; });
+    return [!document.querySelector('.spj-rules') || r('.spj-rules').bottom <= sb.top + 1, sb.bottom <= r('.spj-listbox').top + 1, Math.round(sb.height), Math.round(sb.width) === Math.round(m.width), getComputedStyle(document.querySelector('.spj-sugbar')).backgroundColor]; });
   ok(a1[0] && a1[1] && a1[2] <= 40 && a1[3] && a1[4] !== 'rgba(0, 0, 0, 0)', 'A: Vorschläge als eine graue Zeile (' + a1[2] + ' px) zwischen Regeln und Liste, über die ganze Breite');
   ok(await p.evaluate(() => getComputedStyle(document.querySelector('.spj-sugmore')).visibility === 'hidden'), 'A: alle vier passen in die Zeile – kein „alle N ▾“');
 
@@ -54,7 +55,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   const c0 = await p.evaluate(() => { const z = D.zwecke.find(z => z.name === 'Wärmebus'); return [z && z.worte.join(), SPJ.z === (z && z.id), spjCompute(2027).list.filter(e => e.z === (z && z.id)).length,
     document.querySelector('.spj-sugbar').offsetHeight, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length]; });
   ok(c0[0] === '~Wärmebus' && c0[1] && c0[2] === 4 && await p.evaluate(() => document.querySelector('.spj-zi.on .spj-zn').textContent.trim() === 'Wärmebus'), 'C: Enter – Zweck „Wärmebus“ mit „~Wärmebus“ angelegt und links gewählt, zählt 4 Spenden (auch „Waermebus“)');
-  ok(!(await sugs()).some(t => /Wärmebus/.test(t)) && c0[4] === h0[1] - 4 && c0[3] === h0[0], 'C: Vorschlag verschwindet, Liste der zweckungebundenen um 4 kleiner, Vorschlagsfeld gleich hoch (' + c0[3] + ' px)');
+  ok(!(await sugs()).some(t => /Wärmebus/.test(t)) && c0[4] === 4 && await p.evaluate(n => spjCompute(2027).list.filter(e => e.z === '-').length === n - 4, h0[1]) && c0[3] === h0[0], 'C: Vorschlag verschwindet, die Liste zeigt die 4 Spenden des neuen Zwecks, zweckungebunden 4 weniger, Vorschlagsfeld gleich hoch (' + c0[3] + ' px)');
 
   // ---- D: „+“ → „Zu einem bestehenden Zweck“ (der gewählte ist vorbelegt) fügt das Schlagwort hinzu
   await p.click('.spj-sug[data-w="rikscha"] .spj-to'); await p.waitForTimeout(200);
@@ -98,7 +99,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.click('.spj-lh .spj-all'); await move('-');
   const g0 = await p.evaluate(() => [spjCompute(2027).list.filter(e => e.z === '-' && e.hand).length, spjCompute(2027).list.filter(e => e.z === '-').length, document.querySelector('.spj-unhand')?.textContent]);
   const g1 = await sugs();
-  ok(g0[0] === g0[1] && g0[0] > 10 && g1.some(t => /^Trauer\*/.test(t)) && g1.some(t => /^JB /.test(t)) && /von Hand festgelegt – wieder automatisch/.test(g0[2]),
+  ok(g0[0] === g0[1] && g0[0] > 10 && g1.some(t => /^Trauer\*/.test(t)) && g1.some(t => /^JB /.test(t)) && /von Hand gesetzte wieder den Regeln überlassen/.test(g0[2]),
     'G: alle ' + g0[0] + ' zweckungebundenen von Hand festgelegt – Vorschläge bleiben (' + g1.length + '), Knopf „' + g0[2] + '“');
   await p.click('.spj-zi:has-text("Wärmebus")'); await p.waitForTimeout(200);
   const n0 = await p.evaluate(() => spjCompute(2027).list.filter(e => e.z === D.zwecke.find(z => z.name === 'Wärmebus').id).length);
@@ -106,6 +107,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   const g2 = await p.evaluate(() => { const z = D.zwecke.find(z => z.name === 'Wärmebus'), tr = SP.rows.filter(r => /trauer/i.test(r.zweck)).map(r => r.k);
     return [spjCompute(2027).list.filter(e => e.z === z.id).length, tr.every(k => !(k in D.spenden.zweck)), Object.values(D.spenden.zweck).filter(v => v === '-').length]; });
   ok(g2[0] === n0 + 3 && g2[1] && g2[2] === g0[0] - 3, 'G: „+“ (Trauer*) holt die drei passenden Spenden trotz Markierung von Hand zum Zweck (' + n0 + ' → ' + g2[0] + '), die übrigen bleiben markiert');
+  await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(200);   // 0.47: der Knopf steht bei „zweckungebunden“
   await p.click('.spj-unhand'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !Object.values(D.spenden.zweck).some(v => v === '-') && !document.querySelector('.spj-unhand')), 'G: „… wieder automatisch“ hebt die Markierung von Hand auf');
 
@@ -123,15 +125,18 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.click('.spj-zi[data-z="' + pills[0] + '"]'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !!SPJ.typed), 'H: auch beim Zurückwechseln');
   await p.click('.spj-prevx'); await p.waitForTimeout(150);
+  await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(150);          // 0.47: Spenden ohne Zweck links unter „zweckungebunden“
   const k0 = await p.evaluate(() => document.querySelector('[data-sec="sp-zu"] .spj-row').dataset.k);
+  await p.click('.spj-row[data-k="' + k0 + '"] .sp-d'); await move(pills[0]);
+  await p.click('.spj-zi[data-z="' + pills[0] + '"]'); await p.waitForTimeout(250);
+  ok(await p.evaluate(k => document.querySelector('.spj-row[data-k="' + k + '"] .sp-tag.hand')?.textContent === 'von Hand', k0), 'H: beim Zweck steht „von Hand“');
   await p.click('.spj-row[data-k="' + k0 + '"] .sp-d'); await move('-');
+  await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(200);
   const hh1 = await p.evaluate(k => [D.spenden.zweck[k], !!document.querySelector('.spj-row[data-k="' + k + '"]'), document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.hand').length], k0);
   ok(hh1[0] === '-' && hh1[1] && hh1[2] === 0, 'H: von Hand auf „zweckungebunden“ gesetzt – in der Liste „Zweckungebunden“ ohne Kennzeichen');
-  await p.click('.spj-row[data-k="' + k0 + '"] .sp-d'); await move(pills[0]); await p.click('.spj-lv [data-lv="zweck"]'); await p.waitForTimeout(250);
-  ok(await p.evaluate(k => document.querySelector('.spj-row[data-k="' + k + '"] .sp-tag.hand')?.textContent === 'von Hand', k0), 'H: beim Zweck („Bei …“) steht „von Hand“');
 
   // ---- I: ausgeblendete Vorschläge: Knopf „Ausgeblendet (N)“ oben rechts, einzeln oder alle wieder einblenden
-  await p.click('.spj-lv [data-lv="frei"]'); await p.evaluate(() => commit(d => { d.spenden.ignor = {}; }, 'Test')); await p.waitForTimeout(200);
+  await p.click('.spj-zi[data-z="-"]'); await p.evaluate(() => commit(d => { d.spenden.ignor = {}; }, 'Test')); await p.waitForTimeout(200);
   const ws = await p.evaluate(() => [...document.querySelectorAll('.spj-sug')].slice(0, 2).map(e => e.dataset.w));
   for (const x of ws) await hideSug(x);
   const i0 = await p.evaluate(() => { const b = document.querySelector('.spj-sugign'), hd = document.querySelector('.spj-sugbar').getBoundingClientRect(), r = b.getBoundingClientRect(); return [b.textContent, hd.right - r.right < 20]; });

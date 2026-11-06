@@ -9,6 +9,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
 (async () => {
   const b = await chromium.launch(), pages = [];
   const p = await open(b, { width: 1500 }); pages.push(p);
+  await p.evaluate(() => { UI.spjRulesOpen = true; UI.spjSugOpen = true; });   // ab 0.47 sind Regeln und Vorschläge anfangs zu – hier offen wie bisher
   ok(await connect(p) === 'ok', 'Mailing-Ordner verbunden');
   await p.evaluate(t => { __fs.files['/Mailing/Spendeneingänge 2027/export.csv'] = { data: new TextEncoder().encode(t), lm: 81000 }; }, csv);
   await p.evaluate(() => { UI.year = 2027; UI.view = 'spenden'; UI.spMid = 'allg:2027'; SP.at = null; renderNow(); });
@@ -30,7 +31,7 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   const a2 = await side(), a3 = await p.evaluate(() => [document.querySelector('.spj-zi.alle').textContent, document.querySelector('.spj-zi.alle').classList.contains('on'), document.querySelector('.spj-zh').textContent]);
   ok(a2.join(' | ') === 'Rikscha 3 · 60 € | Wärmebus 0 · 0 € | zweckungebunden 9 · 720 €' && a3[0] === 'Alle Spenden 202712 · 780 €' && a3[1], 'A: Seitenleiste: ' + a3[0] + ' (gewählt) | ' + a2.join(' | '));
   ok(await p.evaluate(() => { const s = document.querySelector('.spj-side').getBoundingClientRect(), m = document.querySelector('.spj-main').getBoundingClientRect(); return s.right <= m.left + 1 && s.width > 200 && s.width < 300 && Math.abs(s.top - m.top) < 2; }) &&
-    a3[2] === 'Alle Spenden 202712 Spenden · 780 €', 'A: Zwecke links (Seitenleiste), Arbeitsbereich rechts – ohne Wahl „' + a3[2] + '“');
+    /^Alle Spenden 2027/.test(a3[2]) && !/Spenden ·|Klick = Zweck/.test(a3[2] + '' ), 'A: Zwecke links (Seitenleiste), Arbeitsbereich rechts – ohne Wahl „Alle Spenden 2027“, ohne Anzahl/Summe im Kopf und ohne Hinweis links');
   const aAll = await rows();
   ok(aAll.length === 12 && aAll[0] === 'Probe L' && await p.evaluate(() => [...document.querySelectorAll('[data-sec="sp-zu"] .spj-row .sp-tag.rule')].map(t => t.textContent).join() === 'Rikscha,Rikscha,Rikscha'),
     'A: ohne gewählten Zweck – Liste aller 12 Spenden, bei den drei Rikscha-Spenden der Zweck');
@@ -69,27 +70,23 @@ const csv = '﻿' + [HEAD, ...R.map(line)].join('\r\n') + '\r\n';
   await p.evaluate(() => document.activeElement && document.activeElement.blur()); await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => !Object.keys(D.spenden.zweck).length && document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length === 9), 'D: Strg+Z holt sie zurück');
 
-  // ---- E: Zweck links gewählt – Ziel ist vorbelegt; Markierung bleibt beim Zweckwechsel (gleiche Liste), der Umschalter beginnt neu
-  await clickRow('Probe D');
-  await p.click('.spj-zi[data-z="zr"]'); await p.waitForTimeout(200);
-  const e0 = await bar();
-  ok((await rows()).filter(n => n.endsWith('*')).join() === 'Probe D*' && e0.target === 'zr' && !e0.dis && await p.evaluate(() => document.querySelector('.spj-zh .spj-name').value === 'Rikscha'),
-    'E: links „Rikscha“ gewählt – Markierung bleibt, Ziel „Rikscha“ vorbelegt, oben der Name zum Umbenennen');
-  await clickRow('Probe E'); await move();
+  // ---- E (0.47): aus „zweckungebunden“ per Leiste einem Zweck zuordnen; Zweck links gewählt – die Liste zeigt seine Spenden (kein Umschalter mehr), Markierung nicht übernommen
+  await clickRow('Probe D'); await clickRow('Probe E'); await move('zr');
   const e1 = await p.evaluate(() => ['Probe D', 'Probe E'].map(n => D.spenden.zweck[SP.rows.find(r => r.name === n).k]).join());
-  ok(e1 === 'zr,zr' && (await side())[0] === 'Rikscha 5 · 150 € *'.replace(' *', '*'), 'E: „Verschieben“ ohne Ziel zu wählen – D und E bei „Rikscha“ (links 5 · 150 €)');
+  ok(e1 === 'zr,zr' && (await side())[0] === 'Rikscha 5 · 150 €', 'E: D und E mit Ziel „Rikscha“ verschoben (links 5 · 150 €)');
   await clickRow('Probe F');
-  await p.click('.spj-lv [data-lv="zweck"]'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => !document.querySelector('.spj-row.sel') && document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length === 5), 'E: Umschalter „Bei „Rikscha““ – andere Liste, keine Markierung übernommen');
+  await p.click('.spj-zi[data-z="zr"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => !document.querySelector('.spj-row.sel') && document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length === 5 && !document.querySelector('.spj-lv') &&
+    document.querySelector('.spj-lh b').textContent === 'Zugeordnet' && document.querySelector('.spj-zh .spj-name').value === 'Rikscha'), 'E: links „Rikscha“ gewählt – Liste „Zugeordnet“ mit seinen 5 Spenden, ohne Umschalter, nichts markiert, oben der Name zum Umbenennen');
 
-  // ---- F: in „Bei Rikscha“: Häkchen oben = alle → „zweckungebunden“ (von Hand; dort ist kein Ziel vorbelegt); dann wieder „nicht festgelegt (automatisch)“
+  // ---- F: beim Zweck „Rikscha“: Häkchen oben = alle → „zweckungebunden“ (von Hand; dort ist kein Ziel vorbelegt); dann wieder „nicht festgelegt (automatisch)“
   await p.click('.spj-lh .spj-all'); await p.waitForTimeout(100);
   const f0 = await bar();
-  ok(f0.all === 'alle' && f0.info === '5 Spenden markiert · 150,00 €' && f0.target === '' && f0.dis, 'F: Häkchen oben markiert alle 5; in „Bei …“ ist kein Ziel vorbelegt');
+  ok(f0.all === 'alle' && f0.info === '5 Spenden markiert · 150,00 €' && f0.target === '' && f0.dis, 'F: Häkchen oben markiert alle 5; beim Zweck ist kein Ziel vorbelegt');
   await move('-');
   const f1 = await p.evaluate(() => [Object.values(D.spenden.zweck).filter(v => v === '-').length, document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length]);
   ok(f1[0] === 5 && f1[1] === 0, 'F: alle 5 von Hand auf „zweckungebunden“ – die Liste „Bei Rikscha“ ist leer');
-  await p.click('.spj-lv [data-lv="frei"]'); await p.waitForTimeout(200);
+  await p.click('.spj-zi[data-z="-"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => document.querySelectorAll('[data-sec="sp-zu"] .spj-row').length === 12 && !document.querySelector('[data-sec="sp-zu"] .spj-row .sp-tag.hand') && document.querySelectorAll('[data-sec="sp-zu"] .spj-row.hand').length === 5),
     'F: in „Zweckungebunden“ stehen jetzt alle 12 – ohne Kennzeichen „von Hand“');
   for (const n of ['Probe A', 'Probe B']) await clickRow(n);

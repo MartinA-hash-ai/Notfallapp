@@ -21,7 +21,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   const ban = await p.evaluate(() => [...document.querySelectorAll('.banner')].map(b => b.innerText).join(' || '));
   ok(/gespeichert wird aber in den Ordner „Mailing“/.test(ban), 'Warnung bei falschem Ordner: ' + ban.slice(0, 160));
   await p.screenshot({ path: 'r9_banner.png', clip: { x: 0, y: 0, width: 1400, height: 140 } });
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(150);
+  await p.click('header .actions .menu-btn.gear'); await p.click('.menu button:has-text("Einstellungen")'); await p.waitForTimeout(150);
   await p.click('.sett-tab[data-tab="version"]'); await p.waitForTimeout(100);
   const st = await p.evaluate(() => document.querySelector('.verbox').innerText);
   ok(/Geöffnete Datei: .*jahresplanung-app/.test(st) && /passt nicht/.test(st), 'Einstellungen zeigen Datei und Speicherort: ' + st.replace(/\n/g, ' / '));

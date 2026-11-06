@@ -94,11 +94,17 @@ function topBar() {
         ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS]]),
       presenceChip(),
       saveBox(),
-      menuButton('⋯', [                                   // ab 0.15 schlank: Speicherort und Protokoll in den Einstellungen, Speichern immer automatisch
-        ['Daten prüfen …', checkDialog], ['Daten zurücksetzen …', resetDialog], null,
-        [(DARK ? '☀ Helles Design' : '☾ Dunkles Design'), () => setTheme(DARK ? 'light' : 'dark')],
-        ['Programm-Update einspielen …', updateProgram], null,
-        ['Einstellungen …', () => openSettings()]], 'right')));
+      gearMenu()));
+}
+// Zahnrad: Einstellungen und Werkzeuge (ab 0.15 schlank: Speicherort und Protokoll in den Einstellungen, Speichern immer automatisch)
+function gearMenu() {
+  const b = menuButton(icon('gear'), [
+    ['Einstellungen …', () => openSettings()], null,
+    ['Daten prüfen …', checkDialog], ['Daten zurücksetzen …', resetDialog], null,
+    [(DARK ? '☀ Helles Design' : '☾ Dunkles Design'), () => setTheme(DARK ? 'light' : 'dark')],
+    ['Programm-Update einspielen …', updateProgram]], 'right');
+  b.classList.add('gear'); b.setAttribute('aria-label', 'Einstellungen und Werkzeuge'); setTip(b, 'Einstellungen und Werkzeuge');
+  return b;
 }
 // Daten zurücksetzen: Spenden-Zuordnungen, Exportdateien, Maßnahmen eines Jahres. Einstellungen bleiben; vorher Datensicherung.
 async function resetDialog() {

@@ -22,6 +22,7 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
 (async () => {
   const b = await chromium.launch(), pages = [];
   const p = await open(b); pages.push(p);
+  await p.evaluate(() => { UI.spjRulesOpen = true; UI.spjSugOpen = true; });   // ab 0.47 sind Regeln und Vorschläge anfangs zu – hier offen wie bisher
   ok(await connect(p) === 'ok', 'Mailing-Ordner verbunden');
   await writeText(p, DIR + 'export.csv', EXPORT);
   await p.evaluate(() => { UI.year = 2027; UI.view = 'spenden'; UI.spMid = 'm5'; SP.at = null; renderNow(); });

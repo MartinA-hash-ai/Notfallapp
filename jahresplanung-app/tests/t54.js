@@ -59,9 +59,9 @@ const csv = rows => '﻿' + [HEAD, ...rows].join('\r\n') + '\r\n';
   ok(lum(b0[1]) < lum(b0[0]) && b0[0] !== b0[2] && b0[4] === b0[1] && b0[3], 'B: Ferientag im Kalender grau, etwas heller als ein Wochenende (' + b0[0] + ' / Wochenende ' + b0[1] + ' / normal ' + b0[2] + '); Samstag in den Ferien bleibt Wochenende; Ferientag bleibt ein Werktag');
 
   // ---- C: ⋯-Menü schlank, Speicherort und Änderungsprotokoll in den Einstellungen, ohne Hilfe; Speichern immer automatisch
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.waitForTimeout(100);
+  await p.click('header .actions .menu-btn.gear'); await p.waitForTimeout(100);
   const c0 = await p.evaluate(() => [...document.querySelectorAll('.menu button')].map(e => e.textContent).join(' | '));
-  ok(!/Automatisch speichern|Speicherort|Änderungsprotokoll|Urlaub|Hilfe/.test(c0) && /Einstellungen …$/.test(c0) && /Daten prüfen/.test(c0) && /Programm-Update/.test(c0), 'C: ⋯-Menü – ' + c0);
+  ok(!/Automatisch speichern|Speicherort|Änderungsprotokoll|Urlaub|Hilfe/.test(c0) && /^Einstellungen …/.test(c0) && /Daten prüfen/.test(c0) && /Programm-Update/.test(c0), 'C: Zahnrad-Menü (Einstellungen zuerst) – ' + c0);
   await p.keyboard.press('Escape'); await p.evaluate(() => document.body.click());
   await p.evaluate(() => openSettings('allgemein')); await p.waitForTimeout(200);
   const c1 = await p.evaluate(() => [!!document.querySelector('.sett-body .sett-folder'), document.querySelector('.sett-body .sett-store').textContent, !!document.querySelector('.sett-body .sett-log')]);

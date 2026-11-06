@@ -60,7 +60,7 @@ const { chromium, T, ORIG, ok, open, skip, readF, writeF, connect, withData, ver
   // ---- E: Programm-Update mit einer älteren Datei → Rückfrage
   { const p = await open(b, { clock: true }); pages.push(p); await connect(p);
     fs.writeFileSync('alt_0.1.html', ORIG.replace('const APP_INFO = {"version": "' + T.VERSION + '"', 'const APP_INFO = {"version": "0.1"'));
-    await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Programm-Update")'); await p.waitForTimeout(100);
+    await p.click('header .actions .menu-btn.gear'); await p.click('.menu button:has-text("Programm-Update")'); await p.waitForTimeout(100);
     const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('.modal footer button.primary')]);
     await fc.setFiles('alt_0.1.html'); await p.waitForTimeout(300);
     const q = await p.evaluate(() => document.querySelector('.modal') ? document.querySelector('.modal').innerText : '');

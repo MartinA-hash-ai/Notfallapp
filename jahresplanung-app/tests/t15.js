@@ -30,7 +30,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   // ---------- Update-Funktion 0.6 → 0.6: Erfolg mit Prüfung
   fs.writeFileSync('upd_0.6.html', neu.replace('const APP_INFO = {"version": "' + T.VERSION + '"', 'const APP_INFO = {"version": "' + T.NEWER + '"'));
   await p.evaluate(() => { window.__reloads = 0; });
-  await p.click('header .actions .menu-btn:has-text("⋯")'); await p.click('.menu button:has-text("Programm-Update")'); await p.waitForTimeout(100);
+  await p.click('header .actions .menu-btn.gear'); await p.click('.menu button:has-text("Programm-Update")'); await p.waitForTimeout(100);
   const [fc2] = await Promise.all([p.waitForEvent('filechooser'), p.click('.modal footer button.primary')]);
   await fc2.setFiles('upd_0.6.html'); await p.waitForTimeout(200);
   await Promise.all([p.waitForEvent('download'), p.click('.modal footer button.primary')]);
@@ -45,7 +45,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await ctx2.addInitScript({ path: T.FAKEFS });
   const q = await ctx2.newPage(); q.setDefaultTimeout(6000); q.on('pageerror', e => errs.push(e.message));
   await q.goto('file://' + NEW); await q.waitForTimeout(400);
-  await q.click('header .actions .menu-btn:has-text("⋯")'); await q.click('.menu button:has-text("Programm-Update")'); await q.waitForTimeout(100);
+  await q.click('header .actions .menu-btn.gear'); await q.click('.menu button:has-text("Programm-Update")'); await q.waitForTimeout(100);
   const [fc3] = await Promise.all([q.waitForEvent('filechooser'), q.click('.modal footer button.primary')]);
   await fc3.setFiles('upd_0.6.html'); await q.waitForTimeout(200);
   await q.click('.modal footer button.primary'); await q.waitForTimeout(200);          // Übernehmen → „Speicherort wählen“
