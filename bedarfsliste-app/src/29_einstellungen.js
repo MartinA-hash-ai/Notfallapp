@@ -13,6 +13,7 @@ const EI = {   // kleine Zeichen für die Einträge
   excel: '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M5 2.5h7l3.5 3.5v11.5H5z" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M8 9.5l4 5M12 9.5l-4 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>',
   bank: '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M2.5 7.5L10 3l7.5 4.5zM4.5 8.5v6M8 8.5v6M12 8.5v6M15.5 8.5v6M2.5 17h15" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/></svg>',
   kartei: '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="2.5" y="5" width="15" height="11.5" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 5V3.5h9V5M6 9.5h8M6 12.5h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" fill="none"/></svg>',
+  diagramm: '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><rect x="2.5" y="2.5" width="15" height="15" rx="2" fill="none" stroke="#1d6f42" stroke-width="1.5"/><path d="M6 14V10.5M10 14V6.5M14 14V8.5" stroke="#1d6f42" stroke-width="2" stroke-linecap="round"/></svg>',
   ab: '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M10 3v9.5M6 8.8l4 4 4-4M3.5 16.5h13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   auf: '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><path d="M10 13V3.5M6 7.2l4-4 4 4M3.5 16.5h13" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   info: '<svg viewBox="0 0 20 20" width="18" height="18" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M10 9v5M10 6.2v.1" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>' };
@@ -27,7 +28,7 @@ function einstGruppen() {
     ['Bedienung', [
       ['tasten', 'tasten', 'Tastaturbefehle', 'Übersicht und eigene Tasten festlegen', () => tastenDialog()]]],
     ['Daten einlesen', [
-      ['upl', 'excel', 'UPL (Investitionsabfrage) einlesen', 'Excel der Investitionsabfrage – legt die Bedarfe an oder ergänzt sie', ohneVorschau(async () => { const f = await pickFile('.xlsx'); if (f) await uplImport(f); })],
+      ['upl', 'diagramm', 'UPL einlesen', 'Excel der Investitionsabfrage – legt die Bedarfe an oder ergänzt sie', ohneVorschau(async () => { const f = await pickFile('.xlsx'); if (f) await uplImport(f); })],
       flAktiv() ? null : ['kartei', 'kartei', 'Förder-Kartei', 'Excel „Banken- und Stiftungsübersicht“ wählen oder verknüpfen' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : ''), ohneVorschau(async () => { if (ST.conn !== 'ok' && !await connectFolder()) return; await karteiChoose(); })]]],
     ['Datensicherung', [
       ['backup', 'ab', 'Sicherung herunterladen', 'Eine Kopie aller Daten als Datei (.json) – z. B. vor großen Änderungen', ohneVorschau(() => saveBackup())],

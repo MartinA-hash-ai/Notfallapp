@@ -183,6 +183,16 @@ function personenFrage() {
 /* ---------- Personenliste (ab 0.135 neu): links die Gruppen (alle, Fachreferate, Gliederungen, ohne Zuordnung), rechts die Personen als Karten.
    Im Fachreferat macht der Stern eine Person zur Hauptansprechperson (früher eigenes Fenster). Stift: Karte zum Bearbeiten aufklappen.
    Gespeichert wird beim Klick auf „Speichern“ in „Personen.xlsx“; daraus kommen die Vorschläge beim Tippen und die Personen beim Fachreferat. */
+// Anzeige der Gruppen kurz (nur Anzeige, die Daten bleiben): Diözesangeschäftsstelle → DGS Paderborn (NUK und Lage-Hörste ausgeblendet),
+// „Geschäftsstelle“ entfällt, Dienststelle → DST, Malteser Bildungszentrum → MBZ, Presse- und Öffentlichkeitsarbeit → PÖ
+const PL_WEG = /di(ö|oe)zesangesch(ä|ae)ftsstelle\s*[-–]?\s*(nuk|lage)/i;
+function plKurz(t) {
+  let s = String(t || '').trim(); if (!s) return '';
+  if (/^di(ö|oe)zesangesch(ä|ae)ftsstelle(\s+paderborn)?$/i.test(s) || /^dgs(\s+paderborn)?$/i.test(s)) return 'DGS Paderborn';
+  s = s.replace(/di(ö|oe)zesangesch(ä|ae)ftsstelle/gi, '').replace(/gesch(ä|ae)ftsstelle/gi, '').replace(/dienststelle/gi, 'DST').replace(/malteser[\s-]+bildungszentrum/gi, 'MBZ').replace(/presse[\s-]*(und|&)\s*(ö|oe)ffentlichkeitsarbeit/gi, 'PÖ')
+    .replace(/\s{2,}/g, ' ').replace(/^[\s,–-]+|[\s,–-]+$/g, '').trim();
+  return s || 'DGS Paderborn';
+}
 async function personenListeDialog() {
   if (DEMO && !PR.list.length && typeof demoPersonen === 'function') personenSetzen(demoPersonen());
   const F = [['n', 'Name', 'Vorname Nachname'], ['rolle', 'Position', 'z. B. Dienstleitung, Referentin'], ['gl', 'Gliederung', 'z. B. Paderborn, Diözese'], ['fach', 'Fachreferat', 'z. B. Soziales Ehrenamt'],
@@ -190,15 +200,16 @@ async function personenListeDialog() {
   const L = PR.list.map(p => Object.assign({}, p)), weg = new Set(), HW = {};
   let q = '', grp = { t: 'alle', n: '' }, edit = null;
   const da = () => L.filter(p => !weg.has(p));
-  const glName = p => String(p.gl || '').trim();
-  const inGrp = (p, g) => g.t === 'alle' ? true : g.t === 'fach' ? fachTeile(p.fach).includes(norm(g.n)) : g.t === 'gl' ? norm(glName(p)) === norm(g.n) : !glName(p) && !fachTeile(p.fach).length;
+  const glName = p => plKurz(p.gl);
+  const fachK = p => String(p.fach || '').split(/\s*[,;/]\s*/).map(x => plKurz(x)).filter(Boolean);
+  const inGrp = (p, g) => g.t === 'alle' ? true : g.t === 'fach' ? fachK(p).some(x => norm(x) === norm(g.n)) : g.t === 'gl' ? norm(glName(p)) === norm(g.n) : !glName(p) && !fachK(p).length;
   const haupt = n => { const k = norm(n); if (k in HW) return HW[k]; const v = fachHauptStd(n, da().filter(p => inGrp(p, { t: 'fach', n }))); return v || ''; };
   const nav = h('nav', { class: 'pl2-nav', 'aria-label': 'Gruppen' }), main = h('div', { class: 'pl2-main' });
   const such = h('input', { type: 'search', class: 'pl2-such', placeholder: 'Suchen: Name, Position, E-Mail …', 'aria-label': 'Personen suchen', oninput: e => { q = norm(e.target.value); zeig(); } });
-  const navEintrag = (g, t, n) => h('button', { type: 'button', class: 'pl2-ni' + (!q && grp.t === g.t && grp.n === g.n ? ' on' : ''), onclick: () => { grp = g; q = ''; such.value = ''; edit = null; zeig(); } }, h('span', null, t), h('span', { class: 'pl2-nz' }, String(n)));
+  const navEintrag = (g, t, n) => h('button', { type: 'button', title: t, class: 'pl2-ni' + (!q && grp.t === g.t && grp.n === g.n ? ' on' : ''), onclick: () => { grp = g; q = ''; such.value = ''; edit = null; zeig(); } }, h('span', null, t), h('span', { class: 'pl2-nz' }, String(n)));
   const zeigNav = () => {
-    const A = da(), fach = uniq([...FACH_LIST, ...A.flatMap(p => String(p.fach || '').split(/\s*[,;/]\s*/).map(x => x.trim()))]).filter(Boolean).sort((a, c) => a.localeCompare(c, 'de'));
-    const gl = uniq(A.map(glName).filter(Boolean)).sort((a, c) => (a === DIO || /^diözese/i.test(a) ? -1 : c === DIO || /^diözese/i.test(c) ? 1 : a.localeCompare(c, 'de'))), ohne = A.filter(p => inGrp(p, { t: 'ohne' })).length;
+    const A = da(), fach = uniq([...FACH_LIST, ...A.flatMap(fachK)]).filter(n => n && !PL_WEG.test(n)).sort((a, c) => a.localeCompare(c, 'de'));
+    const vorn = g => g === DIO || /^diözese|^dgs/i.test(g), gl = uniq(A.filter(p => !PL_WEG.test(p.gl || '')).map(glName).filter(Boolean)).sort((a, c) => (vorn(a) && !vorn(c) ? -1 : vorn(c) && !vorn(a) ? 1 : a.localeCompare(c, 'de'))), ohne = A.filter(p => inGrp(p, { t: 'ohne' })).length;
     nav.replaceChildren(navEintrag({ t: 'alle', n: '' }, 'Alle Personen', A.length),
       h('div', { class: 'pl2-nk' }, 'Fachreferate'), ...fach.map(n => navEintrag({ t: 'fach', n }, n, A.filter(p => inGrp(p, { t: 'fach', n })).length)),
       h('div', { class: 'pl2-nk' }, 'Gliederungen'), ...gl.map(n => navEintrag({ t: 'gl', n }, n, A.filter(p => inGrp(p, { t: 'gl', n })).length)),
@@ -209,7 +220,7 @@ async function personenListeDialog() {
   const karte = p => {
     if (edit === p) return formular(p);
     const fg = grp.t === 'fach' && !q, k = kkey(p.n), ist = fg && !!k && haupt(grp.n) === k;
-    const tags = [grp.t !== 'gl' && glName(p) ? glName(p) : null, grp.t !== 'fach' && p.fach ? 'FR ' + p.fach : null].filter(Boolean);
+    const tags = [grp.t !== 'gl' && glName(p) ? glName(p) : null, grp.t !== 'fach' && fachK(p).length ? 'FR ' + fachK(p).join(', ') : null].filter(Boolean);
     return h('div', { class: 'pl2-k' + (ist ? ' haupt' : '') },
       fg ? h('button', { type: 'button', class: 'pl2-st', title: ist ? 'Hauptansprechperson des Fachreferats – noch einmal: zurücknehmen' : 'Zur Hauptansprechperson des Fachreferats machen', 'aria-pressed': String(ist), onclick: () => { HW[norm(grp.n)] = ist ? '' : k; zeigMain(); } }, ist ? '★' : '☆') : h('span', { class: 'pl2-av', 'aria-hidden': 'true' }, (p.n || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()),
       h('div', { class: 'pl2-kk' }, h('b', null, p.n || '(ohne Namen)'), h('div', { class: 'pl2-pos' }, p.rolle || '', ...tags.map(t => h('span', { class: 'pl2-tag' }, t)))),

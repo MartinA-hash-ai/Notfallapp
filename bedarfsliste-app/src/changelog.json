@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.136.0",
+    "date": "2026-11-19T10:00",
+    "items": [
+      "Personenliste: Gruppen kürzer – Diözesangeschäftsstelle heißt „DGS Paderborn“ (NUK und Lage-Hörste stehen nicht mehr links), „Geschäftsstelle“ entfällt, Dienststelle → DST, Malteser Bildungszentrum → MBZ, Presse- und Öffentlichkeitsarbeit → PÖ (nur die Anzeige, die Daten bleiben)",
+      "Personenliste: kein waagerechter Scrollbalken mehr unten",
+      "Einstellungen: „UPL einlesen“ mit Diagramm-Zeichen, ohne „(Investitionsabfrage)“"
+    ]
+  },
+  {
     "version": "0.135.0",
     "date": "2026-11-18T10:00",
     "items": [

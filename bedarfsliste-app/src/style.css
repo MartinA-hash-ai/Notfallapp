@@ -2398,3 +2398,6 @@ html.modal-offen { overflow: hidden; }
 .pl2-leer { padding: 20px 0; }
 @media (max-width: 760px) { .pl2 { grid-template-columns: 1fr; height: auto; } .pl2-nav { display: none; } .pl2-such { width: 160px; } }
 .foe-pop, .foe-pop .pop-body, .fl-serie-pop, .frist-pop { overscroll-behavior: contain; }
+.pl2-nav, .pl2-main { overflow-x: hidden; }
+.pl2-ni > span:first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pl2-modal .modal-body { overflow-x: hidden; }

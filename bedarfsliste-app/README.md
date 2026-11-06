@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.136:** Personenliste mit kurzen Gruppennamen (DGS Paderborn, DST, MBZ, PÖ; NUK und Lage-Hörste ausgeblendet), ohne waagerechten Scrollbalken; UPL in den Einstellungen mit Diagramm-Zeichen.
+
 **Seit 0.135:** Personenliste mit Gruppen links und Karten rechts, Hauptansprechperson per Stern im Fachreferat; Fenster sperren das Scrollen der Seite dahinter; Einstellungen ohne Kontenliste-Einlesen und Adressen.
 
 **Seit 0.134:** Zahnrad schlank (Sonne/Mond, Update, Einstellungen); seltene Funktionen im neuen Fenster „Einstellungen“ in Gruppen; Kontakte-Import und Vorlagen-Downloads aus dem Menü entfernt.
