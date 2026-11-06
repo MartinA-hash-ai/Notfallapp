@@ -122,7 +122,7 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   const kA = await keyOf('Anna'), kB = await keyOf('Bernd');
   const e0b = [await nm(), await p.evaluate(() => [...document.querySelectorAll('.spm-listbox .sp-tag.rule')].map(t => t.textContent).join(','))];
   ok(e0b[0] === 'Bernd' && e0b[1] === 'JB', 'E: die Regel ordnet „JB danke“ (Bernd) gleich zu, markiert mit „JB“');
-  await p.click('.spm-lists .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
+  await p.evaluate(() => { SPUI.tab = 'offen'; SPUI.more = 0; renderNow(); }); await p.waitForTimeout(150);
   await p.click('.spm-listbox .spj-row:has-text("Spende")'); await p.waitForTimeout(100);
   const e1 = await p.evaluate(() => [document.querySelector('.spj-act .spj-move').value, document.querySelector('.spj-act .spj-selinfo').textContent]);
   ok(e1[0] === 'm5' && /^1 Spende markiert/.test(e1[1]), 'E: „Offen“ – Klick markiert, Ziel ist die gewählte Maßnahme (' + e1[1] + ')');
@@ -130,7 +130,7 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   const e2 = await p.evaluate(([a, b]) => [D.spenden.zu[a] && D.spenden.zu[a].m + (D.spenden.zu[a].r ? '/Regel' : '/Hand'), D.spenden.zu[b] && D.spenden.zu[b].m + (D.spenden.zu[b].r ? '/Regel' : '/Hand')], [kA, kB]);
   ok(e2[0] === 'm5/Hand' && e2[1] === 'm5/Regel', 'E: Anna von Hand, Bernd über die Regel bei „Jahresbericht“ (' + e2.join(', ') + ')');
   // im „Zugeordnet“ markieren und einer anderen Maßnahme zuordnen
-  await p.click('.spm-lists .seg-btn[data-tab="zu"]'); await p.waitForTimeout(150);
+  await p.evaluate(() => { SPUI.tab = 'zu'; SPUI.more = 0; renderNow(); }); await p.waitForTimeout(150);
   await p.click('.spm-listbox .spj-row:has-text("Spende")'); await p.waitForTimeout(100);
   await p.selectOption('.spj-act .spj-move', 'm4'); await p.click('.spj-act .spj-go'); await p.waitForTimeout(250);
   await p.evaluate(() => { UI.spMid = 'm4'; renderNow(); }); await p.waitForTimeout(250);
@@ -139,7 +139,7 @@ const savedHas = (p, t) => p.evaluate(t => new TextDecoder().decode(__fs.files['
   await p.evaluate(() => { UI.spMid = 'm5'; renderNow(); }); await p.waitForTimeout(200);
   ok(await nm() === 'Bernd', 'E: zurück bei „Jahresbericht“: nur noch Bernd über die Regel');
   // Alle markieren
-  await p.click('.spm-lists .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
+  await p.evaluate(() => { SPUI.tab = 'offen'; SPUI.more = 0; renderNow(); }); await p.waitForTimeout(150);
   const r0 = await p.evaluate(() => document.querySelectorAll('.spm-listbox .spj-row').length);
   await p.click('.spm-listbox .spj-all'); await p.waitForTimeout(100);
   const r1 = await p.evaluate(() => [SPUI.sel.size, document.querySelectorAll('.spm-listbox .spj-row.sel').length, document.querySelector('.spj-act .spj-selinfo').textContent, document.querySelector('.spj-act').classList.contains('on')]);

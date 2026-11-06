@@ -36,7 +36,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('.calmbtn'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => document.querySelector('.calm-bis').disabled && /noch vor uns/.test(TIPS.get(document.querySelector('.calm-bis')))), 'D: 2028 liegt noch vor uns – „bis heute“ ist aus');
   await p.keyboard.press('Escape');
-  await p.evaluate(() => { UI.year = 2027; saveUI(); }); await p.reload(); await p.waitForFunction(() => typeof UI !== 'undefined' && !!document.querySelector('nav.tabs')); await p.waitForTimeout(300);
+  await p.evaluate(() => { UI.year = 2027; saveUI(); }); await p.waitForTimeout(400); await p.reload();   // lokaler Speicher wird verzögert geschrieben await p.waitForFunction(() => typeof UI !== 'undefined' && !!document.querySelector('nav.tabs')); await p.waitForTimeout(300);
   await p.evaluate(() => { UI.view = 'jahr'; UI.secOpen.kal = true; renderNow(); }); await p.waitForTimeout(200);
   await p.waitForFunction(() => document.querySelectorAll('.cal .month').length === 8, null, { timeout: 3000 }).catch(() => {});   // Neuzeichnen nach dem Neuladen abwarten
   const d1 = await st();

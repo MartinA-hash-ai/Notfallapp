@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.49.0",
+    "version": "0.50.0",
     "date": "",
+    "items": [
+      "Spenden zuordnen: „beide“ entfällt – „Zugeordnet“ und „Offen“ (bei den Zwecken „Zugeordnet“ und „Zweckungebunden“) lassen sich einzeln ein- und ausschalten; sind beide an, stehen sie nebeneinander. Eine bleibt immer an",
+      "„Offen“: Zeitraum, Daueraufträge und Suche sind hinter dem Knopf „Zeitraum ändern“ rechts eingeklappt – die Liste beginnt direkt oben. Zugeklappt bleibt der Filter bestehen, der Knopf zeigt dann, was eingestellt ist (z. B. „30.06.–31.12. · Suche …“); „zurücksetzen“ im Filter",
+      "„Offen“ zeigt anfangs das ganze Jahr der Maßnahme (bis zum Ende ihrer Regel, falls später – z. B. Weihnachtsmailing bis in den Januar)"
+    ]
+  },
+  {
+    "version": "0.49.0",
+    "date": "2026-11-06T15:55",
     "items": [
       "Maßnahmen-Regeln: jedes Schlagwort hat seinen eigenen Zeitraum – das Datum am Schlagwort anklicken, Beginn und Ende ändern (Tage ab PAL, wandern mit). Ein neues Schlagwort übernimmt den Zeitraum des vorigen; „für alle Schlagworte übernehmen“ setzt einen gemeinsamen. Bestehende Regeln behalten ihren Zeitraum",
       "Spenden zuordnen (Maßnahme): „Zugeordnet“ links und „Offen“ rechts nebeneinander – Umschalter „Zugeordnet | beide | Offen“ (wird gemerkt). Spenden lassen sich hinüberziehen (nach links = zuordnen, nach rechts = herausnehmen) oder links auf eine andere Maßnahme; markierte wandern zusammen",

@@ -20,7 +20,18 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   // ---- A: Maßnahme – zwei Spalten
   const a0 = await p.evaluate(() => [[...document.querySelectorAll('.spm-lists .spj-lv .seg-btn')].map(e => e.textContent + (e.classList.contains('on') ? '*' : '')).join('|'),
     [...document.querySelectorAll('.spm-panes > .spj-listbox')].map(e => e.dataset.pane + ':' + e.querySelector('.spm-pt').textContent + ':' + e.querySelectorAll('.spj-row').length).join(' ')]);
-  ok(a0[0] === 'Zugeordnet|beide*|Offen' && a0[1] === 'zu:Zugeordnet:2 offen:Offen:4', 'A: anfangs „beide“ – links „Zugeordnet“ (2), rechts „Offen“ (4) ' + JSON.stringify(a0));
+  ok(a0[0] === 'Zugeordnet*|Offen*' && a0[1] === 'zu:Zugeordnet:2 offen:Offen:4', 'A: anfangs beide an – links „Zugeordnet“ (2), rechts „Offen“ (4) ' + JSON.stringify(a0));
+  // ---- A2: Filter von „Offen“ hinter „Zeitraum ändern“ (anfangs zu, ganzes Jahr); zugeklappt zeigt der Knopf, was eingestellt ist
+  const f0 = await p.evaluate(() => [!!document.querySelector('.spm-filter'), document.querySelector('.spm-fbtn')?.textContent, SPUI.f.von, SPUI.f.bis]);
+  ok(!f0[0] && f0[1] === 'Zeitraum ändern ▾' && f0[2] === '2027-01-01' && f0[3] === '2027-12-31', 'A2: Filter anfangs zu, Knopf „Zeitraum ändern“, ganzes Jahr ' + JSON.stringify(f0));
+  await p.click('.spm-fbtn'); await p.waitForTimeout(150);
+  await p.fill('.spm-filter .sp-q', 'Danke'); await p.waitForTimeout(450);
+  await p.click('.spm-fbtn'); await p.waitForTimeout(150);
+  const f1 = await p.evaluate(() => [!!document.querySelector('.spm-filter'), document.querySelector('.spm-fbtn').textContent, document.querySelector('.spm-fbtn').classList.contains('act'), document.querySelectorAll('[data-pane="offen"] .spj-row').length, UI.spmFOpen]);
+  ok(!f1[0] && f1[1] === 'Suche „Danke“ ▾' && f1[2] && f1[3] === 2 && f1[4] === false, 'A2: zugeklappt bleibt der Filter – Knopf zeigt „Suche „Danke““, 2 Spenden ' + JSON.stringify(f1));
+  await p.click('.spm-fbtn'); await p.click('.spm-freset'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => document.querySelectorAll('[data-pane="offen"] .spj-row').length === 4 && !document.querySelector('.spm-freset')), 'A2: „zurücksetzen“ zeigt wieder alles');
+  await p.click('.spm-fbtn'); await p.waitForTimeout(150);
   // ---- B: Ziehen
   await p.evaluate(() => document.querySelector('[data-sec="sp-zu"] .spm-panes').scrollIntoView({ block: 'center' })); await p.waitForTimeout(100);
   await p.dragAndDrop(rowSel('offen', 'Danke X'), '[data-sec="sp-zu"] [data-pane="zu"] .spj-list'); await p.waitForTimeout(300);
@@ -35,14 +46,17 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   await p.keyboard.press('Control+z'); await p.waitForTimeout(250);
   ok(await zuOf('jb') === '' && await zuOf('sm') === 'Danke X,Danke Y,Sommermailing A,Spende Rikscha', 'B: Strg+Z nimmt es zurück');
   // ---- C: Umschalter
-  await p.click('.spm-lists .seg-btn[data-tab="offen"]'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => [...document.querySelectorAll('.spm-panes > .spj-listbox')].map(e => e.dataset.pane).join() === 'offen' && UI.spmView === 'offen' && UI_KEYS.includes('spmView')), 'C: „Offen“ – nur die rechte Spalte, wird gemerkt');
-  await p.click('.spm-lists .seg-btn[data-tab="beide"]'); await p.waitForTimeout(200);
+  await p.click('.spm-lists .seg-btn[data-tab="zu"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => [...document.querySelectorAll('.spm-panes > .spj-listbox')].map(e => e.dataset.pane).join() === 'offen' && UI.spmView === 'offen' && UI_KEYS.includes('spmView')), 'C: „Zugeordnet“ ausgeschaltet – nur „Offen“, wird gemerkt');
+  await p.click('.spm-lists .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => UI.spmView === 'offen'), 'C: die letzte eingeschaltete Liste bleibt an');
+  await p.click('.spm-lists .seg-btn[data-tab="zu"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => UI.spmView === 'beide' && document.querySelectorAll('.spm-panes > .spj-listbox').length === 2), 'C: „Zugeordnet“ wieder an – beide nebeneinander');
   // ---- D: Spendenzwecke – Zweck links, zweckungebunden rechts
   await p.evaluate(() => { UI.spMid = 'allg:2027'; SPJ.z = 'zr'; renderNow(); }); await p.waitForTimeout(300);
   const zOf = () => p.evaluate(() => { const J = spjCompute(2027); return ['zr', 'zw', SPJ_FREI].map(z => J.list.filter(e => e.z === z).map(e => e.rec.zweck).sort().join(',')).join(' | '); });
   const d0 = await p.evaluate(() => [[...document.querySelectorAll('.spj-vv .seg-btn')].map(e => e.textContent + (e.classList.contains('on') ? '*' : '')).join('|'), [...document.querySelectorAll('.spj-panes > .spj-listbox')].map(e => e.dataset.pane + ':' + e.querySelector('.spj-lh b').textContent).join(' ')]);
-  ok(d0[0] === 'Zugeordnet|beide*|Zweckungebunden' && d0[1] === 'zweck:Rikscha frei:Zweckungebunden', 'D: Zweck gewählt – links „Rikscha“, rechts „Zweckungebunden“ ' + JSON.stringify(d0));
+  ok(d0[0] === 'Zugeordnet*|Zweckungebunden*' && d0[1] === 'zweck:Rikscha frei:Zweckungebunden', 'D: Zweck gewählt – links „Rikscha“, rechts „Zweckungebunden“ ' + JSON.stringify(d0));
   await p.evaluate(() => document.querySelector('[data-sec="sp-zu"] .spj-panes').scrollIntoView({ block: 'center' })); await p.waitForTimeout(100);   // nicht während des Ziehens rollen
   const z0 = await zOf();
   await p.dragAndDrop(rowSel('frei', 'Danke X'), '[data-sec="sp-zu"] [data-pane="zweck"] .spj-list'); await p.waitForTimeout(300);
@@ -52,7 +66,7 @@ const csv = r => '﻿' + [HEAD, ...r].join('\r\n') + '\r\n';
   ok(/^Danke X \| /.test(await zOf()) && (await zOf()).split(' | ')[2].includes('Spende Rikscha'), 'D: „Spende Rikscha“ nach rechts gezogen – zweckungebunden');
   await p.dragAndDrop(rowSel('frei', 'Danke Y'), '.spj-zi[data-z="zw"]'); await p.waitForTimeout(300);
   ok((await zOf()).split(' | ')[1] === 'Danke Y,Wärmebus Z', 'D: „Danke Y“ links auf „Wärmebus“ gezogen – dort zugeordnet');
-  await p.click('.spj-vv .seg-btn[data-v="eins"]'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => [...document.querySelectorAll('.spj-panes > .spj-listbox')].map(e => e.dataset.pane).join() === 'zweck' && UI.spjView === 'eins' && document.querySelector('.spj-lh b').textContent === 'Zugeordnet'), 'D: „Zugeordnet“ – nur die Spenden des Zwecks, wird gemerkt');
+  await p.click('.spj-vv .seg-btn[data-v="frei"]'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => [...document.querySelectorAll('.spj-panes > .spj-listbox')].map(e => e.dataset.pane).join() === 'zweck' && UI.spjView === 'eins' && document.querySelector('.spj-lh b').textContent === 'Zugeordnet'), 'D: „Zweckungebunden“ aus – nur die Spenden des Zwecks, wird gemerkt');
   await finish(b, pages);
 })();

@@ -73,7 +73,7 @@ const writeText = (p, name, text) => p.evaluate(([nm, b]) => { __fs.files['/Mail
   await p.mouse.move(5, 5, { steps: 2 });
 
   // ---- D: Suche in „Offen“ versteht dieselben Ausdrücke; Daueraufträge: einblenden / ausblenden / nur
-  await p.click('.spm-lists .seg-btn[data-tab="offen"]'); await p.waitForTimeout(150);
+  await p.evaluate(() => { SPUI.tab = 'offen'; SPUI.more = 0; renderNow(); }); await p.waitForTimeout(150);
   const offen = () => p.evaluate(() => [...document.querySelectorAll('.spm-listbox .spj-row')].map(e => SP.byKey.get(e.dataset.k).name.split(' ')[0]).sort().join(','));
   const dAll = await offen();
   await p.fill('.spm-filter .sp-q', '~Weihnachtspende'); await p.waitForTimeout(450);

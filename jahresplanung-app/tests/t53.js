@@ -90,7 +90,8 @@ const { chromium, ok, open, finish } = require('./lib');
     const r = merge3(base, mine, theirs); return [r.conflicts.length, r.data.vorlagen.map(v => v.name).join(','), describeChanges(base, mine).join(' | ')]; });
   ok(g0[0] === 0 && /Presse,Sommer-Ablauf,Spendenaufruf|Presse/.test(g0[1]) && g0[1].includes('Spendenaufruf') && /Vorlage „Presse“/.test(g0[2]), 'G: Zusammenführen (' + g0[1] + ') · Protokoll: ' + g0[2]);
   // Seite mit gespeicherter alter Ansicht „urlaub“ öffnet die Einstellungen
-  await p.evaluate(() => { UI.view = 'urlaub'; saveUI(); }); await p.reload(); await p.waitForFunction(() => typeof UI !== 'undefined' && !!document.querySelector('.sett-body .umatrix')).catch(() => {});
-  ok(await p.evaluate(() => UI.view === 'einstellungen' && UI.settTab === 'urlaub' && !!document.querySelector('.sett-body .umatrix')), 'G: gespeicherte Ansicht „Urlaub“ aus älteren Versionen öffnet Einstellungen → Urlaub & Feiertage');
+  await p.evaluate(() => { UI.view = 'urlaub'; saveUI(); }); await p.waitForTimeout(400); await p.reload();   // Chromium schreibt den lokalen Speicher verzögert – sonst ist er unter Last nach dem Neuladen leer await p.waitForFunction(() => typeof UI !== 'undefined' && !!document.querySelector('.sett-body .umatrix')).catch(() => {});
+  const g1 = await p.evaluate(() => [UI.view, UI.settTab, !!document.querySelector('.sett-body .umatrix'), JSON.parse(localStorage.getItem('jp-ui') || '{}').view]);
+  ok(g1[0] === 'einstellungen' && g1[1] === 'urlaub' && g1[2], 'G: gespeicherte Ansicht „Urlaub“ aus älteren Versionen öffnet Einstellungen → Urlaub & Feiertage ' + JSON.stringify(g1));
   await finish(b, pages);
 })();

@@ -568,10 +568,15 @@ function spjList(J) {
           !list.length ? h('div', { class: 'sp-empty muted small' }, typed ? 'Keine weiteren Spenden ohne Zweck mit diesem Schlagwort.' : two && P.kind === 'zweck' ? 'Noch keine Spenden – von rechts hierher ziehen oder ein Schlagwort eintragen.' : 'Keine Spenden.') : null),
         act()));
   };
-  const seg = (k, label, tip) => h('button', { class: 'seg-btn' + (view === k ? ' on' : ''), dataset: { v: k }, tip, onclick: () => { UI.spjView = k; SPJ.more = 0; saveUI(); renderNow(); } }, label);
+  // „Zugeordnet“ und „Zweckungebunden“ schalten unabhängig – beide an = nebeneinander; eine bleibt immer an
+  const vOn = { eins: ['eins'], frei: ['frei'], beide: ['eins', 'frei'] }[view] || [];
+  const seg = (k, label, tip) => { const on = vOn.includes(k);
+    return h('button', { class: 'seg-btn' + (on ? ' on' : ''), dataset: { v: k }, 'aria-pressed': String(on), tip, onclick: () => {
+      const st = new Set(vOn); if (st.has(k)) { if (st.size > 1) st.delete(k); } else st.add(k);
+      UI.spjView = st.size > 1 ? 'beide' : [...st][0]; SPJ.more = 0; saveUI(); renderNow(); } }, label); };
   return h('div', { class: 'spj-lists' + (two ? ' two' : '') },
     view ? h('div', { class: 'spm-vbar spj-vbar' },
-      h('span', { class: 'segs spj-vv' }, seg('eins', 'Zugeordnet'), seg('beide', 'beide', 'die Spenden des Zwecks und die zweckungebundenen nebeneinander – Spenden lassen sich hinüberziehen'), seg('frei', 'Zweckungebunden')),
+      h('span', { class: 'segs spj-vv' }, seg('eins', 'Zugeordnet', 'ein- oder ausblenden – sind beide an, stehen sie nebeneinander'), seg('frei', 'Zweckungebunden', 'ein- oder ausblenden – sind beide an, stehen sie nebeneinander')),
       two ? h('span', { class: 'muted small spm-dnd' }, 'Spenden lassen sich zwischen den Spalten und links auf einen Zweck ziehen') : null,
       h('span', { class: 'sp' }),
       two ? h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen') : null) : null,

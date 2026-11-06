@@ -8,15 +8,15 @@ let failures = 0;
 const ok = (c, m) => { if (!c) failures++; console.log((c ? 'OK   ' : 'FAIL ') + m); };
 
 // clock: Uhr der Seite steuerbar – die Zeit läuft normal, mit skip(p, ms) springt sie vor (statt echt auf Speichern/Überwachung zu warten); ein Datum legt „heute“ fest
-async function open(b, { file = T.HTML, fakefs = true, width = 1600, clock = false, ui = { spmRulesOpen: true, spmView: 'zu', spjView: 'eins' } } = {}) {
+async function open(b, { file = T.HTML, fakefs = true, width = 1600, clock = false, ui = { spmRulesOpen: true, spmView: 'zu', spjView: 'eins', spmFOpen: true } } = {}) {
   // ui: Startwerte der Ansicht (sonst leer) – in den Tests sind die Maßnahmen-Regeln offen und die Listen einspaltig (wie vor 0.49)
   const ctx = await b.newContext({ viewport: { width, height: 1000 }, locale: 'de-DE', timezoneId: 'Europe/Berlin', acceptDownloads: true });
   if (clock) await ctx.clock.install(clock instanceof Date ? { time: clock } : undefined);   // clock: true – oder ein Datum, das dann „heute“ ist
   if (fakefs) await ctx.addInitScript({ path: T.FAKEFS });
-  await ctx.addInitScript(u => { try { if (!localStorage.getItem('jp-ui')) localStorage.setItem('jp-ui', u); } catch (e) {} }, JSON.stringify(ui));
   const p = await ctx.newPage(); p.setDefaultTimeout(8000); p.errs = [];
   p.on('pageerror', e => p.errs.push(e.message));
   await p.goto('file://' + file); await p.waitForTimeout(300);
+  if (Object.keys(ui).length) await p.evaluate(u => { if (typeof UI === 'undefined') return; Object.assign(UI, u); saveUI(); renderNow(); }, ui).catch(() => {});   // einmal beim Öffnen, nicht bei jedem Neuladen
   return p;
 }
 const skip = async (p, ms) => { await p.clock.fastForward(ms); await p.waitForTimeout(250); };   // Zeit vorspulen, dann kurz echt warten (Dateien schreiben)

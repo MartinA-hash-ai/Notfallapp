@@ -2241,3 +2241,8 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .dropok { outline: 2px dashed var(--focus); outline-offset: -4px; background: color-mix(in srgb, var(--runbg) 55%, transparent); }
 .spj-zi.dropok { outline-offset: -2px; }
 .sp-dragimg { position: fixed; left: -1000px; top: -1000px; padding: 6px 12px; background: var(--card); color: var(--ink); border: 1.5px solid var(--focus); border-radius: 8px; font-size: 13px; box-shadow: 0 6px 18px rgba(0,0,0,.18); white-space: nowrap; }
+/* 0.50: Filter von „Offen“ hinter „Zeitraum ändern“ */
+.spm-listbox .spj-lh .sp { flex: 1; }
+.spm-fbtn { max-width: 60%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.spm-fbtn.act { background: var(--runbg); color: var(--runink); border-color: var(--focus); font-weight: 600; }
+.spm-freset { white-space: nowrap; }

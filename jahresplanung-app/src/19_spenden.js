@@ -842,9 +842,18 @@ function spPickM(list) {
   return ((past.length ? past[past.length - 1] : list[0]) || {}).id || null;
 }
 // Zuordnen beginnt am PAL: „von“ = PAL, „bis“ = Ende des Regel-Zeitraums (sonst PAL + 182 Tage)
+// „Offen“ zeigt anfangs das ganze Jahr der Maßnahme (bis zum Ende der Regel, falls das später liegt – z. B. Weihnachtsmailing bis in den Januar)
 function spResetFilter(m) {
-  const rg = spRange(m), pal = m.allg ? rg.a : dn(m.pal), b = rg.b ?? (pal != null ? pal + SP_TAGE : null);
-  SPUI.f = { q: '', von: pal != null ? ds(pal) : '', bis: b != null ? ds(b) : '' };
+  const rg = spRange(m), pal = m.allg ? rg.a : dn(m.pal), y = pal != null ? ymd(pal)[0] : UI.year, a = mkdn(y, 1, 1), b = Math.max(mkdn(y, 12, 31), rg.b ?? (pal != null ? pal + SP_TAGE : 0));
+  SPUI.f = { q: '', von: ds(a), bis: ds(b) }; SPUI.fdef = { von: ds(a), bis: ds(b) };
+}
+// eingestellter Filter in Kurzform (für den Knopf, wenn der Filter zugeklappt ist)
+function spFiltSum() {
+  const f = SPUI.f, d = SPUI.fdef || {}, out = [], da = spDAMode();
+  if (f.von !== d.von || f.bis !== d.bis) out.push((f.von ? fmtS(dn(f.von)) : '…') + '–' + (f.bis ? fmtS(dn(f.bis)) : '…'));
+  if (f.q.trim()) out.push('Suche „' + f.q.trim() + '“');
+  if (da !== 'alle') out.push(da === 'ohne' ? 'ohne Daueraufträge' : 'nur Daueraufträge');
+  return out;
 }
 // Daueraufträge in „Offen“: alle / ohne / nur
 const spDAMode = () => UI.spDA === 'ohne' || UI.spDA === 'nur' ? UI.spDA : UI.spHideDA ? 'ohne' : 'alle';
@@ -1237,14 +1246,18 @@ function spmList(x, cmp) {
     const title = { zu: 'Zugeordnet', offen: 'Offen', aus: 'Ausgeschlossen', klaeren: 'Zu klären' }[tab];
     return h('div', Object.assign({ class: 'spj-listbox spm-listbox', dataset: { pane: tab } }, drop),
       h('div', { class: 'spj-lh' }, allBox(), h('b', { class: 'spm-pt' }, title),
-        tab === 'offen' && list.length !== P.L.length ? h('span', { class: 'spj-sub muted small' }, 'im Filter') : null,
-        tab === 'zu' && neuK.size ? h('button', { class: 'spj-onlynew' + (SPUI.onlyNew ? ' on' : ''), 'aria-pressed': String(!!SPUI.onlyNew), onclick: () => { SPUI.onlyNew = !SPUI.onlyNew; SPUI.more = 0; renderNow(); } }, 'nur neue (' + neuK.size + ')') : null),
-      tab === 'offen' ? h('div', { class: 'spm-filter' },
+        tab === 'zu' && neuK.size ? h('button', { class: 'spj-onlynew' + (SPUI.onlyNew ? ' on' : ''), 'aria-pressed': String(!!SPUI.onlyNew), onclick: () => { SPUI.onlyNew = !SPUI.onlyNew; SPUI.more = 0; renderNow(); } }, 'nur neue (' + neuK.size + ')') : null,
+        tab === 'offen' ? [h('span', { class: 'sp' }), (() => { const fs = spFiltSum();   // Filter auf- und zuklappen; zugeklappt zeigt der Knopf, was eingestellt ist
+          return h('button', { class: 'spj-tog spm-fbtn' + (UI.spmFOpen ? ' on' : '') + (fs.length ? ' act' : ''), 'aria-expanded': String(!!UI.spmFOpen),
+            tip: fs.length ? 'Filter: ' + fs.join(' · ') + ' – klicken zum Ändern' : 'Zeitraum, Daueraufträge und Suche (angezeigt: das ganze Jahr)',
+            onclick: () => { UI.spmFOpen = !UI.spmFOpen; saveUI(); renderNow(); } }, !UI.spmFOpen && fs.length ? fs.join(' · ') : 'Zeitraum ändern', UI.spmFOpen ? ' ▴' : ' ▾'); })()] : null),
+      tab === 'offen' && UI.spmFOpen ? h('div', { class: 'spm-filter' },
         h('span', { class: 'spj-rl' }, 'Zeitraum'), dateInput(f.von, 'sp-fvon', v => fset('von', v, true)), '–', dateInput(f.bis, 'sp-fbis', v => fset('bis', v, true)),
         h('label', { class: 'small sp-da', tip: 'Daueraufträge (laut Buchungstext) anzeigen, ausblenden oder nur sie zeigen' }, 'Daueraufträge ',
           h('select', { 'data-fk': 'sp-da', onchange: e => { UI.spDA = e.target.value; UI.spHideDA = false; renderNow(); } },
             [['alle', 'einblenden'], ['ohne', 'ausblenden'], ['nur', 'nur Daueraufträge']].map(([v, t]) => h('option', { value: v, selected: daM === v }, t)))),
-        spDelayTip(h('input', { type: 'search', class: 'sp-q', placeholder: 'suchen (Verwendungszweck, Name …)', value: f.q, 'data-fk': 'sp-q', oninput: e => fset('q', e.target.value) }), spHelp)) : null,
+        spDelayTip(h('input', { type: 'search', class: 'sp-q', placeholder: 'suchen (Verwendungszweck, Name …)', value: f.q, 'data-fk': 'sp-q', oninput: e => fset('q', e.target.value) }), spHelp),
+        spFiltSum().length ? h('button', { class: 'link small spm-freset', onclick: () => { spResetFilter(x.m); UI.spDA = 'alle'; UI.spHideDA = false; renderNow(); } }, 'zurücksetzen') : null) : null,
       h('div', { class: 'spj-listwrap' },
         h('div', { class: 'spj-list', 'data-keep-scroll': 'spm-list-' + tab, role: 'listbox', 'aria-multiselectable': 'true' }, list.slice(0, lim).map(row),
           list.length > lim ? h('button', { class: 'link spj-more', onclick: () => { SPUI.more += 300; renderNow(); } }, '… ' + (list.length - lim).toLocaleString('de-DE') + ' weitere anzeigen') : null,
@@ -1252,10 +1265,15 @@ function spmList(x, cmp) {
             tab === 'offen' ? (ST.conn !== 'ok' ? 'Mailing-Ordner nicht verbunden.' : !SP.rows.length ? 'Noch keine Buchungen eingelesen.' : 'Keine offene Spende im Filter.') : 'Keine.') : null),
         act()));
   };
-  const seg = (k, label, tip) => h('button', { class: 'seg-btn' + (view === k ? ' on' : ''), dataset: { tab: k }, tip, onclick: () => { SPUI.tab = k; SPUI.more = 0; if (k !== 'aus') { UI.spmView = k; saveUI(); } renderNow(); } }, label);
+  // „Zugeordnet“ und „Offen“ schalten unabhängig – beide an = nebeneinander; eine bleibt immer an. „Ausgeschlossen“ zeigt nur diese Liste.
+  const seg = (k, label, tip) => { const on = k === 'aus' ? view === 'aus' : view !== 'aus' && tabs.includes(k);
+    return h('button', { class: 'seg-btn' + (on ? ' on' : ''), dataset: { tab: k }, 'aria-pressed': String(on), tip, onclick: () => {
+      let nv = k;
+      if (k !== 'aus' && view !== 'aus') { const st = new Set(tabs); if (st.has(k)) { if (st.size > 1) st.delete(k); } else st.add(k); nv = st.size > 1 ? 'beide' : [...st][0]; }
+      SPUI.tab = nv; SPUI.more = 0; if (nv !== 'aus') { UI.spmView = nv; saveUI(); } renderNow(); } }, label); };
   return h('div', { class: 'spm-lists' + (two ? ' two' : '') },
     view === 'klaeren' ? null : h('div', { class: 'spm-vbar' },
-      h('span', { class: 'segs spj-lv' }, seg('zu', 'Zugeordnet'), seg('beide', 'beide', 'Zugeordnet und Offen nebeneinander – Spenden lassen sich hinüberziehen'), seg('offen', 'Offen'), nAus ? seg('aus', 'Ausgeschlossen (' + nAus + ')') : null),
+      h('span', { class: 'segs spj-lv' }, seg('zu', 'Zugeordnet', 'ein- oder ausblenden – sind „Zugeordnet“ und „Offen“ an, stehen sie nebeneinander'), seg('offen', 'Offen', 'ein- oder ausblenden – sind „Zugeordnet“ und „Offen“ an, stehen sie nebeneinander'), nAus ? seg('aus', 'Ausgeschlossen (' + nAus + ')') : null),
       two ? h('span', { class: 'muted small spm-dnd' }, 'Spenden lassen sich zwischen den Spalten und links auf eine andere Maßnahme ziehen') : null,
       h('span', { class: 'sp' }),
       h('label', { class: 'check small' }, h('input', { type: 'checkbox', checked: !!UI.spDet, onchange: e => { UI.spDet = e.target.checked; renderNow(); } }), 'Namen zeigen')),
