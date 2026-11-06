@@ -144,3 +144,17 @@ function demoKonten() {
     .concat(i % 3 === 0 ? [k('Sparkasse', '47650130', 1234500 + i)] : i % 3 === 1 ? [k('Volksbank', '47260121', 7654300 + i)] : []) }));
   return { stand: '2026-10-01T09:00:00.000Z', datei: 'Kontenliste_Beispiel.xlsx', liste: L };
 }
+
+// Personenliste der Vorschau (erfundene Namen)
+function demoPersonen() {
+  const P = (n, rolle, gl, fach, mail, tel, mobil = '') => ({ n, rolle, gl, fach, mail, tel, mobil });
+  return [P('Anna Beispiel', 'Referentin Soziales Ehrenamt', 'Diözese', 'Soziales Ehrenamt', 'anna.beispiel@malteser.example', '05251 000-11'),
+    P('Ben Muster', 'Sachbearbeitung', 'Diözese', 'Soziales Ehrenamt', 'ben.muster@malteser.example', '05251 000-12'),
+    P('Clara Exempel', 'Ehrenamtskoordination', 'Hagen', 'Soziales Ehrenamt', 'clara.exempel@malteser.example', '', '0171 0000013'),
+    P('Erik Test', 'Referent Notfallvorsorge', 'Diözese', 'Notfallvorsorge', 'erik.test@malteser.example', '05251 000-21'),
+    P('Frieda Muster', 'Dienststellenleitung', 'Brakel', '', 'frieda.muster@malteser.example', '05272 000-1', '0160 0000002'),
+    P('Georg Beispiel', 'Stadtbeauftragter', 'Paderborn', '', 'georg.beispiel@malteser.example', ''),
+    P('Thomas Beispiel', 'Leitung Sanitätsdienst', 'Paderborn', 'Notfallvorsorge', 'thomas.beispiel@malteser.example', '05251 000-31'),
+    P('Maria Beispiel', 'Ortsbeauftragte', 'Büren', '', 'maria.beispiel@malteser.example', '02951 000-1'),
+    P('Klaus Exempel', 'Dienststellenleitung', 'Lippstadt', '', 'klaus.exempel@malteser.example', '02941 000-1')];
+}

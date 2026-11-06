@@ -180,29 +180,65 @@ function personenFrage() {
     [['Später', false], ['Excel auswählen …', true, 'primary']]).then(async ja => { if (ja) { const f = await pickFile('.xlsx'); if (f) personenDatei(f); } });
 }
 
-/* ---------- Personenliste bearbeiten (Knopf „Personenliste“ bei „Zuständig“): Personen der Gliederungen und Fachreferate mit Kontaktdaten.
-   Gespeichert wird in „Personen.xlsx“; daraus kommen die Vorschläge beim Tippen und die Personen beim Fachreferat. */
+/* ---------- Personenliste (ab 0.135 neu): links die Gruppen (alle, Fachreferate, Gliederungen, ohne Zuordnung), rechts die Personen als Karten.
+   Im Fachreferat macht der Stern eine Person zur Hauptansprechperson (früher eigenes Fenster). Stift: Karte zum Bearbeiten aufklappen.
+   Gespeichert wird beim Klick auf „Speichern“ in „Personen.xlsx“; daraus kommen die Vorschläge beim Tippen und die Personen beim Fachreferat. */
 async function personenListeDialog() {
-  const F = [['n', 'Name', 'Vorname Nachname'], ['rolle', 'Position', 'z. B. Dienstleitung, Geschäftsführung, Beauftragte'], ['gl', 'Gliederung', 'z. B. Paderborn, Diözese'], ['fach', 'Fachreferat', 'z. B. Soziales Ehrenamt'],
+  if (DEMO && !PR.list.length && typeof demoPersonen === 'function') personenSetzen(demoPersonen());
+  const F = [['n', 'Name', 'Vorname Nachname'], ['rolle', 'Position', 'z. B. Dienstleitung, Referentin'], ['gl', 'Gliederung', 'z. B. Paderborn, Diözese'], ['fach', 'Fachreferat', 'z. B. Soziales Ehrenamt'],
     ['mail', 'E-Mail', 'name@malteser.org'], ['tel', 'Telefon', '05251 …'], ['mobil', 'Handy', '0171 …']];
-  const L = PR.list.map(p => Object.assign({}, p)), weg = new Set();
-  let q = '';
-  const liste = h('div', { class: 'pl-liste' }), zahl = h('span', { class: 'muted small' });
-  const zeile = p => h('div', { class: 'pl-z' + (weg.has(p) ? ' weg' : '') }, ...F.map(([k, t, ph]) => h('label', { class: 'pl-f pl-' + k }, h('span', null, t),
-      h('input', { type: k === 'mail' ? 'email' : k === 'tel' || k === 'mobil' ? 'tel' : 'text', value: p[k] || '', placeholder: ph, list: k === 'gl' ? 'pl-gl' : k === 'fach' ? 'pl-fach' : null, oninput: e => { p[k] = e.target.value; } }))),
-    h('button', { type: 'button', class: 'x', title: weg.has(p) ? 'doch behalten' : 'aus der Liste entfernen', 'aria-label': 'Person entfernen', onclick: () => { weg.has(p) ? weg.delete(p) : weg.add(p); zeig(); } }, weg.has(p) ? '↺' : '×'));
-  const passt = p => !q || norm(F.map(([k]) => p[k] || '').join(' ')).includes(q);
-  const zeig = () => { const S = L.filter(passt); liste.replaceChildren(...S.map(zeile)); zahl.textContent = L.length + ' Personen' + (q ? ', ' + S.length + ' gefunden' : ''); };
-  const neu = () => { const p = { n: '', rolle: '', gl: '', fach: '', mail: '', tel: '', mobil: '' }; L.unshift(p); q = ''; such.value = ''; zeig(); const i = liste.querySelector('input'); if (i) i.focus(); };
-  const such = h('input', { type: 'search', class: 'pl-such', placeholder: 'Suchen (Name, Gliederung, Fachreferat …)', oninput: e => { q = norm(e.target.value); zeig(); } });
+  const L = PR.list.map(p => Object.assign({}, p)), weg = new Set(), HW = {};
+  let q = '', grp = { t: 'alle', n: '' }, edit = null;
+  const da = () => L.filter(p => !weg.has(p));
+  const glName = p => String(p.gl || '').trim();
+  const inGrp = (p, g) => g.t === 'alle' ? true : g.t === 'fach' ? fachTeile(p.fach).includes(norm(g.n)) : g.t === 'gl' ? norm(glName(p)) === norm(g.n) : !glName(p) && !fachTeile(p.fach).length;
+  const haupt = n => { const k = norm(n); if (k in HW) return HW[k]; const v = fachHauptStd(n, da().filter(p => inGrp(p, { t: 'fach', n }))); return v || ''; };
+  const nav = h('nav', { class: 'pl2-nav', 'aria-label': 'Gruppen' }), main = h('div', { class: 'pl2-main' });
+  const such = h('input', { type: 'search', class: 'pl2-such', placeholder: 'Suchen: Name, Position, E-Mail …', 'aria-label': 'Personen suchen', oninput: e => { q = norm(e.target.value); zeig(); } });
+  const navEintrag = (g, t, n) => h('button', { type: 'button', class: 'pl2-ni' + (!q && grp.t === g.t && grp.n === g.n ? ' on' : ''), onclick: () => { grp = g; q = ''; such.value = ''; edit = null; zeig(); } }, h('span', null, t), h('span', { class: 'pl2-nz' }, String(n)));
+  const zeigNav = () => {
+    const A = da(), fach = uniq([...FACH_LIST, ...A.flatMap(p => String(p.fach || '').split(/\s*[,;/]\s*/).map(x => x.trim()))]).filter(Boolean).sort((a, c) => a.localeCompare(c, 'de'));
+    const gl = uniq(A.map(glName).filter(Boolean)).sort((a, c) => (a === DIO || /^diözese/i.test(a) ? -1 : c === DIO || /^diözese/i.test(c) ? 1 : a.localeCompare(c, 'de'))), ohne = A.filter(p => inGrp(p, { t: 'ohne' })).length;
+    nav.replaceChildren(navEintrag({ t: 'alle', n: '' }, 'Alle Personen', A.length),
+      h('div', { class: 'pl2-nk' }, 'Fachreferate'), ...fach.map(n => navEintrag({ t: 'fach', n }, n, A.filter(p => inGrp(p, { t: 'fach', n })).length)),
+      h('div', { class: 'pl2-nk' }, 'Gliederungen'), ...gl.map(n => navEintrag({ t: 'gl', n }, n, A.filter(p => inGrp(p, { t: 'gl', n })).length)),
+      ...(ohne ? [navEintrag({ t: 'ohne', n: '' }, 'ohne Zuordnung', ohne)] : []));
+  };
+  const kontakt = p => h('div', { class: 'pl2-kt' }, ...[p.mail ? h('span', { title: p.mail }, '✉ ' + p.mail) : null, p.tel ? h('span', null, '☎ ' + p.tel) : null, p.mobil ? h('span', null, '📱 ' + p.mobil) : null,
+    !p.mail && !p.tel && !p.mobil ? h('span', { class: 'leer' }, 'keine Kontaktdaten') : null].filter(Boolean));
+  const karte = p => {
+    if (edit === p) return formular(p);
+    const fg = grp.t === 'fach' && !q, k = kkey(p.n), ist = fg && !!k && haupt(grp.n) === k;
+    const tags = [grp.t !== 'gl' && glName(p) ? glName(p) : null, grp.t !== 'fach' && p.fach ? 'FR ' + p.fach : null].filter(Boolean);
+    return h('div', { class: 'pl2-k' + (ist ? ' haupt' : '') },
+      fg ? h('button', { type: 'button', class: 'pl2-st', title: ist ? 'Hauptansprechperson des Fachreferats – noch einmal: zurücknehmen' : 'Zur Hauptansprechperson des Fachreferats machen', 'aria-pressed': String(ist), onclick: () => { HW[norm(grp.n)] = ist ? '' : k; zeigMain(); } }, ist ? '★' : '☆') : h('span', { class: 'pl2-av', 'aria-hidden': 'true' }, (p.n || '?').trim().split(/\s+/).map(w => w[0]).slice(0, 2).join('').toUpperCase()),
+      h('div', { class: 'pl2-kk' }, h('b', null, p.n || '(ohne Namen)'), h('div', { class: 'pl2-pos' }, p.rolle || '', ...tags.map(t => h('span', { class: 'pl2-tag' }, t)))),
+      h('button', { type: 'button', class: 'pl2-pen', title: 'Bearbeiten', 'aria-label': 'Bearbeiten: ' + p.n, html: ICON_PEN, onclick: () => { edit = p; zeigMain(); const i = main.querySelector('.pl2-form input'); if (i) i.focus(); } }),
+      kontakt(p));
+  };
+  const formular = p => {
+    const feld = ([k, t, ph]) => h('label', { class: 'pl2-f pl2-f-' + k }, h('span', null, t), h('input', { type: k === 'mail' ? 'email' : k === 'tel' || k === 'mobil' ? 'tel' : 'text', value: p[k] || '', placeholder: ph, list: k === 'gl' ? 'pl-gl' : k === 'fach' ? 'pl-fach' : null, oninput: e => { p[k] = e.target.value; } }));
+    const fertig = () => { if (!String(p.n || '').trim() && !F.some(([k]) => k !== 'n' && String(p[k] || '').trim())) L.splice(L.indexOf(p), 1); edit = null; zeig(); };
+    const f = h('div', { class: 'pl2-k pl2-form' }, h('div', { class: 'pl2-fg' }, ...F.map(feld)),
+      h('div', { class: 'pl2-fk' }, h('button', { type: 'button', class: 'link small pl2-weg', onclick: () => { weg.add(p); edit = null; zeig(); toast('„' + (p.n || 'Person') + '“ wird beim Speichern entfernt.', 'ok'); } }, 'Person entfernen'), h('button', { type: 'button', class: 'primary', onclick: fertig }, 'Fertig')));
+    f.addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') { e.preventDefault(); fertig(); } if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); fertig(); } });
+    return f;
+  };
+  const titel = () => q ? 'Suche' : grp.t === 'alle' ? 'Alle Personen' : grp.t === 'fach' ? 'Fachreferat ' + grp.n : grp.t === 'gl' ? grp.n : 'ohne Zuordnung';
+  const zeigMain = () => {
+    const S = da().filter(p => p === edit || (q ? norm(F.map(([k]) => p[k] || '').join(' ')).includes(q) : inGrp(p, grp)));
+    const hint = grp.t === 'fach' && !q ? 'Stern = Hauptansprechperson – steht bei allen Bedarfen dieses Fachreferats vorn' : '';
+    main.replaceChildren(h('div', { class: 'pl2-kopf' }, h('b', null, titel()), h('span', null, S.length + (S.length === 1 ? ' Person' : ' Personen') + (hint ? ' · ' + hint : ''))),
+      S.length ? h('div', { class: 'pl2-karten' }, ...S.map(karte)) : h('p', { class: 'muted pl2-leer' }, q ? 'Niemand gefunden.' : 'Hier steht noch niemand.'));
+  };
+  const zeig = () => { zeigNav(); zeigMain(); };
+  const neu = () => { const p = { n: '', rolle: '', gl: grp.t === 'gl' ? grp.n : '', fach: grp.t === 'fach' ? grp.n : '', mail: '', tel: '', mobil: '' }; L.unshift(p); q = ''; such.value = ''; edit = p; zeig(); const i = main.querySelector('.pl2-form input'); if (i) i.focus(); };
   zeig();
-  const body = h('div', { class: 'help pl' },
-    h('div', { class: 'row pl-kopf' }, h('button', { type: 'button', class: 'primary', onclick: neu }, '+ Person hinzufügen'), such, zahl),
-    liste, h('datalist', { id: 'pl-gl' }, [DIO, ...GL_LIST].map(g => h('option', { value: g }))), h('datalist', { id: 'pl-fach' }, uniq([...FACH_LIST, ...PR.list.map(p => p.fach).filter(Boolean)]).map(g => h('option', { value: g }))),
-    h('p', { class: 'muted small' }, 'Gespeichert in „' + PERS_DATEI + '“ neben der Bedarfsliste. Beim Tippen eines Namens schlägt die Liste diese Personen vor; wer bei „Fachreferat“ eingetragen ist, erscheint beim Bedarf unter „Fachreferat“. '
-      + 'Entfernte Personen kommen wieder, solange sie noch in einer anderen „Personen …“-Datei im Ordner oder als Zuständige bei einem Bedarf stehen.'));
-  if (!await modal('Personenliste', body, [['Abbrechen', false], ['Speichern', true, 'primary']], { wide: true })) return;
-  const R = L.filter(p => !weg.has(p) && p.n.trim()).map(p => Object.assign(p, { n: p.n.trim(), mail: mailText(p.mail || ''), tel: telText(p.tel || ''), mobil: telText(p.mobil || '') }));
+  const body = h('div', { class: 'pl2' }, nav, main, h('datalist', { id: 'pl-gl' }, [DIO, ...GL_LIST].map(g => h('option', { value: g }))), h('datalist', { id: 'pl-fach' }, uniq([...FACH_LIST, ...PR.list.map(p => p.fach).filter(Boolean)]).map(g => h('option', { value: g }))));
+  const kopf = h('div', { class: 'pl2-hk' }, such, h('button', { type: 'button', class: 'primary', onclick: neu }, '+ Person'));
+  if (!await modal('Personen', body, [['Abbrechen', false], ['Speichern', true, 'primary']], { wide: true, cls: 'pl2-modal', kopf, expose: () => setTimeout(() => such.focus(), 40) })) return;
+  const R = da().filter(p => String(p.n || '').trim()).map(p => Object.assign(p, { n: p.n.trim(), mail: mailText(p.mail || ''), tel: telText(p.tel || ''), mobil: telText(p.mobil || '') }));
+  if (Object.keys(HW).length) { D.settings.fachHaupt = Object.assign({}, D.settings.fachHaupt, HW); changed(); }
   personenSetzen(R);
   if (DEMO || !rechOrdnerOk()) { safeRender(); toast('Personenliste geändert – nur für diese Sitzung (ohne verbundenen Ordner wird keine Datei geschrieben).', 'warn'); return; }
   if (await personenSchreiben()) { await personenScan(true); toast('Personenliste gespeichert (' + R.length + ' Personen).', 'ok'); }

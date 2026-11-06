@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.135.0",
+    "date": "2026-11-18T10:00",
+    "items": [
+      "Fenster scrollen nicht mehr bis in die Seite dahinter: ist ein Fenster offen, steht die Seite still",
+      "Personenliste neu gestaltet: links die Gruppen (alle, Fachreferate, Gliederungen) mit Anzahl, rechts die Personen als Karten mit Position, Gliederung bzw. Fachreferat und Kontakt; Stift klappt eine Karte zum Bearbeiten auf, „+ Person“ legt in der gewählten Gruppe an, Suche oben",
+      "Hauptansprechperson der Fachreferate jetzt direkt in der Personenliste: im Fachreferat per Stern an der Person (das eigene Fenster dafür fällt weg)",
+      "Einstellungen: „Kontenliste einlesen“ und „Adressen der Gliederungen“ entfernt (Adressen bleiben bei der Spendenübergabe erreichbar)"
+    ]
+  },
+  {
     "version": "0.134.0",
     "date": "2026-11-17T10:00",
     "items": [

@@ -21,16 +21,13 @@ function einstGruppen() {
   const ohneVorschau = fn => DEMO ? null : fn;
   return [
     ['Personen', [
-      ['pers-liste', 'pers', 'Personenliste', 'Personen der Gliederungen und Fachreferate mit Kontaktdaten', () => personenListeDialog()],
-      ['fach-haupt', 'stern', 'Hauptansprechpersonen der Fachreferate', 'Wer beim Bedarf mit Stern vorn steht, je Fachreferat', () => fachHauptDialog()]]],
-    ['E-Mail und Adressen', [
-      ['vorlagen', 'mail', 'E-Mail-Vorlagen', 'Texte für Rundmails und Spendenübergabe', () => vorlagenDialog()],
-      ['adressen-alle', 'haus', 'Adressen der Gliederungen', 'Straße, PLZ und Ort je Gliederung', () => adressenDialog()]]],
+      ['pers-liste', 'pers', 'Personenliste', 'Personen der Gliederungen und Fachreferate; Stern = Hauptansprechperson des Fachreferats', () => personenListeDialog()]]],
+    ['E-Mail', [
+      ['vorlagen', 'mail', 'E-Mail-Vorlagen', 'Texte für Rundmails und Spendenübergabe', () => vorlagenDialog()]]],
     ['Bedienung', [
       ['tasten', 'tasten', 'Tastaturbefehle', 'Übersicht und eigene Tasten festlegen', () => tastenDialog()]]],
     ['Daten einlesen', [
       ['upl', 'excel', 'UPL (Investitionsabfrage) einlesen', 'Excel der Investitionsabfrage – legt die Bedarfe an oder ergänzt sie', ohneVorschau(async () => { const f = await pickFile('.xlsx'); if (f) await uplImport(f); })],
-      ['konten-ein', 'bank', 'Kontenliste einlesen', 'Excel „Kontenliste der Gliederungen“ – ersetzt die bisherige Kontenliste', ohneVorschau(() => kontenEinlesen())],
       flAktiv() ? null : ['kartei', 'kartei', 'Förder-Kartei', 'Excel „Banken- und Stiftungsübersicht“ wählen oder verknüpfen' + (KR.list.length ? ' (' + KR.list.length + ' Förderer)' : ''), ohneVorschau(async () => { if (ST.conn !== 'ok' && !await connectFolder()) return; await karteiChoose(); })]]],
     ['Datensicherung', [
       ['backup', 'ab', 'Sicherung herunterladen', 'Eine Kopie aller Daten als Datei (.json) – z. B. vor großen Änderungen', ohneVorschau(() => saveBackup())],

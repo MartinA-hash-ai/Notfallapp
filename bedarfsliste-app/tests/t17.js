@@ -22,7 +22,7 @@ const { chromium, ok, open, finish } = require('./lib');
       ['Gliederung', 'Brakel', 'Neuer Weg 2', '33034', 'Brakel'], ['Gliederung', 'Hagen', 'Ringstraße 9', '58097', 'Hagen'], ['Dienststelle', '', '', '', '']] }];
     return [...new Uint8Array(await (await xlsxBlob(S)).arrayBuffer())];
   });
-  await p.click('button[data-act="menu"]'); await p.click('#mmenu button[data-act="einst"]'); await p.click('.einst-modal .einst-e[data-k="adressen-alle"]'); await p.waitForTimeout(100);
+  await p.evaluate(() => { adressenDialog(); });   // ab 0.135 nicht mehr in den Einstellungen – erreichbar bei der Spendenübergabe await p.waitForTimeout(100);
   const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('.modal .ad-excel button:text-is("Excel einlesen …")')]);
   await fc.setFiles({ name: 'Adressen.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(buf) });
   await p.waitForSelector('.modal h2:text-is("Adressen übernehmen?")');
@@ -32,7 +32,6 @@ const { chromium, ok, open, finish } = require('./lib');
   r = await p.evaluate(() => [D.settings.adressen.Brakel, D.settings.adressen.Hagen, D.settings.adressen['Dienststelle Hagen'], document.querySelectorAll('.modal:not(.einst-modal)').length]);
   ok(r.join('|') === 'Neuer Weg 2, 33034 Brakel|Ringstraße 9, 58097 Hagen|Hauptstraße 5, 58095 Hagen|0', 'übernommen, Fehlendes bleibt, Fenster zu (zurück in den Einstellungen): ' + r.join('|'));
 
-  await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   // Route: Vorschlag übernehmen, dann ab DGS und ab zu Hause (fragt einmal, merkt sich im Browser)
   await p.evaluate(() => { oeffnen('x'); }); await p.waitForTimeout(150);
   await p.evaluate(() => { zuSet(cur(), 'nach', false); renderNow(); });

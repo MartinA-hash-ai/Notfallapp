@@ -262,10 +262,16 @@ function toast(text, kind = '', undo = null) {
   setTimeout(() => t.classList.add('out'), ms);
   setTimeout(() => t.remove(), ms + 400);
 }
+// solange ein Fenster offen ist, scrollt die Seite dahinter nicht mit; der Rand für den Scrollbalken bleibt, damit nichts springt
+function seiteSperren(an) {
+  const d = document.documentElement;
+  if (an) { if (!d.classList.contains('modal-offen')) { const sb = innerWidth - d.clientWidth; if (sb > 0) d.style.paddingRight = sb + 'px'; d.classList.add('modal-offen'); } return; }
+  setTimeout(() => { if (document.querySelector('.backdrop')) return; d.classList.remove('modal-offen'); d.style.paddingRight = ''; }, 0);
+}
 function modal(title, body, buttons, opts = {}) {
   return new Promise(resolve => {
     const opened = Date.now();
-    const close = v => { back.remove(); document.removeEventListener('keydown', key); resolve(v); };
+    const close = v => { back.remove(); document.removeEventListener('keydown', key); seiteSperren(false); resolve(v); };
     const key = e => { if (e.key === 'Escape' && !e.defaultPrevented && !$('.le-edit, .le-new, .ue-form, .cal-pop, .le-sug, .zeit-pop, .fmt-bar')) close(null); };   // Esc in einem offenen Feld schließt nur das Feld
     const box = h('div', { class: 'modal' + (opts.wide ? ' wide' : '') + (opts.cls ? ' ' + opts.cls : ''), role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
       h('header', null, h('h2', null, title), opts.kopf || null, h('button', { class: 'x', 'aria-label': 'Schließen', onclick: () => close(null) }, '×')),
@@ -274,7 +280,7 @@ function modal(title, body, buttons, opts = {}) {
         h('button', { class: cls || '', onclick: () => close(typeof val === 'function' ? val() : val) }, label))));
     const back = h('div', { class: 'backdrop', onmousedown: e => { if (e.target === back && Date.now() - opened > 400) close(null); } }, box);
     if (opts.expose) opts.expose(close);
-    document.body.append(back);
+    seiteSperren(true); document.body.append(back);
     document.addEventListener('keydown', key);
     const f = box.querySelector('footer button.primary') || box.querySelector('input,select,textarea');
     if (f) setTimeout(() => f.focus(), 30);

@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.135:** Personenliste mit Gruppen links und Karten rechts, Hauptansprechperson per Stern im Fachreferat; Fenster sperren das Scrollen der Seite dahinter; Einstellungen ohne Kontenliste-Einlesen und Adressen.
+
 **Seit 0.134:** Zahnrad schlank (Sonne/Mond, Update, Einstellungen); seltene Funktionen im neuen Fenster „Einstellungen“ in Gruppen; Kontakte-Import und Vorlagen-Downloads aus dem Menü entfernt.
 
 **Seit 0.133:** Kontenliste mit Spalte „BKC-Konto“ und Feld „IBAN prüfen“ (DE vorgegeben, Ziffern oder ganze IBAN einfügen); Zusätze wie „(NUK)“ hinter der IBAN werden beim Einlesen als Vermerk übernommen.
