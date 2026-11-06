@@ -13,6 +13,12 @@ const ibanOk = v => { const s = ibanRein(v); return /^[A-Z]{2}\d{2}[A-Z0-9]{11,3
 const ibanBank = v => { const s = ibanRein(v); return s.startsWith('DE') && BIC_DE[s.slice(4, 12)] || null; };   // [BIC, Name der Bank]
 const ibanBauen = (blz, kto) => { const b = blz + String(kto).padStart(10, '0'); return 'DE' + String(98 - ibanRest(b + 'DE00')).padStart(2, '0') + b; };   // für Beispieldaten
 
+// Zelle der Excel: IBAN, dahinter evtl. ein Zusatz wie „(NUK)“ – der bleibt als Vermerk am Konto
+function kontoZelle(kopf, roh) {
+  const t = String(roh || '').trim(), m = t.match(/^([A-Za-z]{2}\d{2}(?:[ \u00a0]?[A-Za-z0-9]){11,30})\s*(.*)$/);
+  const zusatz = m ? m[2].replace(/^[(\[]\s*|\s*[)\]]$/g, '').trim() : '';
+  return Object.assign({ art: kontoArt(kopf), iban: ibanRein(m ? m[1] : t) }, zusatz ? { zusatz } : {});
+}
 // Excel lesen: das Blatt mit den meisten Konten (eine „Kontensuche“ mit Formeln wiederholt nur einen Teil) → { L: [{ gl, konten: [{ art, iban }] }], n, blatt }
 function kontenLesen(book) {
   let best = null;
@@ -25,7 +31,7 @@ function kontenLesen(book) {
     for (const r of sh.rows.slice(hi + 1)) {
       const roh = cellStr(r[cG]).trim(); if (!roh || istKopf(r)) continue;
       const gl = GL_LIST.find(g => norm(g) === norm(roh)) || roh;
-      const konten = cK.map(i => ({ art: kontoArt(head[i]), iban: ibanRein(cellStr(r[i])) })).filter(k => k.iban && /^[A-Z]{2}\d/.test(k.iban));
+      const konten = cK.map(i => kontoZelle(head[i], cellStr(r[i]))).filter(k => k.iban && /^[A-Z]{2}\d/.test(k.iban));
       if (!L.some(x => x.gl === gl)) L.push({ gl, konten });
     }
     const n = L.reduce((a, x) => a + x.konten.length, 0);
@@ -50,7 +56,7 @@ async function kontenEinlesen() {
 
 
 const kontenDaten = () => { if (DEMO && !D.settings.konten && typeof demoKonten === 'function') D.settings.konten = demoKonten(); return D.settings.konten; };
-const K_SPALTEN = [['Pax-Bank', 'Spendenkonto'], ['Sparkasse', 'Sparkasse'], ['Volksbank', 'Volksbank']];   // [Art aus der Excel, Überschrift]
+const K_SPALTEN = [['Pax-Bank', 'Spendenkonto'], ['BKC', 'BKC-Konto'], ['Sparkasse', 'Sparkasse'], ['Volksbank', 'Volksbank']];   // ab 0.133 auch die BKC-Konten   // [Art aus der Excel, Überschrift]
 const ICON_KOPIE = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"><rect x="5.5" y="5.5" width="8" height="8" rx="1.5"/><path d="M10.5 5.5V3.8A1.3 1.3 0 0 0 9.2 2.5H3.8a1.3 1.3 0 0 0-1.3 1.3v5.4a1.3 1.3 0 0 0 1.3 1.3h1.7"/></g></svg>';
 const ICON_HAKEN = '<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true"><path d="M3.5 8.4l3 3 6-6.4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 // Bank einer Spalte: liegen (fast) alle sichtbaren Konten bei derselben Bank, stehen BIC und Name im Spaltenkopf – nach einer Suche meist so;
@@ -61,19 +67,21 @@ function kSpalteBank(L, art) {
   return s.length && s[0].n / n >= .8 ? s[0].bk : null;
 }
 const kKopierbar = (v, cls, titel, inhalt) => `<button type="button" class="k-c ${cls}" data-v="${esc(v)}" title="${titel}">${inhalt}<span class="k-ic">${ICON_KOPIE}</span></button>`;
-function kZelle(x, art, kopf, haupt, bearb) {
-  const k = x.konten.find(y => y.art === art), td = `<td class="k-z${haupt ? ' k-haupt' : ''}">`;
+// IBAN-Suche (ab 0.133): Ziffern nach „DE“ – passt, wenn die IBAN diese Ziffernfolge enthält (Leerzeichen egal)
+const kIbanPasst = (k, ib) => !!ib && ibanRein(k.iban).slice(2).includes(ib);
+function kZelle(x, art, kopf, haupt, bearb, ib) {
+  const k = x.konten.find(y => y.art === art), td = `<td class="k-z${haupt ? ' k-haupt' : ''}${k && kIbanPasst(k, ib) ? ' k-treffer' : ''}">`;
   if (bearb) return td + `<input type="text" class="k-in" data-gl="${esc(x.gl)}" data-art="${esc(art)}" value="${esc(k ? ibanSchoen(k.iban) : '')}" placeholder="IBAN" aria-label="IBAN ${esc(x.gl)} ${esc(art)}" spellcheck="false"></td>`;
   if (!k) return td + '<span class="k-leer">–</span></td>';
   const bk = ibanBank(k.iban), ok = ibanOk(k.iban), roh = ibanRein(k.iban);
-  return td + '<div class="k-zi">' + kKopierbar(roh, 'k-iban' + (ok ? '' : ' falsch'), ok ? 'Klicken: IBAN kopieren' : 'Die Prüfziffer dieser IBAN stimmt nicht – bitte prüfen', esc(ibanSchoen(roh)))
+  return td + '<div class="k-zi">' + kKopierbar(roh, 'k-iban' + (ok ? '' : ' falsch'), ok ? 'Klicken: IBAN kopieren' : 'Die Prüfziffer dieser IBAN stimmt nicht – bitte prüfen', esc(ibanSchoen(roh))) + (k.zusatz ? `<span class="k-zus" title="Vermerk aus der Excel">${esc(k.zusatz)}</span>` : '')
     + '<div class="k-mehr">' + (bk ? kKopierbar(bk[0], 'k-bic', 'Klicken: BIC kopieren', 'BIC ' + esc(bk[0])) + kKopierbar(bk[1], 'k-bank', 'Klicken: Namen der Bank kopieren', esc(bk[1])) : '<span class="k-bank">BIC unbekannt</span>') + '</div></div></td>';
 }
-function kTabelle(K, q, bearb) {
-  const L = K.liste.filter(x => !q || norm(x.gl).includes(q)), kopfBank = K_SPALTEN.map(([art]) => kSpalteBank(L, art));
+function kTabelle(K, q, bearb, ib) {
+  const L = K.liste.filter(x => ib ? x.konten.some(k => kIbanPasst(k, ib)) : !q || norm(x.gl).includes(q)), kopfBank = K_SPALTEN.map(([art]) => kSpalteBank(L, art));
   const kopf = K_SPALTEN.map(([art, t], i) => `<th class="${i ? '' : 'k-haupt'}"><span class="k-th">${t}</span></th>`).join('');
-  const zeile = x => `<tr>${bearb ? `<td class="k-gl"><div class="k-gl-z"><input type="text" class="k-in k-gl-in" data-gl="${esc(x.gl)}" value="${esc(x.gl)}" aria-label="Name der Gliederung"><button type="button" class="k-weg" data-gl="${esc(x.gl)}" title="Gliederung aus der Kontenliste entfernen" aria-label="Gliederung entfernen">×</button></div></td>` : `<th scope="row" class="k-gl">${esc(x.gl)}</th>`}${K_SPALTEN.map(([art], i) => kZelle(x, art, kopfBank[i], !i, bearb)).join('')}</tr>`;
-  return `<table class="k-tab${bearb ? ' k-bearb' : ''}"><thead><tr><th class="k-gl">Gliederung</th>${kopf}</tr></thead><tbody>${L.map(zeile).join('') || `<tr><td colspan="${K_SPALTEN.length + 1}" class="muted k-nix">Keine Gliederung passt zu „${esc(q)}“.</td></tr>`}`
+  const zeile = x => `<tr>${bearb ? `<td class="k-gl"><div class="k-gl-z"><input type="text" class="k-in k-gl-in" data-gl="${esc(x.gl)}" value="${esc(x.gl)}" aria-label="Name der Gliederung"><button type="button" class="k-weg" data-gl="${esc(x.gl)}" title="Gliederung aus der Kontenliste entfernen" aria-label="Gliederung entfernen">×</button></div></td>` : `<th scope="row" class="k-gl">${esc(x.gl)}</th>`}${K_SPALTEN.map(([art], i) => kZelle(x, art, kopfBank[i], !i, bearb, ib)).join('')}</tr>`;
+  return `<table class="k-tab${bearb ? ' k-bearb' : ''}"><thead><tr><th class="k-gl">Gliederung</th>${kopf}</tr></thead><tbody>${L.map(zeile).join('') || `<tr><td colspan="${K_SPALTEN.length + 1}" class="muted k-nix">${ib ? 'Kein Konto mit dieser IBAN in der Kontenliste.' : `Keine Gliederung passt zu „${esc(q)}“.`}</td></tr>`}`
     + (bearb ? `<tr><td colspan="${K_SPALTEN.length + 1}"><button type="button" class="link small k-neu">+ Gliederung</button></td></tr>` : '') + '</tbody></table>';
 }
 async function kopiereZeichen(btn) {
@@ -85,8 +93,8 @@ async function kopiereZeichen(btn) {
 // Bearbeiten (Stift oben rechts): IBAN und Name der Gliederung ändern, Gliederungen dazu oder weg; die BIC ergibt sich aus der IBAN
 function kontoSetzen(K, gl, art, wert) {
   const x = K.liste.find(y => y.gl === gl); if (!x) return;
-  const iban = ibanRein(wert); x.konten = x.konten.filter(k => k.art !== art);
-  if (iban) { x.konten.push({ art, iban }); x.konten.sort((a, c) => K_SPALTEN.findIndex(s => s[0] === a.art) - K_SPALTEN.findIndex(s => s[0] === c.art)); if (!ibanOk(iban)) toast('Die Prüfziffer dieser IBAN stimmt nicht – bitte prüfen.', 'warn'); }
+  const iban = ibanRein(wert), alt = x.konten.find(k => k.art === art); x.konten = x.konten.filter(k => k.art !== art);
+  if (iban) { x.konten.push(Object.assign({ art, iban }, alt && alt.zusatz ? { zusatz: alt.zusatz } : {})); x.konten.sort((a, c) => K_SPALTEN.findIndex(s => s[0] === a.art) - K_SPALTEN.findIndex(s => s[0] === c.art)); if (!ibanOk(iban)) toast('Die Prüfziffer dieser IBAN stimmt nicht – bitte prüfen.', 'warn'); }
   changed();
 }
 // Fenster: oben Suche, Stift (Bearbeiten) und ×; Esc schließt. Ohne Stift kopiert ein Klick auf IBAN oder BIC
@@ -101,7 +109,21 @@ async function kontenDialog() {
   let bearb = false;
   const such = slSuche('Gliederung suchen, z. B. Brakel …', 'Gliederung suchen');
   const wrap = h('div', { class: 'k-wrap' });
-  const zeig = () => { wrap.innerHTML = kTabelle(K, norm(such.value), bearb); };
+  // IBAN-Suche rechts daneben: „DE“ steht schon da; Ziffern tippen oder eine ganze IBAN hineinkopieren (DE, Leerzeichen werden entfernt)
+  const ibIn = h('input', { type: 'search', class: 'k-ib-in', inputmode: 'numeric', placeholder: 'IBAN prüfen …', 'aria-label': 'IBAN suchen (ohne DE)', spellcheck: 'false', autocomplete: 'off' });
+  const ibMeld = h('div', { class: 'k-ib-m', 'aria-live': 'polite' });
+  const ibWert = () => ibanRein(ibIn.value).replace(/^DE/, '').replace(/[^0-9A-Z]/g, '');
+  ibIn.addEventListener('paste', e => { const t = (e.clipboardData || window.clipboardData).getData('text'); if (!t) return; e.preventDefault(); ibIn.value = ibanSchoen(ibanRein(t).replace(/^DE/, '')); ibIn.dispatchEvent(new Event('input')); });
+  const ibMeldung = () => {
+    const ib = ibWert(); ibMeld.className = 'k-ib-m'; ibMeld.textContent = ''; if (!ib) return;
+    const T = K.liste.flatMap(x => x.konten.filter(k => kIbanPasst(k, ib)).map(k => x.gl + ' · ' + (K_SPALTEN.find(c => c[0] === k.art) || [0, k.art])[1]));
+    const voll = ib.length === 20, ok = voll && ibanOk('DE' + ib), bk = voll ? ibanBank('DE' + ib) : null;
+    if (T.length) { ibMeld.classList.add('ja'); ibMeld.textContent = (voll ? 'Konto vorhanden: ' : T.length === 1 ? '1 Konto passt: ' : T.length + ' Konten passen: ') + T.join(', '); return; }
+    ibMeld.classList.add('nein');
+    ibMeld.textContent = voll ? 'Dieses Konto steht nicht in der Kontenliste.' + (ok ? (bk ? ' (gültige IBAN bei ' + bk[1] + ')' : ' (gültige IBAN)') : ' Achtung: Die Prüfziffer stimmt nicht – vermutlich vertippt.') : 'Keine IBAN mit diesen Ziffern in der Kontenliste.' + (ib.length < 20 ? ' (' + ib.length + ' von 20 Ziffern)' : '');
+  };
+  const zeig = () => { wrap.innerHTML = kTabelle(K, norm(such.value), bearb, ibWert()); ibMeldung(); such.classList.toggle('k-aus', !!ibWert()); };
+  ibIn.addEventListener('input', zeig);
   const stift = h('button', { type: 'button', class: 'k-stift', title: 'Kontenliste bearbeiten', 'aria-label': 'Kontenliste bearbeiten', 'aria-pressed': 'false', html: ICON_PEN, onclick: () => {
     bearb = !bearb; stift.classList.toggle('on', bearb); stift.setAttribute('aria-pressed', String(bearb)); stift.title = bearb ? 'Bearbeiten beenden' : 'Kontenliste bearbeiten'; zeig(); } });
   such.addEventListener('input', zeig);
@@ -117,5 +139,5 @@ async function kontenDialog() {
     kontoSetzen(K, f.dataset.gl, f.dataset.art, f.value); f.value = ibanSchoen(f.value);
   });
   zeig();
-  await modal('Kontenliste der Gliederungen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such), wrap), [], { wide: true, cls: 'k-modal', kopf: stift, expose: zu => { slMiniAn('konten', zu); setTimeout(() => such.focus(), 40); } });
+  await modal('Kontenliste der Gliederungen', h('div', { class: 'k-box' }, h('div', { class: 'k-kopf' }, such, h('label', { class: 'k-ib', title: 'IBAN prüfen: Ziffern nach „DE“ eingeben oder eine IBAN hineinkopieren' }, h('span', { class: 'k-ib-de' }, 'DE'), ibIn)), ibMeld, wrap), [], { wide: true, cls: 'k-modal', kopf: stift, expose: zu => { slMiniAn('konten', zu); setTimeout(() => such.focus(), 40); } });
 }

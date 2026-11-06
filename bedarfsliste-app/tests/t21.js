@@ -28,7 +28,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('.seitenleiste [data-act="konten"]', { force: true }); await p.waitForTimeout(150);
   r = await p.evaluate(() => [document.querySelector('.modal.k-modal h2').textContent, [...document.querySelectorAll('.k-tab thead th')].map(t => t.querySelector('.k-th') ? t.querySelector('.k-th').textContent : t.textContent).join(','),
     document.querySelectorAll('.k-tab tbody tr').length, !document.querySelector('.k-tab thead .k-bic'), document.activeElement.className, !document.querySelector('.k-fuss'), !!document.querySelector('.k-modal header .k-stift')]);
-  ok(r.join('|') === 'Kontenliste der Gliederungen|Gliederung,Spendenkonto,Sparkasse,Volksbank|2|true|k-such|true|true', 'Fenster: Spalten ohne BIC im Kopf, Suche hat den Fokus, Stift oben: ' + r.join('|'));
+  ok(r.join('|') === 'Kontenliste der Gliederungen|Gliederung,Spendenkonto,BKC-Konto,Sparkasse,Volksbank|2|true|k-such|true|true', 'Fenster: Spalten ohne BIC im Kopf, Suche hat den Fokus, Stift oben: ' + r.join('|'));
   r = await p.evaluate(() => { const td = document.querySelector('.k-tab tbody tr:first-child td.k-haupt'), m = td.querySelector('.k-mehr'), cs = getComputedStyle(td);
     return [td.querySelector('.k-bic').textContent.trim(), td.querySelector('.k-bank').tagName, getComputedStyle(m).opacity, cs.textAlign, cs.verticalAlign, (() => { const w = document.querySelector('.k-wrap'); return w.scrollWidth <= w.clientWidth; })()]; });
   ok(r.join('|') === 'BIC GENODED1PA7|BUTTON|0|center|middle|true', 'Jede Zelle: BIC und Bank (kopierbar) zunächst verborgen, Inhalt zentriert, kein waagerechter Scrollbalken: ' + r.join('|'));
@@ -43,9 +43,20 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.focus('.k-such'); await p.keyboard.type('hag'); await p.waitForTimeout(80);
   ok(await p.evaluate(() => [...document.querySelectorAll('.k-tab tbody .k-gl')].map(x => x.textContent).join(',')) === 'Hagen', 'Suche „hag“: nur Hagen');
   await p.fill('.k-such', ''); await p.waitForTimeout(50);
+  r = await p.evaluate(() => { const ib = ibanBauen('47650130', 4711), z = kontoZelle('SPK-Konto', ibanSchoen(ib) + ' (NUK)'), z2 = kontoZelle('BKC-Konto', ib); return [z.art, z.iban === ib, z.zusatz, ibanOk(z.iban), z2.art, 'zusatz' in z2]; });
+  ok(r.join('|') === 'Sparkasse|true|NUK|true|BKC|false', '0.133 Einlesen: Zusatz hinter der IBAN wie „(NUK)“ bleibt als Vermerk, die IBAN ist gültig; Spalte „BKC-Konto“: ' + r.join('|'));
+  // 0.133: IBAN-Suche rechts neben der Suche – „DE“ steht davor; ganze IBAN hineinkopieren oder Ziffern tippen
+  r = await p.evaluate(() => { const L = D.settings.konten.liste, ib = L[0].konten[0].iban, f = document.querySelector('.k-ib-in'), o = [document.querySelector('.k-ib-de').textContent];
+    const setz = v => { f.value = v; f.dispatchEvent(new Event('input')); return [[...document.querySelectorAll('.k-tab tbody .k-gl')].map(x => x.textContent).join(','), document.querySelectorAll('.k-tab td.k-treffer').length, document.querySelector('.k-ib-m').className.replace('k-ib-m', '').trim()]; };
+    o.push(setz(ibanSchoen(ib.slice(2))).join('/'));
+    o.push(setz(ib.slice(14)).map((v, i) => i === 1 ? (v >= 1 ? 1 : 0) : v).join('/'));
+    const fremd = ibanBauen('47650130', 999999); o.push(setz(fremd.slice(2)).join('/') + '/' + /nicht in der Kontenliste/.test(document.querySelector('.k-ib-m').textContent));
+    o.push(/Prüfziffer/.test((setz(fremd.slice(2, 3) === '0' ? '1' + fremd.slice(3) : '0' + fremd.slice(3)), document.querySelector('.k-ib-m').textContent)));
+    setz(''); return o; });
+  ok(r.join('|') === 'DE|' + await p.evaluate(() => D.settings.konten.liste[0].gl) + '/1/ja|' + await p.evaluate(() => D.settings.konten.liste[0].gl) + '/1/ja|/0/nein/true|true', 'IBAN-Suche: ganze IBAN und Teil der Kontonummer finden das Konto (markiert), fremdes Konto „nicht in der Kontenliste“, Tippfehler: Prüfziffer: ' + r.join('|'));
   // Stift: bearbeiten statt kopieren
   await p.click('.k-modal .k-stift'); await p.waitForTimeout(60);
-  ok(await p.evaluate(() => document.querySelector('.k-modal .k-stift').classList.contains('on') && document.querySelectorAll('.k-tab .k-in').length === 2 * 4), 'Stift: Felder zum Bearbeiten (Name und drei Konten je Gliederung)');
+  ok(await p.evaluate(() => document.querySelector('.k-modal .k-stift').classList.contains('on') && document.querySelectorAll('.k-tab .k-in').length === 2 * 5), 'Stift: Felder zum Bearbeiten (Name und vier Konten je Gliederung)');
   await p.evaluate(() => { const f = document.querySelector('.k-in[data-gl="Hagen"][data-art="Pax-Bank"]'); f.value = ibanBauen('37060120', 9); f.dispatchEvent(new Event('change', { bubbles: true })); });
   await p.evaluate(() => { const f = document.querySelector('.k-in[data-gl="Brakel"][data-art="Sparkasse"]'); f.value = ''; f.dispatchEvent(new Event('change', { bubbles: true })); });
   r = await p.evaluate(() => { const L = D.settings.konten.liste; return [L.find(x => x.gl === 'Hagen').konten.map(k => k.art).join('+'), L.find(x => x.gl === 'Brakel').konten.map(k => k.art).join('+')]; });

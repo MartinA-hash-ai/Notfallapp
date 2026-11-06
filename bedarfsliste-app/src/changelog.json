@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.133.0",
+    "date": "2026-11-16T10:00",
+    "items": [
+      "Kontenliste: neue Spalte „BKC-Konto“ (Bank für Kirche und Caritas, heute Pax-Bank für Kirche und Caritas) – die Konten standen schon in der Excel, wurden aber nicht angezeigt",
+      "Kontenliste: rechts neben der Suche ein Feld „IBAN prüfen“ – „DE“ steht schon davor; Ziffern tippen oder eine ganze IBAN hineinkopieren. Gefunden: Gliederung und Konto werden grün markiert; sonst „steht nicht in der Kontenliste“, bei einer vollständigen IBAN mit Prüfung der Prüfziffer und Name der Bank",
+      "Einlesen der Kontenliste: Zusätze hinter einer IBAN wie „(NUK)“ machen die IBAN nicht mehr ungültig, sie stehen als kleiner Vermerk daneben"
+    ]
+  },
+  {
     "version": "0.132.0",
     "date": "2026-11-15T10:00",
     "items": [

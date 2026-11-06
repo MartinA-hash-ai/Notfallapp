@@ -2307,3 +2307,19 @@ table.sl-kst tbody tr.sl-gr-meist > th { color: var(--ink2); }
 .fl-ki-m { display: inline-flex; vertical-align: -2px; margin-right: 5px; color: #7c5cd6; }
 .fl-ki-m svg { width: 14px; height: 14px; }
 .foe-pop .fl-zeile { margin-top: 8px; }
+
+/* 0.133: Kontenliste mit BKC-Spalte und IBAN-Suche */
+.modal.wide.k-modal:not(.sl-modal) { width: min(1140px, 98vw); }
+.k-kopf { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.k-ib { margin-left: auto; display: inline-flex; align-items: center; border: 1px solid var(--line2); border-radius: 6px; background: var(--input, var(--card)); overflow: hidden; }
+.k-ib:focus-within { border-color: var(--faint); }
+.k-ib-de { padding: 0 2px 0 9px; font-weight: 600; color: var(--ink2); font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.k-ib .k-ib-in { border: 0; outline: none; box-shadow: none; background: transparent; width: 250px; padding-left: 4px; font-variant-numeric: tabular-nums; letter-spacing: .04em; }
+.k-ib-m { font-size: 13px; margin: -4px 0 10px; }
+.k-ib-m:empty { display: none; }
+.k-ib-m.ja { color: var(--okink, #2e7d32); }
+.k-ib-m.nein { color: var(--red-d, #b42318); }
+.k-such.k-aus { opacity: .5; }
+table.k-tab tbody td.k-treffer, table.k-tab tbody tr:hover > td.k-treffer { background: var(--okbg, #e8f5e9); box-shadow: inset 0 0 0 1px var(--okline, #a5d6a7); }
+.k-zus { display: inline-block; margin-left: 6px; font-size: 11px; color: var(--muted); border: 1px solid var(--line2); border-radius: 4px; padding: 0 4px; vertical-align: 1px; }
+@media (max-width: 1200px) { .k-modal:not(.sl-modal) .k-iban { font-size: 12px; letter-spacing: 0; } .k-modal:not(.sl-modal) table.k-tab thead th.k-gl, .k-modal:not(.sl-modal) table.k-tab tbody th.k-gl { width: 118px; } }

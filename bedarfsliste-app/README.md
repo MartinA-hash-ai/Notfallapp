@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.133:** Kontenliste mit Spalte „BKC-Konto“ und Feld „IBAN prüfen“ (DE vorgegeben, Ziffern oder ganze IBAN einfügen); Zusätze wie „(NUK)“ hinter der IBAN werden beim Einlesen als Vermerk übernommen.
+
 **Seit 0.132:** Inhalt wieder mittig, Kopfzeile wie früher; Verknüpfung Bedarf ↔ Fördererliste unter „Weitere Infos“ statt in der Kachel; „recherchierte anzeigen“ im Fenster der KI-Recherche; Filter ohne blauen Rahmen.
 
 **Seit 0.131:** Fördererliste: Filter mit Häkchen (Banken zusammengefasst, Bürgerstiftungen, Stiftungen …, über 10.000 €, Frist in 2 Monaten) statt Gliederungs-Auswahl; Krone auch aus der Förderhöhe und auf der Seite des Förderers; „KI-Recherche“ direkt auf der Seite eines Förderers; Förderer-Fristen der nächsten 2 Monate im Hinweis-Feld oben rechts; Leiste einheitlich hoch, „ausklappen / einklappen“ als Knopf.
