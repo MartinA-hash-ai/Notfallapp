@@ -190,7 +190,7 @@ function plKurz(t) {
   let s = String(t || '').trim(); if (!s) return '';
   if (/^di(ö|oe)zesangesch(ä|ae)ftsstelle(\s+paderborn)?$/i.test(s) || /^dgs(\s+paderborn)?$/i.test(s)) return 'DGS Paderborn';
   s = s.replace(/di(ö|oe)zesangesch(ä|ae)ftsstelle/gi, '').replace(/gesch(ä|ae)ftsstelle/gi, '').replace(/dienststelle/gi, 'DST').replace(/malteser[\s-]+bildungszentrum/gi, 'MBZ').replace(/presse[\s-]*(und|&)\s*(ö|oe)ffentlichkeitsarbeit/gi, 'PÖ')
-    .replace(/\s{2,}/g, ' ').replace(/^[\s,–-]+|[\s,–-]+$/g, '').trim();
+    .replace(/\s{2,}/g, ' ').replace(/^[\s,;:.·|/–-]+|[\s,;:.·|/–-]+$/g, '').replace(/\s+([,;:])/g, '$1').trim();
   return s || 'DGS Paderborn';
 }
 async function personenListeDialog() {

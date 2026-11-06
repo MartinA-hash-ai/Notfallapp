@@ -49,8 +49,8 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('.modal footer button.primary'); await p.waitForTimeout(300);
   ok(await p.evaluate(() => !!document.querySelector('.einst-modal')), 'Nach dem Schließen eines Fensters zurück in die Einstellungen');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
-  r = await p.evaluate(() => ['Diözesangeschäftsstelle', 'Dienststelle Hagen', 'Geschäftsstelle Brakel', 'Malteser Bildungszentrum Paderborn', 'Presse- und Öffentlichkeitsarbeit'].map(plKurz).join('|') + '|' + PL_WEG.test('Diözesangeschäftsstelle NUK') + PL_WEG.test('Diözesangeschäftsstelle Lage-Hörste'));
-  ok(r === 'DGS Paderborn|DST Hagen|Brakel|MBZ Paderborn|PÖ|truetrue', '0.136: Gruppen kurz (DGS Paderborn, DST, MBZ, PÖ; NUK und Lage-Hörste ausgeblendet): ' + r);
+  r = await p.evaluate(() => ['Diözesangeschäftsstelle', 'Diözesangeschäftsstelle; Balve', 'Diözesangeschäftsstelle: Gütersloh', 'Dienststelle Hagen', 'Geschäftsstelle Brakel', 'Malteser Bildungszentrum Paderborn', 'Presse- und Öffentlichkeitsarbeit'].map(plKurz).join('|') + '|' + PL_WEG.test('Diözesangeschäftsstelle NUK') + PL_WEG.test('Diözesangeschäftsstelle Lage-Hörste'));
+  ok(r === 'DGS Paderborn|Balve|Gütersloh|DST Hagen|Brakel|MBZ Paderborn|PÖ|truetrue', '0.136: Gruppen kurz (DGS Paderborn, DST, MBZ, PÖ; NUK und Lage-Hörste ausgeblendet): ' + r);
   // 0.135: Personenliste neu – Gruppen links, Karten rechts, Stern im Fachreferat; kein Mitscrollen im Hintergrund
   await p.evaluate(() => { const P = (n, rolle, gl, fach) => ({ n, rolle, gl, fach, mail: n.split(' ')[0].toLowerCase() + '@x.example', tel: '', mobil: '' });
     personenSetzen([P('Anna Beispiel', 'Referentin', 'Diözese', 'Soziales Ehrenamt'), P('Ben Muster', 'Sachbearbeitung', 'Diözese', 'Soziales Ehrenamt'), P('Clara Exempel', 'Koordination', 'Hagen', 'Soziales Ehrenamt'),
