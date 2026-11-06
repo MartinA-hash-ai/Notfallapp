@@ -439,7 +439,7 @@ function fnZeigen(svg, k, v) {                                                  
 const flQNull = () => Object.fromEntries(FL_BEW.map(x => [x.k, 0]));
 const flQEintrag = () => ({ id: '#such', foerderungen: [], topfe: [], bew: Object.assign(flQNull(), UI.flBewQ) });
 const flQAktiv = () => FL_BEW.some(x => (UI.flBewQ || {})[x.k] > 0);
-function flListeNeu() { swap('fl-body', flZeilen(), true); const c = $('#fl-count'); if (c) c.textContent = flGefiltert().length + ' von ' + D.fl.liste.length + ' Förderern'; const n = $('#fl-such-n'); if (n) n.textContent = flGefiltert().length + ' Treffer'; const l = $('.fl-lupe'); if (l) l.classList.toggle('an', flQAktiv()); }
+function flListeNeu() { swap('fl-body', flZeilen(), true); if (typeof exNachRender === 'function') exNachRender(); const c = $('#fl-count'); if (c) c.textContent = flGefiltert().length + ' von ' + D.fl.liste.length + ' Förderern'; const n = $('#fl-such-n'); if (n) n.textContent = flGefiltert().length + ' Treffer'; const l = $('.fl-lupe'); if (l) l.classList.toggle('an', flQAktiv()); }
 function fnSuchSetzen(k, v) {
   if ((UI.flBewQ[k] || 0) === v) return; UI.flBewQ[k] = v;
   const n = $('.fl-such .fl-netz'); if (n) n.outerHTML = flNetz(flQEintrag(), true, { such: true });

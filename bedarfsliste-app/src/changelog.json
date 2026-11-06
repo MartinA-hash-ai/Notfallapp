@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.140.0",
+    "date": "2026-11-22T10:00",
+    "items": [
+      "Exportieren neu: in einer Liste (Bedarfe, Archiv, Fördererliste) wird die Liste gestrichelt eingerahmt, der Rest abgedunkelt; es gilt die aktuelle Ansicht (ausführlich/kompakt, Filter, Suche)",
+      "Alles ist ausgewählt – ein Klick in eine Zeile wählt den Bedarf bzw. Förderer ab oder wieder an, ein Klick auf eine Spaltenüberschrift die ganze Spalte; unten eine Leiste mit Anzahl, „Alle“, „Keine“, „Abbrechen“ (oder Esc) und „Weiter →“",
+      "„Weiter →“ fragt: PDF (die Tabelle so, wie sie zu sehen ist, A4 quer, auf Seitenbreite verkleinert, mehrere Seiten möglich), Excel (dieselben Zeilen und Spalten als Text) oder Termine für Outlook mit Erinnerung",
+      "Auf der Seite eines Bedarfs oder Förderers fragt „Exportieren“ gleich nach dem Format; PDF ist dann die Detailansicht"
+    ]
+  },
+  {
     "version": "0.139.0",
     "date": "2026-11-21T10:00",
     "items": [

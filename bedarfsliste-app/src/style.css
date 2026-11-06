@@ -2465,3 +2465,42 @@ html.modal-offen { overflow: hidden; }
   #ex-druck .ex-fz { margin-bottom: 3px; } #ex-druck .ex-fz .ex-k { white-space: normal; }
   #ex-druck .ex-zwei > div > div { margin-bottom: 1px; }
 }
+
+/* 0.140: Export – Auswahlmodus in der Liste (gestrichelter Rahmen, Rest abgedunkelt), Leiste unten, Fenster „Wie exportieren?“ */
+.list-card.ex-ziel { position: relative; z-index: 84; outline: 2px dashed var(--red, #d81e05); outline-offset: 6px; box-shadow: 0 0 0 100vmax rgba(20, 20, 20, .38); cursor: pointer; }
+html.ex-modus header.top { z-index: 20; }
+html.ex-modus .seitenleiste { z-index: 10; }
+.ex-ziel thead th { cursor: pointer; }
+.ex-ziel thead th:hover { background: var(--hover); }
+.ex-ziel tbody tr:hover > td { background: color-mix(in srgb, var(--hover) 80%, transparent); }
+.ex-ziel tr.ex-z-aus > td, .ex-ziel tr.ex-z-aus > th, .ex-ziel .ex-sp-aus { opacity: .22; filter: grayscale(1); }
+.ex-ziel thead .ex-sp-aus { opacity: .45; text-decoration: line-through; }
+.ex-leiste { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 86; display: flex; align-items: center; gap: 14px; flex-wrap: wrap; justify-content: center; max-width: calc(100vw - 32px);
+  background: var(--card); border: 1px solid var(--line2); border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,.25); padding: 10px 16px; font-size: 13.5px; }
+.ex-lt { display: inline-flex; align-items: center; gap: 6px; font-weight: 700; }
+.ex-li { display: inline-flex; }
+.ex-lz { font-weight: 600; }
+.ex-k3 { display: grid; gap: 3px; text-align: left; padding: 12px 14px; border: 1px solid var(--line2); border-radius: 10px; background: var(--card); cursor: pointer; font: inherit; color: var(--ink); }
+.ex-k3 b { font-size: 14.5px; }
+.ex-k3 span { font-size: 12.5px; color: var(--muted); }
+.ex-k3:hover { border-color: var(--faint); }
+.ex-k3.on { border-color: var(--ink2); box-shadow: inset 0 0 0 1px var(--ink2); background: var(--head); }
+.ex-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.ex-wer { margin: 0; font-weight: 600; }
+.ex-mess { position: absolute; left: -99999px; top: 0; width: 1600px; }
+#ex-druck.ex-mess-an { display: block !important; position: absolute; left: -99999px; top: 0; width: 1040px; }
+@media print {
+  #ex-druck .ex-kopie { width: 100% !important; min-width: 0 !important; font-size: 9pt; table-layout: auto !important; }
+  #ex-druck .ex-kopie th, #ex-druck .ex-kopie td { position: static !important; background: none !important; }
+  #ex-druck .ex-kopie tr { break-inside: avoid; }
+  #ex-druck .ex-kopie thead { display: table-header-group; }
+  #ex-druck .ex-kopie button { border: 0 !important; background: none !important; padding: 0 !important; box-shadow: none !important; color: inherit !important; font: inherit !important; }
+}
+@media (max-width: 760px) { .ex-3 { grid-template-columns: 1fr; } .ex-lh { display: none; } }
+html.modal-offen .list-card.ex-ziel { z-index: auto; box-shadow: none; }
+html.modal-offen .ex-leiste { display: none; }
+.ex-leiste { flex-wrap: nowrap; white-space: nowrap; width: max-content; }
+.ex-k3 span { white-space: normal; }
+.modal.ex-modal { width: min(720px, 96vw); }
+@media (max-width: 1000px) { .ex-leiste { flex-wrap: wrap; white-space: normal; width: auto; } }
+@media print { #ex-druck .ex-kopie td *:not(svg):not(svg *) { background-color: transparent !important; box-shadow: none !important; } }

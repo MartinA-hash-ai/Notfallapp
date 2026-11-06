@@ -196,6 +196,7 @@ function renderNow() {
     }
     PIE_HOLD = false;
     app.innerHTML = headerHtml() + bannersHtml() + (b ? bedarfView(b) : UI.view === 'flist' ? flListView() : UI.view === 'fdetail' ? flDetailView() : listView()) + seitenleisteHtml();
+    if (typeof exNachRender === 'function') setTimeout(exNachRender, 0);
     aufMass(); kopfHoehe();
     strgSet(CTRL_NOW);
     if (fk) { const e = $(fk, app); if (e) { e.focus({ preventScroll: true }); if (sel && 'setSelectionRange' in e) try { e.setSelectionRange(sel[0], sel[1]); } catch (x) { /* */ } } }

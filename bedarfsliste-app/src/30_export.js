@@ -11,121 +11,153 @@ const exPlain = t => String(t || '').replace(/^\s*(?:[•*-]|\d+\.)\s+/gm, '').r
 const exFmt = t => t ? fmtText(t) : '';
 const exEinsch = v => (EINSCH.find(e => e[0] === v) || [, ''])[1];
 
-/* ---------- Spalten der Übersichten: [Schlüssel, Überschrift, in kompakt, in ausführlich, Inhalt(x, ausführlich) → HTML] */
-const exFoeZeile = (f, a) => esc(f.name.trim() || '(ohne Namen)') + ' · ' + F_ST_L[f.status] + (foeAmt(f) ? ' · ' + eur(foeAmt(f)) : '') + (a && f.status === 'geplant' && f.frist ? ' · Frist ' + fmtDate(f.frist) : '') + (a && f.einsch ? ' · ' + exEinsch(f.einsch) : '');
-const EX_B = [
-  ['titel', 'Bedarf', 1, 1, b => '<b>' + esc(b.titel || '(ohne Namen)') + '</b>'],
-  ['gl', 'Gliederung', 1, 1, b => esc(b.gliederung)],
-  ['summe', 'Summe', 1, 1, b => b.summe ? eur(b.summe) : '–'],
-  ['prio', 'Priorität', 0, 1, b => esc(b.prio)],
-  ['stand', 'Stand', 1, 1, (b, a) => { const p = phase(b); return esc(phaseName(p)) + (a && p.sub ? '<div class="ex-k">' + esc(p.t + (p.sub ? ': ' + p.sub : '')) + '</div>' : ''); }],
-  ['foerderer', 'Förderer', 0, 1, (b, a) => { const L = b.foerderer.filter(f => f.name.trim() || f.betrag); if (!L.length) return '–';
-    if (!a) { const z = L.filter(f => f.status === 'zugesagt'); return L.length + (L.length === 1 ? ' Förderer' : ' Förderer') + (z.length ? ', ' + z.length + ' zugesagt' : ''); }
-    return L.map(f => '<div class="ex-fz"><b>' + esc(f.name.trim() || '(ohne Namen)') + '</b><span class="ex-k"> · ' + [F_ST_L[f.status], foeAmt(f) ? eur(foeAmt(f)) : '', f.status === 'geplant' && f.frist ? 'Frist ' + fmtDate(f.frist) : '', f.einsch ? exEinsch(f.einsch) : ''].filter(Boolean).join(' · ') + '</span></div>').join(''); }],
-  ['finanz', 'Finanzierung', 0, 1, b => { const F = finState(b); return F.S ? 'zugesagt ' + eur(F.zu) + (F.eig ? ' · Eigenmittel ' + eur(F.eig) : '') + (F.d > 0 ? ' · offen ' + eur(F.d) : '') : '–'; }],
-  ['frist', 'Nächste Frist', 1, 1, b => { const x = nextFrist(b); return x ? fmtDate(x.d) + '<div class="ex-k">' + esc(x.t) + '</div>' : '–'; }],
-  ['deadline', 'Deadline', 0, 0, b => b.deadline ? fmtDate(b.deadline) : '–'],
-  ['freigabe', 'Freigabe', 0, 1, b => { const o = frOffen(b); return o.rej.length ? 'abgelehnt: ' + esc(o.rej.map(frName).join(', ')) : o.names.length ? 'es fehlt: ' + esc(o.names.join(', ')) : 'vollständig'; }],
-  ['zust', 'Ansprechperson', 1, 1, (b, a) => { const z = b.zust.filter(x => x.n.trim()); if (!z.length) return '–'; return esc(z[0].n) + (a ? '<div class="ex-k">' + esc([z[0].rolle, z[0].mail, z[0].tel || z[0].mobil].filter(Boolean).join(' · ')) + '</div>' : ''); }],
-  ['stichworte', 'Stichworte', 0, 0, b => esc(b.stichworte.join(', ')) || '–'],
-  ['beschreibung', 'Beschreibung', 0, 0, b => esc(exPlain(b.beschreibung)).slice(0, 600) || '–']];
-const EX_F = [
-  ['name', 'Förderer', 1, 1, e => '<b>' + esc(e.name || '(ohne Namen)') + '</b>' + (e.kurz ? ' <span class="ex-k">(' + esc(e.kurz) + ')</span>' : '') + (flGrossE(e) ? ' <span class="ex-k">· über 10.000 € möglich</span>' : '')],
-  ['art', 'Art', 1, 1, e => esc(e.art) || '–'],
-  ['gl', 'Fördergebiet', 1, 1, e => esc(flEff(e).gl.map(g => /^alle$/i.test(g) ? 'alle Gliederungen' : g).join(', ')) || '–'],
-  ['schwer', 'Förderzweck', 1, 1, e => esc(flKomma(flEff(e).schwer)) || '–'],
-  ['hoehe', 'Förderhöhe', 1, 1, e => esc(e.topfe.length ? e.topfe.map(t => flHoeheKlar(t)).filter(Boolean).join(' / ') : flHoeheKlar(e)) || '–'],
-  ['fristen', 'Fristen', 1, 1, e => { const L = flFristenDaten(e).filter(x => x.iso >= today()); return L.length ? L.map(x => fmtDate(x.iso).slice(0, 6) + (x.topf && e.topfe.length > 1 ? ' (' + esc(x.topf) + ')' : '')).join(', ') : esc(flPlain(flEff(e).fristen)) || '–'; }],
-  ['kontakt', 'Ansprechperson', 1, 1, (e, a) => { const k = flKontaktHaupt(e); return k ? esc(k.n) + (a ? '<div class="ex-k">' + esc([k.pos, k.mail, k.tel].filter(Boolean).join(' · ')) + '</div>' : '') : '–'; }],
-  ['einsch', 'Einschätzung', 0, 1, (e, a) => { const B = flBewFuer(e); const L = (a ? FL_BEW : FL_BEW.filter(x => x.k === 'chance')).filter(x => B[x.k].v).map(x => x.kurz + ' ' + x.st[B[x.k].v - 1]); return L.map(esc).join('<br>') || '–'; }],
-  ['weg', 'Antragsweg', 0, 1, e => esc(flEff(e).weg.join(', ')) || '–'],
-  ['toepfe', 'Fördertöpfe', 0, 1, e => esc(e.topfe.map(t => t.name).join(', ')) || '–'],
-  ['foerderungen', 'Förderungen', 0, 1, e => { const K = flKennzahl(flHistorie(e)); return K.n ? K.n + ' seit ' + K.seit + ' · ' + eur(K.sum) : '–'; }],
-  ['notiz', 'Notizen', 0, 0, e => esc(flPlain(flEff(e).notiz)).slice(0, 500) || '–']];
-
-/* ---------- Was ausgewählt werden kann */
-const exAktiveB = () => { try { return filtered(); } catch (e) { return D.bedarfe.filter(b => !b.archiv); } };
-function exQuelle(was) {
-  if (was === 'f') return { alle: flGefiltert(), voll: D.fl ? D.fl.liste.slice().sort((a, c) => a.name.localeCompare(c.name, 'de')) : [], dieser: UI.view === 'fdetail' ? flCur() : null, name: e => e.name || '(ohne Namen)' };
-  const voll = D.bedarfe.slice().sort((a, c) => !!a.archiv - !!c.archiv || (a.titel || '').localeCompare(c.titel || '', 'de'));
-  return { alle: exAktiveB(), voll, dieser: UI.view === 'detail' ? cur() : null, name: b => (b.titel || '(ohne Namen)') + (b.archiv ? ' · Archiv' : '') + (b.gliederung ? ' · ' + b.gliederung : '') };
-}
-
-/* ---------- Fenster */
+/* ---------- Ablauf (ab 0.140): „Exportieren“ in einer Liste startet den Auswahlmodus – die Liste wird gestrichelt eingerahmt, alles andere abgedunkelt.
+   Alles ist ausgewählt; Klick in eine Zeile wählt den Bedarf bzw. Förderer ab oder wieder an, Klick auf eine Spaltenüberschrift die ganze Spalte.
+   „Weiter →“ fragt: PDF (die Tabelle so, wie sie zu sehen ist, A4 quer), Excel (dieselben Zeilen und Spalten als Text) oder Termine (Outlook).
+   Auf der Seite eines Bedarfs oder Förderers gibt es keine Auswahl: gleich das Fenster, PDF ist die Detailansicht. */
+const EXM = { an: false, was: 'b', aus: new Set(), spAus: new Set() };   // aus: abgewählte Zeilen (data-id), spAus: abgewählte Spalten (Nummer im Raster)
+const exZiel = () => $('.list-card');
 async function exportDialog() {
   closeMenus();
   if (!D) return;
-  const M = exLaden();
-  const S = { was: UI.view === 'flist' || UI.view === 'fdetail' ? 'f' : 'b', welche: UI.view === 'detail' || UI.view === 'fdetail' ? 'dieser' : 'alle', format: M.format || 'pdf', umfang: M.umfang || 'kompakt', wahl: new Set(), q: '',
-    sp: Object.assign({}, M.sp || {}), arten: new Set(M.arten || ['frist', 'erwartet', 'vn', 'ueb', 'deadline', 'flfrist']), vorher: M.vorher || '1w' };
-  if (!D.fl || !D.fl.liste.length) S.was = 'b';
-  const box = h('div', { class: 'ex' });
-  const seg = (L, v, fn) => h('div', { class: 'seg ex-seg' }, ...L.filter(Boolean).map(([k, t]) => h('button', { type: 'button', class: k === v ? 'on' : '', onclick: () => { fn(k); zeig(); } }, t)));
-  const spKey = () => S.was + '-' + S.umfang;
-  const spalten = () => { const DEF = S.was === 'f' ? EX_F : EX_B, ak = S.umfang === 'ausf'; return S.sp[spKey()] || DEF.filter(x => ak ? x[3] : x[2]).map(x => x[0]); };
-  let zu = () => {};
-  const zeig = () => {
-    const Q = exQuelle(S.was);
-    if (S.welche === 'dieser' && !Q.dieser) S.welche = 'alle';
-    const teile = [];
-    teile.push(h('div', { class: 'ex-r' }, h('span', { class: 'ex-l' }, 'Was?'), seg([['b', 'Bedarfe'], D.fl && D.fl.liste.length ? ['f', 'Förderer'] : null], S.was, k => { if (S.was !== k) { S.was = k; S.wahl.clear(); S.welche = 'alle'; } })));
-    teile.push(h('div', { class: 'ex-r' }, h('span', { class: 'ex-l' }, 'Welche?'), seg([['alle', 'alle angezeigten (' + Q.alle.length + ')'], ['wahl', 'ausgewählte' + (S.wahl.size ? ' (' + S.wahl.size + ')' : ' …')], Q.dieser ? ['dieser', 'nur diesen'] : null], S.welche, k => { S.welche = k; })));
-    if (S.welche === 'wahl') {
-      const L = Q.voll.filter(x => !S.q || norm(Q.name(x)).includes(S.q));
-      const such = h('input', { type: 'search', class: 'ex-such', placeholder: 'In der Auswahl suchen …', value: S.q, oninput: e => { S.q = norm(e.target.value); const p = e.target.selectionStart; zeig(); const n = box.querySelector('.ex-such'); n.focus(); n.setSelectionRange(p, p); } });
-      teile.push(h('div', { class: 'ex-wahl' }, h('div', { class: 'ex-wk' }, such, h('button', { type: 'button', class: 'link small', onclick: () => { L.forEach(x => S.wahl.add(x.id)); zeig(); } }, 'alle'), h('button', { type: 'button', class: 'link small', onclick: () => { S.wahl.clear(); zeig(); } }, 'keine')),
-        h('div', { class: 'ex-wl' }, ...L.map(x => { const c = h('input', { type: 'checkbox', checked: S.wahl.has(x.id), onchange: () => { c.checked ? S.wahl.add(x.id) : S.wahl.delete(x.id); zahl(); } }); return h('label', { class: 'ex-wz' }, c, h('span', null, Q.name(x))); }))));
-    }
-    teile.push(h('div', { class: 'ex-r' }, h('span', { class: 'ex-l' }, 'Wie?'), seg([['pdf', 'PDF'], ['xlsx', 'Excel'], ['ics', 'Termine (Outlook)']], S.format, k => { S.format = k; })));
-    if (S.format === 'pdf') {
-      teile.push(h('div', { class: 'ex-r' }, h('span', { class: 'ex-l' }, 'Umfang'), seg([['kompakt', 'kompakt'], ['ausf', 'ausführlich'], ['detail', 'Detail – je ' + (S.was === 'f' ? 'Förderer' : 'Bedarf') + ' eine Seite']], S.umfang, k => { S.umfang = k; })));
-      if (S.umfang !== 'detail') {
-        const DEF = S.was === 'f' ? EX_F : EX_B, an = new Set(spalten());
-        teile.push(h('div', { class: 'ex-r ex-r-sp' }, h('span', { class: 'ex-l' }, 'Spalten'), h('div', { class: 'ex-sp' }, ...DEF.map(([k, t], i) => { const c = h('input', { type: 'checkbox', checked: an.has(k), disabled: i === 0,
-          onchange: () => { const L = spalten().filter(x => x !== k); if (c.checked) L.push(k); S.sp[spKey()] = DEF.map(x => x[0]).filter(x => L.includes(x) || x === DEF[0][0]); } }); return h('label', { class: 'ex-spz' }, c, t); }),
-          S.sp[spKey()] ? h('button', { type: 'button', class: 'link small ex-sp-r', onclick: () => { delete S.sp[spKey()]; zeig(); } }, 'Standard') : null)));
-      }
-      teile.push(h('p', { class: 'muted small ex-h' }, 'Öffnet das Druckfenster – dort „Als PDF speichern“ wählen (oder direkt drucken).'));
-    } else if (S.format === 'ics') {
-      const A = S.was === 'f' ? [['flfrist', 'Fristen der Fördererliste']] : [['frist', 'Antragsfristen'], ['erwartet', 'erwartete Antworten'], ['vn', 'Verwendungsnachweise'], ['ueb', 'Spendenübergaben'], ['deadline', 'Deadline des Bedarfs']];
-      teile.push(h('div', { class: 'ex-r ex-r-sp' }, h('span', { class: 'ex-l' }, 'Termine'), h('div', { class: 'ex-sp' }, ...A.map(([k, t]) => { const c = h('input', { type: 'checkbox', checked: S.arten.has(k), onchange: () => { c.checked ? S.arten.add(k) : S.arten.delete(k); zahl(); } }); return h('label', { class: 'ex-spz' }, c, t); }))));
-      const sel = h('select', { class: 'ex-vorher', onchange: e => { S.vorher = e.target.value; } }, ...EX_VORHER.map(([k, t]) => h('option', { value: k, selected: k === S.vorher }, t)));
-      teile.push(h('div', { class: 'ex-r' }, h('span', { class: 'ex-l' }, 'Erinnerung'), sel));
-      teile.push(h('p', { class: 'muted small ex-h' }, 'Eine Datei mit allen künftigen Terminen der Auswahl, ganztägig. Doppelklick auf die Datei übernimmt sie in Outlook.'));
-    } else teile.push(h('p', { class: 'muted small ex-h' }, S.was === 'f' ? 'Die Fördererliste der Auswahl mit allen Blättern (Förderer, Fördertöpfe, Kontakte, Fristen, Förderungen …).' : 'Blatt „Bedarfe“ (eine Zeile je Bedarf) und „Förderplan“ (eine Zeile je Förderer eines Bedarfs).'));
-    teile.push(h('div', { class: 'ex-fuss' }, h('span', { class: 'muted small ex-n' }), h('button', { type: 'button', class: 'primary ex-los', onclick: () => zu('los') }, 'Exportieren')));
-    box.replaceChildren(...teile); zahl();
-  };
-  const auswahl = () => { const Q = exQuelle(S.was); return S.welche === 'dieser' ? (Q.dieser ? [Q.dieser] : []) : S.welche === 'wahl' ? Q.voll.filter(x => S.wahl.has(x.id)) : Q.alle; };
-  const zahl = () => { const n = auswahl().length, t = box.querySelector('.ex-n'), b = box.querySelector('.ex-los'); if (t) t.textContent = n + (S.was === 'f' ? (n === 1 ? ' Förderer' : ' Förderer') : (n === 1 ? ' Bedarf' : ' Bedarfe')); if (b) b.disabled = !n || (S.format === 'ics' && !S.arten.size); };
-  zeig();
-  const k = await modal('Exportieren', box, [], { cls: 'ex-modal', expose: c => { zu = c; } });
-  if (k !== 'los') return;
-  exMerken({ format: S.format, umfang: S.umfang, sp: S.sp, arten: [...S.arten], vorher: S.vorher });
-  const L = auswahl(); if (!L.length) return;
-  if (S.format === 'pdf') exDrucken(S.was, L, S.umfang, spalten());
-  else if (S.format === 'xlsx') { if (S.was === 'f') download('Fördererliste ' + today() + '.xlsx', flBlob(flExportZeilen(L))); else download('Bedarfe ' + today() + '.xlsx', exBedarfeXlsx(L)); }
-  else exIcs(S.was, L, S.arten, S.vorher);
-}
-
-/* ---------- PDF über das Druckfenster: eigener Druckbereich, die Seite selbst wird beim Drucken ausgeblendet */
-function exDrucken(was, L, umfang, sp) {
-  const titel = (was === 'f' ? 'Fördererliste' : 'Bedarfe') + (umfang === 'detail' ? ' – Detail' : umfang === 'ausf' ? ' – ausführlich' : ' – Übersicht');
-  const kopf = `<div class="ex-pk"><div><b>${esc(titel)}</b><span>Malteser · Diözese Paderborn · Fundraising</span></div><span>Stand ${fmtDate(today())} · ${L.length} ${was === 'f' ? 'Förderer' : L.length === 1 ? 'Bedarf' : 'Bedarfe'}</span></div>`;
-  let inhalt;
-  if (umfang === 'detail') inhalt = L.map((x, i) => `<section class="ex-seite${i ? ' neu' : ''}">${kopf}${was === 'f' ? exFDetail(x) : exBDetail(x)}</section>`).join('');
-  else {
-    const DEF = (was === 'f' ? EX_F : EX_B).filter(c => sp.includes(c[0])), a = umfang === 'ausf';
-    inhalt = kopf + `<table class="ex-tab${a ? ' ausf' : ''}"><thead><tr>${DEF.map(c => `<th class="ex-c-${c[0]}">${esc(c[1])}</th>`).join('')}</tr></thead><tbody>${L.map(x => `<tr>${DEF.map(c => `<td class="ex-c-${c[0]}">${c[4](x, a)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
+  if (UI.view === 'detail' || UI.view === 'fdetail') {                          // Seite eines Bedarfs oder Förderers: gleich fragen, wie
+    const x = UI.view === 'detail' ? cur() : flCur(); if (!x) return;
+    return exFormat(UI.view === 'detail' ? 'b' : 'f', [x], null);
   }
+  if (UI.view !== 'list' && UI.view !== 'flist') return;
+  if (EXM.an) return exModus(false);
+  exModus(true);
+}
+// Raster der Tabelle: zu jeder Zelle die Spalten, die sie überdeckt (colspan und rowspan berücksichtigt)
+function exRaster(tab) {
+  const R = [], belegt = [];
+  [...tab.rows].forEach((tr, y) => { let x = 0; belegt[y] = belegt[y] || [];
+    for (const c of tr.cells) { while (belegt[y][x]) x++; const cs = c.colSpan || 1, rs = c.rowSpan || 1;
+      for (let dy = 0; dy < rs; dy++) { belegt[y + dy] = belegt[y + dy] || []; for (let dx = 0; dx < cs; dx++) belegt[y + dy][x + dx] = true; }
+      R.push({ c, tr, von: x, bis: x + cs - 1, kopf: !!tr.closest('thead') }); x += cs; } });
+  return R;
+}
+const exZeilenId = tr => tr && tr.dataset && tr.dataset.id;
+function exMarkieren() {
+  const tab = exZiel() && exZiel().querySelector('table'); if (!tab) return;
+  const R = exRaster(tab), sp = EXM.spAus;
+  for (const z of R) { const ganz = [...Array(z.bis - z.von + 1).keys()].every(i => sp.has(z.von + i)); z.c.classList.toggle('ex-sp-aus', ganz); }
+  tab.querySelectorAll('tbody tr').forEach(tr => tr.classList.toggle('ex-z-aus', !!exZeilenId(tr) && EXM.aus.has(exZeilenId(tr))));
+  const ids = uniq([...tab.querySelectorAll('tbody tr')].map(exZeilenId).filter(Boolean)), nz = ids.filter(i => !EXM.aus.has(i)).length;
+  const kopf = R.filter(z => z.kopf), nsp = uniq(kopf.flatMap(z => [...Array(z.bis - z.von + 1).keys()].map(i => z.von + i))).filter(i => !sp.has(i)).length;
+  const t = $('.ex-leiste .ex-lz'); if (t) t.textContent = nz + (nz === 1 ? ' Zeile' : ' Zeilen') + ' · ' + nsp + (nsp === 1 ? ' Spalte' : ' Spalten') + ' ausgewählt';
+  const w = $('.ex-leiste .ex-weiter'); if (w) w.disabled = !nz || !nsp;
+}
+function exModus(an) {
+  const ziel = exZiel();
+  if (!an) { EXM.an = false; document.documentElement.classList.remove('ex-modus'); if (ziel) ziel.classList.remove('ex-ziel'); $$('.ex-z-aus, .ex-sp-aus').forEach(x => x.classList.remove('ex-z-aus', 'ex-sp-aus')); const l = $('.ex-leiste'); if (l) l.remove(); return; }
+  if (!ziel || !ziel.querySelector('tbody tr[data-id]')) { toast('In der Liste steht nichts zum Exportieren.', 'warn'); return; }
+  Object.assign(EXM, { an: true, was: UI.view === 'flist' ? 'f' : 'b', aus: new Set(), spAus: new Set() });
+  document.documentElement.classList.add('ex-modus'); ziel.classList.add('ex-ziel');
+  const leiste = h('div', { class: 'ex-leiste', role: 'toolbar', 'aria-label': 'Auswahl für den Export' },
+    h('span', { class: 'ex-lt' }, ICON_EXP_TXT(), 'Exportieren'), h('span', { class: 'ex-lz' }), h('span', { class: 'ex-lh muted small' }, 'Zeile oder Spaltenkopf anklicken: ab- bzw. anwählen'),
+    h('button', { type: 'button', class: 'link small', onclick: () => { EXM.aus.clear(); EXM.spAus.clear(); exMarkieren(); } }, 'Alle'),
+    h('button', { type: 'button', class: 'link small', onclick: () => { const tab = exZiel().querySelector('table'); tab.querySelectorAll('tbody tr').forEach(tr => { if (exZeilenId(tr)) EXM.aus.add(exZeilenId(tr)); }); exMarkieren(); } }, 'Keine'),
+    h('button', { type: 'button', onclick: () => exModus(false) }, 'Abbrechen'),
+    h('button', { type: 'button', class: 'primary ex-weiter', onclick: exWeiter }, 'Weiter →'));
+  document.body.append(leiste); exMarkieren();
+}
+const ICON_EXP_TXT = () => h('span', { class: 'ex-li', html: ICON_EXP });
+// Klicks im Auswahlmodus: in der Liste an- und abwählen, alles andere (außer der Leiste) ruht
+window.addEventListener('click', ev => {
+  if (!EXM.an) return;
+  const t = ev.target; if (t.closest('.ex-leiste, .modal, .backdrop, .toast')) return;
+  ev.preventDefault(); ev.stopPropagation();
+  const ziel = exZiel(); if (!ziel || !ziel.contains(t)) return;
+  const th = t.closest('thead th, thead td');
+  if (th) { const z = exRaster(ziel.querySelector('table')).find(x => x.c === th); if (!z) return; const S = [...Array(z.bis - z.von + 1).keys()].map(i => z.von + i), alle = S.every(i => EXM.spAus.has(i)); S.forEach(i => alle ? EXM.spAus.delete(i) : EXM.spAus.add(i)); exMarkieren(); return; }
+  const tr = t.closest('tbody tr'), id = exZeilenId(tr); if (!id) return;
+  EXM.aus.has(id) ? EXM.aus.delete(id) : EXM.aus.add(id); exMarkieren();
+}, true);
+['mousedown', 'mouseup', 'dblclick', 'pointerdown', 'pointerup'].forEach(n => window.addEventListener(n, ev => { if (EXM.an && !ev.target.closest('.ex-leiste, .modal, .backdrop')) { if (n === 'mousedown' || n === 'dblclick') ev.preventDefault(); ev.stopPropagation(); } }, true));
+window.addEventListener('keydown', ev => { if (!EXM.an || $('.modal')) return; if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); exModus(false); } else if (!ev.target.closest('.ex-leiste')) { ev.stopPropagation(); } }, true);
+// die Liste wird neu gezeichnet (z. B. Speichern im Hintergrund): Rahmen und Markierungen wieder setzen
+const exNachRender = () => { if (!EXM.an) return; const z = exZiel(); if (!z || !(UI.view === 'list' || UI.view === 'flist')) return exModus(false); z.classList.add('ex-ziel'); exMarkieren(); };
+
+// Auswahl als Tabelle: Kopie der Liste ohne abgewählte Zeilen und Spalten, ohne Knöpfe und Bedienelemente
+function exAuswahlTabelle() {
+  const tab = exZiel().querySelector('table'), R = exRaster(tab), sp = EXM.spAus;
+  const kopie = tab.cloneNode(true), RK = exRaster(kopie);
+  RK.forEach((z, i) => { const n = [...Array(z.bis - z.von + 1).keys()].filter(k => !sp.has(z.von + k)).length; if (!n) z.c.remove(); else if (n < (z.bis - z.von + 1)) z.c.colSpan = n; });
+  kopie.querySelectorAll('tbody tr').forEach(tr => { if (exZeilenId(tr) && EXM.aus.has(exZeilenId(tr))) tr.remove(); else if (!exZeilenId(tr) && !tr.closest('thead')) tr.remove(); });
+  kopie.querySelectorAll('colgroup').forEach(x => x.remove());
+  kopie.removeAttribute('style'); kopie.querySelectorAll('[style*="width"]').forEach(x => x.style.width = '');
+  kopie.querySelectorAll('.fl-split, .fl-lupe, .fl-such, .fl-tg, .k-pen, .ex-z-aus, .peek, input, textarea, .fl-fis, .le-pen, .le-cal, .le-plus, .le-ue, .zu-det, tfoot').forEach(x => x.remove());
+  kopie.querySelectorAll('.ex-sp-aus').forEach(x => x.classList.remove('ex-sp-aus'));
+  kopie.querySelectorAll('[data-act]').forEach(x => x.removeAttribute('data-act'));
+  kopie.querySelectorAll('[tabindex]').forEach(x => x.removeAttribute('tabindex'));
+  kopie.classList.add('ex-kopie');
+  const ids = uniq([...tab.querySelectorAll('tbody tr')].map(exZeilenId).filter(id => id && !EXM.aus.has(id)));
+  return { kopie, ids, R };
+}
+async function exWeiter() {
+  const was = EXM.was, A = exAuswahlTabelle();
+  const L = A.ids.map(id => was === 'f' ? flEintrag(id) : D.bedarfe.find(b => b.id === id)).filter(Boolean);
+  exFormat(was, L, A.kopie);
+}
+// Fenster „Wie exportieren?“: PDF, Excel oder Termine; bei Terminen die Arten und die Erinnerung
+async function exFormat(was, L, kopie) {
+  const M = exLaden(), S = { format: M.format || 'pdf', arten: new Set(M.arten || ['frist', 'erwartet', 'vn', 'ueb', 'deadline', 'flfrist']), vorher: M.vorher || '1w' };
+  const box = h('div', { class: 'ex' }); let zu = () => {};
+  const wer = was === 'f' ? (L.length === 1 ? '„' + (L[0].name || 'Förderer') + '“' : L.length + ' Förderer') : (L.length === 1 ? '„' + (L[0].titel || 'Bedarf') + '“' : L.length + ' Bedarfe');
+  const karte = (k, t, s) => h('button', { type: 'button', class: 'ex-k3' + (S.format === k ? ' on' : ''), 'aria-pressed': String(S.format === k), onclick: () => { S.format = k; zeig(); } }, h('b', null, t), h('span', null, s));
+  const zeig = () => {
+    const T = [h('p', { class: 'ex-wer' }, wer + (kopie ? ' · so, wie ausgewählt' : ' · Detailansicht')),
+      h('div', { class: 'ex-3' }, karte('pdf', 'PDF', kopie ? 'Die Tabelle wie angezeigt, A4 quer – über das Druckfenster („Als PDF speichern“)' : 'Detailansicht auf A4 – über das Druckfenster („Als PDF speichern“)'),
+        karte('xlsx', 'Excel', kopie ? 'Dieselben Zeilen und Spalten als Excel-Tabelle' : was === 'f' ? 'Alle Angaben des Förderers' : 'Bedarf und Förderplan'),
+        karte('ics', 'Termine', 'Fristen für Outlook, mit Erinnerung'))];
+    if (S.format === 'ics') {
+      const A = was === 'f' ? [['flfrist', 'Fristen der Fördererliste']] : [['frist', 'Antragsfristen'], ['erwartet', 'erwartete Antworten'], ['vn', 'Verwendungsnachweise'], ['ueb', 'Spendenübergaben'], ['deadline', 'Deadline des Bedarfs']];
+      T.push(h('div', { class: 'ex-r ex-r-sp' }, h('span', { class: 'ex-l' }, 'Termine'), h('div', { class: 'ex-sp' }, ...A.map(([k, t]) => { const c = h('input', { type: 'checkbox', checked: S.arten.has(k), onchange: () => { c.checked ? S.arten.add(k) : S.arten.delete(k); knopf(); } }); return h('label', { class: 'ex-spz' }, c, t); }))));
+      T.push(h('div', { class: 'ex-r' }, h('span', { class: 'ex-l' }, 'Erinnerung'), h('select', { class: 'ex-vorher', onchange: e => { S.vorher = e.target.value; } }, ...EX_VORHER.map(([k, t]) => h('option', { value: k, selected: k === S.vorher }, t)))));
+      T.push(h('p', { class: 'muted small ex-h' }, 'Alle künftigen Termine der Auswahl in einer Datei, ganztägig und als „frei“ eingetragen; die Spendenübergabe mit Uhrzeit. Doppelklick auf die Datei übernimmt sie in Outlook.'));
+    }
+    T.push(h('div', { class: 'ex-fuss' }, h('button', { type: 'button', class: 'primary ex-los', onclick: () => zu('los') }, 'Exportieren')));
+    box.replaceChildren(...T); knopf();
+  };
+  const knopf = () => { const b = box.querySelector('.ex-los'); if (b) b.disabled = S.format === 'ics' && !S.arten.size; };
+  zeig();
+  const k = await modal('Wie exportieren?', box, [], { cls: 'ex-modal', expose: c => { zu = c; } });
+  if (k !== 'los') return;
+  exMerken({ format: S.format, arten: [...S.arten], vorher: S.vorher });
+  if (kopie) exModus(false);
+  if (S.format === 'pdf') { if (kopie) exDruckSeite((was === 'f' ? 'Fördererliste' : UI.tab === 'archiv' ? 'Archiv' : 'Bedarfe'), L.length + (was === 'f' ? ' Förderer' : L.length === 1 ? ' Bedarf' : ' Bedarfe'), kopie.outerHTML, true); else exDrucken(was, L, 'detail'); }
+  else if (S.format === 'xlsx') { if (kopie) download((was === 'f' ? 'Fördererliste ' : 'Bedarfe ') + today() + '.xlsx', exTabelleXlsx(kopie, was === 'f' ? 'Fördererliste' : 'Bedarfe')); else if (was === 'f') download('Förderer ' + dateiName(L[0].name || '') + '.xlsx', flBlob(flExportZeilen(L))); else download('Bedarf ' + dateiName(L[0].titel || '') + '.xlsx', exBedarfeXlsx(L)); }
+  else exIcs(was, L, S.arten, S.vorher);
+}
+// Excel aus der ausgewählten Tabelle: je sichtbare Zelle ihr Text (Zeilenumbrüche bleiben)
+function exTabelleXlsx(kopie, name) {
+  const kopf = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, z = { border: 'thin', v: 'top', wrap: true };
+  const d = h('div', { class: 'ex-mess' }, kopie.cloneNode(true)); document.body.append(d);
+  const R = exRaster(d.querySelector('table')), n = Math.max(0, ...R.map(x => x.bis)) + 1, zeilen = new Map();
+  const text = c => (c.innerText || c.textContent || '').replace(/ /g, ' ').split(/\n+/).map(x => x.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n');
+  for (const x of R) { if (!zeilen.has(x.tr)) zeilen.set(x.tr, { kopf: x.kopf, r: Array(n).fill('') }); const zr = zeilen.get(x.tr).r; zr[x.von] = (zr[x.von] ? zr[x.von] + '\n' : '') + text(x.c); }
+  d.remove();
+  const rows = [...zeilen.values()].map(x => x.r.map(v => ({ v, st: x.kopf ? kopf : z })));
+  return xlsxBlob([{ name, cols: Array(n).fill(24), rows, heights: { 0: 26 }, freeze: 'A2', filter: 'A1:' + colName(n - 1) + rows.length }]);
+}
+// Druckbereich: Kopfzeile mit Titel und Stand, darunter der Inhalt; quer (Liste) oder hoch (Detail). Breite Tabellen werden auf die Seitenbreite verkleinert
+function exDruckSeite(titel, zahl, inhalt, quer) {
+  const kopf = `<div class="ex-pk"><div><b>${esc(titel)}</b><span>Malteser · Diözese Paderborn · Fundraising</span></div><span>Stand ${fmtDate(today())} · ${esc(zahl)}</span></div>`;
   let d = document.getElementById('ex-druck'); if (d) d.remove();
-  d = h('div', { id: 'ex-druck', class: umfang === 'detail' ? 'hoch' : 'quer', html: inhalt }); document.body.append(d);
+  d = h('div', { id: 'ex-druck', class: quer ? 'quer' : 'hoch', html: quer ? kopf + inhalt : inhalt }); document.body.append(d);
+  if (quer) { d.classList.add('ex-mess-an'); const t = d.querySelector('table'); if (t) { const w = t.scrollWidth, max = 1040; if (w > max) d.style.zoom = String(Math.max(.45, max / w)); } d.classList.remove('ex-mess-an'); }
   const alt = document.title; document.title = dateiName(titel + ' ' + today());
-  document.documentElement.classList.add('ex-drucken', umfang === 'detail' ? 'ex-hoch' : 'ex-quer');
-  const pg = h('style', { id: 'ex-page' }, '@page { size: A4 ' + (umfang === 'detail' ? 'portrait' : 'landscape') + '; margin: 12mm; }'); document.head.append(pg);   // Übersicht quer, Detail hoch
-  const weg = () => { document.documentElement.classList.remove('ex-drucken', 'ex-hoch', 'ex-quer'); document.title = alt; d.remove(); pg.remove(); removeEventListener('afterprint', weg); };
+  const pg = h('style', { id: 'ex-page' }, '@page { size: A4 ' + (quer ? 'landscape' : 'portrait') + '; margin: 12mm; }'); document.head.append(pg);
+  document.documentElement.classList.add('ex-drucken');
+  const weg = () => { document.documentElement.classList.remove('ex-drucken'); document.title = alt; d.remove(); pg.remove(); removeEventListener('afterprint', weg); };
   addEventListener('afterprint', weg);
   setTimeout(() => { try { window.print(); } catch (e) { weg(); } }, 60);
+}
+function exDrucken(was, L, umfang) {
+  const titel = (was === 'f' ? 'Fördererliste' : 'Bedarfe') + ' – Detail';
+  const kopf = `<div class="ex-pk"><div><b>${esc(titel)}</b><span>Malteser · Diözese Paderborn · Fundraising</span></div><span>Stand ${fmtDate(today())}</span></div>`;
+  exDruckSeite(titel, '', L.map((x, i) => `<section class="ex-seite${i ? ' neu' : ''}">${kopf}${was === 'f' ? exFDetail(x) : exBDetail(x)}</section>`).join(''), false);
 }
 const exZeile = (t, v) => v ? `<tr><th>${esc(t)}</th><td>${v}</td></tr>` : '';
 function exBDetail(b) {
