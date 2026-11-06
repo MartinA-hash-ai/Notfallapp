@@ -733,6 +733,8 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r.push(await p.evaluate(() => document.querySelectorAll('#fl-body .fl-ki-m').length));
   ok(r.join() === '0,true,true,recherchierte ausblenden,0', 'recherchierte anzeigen / ausblenden: ' + r.join());
   await p.evaluate(() => { D.fl.liste[0].recherche = window.__alt; UI.flWahl = null; changed(); renderNow(); });
+  r = await p.evaluate(() => { const A = flcAuftrag([D.fl.liste[0]], 'A', flSerieDatei), T = flcPrompt(D.fl.liste[0], { modus: 'topf', topf: { name: 'X' }, name: 'X' }); return [/EIGENE UNTERLAGEN ZUERST/.test(A), A.includes('1601_Di%C3%B6zese_Pojekte'), A.includes('Ortsgliederungen'), /Outlook/.test(A), /EIGENE UNTERLAGEN ZUERST/.test(T)]; });
+  ok(r.join() === 'true,true,true,true,true', '0.142: Auftrag nennt die SharePoint-Ordner und Outlook (eigene Unterlagen zuerst), auch beim Fördertopf: ' + r.join());
   // 0.131: Fristen der Fördererliste in den nächsten zwei Monaten im Feld der Hinweise oben rechts; Klick springt zur Frist auf der Seite des Förderers
   r = await p.evaluate(() => { const e = D.fl.liste[0], d = new Date(Date.parse(today()) + 20 * 864e5).toISOString().slice(0, 10), d2 = new Date(Date.parse(today()) + 90 * 864e5).toISOString().slice(0, 10); e.status = 'aktiv';
     e.fristenL.push({ id: 'tfr1', d, topf: '' }, { id: 'tfr2', d: d2, topf: '' }); UI.view = 'flist'; changed(); renderNow(); const H = hinweise().fl.filter(x => x.e === e); return [H.length, H[0] && H[0].iso === d, H[0] && H[0].n, /Förderer-Frist/.test(document.querySelector('#frist-chip').title)]; });

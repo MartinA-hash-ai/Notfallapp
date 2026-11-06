@@ -55,12 +55,12 @@ function exModus(an) {
   Object.assign(EXM, { an: true, was: UI.view === 'flist' ? 'f' : 'b', aus: new Set(), spAus: new Set() });
   document.documentElement.classList.add('ex-modus'); ziel.classList.add('ex-ziel');
   const leiste = h('div', { class: 'ex-leiste', role: 'toolbar', 'aria-label': 'Auswahl für den Export' },
-    h('span', { class: 'ex-lt' }, ICON_EXP_TXT(), 'Exportieren'), h('span', { class: 'ex-lz' }), h('span', { class: 'ex-lh muted small' }, 'Zeile oder Spaltenkopf anklicken: ab- bzw. anwählen'),
+    h('span', { class: 'ex-lt' }, ICON_EXP_TXT(), 'Exportieren'), h('span', { class: 'ex-lz', hidden: true }),
     h('button', { type: 'button', class: 'link small', onclick: () => { EXM.aus.clear(); EXM.spAus.clear(); exMarkieren(); } }, 'Alle'),
     h('button', { type: 'button', class: 'link small', onclick: () => { const tab = exZiel().querySelector('table'); tab.querySelectorAll('tbody tr').forEach(tr => { if (exZeilenId(tr)) EXM.aus.add(exZeilenId(tr)); }); exMarkieren(); } }, 'Keine'),
     h('button', { type: 'button', onclick: () => exModus(false) }, 'Abbrechen'),
     h('button', { type: 'button', class: 'primary ex-weiter', onclick: exWeiter }, 'Weiter →'));
-  document.body.append(leiste); exMarkieren();
+  ziel.parentNode.insertBefore(leiste, ziel); exMarkieren();
 }
 const ICON_EXP_TXT = () => h('span', { class: 'ex-li', html: ICON_EXP });
 // Klicks im Auswahlmodus: in der Liste an- und abwählen, alles andere (außer der Leiste) ruht
@@ -77,7 +77,7 @@ window.addEventListener('click', ev => {
 ['mousedown', 'mouseup', 'dblclick', 'pointerdown', 'pointerup'].forEach(n => window.addEventListener(n, ev => { if (EXM.an && !ev.target.closest('.ex-leiste, .modal, .backdrop')) { if (n === 'mousedown' || n === 'dblclick') ev.preventDefault(); ev.stopPropagation(); } }, true));
 window.addEventListener('keydown', ev => { if (!EXM.an || $('.modal')) return; if (ev.key === 'Escape') { ev.preventDefault(); ev.stopPropagation(); exModus(false); } else if (!ev.target.closest('.ex-leiste')) { ev.stopPropagation(); } }, true);
 // die Liste wird neu gezeichnet (z. B. Speichern im Hintergrund): Rahmen und Markierungen wieder setzen
-const exNachRender = () => { if (!EXM.an) return; const z = exZiel(); if (!z || !(UI.view === 'list' || UI.view === 'flist')) return exModus(false); z.classList.add('ex-ziel'); exMarkieren(); };
+const exNachRender = () => { if (!EXM.an) return; const z = exZiel(); if (!z || !(UI.view === 'list' || UI.view === 'flist')) return exModus(false); z.classList.add('ex-ziel'); const l = $('.ex-leiste'); if (l && l.nextElementSibling !== z) z.parentNode.insertBefore(l, z); exMarkieren(); };
 
 // Auswahl als Tabelle: Kopie der Liste ohne abgewählte Zeilen und Spalten, ohne Knöpfe und Bedienelemente
 function exAuswahlTabelle() {
@@ -151,13 +151,17 @@ function exTabelleXlsx(kopie, name) {
 function exDruckSeite(titel, zahl, inhalt, quer) {
   const kopf = `<div class="ex-pk"><div><b>${esc(titel)}</b><span>Malteser · Diözese Paderborn · Fundraising</span></div><span>Stand ${fmtDate(today())} · ${esc(zahl)}</span></div>`;
   let d = document.getElementById('ex-druck'); if (d) d.remove();
-  d = h('div', { id: 'ex-druck', class: quer ? 'quer' : 'hoch', html: quer || /ex-seitenklon/.test(inhalt) ? kopf + inhalt : inhalt }); document.body.append(d);
-  if (quer) { d.classList.add('ex-mess-an'); const t = d.querySelector('table'); if (t) { const w = t.scrollWidth, max = 1030; d.style.zoom = String(Math.min(1, Math.max(.4, max / w))); } d.classList.remove('ex-mess-an'); }
-  else if (d.querySelector('.ex-seitenklon')) { d.classList.add('ex-detail'); d.style.zoom = String(1030 / 1320); }   // Seite in 1320 px Breite wie am Bildschirm, auf A4 quer verkleinert
+  const seite = /ex-seitenklon/.test(inhalt), breitSeite = quer || seite;
+  // Rand über eine Tabelle mit Kopf- und Fußzeile (wiederholt sich je Seite) – so bleibt @page ohne Rand und der Browser druckt weder Datum noch Dateipfad
+  d = h('div', { id: 'ex-druck', class: breitSeite ? 'quer' : 'hoch', html: `<table class="ex-rahmen"><thead><tr><td><div class="ex-rand-o"></div></td></tr></thead><tfoot><tr><td><div class="ex-rand-u"></div></td></tr></tfoot><tbody><tr><td><div class="ex-inhalt">${quer ? kopf + inhalt : inhalt}</div></td></tr></tbody></table>` }); document.body.append(d);
+  const inh = d.querySelector('.ex-inhalt');
+  if (quer) { d.classList.add('ex-mess-an'); const t = inh.querySelector('table'); if (t) { const w = t.scrollWidth, max = 1030; inh.style.zoom = String(Math.min(1, Math.max(.4, max / w))); } d.classList.remove('ex-mess-an'); }
+  else if (seite) { d.classList.add('ex-detail'); inh.style.zoom = String(1030 / 1320); }   // Seite in 1320 px Breite wie am Bildschirm, auf A4 quer verkleinert
+  const th0 = document.documentElement.dataset.blTheme; document.documentElement.dataset.blTheme = 'light';   // gedruckt wird immer hell
   const alt = document.title; document.title = dateiName(titel + ' ' + today());
-  const pg = h('style', { id: 'ex-page' }, '@page { size: A4 ' + (quer || /ex-seitenklon/.test(inhalt) ? 'landscape' : 'portrait') + '; margin: 12mm; }'); document.head.append(pg);
+  const pg = h('style', { id: 'ex-page' }, '@page { size: A4 ' + (breitSeite ? 'landscape' : 'portrait') + '; margin: 0; }'); document.head.append(pg);
   document.documentElement.classList.add('ex-drucken');
-  const weg = () => { document.documentElement.classList.remove('ex-drucken'); document.title = alt; d.remove(); pg.remove(); removeEventListener('afterprint', weg); };
+  const weg = () => { document.documentElement.classList.remove('ex-drucken'); if (th0) document.documentElement.dataset.blTheme = th0; else delete document.documentElement.dataset.blTheme; document.title = alt; d.remove(); pg.remove(); removeEventListener('afterprint', weg); };
   addEventListener('afterprint', weg);
   setTimeout(() => { try { window.print(); } catch (e) { weg(); } }, 60);
 }
@@ -169,7 +173,15 @@ function exSeiteKlon() {
     if (!String(v).trim() || o.type === 'checkbox' || o.type === 'search') { el.remove(); return; }
     const sp = h('span', { class: 'ex-wert ' + (el.className || ''), id: el.id || null }, v); const st = getComputedStyle(o); sp.style.fontSize = st.fontSize; sp.style.fontWeight = st.fontWeight; sp.style.lineHeight = st.lineHeight; el.replaceWith(sp); });   // Größe und Stärke wie im Feld
   k.querySelectorAll('.sw-plus, .rm, .ff-mehr, .fk-neu, .fl-verkn, a.btn, .fl-x, .fl-ab-kr, .fl-tpb.neu, .fl-plus-t, .fl-oeffnen.fl-ico, .val.leer, .info, .sec-zu + .sec-plus, .fl-punkte, .fl-hinweis-neu, .fl-frist-neu, .fl-topf-neu, .k-pen, .k-plus, .k-pliste, .pen, .le-pen, .x, .fl-mini, .fl-ki-d, .ki-btn, .icon-btn, .fl-lupe, .fl-ab-alle, .fl-hz, .rund-btn, .fl-a-neu, .fn-griff, .ph, .peek, [data-act="more"], [data-act="k-neu"], [data-act="fl-k-neu"], .add, .plus').forEach(x => x.remove());
+  k.querySelectorAll('.sec-zu.zu').forEach(b => { const sec = b.closest('section, .card'); if (sec) sec.remove(); });   // zugeklappte Bereiche (z. B. Nacharbeit) fallen weg
   k.querySelectorAll('[data-act]').forEach(x => x.removeAttribute('data-act'));
+  // Kennungen in der Kopie umbenennen – sonst zeigen Muster und Verläufe der Diagramme auf die (beim Drucken verborgene) Seite
+  const ids = new Map(); k.querySelectorAll('[id]').forEach(x => { const n = x.id + '-ex'; ids.set(x.id, n); x.id = n; });
+  if (ids.size) k.querySelectorAll('*').forEach(x => { for (const a of [...x.attributes]) if (/url\(#|^#/.test(a.value)) { const v = a.value.replace(/url\(#([^)]+)\)/g, (m, i) => ids.has(i) ? 'url(#' + ids.get(i) + ')' : m).replace(/^#(.+)$/, (m, i) => ids.has(i) ? '#' + ids.get(i) : m); if (v !== a.value) x.setAttribute(a.name, v); } });
+  // Notizen des Förderers: als eigener, breiter Kasten ans Ende – er darf als einziger über eine Seite hinaus laufen
+  const nz = k.querySelector('.fl-notizen');
+  if (nz && nz.textContent.replace(/Notizen/, '').trim()) { const karte = nz.closest('.card'); nz.remove(); if (karte) karte.classList.add('ex-ohne-notiz'); k.append(h('section', { class: 'card ex-notiz-karte' }, nz)); }
+  else if (nz) { const karte = nz.closest('.card'); nz.remove(); if (karte) karte.classList.add('ex-ohne-notiz'); }
   k.classList.add('ex-seitenklon');
   return k.outerHTML;
 }

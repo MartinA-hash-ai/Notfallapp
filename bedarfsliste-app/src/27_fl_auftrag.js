@@ -8,21 +8,30 @@ const FLC_GROSS_ARTEN = ['Soziallotterie', 'Öffentlich'];
 const flcVariante = e => e && FLC_GROSS_ARTEN.some(a => norm(a) === norm(e.art)) ? 'B' : 'A';
 const FLC_VARIANTEN = { A: 'klein / lokal', B: 'groß / überregional' };
 
+// Eigene Unterlagen der Malteser (ab 0.142): SharePoint-Ordner des Fundraising-Teams und Outlook – vor der Webrecherche, wenn die KI Zugriff hat
+const FLC_SP = [['https://maltesercloud.sharepoint.com/:f:/r/sites/Fundraising-Team-DizesePaderborn/Freigegebene%20Dokumente/General/1601_Di%C3%B6zese_Pojekte?d=w674747ed989146aa88fb3bb7d7b726b5&csf=1&web=1&e=krLw7u', 'Projekte der Diözese'],
+  ['https://maltesercloud.sharepoint.com/:f:/r/sites/Fundraising-Team-DizesePaderborn/Freigegebene%20Dokumente/General/Ortsgliederungen?d=w9970e372730c467fac8e1b14938af2fe&csf=1&web=1&e=VyOXbH', 'Ortsgliederungen']];
+const flcIntern = (nr, notizFeld = '„Weitere Notizen“') => nr + '. EIGENE UNTERLAGEN ZUERST (wenn du Zugriff hast): Durchsuche vor der Webrecherche unsere SharePoint-Ordner ' + FLC_SP.map(([u, t]) => '„' + t + '“ (' + u + ')').join(' und ')
+  + ' sowie meine Outlook-E-Mails nach dem Namen des Förderers (auch Kurzname, Fördertopf). Frühere Anträge, Zusagen, Absagen, Ansprechpersonen und Absprachen der Malteser sind besonders wertvoll. So eintragen: '
+  + 'eigene Anträge mit Jahr, Zweck, Gliederung, Betrag und Ergebnis als Stichpunkt in ' + notizFeld + ' (z. B. „- Malteser 2024: Trauerbegleitung Dortmund, 4.700 € bewilligt“); Ansprechpersonen aus unserer Korrespondenz ins Blatt „Kontakte“ (nur dienstliche Angaben); '
+  + 'Quelle als „intern: Dateiname bzw. E-Mail vom TT.MM.JJJJ, Betreff …“ statt Link. Neuere interne Angaben gehen vor älteren Webangaben, Widersprüche kurz in „Anmerkung“. Nur übernehmen, was für Anträge nötig ist – keine Finanz- oder Personaldaten Dritter. '
+  + 'Hast du keinen Zugriff auf SharePoint oder Outlook: überspringen und am Ende sagen, dass interne Daten nicht durchsucht wurden.';
 function flcAusfuellregeln(v) {
   const B = v === 'B';
   return [
     'AUSFÜLLREGELN',
     '1. Fülle die Dateien direkt aus (Python/openpyxl), nur die gelb hinterlegten Zellen: im „Steckbrief“ Wert, Sicherheit, Quelle, Anmerkung; in „Fristen“, „Fördertöpfe“, „Beispiele“, „Kontakte“, „Quellen“ die Zeilen unter der Überschrift. Keine Blätter, Spalten, Überschriften oder Formate ändern; „Anleitung“ und „Auswahlwerte“ bleiben unverändert. Prüfe nach dem Speichern, dass außerhalb der gelben Zellen nichts verändert ist.',
-    '2. Nichts erfinden, nicht raten. Jede Angabe bekommt in „Quelle“ einen Link, den du tatsächlich geöffnet hast. Sicherheit „sicher“ = steht so in der Quelle; „unsicher“ = indirekt belegt, älter als zwei Jahre oder widersprüchlich.',
+    '2. Nichts erfinden, nicht raten. Jede Angabe bekommt in „Quelle“ einen Link, den du tatsächlich geöffnet hast (interne Funde: Fundstelle, siehe Regel 12). Sicherheit „sicher“ = steht so in der Quelle; „unsicher“ = indirekt belegt, älter als zwei Jahre oder widersprüchlich.',
     '3. Formate: Auswahlfelder nur mit den Werten aus „Auswahlwerte“, genau so geschrieben. Beträge als reine Zahl (10000). Förderhöhe: „von“ nur bei einem genannten Mindestbetrag; gibt es nur einen Betrag (Höchstbetrag), steht er nur bei „bis“. Datum TT.MM.JJJJ; eine Frist ohne Jahr (31.03.) gilt jedes Jahr; einmalige Frist: „Jedes Jahr“ = nein; abgelaufene einmalige Fristen weglassen.',
     '4. Förderzweck: kurze Stichworte in eigenen Worten. „Zwecke der Malteser“: nur passende Zwecke aus der Liste. Fördergebiet: Gliederungen aus der Liste; ganzes Erzbistum, NRW oder bundesweit = „alle“; liegt das Gebiet in keiner Gliederung der Liste: leer lassen und in „Weitere Notizen“ vermerken. Passt der Förderer laut Satzung gar nicht zu den Maltesern: in „Weitere Notizen“.',
     '5. „Großförderer“ = ja nur, wenn laut Quelle über 10.000 € möglich sind. Feste Termine ins Blatt „Fristen“; sonst Hinweis (z. B. „laufend“) in „Hinweis zu Fristen“.',
     '6. Häufigkeit, Aufwand, Dauer nur, wenn aus der Richtlinie ableitbar; Begründung kurz in „Anmerkung“ (bei Fördertöpfen als Stichpunkt in deren „Weitere Notizen“).',
-    '7. Kontakte: nur Personen oder Funktionen, deren Kontaktdaten der Förderer selbst veröffentlicht. Keine privaten Daten, nichts aus sozialen Netzwerken, keine erschlossenen E-Mail-Adressen. „Anschreiben“ bleibt leer.',
+    '7. Kontakte: nur Personen oder Funktionen, deren Kontaktdaten der Förderer selbst veröffentlicht oder die in unserer eigenen Korrespondenz stehen (Regel 12). Keine privaten Daten, nichts aus sozialen Netzwerken, keine erschlossenen E-Mail-Adressen. „Anschreiben“ bleibt leer.',
     '8. Notizen KURZ: Stichpunkte mit „- “, je höchstens ca. 10 Wörter, höchstens 4 je Feld. „Wie tickt …“: höchstens zwei kurze Sätze. „Argumente“ nach Gewicht, Fundstelle kurz in Klammern. Eigene Einschätzungen mit „Einschätzung:“ kennzeichnen. Keine Projektbeispiele, Zahlenreihen oder Statistik in den Notizen.',
     '9. Keine Wiederholungen: Jede Information steht genau einmal, im passendsten Feld. Was in einem eigenen Feld steht (Zweck, Gebiet, Höhe, Quote, Fristen, Antragsweg, Links, Anschrift, Häufigkeit, Aufwand, Dauer), nicht in den Notizen wiederholen; die Notizfelder wiederholen sich auch nicht gegenseitig' + (B ? '; Topf-Notizen wiederholen nichts aus dem Steckbrief' : '') + '. „Was wird gefördert?“ nennt nur, was über den Förderzweck hinausgeht, und zeigt die Förderlogik: welche Themen und Zielgruppen bevorzugt werden, welche Kostenarten oder Anschaffungen, was ausdrücklich erwünscht ist (z. B. Modellcharakter, Ehrenamt, Kofinanzierung). Selbstverständliches weglassen – z. B. „Projekte gemeinnütziger Vereine/Institutionen“ oder „nur gemeinnützige Träger“.',
     '10. Beispiele: bis zu ' + (B ? '8' : '4') + ' nachweislich geförderte Projekte, ' + (B ? 'bevorzugt Malteser-Projekte und ähnliche Träger' : 'bevorzugt ähnlich zu Malteser-Vorhaben') + '. Je Zeile Schlagwort (1–3 Wörter), ein Satz Beschreibung, Empfänger/Ort, Jahr, Betrag nur wenn genannt, ' + (B ? 'Name des Topfs, ' : '') + 'Quelle.',
     '11. Quellen: jede verwendete Seite (Link, was dort steht in einem Satz, Abrufdatum).',
+    flcIntern(12),
   ].join('\n');
 }
 

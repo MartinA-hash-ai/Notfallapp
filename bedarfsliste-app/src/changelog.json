@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.142.0",
+    "date": "2026-11-24T10:00",
+    "items": [
+      "KI-Recherche: der Auftrag bittet jetzt, zuerst die eigenen Unterlagen zu durchsuchen – die SharePoint-Ordner „1601_Diözese_Projekte“ und „Ortsgliederungen“ sowie Outlook – und frühere Anträge, Zusagen, Absagen und Ansprechpersonen mit „intern: …“ als Quelle einzutragen (ohne Zugriff: überspringen und sagen)",
+      "Exportieren: die Leiste steht oben über der Liste und bleibt beim Scrollen oben kleben; ohne Zähler und Hinweistext. Über einer Zeile bzw. einem Spaltenkopf zeigt der Mauszeiger einen Kreis mit Kreuz (abwählen) bzw. mit Häkchen (wieder anwählen)",
+      "PDF: immer hell und gut lesbar, auch in der dunklen Darstellung; ohne Datum, Dateipfad und Seitenzahl des Browsers",
+      "PDF einer Seite: ohne Kopf über dem roten Strich; zugeklappte Bereiche (z. B. Nacharbeit) fallen weg; Kästen werden nicht mehr über zwei Seiten geteilt; Kreise der Freigabe und das Kreisdiagramm vollständig; lange Links umbrechen sauber; die Notizen eines Förderers stehen als eigener, zweispaltiger Kasten am Ende"
+    ]
+  },
+  {
     "version": "0.141.0",
     "date": "2026-11-23T10:00",
     "items": [

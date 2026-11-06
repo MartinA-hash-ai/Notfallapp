@@ -2458,7 +2458,6 @@ html.modal-offen { overflow: hidden; }
   #ex-druck .ex-txt ul { margin: 2px 0 2px 16px; padding: 0; }
   #ex-druck .ex-sum { font-weight: 600; margin-top: 6px; }
 }
-@page { margin: 14mm 12mm; }
 .ex-seg { justify-self: start; }
 @media print {
   #ex-druck .ex-c-titel { width: 17%; } #ex-druck .ex-tab.ausf .ex-c-foerderer { width: 26%; } #ex-druck .ex-c-stand { width: 13%; }
@@ -2507,14 +2506,11 @@ html.modal-offen .ex-leiste { display: none; }
 
 /* 0.141: Export – Liste mit den Spaltenbreiten vom Bildschirm; Detailseite als Abbild der Seite */
 @media print {
-  #ex-druck.ex-detail { width: 1320px; }
   #ex-druck .ex-seitenklon { max-width: none !important; width: 1320px !important; padding: 0 !important; margin: 0 !important; }
   #ex-druck .ex-seitenklon .st-btn { border: 0 !important; } #ex-druck .ex-seitenklon .st-btn span[aria-hidden] { display: none; }
   #ex-druck .ex-seitenklon * { animation: none !important; transition: none !important; }
   #ex-druck .ex-seitenklon .sticky, #ex-druck .ex-seitenklon [class*='sticky'] { position: static !important; }
-  #ex-druck .ex-seitenklon button { border: 0 !important; background: none !important; padding: 0 !important; color: inherit !important; font: inherit !important; cursor: default; }
   #ex-druck .ex-seitenklon .ex-wert { white-space: pre-wrap; }
-  #ex-druck.ex-detail .ex-pk { width: 1320px; }
 }
 /* Druck der Seite eines Bedarfs bzw. Förderers: das Druckblatt ist schmal – die breite Anordnung wie am Bildschirm erzwingen */
 @media print {
@@ -2533,4 +2529,27 @@ html.modal-offen .ex-leiste { display: none; }
   #ex-druck .ex-seitenklon .g12 .s2 { grid-column: span 2; } #ex-druck .ex-seitenklon .g12 .s3 { grid-column: span 3; } #ex-druck .ex-seitenklon .g12 .s4 { grid-column: span 4; }
   #ex-druck .ex-seitenklon .g12 .s5 { grid-column: span 5; } #ex-druck .ex-seitenklon .g12 .s6 { grid-column: span 6; } #ex-druck .ex-seitenklon .g12 .s8 { grid-column: span 8; }
   #ex-druck .ex-seitenklon .eck-r { border-left: 1px solid var(--line3); padding-left: 28px; border-top: 0; margin-top: 0; padding-top: 0; }
+}
+
+/* 0.142: Export – Leiste oben über der Liste (klebt beim Scrollen), Mauszeiger mit Kreuz bzw. Häkchen; Druck ohne Browser-Kopf und -Fuß, Kästen nicht geteilt */
+.ex-leiste { position: sticky; top: 10px; left: auto; bottom: auto; transform: none; margin: 0 auto 18px; width: max-content; z-index: 86; }
+.ex-ziel tbody tr[data-id]:not(.ex-z-aus), .ex-ziel tbody tr[data-id]:not(.ex-z-aus) * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='12' cy='12' r='10' fill='white' stroke='%23b42318' stroke-width='2'/%3E%3Cpath d='M8 8l8 8M16 8l-8 8' stroke='%23b42318' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, pointer; }
+.ex-ziel tbody tr.ex-z-aus, .ex-ziel tbody tr.ex-z-aus * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='12' cy='12' r='10' fill='white' stroke='%231e7d3c' stroke-width='2'/%3E%3Cpath d='M7.5 12.3l3 3 6-6.3' fill='none' stroke='%231e7d3c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, pointer; }
+.ex-ziel thead th:not(.ex-sp-aus), .ex-ziel thead th:not(.ex-sp-aus) * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='12' cy='12' r='10' fill='white' stroke='%23b42318' stroke-width='2'/%3E%3Cpath d='M8 8l8 8M16 8l-8 8' stroke='%23b42318' stroke-width='2.2' stroke-linecap='round'/%3E%3C/svg%3E") 12 12, pointer; }
+.ex-ziel thead th.ex-sp-aus, .ex-ziel thead th.ex-sp-aus * { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Ccircle cx='12' cy='12' r='10' fill='white' stroke='%231e7d3c' stroke-width='2'/%3E%3Cpath d='M7.5 12.3l3 3 6-6.3' fill='none' stroke='%231e7d3c' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") 12 12, pointer; }
+@media print {
+  #ex-druck .ex-rahmen { width: 100%; border-collapse: collapse; }
+  #ex-druck .ex-rahmen > thead > tr > td, #ex-druck .ex-rahmen > tfoot > tr > td, #ex-druck .ex-rahmen > tbody > tr > td { padding: 0 12mm; border: 0; }
+  #ex-druck .ex-rand-o { height: 11mm; } #ex-druck .ex-rand-u { height: 9mm; }
+  #ex-druck .ex-rahmen > thead { display: table-header-group; } #ex-druck .ex-rahmen > tfoot { display: table-footer-group; }
+  #ex-druck .ex-seitenklon .card, #ex-druck .ex-seitenklon .fk, #ex-druck .ex-seitenklon .fl-kopf, #ex-druck .ex-seitenklon .d-head { break-inside: avoid; }
+  #ex-druck .ex-seitenklon .card.ex-notiz-karte { break-inside: auto; }
+  #ex-druck .ex-seitenklon * { max-height: none !important; overflow: visible !important; contain: none !important; }
+  #ex-druck .ex-seitenklon .ex-notiz-karte { margin-top: 16px; padding: 16px 18px; }
+  #ex-druck .ex-seitenklon .ex-notiz-karte .fl-notizen { border: 0 !important; padding: 0 !important; column-count: 2; column-gap: 32px; display: block; }
+  #ex-druck .ex-seitenklon .ex-notiz-karte .fl-notizen h3 { column-span: all; }
+  #ex-druck .ex-seitenklon .ex-notiz-karte li, #ex-druck .ex-seitenklon .ex-notiz-karte p { break-inside: avoid; }
+  #ex-druck .ex-seitenklon .card.fl-fn.ex-ohne-notiz { grid-template-columns: minmax(0, 1fr) !important; }
+  #ex-druck .ex-seitenklon a, #ex-druck .ex-seitenklon .ex-wert { overflow-wrap: anywhere; word-break: normal; }
+  #ex-druck .ex-seitenklon .st-btn { border: 0 !important; background: none !important; padding: 0 !important; }
 }
