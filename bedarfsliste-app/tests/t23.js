@@ -252,12 +252,12 @@ const { chromium, ok, open, connect, finish } = require('./lib');
   r = await p.evaluate(() => { const e = flEintrag('F001'), alt = [e.hoeheBis, e.gross]; e.gross = false; e.hoeheBis = 15000; UI.flF = ['gross']; renderNow(); const o = [flGefiltert().some(x => x.id === 'F001'), !!document.querySelector('#fl-body tr[data-id="F001"] .fl-krone-l')]; e.hoeheBis = 10000; o.push(flGrossT(e)); e.hoeheBis = alt[0]; e.gross = alt[1]; UI.flF = []; renderNow(); return o; });
   ok(r.join() === 'true,true,false', 'Krone und Filter „über 10.000 €“ auch aus der Förderhöhe (bis 15.000 € ja, bis 10.000 € nein): ' + r.join());
   r = await p.evaluate(() => [...document.querySelectorAll('.fl-head .fl-filter-btn, .fl-head .fl-serie-btn, .fl-head .tools > button, .fl-head input[type=search]')].map(x => Math.round(x.getBoundingClientRect().height)));
-  ok(new Set(r).size === 1, 'Leiste: Suche, Filter, KI-Recherche und Excel gleich hoch: ' + r.join());
+  ok(new Set(r).size === 1, 'Leiste: Suche, Filter und KI-Recherche gleich hoch: ' + r.join());
   // Excel einlesen: ersetzt die Liste (nach Rückfrage); weggefallene Einträge verlieren ihre Verknüpfung
   const buf = await p.evaluate(async () => { const L = D.fl.liste; const alt = D.fl; D.fl = flNorm({ liste: JSON.parse(JSON.stringify(L.filter(e => e.id !== 'F004'))) }); D.fl.liste[0].notiz = 'neu eingelesen';
     const blob = flBlob(); D.fl = alt; return [...new Uint8Array(await blob.arrayBuffer())]; });
-  await p.click('[data-act="fl-excel-menu"]');
-  const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.click('.menu button:text-is("Excel einlesen … (ersetzt die Liste)")')]);
+  ok(await p.evaluate(() => !document.querySelector('[data-act="fl-excel-menu"]')), '0.139: kein Excel-Knopf mehr in der Fördererliste (Export oben)');
+  const [fc] = await Promise.all([p.waitForEvent('filechooser'), p.evaluate(() => { flEinlesen(); })]);
   await fc.setFiles({ name: 'Fördererliste.xlsx', mimeType: 'application/octet-stream', buffer: Buffer.from(buf) });
   await p.waitForSelector('.modal h2:text-is("Fördererliste übernehmen?")');
   r = await p.$eval('.modal p', e => e.textContent);

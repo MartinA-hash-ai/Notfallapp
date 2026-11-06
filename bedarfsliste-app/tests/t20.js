@@ -51,6 +51,24 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.keyboard.press('Escape'); await p.waitForTimeout(150);
   r = await p.evaluate(() => ['Diözesangeschäftsstelle', 'Diözesangeschäftsstelle; Balve', 'Diözesangeschäftsstelle: Gütersloh', 'Dienststelle Hagen', 'Geschäftsstelle Brakel', 'Malteser Bildungszentrum Paderborn', 'Presse- und Öffentlichkeitsarbeit'].map(plKurz).join('|') + '|' + PL_WEG.test('Diözesangeschäftsstelle NUK') + PL_WEG.test('Diözesangeschäftsstelle Lage-Hörste'));
   ok(r === 'DGS Paderborn|Balve|Gütersloh|DST Hagen|Brakel|MBZ Paderborn|PÖ|truetrue', '0.136: Gruppen kurz (DGS Paderborn, DST, MBZ, PÖ; NUK und Lage-Hörste ausgeblendet): ' + r);
+  // 0.139: Exportieren – Knopf oben, Fenster, PDF (Druckbereich), Excel, Termine
+  await p.evaluate(() => { closeMenus(); document.querySelectorAll('.backdrop').forEach(x => x.remove()); UI.view = 'list'; renderNow(); });
+  ok(await p.evaluate(() => { const u = document.querySelector('header.top .undo-btn'), e = document.querySelector('header.top .ex-btn'); return !!e && u.nextElementSibling === e; }), 'Knopf „Exportieren“ rechts neben ↶');
+  await p.click('header.top .ex-btn'); await p.waitForSelector('.ex-modal');
+  r = await p.evaluate(() => [...document.querySelectorAll('.ex-modal .ex-l')].map(x => x.textContent).join('/'));
+  ok(r.startsWith('Was?/Welche?/Wie?/Umfang/Spalten'), 'Fenster: Was, Welche, Wie, Umfang, Spalten: ' + r);
+  await p.click('.ex-modal .ex-seg button:has-text("ausgewählte")'); await p.waitForSelector('.ex-wl');
+  await p.click('.ex-wl .ex-wz >> nth=0'); await p.click('.ex-wl .ex-wz >> nth=1');
+  ok(await p.evaluate(() => document.querySelector('.ex-n').textContent) === '2 Bedarfe', 'ausgewählte: 2 angehakt, 2 Bedarfe');
+  await p.evaluate(() => { window.__druck = 0; window.print = () => { window.__druck = document.querySelectorAll('#ex-druck tbody tr').length + '|' + document.documentElement.classList.contains('ex-drucken') + '|' + document.querySelector('#ex-page').textContent.includes('landscape'); }; });
+  await p.click('.ex-modal .ex-los'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => window.__druck) === '2|true|true', 'PDF kompakt: Druckbereich mit 2 Zeilen, quer: ' + await p.evaluate(() => window.__druck));
+  r = await p.evaluate(() => { dispatchEvent(new Event('afterprint')); const L = D.bedarfe.slice(0, 3); exDrucken('b', L, 'detail', []); const n = document.querySelectorAll('#ex-druck .ex-seite').length, h1 = document.querySelector('#ex-druck h1').textContent; dispatchEvent(new Event('afterprint')); return [n, !!h1, !document.querySelector('#ex-druck'), document.documentElement.classList.contains('ex-drucken')]; });
+  ok(r.join('|') === '3|true|true|false', 'PDF Detail: je Bedarf eine Seite, danach aufgeräumt: ' + r.join('|'));
+  r = await p.evaluate(() => { const b = D.bedarfe[0], d = new Date(Date.parse(today()) + 30 * 864e5).toISOString().slice(0, 10); b.foerderer.push(ff({ name: 'Testförderer', status: 'geplant', frist: d })); const T = exTermine('b', [b], new Set(['frist'])); b.foerderer.pop(); return [T.length >= 1, T.some(x => x.d === d && /^Antragsfrist Testförderer/.test(x.t))]; });
+  ok(r.join() === 'true,true', 'Termine: Antragsfrist kommt als Termin: ' + r.join());
+  r = await p.evaluate(async () => { const bk = await xlsxBook(await exBedarfeXlsx(D.bedarfe.slice(0, 2)).arrayBuffer()); return bk.sheets.map(s => s.name + ':' + s.rows.length).join(','); });
+  ok(/^Bedarfe:3,Förderplan:\d+$/.test(r), 'Excel der Bedarfe: Blätter Bedarfe und Förderplan: ' + r);
   // 0.135: Personenliste neu – Gruppen links, Karten rechts, Stern im Fachreferat; kein Mitscrollen im Hintergrund
   await p.evaluate(() => { const P = (n, rolle, gl, fach) => ({ n, rolle, gl, fach, mail: n.split(' ')[0].toLowerCase() + '@x.example', tel: '', mobil: '' });
     personenSetzen([P('Anna Beispiel', 'Referentin', 'Diözese', 'Soziales Ehrenamt'), P('Ben Muster', 'Sachbearbeitung', 'Diözese', 'Soziales Ehrenamt'), P('Clara Exempel', 'Koordination', 'Hagen', 'Soziales Ehrenamt'),

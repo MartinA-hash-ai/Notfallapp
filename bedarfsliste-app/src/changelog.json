@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.139.0",
+    "date": "2026-11-21T10:00",
+    "items": [
+      "Neu: Knopf „Exportieren“ oben rechts neben ↶ – Bedarfe oder Förderer; alle angezeigten, ausgewählte (Häkchen im Fenster, mit Suche) oder nur den geöffneten",
+      "PDF über das Druckfenster („Als PDF speichern“): kompakt oder ausführlich als Tabelle im Querformat mit wählbaren Spalten (der Browser merkt sich die Wahl), oder Detail – je Bedarf bzw. Förderer eine Seite im Hochformat",
+      "Excel: Bedarfe mit Blättern „Bedarfe“ und „Förderplan“; Förderer als die bekannte Excel mit allen Blättern, jetzt auch nur für eine Auswahl",
+      "Termine für Outlook (.ics): Antragsfristen, erwartete Antworten, Verwendungsnachweise, Spendenübergaben, Deadline bzw. Fristen der Fördererliste – wählbar, mit Erinnerung (am Tag, 1/3 Tage, 1/2/4 Wochen vorher)",
+      "Fördererliste: Knopf „Excel ▾“ entfernt (Herunterladen jetzt über „Exportieren“, Einlesen entfällt)"
+    ]
+  },
+  {
     "version": "0.138.0",
     "date": "2026-11-20T10:00",
     "items": [

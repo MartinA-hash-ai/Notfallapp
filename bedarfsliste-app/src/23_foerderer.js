@@ -238,8 +238,8 @@ async function flEinlesen() {
   D.fl = R; const v = flAlleVerknuepfen(); flZuKartei(); changed(); keep(renderNow);
   toast('Fördererliste übernommen: ' + R.liste.length + ' Förderer' + (v ? ', ' + v + ' Förderer in Bedarfen verknüpft' : ''), 'ok');
 }
-function flExportZeilen() {
-  const L = D.fl.liste, j = v => v.join(', ');
+function flExportZeilen(L = D.fl.liste) {
+  const j = v => v.join(', ');
   return {
     'Förderer': L.map(e => [e.id, e.name, e.art, e.status, j(e.gl), j(e.weg), e.anschrift, e.web, e.schwer, flHoeheKlar(e), e.fristen, e.richtlinien, e.recherche, e.notiz, ...FL_BEW_XL.map(x => e.bew[x.k] ? x.st[e.bew[x.k] - 1] : ''), e.antrag, e.quote, e.kurz, e.gross ? 'ja' : '', e.hoeheVon ?? '', e.hoeheBis ?? '']),
     'Ansprache': L.flatMap(e => e.ansprache.map(a => [e.id, e.name, a.gl, a.art, a.hinweis, a.titel, a.kopf])),
@@ -600,7 +600,6 @@ function flBar() {
       <div class="tools">
         <input type="search" id="flq" data-ui="flq" value="${esc(UI.flq || '')}" placeholder="Suchen: Name, Gliederung, Zweck …" aria-label="Förderer suchen (Strg+F)">
         ${flFilterKnopf()}${flAlleZuKnopf()}${flSerieKnopf()}
-        <button data-act="fl-excel-menu" aria-haspopup="menu" title="Excel: herunterladen oder einlesen">Excel ▾</button>
       </div>
     </div>`;
 }

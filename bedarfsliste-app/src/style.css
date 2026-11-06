@@ -2408,3 +2408,60 @@ html.modal-offen { overflow: hidden; }
 .pl2-form { background: var(--card); }
 .pl2-nk { padding: 14px 18px 4px; font-size: 13.5px; font-weight: 600; letter-spacing: 0; text-transform: none; color: var(--ink); }
 .pl2-nk ~ .pl2-ni { padding-left: 26px; }
+
+/* 0.139: Exportieren – Knopf oben, Fenster, Druck (PDF über das Druckfenster) */
+.ex-btn { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; font-size: 13px; }
+.modal.ex-modal { width: min(680px, 96vw); }
+.ex-modal footer:empty { display: none; }
+.ex { display: grid; gap: 12px; padding-bottom: 4px; }
+.ex-r { display: grid; grid-template-columns: 92px minmax(0, 1fr); align-items: center; gap: 10px; }
+.ex-r-sp { align-items: start; }
+.ex-l { font-size: 12px; font-weight: 600; color: var(--muted); }
+.ex-r-sp .ex-l { padding-top: 4px; }
+.ex-seg { align-self: center; }
+.ex-seg button { padding: 5px 11px; }
+.ex-sp { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+.ex-spz { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; cursor: pointer; }
+.ex-spz input:focus, .ex-wz input:focus { outline: none; box-shadow: none; }
+.ex-wahl { margin-left: 102px; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+.ex-wk { display: flex; align-items: center; gap: 10px; padding: 6px 8px; border-bottom: 1px solid var(--line3); background: var(--head); }
+.ex-such { flex: 1 1 auto; }
+.ex-wl { max-height: 220px; overflow-y: auto; overscroll-behavior: contain; padding: 4px 0; }
+.ex-wz { display: flex; align-items: center; gap: 8px; padding: 4px 10px; font-size: 13px; cursor: pointer; }
+.ex-wz:hover { background: var(--hover); }
+.ex-h { margin: 0 0 0 102px; }
+.ex-fuss { display: flex; align-items: center; justify-content: flex-end; gap: 12px; border-top: 1px solid var(--line3); padding-top: 12px; margin-top: 4px; }
+#ex-druck { display: none; }
+@media print {
+  html.ex-drucken body > *:not(#ex-druck) { display: none !important; }
+  html.ex-drucken, html.ex-drucken body { background: #fff !important; overflow: visible !important; }
+  html.ex-drucken #ex-druck { display: block !important; color: #111; font: 9.5pt/1.35 Inter, system-ui, sans-serif; }
+  #ex-druck .ex-pk { display: flex; justify-content: space-between; align-items: flex-end; border-bottom: 2px solid #d81e05; padding-bottom: 5px; margin-bottom: 10px; font-size: 8.5pt; color: #555; }
+  #ex-druck .ex-pk b { display: block; font-size: 13pt; color: #111; }
+  #ex-druck .ex-k { color: #666; font-size: .92em; }
+  #ex-druck table { border-collapse: collapse; width: 100%; }
+  #ex-druck .ex-tab th { text-align: left; font-size: 8pt; text-transform: uppercase; letter-spacing: .03em; color: #555; border-bottom: 1px solid #999; padding: 4px 6px; }
+  #ex-druck .ex-tab td { border-bottom: 1px solid #ddd; padding: 4px 6px; vertical-align: top; }
+  #ex-druck .ex-tab thead { display: table-header-group; }
+  #ex-druck .ex-tab tr { break-inside: avoid; }
+  #ex-druck .ex-tab.ausf td { padding: 6px; }
+  #ex-druck .ex-c-summe, #ex-druck .ex-c-deadline { white-space: nowrap; }
+  #ex-druck .ex-c-frist { width: 13%; } #ex-druck .ex-c-einsch { width: 12%; } #ex-druck .ex-c-kontakt { width: 16%; }
+  #ex-druck .ex-seite.neu { break-before: page; }
+  #ex-druck h1 { font-size: 16pt; margin: 4px 0 8px; }
+  #ex-druck h2 { font-size: 10.5pt; margin: 14px 0 5px; padding-bottom: 2px; border-bottom: 1px solid #ccc; break-after: avoid; }
+  #ex-druck .ex-steck th { text-align: left; width: 28%; font-weight: 600; color: #444; padding: 3px 8px 3px 0; vertical-align: top; }
+  #ex-druck .ex-steck td { padding: 3px 0; vertical-align: top; }
+  #ex-druck .ex-plan th { text-align: left; font-size: 8pt; color: #555; border-bottom: 1px solid #999; padding: 3px 5px; }
+  #ex-druck .ex-plan td { border-bottom: 1px solid #ddd; padding: 4px 5px; vertical-align: top; }
+  #ex-druck .ex-zwei { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  #ex-druck .ex-txt ul { margin: 2px 0 2px 16px; padding: 0; }
+  #ex-druck .ex-sum { font-weight: 600; margin-top: 6px; }
+}
+@page { margin: 14mm 12mm; }
+.ex-seg { justify-self: start; }
+@media print {
+  #ex-druck .ex-c-titel { width: 17%; } #ex-druck .ex-tab.ausf .ex-c-foerderer { width: 26%; } #ex-druck .ex-c-stand { width: 13%; }
+  #ex-druck .ex-fz { margin-bottom: 3px; } #ex-druck .ex-fz .ex-k { white-space: normal; }
+  #ex-druck .ex-zwei > div > div { margin-bottom: 1px; }
+}
