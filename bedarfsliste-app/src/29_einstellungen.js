@@ -25,6 +25,8 @@ function einstGruppen() {
       ['pers-liste', 'pers', 'Personenliste', 'Personen der Gliederungen und Fachreferate; Stern = Hauptansprechperson des Fachreferats', () => personenListeDialog()]]],
     ['E-Mail', [
       ['vorlagen', 'mail', 'E-Mail-Vorlagen', 'Texte für Rundmails und Spendenübergabe', () => vorlagenDialog()]]],
+    ['Automatik', [
+      ['mail-ausw', 'mail', 'E-Mail-Auswertung mit Copilot', 'Copilot liest werktags früh deine E-Mails und schlägt Änderungen vor – einrichten und festlegen, wonach gesucht wird', () => peEinstDialog()]]],
     ['Bedienung', [
       ['tasten', 'tasten', 'Tastaturbefehle', 'Übersicht und eigene Tasten festlegen', () => tastenDialog()]]],
     ['Daten einlesen', [

@@ -134,7 +134,7 @@ function headerHtml() {
   return `<header class="top">
     <div class="brand">${brand}<div><strong>Bedarfsliste</strong><span>Fundraising · Diözese Paderborn</span></div></div>
     <nav class="tabs" aria-label="Ansicht">${tab('aktiv', 'Bedarfe', nA)}<button class="tab${UI.view === 'flist' || UI.view === 'fdetail' ? ' on' : ''}" data-act="flist" title="Förderer mit Kontakten, Ansprache je Gliederung und allen Förderungen">Fördererliste</button>${tab('archiv', 'Archiv', nR).replace('class="tab ', 'class="tab tab-dezent ')}</nav>
-    <div class="actions">${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button><button class="ex-btn" data-act="export" title="Exportieren: PDF, Excel oder Termine für Outlook">${ICON_EXP}<span>Exportieren</span></button>${UI.view === 'list' ? kiListeKnopf() : ''}${UI.view === 'flist' || UI.view === 'fdetail' ? '<button class="primary" data-act="fl-neu-leer" title="Neuen Förderer anlegen">+ Förderer</button>' : '<button class="primary" data-act="new">+ Bedarf</button>'}<button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
+    <div class="actions">${peChip()}${fristChip()}${karteiChip()}${saveBox()}<button class="undo-btn" data-act="undo" title="Letzte Änderung rückgängig machen (Strg+Z)" aria-label="Rückgängig">↶</button><button class="ex-btn" data-act="export" title="Exportieren: PDF, Excel oder Termine für Outlook">${ICON_EXP}<span>Exportieren</span></button>${UI.view === 'list' ? kiListeKnopf() : ''}${UI.view === 'flist' || UI.view === 'fdetail' ? '<button class="primary" data-act="fl-neu-leer" title="Neuen Förderer anlegen">+ Förderer</button>' : '<button class="primary" data-act="new">+ Bedarf</button>'}<button class="icon gear" data-act="menu" aria-label="Einstellungen" title="Einstellungen: Darstellung hell oder dunkel, Sicherung, Update">${ICON_GEAR}</button></div>
     ${b ? `<div class="subbar"><button class="back" data-act="back">‹ ${UI.vonFl && flEintrag(UI.vonFl) ? esc(flEintrag(UI.vonFl).name || 'Fördererliste') : 'Alle Bedarfe'}</button><div id="d-steps">${steps(b)}</div></div>`
       : UI.view === 'flist' ? flBar() : UI.view === 'fdetail' ? flDetailBar() : listBar()}
   </header>`;
@@ -562,6 +562,7 @@ async function act(k, a, e) {
     case 'theme': applyTheme(a.dataset.v); $$('#mmenu .th-btn').forEach(x => { x.classList.toggle('on', x === a); x.setAttribute('aria-pressed', String(x === a)); }); return;
     case 'einst': einstellungen(); return;
     case 'export': exportDialog(); return;
+    case 'pe-oeffnen': peDialog(); return;
     case 'about': closeMenus(); about(); return;
     case 'undo': undo(); return;
     case 'fristen': if ($('.frist-pop')) closeMenus(); else fristPop(a); return;

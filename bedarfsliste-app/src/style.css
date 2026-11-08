@@ -2553,3 +2553,28 @@ html.modal-offen .ex-leiste { display: none; }
   #ex-druck .ex-seitenklon a, #ex-druck .ex-seitenklon .ex-wert { overflow-wrap: anywhere; word-break: normal; }
   #ex-druck .ex-seitenklon .st-btn { border: 0 !important; background: none !important; padding: 0 !important; }
 }
+
+/* 0.143: E-Mail-Auswertung – Hinweis oben, Prüffenster, Einstellungen */
+.pe-chip { display: inline-flex; align-items: center; gap: 6px; padding: 5px 11px; border-radius: 999px; border: 1px solid #b9d3f0; background: #eaf3fd; color: #1d4f86; font-size: 13px; font-weight: 600; }
+.pe-chip:hover { background: #dcebfb; }
+html[data-bl-theme="dark"] .pe-chip { background: #1d3550; border-color: #2d5480; color: #cfe3fa; }
+.modal.pe-modal { width: min(820px, 96vw); }
+.pe-box { display: grid; gap: 14px; }
+.pe-g h3 { margin: 0 0 6px; font-size: 13px; font-weight: 700; }
+.pe-z { display: grid; grid-template-columns: 20px minmax(0, 1fr); gap: 8px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; margin-bottom: 6px; cursor: pointer; }
+.pe-z:hover { background: var(--hover); }
+.pe-z.aus { opacity: .6; cursor: default; }
+.pe-z input { margin-top: 3px; }
+.pe-z input:focus { outline: none; box-shadow: none; }
+.pe-zt b { font-weight: 600; }
+.pe-zi { margin-top: 3px; font-size: 12.5px; color: var(--ink2); font-style: italic; }
+.pe-mail { margin-top: 2px; }
+.pe-tag { margin-left: 6px; font-size: 11px; padding: 1px 6px; border-radius: 4px; background: var(--chipbg); color: var(--muted); }
+.pe-tag.warn { background: var(--warnbg); color: var(--warn); }
+.modal.pe-einst-modal { width: min(720px, 96vw); }
+.pe-einst h3 { margin: 16px 0 6px; font-size: 13px; }
+.pe-eg { border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; margin-bottom: 8px; }
+.pe-eh { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.pe-el { margin: 4px 0 0 26px; padding: 0; color: var(--muted); font-size: 12.5px; columns: 2; }
+.pe-schritte { margin: 0; padding-left: 20px; display: grid; gap: 6px; font-size: 13.5px; }
+.pe-schritte q { font-style: italic; }

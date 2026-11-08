@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.143.0",
+    "date": "2026-11-25T10:00",
+    "items": [
+      "Neu: E-Mail-Auswertung mit Copilot Cowork – Cowork liest werktags früh deine E-Mails (Posteingang und Gesendete) und schreibt Vorschläge in eine Datei im Ordner „Förderrecherche“; das Programm legt dafür selbst eine Auftragsdatei und einen Überblick aller Bedarfe und Förderer mit Kennungen dorthin und hält sie aktuell",
+      "Einstellungen → Automatik → „E-Mail-Auswertung mit Copilot“: wonach gesucht wird (von Förderern, von den Maltesern, zusätzlich) und die Einrichtung in Cowork – die geplante Aufgabe enthält nur einen Satz und muss nie geändert werden",
+      "Neue Vorschläge erscheinen oben als „✉ n Vorschläge aus E-Mails“; im Prüffenster je Vorschlag die Änderung, ein Zitat und die E-Mail – sichere vorgewählt, unsichere nicht, nicht zuzuordnende gesperrt; „Übernehmen“, „Später“ oder „Verwerfen“, ↶ macht die Übernahme rückgängig",
+      "Erkannt werden u. a.: Antrag gestellt, Zusage mit Betrag, Absage mit Grund, Nachforderung, Frist Verwendungsnachweis, Förderer kommt zur Übergabe, neue Ansprechperson; intern: Freigaben, gelieferte Unterlagen, Termin der Spendenübergabe, Presse, Geldeingang"
+    ]
+  },
+  {
     "version": "0.142.0",
     "date": "2026-11-24T10:00",
     "items": [
