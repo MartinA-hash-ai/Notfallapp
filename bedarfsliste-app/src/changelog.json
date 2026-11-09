@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.145.0",
+    "date": "2026-11-27T10:00",
+    "items": [
+      "E-Mail-Auswertung: „Einweisung kopieren“ – ein Text für den ersten Chat mit Copilot Cowork: Hintergrund, Ort des Ordners, Zugriff prüfen, Probelauf über die letzten 7 Tage, danach legt Copilot die geplante Aufgabe selbst an",
+      "Der Satz für die geplante Aufgabe nennt jetzt den genauen Ordner in OneDrive/SharePoint und verbietet Änderungen an anderen Dateien"
+    ]
+  },
+  {
     "version": "0.144.0",
     "date": "2026-11-26T10:00",
     "items": [

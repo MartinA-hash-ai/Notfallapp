@@ -6,6 +6,31 @@
    Beim Öffnen meldet das Programm neue Vorschläge; übernommen wird erst nach Prüfung (Haken je Vorschlag, ↶ macht alles rückgängig). */
 const PE_AUFTRAG = 'Auftrag E-Mail-Auswertung.txt', PE_UEB = 'Überblick für Copilot.txt', PE_RE = /^Posteingang.*\.(txt|md)$/i;
 const PE_SATZ = 'Lies die Datei „' + PE_AUFTRAG + '“ im Ordner „' + RECH_DIR + '“ (neben der Bedarfsliste) und führe den Auftrag darin vollständig aus.';
+// Ort des Ordners für Copilot: OneDrive/SharePoint-Pfad, wenn die Programmdatei dort liegt (ohne Benutzernamen)
+const peOrt = () => { const P = rechOrdnerOk() ? rechPfad() : { od: '' }; return P.od ? '„' + P.od + '“ (OneDrive bzw. SharePoint)' : '„' + RECH_DIR + '“ neben der Bedarfsliste'; };
+const peSatz = () => 'Lies die Datei „' + PE_AUFTRAG + '“ im Ordner ' + peOrt() + ' und führe den Auftrag darin vollständig aus. Ändere keine anderen Dateien.';
+// einmalige Einweisung für Copilot Cowork: Hintergrund, Zugriff prüfen, Probelauf, dann die geplante Aufgabe anlegen
+function peEinweisung() {
+  const heute = today();
+  return ['Ich möchte mit dir eine tägliche Aufgabe einrichten. Bitte lies alles, bevor du anfängst.', '',
+    'HINTERGRUND',
+    'Ich bin Fundraiser bei den Maltesern (Malteser Hilfsdienst e. V., Diözese Paderborn). Meine Bedarfe (z. B. ein Fahrzeug für eine Gliederung) und die Förderer dazu pflege ich im Programm „Bedarfsliste“ (eine HTML-Datei in OneDrive). Viele Neuigkeiten dazu kommen per E-Mail – von Förderern (Eingangsbestätigung, Zusage, Absage, Nachforderung …) und von Kolleginnen und Kollegen (Freigaben, Unterlagen, Termin der Spendenübergabe, Presse, Geldeingang).',
+    'Deine Aufgabe: Werktags früh meine E-Mails auswerten und die Neuigkeiten als VORSCHLÄGE in eine Textdatei schreiben. Das Programm zeigt sie mir, ich entscheide. Du trägst nichts selbst ein, schreibst keine E-Mails und änderst keine anderen Dateien.', '',
+    'WO ALLES LIEGT',
+    'Ordner: ' + peOrt() + '. Dort pflegt das Programm zwei Dateien:',
+    '- „' + PE_AUFTRAG + '“: die genaue Anleitung und das Format der Vorschläge.',
+    '- „' + PE_UEB + '“: alle Bedarfe und Förderer mit Kennungen, damit du E-Mails eindeutig zuordnen kannst.',
+    'Deine Ergebnisse legst du als neue Datei „Posteingang JJJJ-MM-TT.txt“ im selben Ordner ab.', '',
+    'BITTE JETZT EINMAL ZUM TESTEN',
+    '1. Prüfe deinen Zugriff: mein Postfach (Posteingang und Gesendete Elemente) lesen; im Ordner oben lesen und eine neue Datei anlegen. Sag mir, was davon klappt und was nicht.',
+    '2. Lies beide Dateien und fasse in höchstens fünf Sätzen zusammen, was du tun sollst.',
+    '3. Mach einen Probelauf für die letzten 7 Tage genau nach der Anleitung und lege die Datei „Posteingang ' + heute + '-test.txt“ an.',
+    '4. Nenne mir danach: wie viele Vorschläge, welche E-Mails du bewusst übersprungen hast (und warum) und wo du bei der Zuordnung unsicher warst. Stell Rückfragen, wenn etwas unklar ist.', '',
+    'DANACH (erst wenn ich den Probelauf bestätigt habe)',
+    'Richte eine geplante Aufgabe ein: Montag bis Freitag, 6:00 Uhr deutscher Zeit (Europe/Berlin). Auftrag der Aufgabe, wörtlich:',
+    peSatz(),
+    'Nenne mir zur Kontrolle die eingestellte Uhrzeit und Zeitzone.'].join('\n');
+}
 const PE = { L: [], dateien: [], letzte: '', aufStr: '', uebStr: '', busy: false };
 
 // Gruppen und Arten: [Schlüssel, Gruppe, Bezeichnung für das Fenster, Erklärung für Cowork]
@@ -274,16 +299,17 @@ async function peEinstDialog() {
   const S = peEinst();
   const gr = g => h('section', { class: 'pe-eg' }, h('label', { class: 'pe-eh' }, h('input', { type: 'checkbox', checked: S[g], onchange: e => { S[g] = e.target.checked; } }), h('b', null, PE_GRUPPEN[g])),
     h('ul', { class: 'pe-el' }, ...PE_ARTEN.filter(a => a[1] === g).map(a => h('li', null, a[2]))));
-  const kop = h('button', { type: 'button', onclick: () => flcTextKopieren(PE_SATZ, 'Satz kopiert – in Cowork als geplante Aufgabe einfügen') }, 'Satz kopieren');
+  const kop = h('button', { type: 'button', onclick: () => flcTextKopieren(peSatz(), 'Satz kopiert – in Cowork als geplante Aufgabe einfügen') }, 'Satz kopieren');
+  const einw = h('button', { type: 'button', class: 'primary', onclick: () => flcTextKopieren(peEinweisung(), 'Einweisung kopiert – in Copilot Cowork einfügen') }, 'Einweisung kopieren');
   const stand = h('p', { class: 'muted small' }, PE.letzte ? 'Letzte Datei von Copilot: „' + PE.letzte + '“.' : rechOrdnerOk() ? 'Noch keine Datei „Posteingang …“ von Copilot im Ordner.' : 'Ordner nicht verbunden – die Dateien für Copilot werden geschrieben, sobald die Bedarfsliste mit ihrem Ordner verbunden ist.');
   const body = h('div', { class: 'pe-einst' },
     h('p', null, 'Copilot Cowork liest werktags früh deine E-Mails (Posteingang und Gesendete) und schlägt vor, was sich geändert hat. Übernommen wird erst, wenn du es bestätigst.'),
     h('h3', null, 'Wonach gesucht wird'), gr('A'), gr('B'), gr('C'),
     h('h3', null, 'Einmal in Cowork einrichten'),
     h('ol', { class: 'pe-schritte' },
-      h('li', null, 'Copilot Cowork öffnen → „Automatisierungen“ bzw. „Geplante Aufgabe“ neu anlegen.'),
-      h('li', null, 'Wiederholung: Montag bis Freitag, früh morgens (z. B. 6:00 Uhr – achte darauf, ob Cowork die Zeit in UTC erwartet: dann im Winter 5:00, im Sommer 4:00).'),
-      h('li', null, 'Als Auftrag nur diesen Satz einfügen: ', h('q', null, PE_SATZ), ' ', kop),
+      h('li', null, 'Bedarfsliste einmal mit ihrem Ordner geöffnet haben – dann liegen Auftrag und Überblick im Ordner „' + RECH_DIR + '“.'),
+      h('li', null, 'In Copilot Cowork einen neuen Chat öffnen und die Einweisung einfügen: ', einw, h('div', { class: 'muted small' }, 'Sie erklärt Copilot, worum es geht, lässt den Zugriff prüfen und einen Probelauf über die letzten 7 Tage machen („Posteingang …-test.txt“ – erscheint hier als Vorschläge). Passt das Ergebnis, legt Copilot die geplante Aufgabe selbst an.')),
+      h('li', null, 'Lieber von Hand anlegen? „Automatisierungen“ bzw. „Geplante Aufgabe“: Montag bis Freitag, früh morgens (z. B. 6:00 Uhr – erwartet Cowork die Zeit in UTC, im Winter 5:00, im Sommer 4:00). Als Auftrag nur diesen Satz: ', h('q', null, peSatz()), ' ', kop),
       h('li', null, 'Fertig. Ändert sich hier etwas, schreibt das Programm die Auftragsdatei neu – die Aufgabe in Cowork bleibt, wie sie ist.')),
     stand);
   const ok = await modal('E-Mail-Auswertung', body, [['Abbrechen', false], ['Speichern', true, 'primary']], { wide: true, cls: 'pe-einst-modal' });

@@ -13,8 +13,8 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   let r = await p.evaluate(async () => { await peSchreiben(true); const F = Object.keys(__fs.files); const t = n => { const k = F.find(x => x.endsWith('/Förderrecherche/' + n)); return k ? new TextDecoder().decode(__fs.files[k].data) : ''; };
     const a = t('Auftrag E-Mail-Auswertung.txt'), u = t('Überblick für Copilot.txt'); return [a.includes('Gesendete Elemente'), a.includes('=== VORSCHLAG ==='), /- zusage:/.test(a), /- freigabe:/.test(a), /- fl_frist:/.test(a), u.includes('[b1] Zelt für den Katastrophenschutz'), u.includes('[f1] Sparkasse Testhausen')]; });
   ok(r.join() === 'true,true,true,true,false,true,true', 'Auftragsdatei (A und B, C aus) und Überblick mit Kennungen im Ordner „Förderrecherche“: ' + r.join());
-  r = await p.evaluate(() => PE_SATZ);
-  ok(/Auftrag E-Mail-Auswertung\.txt/.test(r), 'Ein Satz für die geplante Aufgabe in Cowork: ' + r);
+  r = await p.evaluate(() => [peSatz(), peEinweisung()]);
+  ok(/Auftrag E-Mail-Auswertung\.txt/.test(r[0]) && /HINTERGRUND/.test(r[1]) && /Probelauf/.test(r[1]) && r[1].includes(r[0]) && /Europe\/Berlin/.test(r[1]), 'Satz für die geplante Aufgabe und Einweisung für Copilot (Zugriff, Probelauf, dann Aufgabe anlegen): ' + r[0]);
   // Vorschläge von Copilot
   await writeF(p, ['=== VORSCHLAG ===', 'Art: zusage', 'Bedarf: [b1]', 'Förderer: f1', 'Datum: 05.11.2026', 'Betrag: 3.000', 'Sicherheit: sicher', 'Mail: 05.11.2026 | Sparkasse | Ihr Antrag', 'Zitat: „Wir freuen uns, 3.000 € zu bewilligen.“', '',
     '=== VORSCHLAG ===', 'Art: freigabe', 'Bedarf: b1', 'Wert: ofk', 'Ergebnis: ok', 'Datum: 04.11.2026', 'Sicherheit: sicher', '',
