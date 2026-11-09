@@ -35,11 +35,11 @@ const PE = { L: [], dateien: [], letzte: '', aufStr: '', uebStr: '', busy: false
 
 // Gruppen und Arten: [Schlüssel, Gruppe, Bezeichnung für das Fenster, Erklärung für Cowork]
 const PE_ARTEN = [
-  ['antrag', 'A', 'Antrag gestellt oder eingegangen', 'Ein Antrag wurde an den Förderer geschickt (auch in „Gesendete Elemente“) oder der Förderer bestätigt den Eingang. Datum = Tag des Antrags bzw. der Bestätigung; „Antwort bis“, falls genannt.'],
+  ['antrag', 'A', 'Antrag gestellt oder eingegangen', 'Ein Antrag wurde an den Förderer geschickt (auch in „Gesendete Elemente“), der Förderer bestätigt den Eingang oder der Antrag ist ausgewählt und kommt vor ein Gremium. Datum = Tag des Antrags bzw. der Bestätigung; Antwort bis = Termin der Entscheidung (z. B. Gremiumssitzung), falls genannt.'],
   ['zusage', 'A', 'Zusage', 'Der Förderer bewilligt bzw. sagt zu. Betrag = zugesagte Summe in Euro (Zahl). Datum = Datum der Zusage.'],
   ['absage', 'A', 'Absage', 'Der Förderer lehnt ab. Grund = Begründung in wenigen Worten, falls genannt.'],
   ['nachforderung', 'A', 'Nachforderung / Rückfrage', 'Der Förderer fordert Unterlagen nach oder fragt nach. Wert = was gebraucht wird; Datum = bis wann, falls genannt.'],
-  ['nachweis', 'A', 'Frist Verwendungsnachweis', 'Frist für den Verwendungsnachweis (meist im Bewilligungsschreiben). Datum = Frist.'],
+  ['nachweis', 'A', 'Frist Verwendungsnachweis', 'Frist für den Verwendungsnachweis, die Endabrechnung oder den Sachbericht (meist im Bewilligungsschreiben). Datum = Frist.'],
   ['uebergabe_foerderer', 'A', 'Förderer kommt zur Spendenübergabe', 'Der Förderer sagt die Teilnahme an der Spendenübergabe zu oder ab. Wert = ja oder nein; Person = wer kommt.'],
   ['kontakt', 'A', 'Neue Ansprechperson beim Förderer', 'Neue oder geänderte Ansprechperson beim Förderer (nur dienstliche Angaben). Wert = „Name; Position; E-Mail; Telefon“.'],
   ['freigabe', 'B', 'Freigabe (OFK, Fachreferat, Verwaltung)', 'Intern: Ortsführungskreis stimmt zu/lehnt ab, Fachreferat gibt frei/lehnt ab, Verwaltung budgetiert/lehnt ab. Wert = ofk, fach oder verw; Ergebnis = ok oder nein; Datum = Tag der Entscheidung.'],
@@ -63,14 +63,16 @@ function peAuftragText() {
     'SO GEHST DU VOR',
     '1. Lies „' + PE_UEB + '“: alle Bedarfe mit Kennung [b-…], ihre Förderer [f-…], die Fördererliste [F…], Gliederungen und Ansprechpersonen.',
     '2. Zeitraum: alle E-Mails seit der neuesten Datei „Posteingang …“ in diesem Ordner (nach Datum im Namen); gibt es keine, die letzten 3 Tage. Durchsuche „Posteingang“ und „Gesendete Elemente“, keine Teams-Nachrichten.',
-    '3. Berücksichtige nur E-Mails, die sich eindeutig auf einen Bedarf oder Förderer aus dem Überblick beziehen (Name, Kurzname, Ansprechperson, Gliederung + Vorhaben). Ignoriere Newsletter, Werbung, automatische Benachrichtigungen und Kalendereinladungen ohne Inhalt.',
+    '3. Berücksichtige E-Mails, die einen Förder-Vorgang der Malteser betreffen: zuerst solche zu Bedarfen und Förderern aus dem Überblick, aber AUCH solche, deren Förderer oder Bedarf dort (noch) fehlt – z. B. eine Stiftung meldet sich zu einem Antrag, der im Überblick nicht steht. Ignoriere Newsletter, Werbung, allgemeine Rundschreiben ohne bestimmtes Vorhaben, automatische Benachrichtigungen und Kalendereinladungen ohne Inhalt.',
+    '3a. Erkennen, wer schreibt: Du darfst schließen aus Absendername, Domain der E-Mail-Adresse (z. B. @ikea-stiftung.de), Signatur bzw. Fußzeile, Betreff und dem Verlauf (Antwort auf eine E-Mail, die ich geschickt habe). Steht der Förderer im Überblick unter anderem Namen, ordne ihn dort zu. Lies auch Anhänge von Förderern (PDF, Word), wenn Betrag, Frist oder Entscheidung dort stehen.',
     '4. Suche nur nach diesen Arten (Art = Schlüssel vorn):', ...A.map(a => '   - ' + a[0] + ': ' + a[3]),
     '5. Ordne jeden Vorschlag zu: Bedarf = Kennung [b-…], Förderer = Kennung [f-…] (falls der Förderer beim Bedarf schon steht), Fördererliste = [F…] (nur bei fl_frist). Ist die Zuordnung nicht eindeutig: Kennung leer lassen und Sicherheit = unsicher.',
+    '5a. Fehlt der Bedarf oder der Förderer im Überblick: Kennung leer lassen und stattdessen ausfüllen – Vorhaben = das Vorhaben in wenigen Worten (z. B. „Drohne für den Bevölkerungsschutz“), Gliederung = Ort bzw. Gliederung, Förderername = vollständiger Name des Förderers (z. B. „IKEA Stiftung“). Gibt es einen passenden Bedarf, aber der Bezug ist nicht belegt: Bedarf-Kennung trotzdem eintragen und Sicherheit = unsicher. Mehrere Bewilligungen in einer E-Mail: je Bewilligung ein eigener Vorschlag.',
     '6. Steht die Information schon so im Überblick (z. B. Stand schon „zugesagt“ mit diesem Betrag), keinen Vorschlag schreiben.',
     '7. Nichts erfinden, nichts schätzen. Zitat = höchstens ein Satz aus der E-Mail, der die Information belegt. Keine weiteren Inhalte der E-Mail übernehmen, keine Bank- oder Personaldaten.', '',
     'ERGEBNIS',
     'Lege im selben Ordner eine neue Textdatei an: „Posteingang JJJJ-MM-TT.txt“ (heutiges Datum; gibt es sie schon, hänge „-2“ an). Inhalt genau in diesem Aufbau, je Vorschlag ein Block:', '',
-    '=== VORSCHLAG ===', 'Art: zusage', 'Bedarf: b-…', 'Förderer: f-…', 'Fördererliste: ', 'Datum: TT.MM.JJJJ', 'Betrag: 15000', 'Uhrzeit: ', 'Ort: ', 'Wert: ', 'Ergebnis: ', 'Grund: ', 'Person: ', 'Sicherheit: sicher',
+    '=== VORSCHLAG ===', 'Art: zusage', 'Bedarf: b-…', 'Förderer: f-…', 'Fördererliste: ', 'Vorhaben: ', 'Gliederung: ', 'Förderername: ', 'Datum: TT.MM.JJJJ', 'Antwort bis: ', 'Betrag: 15000', 'Uhrzeit: ', 'Ort: ', 'Wert: ', 'Ergebnis: ', 'Grund: ', 'Person: ', 'Sicherheit: sicher',
     'Mail: TT.MM.JJJJ | Absender | Betreff', 'Zitat: „…“', '',
     'Felder, die nicht passen, bleiben leer. Sicherheit = sicher oder unsicher. Beträge als Zahl ohne Punkt und ohne €.',
     'Hast du nichts gefunden: Datei trotzdem anlegen, mit der einzigen Zeile „Keine Vorschläge“. Hast du keinen Zugriff auf mein Postfach: Datei mit der Zeile „Kein Zugriff auf E-Mails“ anlegen.',
@@ -107,10 +109,10 @@ async function peSchreiben(force) {
 function peLesen(text, datei) {
   const L = [];
   for (const block of String(text || '').replace(/\r/g, '').split(/^\s*=+\s*VORSCHLAG\s*=+\s*$/im).slice(1)) {
-    const o = { datei }; for (const z of block.split('\n')) { const m = z.match(/^\s*([A-Za-zÄÖÜäöüß-]+)\s*:\s*(.*)$/); if (m) o[norm(m[1]).replace(/[^a-zäöüß]/g, '')] = m[2].trim(); }
+    const o = { datei }; for (const z of block.split('\n')) { const m = z.match(/^\s*([A-Za-zÄÖÜäöüß][A-Za-zÄÖÜäöüß -]{0,30}?)\s*:\s*(.*)$/); if (m) o[norm(m[1]).replace(/[^a-zäöüß]/g, '')] = m[2].trim(); }
     o.art = norm(o.art || '').replace(/[^a-z_]/g, ''); if (!o.art) continue;
     for (const k of ['bedarf', 'forderer', 'förderer', 'fordererliste', 'fördererliste']) if (o[k]) o[k] = o[k].replace(/[[\]\s]/g, '');
-    o.foerderer = o['förderer'] || o.forderer || ''; o.fl = o['fördererliste'] || o.fordererliste || '';
+    o.foerderer = o['förderer'] || o.forderer || ''; o.fl = o['fördererliste'] || o.fordererliste || ''; o.fname = o['förderername'] || o.forderername || ''; o.antwortbis = o.antwortbis || '';
     L.push(o);
   }
   return L;
@@ -136,17 +138,20 @@ async function peScan() {
 /* ---------- Was ein Vorschlag im Programm ändert: wo (Bereich, Förderer), bisher → neu, Ton der neuen Angabe, die Änderung selbst */
 const PE_ST_TON = { zugesagt: 't-ok', beantragt: 't-run', abgelehnt: 't-err', geplant: 't-neu' };
 function peWirkung(v, zu = {}) {
-  const bid = zu.bedarf || v.bedarf, b = D.bedarfe.find(x => x.id === bid), fid = zu.foerderer || v.foerderer;
+  const bid = zu.bedarf || v.bedarf; let b = D.bedarfe.find(x => x.id === bid);
+  if (!b && bid === '__neu') b = peNeuerBedarf(v);                                // neuer Bedarf aus dem Vorhaben in der E-Mail – angelegt erst beim Übernehmen
+  const fid = zu.foerderer || v.foerderer || (peIstNeu(b) ? '__neu' : '');
   let f = b && fid && fid !== '__neu' ? b.foerderer.find(x => x.id === fid) : null;
-  const neuF = b && fid === '__neu', fNeu = () => { const n = ff({ name: (String(v.mail || '').split('|')[1] || 'Neuer Förderer').trim() }); b.foerderer.push(n); return n; };
-  const F = () => f || (neuF ? (f = fNeu()) : null);
+  if (b && !f && fid === '__neu' && v.fname) f = b.foerderer.find(x => norm(x.name) === norm(v.fname)) || null;   // derselbe neue Förderer aus einem anderen Vorschlag
+  const neuF = b && fid === '__neu' && !f, fNeu = () => { const n = ff({ name: (v.fname || String(v.mail || '').split('|')[1] || 'Neuer Förderer').trim() }); b.foerderer.push(n); return n; };
+  const F = () => { peBedarfAnlegen(b); return f || (neuF ? (f = fNeu()) : null); };
   const d = peDatum(v.datum), betrag = peBetrag(v.betrag), A = PE_ARTEN.find(a => a[0] === v.art);
   const r = { b, f, art: A ? A[2] : v.art, bereich: 'Förderplan', vorher: '', nachher: '', ton: 't-neu', ok: false, schon: false, fn: null, brauchtF: false };
   const fs = x => x ? F_ST_L[x.status] + (foeAmt(x) ? ' · ' + eur(foeAmt(x)) : '') + (x.status === 'beantragt' && x.beantragtAm ? ' · seit ' + fmtDate(x.beantragtAm) : '') : (neuF ? 'neuer Förderer' : '–');
   const mitF = (neu, extra, nachher, ton) => { r.brauchtF = true; r.ok = !!(f || neuF); r.vorher = fs(f); r.nachher = nachher; r.ton = ton || PE_ST_TON[neu] || 't-neu';
     r.fn = () => { const x = F(); const alt = x.status; if (neu && alt !== neu) { x.status = neu; effects(b, x, 'status', neu, alt); } if (extra) extra(x); }; };
   switch (v.art) {
-    case 'antrag': mitF('beantragt', x => { if (d) x.beantragtAm = d; const e = peDatum(v.wert); if (e) x.erwartet = e; }, 'beantragt' + (d ? ' am ' + fmtDate(d) : '')); r.schon = !!f && ['beantragt', 'zugesagt', 'abgelehnt'].includes(f.status); break;
+    case 'antrag': { const e = peDatum(v.antwortbis) || peDatum(v.wert); mitF('beantragt', x => { if (d) x.beantragtAm = d; if (e) x.erwartet = e; }, 'beantragt' + (d ? ' am ' + fmtDate(d) : '') + (e ? ' · Entscheidung bis ' + fmtDate(e) : '')); r.schon = !!f && (['zugesagt', 'abgelehnt'].includes(f.status) || (f.status === 'beantragt' && (!e || f.erwartet === e))); break; }
     case 'zusage': mitF('zugesagt', x => { if (betrag) x.zugesagt = betrag; if (d) x.entscheidungAm = d; }, 'zugesagt' + (betrag ? ' · ' + eur(betrag) : '') + (d ? ' · am ' + fmtDate(d) : '')); r.schon = !!f && f.status === 'zugesagt' && (!betrag || +foeAmt(f) === betrag); break;
     case 'absage': mitF('abgelehnt', x => { if (v.grund) x.grund = v.grund; if (d) x.entscheidungAm = d; }, 'abgelehnt' + (v.grund ? ' · Grund: ' + v.grund : '')); r.schon = !!f && f.status === 'abgelehnt'; break;
     case 'nachforderung': mitF('', x => { x.notiz = (x.notiz ? x.notiz.trim() + '\n' : '') + '* Nachforderung ' + fmtDate(today()) + ': ' + (v.wert || 'siehe E-Mail') + (d ? ' – bis ' + fmtDate(d) : ''); if (d && x.status === 'beantragt') x.erwartet = d; }, 'Nachforderung: ' + (v.wert || 'siehe E-Mail') + (d ? ' · bis ' + fmtDate(d) : ''), 't-neu'); r.vorher = 'Notizen: –'; break;
@@ -175,8 +180,18 @@ function peWirkung(v, zu = {}) {
     case 'neuer_bedarf': r.bereich = 'Neuer Bedarf'; r.nachher = v.wert || '?'; r.info = 'Neuer Bedarf – über den KI-Knopf „Bedarf aus Daten erstellen“ anlegen.'; break;
     default: r.nachher = v.wert || v.art;
   }
+  if (peIstNeu(b) && r.fn) { const fn0 = r.fn; r.fn = () => { peBedarfAnlegen(b); fn0(); }; r.ok = r.ok || !!r.fn; }
   return r;
 }
+// neuer Bedarf aus dem Vorhaben einer E-Mail: vorläufig (je Vorhaben einer, auch für mehrere Vorschläge), erst beim Übernehmen in die Liste
+const PE_NEU = {};
+function peNeuerBedarf(v) {
+  const k = norm((v.vorhaben || v.fname || 'neu') + '|' + (v.gliederung || '')); if (PE_NEU[k]) return PE_NEU[k];
+  const gl = v.gliederung ? (GL_LIST.find(g => norm(v.gliederung).includes(norm(g))) || (istDio(v.gliederung) ? DIO : v.gliederung.trim())) : '';
+  const b = Object.assign(blank(), { titel: (v.vorhaben || 'Neuer Bedarf' + (v.fname ? ' (' + v.fname + ')' : '')).trim(), gliederung: gl }); PE_NEU_B.add(b); return (PE_NEU[k] = b);
+}
+const PE_NEU_B = new WeakSet(), peIstNeu = b => !!b && PE_NEU_B.has(b) && !D.bedarfe.includes(b);
+function peBedarfAnlegen(b) { if (peIstNeu(b)) D.bedarfe.push(b); }
 // Art des Vorschlags für die Darstellung: info (steht schon so drin / nur Hinweis), unassigned (Bedarf oder Förderer fehlt), sicher, unsicher
 const peKind = (v, w) => w.info || (w.schon && w.ok) ? 'info' : !w.b && !w.fl ? 'unassigned' : !w.ok && w.brauchtF && !w.f ? 'unassigned' : norm(v.sicherheit) === 'unsicher' || !w.ok ? 'unsicher' : 'sicher';
 
@@ -195,7 +210,7 @@ async function peDialog(wieder) {
   const E0 = peEnt(), assign = {}, dec = {};
   PE.L.forEach(v => { const e = E0[v.key] || {}; if (e.bedarf || e.foerderer) assign[v.key] = { bedarf: e.bedarf || '', foerderer: e.foerderer || '' }; });
   if (wieder) Object.assign(dec, wieder);
-  const W = () => PE.L.map(v => { const w = peWirkung(v, assign[v.key] || {}); return { v, w, k: peKind(v, w) }; });
+  const W = () => PE.L.map(v => { const w0 = peWirkung(v, {}), k0 = peKind(v, w0), w = assign[v.key] ? peWirkung(v, assign[v.key]) : w0; return { v, w, k: k0 === 'unassigned' ? 'unassigned' : peKind(v, w) }; });
   let X = W(); const AKT = () => X.filter(x => x.k !== 'info'), INF = () => X.filter(x => x.k === 'info');
   AKT().forEach(x => { if (!(x.v.key in dec)) dec[x.v.key] = (E0[x.v.key] || {}).d || (x.k === 'sicher' ? 'accept' : null); });
   let sel = (AKT().find(x => !dec[x.v.key]) || AKT()[0] || X[0]).v.key, filter = 'alle', infoOpen = false, warnAssign = false;
@@ -205,7 +220,7 @@ async function peDialog(wieder) {
   const sichtbar = () => filter === 'offen' ? AKT().filter(x => !dec[x.v.key] || x.v.key === sel) : AKT();
   const naechster = from => { const L = AKT(), i = L.findIndex(x => x.v.key === from), o = [...L.slice(i + 1), ...L.slice(0, i)]; return (o.find(x => !dec[x.v.key]) || L[Math.min(i + 1, L.length - 1)] || L[0]).v.key; };
   const entscheiden = (key, d) => { const x = X.find(y => y.v.key === key); if (!x || x.k === 'info') return;
-    if (d === 'accept' && (x.k === 'unassigned' || !x.w.ok)) { warnAssign = true; zeig(); const s = box.querySelector('.pe2-zu select'); if (s) s.focus(); return; }
+    if (d === 'accept' && !x.w.ok) { warnAssign = true; zeig(); const s = box.querySelector('.pe2-zu select'); if (s) s.focus(); return; }
     dec[key] = d; warnAssign = false; sel = naechster(key); zeig(); fokus(); };
   const fokus = () => { const r = box.querySelector('.pe2-row.sel'); if (r) { r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); } };
   const mailTeil = (v, i) => String(v.mail || '').split('|').map(s => s.trim())[i] || '';
@@ -217,7 +232,7 @@ async function peDialog(wieder) {
     r.addEventListener('click', () => { sel = x.v.key; warnAssign = false; zeig(); fokus(); }); return r; };
   const detail = () => {
     const x = X.find(y => y.v.key === sel) || X[0], v = x.v, w = x.w, d = dec[v.key], a = assign[v.key] || {};
-    const pfad = w.b ? [h('b', null, w.b.titel || 'Bedarf'), ' (' + (w.b.gliederung || '–') + ') › ' + w.bereich.replace(/ › /g, ' › ') + (w.f ? ' › ' + w.f.name.trim() : w.brauchtF && a.foerderer === '__neu' ? ' › neuer Förderer' : '')] : w.fl ? [h('b', null, 'Fördererliste'), ' › ' + (w.fl.name || '')] : [h('b', null, 'Kein passender Bedarf gefunden')];
+    const pfad = w.b ? [h('b', null, (peIstNeu(w.b) ? 'Neu: ' : '') + (w.b.titel || 'Bedarf')), ' (' + (w.b.gliederung || '–') + ') › ' + w.bereich.replace(/ › /g, ' › ') + (w.f ? ' › ' + w.f.name.trim() : w.brauchtF && w.ok ? ' › neu: ' + (v.fname || mailTeil(v, 1) || 'Förderer') : '')] : w.fl ? [h('b', null, 'Fördererliste'), ' › ' + (w.fl.name || '')] : [h('b', null, 'Kein passender Bedarf gefunden'), [v.fname && ' · Förderer: ' + v.fname, v.vorhaben && ' · Vorhaben: ' + v.vorhaben, v.gliederung && ' (' + v.gliederung + ')'].filter(Boolean).join('')];
     const zit = String(v.zitat || '').replace(/^[„"…\s]+|[“"…\s]+$/g, '');
     const mail = h('div', { class: 'pe2-card' }, h('div', { class: 'pe2-mm' }, h('span', null, h('b', null, mailTeil(v, 1) || 'E-Mail'), mailTeil(v, 2) ? ' · „' + mailTeil(v, 2) + '“' : ''), h('span', null, mailTeil(v, 0))),
       zit ? h('div', { class: 'pe2-quote' }, h('span', { class: 'pe2-dim' }, '… '), h('mark', null, zit), h('span', { class: 'pe2-dim' }, ' …')) : h('div', { class: 'pe2-dim' }, 'Kein Belegsatz geliefert.'),
@@ -226,12 +241,14 @@ async function peDialog(wieder) {
       h('label', null, 'neu', h('span', { class: 'pe2-val new ' + w.ton }, w.nachher || '–')));
     let zuord = null;
     if (x.k === 'unassigned') {
-      const sb = h('select', { class: warnAssign && !(a.bedarf || w.b) ? 'warn' : '', 'aria-label': 'bei Bedarf' }, h('option', { value: '' }, 'Bedarf wählen …'), ...D.bedarfe.filter(b => !b.archiv).map(b => h('option', { value: b.id, selected: (a.bedarf || (w.b && w.b.id)) === b.id }, (b.titel || '(ohne Namen)') + (b.gliederung ? ' · ' + b.gliederung : ''))));
+      const neuT = v.vorhaben ? '＋ Neuer Bedarf: „' + v.vorhaben + '“' + (v.gliederung ? ' (' + v.gliederung + ')' : '') : '＋ Neuen Bedarf anlegen';
+      const sb = h('select', { class: warnAssign && !(a.bedarf || w.b) ? 'warn' : '', 'aria-label': 'bei Bedarf' }, h('option', { value: '' }, 'Bedarf wählen …'), h('option', { value: '__neu', selected: a.bedarf === '__neu' }, neuT), ...D.bedarfe.filter(b => !b.archiv).map(b => h('option', { value: b.id, selected: (a.bedarf || (w.b && w.b.id)) === b.id }, (b.titel || '(ohne Namen)') + (b.gliederung ? ' · ' + b.gliederung : ''))));
       sb.addEventListener('change', () => { assign[v.key] = Object.assign({}, assign[v.key], { bedarf: sb.value, foerderer: (assign[v.key] || {}).foerderer || (w.brauchtF ? '__neu' : '') }); warnAssign = false; X = W(); zeig(); });
-      const bb = D.bedarfe.find(b => b.id === (a.bedarf || (w.b && w.b.id)));
-      const sf = w.brauchtF ? h('select', { 'aria-label': 'Förderer', disabled: !bb }, h('option', { value: '__neu' }, 'Neu anlegen aus Absender'), ...(bb ? bb.foerderer.filter(f => f.name.trim()).map(f => h('option', { value: f.id, selected: a.foerderer === f.id }, f.name.trim())) : [])) : null;
+      const bb = a.bedarf === '__neu' ? w.b : D.bedarfe.find(b => b.id === (a.bedarf || (w.b && w.b.id)));
+      const sf = w.brauchtF ? h('select', { 'aria-label': 'Förderer', disabled: !bb }, h('option', { value: '__neu' }, v.fname ? '＋ Neu: ' + v.fname : 'Neu anlegen aus Absender'), ...(bb ? bb.foerderer.filter(f => f.name.trim()).map(f => h('option', { value: f.id, selected: a.foerderer === f.id }, f.name.trim())) : [])) : null;
       if (sf) sf.addEventListener('change', () => { assign[v.key] = Object.assign({}, assign[v.key], { foerderer: sf.value }); X = W(); zeig(); });
-      zuord = h('div', { class: 'pe2-zu' }, h('label', null, 'bei Bedarf', sb), sf ? h('label', null, 'Förderer', sf) : null);
+      zuord = h('div', { class: 'pe2-zu' }, h('label', null, 'bei Bedarf', sb), sf ? h('label', null, 'Förderer', sf) : null,
+        a.bedarf === '__neu' ? h('div', { class: 'pe2-neuhw' }, 'Beim Übernehmen wird der Bedarf „' + w.b.titel + '“' + (w.b.gliederung ? ' (' + w.b.gliederung + ')' : '') + ' neu angelegt – Summe, Zuständige und Freigabe ergänzt du danach auf seiner Seite.') : null);
     }
     const status = x.k === 'info' ? null : d === 'accept' ? ['wird übernommen', 'ok'] : d === 'reject' ? ['wird verworfen', 'err'] : d === 'later' ? ['bleibt für später', 'muted'] : [x.k === 'unassigned' ? (warnAssign ? 'Erst einen Bedarf wählen' : 'Zuordnen oder ignorieren') : 'Bitte bewusst entscheiden', 'warn'];
     const knopf = (dd, cls, t, kbd) => { const bt = h('button', { type: 'button', class: 'pe2-act ' + cls, 'aria-pressed': String(d === dd) }, t, h('kbd', null, kbd)); bt.addEventListener('click', () => entscheiden(v.key, dd)); return bt; };

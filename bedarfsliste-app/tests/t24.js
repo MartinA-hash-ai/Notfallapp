@@ -45,6 +45,18 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   ok(r.join('|') === 'beantragt|5', '↶ Rückgängig: Änderungen zurück, Fenster wieder offen mit allen Vorschlägen: ' + r.join('|'));
   await p.click('.pe2-foot button:text-is("Alle verwerfen")'); await p.click('.pe2-los'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => PE.L.length === 0 && !document.querySelector('.pe-chip') && D.bedarfe.find(x => x.id === 'b1').foerderer[0].status === 'beantragt'), 'Alle verwerfen + bestätigen: nichts geändert, Hinweis weg');
+  // 0.146: Vorgang ohne Bedarf und Förderer im Überblick → im Prüffenster neuen Bedarf und Förderer anlegen
+  await writeF(p, ['=== VORSCHLAG ===', 'Art: antrag', 'Vorhaben: Drohne für den Bevölkerungsschutz', 'Gliederung: Geseke', 'Förderername: Teststiftung Nord', 'Datum: 01.11.2026', 'Antwort bis: 03.12.2026', 'Sicherheit: unsicher', 'Mail: 06.11.2026 | info@teststiftung.example | Ihr Antrag', 'Zitat: „Ihr Antrag kommt am 03.12.2026 vor das Gremium.“'].join('\n'), 'Förderrecherche/Posteingang 2026-11-05.txt');
+  await p.evaluate(() => peScan()); await p.waitForTimeout(200);
+  await p.click('header.top .pe-chip'); await p.waitForSelector('.pe2-modal');
+  r = await p.evaluate(() => [document.querySelector('.pe2-row.sel .pe2-ic').textContent, document.querySelector('.pe2-crumb').textContent, [...document.querySelector('.pe2-zu select').options].map(o => o.textContent)[1]]);
+  ok(r[0] === '?' && /Teststiftung Nord/.test(r[1]) && /Drohne für den Bevölkerungsschutz/.test(r[1]) && /^＋ Neuer Bedarf: „Drohne für den Bevölkerungsschutz“ \(Geseke\)$/.test(r[2]), 'nicht zuzuordnen: erkannter Förderer und Vorhaben, Auswahl „＋ Neuer Bedarf“: ' + r.join(' | '));
+  await p.selectOption('.pe2-zu select', '__neu'); await p.waitForTimeout(80);
+  r = await p.evaluate(() => [document.querySelector('.pe2-crumb').textContent, document.querySelector('.pe2-val.new').textContent, !!document.querySelector('.pe2-neuhw'), [...document.querySelectorAll('.pe2-zu select')][1].selectedOptions[0].textContent]);
+  ok(/^Neu: Drohne für den Bevölkerungsschutz \(Geseke\)/.test(r[0]) && /Entscheidung bis 03\.12\.2026/.test(r[1]) && r[2] && /Teststiftung Nord/.test(r[3]), 'Neuer Bedarf gewählt: Pfad „Neu: …“, Förderer neu aus der Mail, Entscheidung bis: ' + r.join(' | '));
+  await p.keyboard.press('a'); await p.waitForTimeout(80); await p.click('.pe2-los'); await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const B = D.bedarfe.find(x => x.titel === 'Drohne für den Bevölkerungsschutz'); return B ? [B.gliederung, B.foerderer.map(f => f.name + ':' + f.status + ':' + f.beantragtAm + ':' + f.erwartet).join(), 'peNeu' in B] : ['fehlt']; });
+  ok(r.join('|') === 'Geseke|Teststiftung Nord:beantragt:2026-11-01:2026-12-03|false', 'übernommen: neuer Bedarf mit neuem Förderer, beantragt, Entscheidung bis: ' + r.join('|'));
   // „Keine Vorschläge“: kein Hinweis
   await writeF(p, 'Keine Vorschläge', 'Förderrecherche/Posteingang 2026-11-07.txt');
   await p.evaluate(() => peScan()); await p.waitForTimeout(200);

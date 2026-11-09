@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.146.0",
+    "date": "2026-11-28T10:00",
+    "items": [
+      "E-Mail-Auswertung: Copilot meldet jetzt auch Förder-Vorgänge, deren Bedarf oder Förderer noch nicht in der Liste steht (z. B. eine Stiftung meldet sich zu einem Antrag), mit Vorhaben, Gliederung und Name des Förderers",
+      "Prüffenster: bei nicht zuzuordnenden Vorschlägen „＋ Neuer Bedarf: „…“ (Gliederung)“ – der Bedarf wird mit dem neuen Förderer erst beim Übernehmen angelegt; Summe, Zuständige und Freigabe ergänzt du danach",
+      "Auftrag an Copilot: Zuordnung auch über Domain der Absenderadresse, Signatur, Betreff und Verlauf; Anhänge von Förderern lesen (Beträge, Fristen); „Antrag kommt vor das Gremium am …“ als Antrag mit Entscheidungstermin; Endabrechnung zählt als Nachweis-Frist; mehrere Bewilligungen in einer Mail einzeln"
+    ]
+  },
+  {
     "version": "0.145.0",
     "date": "2026-11-27T10:00",
     "items": [
