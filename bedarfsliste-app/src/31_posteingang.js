@@ -40,12 +40,13 @@ const PE_ARTEN = [
   ['absage', 'A', 'Absage', 'Der Förderer lehnt ab. Grund = Begründung in wenigen Worten, falls genannt.'],
   ['nachforderung', 'A', 'Nachforderung / Rückfrage', 'Der Förderer fordert Unterlagen nach oder fragt nach. Wert = was gebraucht wird; Datum = bis wann, falls genannt.'],
   ['nachweis', 'A', 'Frist Verwendungsnachweis', 'Frist für den Verwendungsnachweis, die Endabrechnung oder den Sachbericht (meist im Bewilligungsschreiben). Datum = Frist.'],
-  ['uebergabe_foerderer', 'A', 'Förderer kommt zur Spendenübergabe', 'Der Förderer sagt die Teilnahme an der Spendenübergabe zu oder ab. Wert = ja oder nein; Person = wer kommt.'],
+  ['uebergabe_foerderer', 'A', 'Förderer kommt zur Spendenübergabe', 'Der Förderer sagt die Teilnahme an der Spendenübergabe zu oder ab. Wert = ja oder nein; Person = wer vom Förderer kommt (Vor- und Nachname); Förderername = Name des Förderers.'],
   ['kontakt', 'A', 'Neue Ansprechperson beim Förderer', 'Neue oder geänderte Ansprechperson beim Förderer (nur dienstliche Angaben). Wert = „Name; Position; E-Mail; Telefon“.'],
   ['freigabe', 'B', 'Freigabe (OFK, Fachreferat, Verwaltung)', 'Intern: Ortsführungskreis stimmt zu/lehnt ab, Fachreferat gibt frei/lehnt ab, Verwaltung budgetiert/lehnt ab. Wert = ofk, fach oder verw; Ergebnis = ok oder nein; Datum = Tag der Entscheidung.'],
   ['unterlage', 'B', 'Unterlage geliefert', 'Intern: Angebot, Kostenplan, Konzept, Projektsteckbrief, Bilder o. Ä. wurden geschickt (Anhang). Wert = Name der Unterlage wie im Überblick.'],
+  ['uebergabe_erfolgt', 'B', 'Spendenübergabe hat stattgefunden', 'Die Spendenübergabe bzw. der Besuch des Förderers hat stattgefunden (z. B. „Danke für Ihr Kommen heute“). Datum = Tag der Übergabe; Ort, falls genannt; Förderername = wer gespendet hat; Person = wer vom Förderer vor Ort war (Name wie in der E-Mail, z. B. die angeschriebene Person).'],
   ['uebergabe_termin', 'B', 'Termin der Spendenübergabe', 'Termin der Spendenübergabe vereinbart. Datum, Uhrzeit (HH:MM), Ort.'],
-  ['presse', 'B', 'Presse und Öffentlichkeit', 'Intern: Presse und Öffentlichkeit kommt zur Spendenübergabe oder nicht, oder übernimmt eine Pressemitteilung. Person = wer; Wert = kurz, was zugesagt ist.'],
+  ['presse', 'B', 'Presse und Öffentlichkeit', 'Intern: jemand aus Presse und Öffentlichkeit kommt zur Spendenübergabe, schreibt die Pressemitteilung oder stimmt sie mit dem Förderer ab. Person = Vor- und Nachname der Person aus Presse und Öffentlichkeit (nicht der Empfänger der E-Mail); Wert = kurz, was sie übernimmt (z. B. „Pressemitteilung, Entwurf an Förderer zur Abstimmung“).'],
   ['geldeingang', 'B', 'Geldeingang', 'Das Geld ist eingegangen (z. B. Meldung der Buchhaltung). Betrag in Euro, Datum des Eingangs.'],
   ['neuer_bedarf', 'C', 'Neuer Bedarf angemeldet', 'Eine Gliederung meldet einen neuen Bedarf an, der im Überblick noch fehlt. Wert = Bedarf in einem Satz mit Gliederung und Summe (nur Hinweis, wird nicht automatisch angelegt).'],
   ['fl_frist', 'C', 'Neue Frist eines Förderers', 'Ein Förderer aus der Fördererliste nennt eine neue Antragsfrist (keine Werbe-Newsletter ohne Bezug). Fördererliste = Kennung F…; Datum = Frist.'],
@@ -68,6 +69,7 @@ function peAuftragText() {
     '4. Suche nur nach diesen Arten (Art = Schlüssel vorn):', ...A.map(a => '   - ' + a[0] + ': ' + a[3]),
     '5. Ordne jeden Vorschlag zu: Bedarf = Kennung [b-…], Förderer = Kennung [f-…] (falls der Förderer beim Bedarf schon steht), Fördererliste = [F…] (nur bei fl_frist). Ist die Zuordnung nicht eindeutig: Kennung leer lassen und Sicherheit = unsicher.',
     '5a. Fehlt der Bedarf oder der Förderer im Überblick: Kennung leer lassen und stattdessen ausfüllen – Vorhaben = das Vorhaben in wenigen Worten (z. B. „Drohne für den Bevölkerungsschutz“), Gliederung = Ort bzw. Gliederung, Förderername = vollständiger Name des Förderers (z. B. „IKEA Stiftung“). Gibt es einen passenden Bedarf, aber der Bezug ist nicht belegt: Bedarf-Kennung trotzdem eintragen und Sicherheit = unsicher. Mehrere Bewilligungen in einer E-Mail: je Bewilligung ein eigener Vorschlag.',
+    '5b. Geht es um einen Förderer, nenne ihn IMMER zusätzlich in „Förderername“ – so geschrieben wie im Überblick bzw. in der Fördererliste (z. B. „Sparkasse Paderborn-Detmold-Höxter“). Eine E-Mail kann mehrere Vorschläge ergeben (z. B. Übergabe hat stattgefunden UND Presse übernimmt die Pressemitteilung): dann je ein Vorschlag.',
     '6. Steht die Information schon so im Überblick (z. B. Stand schon „zugesagt“ mit diesem Betrag), keinen Vorschlag schreiben.',
     '7. Nichts erfinden, nichts schätzen. Zitat = höchstens ein Satz aus der E-Mail, der die Information belegt. Keine weiteren Inhalte der E-Mail übernehmen, keine Bank- oder Personaldaten.', '',
     'ERGEBNIS',
@@ -159,7 +161,8 @@ function peWirkung(v, zu = {}) {
   const fid = zu.foerderer || v.foerderer || (peIstNeu(b) ? '__neu' : '');
   let f = b && fid && fid !== '__neu' ? b.foerderer.find(x => x.id === fid) : null;
   if (b && !f && fid === '__neu' && v.fname) f = b.foerderer.find(x => norm(x.name) === norm(v.fname)) || null;   // derselbe neue Förderer aus einem anderen Vorschlag
-  const neuF = b && fid === '__neu' && !f, fNeu = () => { const n = ff({ name: (v.fname || String(v.mail || '').split('|')[1] || 'Neuer Förderer').trim() }); b.foerderer.push(n); return n; };
+  if (b && !f && v.fname) f = peFoerdererIn(b, v.fname);                       // Förderer schon beim Bedarf (Name, Kurzname, Eintrag der Fördererliste)
+  const neuF = b && (fid === '__neu' || (!fid && v.fname && peIstNeu(b))) && !f, fNeu = () => peFoerdererNeu(b, v);
   const F = () => { peBedarfAnlegen(b); return f || (neuF ? (f = fNeu()) : null); };
   const d = peDatum(v.datum), betrag = peBetrag(v.betrag), A = PE_ARTEN.find(a => a[0] === v.art);
   const r = { b, f, art: A ? A[2] : v.art, bereich: 'Förderplan', vorher: '', nachher: '', ton: 't-neu', ok: false, schon: false, fn: null, brauchtF: false };
@@ -173,10 +176,10 @@ function peWirkung(v, zu = {}) {
     case 'nachforderung': mitF('', x => { x.notiz = (x.notiz ? x.notiz.trim() + '\n' : '') + '* Nachforderung ' + fmtDate(today()) + ': ' + (v.wert || 'siehe E-Mail') + (d ? ' – bis ' + fmtDate(d) : ''); if (d && x.status === 'beantragt') x.erwartet = d; }, 'Nachforderung: ' + (v.wert || 'siehe E-Mail') + (d ? ' · bis ' + fmtDate(d) : ''), 't-neu'); r.vorher = 'Notizen: –'; break;
     case 'nachweis': mitF('', x => { x.vn.noetig = true; x.vn.frist = d; }, 'Verwendungsnachweis bis ' + (d ? fmtDate(d) : '?'), 't-neu'); r.vorher = f && f.vn.frist ? 'Verwendungsnachweis bis ' + fmtDate(f.vn.frist) : 'Verwendungsnachweis: keine Frist'; r.ok = r.ok && !!d; r.schon = !!f && f.vn.frist === d; break;
     case 'uebergabe_foerderer': { const ja = /^j/i.test(v.wert || ''), alt = f && ((b.nach.ueb.einl || {})[f.id] || {}).zu; r.bereich = 'Nacharbeit › Spendenübergabe';
-      mitF('', x => { const E = b.nach.ueb.einl = Object.assign({}, b.nach.ueb.einl); E[x.id] = Object.assign({}, E[x.id], { zu: ja ? 'ja' : 'nein' }); if (ja && !b.nach.ueb.mit.includes(x.id)) b.nach.ueb.mit.push(x.id); }, (ja ? 'kommt' : 'kommt nicht') + (v.person ? ' · ' + v.person : ''), ja ? 't-ok' : 't-err');
+      mitF('', x => { const E = b.nach.ueb.einl = Object.assign({}, b.nach.ueb.einl); E[x.id] = Object.assign({}, E[x.id], { zu: ja ? 'ja' : 'nein' }); if (ja && !b.nach.ueb.mit.includes(x.id)) b.nach.ueb.mit.push(x.id); if (ja && v.person) peVorOrt(b, x, v.person); }, (ja ? 'kommt' : 'kommt nicht') + (v.person ? ' · ' + v.person : ''), ja ? 't-ok' : 't-err');
       r.vorher = alt === 'ja' ? 'kommt' : alt === 'nein' ? 'kommt nicht' : 'Teilnahme offen'; r.schon = !!f && alt === (ja ? 'ja' : 'nein'); break; }
     case 'kontakt': { const c = kontaktAusText(v.wert || v.person || ''); r.bereich = 'Förderplan'; mitF('', x => { if (x.kontakte.length < MAX_KONTAKTE) x.kontakte.push(c); else x.notiz = (x.notiz ? x.notiz.trim() + '\n' : '') + '* Kontakt: ' + kontaktText(c); }, '+ ' + [c.n, c.rolle, c.mail, c.tel].filter(Boolean).join(' · '), 't-neu');
-      r.vorher = f && f.kontakte.some(x => x.n) ? f.kontakte.filter(x => x.n).map(x => x.n).join(', ') : 'kein Kontakt'; r.ok = r.ok && !!c.n; r.schon = !!f && f.kontakte.some(x => kkey(x.n) === kkey(c.n)); break; }
+      r.vorher = f && f.kontakte.some(x => x.n) ? f.kontakte.filter(x => x.n).map(x => x.n).join(', ') : 'kein Kontakt'; r.ok = r.ok && !!c.n; r.schon = !!f && (f.kontakte.some(x => kGleich(x, c)) || (flAktiv() && flVon(f) && flVon(f).kontakte.some(x => kGleich(x, c)))); break; }
     case 'freigabe': { const k = /verw/i.test(v.wert) ? 'verw' : /fach/i.test(v.wert) ? 'fach' : /ofk|orts/i.test(v.wert) ? 'ofk' : '', ja = !/nein|ab/i.test(v.ergebnis || ''), st = ja ? 'ok' : 'nein', it = b && k ? frItems(b).find(i => i.k === k) : null;
       r.bereich = 'Freigabe'; r.vorher = it ? frName(it) + ': ' + (frText(it) || it.st) : '–'; r.nachher = (it ? frName(it) : 'Freigabe') + ': ' + (k ? FR_DEF[k][st] : ja ? 'zugestimmt' : 'abgelehnt') + (d ? ' am ' + fmtDate(d) : ''); r.ton = ja ? 't-ok' : 't-err';
       r.ok = !!b && !!k; r.schon = !!b && !!k && b.freigabe[k].st === st; r.fn = () => { const i2 = b.freigabe[k], alt = i2.st; i2.st = st; effects(b, b, 'freigabe.' + k + '.st', st, alt); if (d) i2.erledigt = d; }; break; }
@@ -185,9 +188,19 @@ function peWirkung(v, zu = {}) {
       r.ok = !!b && !!(u || v.wert); r.schon = !!u && u.st === 'da'; r.fn = () => { if (u) u.st = 'da'; else b.unterlagen.push(UL(v.wert, 'da')); }; break; }
     case 'uebergabe_termin': { const u = b && b.nach.ueb; r.bereich = 'Nacharbeit › Spendenübergabe'; r.vorher = u && u.termin ? fmtDate(u.termin) + (u.zeit ? ' · ' + u.zeit + ' Uhr' : '') + (u.ort ? ' · ' + u.ort : '') : 'noch kein Termin';
       r.nachher = (d ? fmtDate(d) : '?') + (v.uhrzeit ? ' · ' + v.uhrzeit + ' Uhr' : '') + (v.ort ? ' · ' + v.ort : ''); r.ok = !!b && !!d; r.schon = !!u && u.termin === d && (!v.ort || u.ort === v.ort);
-      r.fn = () => { const w = b.nach.ueb; w.noetig = true; w.termin = d; if (v.uhrzeit) w.zeit = v.uhrzeit; if (v.ort) w.ort = v.ort; }; break; }
-    case 'presse': r.bereich = 'Nacharbeit › Spendenübergabe'; r.vorher = 'Presse: offen'; r.nachher = [v.person, v.wert].filter(Boolean).join(' · '); r.ok = !!b;
-      r.fn = () => { const u = b.nach.ueb; u.info = (u.info ? u.info.trim() + '\n' : '') + '* Presse: ' + [v.person, v.wert].filter(Boolean).join(' – '); }; break;
+      r.fn = () => { const w = b.nach.ueb; w.noetig = true; w.termin = d; if (v.uhrzeit) w.zeit = v.uhrzeit; if (v.ort) w.ort = v.ort; if (w.st === 'offen') w.st = 'terminiert'; }; break; }
+    case 'uebergabe_erfolgt': { const u = b && b.nach.ueb; r.bereich = 'Nacharbeit › Spendenübergabe';
+      r.vorher = u ? (u.st === 'erledigt' ? 'erledigt' : u.termin ? 'terminiert · ' + fmtDate(u.termin) : 'offen') + (f && (u.vorOrt || {})[f.id] && u.vorOrt[f.id].n ? ' · vor Ort: ' + u.vorOrt[f.id].n : '') : '–';
+      r.nachher = 'erledigt' + (d ? ' am ' + fmtDate(d) : '') + (v.ort ? ' · ' + v.ort : '') + (v.person ? ' · vor Ort: ' + v.person : '') + (v.fname ? ' (' + (f ? f.name.trim() : v.fname) + ')' : ''); r.ton = 't-ok';
+      r.ok = !!b; r.schon = !!u && u.st === 'erledigt' && (!d || u.termin === d);
+      r.fn = () => { const w = b.nach.ueb, x = f || (v.fname ? F() : null); w.noetig = true; if (d) w.termin = d; if (v.ort && !w.ort) w.ort = v.ort; w.st = 'erledigt';
+        if (x) { const E = w.einl = Object.assign({}, w.einl); E[x.id] = Object.assign({}, E[x.id], { zu: 'ja' }); if (!w.mit.includes(x.id)) w.mit.push(x.id); if (v.person) peVorOrt(b, x, v.person); } }; break; }
+    case 'presse': { const G = b ? grpZeig(b, 'presse').Z : [], pp = v.person ? G.find(p => kkey(p.n) === kkey(v.person) || norm(p.n).split(' ').pop() === norm(v.person).split(' ').pop()) : null, W = b ? (GRP.presse.obj(b).wahl || []) : [];
+      r.bereich = 'Nacharbeit › Presse und Öffentlichkeit'; r.vorher = b ? 'dabei: ' + (presseGewaehlt(b).map(p => p.n).join(', ') || 'noch offen') : '–';
+      r.nachher = (pp ? pp.n + ' ist dabei' : v.person ? v.person + ' (nicht in der Liste „Presse und Öffentlichkeit“)' : 'Presse') + (v.wert ? ' · ' + v.wert : ''); r.ton = pp ? 't-ok' : 't-neu'; r.ok = !!b;
+      r.schon = !!pp && W.includes(kkey(pp.n)) && !v.wert;
+      r.fn = () => { const P = GRP.presse.obj(b); if (pp) { P.wahl = uniq([...(P.wahl || []), kkey(pp.n)]); }
+        if (v.wert || !pp) { const u = b.nach.ueb, z = '* Presse: ' + [pp ? pp.n : v.person, v.wert].filter(Boolean).join(' – '); if (!(u.info || '').includes(z)) u.info = (u.info ? u.info.trim() + '\n' : '') + z; } }; break; }
     case 'geldeingang': mitF('zugesagt', x => { if (x.zugesagt == null) x.zugesagt = betrag; x.eingegangen = betrag; x.eingangAm = d || today(); }, 'eingegangen' + (betrag ? ' · ' + eur(betrag) : '') + (d ? ' · am ' + fmtDate(d) : ''), 't-ok');
       r.ok = r.ok && !!betrag; r.schon = !!f && +f.eingegangen === betrag; break;
     case 'pressemitteilung': r.bereich = 'Nacharbeit'; r.vorher = b ? 'Pressemitteilung: ' + (b.nach.pm.st === 'erledigt' ? 'erschienen' : 'offen') : '–'; r.nachher = 'erschienen' + (d ? ' am ' + fmtDate(d) : ''); r.ton = 't-ok'; r.ok = !!b; r.schon = !!b && b.nach.pm.st === 'erledigt'; r.fn = () => { b.nach.pm.st = 'erledigt'; if (d) b.nach.pm.datum = d; }; break;
@@ -196,8 +209,25 @@ function peWirkung(v, zu = {}) {
     case 'neuer_bedarf': r.bereich = 'Neuer Bedarf'; r.nachher = v.wert || '?'; r.info = 'Neuer Bedarf – über den KI-Knopf „Bedarf aus Daten erstellen“ anlegen.'; break;
     default: r.nachher = v.wert || v.art;
   }
-  if (peIstNeu(b) && r.fn) { const fn0 = r.fn; r.fn = () => { peBedarfAnlegen(b); fn0(); }; r.ok = r.ok || !!r.fn; }
+  if (peIstNeu(b) && r.fn) { const fn0 = r.fn; r.fn = () => { peBedarfAnlegen(b); fn0(); peMitFoerderer(b, v); }; r.ok = r.ok || !!r.fn; }
   return r;
+}
+// wer vom Förderer bei der Übergabe vor Ort ist: passender Kontakt (Name, sonst Nachname), sonst nur der Name
+function peVorOrt(b, f, person) {
+  const K = foeKontakte(b, f), nn = s => norm(String(s || '').replace(/^(herr|frau)\s+/i, '')).split(' ').pop();
+  const c = K.find(k => kkey(k.n) === kkey(person)) || K.find(k => k.n && nn(k.n) === nn(person));
+  const V = b.nach.ueb.vorOrt = Object.assign({}, b.nach.ueb.vorOrt); V[f.id] = c ? { n: c.n.trim(), mail: (c.mail || '').trim(), pos: (c.rolle || '').trim() } : { n: String(person).replace(/^(Herr|Frau)\s+/, '').trim(), mail: '', pos: '' };
+}
+// Förderer beim Bedarf zum Namen aus der E-Mail: gleicher Name, Kurzname oder derselbe Eintrag der Fördererliste
+function peFoerdererIn(b, name) {
+  const k = kkey(name), e = flAktiv() ? flVonName(name) : null;
+  return b.foerderer.find(f => f.name.trim() && (kkey(f.name) === k || (e && (f.flId === e.id || kkey(f.name) === kkey(e.name) || (e.kurz && kkey(f.name) === kkey(e.kurz)))))) || null;
+}
+// neuer Förderer im Bedarf: Name wie in der Fördererliste (dann verknüpft), sonst aus der E-Mail; Stand passend zur Art
+function peFoerdererNeu(b, v) {
+  const e = flAktiv() && v.fname ? flVonName(v.fname) : null, st = /^(zusage|geldeingang|uebergabe_|nachweis)/.test(v.art) ? 'zugesagt' : v.art === 'absage' ? 'abgelehnt' : v.art === 'antrag' ? 'beantragt' : 'geplant';
+  const n = ff({ name: e ? e.name : (v.fname || String(v.mail || '').split('|')[1] || 'Neuer Förderer').trim(), status: st, flId: e ? e.id : '' });
+  b.foerderer.push(n); return n;
 }
 // neuer Bedarf aus dem Vorhaben einer E-Mail: vorläufig (je Vorhaben einer, auch für mehrere Vorschläge), erst beim Übernehmen in die Liste
 const PE_NEU = {};
@@ -208,6 +238,8 @@ function peNeuerBedarf(v) {
 }
 const PE_NEU_B = new WeakSet(), peIstNeu = b => !!b && PE_NEU_B.has(b) && !D.bedarfe.includes(b);
 function peBedarfAnlegen(b) { if (peIstNeu(b)) D.bedarfe.push(b); }
+// beim Übernehmen in einen neuen Bedarf: den genannten Förderer gleich mit anlegen (auch bei Übergabe, Presse …)
+const peMitFoerderer = (b, v) => { if (b && v.fname && !peFoerdererIn(b, v.fname)) peFoerdererNeu(b, v); };
 // Art des Vorschlags für die Darstellung: info (steht schon so drin / nur Hinweis), unassigned (Bedarf oder Förderer fehlt), sicher, unsicher
 const peKind = (v, w) => w.info || (w.schon && w.ok) ? 'info' : !w.b && !w.fl ? 'unassigned' : !w.ok && w.brauchtF && !w.f ? 'unassigned' : norm(v.sicherheit) === 'unsicher' || !w.ok ? 'unsicher' : 'sicher';
 

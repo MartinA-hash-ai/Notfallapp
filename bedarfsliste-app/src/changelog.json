@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.148.0",
+    "date": "2026-11-30T10:00",
+    "items": [
+      "E-Mail-Auswertung: neue Art „Spendenübergabe hat stattgefunden“ – Übergabe auf „erledigt“ mit Datum, der Förderer „kommt“, und wer vom Förderer vor Ort war, steht in „Vor Ort“ (aus seinen Kontakten, sonst mit Namen)",
+      "„Presse und Öffentlichkeit“: die genannte Person wird bei der Übergabe ausgewählt (statt nur einer Notiz); nur was sie zusätzlich übernimmt (z. B. Pressemitteilung) kommt in die Notizen",
+      "Förderer aus E-Mails werden beim Bedarf über Name, Kurzname oder Eintrag der Fördererliste wiedererkannt; ein neuer Förderer bekommt den Namen aus der Fördererliste und ist mit ihr verknüpft; bei einem neuen Bedarf wird der genannte Förderer gleich mit angelegt",
+      "„Neuer Kontakt – übernehmen?“ erscheint nicht mehr, wenn die Person in der Fördererliste nur anders geschrieben ist (Birgit/Birgitt, „Frau …“) oder dieselbe E-Mail hat",
+      "Auftrag an Copilot: Förderername immer angeben (wie in der Liste), Person bei Presse = die Person aus Presse und Öffentlichkeit, eine E-Mail kann mehrere Vorschläge ergeben"
+    ]
+  },
+  {
     "version": "0.147.0",
     "date": "2026-11-29T10:00",
     "items": [

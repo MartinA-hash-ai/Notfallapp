@@ -78,6 +78,17 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   ok(r[0] === 0 && r[1] === 'zugesagt' && /geprüft heute 09:15/.test(r[2]), 'übernommen; dieselbe Datei meldet ihn nicht erneut; Anzeige zeigt den letzten Lauf: ' + r.join('|'));
   await p.click('header.top .pe-stat'); r = await p.evaluate(() => [...document.querySelectorAll('.pe-laeufe .pe-lz')].map(x => x.textContent).join(' / ')); await p.keyboard.press('Escape');
   ok(/09:15.*1 Vorschlag.*06:02.*Keine Vorschläge/.test(r), 'Klick: Liste der letzten Läufe: ' + r);
+  // 0.148: Mail „Danke für Ihr Kommen heute … Pressetext“ → Übergabe erledigt mit Vertreter vor Ort; Presse-Person ausgewählt statt Notiz
+  await p.evaluate(() => { personenSetzen([{ n: 'Anke Beispiel', rolle: 'Referentin Presse', fach: 'Presse und Öffentlichkeit', mail: 'a@x.example' }]); const B = D.bedarfe.find(x => x.id === 'b1'); B.foerderer[0].kontakte = [Object.assign(leerK(), { n: 'Michael Testmann', rolle: 'Regionalleitung' })]; B.foerderer[0].status = 'zugesagt'; changed(); });
+  const tx = await p.evaluate(() => new TextDecoder().decode(__fs.files[Object.keys(__fs.files).find(k => k.endsWith('/Förderrecherche/Posteingang.txt'))].data));
+  await writeF(p, tx + ['', '##### LAUF ' + heute + ' 10:00 #####', 'Lauf-Ergebnis: 2 Vorschläge', '=== VORSCHLAG ===', 'Art: uebergabe_erfolgt', 'Bedarf: b1', 'Förderername: Sparkasse Testhausen', 'Person: Herr Testmann', 'Datum: 09.11.2026', 'Sicherheit: sicher', 'Mail: 09.11.2026 | Anke Beispiel | Pressetext',
+    '=== VORSCHLAG ===', 'Art: presse', 'Bedarf: b1', 'Person: Anke Beispiel', 'Wert: Pressemitteilung, Entwurf an Förderer zur Abstimmung', 'Sicherheit: sicher', 'Mail: 09.11.2026 | Anke Beispiel | Pressetext'].join('\r\n'), 'Förderrecherche/Posteingang.txt');
+  await p.evaluate(() => peScan()); await p.waitForTimeout(200);
+  await p.click('header.top .pe-chip'); await p.waitForSelector('.pe2-modal'); await p.click('.pe2-los'); await p.waitForTimeout(250);
+  r = await p.evaluate(() => { const B = D.bedarfe.find(x => x.id === 'b1'), u = B.nach.ueb, f = B.foerderer[0]; return [u.st, u.termin, (u.einl[f.id] || {}).zu, (u.vorOrt[f.id] || {}).n, (u.vorOrt[f.id] || {}).pos, presseGewaehlt(B).map(p => p.n).join(), /Entwurf an Förderer/.test(u.info)]; });
+  ok(r.join('|') === 'erledigt|2026-11-09|ja|Michael Testmann|Regionalleitung|Anke Beispiel|true', 'Übergabe erledigt, Förderer kommt, Vertreter vor Ort aus den Kontakten; Presse-Person ausgewählt: ' + r.join('|'));
+  r = await p.evaluate(() => [kGleich({ n: 'Birgitt Pohle' }, { n: 'Birgit Pohle' }), kGleich({ n: 'Frau Pohle', mail: 'b@x.example' }, { n: 'Birgitt Pohle', mail: 'B@x.example' }), kGleich({ n: 'Birgitt Pohle' }, { n: 'Anna Pohle' })]);
+  ok(r.join() === 'true,true,false', '„Neuer Kontakt“ nur bei wirklich neuer Person (andere Schreibweise, gleiche E-Mail zählen als dieselbe): ' + r.join());
   // Einstellungen
   await p.evaluate(() => { einstellungen(); }); await p.waitForSelector('.einst-modal');
   await p.click('.einst-e[data-k="mail-ausw"]'); await p.waitForSelector('.pe-einst-modal');

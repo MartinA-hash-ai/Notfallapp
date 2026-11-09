@@ -1038,7 +1038,11 @@ function flLeerEntfernen(id) {
 function flZurueck() { closeMenus(); flKontakteFertig(); const id = UI.flId; flLeerEntfernen(id); UI.view = 'flist'; uebergang('zurueck', () => { renderNow(); const r = $(`#fl-body tr[data-id="${CSS.escape(id || '')}"]`); if (r) { r.scrollIntoView({ block: 'center' }); r.focus({ preventScroll: true }); } }); }
 
 // ---------- im Bedarf: Verknüpfung, roter Knopf „In Fördererliste übernehmen?“, neue Kontakte, Grund einer Absage
-const flNeueKontakte = (f, e) => f.kontakte.filter(c => (c.n || '').trim() && !e.kontakte.some(k => kkey(k.n) === kkey(c.n)) && !(f.flAus || []).includes(kkey(c.n)));
+// gleiche Person: gleicher Name (ohne „Herr/Frau“, Titel), gleiche E-Mail, oder gleicher Nachname und gleicher Anfang des Vornamens (Birgit/Birgitt)
+const kGleich = (a, c) => { const n = x => kkey(String(x.n || '').replace(/^(herr|frau)\s+/i, '')), A = n(a), C = n(c); if (A && A === C) return true;
+  if (a.mail && c.mail && norm(a.mail) === norm(c.mail)) return true; const pa = A.split(' '), pc = C.split(' ');
+  return pa.length > 1 && pc.length > 1 && pa[pa.length - 1] === pc[pc.length - 1] && pa[0].slice(0, 4) === pc[0].slice(0, 4); };
+const flNeueKontakte = (f, e) => f.kontakte.filter(c => (c.n || '').trim() && !e.kontakte.some(k => kGleich(k, c)) && !(f.flAus || []).includes(kkey(c.n)));
 const flOffen = f => flAktiv() && f.status === 'zugesagt' && f.eingegangen > 0 && !f.flId && !f.flNein;
 function flZeile(b, f, imFenster) {
   if (!flAktiv() || !f.name.trim()) return '';
