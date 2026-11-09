@@ -1,5 +1,12 @@
 [
   {
+    "version": "0.154.0",
+    "date": "2026-11-30T20:00",
+    "items": [
+      "Auftrag für die E-Mail-Auswertung: Copilot durchsucht alle Ordner des Postfachs (auch Unterordner, verschobene und gelöschte E-Mails), nicht nur Posteingang und Gesendete; Entwürfe, Junk-E-Mail und Teams bleiben außen vor"
+    ]
+  },
+  {
     "version": "0.153.0",
     "date": "2026-11-30T19:30",
     "items": [
