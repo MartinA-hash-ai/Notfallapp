@@ -60,7 +60,7 @@ function peAuftragText() {
   const A = peArtenAn();
   return ['AUFTRAG E-MAIL-AUSWERTUNG FÜR DIE BEDARFSLISTE (Malteser, Diözese Paderborn, Fundraising)',
     'Diese Datei schreibt das Programm „Bedarfsliste“ selbst. Bitte nicht ändern.', '',
-    'ZIEL: Finde in meinen E-Mails neue Informationen zu den Bedarfen und Förderern aus der Datei „' + PE_UEB + '“ (gleicher Ordner) und schreibe sie als Vorschläge in eine neue Datei. Das Programm zeigt mir die Vorschläge; ich entscheide. Du änderst sonst nichts.', '',
+    'ZIEL: Finde in meinen E-Mails neue Informationen zu den Bedarfen und Förderern aus der Datei „' + PE_UEB + '“ (gleicher Ordner) und hänge sie als Vorschläge unten an die Datei „' + PE_DATEI + '“ an (keine neue Datei). Das Programm zeigt mir die Vorschläge; ich entscheide. Du änderst sonst nichts.', '',
     'SO GEHST DU VOR',
     '1. Lies „' + PE_UEB + '“: alle Bedarfe mit Kennung [b-…], ihre Förderer [f-…], die Fördererliste [F…], Gliederungen und Ansprechpersonen.',
     '2. Zeitraum: alle E-Mails seit dem letzten Lauf in „' + PE_DATEI + '“ (Datum und Uhrzeit in der letzten Zeile „##### LAUF …“); gibt es noch keinen, die letzten 3 Tage. Durchsuche „Posteingang“ und „Gesendete Elemente“, keine Teams-Nachrichten.',
