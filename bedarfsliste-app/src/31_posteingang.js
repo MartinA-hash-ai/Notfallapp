@@ -315,11 +315,17 @@ async function peDialog(wieder) {
     if (d === 'accept' && !x.w.ok) { warnAssign = true; zeig(); const s = box.querySelector('.pe2-zu .pe2-sf-in, .pe2-zu select'); if (s) s.focus(); return; }
     dec[key] = d; warnAssign = false; sel = naechster(key); zeig(); fokus(); };
   const fokus = () => { const r = box.querySelector('.pe2-row.sel'); if (r) { r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); } };
-  const zeile = x => { const d = dec[x.v.key], gl = x.w.b ? (x.w.b.gliederung || '') : x.w.fl ? 'Fördererliste' : 'ohne Bedarf';
+  // Kreis = Entscheidung (wie überall: leer gestrichelt offen, ✓ übernehmen, ✕ verwerfen, Uhr später); Klick schaltet weiter
+  const PE_KREIS = { open: ['', 'offen'], accept: ['✓', 'wird übernommen'], reject: ['✕', 'wird verworfen'], later: ['◷', 'später'] };
+  const zeile = x => { const d = dec[x.v.key], st = x.k === 'info' ? 'info' : d || 'open';
+    const hw = x.k === 'info' ? '' : !x.w.b && !x.w.fl ? 'ohne Bedarf' : x.w.brauchtF && !x.w.ok ? 'Förderer fehlt' : norm(x.v.sicherheit) === 'unsicher' ? 'unsicher' : '';
+    const ic = h('span', { class: 'pe2-ic k-' + st, role: 'button', title: x.k === 'info' ? 'steht schon so drin' : PE_KREIS[st][1] + ' – klicken zum Wechseln', 'aria-label': x.k === 'info' ? 'steht schon so drin' : PE_KREIS[st][1] }, x.k === 'info' ? '=' : PE_KREIS[st][0]);
+    if (x.k !== 'info') ic.addEventListener('click', e => { e.stopPropagation(); const folge = { open: 'accept', accept: 'reject', reject: 'later', later: 'open' }; let n = folge[st];
+      if (n === 'accept' && !x.w.ok) n = 'reject'; if (n === 'open') delete dec[x.v.key]; else dec[x.v.key] = n; sel = x.v.key; warnAssign = false; zeig(); fokus(); });
     const r = h('div', { class: 'pe2-row' + (x.v.key === sel ? ' sel' : '') + (d === 'reject' ? ' rejected' : ''), role: 'option', tabindex: x.v.key === sel ? '0' : '-1', 'aria-selected': String(x.v.key === sel) },
-      h('span', { class: 'pe2-ic ' + x.k, 'aria-label': x.k === 'unassigned' ? 'nicht zuzuordnen' : x.k }, PE_ICON[x.k]),
+      ic,
       h('div', { class: 'pe2-rm' }, h('div', { class: 'pe2-who' }, x.w.art), h('div', { class: 'pe2-what' }, (mailTeil(x.v, 1) || 'E-Mail') + (x.w.f ? ' · ' + x.w.f.name.trim() : x.v.fname ? ' · ' + x.v.fname : ''))),
-      h('div', { class: 'pe2-meta' }, h('span', null, (mailTeil(x.v, 0) || '').slice(0, 6)), x.k === 'info' ? null : h('span', { class: 'pe2-dec ' + (d || 'open') }, d ? PE_DL[d] : 'offen')));
+      h('div', { class: 'pe2-meta' }, h('span', null, (mailTeil(x.v, 0) || '').slice(0, 6)), hw ? h('span', { class: 'pe2-hw' }, hw) : null));
     r.addEventListener('click', () => { sel = x.v.key; warnAssign = false; zeig(); fokus(); }); return r; };
   const detail = () => {
     const x = X.find(y => y.v.key === sel) || X[0], v = x.v, w = x.w, d = dec[v.key], a = assign[v.key] || {};

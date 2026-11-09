@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.151.0",
+    "date": "2026-11-30T17:00",
+    "items": [
+      "Prüffenster: der Kreis links zeigt jetzt die Entscheidung wie überall im Programm – gestrichelt leer = offen, ✓ = übernehmen, ✕ = verwerfen, ◷ = später; ein Klick auf den Kreis schaltet weiter",
+      "Die Plakette rechts („übernehmen“/„offen“) entfällt; „unsicher“, „ohne Bedarf“ oder „Förderer fehlt“ stehen klein in Orange unter dem Datum"
+    ]
+  },
+  {
     "version": "0.150.0",
     "date": "2026-11-30T15:00",
     "items": [

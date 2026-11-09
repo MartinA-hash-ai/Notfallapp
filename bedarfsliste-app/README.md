@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.151:** Prüffenster: Kreis links zeigt die Entscheidung (offen/übernehmen/verwerfen/später, per Klick umschaltbar); Hinweis „unsicher“/„ohne Bedarf“ klein darunter.
+
 **Seit 0.150:** Prüffenster: Förderer-Suchfeld mit Vorauswahl des schon vorhandenen Förderers, keine Pfadzeile und kein lila Kasten mehr, übernommene Zuordnung grün mit Hinweis.
 
 **Seit 0.149:** Prüffenster: Bedarf per Suchfeld zuordnen (leer = ganze Liste), Vorschläge links nach Vorgang/Bedarf gruppiert mit „✓ alle“.
