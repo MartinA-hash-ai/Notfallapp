@@ -56,7 +56,9 @@ const uebPunktStand = e => e.zu === 'ja' ? 'ja' : e.zu === 'nein' ? 'nein' : e.a
 const UE_PKT_T = { vor: 'soll dabei sein, noch nicht eingeladen', einl: 'eingeladen, Antwort offen', ja: 'kommt zur Spendenübergabe', nein: 'kommt nicht zur Spendenübergabe' };
 function lNachweis(f, fertig, pk = '') {
   const v = f.vn, a = `data-le="vn" data-fid="${f.id}"`, mu = pk ? ' mit-ue' : '';
-  if (!v.noetig) return `<span class="lead"></span><span class="mi m-off" ${a} title="kein Verwendungsnachweis nötig"></span><span class="vt nn${mu}" ${a}>nicht nötig${pk}</span>`;
+  // ab 0.152: kein Nachweis nötig → nichts anzeigen; führt eine Linie zur Spendenübergabe, läuft sie vom Betrag durch (wieder einschalten auf der Bedarfsseite)
+  if (!v.noetig) { const an = /class="ue-weg an/.test(pk), w = an ? ' an' : '';
+    return `<span class="lead weg${w}"></span><span class="mi m-weg${w}" aria-hidden="true"></span><span class="vt nn${mu}">${pk}</span>`; }
   if (fertig) return `<span class="lead"></span><span class="mi m-dot" ${a} title="erledigt"></span><span class="vt${mu}" ${a}>erledigt${pk}</span>`;
   const s = MI[({ offen: 'off', arbeit: 'run', erledigt: 'ok' })[v.st]], cal = `<button class="le-cal" data-le="vn-frist" data-fid="${f.id}" title="Frist des Verwendungsnachweises" aria-label="Frist des Verwendungsnachweises wählen">${ICON_CAL}</button>`;
   return `${zeitstrahl(f)}<span class="mi ${s[0]}" ${a} title="${esc((VN_ST.find(o => o[0] === v.st) || [])[1])}">${s[1]}</span><span class="vt${mu}" ${a}>${v.st === 'erledigt' ? 'erledigt' : (v.frist ? 'bis ' + fmtDate(v.frist) : 'Frist fehlt') + cal}${pk}</span>`;

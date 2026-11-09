@@ -85,8 +85,10 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(seq.join() === 'abgelehnt,geplant,beantragt', 'Förderer: Zusage → Absage → geplant → beantragt: ' + seq.join());
   seq.length = 0;
   const vn = async () => { const f = await F('b-mtw', 'Sparkasse Musterstadt'); return f.vn.noetig ? f.vn.st : 'nicht nötig'; };
-  for (let i = 0; i < 3; i++) { await p.click(R('b-mtw') + ' .vt[data-le="vn"]'); seq.push(await vn()); }
-  ok(seq.join() === 'erledigt,nicht nötig,offen', 'Verwendungsnachweis (ab 0.70 ohne „in Arbeit“): steht aus → erledigt → nicht nötig → steht aus: ' + seq.join());
+  const spkId = (await F('b-mtw', 'Sparkasse Musterstadt')).id;
+  for (let i = 0; i < 2; i++) { await p.click(R('b-mtw') + ' .vt[data-le="vn"][data-fid="' + spkId + '"]'); seq.push(await vn()); }
+  ok(seq.join() === 'erledigt,nicht nötig' && !(await p.$(R('b-mtw') + ' [data-le="vn"][data-fid="' + spkId + '"]')), 'Verwendungsnachweis: steht aus → erledigt → nicht nötig, dann ist er in der Liste weg (0.152): ' + seq.join());
+  await p.evaluate(id => { const f = D.bedarfe.find(b => b.id === 'b-mtw').foerderer.find(x => x.id === id); f.vn.noetig = true; f.vn.st = 'offen'; }, spkId);
   ok(await order() === before, 'beim Bearbeiten springen die Zeilen nicht (neu sortiert wird beim Zurückkommen in die Liste)');
   ok(await p.$eval(R('b-klausur') + ' td.l-fr', e => e.querySelector('.fr-voll').innerText.trim() === 'freigegeben' && !e.querySelector('[data-le="fr"]')), 'Freigabe vollständig: nur „freigegeben“, nichts zum Weiterschalten (darunter das Angebot)');
   await p.evaluate(() => { D.bedarfe.find(x => x.id === 'b-klausur').freigabe.verw.st = 'offen'; changed(); keep(renderNow); });   // das Angebot zählt nicht mehr zur Freigabe

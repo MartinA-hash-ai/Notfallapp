@@ -1394,10 +1394,9 @@ table.ue-tab col.c-d { width: 40px; } table.ue-tab col.c-v { width: 23%; } table
 #sec-eck .eck-l > .sub { gap: 8px; }
 .ue-st.raus { background: var(--muted); border-color: var(--muted); color: var(--card); }
 /* 0.78: die Stelle leuchtet in der Farbe des Hinweises auf (rot jetzt fällig, gelb bald fällig, grau Info) */
-.blitz.b-gelb { --blitz: #fff0b3; --blitz-rand: #e0a800; }
-.blitz.b-info { --blitz: var(--line3); --blitz-rand: var(--muted); }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .blitz.b-gelb { --blitz: #5a4a12; --blitz-rand: #f0c94a; } }
-:root[data-theme="dark"] .blitz.b-gelb { --blitz: #5a4a12; --blitz-rand: #f0c94a; }
+.blitz.b-gelb, .blitz.b-info { --blitz: #fff0b3; --blitz-rand: #e0a800; }     /* Sprung aus „Info“: gelb markiert, gut lesbar */
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]):not([data-bl-theme="light"]) :is(.blitz.b-gelb, .blitz.b-info) { --blitz: #5a4a12; --blitz-rand: #f0c94a; } }
+:root[data-theme="dark"]:not([data-bl-theme="light"]) :is(.blitz.b-gelb, .blitz.b-info), :root[data-bl-theme="dark"] :is(.blitz.b-gelb, .blitz.b-info) { --blitz: #5a4a12; --blitz-rand: #f0c94a; }
 .fertig-auto { display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 13px; }
 .o-link.drop-an { outline: 2px dashed var(--ink2); outline-offset: 4px; border-radius: 6px; }
 .or-liste { display: flex; flex-direction: column; gap: 4px; margin: 2px 0 8px; }
@@ -2265,9 +2264,6 @@ table.sl-kst tbody tr.sl-gr-meist > th { color: var(--ink2); }
 #fl-body td.fl-te:hover { z-index: 8; }
 .fl-tg-p { font-size: 11px; }
 .fl-head .fl-ansicht { margin-right: 4px; }
-.blitz.b-info { --blitz: #dde9f8; --blitz-rand: #2a5ea8; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .blitz.b-info { --blitz: #1f3550; --blitz-rand: #6aa3e8; } }
-:root[data-theme="dark"] .blitz.b-info { --blitz: #1f3550; --blitz-rand: #6aa3e8; }
 .blitz, .blitz * { color: var(--ink) !important; }
 
 /* 0.131: Fördererliste – Leiste gleich hoch, Ausklappen als Knopf, Filter mit Häkchen, Krone auf der Seite, KI-Recherche oben rechts */
@@ -2739,3 +2735,9 @@ html[data-bl-theme="dark"] .pe-chip { background: var(--viobg); border-color: va
 .pe2-ic.k-info { background: var(--chipbg); color: var(--muted); border-color: transparent; cursor: default; }
 .pe2-ic:not(.k-info):hover { box-shadow: 0 0 0 3px var(--hover); }
 .pe2-hw { font-size: 11px; font-weight: 600; color: var(--warn); white-space: nowrap; }
+
+/* 0.152: Verwendungsnachweis „nicht nötig“ verschwindet in der Liste; Linie zur Spendenübergabe läuft vom Betrag durch */
+.fg .lead.weg { border-color: transparent; }
+.fg .lead.weg.an { border-color: var(--line2); }
+.fg > .fr > .mi.m-weg { visibility: hidden; }
+.fg > .fr > .mi.m-weg.an { visibility: visible; width: auto; justify-self: stretch; height: 0; margin: 10px -8px 0; border: 0; border-bottom: 2px dotted var(--line2); border-radius: 0; background: none; }

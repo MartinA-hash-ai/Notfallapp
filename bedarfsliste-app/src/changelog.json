@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.152.0",
+    "date": "2026-11-30T18:30",
+    "items": [
+      "Sprung aus „Info“ oben: die Stelle wird gelb markiert und ist gut lesbar (vorher dunkelblau, wenn Windows dunkel und die Bedarfsliste hell eingestellt war) – auch im dunklen Modus lesbar",
+      "Liste: ist kein Verwendungsnachweis nötig, steht dort nichts mehr (kein Kreis, kein „nicht nötig“); wieder einschalten auf der Bedarfsseite",
+      "Führt eine Linie zur Spendenübergabe, läuft sie dann vom Betrag direkt durch; nur mit Nachweis-Frist sitzt der Nachweis dazwischen"
+    ]
+  },
+  {
     "version": "0.151.0",
     "date": "2026-11-30T17:00",
     "items": [

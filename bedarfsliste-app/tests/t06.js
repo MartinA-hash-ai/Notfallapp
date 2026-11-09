@@ -23,9 +23,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.fin === 'strong:Beispiel-Soziallotterie 12.000 € bis 30.04.2027 | x:Stadtwerke Hagen (Beispiel) 1.500 € | x ab:Volksbank Beispielland eG 2.000 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.ueb === 'erledigt am 05.10.2026 Hauptbahnhof Hagen',
     'Finanzierung steht: Zusage kräftig mit Nachweis, Absage und nie Angegangene blass, kein Delta: ' + r.fin);
   r = await L('b-kueche');
-  ok(r.fin === 'z:Bürgerstiftung Musterstadt 5.000 € erledigt | z:Sparkasse Musterstadt 3.000 € nicht nötig | sum:Überfinanzierung 500 € | sum:Eigenmittel 2.000 €' && r.leads === 2 && r.meta.endsWith('ohne Deadline')
-    && await p.evaluate(() => document.querySelectorAll('tr[data-id="b-kueche"] .l-fin .mi[data-le="vn"]').length === 2 && !!document.querySelector('tr[data-id="b-kueche"] .l-fin .mi.m-off[data-le="vn"]'))
-    && r.ueb.startsWith('Spendenübergabe einleiten Küche wird erst Ende November eingebaut'), 'Küche: erledigte Nachweise blass grün, auch „nicht nötig“ mit Linie und leerem Kreis, Überfinanzierung, Dreieck mit Info: ' + r.fin + ' / ' + r.ueb);
+  ok(r.fin === 'z:Bürgerstiftung Musterstadt 5.000 € erledigt | z:Sparkasse Musterstadt 3.000 € | sum:Überfinanzierung 500 € | sum:Eigenmittel 2.000 €' && r.leads === 2 && r.meta.endsWith('ohne Deadline')
+    && await p.evaluate(() => document.querySelectorAll('tr[data-id="b-kueche"] .l-fin .mi[data-le="vn"]').length === 1 && !!document.querySelector('tr[data-id="b-kueche"] .l-fin .mi.m-weg:not([data-le])') && getComputedStyle(document.querySelector('tr[data-id="b-kueche"] .l-fin .lead.weg')).borderBottomColor === 'rgba(0, 0, 0, 0)')
+    && r.ueb.startsWith('Spendenübergabe einleiten Küche wird erst Ende November eingebaut'), 'Küche: erledigte Nachweise blass grün, „nicht nötig“ ohne Kreis, Text und Linie (0.152), Überfinanzierung, Dreieck mit Info: ' + r.fin + ' / ' + r.ueb);
   r = await L('b-klausur');
   ok(r.sym === 'no' && r.fin.includes('ab:Musterstiftung Ehrenamt NRW 2.000 €') && r.fin.includes('sum:Delta 2.000 € | sum:Eigenmittel 500 €') && r.ueb === 'keine Übergabe' && r.meta.startsWith('Diözese'), 'Klausur: Absage durchgestrichen, Delta, keine Übergabe: ' + r.fin);
   r = await p.evaluate(() => [getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-name')).verticalAlign, getComputedStyle(document.querySelector('tr[data-id="b-mtw"] .l-meta .ort')).fontWeight,
