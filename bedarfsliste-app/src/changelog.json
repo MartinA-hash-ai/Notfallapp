@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.144.0",
+    "date": "2026-11-26T10:00",
+    "items": [
+      "Prüffenster „Vorschläge aus E-Mails“ neu nach dem Entwurf aus Claude Design: links die Vorschläge (Absender, Art, Gliederung, Datum, Entscheidung), rechts die Belegstelle aus der E-Mail und darunter „Daraus wird in der Bedarfsliste“ mit Pfad (Bedarf › Bereich › Förderer) und „bisher → neu“ in der Farbe des Stands",
+      "Je Vorschlag „Übernehmen“, „Verwerfen“ oder „Später“ – auch mit den Tasten A, X, S, ↑/↓; danach springt die Auswahl zum nächsten offenen. Fortschrittsbalken oben („4 von 6 entschieden“, „Noch 2 offen → zeigen“), Filter „Braucht Entscheidung“",
+      "Nicht zuzuordnende Vorschläge: Bedarf und Förderer (oder „Neu anlegen aus Absender“) direkt im Fenster wählen; „Steht schon so drin“ nur als Info",
+      "„Später weitermachen“ merkt sich alle Entscheidungen; Vorschläge für später bleiben oben als Hinweis. Nach dem Übernehmen eine Meldung unten mit „↶ Rückgängig“, die den ganzen Durchgang zurücknimmt und das Fenster wieder öffnet",
+      "Hinweis oben violett (Copilot) mit Zahl der unsicheren Vorschläge"
+    ]
+  },
+  {
     "version": "0.143.0",
     "date": "2026-11-25T10:00",
     "items": [
