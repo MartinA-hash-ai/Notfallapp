@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.155:** Linie vom Betrag zur Spendenübergabe (ohne Nachweis) durchgehend gleichmäßig.
+
 **Seit 0.154:** E-Mail-Auswertung durchsucht alle Ordner des Postfachs inkl. Gelöschte Elemente.
 
 **Seit 0.153:** Auftrag E-Mail-Auswertung: Widerspruch „neue Datei“ entfernt.

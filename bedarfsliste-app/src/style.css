@@ -2738,6 +2738,7 @@ html[data-bl-theme="dark"] .pe-chip { background: var(--viobg); border-color: va
 
 /* 0.152: Verwendungsnachweis „nicht nötig“ verschwindet in der Liste; Linie zur Spendenübergabe läuft vom Betrag durch */
 .fg .lead.weg { border-color: transparent; }
-.fg .lead.weg.an { border-color: var(--line2); }
 .fg > .fr > .mi.m-weg { visibility: hidden; }
-.fg > .fr > .mi.m-weg.an { visibility: visible; width: auto; justify-self: stretch; height: 0; margin: 10px -8px 0; border: 0; border-bottom: 2px dotted var(--line2); border-radius: 0; background: none; }
+/* eine einzige durchgehende Linie (statt drei Stücken mit versetzten Punkten): die Linie zur Übergabe reicht nach links bis hinter den Betrag
+   (Spalten: Linie 36 + Abstand 8 + Kreis 15 + Abstand 8 = 67 px; der Abstand hinter dem Betrag bleibt) */
+.fg > .fr > .vt.nn > .ue-weg.an { margin-left: -67px; }
