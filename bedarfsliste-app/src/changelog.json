@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.147.0",
+    "date": "2026-11-29T10:00",
+    "items": [
+      "E-Mail-Auswertung: Copilot schreibt jetzt immer in dieselbe Datei „Posteingang.txt“ und hängt je Lauf einen Abschnitt an („##### LAUF Datum Uhrzeit #####“ und „Lauf-Ergebnis: …“) – keine neuen Dateien mehr, also keine tägliche Rückfrage in Cowork. Das Programm legt die Datei selbst an und erkennt neue Läufe am Datum",
+      "Oben in der Kopfzeile: „✉ geprüft heute 06:02 ✓“, auch wenn Copilot nichts gefunden hat; Klick zeigt die letzten Läufe. Fehlt der Lauf seit mehr als einem Werktag oder hatte Copilot keinen Zugriff, wird die Anzeige orange",
+      "Einweisung angepasst: Probelauf über 14 Tage in „Posteingang.txt“; Copilot soll einmal nach einer dauerhaften Erlaubnis zum Bearbeiten fragen. Ältere Einzeldateien „Posteingang JJJJ-MM-TT.txt“ werden weiter gelesen"
+    ]
+  },
+  {
     "version": "0.146.0",
     "date": "2026-11-28T10:00",
     "items": [

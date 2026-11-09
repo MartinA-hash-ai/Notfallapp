@@ -2687,3 +2687,13 @@ html[data-bl-theme="dark"] .pe-chip { background: var(--viobg); border-color: va
 .pe2-keys > span, .pe2-sum, .pe2-foot .link, .pe2-foot button { white-space: nowrap; }
 .pe2-foot { gap: 12px; }
 .pe2-neuhw { flex-basis: 100%; font-size: 12.5px; color: var(--vioink); background: var(--viobg); border: 1px solid var(--violine); border-radius: 6px; padding: 6px 10px; }
+
+/* 0.147: Anzeige „geprüft heute 06:02 ✓“ und Liste der Läufe */
+.pe-stat { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--line2); background: var(--card); color: var(--muted); font-size: 12.5px; }
+.pe-stat:hover { background: var(--hover); color: var(--ink); }
+.pe-stat-ok { color: var(--okink); font-weight: 700; }
+.pe-stat.warn { background: var(--warnbg); color: var(--warn); border-color: var(--warnline); }
+.pe-laeufe { min-width: 300px; padding-bottom: 6px; }
+.pe-lz { display: flex; justify-content: space-between; gap: 16px; padding: 5px 12px; font-size: 13px; }
+.pe-lz .warn { color: var(--warn); }
+.pe-lfuss { padding: 6px 12px 2px; border-top: 1px solid var(--line3); margin-top: 4px; max-width: 320px; }

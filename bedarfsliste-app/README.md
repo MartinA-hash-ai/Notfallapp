@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.147:** Copilot schreibt fortlaufend in eine Datei „Posteingang.txt“ (je Lauf ein Abschnitt); oben „geprüft heute …“ auch ohne Ergebnis, orange bei fehlendem Lauf.
+
 **Seit 0.146:** E-Mail-Auswertung auch für Vorgänge ohne Bedarf im Programm – im Prüffenster „＋ Neuer Bedarf“; Zuordnung über Domain, Signatur und Verlauf; Anhänge, Gremiumstermine, Endabrechnung.
 
 **Seit 0.145:** Einweisung für Copilot Cowork zum Kopieren (Zugriff prüfen, Probelauf, Aufgabe anlegen); Satz der geplanten Aufgabe mit genauem Ordner.

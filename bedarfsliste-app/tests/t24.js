@@ -60,7 +60,24 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   // „Keine Vorschläge“: kein Hinweis
   await writeF(p, 'Keine Vorschläge', 'Förderrecherche/Posteingang 2026-11-07.txt');
   await p.evaluate(() => peScan()); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => !document.querySelector('.pe-chip') && PE.letzte === 'Posteingang 2026-11-07.txt'), '„Keine Vorschläge“: kein Hinweis, letzter Lauf bekannt');
+  ok(await p.evaluate(() => !document.querySelector('.pe-chip') && PE.laeufe.some(l => l.datum === '2026-11-07' && /Keine Vorschläge/.test(l.erg))), '„Keine Vorschläge“ (ältere Einzeldatei): kein Hinweis, Lauf bekannt');
+  // 0.147: eine feste Datei „Posteingang.txt“ mit Läufen; Anzeige „geprüft …“ auch ohne Vorschläge
+  ok(await p.evaluate(() => Object.keys(__fs.files).some(k => k.endsWith('/Förderrecherche/Posteingang.txt')) && /Lege KEINE neue Datei an/.test(peAuftragText()) && /##### LAUF/.test(peAuftragText())), 'Programm legt „Posteingang.txt“ an; Auftrag: nur anhängen, keine neuen Dateien');
+  const heute = await p.evaluate(() => today());
+  await writeF(p, ['POSTEINGANG – Kopf', '##### LAUF ' + heute + ' 06:02 #####', 'Lauf-Ergebnis: Keine Vorschläge'].join('\r\n'), 'Förderrecherche/Posteingang.txt');
+  await p.evaluate(() => peScan()); await p.waitForTimeout(250);
+  r = await p.evaluate(() => [(document.querySelector('header.top .pe-stat') || {}).textContent, !!document.querySelector('header.top .pe-chip')]);
+  ok(/geprüft heute 06:02/.test(r[0]) && !r[1], 'Lauf ohne Ergebnis: oben „geprüft heute 06:02 ✓“: ' + r.join('|'));
+  await writeF(p, ['POSTEINGANG – Kopf', '##### LAUF ' + heute + ' 06:02 #####', 'Lauf-Ergebnis: Keine Vorschläge', '', '##### LAUF ' + heute + ' 09:15 #####', 'Lauf-Ergebnis: 1 Vorschlag', '=== VORSCHLAG ===', 'Art: zusage', 'Bedarf: b1', 'Förderer: f2', 'Betrag: 2000', 'Sicherheit: sicher', 'Mail: 06.11.2026 | Stiftung Test | Zusage'].join('\r\n'), 'Förderrecherche/Posteingang.txt');
+  await p.evaluate(() => peScan()); await p.waitForTimeout(250);
+  r = await p.evaluate(() => [PE.L.length, PE.L[0] && PE.L[0].key, (document.querySelector('header.top .pe-chip') || {}).textContent]);
+  ok(r[0] === 1 && /^L.* 09:15#0$/.test(r[1]) && /1 Vorschlag aus E-Mails/.test(r[2]), 'angehängter Lauf: neuer Vorschlag erkannt (Kennung je Lauf): ' + r.join('|'));
+  await p.click('header.top .pe-chip'); await p.waitForSelector('.pe2-modal'); await p.click('.pe2-los'); await p.waitForTimeout(250);
+  await p.evaluate(() => peScan()); await p.waitForTimeout(200);
+  r = await p.evaluate(() => [PE.L.length, D.bedarfe.find(x => x.id === 'b1').foerderer[1].status, (document.querySelector('header.top .pe-stat') || {}).textContent]);
+  ok(r[0] === 0 && r[1] === 'zugesagt' && /geprüft heute 09:15/.test(r[2]), 'übernommen; dieselbe Datei meldet ihn nicht erneut; Anzeige zeigt den letzten Lauf: ' + r.join('|'));
+  await p.click('header.top .pe-stat'); r = await p.evaluate(() => [...document.querySelectorAll('.pe-laeufe .pe-lz')].map(x => x.textContent).join(' / ')); await p.keyboard.press('Escape');
+  ok(/09:15.*1 Vorschlag.*06:02.*Keine Vorschläge/.test(r), 'Klick: Liste der letzten Läufe: ' + r);
   // Einstellungen
   await p.evaluate(() => { einstellungen(); }); await p.waitForSelector('.einst-modal');
   await p.click('.einst-e[data-k="mail-ausw"]'); await p.waitForSelector('.pe-einst-modal');

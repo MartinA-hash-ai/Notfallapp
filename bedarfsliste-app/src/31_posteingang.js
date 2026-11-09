@@ -4,7 +4,7 @@
    „Auftrag E-Mail-Auswertung.txt“ (was gesucht wird – aus den Einstellungen) und „Überblick für Copilot.txt“ (Bedarfe und Förderer mit Kennungen).
    Die geplante Aufgabe in Cowork enthält nur einen Satz („Lies die Auftragsdatei und führe sie aus“) – sie muss nie geändert werden.
    Beim Öffnen meldet das Programm neue Vorschläge; übernommen wird erst nach Prüfung (Haken je Vorschlag, ↶ macht alles rückgängig). */
-const PE_AUFTRAG = 'Auftrag E-Mail-Auswertung.txt', PE_UEB = 'Überblick für Copilot.txt', PE_RE = /^Posteingang.*\.(txt|md)$/i;
+const PE_AUFTRAG = 'Auftrag E-Mail-Auswertung.txt', PE_UEB = 'Überblick für Copilot.txt', PE_DATEI = 'Posteingang.txt', PE_RE = /^Posteingang.*\.(txt|md)$/i;   // ab 0.147 eine feste Datei, in die Copilot je Lauf einen Abschnitt anhängt (ältere Einzeldateien werden weiter gelesen)
 const PE_SATZ = 'Lies die Datei „' + PE_AUFTRAG + '“ im Ordner „' + RECH_DIR + '“ (neben der Bedarfsliste) und führe den Auftrag darin vollständig aus.';
 // Ort des Ordners für Copilot: OneDrive/SharePoint-Pfad, wenn die Programmdatei dort liegt (ohne Benutzernamen)
 const peOrt = () => { const P = rechOrdnerOk() ? rechPfad() : { od: '' }; return P.od ? '„' + P.od + '“ (OneDrive bzw. SharePoint)' : '„' + RECH_DIR + '“ neben der Bedarfsliste'; };
@@ -20,18 +20,18 @@ function peEinweisung() {
     'Ordner: ' + peOrt() + '. Dort pflegt das Programm zwei Dateien:',
     '- „' + PE_AUFTRAG + '“: die genaue Anleitung und das Format der Vorschläge.',
     '- „' + PE_UEB + '“: alle Bedarfe und Förderer mit Kennungen, damit du E-Mails eindeutig zuordnen kannst.',
-    'Deine Ergebnisse legst du als neue Datei „Posteingang JJJJ-MM-TT.txt“ im selben Ordner ab.', '',
+    'Deine Ergebnisse schreibst du in die Datei „' + PE_DATEI + '“ im selben Ordner – immer dieselbe Datei, je Lauf hängst du unten einen neuen Abschnitt an. Lege keine neuen Dateien an.', '',
     'BITTE JETZT EINMAL ZUM TESTEN',
-    '1. Prüfe deinen Zugriff: mein Postfach (Posteingang und Gesendete Elemente) lesen; im Ordner oben lesen und eine neue Datei anlegen. Sag mir, was davon klappt und was nicht.',
+    '1. Prüfe deinen Zugriff: mein Postfach (Posteingang und Gesendete Elemente) lesen; im Ordner oben lesen und die Datei „' + PE_DATEI + '“ bearbeiten (unten etwas anhängen). Sag mir, was davon klappt und was nicht. Falls du für das Bearbeiten eine dauerhafte Erlaubnis brauchst, frag mich jetzt einmal danach.',
     '2. Lies beide Dateien und fasse in höchstens fünf Sätzen zusammen, was du tun sollst.',
-    '3. Mach einen Probelauf für die letzten 7 Tage genau nach der Anleitung und lege die Datei „Posteingang ' + heute + '-test.txt“ an.',
+    '3. Mach einen Probelauf für die letzten 14 Tage genau nach der Anleitung und hänge ihn als Lauf an „' + PE_DATEI + '“ an (in der Kopfzeile „Probelauf“ ergänzen).',
     '4. Nenne mir danach: wie viele Vorschläge, welche E-Mails du bewusst übersprungen hast (und warum) und wo du bei der Zuordnung unsicher warst. Stell Rückfragen, wenn etwas unklar ist.', '',
     'DANACH (erst wenn ich den Probelauf bestätigt habe)',
     'Richte eine geplante Aufgabe ein: Montag bis Freitag, 6:00 Uhr deutscher Zeit (Europe/Berlin). Auftrag der Aufgabe, wörtlich:',
     peSatz(),
     'Nenne mir zur Kontrolle die eingestellte Uhrzeit und Zeitzone.'].join('\n');
 }
-const PE = { L: [], dateien: [], letzte: '', aufStr: '', uebStr: '', busy: false };
+const PE = { laeufe: [], L: [], dateien: [], letzte: '', aufStr: '', uebStr: '', busy: false };
 
 // Gruppen und Arten: [Schlüssel, Gruppe, Bezeichnung für das Fenster, Erklärung für Cowork]
 const PE_ARTEN = [
@@ -62,7 +62,7 @@ function peAuftragText() {
     'ZIEL: Finde in meinen E-Mails neue Informationen zu den Bedarfen und Förderern aus der Datei „' + PE_UEB + '“ (gleicher Ordner) und schreibe sie als Vorschläge in eine neue Datei. Das Programm zeigt mir die Vorschläge; ich entscheide. Du änderst sonst nichts.', '',
     'SO GEHST DU VOR',
     '1. Lies „' + PE_UEB + '“: alle Bedarfe mit Kennung [b-…], ihre Förderer [f-…], die Fördererliste [F…], Gliederungen und Ansprechpersonen.',
-    '2. Zeitraum: alle E-Mails seit der neuesten Datei „Posteingang …“ in diesem Ordner (nach Datum im Namen); gibt es keine, die letzten 3 Tage. Durchsuche „Posteingang“ und „Gesendete Elemente“, keine Teams-Nachrichten.',
+    '2. Zeitraum: alle E-Mails seit dem letzten Lauf in „' + PE_DATEI + '“ (Datum und Uhrzeit in der letzten Zeile „##### LAUF …“); gibt es noch keinen, die letzten 3 Tage. Durchsuche „Posteingang“ und „Gesendete Elemente“, keine Teams-Nachrichten.',
     '3. Berücksichtige E-Mails, die einen Förder-Vorgang der Malteser betreffen: zuerst solche zu Bedarfen und Förderern aus dem Überblick, aber AUCH solche, deren Förderer oder Bedarf dort (noch) fehlt – z. B. eine Stiftung meldet sich zu einem Antrag, der im Überblick nicht steht. Ignoriere Newsletter, Werbung, allgemeine Rundschreiben ohne bestimmtes Vorhaben, automatische Benachrichtigungen und Kalendereinladungen ohne Inhalt.',
     '3a. Erkennen, wer schreibt: Du darfst schließen aus Absendername, Domain der E-Mail-Adresse (z. B. @ikea-stiftung.de), Signatur bzw. Fußzeile, Betreff und dem Verlauf (Antwort auf eine E-Mail, die ich geschickt habe). Steht der Förderer im Überblick unter anderem Namen, ordne ihn dort zu. Lies auch Anhänge von Förderern (PDF, Word), wenn Betrag, Frist oder Entscheidung dort stehen.',
     '4. Suche nur nach diesen Arten (Art = Schlüssel vorn):', ...A.map(a => '   - ' + a[0] + ': ' + a[3]),
@@ -71,11 +71,13 @@ function peAuftragText() {
     '6. Steht die Information schon so im Überblick (z. B. Stand schon „zugesagt“ mit diesem Betrag), keinen Vorschlag schreiben.',
     '7. Nichts erfinden, nichts schätzen. Zitat = höchstens ein Satz aus der E-Mail, der die Information belegt. Keine weiteren Inhalte der E-Mail übernehmen, keine Bank- oder Personaldaten.', '',
     'ERGEBNIS',
-    'Lege im selben Ordner eine neue Textdatei an: „Posteingang JJJJ-MM-TT.txt“ (heutiges Datum; gibt es sie schon, hänge „-2“ an). Inhalt genau in diesem Aufbau, je Vorschlag ein Block:', '',
+    'Schreibe in die vorhandene Datei „' + PE_DATEI + '“ im selben Ordner. Lege KEINE neue Datei an und ändere oder lösche nichts, was schon darin steht – hänge nur unten einen neuen Abschnitt an. Gibt es die Datei nicht, lege sie einmal an.',
+    'Jeder Lauf beginnt mit diesen zwei Zeilen (immer, auch ohne Ergebnis):', '##### LAUF JJJJ-MM-TT HH:MM #####', 'Lauf-Ergebnis: 3 Vorschläge   (oder: Keine Vorschläge / Kein Zugriff auf E-Mails)',
+    'Darunter je Vorschlag ein Block in genau diesem Aufbau:', '',
     '=== VORSCHLAG ===', 'Art: zusage', 'Bedarf: b-…', 'Förderer: f-…', 'Fördererliste: ', 'Vorhaben: ', 'Gliederung: ', 'Förderername: ', 'Datum: TT.MM.JJJJ', 'Antwort bis: ', 'Betrag: 15000', 'Uhrzeit: ', 'Ort: ', 'Wert: ', 'Ergebnis: ', 'Grund: ', 'Person: ', 'Sicherheit: sicher',
     'Mail: TT.MM.JJJJ | Absender | Betreff', 'Zitat: „…“', '',
     'Felder, die nicht passen, bleiben leer. Sicherheit = sicher oder unsicher. Beträge als Zahl ohne Punkt und ohne €.',
-    'Hast du nichts gefunden: Datei trotzdem anlegen, mit der einzigen Zeile „Keine Vorschläge“. Hast du keinen Zugriff auf mein Postfach: Datei mit der Zeile „Kein Zugriff auf E-Mails“ anlegen.',
+    'Hast du nichts gefunden: trotzdem den Lauf mit „Lauf-Ergebnis: Keine Vorschläge“ anhängen – daran sehe ich, dass du gelaufen bist. Ohne Zugriff auf mein Postfach: „Lauf-Ergebnis: Kein Zugriff auf E-Mails“.',
     'Antworte im Chat nur mit einem Satz: wie viele Vorschläge du geschrieben hast.'].join('\r\n');
 }
 function peUeberblickText() {
@@ -100,6 +102,7 @@ async function peSchreiben(force) {
   const a = peAuftragText(), u = peUeberblickText(); if (!force && a === PE.aufStr && u === PE.uebStr) return true;
   PE.busy = true;
   try { const d = await rechDir(true); if (!d) return false;
+    try { await d.getFileHandle(PE_DATEI); } catch (e) { const fh = await d.getFileHandle(PE_DATEI, { create: true }), w = await fh.createWritable(); await w.write(new Blob(['\ufeffPOSTEINGANG – Vorschläge von Copilot aus den E-Mails. Copilot hängt je Lauf unten einen Abschnitt an; das Programm liest ihn. Bitte nichts löschen.\r\n'], { type: 'text/plain;charset=utf-8' })); await w.close(); }
     for (const [n, t] of [[PE_AUFTRAG, a], [PE_UEB, u]]) { const fh = await d.getFileHandle(n, { create: true }), w = await fh.createWritable(); await w.write(new Blob(['﻿' + t], { type: 'text/plain;charset=utf-8' })); await w.close(); }
     PE.aufStr = a; PE.uebStr = u; return true;
   } catch (e) { console.warn(e); return false; } finally { PE.busy = false; }
@@ -126,13 +129,26 @@ async function peScan() {
   if (!rechOrdnerOk() || PE.busy) return;
   const d = await rechDir(); if (!d) return;
   const F = [], erl = new Set(peErledigt()); let letzte = '';
-  try { for await (const [n, e] of d.entries()) { if (e.kind !== 'file' || !PE_RE.test(n)) continue; const f = await e.getFile(), k = n + '@' + f.lastModified; if (n > letzte) letzte = n; if (!erl.has(k)) F.push({ n, k, f }); } } catch (e) { return; }
+  try { for await (const [n, e] of d.entries()) { if (e.kind !== 'file' || !PE_RE.test(n)) continue; const f = await e.getFile(), k = n + '@' + f.lastModified; if (n > letzte) letzte = n; if (n.toLowerCase() === PE_DATEI.toLowerCase() || !erl.has(k)) F.push({ n, k, f }); } } catch (e) { return; }
   PE.letzte = letzte;
-  const L = [], leer = [];
-  for (const x of F.sort((a, c) => a.n.localeCompare(c.n))) { const V = peLesen(await x.f.text(), x.n); if (!V.length) { leer.push(x.k); continue; } V.forEach((v, i) => { v.key = x.k + '#' + i; if (!erl.has(v.key)) L.push(v); }); }
+  const L = [], leer = [], laeufe = [];
+  for (const x of F.sort((a, c) => a.n.localeCompare(c.n))) {
+    const text = await x.f.text();
+    if (x.n.toLowerCase() === PE_DATEI.toLowerCase()) {                       // feste Datei: Abschnitte „##### LAUF JJJJ-MM-TT HH:MM #####“, Kennung je Lauf statt je Datei
+      const T = text.replace(/\r/g, '').split(/^(?=#{3,}\s*LAUF\b)/m);
+      for (const t of T) { const m = t.match(/^#{3,}\s*LAUF\s+(\d{4}-\d{2}-\d{2})(?:[ T]+(\d{1,2}:\d{2}))?([^\n]*)/); if (!m) continue;
+        const erg = (t.match(/^\s*Lauf-Ergebnis\s*:\s*(.*)$/mi) || [])[1] || '', V = peLesen(t, x.n), lk = 'L' + m[1] + ' ' + (m[2] || '') + (/probe/i.test(m[3]) ? ' P' : '');
+        laeufe.push({ datum: m[1], zeit: m[2] || '', probe: /probe/i.test(m[3]), erg: erg.trim() || (V.length ? V.length + ' Vorschläge' : 'Keine Vorschläge'), n: V.length });
+        V.forEach((v, i) => { v.key = lk + '#' + i; if (!erl.has(v.key)) L.push(v); }); }
+      continue;
+    }
+    const V = peLesen(text, x.n), dm = x.n.match(/(\d{4}-\d{2}-\d{2})/); laeufe.push({ datum: dm ? dm[1] : '', zeit: '', erg: V.length ? V.length + ' Vorschläge' : (/kein zugriff/i.test(text) ? 'Kein Zugriff auf E-Mails' : 'Keine Vorschläge'), n: V.length, alt: true });
+    if (!V.length) { leer.push(x.k); continue; } V.forEach((v, i) => { v.key = x.k + '#' + i; if (!erl.has(v.key)) L.push(v); });
+  }
+  PE.laeufe = laeufe.filter(l => l.datum).sort((a, c) => (a.datum + a.zeit).localeCompare(c.datum + c.zeit));
   if (leer.length) { D.settings.mailErledigt = peErledigt().concat(leer).slice(-400); changed(); }   // „Keine Vorschläge“: gleich als gesehen merken
-  const alt = PE.L.map(v => v.key).join(), neu = L.map(v => v.key).join(); PE.L = L; PE.dateien = F.map(x => x.k);
-  if (alt !== neu) safeRender();
+  PE.L = L; PE.dateien = F.filter(x => x.n.toLowerCase() !== PE_DATEI.toLowerCase()).map(x => x.k);
+  const sig = L.map(v => v.key).join() + '|' + peLetzterLauf().datum + peLetzterLauf().zeit; if (sig !== PE.sig) { PE.sig = sig; safeRender(); }
 }
 
 /* ---------- Was ein Vorschlag im Programm ändert: wo (Bereich, Förderer), bisher → neu, Ton der neuen Angabe, die Änderung selbst */
@@ -197,8 +213,23 @@ const peKind = (v, w) => w.info || (w.schon && w.ok) ? 'info' : !w.b && !w.fl ? 
 
 /* ---------- Hinweis oben und Prüffenster (Entwurf „1c“: links die Vorschläge, rechts Belegstelle und „bisher → neu“) */
 const PE_MAIL_SVG = '<svg width="15" height="12" viewBox="0 0 15 12" aria-hidden="true"><rect x="1" y="1" width="13" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 1.8l6 4.6 6-4.6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
+const peLetzterLauf = () => (PE.laeufe || []).filter(l => !l.probe).slice(-1)[0] || (PE.laeufe || []).slice(-1)[0] || { datum: '', zeit: '' };
+// Werktage seit dem letzten Lauf (Wochenende zählt nicht): ab 2 fehlt ein Lauf
+function peWerktageSeit(iso) { if (!iso) return 99; let n = 0; const d = new Date(iso + 'T12:00'), h = new Date(today() + 'T12:00'); while (d < h) { d.setDate(d.getDate() + 1); if (d.getDay() % 6) n++; } return n; }
+function peStatusChip() {
+  const l = peLetzterLauf(); if (!l.datum) return '';
+  const alt = peWerktageSeit(l.datum) >= 2, wann = l.datum === today() ? 'heute' + (l.zeit ? ' ' + l.zeit : '') : fmtDate(l.datum).slice(0, 6) + (l.zeit ? ' ' + l.zeit : ''), ohne = /kein zugriff/i.test(l.erg);
+  return `<button class="pe-stat${alt || ohne ? ' warn' : ''}" data-act="pe-laeufe" title="${esc(alt ? 'Copilot hat seit dem ' + fmtDate(l.datum) + ' nicht mehr geprüft – geplante Aufgabe in Cowork kontrollieren' : 'Copilot hat die E-Mails geprüft: ' + l.erg)}">${PE_MAIL_SVG}<span>${alt ? 'zuletzt geprüft ' + wann : ohne ? 'kein Zugriff auf E-Mails' : 'geprüft ' + wann}</span>${alt || ohne ? '' : '<span class="pe-stat-ok">✓</span>'}</button>`;
+}
+function peLaeufePop(btn) {
+  closeMenus();
+  const L = (PE.laeufe || []).slice(-10).reverse();
+  placePop(h('div', { class: 'menu pe-laeufe', role: 'dialog', 'aria-label': 'Läufe von Copilot' }, h('div', { class: 'menu-kopf' }, 'E-Mail-Auswertung – letzte Läufe'),
+    ...(L.length ? L.map(l => h('div', { class: 'pe-lz' }, h('span', null, fmtDate(l.datum) + (l.zeit ? ' · ' + l.zeit : '') + (l.probe ? ' · Probelauf' : '')), h('span', { class: /kein zugriff/i.test(l.erg) ? 'warn' : '' }, l.erg))) : [h('div', { class: 'pe-lz muted' }, 'Noch kein Lauf.')]),
+    h('div', { class: 'pe-lfuss muted small' }, peWerktageSeit(peLetzterLauf().datum) >= 2 ? 'Seit mehr als einem Werktag kein Lauf – bitte die geplante Aufgabe in Copilot Cowork prüfen.' : 'Copilot läuft werktags früh; neue Vorschläge erscheinen hier oben.')), btn, 'right');
+}
 function peChip() {
-  if (!PE.L.length) return '';
+  if (!PE.L.length) return peStatusChip();
   const E = peEnt(), W = PE.L.map(v => ({ v, w: peWirkung(v, E[v.key] || {}) })).filter(x => peKind(x.v, x.w) !== 'info');
   if (!W.length) return `<button class="pe-chip" data-act="pe-oeffnen">${PE_MAIL_SVG}<span>${PE.L.length} ${PE.L.length === 1 ? 'Hinweis' : 'Hinweise'} aus E-Mails</span></button>`;
   const spaeter = W.every(x => (E[x.v.key] || {}).d === 'later'), uns = W.filter(x => ['unsicher', 'unassigned'].includes(peKind(x.v, x.w))).length;
@@ -214,7 +245,7 @@ async function peDialog(wieder) {
   let X = W(); const AKT = () => X.filter(x => x.k !== 'info'), INF = () => X.filter(x => x.k === 'info');
   AKT().forEach(x => { if (!(x.v.key in dec)) dec[x.v.key] = (E0[x.v.key] || {}).d || (x.k === 'sicher' ? 'accept' : null); });
   let sel = (AKT().find(x => !dec[x.v.key]) || AKT()[0] || X[0]).v.key, filter = 'alle', infoOpen = false, warnAssign = false;
-  const datum = (PE.letzte.match(/(\d{4})-(\d{2})-(\d{2})/) || []);
+  const ll = peLetzterLauf(), datum = ll.datum ? ['', ...ll.datum.split('-')] : (PE.letzte.match(/(\d{4})-(\d{2})-(\d{2})/) || []);
   const box = h('div', { class: 'pe2' }); let zu = () => {};
   const zahlen = () => { const c = { accept: 0, reject: 0, later: 0, open: 0 }; AKT().forEach(x => c[dec[x.v.key] || 'open']++); return c; };
   const sichtbar = () => filter === 'offen' ? AKT().filter(x => !dec[x.v.key] || x.v.key === sel) : AKT();
@@ -267,7 +298,7 @@ async function peDialog(wieder) {
     const zus = [c.accept && c.accept + ' übernehmen', c.reject && c.reject + ' verworfen', c.later && c.later + ' später', c.open && c.open + ' offen'].filter(Boolean).join(' · ');
     const los = h('button', { type: 'button', class: 'primary pe2-los', disabled: !c.accept && !c.reject, onclick: () => zu('los') }, c.accept ? c.accept + ' übernehmen' : c.reject ? 'Verwerfen bestätigen' : '0 übernehmen');
     box.replaceChildren(
-      h('div', { class: 'pe2-head' }, h('div', { class: 'pe2-title' }, h('h2', null, 'Vorschläge aus E-Mails'), h('small', null, datum.length ? 'Copilot hat am ' + datum[3] + '.' + datum[2] + '.' + datum[1] + ' Posteingang und Gesendete gelesen' : 'Aus deinen E-Mails, gelesen von Copilot'), h('button', { type: 'button', class: 'x', 'aria-label': 'Schließen', onclick: () => zu('spaeter') }, '×')),
+      h('div', { class: 'pe2-head' }, h('div', { class: 'pe2-title' }, h('h2', null, 'Vorschläge aus E-Mails'), h('small', null, datum.length ? 'Copilot hat am ' + datum[3] + '.' + datum[2] + '.' + datum[1] + (ll.zeit ? ' um ' + ll.zeit : '') + ' Posteingang und Gesendete gelesen' : 'Aus deinen E-Mails, gelesen von Copilot'), h('button', { type: 'button', class: 'x', 'aria-label': 'Schließen', onclick: () => zu('spaeter') }, '×')),
         n ? h('div', { class: 'pe2-progress' }, h('b', null, fertig + ' von ' + n + ' entschieden'), segs, pstate) : null),
       h('div', { class: 'pe2-body' },
         h('div', { class: 'pe2-left' }, h('div', { class: 'pe2-filter', role: 'group', 'aria-label': 'Filter' }, fb('alle', 'Alle ' + n), fb('offen', 'Braucht Entscheidung ' + c.open)), rows, h('div', { class: 'pe2-info' }, ...inf)),
@@ -318,7 +349,7 @@ async function peEinstDialog() {
     h('ul', { class: 'pe-el' }, ...PE_ARTEN.filter(a => a[1] === g).map(a => h('li', null, a[2]))));
   const kop = h('button', { type: 'button', onclick: () => flcTextKopieren(peSatz(), 'Satz kopiert – in Cowork als geplante Aufgabe einfügen') }, 'Satz kopieren');
   const einw = h('button', { type: 'button', class: 'primary', onclick: () => flcTextKopieren(peEinweisung(), 'Einweisung kopiert – in Copilot Cowork einfügen') }, 'Einweisung kopieren');
-  const stand = h('p', { class: 'muted small' }, PE.letzte ? 'Letzte Datei von Copilot: „' + PE.letzte + '“.' : rechOrdnerOk() ? 'Noch keine Datei „Posteingang …“ von Copilot im Ordner.' : 'Ordner nicht verbunden – die Dateien für Copilot werden geschrieben, sobald die Bedarfsliste mit ihrem Ordner verbunden ist.');
+  const stand = h('p', { class: 'muted small' }, peLetzterLauf().datum ? 'Letzter Lauf von Copilot: ' + fmtDate(peLetzterLauf().datum) + (peLetzterLauf().zeit ? ' um ' + peLetzterLauf().zeit : '') + ' – ' + peLetzterLauf().erg + '.' : PE.letzte ? 'Letzte Datei von Copilot: „' + PE.letzte + '“.' : rechOrdnerOk() ? 'Noch keine Datei „Posteingang …“ von Copilot im Ordner.' : 'Ordner nicht verbunden – die Dateien für Copilot werden geschrieben, sobald die Bedarfsliste mit ihrem Ordner verbunden ist.');
   const body = h('div', { class: 'pe-einst' },
     h('p', null, 'Copilot Cowork liest werktags früh deine E-Mails (Posteingang und Gesendete) und schlägt vor, was sich geändert hat. Übernommen wird erst, wenn du es bestätigst.'),
     h('h3', null, 'Wonach gesucht wird'), gr('A'), gr('B'), gr('C'),
