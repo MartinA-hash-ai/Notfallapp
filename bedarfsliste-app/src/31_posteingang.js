@@ -243,6 +243,27 @@ const peMitFoerderer = (b, v) => { if (b && v.fname && !peFoerdererIn(b, v.fname
 // Art des Vorschlags für die Darstellung: info (steht schon so drin / nur Hinweis), unassigned (Bedarf oder Förderer fehlt), sicher, unsicher
 const peKind = (v, w) => w.info || (w.schon && w.ok) ? 'info' : !w.b && !w.fl ? 'unassigned' : !w.ok && w.brauchtF && !w.f ? 'unassigned' : norm(v.sicherheit) === 'unsicher' || !w.ok ? 'unsicher' : 'sicher';
 
+// Suchfeld mit Liste (statt Auswahlliste): leer = alle Einträge zum Blättern; Wörter filtern Titel und Zusatz (Gliederung, Förderer); Enter wählt den ersten
+function peSuchfeld(OPT, wert, waehle, o = {}) {
+  const akt = OPT.find(x => x.v === wert), inp = h('input', { type: 'text', class: 'pe2-sf-in' + (o.warn ? ' warn' : ''), placeholder: o.ph || 'Suchen …', value: akt ? akt.t : '', 'aria-label': 'Bedarf suchen', autocomplete: 'off', spellcheck: 'false' });
+  const liste = h('div', { class: 'pe2-sf-l', role: 'listbox', hidden: true }), wrap = h('div', { class: 'pe2-sf' }, inp, liste);
+  let L = [], i0 = 0;
+  const zeig = () => { const q = norm(inp.value === (akt && akt.t) ? '' : inp.value).split(/\s+/).filter(Boolean);
+    L = OPT.filter(x => x.neu || q.every(w => norm(x.t + ' ' + (x.s || '')).includes(w))); i0 = L.length > 1 && q.length ? 1 : 0;
+    if (q.length && L.length === 1) i0 = 0;
+    liste.replaceChildren(...L.map((x, i) => { const r = h('div', { class: 'pe2-sf-o' + (x.neu ? ' neu' : '') + (i === i0 ? ' an' : '') + (x.v === wert ? ' gew' : ''), role: 'option' }, h('b', null, x.t), x.s ? h('span', null, x.s) : null);
+      r.addEventListener('mousedown', e => { e.preventDefault(); waehle(x.v); }); return r; }),
+      ...(q.length && L.length <= 1 ? [h('div', { class: 'pe2-sf-leer' }, 'Kein Bedarf gefunden – oben neu anlegen.')] : []));
+    liste.hidden = false; };
+  inp.addEventListener('focus', () => { inp.select(); zeig(); });
+  inp.addEventListener('input', zeig);
+  inp.addEventListener('blur', () => setTimeout(() => { liste.hidden = true; if (akt) inp.value = akt.t; }, 120));
+  inp.addEventListener('keydown', e => { e.stopPropagation();
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') { e.preventDefault(); i0 = Math.max(0, Math.min(L.length - 1, i0 + (e.key === 'ArrowDown' ? 1 : -1))); [...liste.querySelectorAll('.pe2-sf-o')].forEach((r, i) => { r.classList.toggle('an', i === i0); if (i === i0) r.scrollIntoView({ block: 'nearest' }); }); }
+    else if (e.key === 'Enter') { e.preventDefault(); if (L[i0]) waehle(L[i0].v); }
+    else if (e.key === 'Escape') { e.preventDefault(); inp.blur(); } });
+  return wrap;
+}
 /* ---------- Hinweis oben und Prüffenster (Entwurf „1c“: links die Vorschläge, rechts Belegstelle und „bisher → neu“) */
 const PE_MAIL_SVG = '<svg width="15" height="12" viewBox="0 0 15 12" aria-hidden="true"><rect x="1" y="1" width="13" height="10" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M1.5 1.8l6 4.6 6-4.6" fill="none" stroke="currentColor" stroke-width="1.4"/></svg>';
 const peLetzterLauf = () => (PE.laeufe || []).filter(l => !l.probe).slice(-1)[0] || (PE.laeufe || []).slice(-1)[0] || { datum: '', zeit: '' };
@@ -274,7 +295,12 @@ async function peDialog(wieder) {
   PE.L.forEach(v => { const e = E0[v.key] || {}; if (e.bedarf || e.foerderer) assign[v.key] = { bedarf: e.bedarf || '', foerderer: e.foerderer || '' }; });
   if (wieder) Object.assign(dec, wieder);
   const W = () => PE.L.map(v => { const w0 = peWirkung(v, {}), k0 = peKind(v, w0), w = assign[v.key] ? peWirkung(v, assign[v.key]) : w0; return { v, w, k: k0 === 'unassigned' ? 'unassigned' : peKind(v, w) }; });
-  let X = W(); const AKT = () => X.filter(x => x.k !== 'info'), INF = () => X.filter(x => x.k === 'info');
+  const mailTeil = (v, i) => String(v.mail || '').split('|').map(s => s.trim())[i] || '';
+  // Vorgang: derselbe Bedarf (auch ein neuer), dieselbe Fördererliste-Zeile oder – ohne Zuordnung – dasselbe Vorhaben bzw. derselbe Förderer
+  const gKey = x => x.w.b ? 'b:' + (x.w.b.id || x.w.b.titel) : x.w.fl ? 'f:' + x.w.fl.id : 'u:' + norm(x.v.vorhaben || x.v.fname || mailTeil(x.v, 1) || x.v.key);
+  const gTitel = x => x.w.b ? (peIstNeu(x.w.b) ? 'Neu: ' : '') + (x.w.b.titel || 'Bedarf') + (x.w.b.gliederung ? ' · ' + x.w.b.gliederung : '') : x.w.fl ? 'Fördererliste · ' + x.w.fl.name : 'Ohne Bedarf · ' + (x.v.vorhaben || x.v.fname || mailTeil(x.v, 1) || 'unbekannt');
+  const gruppiert = L => { const G = new Map(); L.forEach(x => { const k = gKey(x); if (!G.has(k)) G.set(k, []); G.get(k).push(x); }); return [...G.values()].flat(); };
+  let X = W(); const AKT = () => gruppiert(X.filter(x => x.k !== 'info')), INF = () => X.filter(x => x.k === 'info');
   AKT().forEach(x => { if (!(x.v.key in dec)) dec[x.v.key] = (E0[x.v.key] || {}).d || (x.k === 'sicher' ? 'accept' : null); });
   let sel = (AKT().find(x => !dec[x.v.key]) || AKT()[0] || X[0]).v.key, filter = 'alle', infoOpen = false, warnAssign = false;
   const ll = peLetzterLauf(), datum = ll.datum ? ['', ...ll.datum.split('-')] : (PE.letzte.match(/(\d{4})-(\d{2})-(\d{2})/) || []);
@@ -283,14 +309,13 @@ async function peDialog(wieder) {
   const sichtbar = () => filter === 'offen' ? AKT().filter(x => !dec[x.v.key] || x.v.key === sel) : AKT();
   const naechster = from => { const L = AKT(), i = L.findIndex(x => x.v.key === from), o = [...L.slice(i + 1), ...L.slice(0, i)]; return (o.find(x => !dec[x.v.key]) || L[Math.min(i + 1, L.length - 1)] || L[0]).v.key; };
   const entscheiden = (key, d) => { const x = X.find(y => y.v.key === key); if (!x || x.k === 'info') return;
-    if (d === 'accept' && !x.w.ok) { warnAssign = true; zeig(); const s = box.querySelector('.pe2-zu select'); if (s) s.focus(); return; }
+    if (d === 'accept' && !x.w.ok) { warnAssign = true; zeig(); const s = box.querySelector('.pe2-zu .pe2-sf-in, .pe2-zu select'); if (s) s.focus(); return; }
     dec[key] = d; warnAssign = false; sel = naechster(key); zeig(); fokus(); };
   const fokus = () => { const r = box.querySelector('.pe2-row.sel'); if (r) { r.focus({ preventScroll: true }); r.scrollIntoView({ block: 'nearest' }); } };
-  const mailTeil = (v, i) => String(v.mail || '').split('|').map(s => s.trim())[i] || '';
   const zeile = x => { const d = dec[x.v.key], gl = x.w.b ? (x.w.b.gliederung || '') : x.w.fl ? 'Fördererliste' : 'ohne Bedarf';
     const r = h('div', { class: 'pe2-row' + (x.v.key === sel ? ' sel' : '') + (d === 'reject' ? ' rejected' : ''), role: 'option', tabindex: x.v.key === sel ? '0' : '-1', 'aria-selected': String(x.v.key === sel) },
       h('span', { class: 'pe2-ic ' + x.k, 'aria-label': x.k === 'unassigned' ? 'nicht zuzuordnen' : x.k }, PE_ICON[x.k]),
-      h('div', { class: 'pe2-rm' }, h('div', { class: 'pe2-who' }, mailTeil(x.v, 1) || x.w.art), h('div', { class: 'pe2-what' }, x.w.art + ' · ' + gl)),
+      h('div', { class: 'pe2-rm' }, h('div', { class: 'pe2-who' }, x.w.art), h('div', { class: 'pe2-what' }, (mailTeil(x.v, 1) || 'E-Mail') + (x.w.f ? ' · ' + x.w.f.name.trim() : x.v.fname ? ' · ' + x.v.fname : ''))),
       h('div', { class: 'pe2-meta' }, h('span', null, (mailTeil(x.v, 0) || '').slice(0, 6)), x.k === 'info' ? null : h('span', { class: 'pe2-dec ' + (d || 'open') }, d ? PE_DL[d] : 'offen')));
     r.addEventListener('click', () => { sel = x.v.key; warnAssign = false; zeig(); fokus(); }); return r; };
   const detail = () => {
@@ -305,10 +330,13 @@ async function peDialog(wieder) {
     let zuord = null;
     if (x.k === 'unassigned') {
       const neuT = v.vorhaben ? '＋ Neuer Bedarf: „' + v.vorhaben + '“' + (v.gliederung ? ' (' + v.gliederung + ')' : '') : '＋ Neuen Bedarf anlegen';
-      const sb = h('select', { class: warnAssign && !(a.bedarf || w.b) ? 'warn' : '', 'aria-label': 'bei Bedarf' }, h('option', { value: '' }, 'Bedarf wählen …'), h('option', { value: '__neu', selected: a.bedarf === '__neu' }, neuT), ...D.bedarfe.filter(b => !b.archiv).map(b => h('option', { value: b.id, selected: (a.bedarf || (w.b && w.b.id)) === b.id }, (b.titel || '(ohne Namen)') + (b.gliederung ? ' · ' + b.gliederung : ''))));
-      sb.addEventListener('change', () => { assign[v.key] = Object.assign({}, assign[v.key], { bedarf: sb.value, foerderer: (assign[v.key] || {}).foerderer || (w.brauchtF ? '__neu' : '') }); warnAssign = false; X = W(); zeig(); });
+      const waehle = wert => { const gk0 = gKey(x);                                   // gilt auch für die anderen Vorschläge desselben Vorgangs, die noch nicht zugeordnet sind
+        X.filter(y => y.k === 'unassigned' && (y.v.key === v.key || (gKey(y) === gk0 && !(assign[y.v.key] || {}).bedarf))).forEach(y => { assign[y.v.key] = Object.assign({}, assign[y.v.key], { bedarf: wert, foerderer: (assign[y.v.key] || {}).foerderer || (y.w.brauchtF ? '__neu' : '') }); });
+        warnAssign = false; X = W(); zeig(); };
+      const OPT = [{ v: '__neu', t: neuT, neu: true }, ...D.bedarfe.filter(b => !b.archiv).sort((p, q) => (p.titel || '').localeCompare(q.titel || '', 'de')).map(b => ({ v: b.id, t: b.titel || '(ohne Namen)', s: [b.gliederung, ...b.foerderer.map(f => f.name.trim()).filter(Boolean)].filter(Boolean).join(' · ') }))];
+      const sb = peSuchfeld(OPT, a.bedarf || (w.b && w.b.id) || '', waehle, { warn: warnAssign && !(a.bedarf || w.b), ph: 'Bedarf suchen – z. B. Name, Gliederung, Förderer …', vorschlag: v.fname || v.vorhaben || '' });
       const bb = a.bedarf === '__neu' ? w.b : D.bedarfe.find(b => b.id === (a.bedarf || (w.b && w.b.id)));
-      const sf = w.brauchtF ? h('select', { 'aria-label': 'Förderer', disabled: !bb }, h('option', { value: '__neu' }, v.fname ? '＋ Neu: ' + v.fname : 'Neu anlegen aus Absender'), ...(bb ? bb.foerderer.filter(f => f.name.trim()).map(f => h('option', { value: f.id, selected: a.foerderer === f.id }, f.name.trim())) : [])) : null;
+      const sf = w.brauchtF ? h('select', { class: 'pe2-fsel', 'aria-label': 'Förderer', disabled: !bb }, h('option', { value: '__neu' }, v.fname ? '＋ Neu: ' + v.fname : 'Neu anlegen aus Absender'), ...(bb ? bb.foerderer.filter(f => f.name.trim()).map(f => h('option', { value: f.id, selected: a.foerderer === f.id }, f.name.trim())) : [])) : null;
       if (sf) sf.addEventListener('change', () => { assign[v.key] = Object.assign({}, assign[v.key], { foerderer: sf.value }); X = W(); zeig(); });
       zuord = h('div', { class: 'pe2-zu' }, h('label', null, 'bei Bedarf', sb), sf ? h('label', null, 'Förderer', sf) : null,
         a.bedarf === '__neu' ? h('div', { class: 'pe2-neuhw' }, 'Beim Übernehmen wird der Bedarf „' + w.b.titel + '“' + (w.b.gliederung ? ' (' + w.b.gliederung + ')' : '') + ' neu angelegt – Summe, Zuständige und Freigabe ergänzt du danach auf seiner Seite.') : null);
@@ -325,7 +353,13 @@ async function peDialog(wieder) {
     const segs = h('div', { class: 'pe2-segs' }, ...AKT().map(x => h('div', { class: 'pe2-seg ' + (dec[x.v.key] || '') + (!dec[x.v.key] && x.k !== 'sicher' ? ' unsure' : '') + (x.v.key === sel ? ' cur' : '') })));
     const pstate = c.open ? h('button', { type: 'button', class: 'pe2-open', onclick: () => { filter = 'offen'; sel = AKT().find(x => !dec[x.v.key]).v.key; zeig(); fokus(); } }, 'Noch ' + c.open + ' offen → zeigen') : n ? h('span', { class: 'pe2-done' }, '✓ Alles geprüft') : null;
     const fb = (k, t) => h('button', { type: 'button', 'aria-pressed': String(filter === k), onclick: () => { filter = k; zeig(); } }, t);
-    const rows = h('div', { class: 'pe2-rows', role: 'listbox', 'aria-label': 'Vorschläge' }, ...sichtbar().map(zeile));
+    const rows = h('div', { class: 'pe2-rows', role: 'listbox', 'aria-label': 'Vorschläge' }); let gk = null;
+    for (const x of sichtbar()) { const k = gKey(x);
+      if (k !== gk) { gk = k; const G = AKT().filter(y => gKey(y) === k), alleOk = G.every(y => y.w.ok), offen = G.filter(y => !dec[y.v.key]).length;
+        const kopf = h('div', { class: 'pe2-gk' + (k.startsWith('u:') ? ' ohne' : '') }, h('span', { class: 'pe2-gt', title: gTitel(x) }, gTitel(x)), h('span', { class: 'pe2-gn' }, G.length + (G.length === 1 ? ' Änderung' : ' Änderungen') + (offen ? ' · ' + offen + ' offen' : '')),
+          G.length > 1 && alleOk ? h('button', { type: 'button', class: 'pe2-galle', title: 'Alle Änderungen dieses Vorgangs übernehmen', onclick: () => { G.forEach(y => { dec[y.v.key] = 'accept'; }); sel = naechster(G[G.length - 1].v.key); zeig(); fokus(); } }, '✓ alle') : null);
+        rows.append(kopf); }
+      rows.append(zeile(x)); }
     const inf = INF().length ? [h('button', { type: 'button', class: 'pe2-infohead', 'aria-expanded': String(infoOpen), onclick: () => { infoOpen = !infoOpen; zeig(); } }, (infoOpen ? '▾ ' : '▸ ') + 'Steht schon so drin · ' + INF().length + ' ', h('span', null, 'nur Info')), ...(infoOpen ? INF().map(zeile) : [])] : [];
     const zus = [c.accept && c.accept + ' übernehmen', c.reject && c.reject + ' verworfen', c.later && c.later + ' später', c.open && c.open + ' offen'].filter(Boolean).join(' · ');
     const los = h('button', { type: 'button', class: 'primary pe2-los', disabled: !c.accept && !c.reject, onclick: () => zu('los') }, c.accept ? c.accept + ' übernehmen' : c.reject ? 'Verwerfen bestätigen' : '0 übernehmen');

@@ -2697,3 +2697,25 @@ html[data-bl-theme="dark"] .pe-chip { background: var(--viobg); border-color: va
 .pe-lz { display: flex; justify-content: space-between; gap: 16px; padding: 5px 12px; font-size: 13px; }
 .pe-lz .warn { color: var(--warn); }
 .pe-lfuss { padding: 6px 12px 2px; border-top: 1px solid var(--line3); margin-top: 4px; max-width: 320px; }
+
+/* 0.149: Prüffenster – Vorschläge nach Vorgang gruppiert, Suchfeld für den Bedarf */
+.pe2-gk { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 2px 8px; align-items: center; padding: 10px 16px 6px; background: var(--head); border-bottom: 1px solid var(--line3); position: sticky; top: 0; z-index: 1; }
+.pe2-gk.ohne { background: var(--warnbg); }
+.pe2-gt { font-size: 12.5px; font-weight: 700; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pe2-gn { grid-column: 1; font-size: 11.5px; color: var(--muted); }
+.pe2-galle { grid-column: 2; grid-row: 1 / span 2; border: 1px solid var(--okline); background: var(--okbg); color: var(--okink); font-size: 11.5px; font-weight: 600; border-radius: 999px; padding: 2px 10px; cursor: pointer; }
+.pe2-row { padding-left: 22px; }
+.pe2-sf { position: relative; width: 420px; max-width: 100%; }
+.pe2-sf-in { width: 100%; font-size: 13px; background: var(--input); border: 1px solid var(--line2); border-radius: 6px; padding: 6px 8px; color: var(--ink); letter-spacing: 0; text-transform: none; }
+.pe2-sf-in.warn { border-color: var(--warn); }
+.pe2-sf-in:focus { outline: none; border-color: var(--focus); }
+.pe2-sf-l { position: absolute; left: 0; right: 0; top: calc(100% + 4px); z-index: 5; max-height: 260px; overflow: auto; overscroll-behavior: contain; background: var(--card); border: 1px solid var(--line2); border-radius: 8px; box-shadow: var(--shadow); padding: 4px 0; letter-spacing: 0; text-transform: none; }
+.pe2-sf-o { display: grid; gap: 1px; padding: 6px 12px; cursor: pointer; }
+.pe2-sf-o b { font-size: 13px; font-weight: 600; color: var(--ink); }
+.pe2-sf-o span { font-size: 12px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pe2-sf-o.an, .pe2-sf-o:hover { background: var(--hover); }
+.pe2-sf-o.gew b::after { content: '  ✓'; color: var(--okink); }
+.pe2-sf-o.neu b { color: var(--vioink); }
+.pe2-sf-o.neu { border-bottom: 1px solid var(--line3); }
+.pe2-sf-leer { padding: 6px 12px; font-size: 12.5px; color: var(--muted); font-style: italic; }
+.pe2-zu label { position: relative; }

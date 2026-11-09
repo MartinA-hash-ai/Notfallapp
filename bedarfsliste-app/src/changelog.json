@@ -1,5 +1,14 @@
 [
   {
+    "version": "0.149.0",
+    "date": "2026-11-30T12:00",
+    "items": [
+      "Prüffenster: Bedarf zuordnen über ein Suchfeld statt einer Auswahlliste – leer zeigt es alle Bedarfe alphabetisch zum Blättern, Suchwörter filtern nach Name, Gliederung und Förderer (z. B. „IKEA“); „＋ Neuer Bedarf“ steht immer oben",
+      "Prüffenster: links werden die Vorschläge nach Vorgang zusammengefasst – ein Kopf je Bedarf mit Anzahl der Änderungen und offenen Punkten, darunter alle Änderungen aus den verschiedenen Mails",
+      "„✓ alle“ am Vorgang übernimmt alle Änderungen dieses Bedarfs auf einmal; wird einem Vorschlag ohne Bedarf ein Bedarf zugeordnet, gilt das auch für die anderen Mails desselben Vorhabens"
+    ]
+  },
+  {
     "version": "0.148.0",
     "date": "2026-11-30T10:00",
     "items": [
