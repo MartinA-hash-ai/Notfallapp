@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.150.0",
+    "date": "2026-11-30T15:00",
+    "items": [
+      "Prüffenster: Förderer zuordnen ebenfalls über ein Suchfeld – oben „＋ Neu“, dann die Förderer des Bedarfs, dann die Einträge der Fördererliste",
+      "Ist der Förderer aus der Mail schon beim Bedarf, ist er vorausgewählt (grün, „✓ aus der Mail erkannt“) statt „＋ Neu“",
+      "Rechts entfällt die Pfadzeile (Bedarf › Bereich › Förderer); bei zugeordneten Vorschlägen steht nur noch „bei <Förderer>“",
+      "Lila Hinweiskasten weg: gewählte Felder sind grün, dahinter kurz „wird beim Übernehmen angelegt“ bzw. „✓ aus erster Mail übernommen“; ein neuer Bedarf steht direkt als „Neu: Titel (Gliederung)“ im Feld"
+    ]
+  },
+  {
     "version": "0.149.0",
     "date": "2026-11-30T12:00",
     "items": [

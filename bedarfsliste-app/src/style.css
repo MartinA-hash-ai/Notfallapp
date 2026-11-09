@@ -2719,3 +2719,13 @@ html[data-bl-theme="dark"] .pe-chip { background: var(--viobg); border-color: va
 .pe2-sf-o.neu { border-bottom: 1px solid var(--line3); }
 .pe2-sf-leer { padding: 6px 12px; font-size: 12.5px; color: var(--muted); font-style: italic; }
 .pe2-zu label { position: relative; }
+
+/* 0.150: Zuordnung im Prüffenster – gesetzte Felder grün, Hinweis dahinter statt lila Kasten */
+.pe2-sf-z { display: flex; align-items: center; gap: 10px; }
+.pe2-sf-z .pe2-sf-in { flex: 0 0 420px; max-width: 100%; }
+.pe2-sf { width: auto; }
+.pe2-sf-l { width: 420px; max-width: 100%; right: auto; }
+.pe2-sf-in.gesetzt { background: var(--okbg); border-color: var(--okline); color: var(--okink); font-weight: 600; }
+.pe2-sf-in.gesetzt:focus { background: var(--input); color: var(--ink); font-weight: 400; }
+.pe2-sf-notiz { font-size: 12px; color: var(--okink); white-space: normal; letter-spacing: 0; text-transform: none; font-weight: 400; }
+.pe2-zu { flex-direction: column; align-items: stretch; }

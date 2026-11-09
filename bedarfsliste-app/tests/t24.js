@@ -30,7 +30,7 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   r = await p.evaluate(() => [...document.querySelectorAll('.pe2-rows .pe2-gk')].map(g => g.querySelector('.pe2-gt').textContent + ' – ' + g.querySelector('.pe2-gn').textContent));
   ok(r.length === 2 && /^Zelt für den Katastrophenschutz · Brakel – 4 Änderungen · 1 offen$/.test(r[0]) && /^Ohne Bedarf/.test(r[1]), '0.149: links nach Vorgang gruppiert (ein Kopf je Bedarf): ' + r.join(' | '));
   r = await p.evaluate(() => [document.querySelector('.pe2-val.old').textContent, document.querySelector('.pe2-val.new').textContent, document.querySelector('.pe2-val.new').classList.contains('t-err'), document.querySelector('.pe2-crumb').textContent]);
-  ok(r[0] === 'geplant · 2.000\u00a0€' && /^abgelehnt/.test(r[1]) && r[2] && /Zelt für den Katastrophenschutz \(Brakel\) › Förderplan › Stiftung Test/.test(r[3]), 'Rechts: Pfad, bisher → neu in der Farbe des Stands: ' + r.join(' | '));
+  ok(r[0] === 'geplant · 2.000\u00a0€' && /^abgelehnt/.test(r[1]) && r[2] && r[3] === 'bei Stiftung Test', 'Rechts: nur noch der Förderer (kein Pfad), bisher → neu in der Farbe des Stands: ' + r.join(' | '));
   await p.keyboard.press('s'); await p.waitForTimeout(80);
   r = await p.evaluate(() => [document.querySelector('.pe2-row.sel .pe2-ic').textContent, !!document.querySelector('.pe2-zu .pe2-sf-in')]);
   ok(r.join() === '?,true', 'Taste S: später, weiter zum nicht zuzuordnenden – mit Auswahl des Bedarfs: ' + r.join());
@@ -52,8 +52,8 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   await p.evaluate(() => peScan()); await p.waitForTimeout(200);
   await p.click('header.top .pe-chip'); await p.waitForSelector('.pe2-modal');
   await p.click('.pe2-zu .pe2-sf-in'); await p.waitForTimeout(60);
-  r = await p.evaluate(() => [document.querySelector('.pe2-row.sel .pe2-ic').textContent, document.querySelector('.pe2-crumb').textContent, document.querySelector('.pe2-sf-o b').textContent]);
-  ok(r[0] === '?' && /Teststiftung Nord/.test(r[1]) && /Drohne für den Bevölkerungsschutz/.test(r[1]) && /^＋ Neuer Bedarf: „Drohne für den Bevölkerungsschutz“ \(Geseke\)$/.test(r[2]), 'nicht zuzuordnen: erkannter Förderer und Vorhaben, Auswahl „＋ Neuer Bedarf“: ' + r.join(' | '));
+  r = await p.evaluate(() => [document.querySelector('.pe2-row.sel .pe2-ic').textContent, String(!document.querySelector('.pe2-crumb')), document.querySelector('.pe2-sf-o b').textContent]);
+  ok(r[0] === '?' && r[1] === 'true' && /^＋ Neuer Bedarf: „Drohne für den Bevölkerungsschutz“ \(Geseke\)$/.test(r[2]), 'nicht zuzuordnen: erkannter Förderer und Vorhaben, Auswahl „＋ Neuer Bedarf“: ' + r.join(' | '));
   // 0.149: Suchfeld statt Auswahlliste – leer alle Bedarfe, Suchwörter filtern (auch nach Förderer)
   r = await p.evaluate(() => [document.querySelectorAll('.pe2-sf-o').length, D.bedarfe.filter(b => !b.archiv).length]);
   ok(r[0] === r[1] + 1, 'Suchfeld leer: alle Bedarfe + „Neu“ zum Blättern: ' + r.join('|'));
@@ -66,11 +66,23 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   await p.fill('.pe2-zu .pe2-sf-in', 'xyzxyz'); await p.waitForTimeout(60);
   ok(await p.evaluate(() => /Kein Bedarf gefunden/.test(document.querySelector('.pe2-sf-l').textContent)), 'Suche ohne Treffer: Hinweis, „Neu“ bleibt');
   await p.click('.pe2-sf-o.neu'); await p.waitForTimeout(80);
-  r = await p.evaluate(() => [document.querySelector('.pe2-crumb').textContent, document.querySelector('.pe2-val.new').textContent, !!document.querySelector('.pe2-neuhw'), document.querySelector('.pe2-zu select').selectedOptions[0].textContent]);
-  ok(/^Neu: Drohne für den Bevölkerungsschutz \(Geseke\)/.test(r[0]) && /Entscheidung bis 03\.12\.2026/.test(r[1]) && r[2] && /Teststiftung Nord/.test(r[3]), 'Neuer Bedarf gewählt: Pfad „Neu: …“, Förderer neu aus der Mail, Entscheidung bis: ' + r.join(' | '));
+  r = await p.evaluate(() => [document.querySelectorAll('.pe2-sf-in')[0].value, document.querySelector('.pe2-val.new').textContent, !document.querySelector('.pe2-neuhw') && /angelegt/.test(document.querySelector('.pe2-sf-notiz').textContent) && document.querySelector('.pe2-sf-in').classList.contains('gesetzt'), document.querySelectorAll('.pe2-sf-in')[1].value]);
+  ok(/^Neu: Drohne für den Bevölkerungsschutz \(Geseke\)/.test(r[0]) && /Entscheidung bis 03\.12\.2026/.test(r[1]) && r[2] && /Teststiftung Nord/.test(r[3]), 'Neuer Bedarf gewählt: Feld grün „Neu: …“, kein lila Kasten, Förderer neu aus der Mail, Entscheidung bis: ' + r.join(' | '));
   await p.keyboard.press('a'); await p.waitForTimeout(80); await p.click('.pe2-los'); await p.waitForTimeout(300);
   r = await p.evaluate(() => { const B = D.bedarfe.find(x => x.titel === 'Drohne für den Bevölkerungsschutz'); return B ? [B.gliederung, B.foerderer.map(f => f.name + ':' + f.status + ':' + f.beantragtAm + ':' + f.erwartet).join(), 'peNeu' in B] : ['fehlt']; });
   ok(r.join('|') === 'Geseke|Teststiftung Nord:beantragt:2026-11-01:2026-12-03|false', 'übernommen: neuer Bedarf mit neuem Förderer, beantragt, Entscheidung bis: ' + r.join('|'));
+  // 0.150: mehrere Mails eines Vorhabens – Bedarf einmal wählen, Förderer beim Bedarf vorausgewählt (nicht neu)
+  await writeF(p, ['=== VORSCHLAG ===', 'Art: zusage', 'Vorhaben: Zelt Brakel', 'Förderername: Sparkasse Testhausen', 'Betrag: 3000', 'Sicherheit: sicher', 'Mail: 03.11.2026 | Erste Absenderin | Zusage', '',
+    '=== VORSCHLAG ===', 'Art: antrag', 'Vorhaben: Zelt Brakel', 'Förderername: Sparkasse Testhausen', 'Datum: 01.11.2026', 'Sicherheit: sicher', 'Mail: 01.11.2026 | Zweiter Absender | Antrag'].join('\n'), 'Förderrecherche/Posteingang 2026-11-04.txt');
+  await p.evaluate(() => peScan()); await p.waitForTimeout(200);
+  await p.click('header.top .pe-chip'); await p.waitForSelector('.pe2-modal');
+  await p.waitForTimeout(150); await p.click('.pe2-zu .pe2-sf-in'); await p.keyboard.type('zelt brakel'); await p.waitForTimeout(60); await p.keyboard.press('Enter'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [...document.querySelectorAll('.pe2-sf-in')].map(i => i.value + (i.classList.contains('gesetzt') ? '+' : '')).concat([...document.querySelectorAll('.pe2-sf-notiz')].map(n => n.textContent)));
+  ok(r[0] === 'Zelt für den Katastrophenschutz+' && r[1] === 'Sparkasse Testhausen+' && r.includes('✓ aus der Mail erkannt'), 'Förderer schon beim Bedarf: vorausgewählt statt „＋ Neu“: ' + r.join('|'));
+  await p.click('.pe2-row:not(.sel) >> nth=0'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [document.querySelector('.pe2-sf-in').value, [...document.querySelectorAll('.pe2-sf-notiz')].map(n => n.textContent).join('/')]);
+  ok(r[0] === 'Zelt für den Katastrophenschutz' && /✓ aus erster Mail übernommen/.test(r[1]), 'zweite Mail desselben Vorhabens: Bedarf übernommen mit Hinweis dahinter: ' + r.join('|'));
+  await p.click('.pe2-foot button:text-is("Alle verwerfen")'); await p.click('.pe2-los'); await p.waitForTimeout(250);
   // „Keine Vorschläge“: kein Hinweis
   await writeF(p, 'Keine Vorschläge', 'Förderrecherche/Posteingang 2026-11-07.txt');
   await p.evaluate(() => peScan()); await p.waitForTimeout(200);

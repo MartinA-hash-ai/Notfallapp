@@ -161,8 +161,10 @@ function peWirkung(v, zu = {}) {
   const fid = zu.foerderer || v.foerderer || (peIstNeu(b) ? '__neu' : '');
   let f = b && fid && fid !== '__neu' ? b.foerderer.find(x => x.id === fid) : null;
   if (b && !f && fid === '__neu' && v.fname) f = b.foerderer.find(x => norm(x.name) === norm(v.fname)) || null;   // derselbe neue Förderer aus einem anderen Vorschlag
-  if (b && !f && v.fname) f = peFoerdererIn(b, v.fname);                       // Förderer schon beim Bedarf (Name, Kurzname, Eintrag der Fördererliste)
-  const neuF = b && (fid === '__neu' || (!fid && v.fname && peIstNeu(b))) && !f, fNeu = () => peFoerdererNeu(b, v);
+  if (b && !f && v.fname && !/^fl:/.test(fid)) f = peFoerdererIn(b, v.fname);                       // Förderer schon beim Bedarf (Name, Kurzname, Eintrag der Fördererliste)
+  const flE = /^fl:/.test(fid) && D.fl ? D.fl.liste.find(e => e.id === fid.slice(3)) : null;   // im Prüffenster gewählter Eintrag der Fördererliste
+  if (flE) f = b && b.foerderer.find(x => x.flId === flE.id || kkey(x.name) === kkey(flE.name)) || null;
+  const neuF = b && (fid === '__neu' || !!flE || (!fid && v.fname && peIstNeu(b))) && !f, fNeu = () => peFoerdererNeu(b, flE ? Object.assign({}, v, { fname: flE.name }) : v);
   const F = () => { peBedarfAnlegen(b); return f || (neuF ? (f = fNeu()) : null); };
   const d = peDatum(v.datum), betrag = peBetrag(v.betrag), A = PE_ARTEN.find(a => a[0] === v.art);
   const r = { b, f, art: A ? A[2] : v.art, bereich: 'Förderplan', vorher: '', nachher: '', ton: 't-neu', ok: false, schon: false, fn: null, brauchtF: false };
@@ -245,15 +247,16 @@ const peKind = (v, w) => w.info || (w.schon && w.ok) ? 'info' : !w.b && !w.fl ? 
 
 // Suchfeld mit Liste (statt Auswahlliste): leer = alle Einträge zum Blättern; Wörter filtern Titel und Zusatz (Gliederung, Förderer); Enter wählt den ersten
 function peSuchfeld(OPT, wert, waehle, o = {}) {
-  const akt = OPT.find(x => x.v === wert), inp = h('input', { type: 'text', class: 'pe2-sf-in' + (o.warn ? ' warn' : ''), placeholder: o.ph || 'Suchen …', value: akt ? akt.t : '', 'aria-label': 'Bedarf suchen', autocomplete: 'off', spellcheck: 'false' });
-  const liste = h('div', { class: 'pe2-sf-l', role: 'listbox', hidden: true }), wrap = h('div', { class: 'pe2-sf' }, inp, liste);
+  const akt0 = OPT.find(x => x.v === wert), akt = akt0 && Object.assign({}, akt0, { t: o.anzeige || akt0.t });
+  const inp = h('input', { type: 'text', class: 'pe2-sf-in' + (o.warn ? ' warn' : '') + (akt ? ' gesetzt' : ''), placeholder: o.ph || 'Suchen …', value: akt ? akt.t : '', 'aria-label': o.label || 'Bedarf suchen', autocomplete: 'off', spellcheck: 'false' });
+  const liste = h('div', { class: 'pe2-sf-l', role: 'listbox', hidden: true }), wrap = h('div', { class: 'pe2-sf' }, h('div', { class: 'pe2-sf-z' }, inp, akt && o.notiz ? h('span', { class: 'pe2-sf-notiz', title: o.notizTitel || '' }, o.notiz) : null), liste);
   let L = [], i0 = 0;
   const zeig = () => { const q = norm(inp.value === (akt && akt.t) ? '' : inp.value).split(/\s+/).filter(Boolean);
     L = OPT.filter(x => x.neu || q.every(w => norm(x.t + ' ' + (x.s || '')).includes(w))); i0 = L.length > 1 && q.length ? 1 : 0;
     if (q.length && L.length === 1) i0 = 0;
     liste.replaceChildren(...L.map((x, i) => { const r = h('div', { class: 'pe2-sf-o' + (x.neu ? ' neu' : '') + (i === i0 ? ' an' : '') + (x.v === wert ? ' gew' : ''), role: 'option' }, h('b', null, x.t), x.s ? h('span', null, x.s) : null);
       r.addEventListener('mousedown', e => { e.preventDefault(); waehle(x.v); }); return r; }),
-      ...(q.length && L.length <= 1 ? [h('div', { class: 'pe2-sf-leer' }, 'Kein Bedarf gefunden – oben neu anlegen.')] : []));
+      ...(q.length && L.length <= 1 ? [h('div', { class: 'pe2-sf-leer' }, o.leer || 'Kein Bedarf gefunden – oben neu anlegen.')] : []));
     liste.hidden = false; };
   inp.addEventListener('focus', () => { inp.select(); zeig(); });
   inp.addEventListener('input', zeig);
@@ -320,7 +323,6 @@ async function peDialog(wieder) {
     r.addEventListener('click', () => { sel = x.v.key; warnAssign = false; zeig(); fokus(); }); return r; };
   const detail = () => {
     const x = X.find(y => y.v.key === sel) || X[0], v = x.v, w = x.w, d = dec[v.key], a = assign[v.key] || {};
-    const pfad = w.b ? [h('b', null, (peIstNeu(w.b) ? 'Neu: ' : '') + (w.b.titel || 'Bedarf')), ' (' + (w.b.gliederung || '–') + ') › ' + w.bereich.replace(/ › /g, ' › ') + (w.f ? ' › ' + w.f.name.trim() : w.brauchtF && w.ok ? ' › neu: ' + (v.fname || mailTeil(v, 1) || 'Förderer') : '')] : w.fl ? [h('b', null, 'Fördererliste'), ' › ' + (w.fl.name || '')] : [h('b', null, 'Kein passender Bedarf gefunden'), [v.fname && ' · Förderer: ' + v.fname, v.vorhaben && ' · Vorhaben: ' + v.vorhaben, v.gliederung && ' (' + v.gliederung + ')'].filter(Boolean).join('')];
     const zit = String(v.zitat || '').replace(/^[„"…\s]+|[“"…\s]+$/g, '');
     const mail = h('div', { class: 'pe2-card' }, h('div', { class: 'pe2-mm' }, h('span', null, h('b', null, mailTeil(v, 1) || 'E-Mail'), mailTeil(v, 2) ? ' · „' + mailTeil(v, 2) + '“' : ''), h('span', null, mailTeil(v, 0))),
       zit ? h('div', { class: 'pe2-quote' }, h('span', { class: 'pe2-dim' }, '… '), h('mark', null, zit), h('span', { class: 'pe2-dim' }, ' …')) : h('div', { class: 'pe2-dim' }, 'Kein Belegsatz geliefert.'),
@@ -331,22 +333,31 @@ async function peDialog(wieder) {
     if (x.k === 'unassigned') {
       const neuT = v.vorhaben ? '＋ Neuer Bedarf: „' + v.vorhaben + '“' + (v.gliederung ? ' (' + v.gliederung + ')' : '') : '＋ Neuen Bedarf anlegen';
       const waehle = wert => { const gk0 = gKey(x);                                   // gilt auch für die anderen Vorschläge desselben Vorgangs, die noch nicht zugeordnet sind
-        X.filter(y => y.k === 'unassigned' && (y.v.key === v.key || (gKey(y) === gk0 && !(assign[y.v.key] || {}).bedarf))).forEach(y => { assign[y.v.key] = Object.assign({}, assign[y.v.key], { bedarf: wert, foerderer: (assign[y.v.key] || {}).foerderer || (y.w.brauchtF ? '__neu' : '') }); });
+        X.filter(y => y.k === 'unassigned' && (y.v.key === v.key || (gKey(y) === gk0 && (!(assign[y.v.key] || {}).bedarf || (assign[y.v.key] || {}).von === v.key)))).forEach(y => { assign[y.v.key] = Object.assign({}, assign[y.v.key], { bedarf: wert, von: y.v.key === v.key ? '' : v.key, foerderer: (assign[y.v.key] || {}).foerderer || (y.w.brauchtF ? '__neu' : '') }); });
         warnAssign = false; X = W(); zeig(); };
       const OPT = [{ v: '__neu', t: neuT, neu: true }, ...D.bedarfe.filter(b => !b.archiv).sort((p, q) => (p.titel || '').localeCompare(q.titel || '', 'de')).map(b => ({ v: b.id, t: b.titel || '(ohne Namen)', s: [b.gliederung, ...b.foerderer.map(f => f.name.trim()).filter(Boolean)].filter(Boolean).join(' · ') }))];
-      const sb = peSuchfeld(OPT, a.bedarf || (w.b && w.b.id) || '', waehle, { warn: warnAssign && !(a.bedarf || w.b), ph: 'Bedarf suchen – z. B. Name, Gliederung, Förderer …', vorschlag: v.fname || v.vorhaben || '' });
+      const vonX = a.von && X.find(y => y.v.key === a.von), vonTitel = vonX ? 'übernommen aus der Mail von ' + (mailTeil(vonX.v, 1) || '–') + (mailTeil(vonX.v, 0) ? ' (' + mailTeil(vonX.v, 0) + ')' : '') : '', vonT = vonX ? '✓ aus erster Mail übernommen' : '';
+      const sb = peSuchfeld(OPT, a.bedarf || (w.b && w.b.id) || '', waehle, { warn: warnAssign && !(a.bedarf || w.b), ph: 'Bedarf suchen – z. B. Name, Gliederung, Förderer …',
+        anzeige: a.bedarf === '__neu' && w.b ? 'Neu: ' + w.b.titel + (w.b.gliederung ? ' (' + w.b.gliederung + ')' : '') : '', notiz: vonT || (a.bedarf === '__neu' ? 'wird beim Übernehmen angelegt' : ''), notizTitel: vonTitel });
       const bb = a.bedarf === '__neu' ? w.b : D.bedarfe.find(b => b.id === (a.bedarf || (w.b && w.b.id)));
-      const sf = w.brauchtF ? h('select', { class: 'pe2-fsel', 'aria-label': 'Förderer', disabled: !bb }, h('option', { value: '__neu' }, v.fname ? '＋ Neu: ' + v.fname : 'Neu anlegen aus Absender'), ...(bb ? bb.foerderer.filter(f => f.name.trim()).map(f => h('option', { value: f.id, selected: a.foerderer === f.id }, f.name.trim())) : [])) : null;
-      if (sf) sf.addEventListener('change', () => { assign[v.key] = Object.assign({}, assign[v.key], { foerderer: sf.value }); X = W(); zeig(); });
-      zuord = h('div', { class: 'pe2-zu' }, h('label', null, 'bei Bedarf', sb), sf ? h('label', null, 'Förderer', sf) : null,
-        a.bedarf === '__neu' ? h('div', { class: 'pe2-neuhw' }, 'Beim Übernehmen wird der Bedarf „' + w.b.titel + '“' + (w.b.gliederung ? ' (' + w.b.gliederung + ')' : '') + ' neu angelegt – Summe, Zuständige und Freigabe ergänzt du danach auf seiner Seite.') : null);
+      let sf = null;
+      if (w.brauchtF && bb) {
+        const fwert = w.f && bb.foerderer.includes(w.f) ? w.f.id : /^fl:/.test(a.foerderer || '') ? a.foerderer : '__neu', inB = new Set(bb.foerderer.map(f => f.flId).filter(Boolean));
+        const FO = [{ v: '__neu', t: v.fname ? '＋ Neu: ' + v.fname : '＋ Neu anlegen aus dem Absender', neu: true },
+          ...bb.foerderer.filter(f => f.name.trim()).map(f => ({ v: f.id, t: f.name.trim(), s: 'schon beim Bedarf · ' + (F_ST_L[f.status] || '') })),
+          ...(flAktiv() ? D.fl.liste.filter(e => e.name && !inB.has(e.id) && !bb.foerderer.some(f => kkey(f.name) === kkey(e.name))).sort((p, q) => p.name.localeCompare(q.name, 'de')).map(e => ({ v: 'fl:' + e.id, t: e.name, s: 'aus der Fördererliste' + (e.kurz ? ' · ' + e.kurz : '') })) : [])];
+        sf = peSuchfeld(FO, fwert, wert => { assign[v.key] = Object.assign({}, assign[v.key], { foerderer: wert, fWahl: true }); X = W(); zeig(); },
+          { label: 'Förderer suchen', ph: 'Förderer suchen …', leer: 'Kein Förderer gefunden – oben neu anlegen.', anzeige: fwert === '__neu' && v.fname ? 'Neu: ' + v.fname : '',
+            notiz: fwert !== '__neu' && !a.fWahl ? '✓ aus der Mail erkannt' : fwert === '__neu' ? 'wird beim Übernehmen angelegt' : '' });
+      }
+      zuord = h('div', { class: 'pe2-zu' }, h('label', null, 'bei Bedarf', sb), sf ? h('label', null, 'Förderer', sf) : null);
     }
-    const status = x.k === 'info' ? null : d === 'accept' ? ['wird übernommen', 'ok'] : d === 'reject' ? ['wird verworfen', 'err'] : d === 'later' ? ['bleibt für später', 'muted'] : [x.k === 'unassigned' ? (warnAssign ? 'Erst einen Bedarf wählen' : 'Zuordnen oder ignorieren') : 'Bitte bewusst entscheiden', 'warn'];
+    const status = x.k === 'info' ? null : d === 'accept' ? ['wird übernommen', 'ok'] : d === 'reject' ? ['wird verworfen', 'err'] : d === 'later' ? ['bleibt für später', 'muted'] : [x.k === 'unassigned' && !w.ok ? (warnAssign ? 'Erst einen Bedarf wählen' : 'Zuordnen oder ignorieren') : 'Bitte bewusst entscheiden', 'warn'];
     const knopf = (dd, cls, t, kbd) => { const bt = h('button', { type: 'button', class: 'pe2-act ' + cls, 'aria-pressed': String(d === dd) }, t, h('kbd', null, kbd)); bt.addEventListener('click', () => entscheiden(v.key, dd)); return bt; };
     const akt = x.k === 'info' ? h('div', { class: 'pe2-infonote' }, w.info || '= Steht schon so in der Bedarfsliste. Es wird nichts geändert.')
       : h('div', { class: 'pe2-actions', role: 'group', 'aria-label': 'Entscheidung' }, knopf('accept', 'a', '✓ Übernehmen', 'A'), knopf('reject', 'r', '✕ ' + (x.k === 'unassigned' ? 'Ignorieren' : 'Verwerfen'), 'X'), knopf('later', 'l', 'Später', 'S'), h('span', { class: 'pe2-status ' + status[1] }, status[0]));
     return [mail, h('div', { class: 'pe2-cap' }, 'Daraus wird in der Bedarfsliste'),
-      h('div', { class: 'pe2-card pe2-change' }, h('span', { class: 'pe2-crumb' }, ...pfad), h('div', { class: 'pe2-art' }, w.art, norm(v.sicherheit) === 'unsicher' && x.k !== 'info' ? h('span', { class: 'pe2-tag' }, '! unsicher') : null), bisherNeu, zuord, akt)];
+      h('div', { class: 'pe2-card pe2-change' }, x.k !== 'unassigned' && w.f ? h('span', { class: 'pe2-crumb' }, 'bei ', h('b', null, w.f.name.trim())) : null, h('div', { class: 'pe2-art' }, w.art, norm(v.sicherheit) === 'unsicher' && x.k !== 'info' ? h('span', { class: 'pe2-tag' }, '! unsicher') : null), bisherNeu, zuord, akt)];
   };
   const zeig = () => {
     const c = zahlen(), n = AKT().length, fertig = n - c.open;
