@@ -43,7 +43,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('.mtable th.gr-ph.nach .ph-tog'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => UI.phMiniN === true && !UI.phMini && !!document.querySelector('tr[data-m="ev1"] td.ph.nach.mini') && !!document.querySelector('.mtable td.ph:not(.nach) input')), 'B2: rechts einklappen – links bleibt aufgeklappt');
   await p.click('.mtable th.gr-ph.nach .ph-tog'); await p.waitForTimeout(200);
-  await p.click('.mtable th.gr-ph.nach .vswitch .vs-track'); await p.waitForTimeout(200);
+  await p.click('.mtable th.gr-ph.nach .vswitch .vs-lab[data-v="wt"]'); await p.waitForTimeout(200);
   ok(await p.evaluate(() => UI.startViewN === 'wt' && UI.startView === 'date' && !!document.querySelector('[data-fk="m:ev1:L:wt"]') && !document.querySelector('.mtable td.ph:not(.nach) input[type=number]') && UI_KEYS.includes('phMiniN') && UI_KEYS.includes('startViewN')),
     'B2: rechts auf Werktage – links bleibt Datum (beides gemerkt)');
   await p.click('.mtable th.gr-ph:not(.nach) .ph-tog'); await p.waitForTimeout(200);

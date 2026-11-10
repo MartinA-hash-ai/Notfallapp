@@ -10,8 +10,12 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => { UI.startView = 'wt'; renderNow(); });
   const hw = await head();
   await p.evaluate(() => { UI.startView = 'date'; renderNow(); });
-  ok(hd === 'Start der / SelektionS | Start des / InhaltsI | Start der / ProduktionD' && hw === 'Zeit bis PAL für / SelektionS | Zeit bis PAL für / InhaltI | Zeit bis PAL für / ProduktionD',
+  ok(hd === 'Start der / SelektionS | Start des / InhaltsI | Start der / ProduktionD' && hw === 'bis PAL S / Selektion | bis PAL I / Inhalt | bis PAL D / Produktion',
     'A: Kopf Datum „' + hd + '“ · Werktage „' + hw + '“');
+  // 0.53.2: Spalten nur so breit wie nötig – Datum: gemessene Breite (Schrift) + Kalender-Symbol, Werktage 80 px
+  const cw = await p.evaluate(async () => { const w = () => Math.round(document.querySelector('.mtable th.h-ph_S').getBoundingClientRect().width), d = w(), dw = dateW().ph;
+    UI.startView = 'wt'; renderNow(); await new Promise(r => setTimeout(r, 100)); const t = w(); UI.startView = 'date'; renderNow(); return [d, dw, t]; });
+  ok(cw[0] === cw[1] + 10 && cw[0] < 122 && cw[2] === 80, 'A: Spaltenbreite Datum ' + cw[0] + ' px (vorher 122), Werktage ' + cw[2] + ' px (vorher 112)');
 
   // ---- B: leeres Datum → hellgrauer Strich mit Kalendersymbol, beim Anklicken wieder normales Feld
   const id = await p.evaluate(() => C.ms.find(x => x.m.name === 'Projekt-Update 1').id);

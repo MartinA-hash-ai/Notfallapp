@@ -2285,3 +2285,17 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .mtable .gr-ph .ph-tog .ico svg { width: 13px; height: 13px; }
 .mtable .gr-ph.nach .gr-phin { gap: 6px; }
 .mtable .gr-ph.nach .vswitch .vs-lab { padding-left: 2px; padding-right: 2px; }
+/* 0.53.2: Bereichs- und PAL-Spalten nur so breit wie nötig – Eingabefeld so breit wie sein Inhalt, Kalender-Symbol direkt dahinter */
+.mtable td.date.ph:not(.wt) input[type=date]:not(.noval), .mtable td.date.ph:not(.wt) input[type=date]:focus { width: var(--dw, 96px) !important; }
+.mtable td.date.pal input[type=date]:not(.noval), .mtable td.date.pal input[type=date]:focus { width: var(--dwp, 104px) !important; }
+.mtable td.date.wt input[type=number] { width: 32px !important; padding-left: 2px; padding-right: 2px; }
+.mtable td.date.wt .wtbox { gap: 2px; }
+.mtable th .th2 small { white-space: nowrap; }
+.vswitch.mini { gap: 1px; }
+.vswitch.mini .vs-lab { display: inline-flex; align-items: center; padding: 1px 4px; border-radius: 4px; font-size: 10px; font-weight: 600; }
+.vswitch.mini .vs-lab.act { background: var(--head2); color: var(--ink2); }
+.vswitch.mini .vs-lab .ico svg { width: 11px; height: 11px; }
+.mtable td.date.ph { position: relative; }
+.mtable td.date.ph > .wi { position: absolute; top: 1px; right: 2px; margin: 0; font-size: 10px; line-height: 1; }   /* Hinweis klein in der Ecke – braucht keine eigene Breite */
+.mtable th.h-ph { padding-right: 5px; }
+.mtable th .th2 small .chip { transform: scale(.85); vertical-align: -2px; }

@@ -1,7 +1,17 @@
 [
   {
-    "version": "0.53.1",
+    "version": "0.53.2",
     "date": "",
+    "items": [
+      "Tabelle: Spalten der Bereiche und des PAL nur so breit wie nötig – das Datumsfeld ist so breit wie das Datum (in der Schrift dieses Rechners gemessen), das Kalender-Symbol direkt dahinter; Werktage-Spalten 80 statt 112 px",
+      "Werktage-Ansicht: oben „bis PAL [S]“ bzw. „nach PAL [L]“, darunter der Name – passt in die schmale Spalte; Hinweis ⚠ klein in der Ecke der Zelle",
+      "Schmale Gruppe (eine oder zwei Spalten): Umschalter Datum/Werktage als zwei kleine Knöpfe (Kalender | WT)",
+      "Früher von Hand gezogene Breiten dieser Spalten gelten nicht mehr (neu ziehen ist weiter möglich)"
+    ]
+  },
+  {
+    "version": "0.53.1",
+    "date": "2026-11-10T14:43",
     "items": [
       "Tabelle: die Bereiche vor und hinter dem PAL lassen sich unabhängig voneinander ein- und ausklappen und je für sich auf Datum oder Werktage stellen (wird gemerkt)",
       "Ein-/Ausklappen als Symbol statt Wort: Pfeile nach außen = aufklappen, nach innen = einklappen"
