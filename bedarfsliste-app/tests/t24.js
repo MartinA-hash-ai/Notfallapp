@@ -92,7 +92,7 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   await p.evaluate(() => peScan()); await p.waitForTimeout(200);
   ok(await p.evaluate(() => !document.querySelector('.pe-chip') && PE.laeufe.some(l => l.datum === '2026-11-07' && /Keine Vorschläge/.test(l.erg))), '„Keine Vorschläge“ (ältere Einzeldatei): kein Hinweis, Lauf bekannt');
   // 0.147: eine feste Datei „Posteingang.txt“ mit Läufen; Anzeige „geprüft …“ auch ohne Vorschläge
-  ok(await p.evaluate(() => Object.keys(__fs.files).some(k => k.endsWith('/Förderrecherche/Posteingang.txt')) && /Lege KEINE neue Datei an/.test(peAuftragText()) && /##### LAUF/.test(peAuftragText())), 'Programm legt „Posteingang.txt“ an; Auftrag: nur anhängen, keine neuen Dateien');
+  ok(await p.evaluate(() => Object.keys(__fs.files).some(k => k.endsWith('/Förderrecherche/Posteingang.txt')) && /Lege je Lauf eine NEUE Textdatei in deinem Arbeitsordner an \(OneDrive „Dokumente\/Cowork“\)/.test(peAuftragText()) && /Schreibe NICHT in den SharePoint-Ordner/.test(peAuftragText()) && /##### LAUF/.test(peAuftragText()) && /^LETZTER LAUF: /m.test(peUeberblickText())), 'Programm legt „Posteingang.txt“ an; Auftrag (0.157): je Lauf eine neue Datei in „Dokumente/Cowork“, nichts in SharePoint; Überblick mit LETZTER LAUF');
   const heute = await p.evaluate(() => today());
   await writeF(p, ['POSTEINGANG – Kopf', '##### LAUF ' + heute + ' 06:02 #####', 'Lauf-Ergebnis: Keine Vorschläge'].join('\r\n'), 'Förderrecherche/Posteingang.txt');
   await p.evaluate(() => peScan()); await p.waitForTimeout(250);
@@ -126,5 +126,18 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   await p.click('.pe-einst-modal footer button.primary'); await p.waitForTimeout(300);
   r = await p.evaluate(() => [D.settings.mailAusw.C, /- fl_frist:/.test(peAuftragText())]);
   ok(r.join() === 'true,true', 'Einstellungen: Gruppe C eingeschaltet → Auftrag sucht auch neue Fristen: ' + r.join());
+  // 0.157: je Lauf eine Datei im Arbeitsordner von Copilot (OneDrive „Dokumente/Cowork“, auch Unterordner)
+  await p.evaluate(async () => { const o = await showDirectoryPicker(); __fs.files['/Ordner/Cowork/Ergebnisse/Posteingang_LAUF_2026-11-20_06-05.txt'] = { data: new TextEncoder().encode('\ufeff##### LAUF 2026-11-20 06:05 #####\nLauf-Ergebnis: 1 Vorschlag\n\n=== VORSCHLAG ===\nArt: zusage\nBedarf: b1\nFörderer: f2\nBetrag: 2500\nSicherheit: sicher\nMail: 19.11.2026 | Stiftung Test | Zusage'), lm: 99001 };
+    __fs.files['/Ordner/Cowork/Notiz.txt'] = { data: new TextEncoder().encode('x'), lm: 99002 };
+    PE.cw = await o.getDirectoryHandle('Cowork'); D.settings.coworkOrdner = 'Cowork'; await peScan(); });
+  await p.waitForTimeout(400);
+  r = await p.evaluate(() => [PE.L.filter(v => /^L2026-11-20 06:05#/.test(v.key)).length, PE.laeufe.some(l => l.datum === '2026-11-20' && l.zeit === '06:05'), /##### LAUF 2026-11-20 06:05 #####/.test(new TextDecoder().decode(__fs.files['/Ordner/Förderrecherche/Posteingang.txt'].data))]);
+  ok(r.join('|') === '1|true|true', 'Cowork-Ordner: Datei aus dem Unterordner eingelesen, Lauf bekannt, unverändert an Posteingang.txt angehängt: ' + r.join('|'));
+  await p.evaluate(() => peScan()); await p.waitForTimeout(300);
+  r = await p.evaluate(() => [PE.L.filter(v => /^L2026-11-20 06:05#/.test(v.key)).length, (new TextDecoder().decode(__fs.files['/Ordner/Förderrecherche/Posteingang.txt'].data).match(/LAUF 2026-11-20 06:05/g) || []).length]);
+  ok(r.join('|') === '1|1', 'zweites Einlesen: nicht doppelt angezeigt und nicht doppelt angehängt: ' + r.join('|'));
+  r = await p.evaluate(async () => { __fs.perm = 'prompt'; await peScan(); renderNow(); return [PE.cwZ, (document.querySelector('header.top [data-act="pe-cw-erlauben"]') || {}).textContent || '']; });
+  await p.evaluate(() => { __fs.perm = 'granted'; });
+  ok(r[0] === 'zugriff', 'ohne Freigabe des Browsers: Zustand „zugriff“ (Knopf oben, wenn keine Vorschläge offen): ' + r.join('|'));
   await finish(b, [p]);
 })();

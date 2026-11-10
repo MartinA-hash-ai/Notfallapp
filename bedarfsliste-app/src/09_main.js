@@ -564,6 +564,7 @@ async function act(k, a, e) {
     case 'einst': einstellungen(); return;
     case 'export': exportDialog(); return;
     case 'pe-oeffnen': peDialog(); return;
+    case 'pe-cw-erlauben': peCoworkErlauben(); return;
     case 'pe-laeufe': if ($('.pe-laeufe')) closeMenus(); else peLaeufePop(a); return;
     case 'about': closeMenus(); about(); return;
     case 'undo': undo(); return;

@@ -2746,3 +2746,8 @@ html[data-bl-theme="dark"] .pe-chip { background: var(--viobg); border-color: va
 /* 0.156: ganz abgeschlossener Bedarf – hinter dem Ort nur grün „abgeschlossen (archiviert in X Tagen)“ */
 td.k-abg { vertical-align: middle; }
 td.k-abg .kz { color: var(--e5ink); }
+
+/* 0.157: erledigte Bedarfe so dezent wie zurückgestellte; Cowork-Ordner in den Einstellungen */
+table.list tbody tr.fertig-z { opacity: .4; }
+table.list tbody tr.fertig-z:hover, table.list tbody tr.fertig-z:focus { opacity: .75; }
+.pe-cw { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 4px 0 8px; }

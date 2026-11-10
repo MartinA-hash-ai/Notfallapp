@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.157.0",
+    "date": "2026-12-01T12:00",
+    "items": [
+      "E-Mail-Auswertung ohne Bestätigung in Copilot: Copilot legt je Lauf eine neue Datei „Posteingang_LAUF_JJJJ-MM-TT_HH-MM.txt“ in seinem Arbeitsordner (OneDrive „Dokumente/Cowork“) an und schreibt nichts mehr in den SharePoint-Ordner",
+      "Einstellungen → E-Mail-Auswertung: „Cowork-Ordner verbinden“ (einmal); das Programm liest dort alle Lauf-Dateien (auch in Unterordnern), zeigt jeden Lauf nur einmal und hängt ihn unverändert an „Posteingang.txt“ an",
+      "Fragt der Browser nach einem Neustart wieder nach der Freigabe, steht oben „Copilot-Ergebnisse freigeben“ (ein Klick)",
+      "Auftrag und Einweisung für Copilot angepasst; der Überblick nennt oben den letzten bekannten Lauf („LETZTER LAUF“)",
+      "Liste: abgeschlossene Bedarfe so dezent (blass) wie zurückgestellte"
+    ]
+  },
+  {
     "version": "0.156.0",
     "date": "2026-12-01T10:00",
     "items": [
