@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.160.0",
+    "date": "2026-12-01T18:00",
+    "items": [
+      "E-Mail-Auswertung: ein gemeldeter neuer Bedarf ist jetzt ein normaler Vorschlag statt eines reinen Hinweises – im Feld „bei Bedarf“ steht „Neu: …“ vorgewählt; beim Übernehmen wird er mit Name, Gliederung, Summe (falls genannt) und Beschreibung angelegt; ein vorhandener Bedarf lässt sich stattdessen suchen",
+      "Auftrag für Copilot: beim neuen Bedarf Vorhaben, Gliederung und Betrag getrennt angeben; Hinweis in den Einstellungen nennt „OneDrive – MalteserCloud“"
+    ]
+  },
+  {
     "version": "0.159.0",
     "date": "2026-12-01T17:00",
     "items": [

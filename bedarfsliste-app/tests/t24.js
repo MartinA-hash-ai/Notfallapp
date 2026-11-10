@@ -152,5 +152,18 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   r = await p.evaluate(async () => { __fs.perm = 'prompt'; await peScan(); renderNow(); return [PE.cwZ, (document.querySelector('header.top [data-act="pe-cw-erlauben"]') || {}).textContent || '']; });
   await p.evaluate(() => { __fs.perm = 'granted'; });
   ok(r[0] === 'zugriff', 'ohne Freigabe des Browsers: Zustand „zugriff“ (Knopf oben, wenn keine Vorschläge offen): ' + r.join('|'));
+  // 0.160: gemeldeter neuer Bedarf = normaler Vorschlag, „Neu: …“ vorgewählt, beim Übernehmen angelegt
+  await p.evaluate(() => { __fs.perm = 'granted'; for (const k of Object.keys(__fs.files)) if (k.startsWith('/Ordner/Cowork/')) delete __fs.files[k]; });
+  await writeF(p, ['=== VORSCHLAG ===', 'Art: neuer_bedarf', 'Vorhaben: LKW-Führerscheine Einsatzdienste', 'Gliederung: Geseke', 'Betrag: 2400', 'Wert: Anfrage, ob LKW-Führerscheinerweiterungen förderbar sind.', 'Sicherheit: unsicher', 'Mail: 10.11.2026 | Kollege | Führerscheine'].join('\n'), 'Förderrecherche/Posteingang 2026-11-03.txt');
+  await p.evaluate(() => peScan()); await p.waitForTimeout(250);
+  r = await p.evaluate(() => { const v = PE.L.find(x => x.art === 'neuer_bedarf'); return v ? peKind(v, peWirkung(v, {})) : 'fehlt'; });
+  ok(r === 'unassigned', 'neuer Bedarf ist ein normaler Vorschlag (kein reiner Hinweis): ' + r);
+  await p.click('header.top .pe-chip'); await p.waitForSelector('.pe2-modal'); await p.waitForTimeout(150);
+  await p.click('.pe2-row:has-text("Neuer Bedarf angemeldet")'); await p.waitForTimeout(150);
+  r = await p.evaluate(() => [document.querySelector('.pe2-sf-in').value, document.querySelector('.pe2-val.new').textContent, PE.L.filter(x => x.art === 'neuer_bedarf').some(x => peKind(x, peWirkung(x, {})) === 'info')]);
+  ok(r[0] === 'Neu: LKW-Führerscheine Einsatzdienste (Geseke)' && /wird angelegt/.test(r[1]) && !r[2], 'Prüffenster: „Neu: …“ vorgewählt, nicht mehr unter „nur Info“: ' + r.join(' | '));
+  await p.keyboard.press('a'); await p.waitForTimeout(80); await p.click('.pe2-los'); await p.waitForTimeout(300);
+  r = await p.evaluate(() => { const B = D.bedarfe.find(x => x.titel === 'LKW-Führerscheine Einsatzdienste'); return B ? [B.gliederung, B.summe, B.beschreibung] : ['fehlt']; });
+  ok(r.join('|') === 'Geseke|2400|Anfrage, ob LKW-Führerscheinerweiterungen förderbar sind.', 'übernommen: neuer Bedarf mit Gliederung, Summe und Beschreibung: ' + r.join('|'));
   await finish(b, [p]);
 })();

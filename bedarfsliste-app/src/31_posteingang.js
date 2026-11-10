@@ -50,7 +50,7 @@ const PE_ARTEN = [
   ['uebergabe_termin', 'B', 'Termin der Spendenübergabe', 'Termin der Spendenübergabe vereinbart. Datum, Uhrzeit (HH:MM), Ort.'],
   ['presse', 'B', 'Presse und Öffentlichkeit', 'Intern: jemand aus Presse und Öffentlichkeit kommt zur Spendenübergabe, schreibt die Pressemitteilung oder stimmt sie mit dem Förderer ab. Person = Vor- und Nachname der Person aus Presse und Öffentlichkeit (nicht der Empfänger der E-Mail); Wert = kurz, was sie übernimmt (z. B. „Pressemitteilung, Entwurf an Förderer zur Abstimmung“).'],
   ['geldeingang', 'B', 'Geldeingang', 'Das Geld ist eingegangen (z. B. Meldung der Buchhaltung). Betrag in Euro, Datum des Eingangs.'],
-  ['neuer_bedarf', 'C', 'Neuer Bedarf angemeldet', 'Eine Gliederung meldet einen neuen Bedarf an, der im Überblick noch fehlt. Wert = Bedarf in einem Satz mit Gliederung und Summe (nur Hinweis, wird nicht automatisch angelegt).'],
+  ['neuer_bedarf', 'C', 'Neuer Bedarf angemeldet', 'Eine Gliederung meldet einen neuen Bedarf an oder fragt, ob etwas förderbar ist, das im Überblick noch fehlt. Vorhaben = in wenigen Worten, Gliederung = Ort bzw. Gliederung, Betrag = Summe (nur wenn genannt), Wert = ein Satz, worum es geht. Bedarf-Kennung leer lassen.'],
   ['fl_frist', 'C', 'Neue Frist eines Förderers', 'Ein Förderer aus der Fördererliste nennt eine neue Antragsfrist (keine Werbe-Newsletter ohne Bezug). Fördererliste = Kennung F…; Datum = Frist.'],
   ['pressemitteilung', 'C', 'Pressemitteilung erschienen', 'Die Pressemitteilung zum Bedarf ist erschienen. Datum.']];
 const PE_GRUPPEN = { A: 'Von Förderern (extern)', B: 'Von den Maltesern (intern)', C: 'Zusätzlich (mehr Hinweise, mehr Rauschen)' };
@@ -263,7 +263,12 @@ function peWirkung(v, zu = {}) {
     case 'pressemitteilung': r.bereich = 'Nacharbeit'; r.vorher = b ? 'Pressemitteilung: ' + (b.nach.pm.st === 'erledigt' ? 'erschienen' : 'offen') : '–'; r.nachher = 'erschienen' + (d ? ' am ' + fmtDate(d) : ''); r.ton = 't-ok'; r.ok = !!b; r.schon = !!b && b.nach.pm.st === 'erledigt'; r.fn = () => { b.nach.pm.st = 'erledigt'; if (d) b.nach.pm.datum = d; }; break;
     case 'fl_frist': { const e = flAktiv() && flEintrag(v.fl); r.bereich = 'Fördererliste'; r.fl = e; r.vorher = e ? (e.fristenL.length ? e.fristenL.map(x => fristText(x.d)).join(', ') : 'keine Frist') : '–'; r.nachher = 'Frist ' + (d ? fmtDate(d) : '?'); r.ok = !!e && !!d; r.schon = !!e && e.fristenL.some(x => x.d === d);
       r.fn = () => { e.fristenL.push({ id: uid('fr'), d, topf: e.topfe.length ? e.topfe[0].name : '' }); }; break; }
-    case 'neuer_bedarf': r.bereich = 'Neuer Bedarf'; r.nachher = v.wert || '?'; r.info = 'Neuer Bedarf – über den KI-Knopf „Bedarf aus Daten erstellen“ anlegen.'; break;
+    case 'neuer_bedarf': r.bereich = 'Neuer Bedarf'; r.vorher = '–';                // ab 0.160: wie jeder Vorschlag – „＋ Neuer Bedarf“ ist vorgewählt, beim Übernehmen wird er angelegt
+      if (!b) { r.nachher = v.wert || v.vorhaben || '?'; break; }
+      if (peIstNeu(b)) { r.nachher = 'wird angelegt: ' + b.titel + (b.gliederung ? ' (' + b.gliederung + ')' : '') + (betrag ? ' · ' + eur(betrag) : ''); r.ok = true;
+        r.fn = () => { if (betrag && !b.summe) b.summe = betrag; if (v.wert && !b.beschreibung) b.beschreibung = v.wert; }; }
+      else { r.nachher = 'gibt es schon: ' + (b.titel || 'Bedarf'); r.ok = true; r.fn = () => {}; }
+      break;
     default: r.nachher = v.wert || v.art;
   }
   if (peIstNeu(b) && r.fn) { const fn0 = r.fn; r.fn = () => { peBedarfAnlegen(b); fn0(); peMitFoerderer(b, v); }; r.ok = r.ok || !!r.fn; }
@@ -289,9 +294,10 @@ function peFoerdererNeu(b, v) {
 // neuer Bedarf aus dem Vorhaben einer E-Mail: vorläufig (je Vorhaben einer, auch für mehrere Vorschläge), erst beim Übernehmen in die Liste
 const PE_NEU = {};
 function peNeuerBedarf(v) {
-  const k = norm((v.vorhaben || v.fname || 'neu') + '|' + (v.gliederung || '')); if (PE_NEU[k]) return PE_NEU[k];
+  const k = norm((v.vorhaben || v.fname || (v.art === 'neuer_bedarf' ? v.wert : '') || 'neu') + '|' + (v.gliederung || '')); if (PE_NEU[k]) return PE_NEU[k];
   const gl = v.gliederung ? (GL_LIST.find(g => norm(v.gliederung).includes(norm(g))) || (istDio(v.gliederung) ? DIO : v.gliederung.trim())) : '';
-  const b = Object.assign(blank(), { titel: (v.vorhaben || 'Neuer Bedarf' + (v.fname ? ' (' + v.fname + ')' : '')).trim(), gliederung: gl }); PE_NEU_B.add(b); return (PE_NEU[k] = b);
+  const kurz = String(v.wert || '').split(/[.;:!?]\s|\s[–-]\s/)[0].trim().slice(0, 80);
+  const b = Object.assign(blank(), { titel: (v.vorhaben || (v.art === 'neuer_bedarf' && kurz) || 'Neuer Bedarf' + (v.fname ? ' (' + v.fname + ')' : '')).trim(), gliederung: gl }); PE_NEU_B.add(b); return (PE_NEU[k] = b);
 }
 const PE_NEU_B = new WeakSet(), peIstNeu = b => !!b && PE_NEU_B.has(b) && !D.bedarfe.includes(b);
 function peBedarfAnlegen(b) { if (peIstNeu(b)) D.bedarfe.push(b); }
@@ -351,7 +357,8 @@ const PE_ICON = { sicher: '✓', unsicher: '!', unassigned: '?', info: '=' }, PE
 async function peDialog(wieder) {
   if (!PE.L.length) { toast('Keine neuen Vorschläge aus E-Mails.'); return; }
   const E0 = peEnt(), assign = {}, dec = {};
-  PE.L.forEach(v => { const e = E0[v.key] || {}; if (e.bedarf || e.foerderer) assign[v.key] = { bedarf: e.bedarf || '', foerderer: e.foerderer || '' }; });
+  PE.L.forEach(v => { const e = E0[v.key] || {}; if (e.bedarf || e.foerderer) assign[v.key] = { bedarf: e.bedarf || '', foerderer: e.foerderer || '' };
+    else if (v.art === 'neuer_bedarf' && !v.bedarf) assign[v.key] = { bedarf: '__neu', foerderer: '' }; });                  // gemeldeter neuer Bedarf: „＋ Neuer Bedarf“ vorgewählt
   if (wieder) Object.assign(dec, wieder);
   const W = () => PE.L.map(v => { const w0 = peWirkung(v, {}), k0 = peKind(v, w0), w = assign[v.key] ? peWirkung(v, assign[v.key]) : w0; return { v, w, k: k0 === 'unassigned' ? 'unassigned' : peKind(v, w) }; });
   const mailTeil = (v, i) => String(v.mail || '').split('|').map(s => s.trim())[i] || '';
@@ -517,7 +524,7 @@ async function peEinstDialog() {
   const body = h('div', { class: 'pe-einst' },
     h('p', null, 'Copilot Cowork liest werktags früh deine E-Mails (alle Ordner) und schlägt vor, was sich geändert hat. Übernommen wird erst, wenn du es bestätigst.'),
     h('h3', null, 'Wo Copilot seine Ergebnisse ablegt'),
-    h('p', null, 'Copilot darf ohne Rückfrage nur neue Dateien in seinem Arbeitsordner anlegen: OneDrive „' + PE_CW + '“. Verbinde diesen Ordner einmal (im Explorer meist unter „OneDrive – Malteser › Dokumente › Cowork“) – das Programm holt die Ergebnisse dort ab und hängt sie an „' + PE_DATEI + '“ an.'),
+    h('p', null, 'Copilot darf ohne Rückfrage nur neue Dateien in seinem Arbeitsordner anlegen: OneDrive „' + PE_CW + '“. Verbinde diesen Ordner einmal (im Explorer meist unter „OneDrive – MalteserCloud › Dokumente › Cowork“) – das Programm holt die Ergebnisse dort ab und hängt sie an „' + PE_DATEI + '“ an.'),
     h('div', { class: 'pe-cw' }, h('button', { type: 'button', onclick: async () => { if (await peCoworkVerbinden()) cwT.textContent = 'Verbunden: „' + D.settings.coworkOrdner + '“'; } }, D.settings.coworkOrdner ? 'Anderen Ordner wählen …' : 'Cowork-Ordner verbinden …'),
       cwT, h('button', { type: 'button', class: 'link small', onclick: () => peAbholen(cwI) }, 'Jetzt abholen')),
     cwI,
