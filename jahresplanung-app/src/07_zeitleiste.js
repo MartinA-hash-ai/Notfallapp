@@ -60,7 +60,7 @@ function timelineSection(opts = {}) {
     const open = x.pc && tlOpen.has(x.id);
     const lab = h('div', { class: 'tl-lab clickable', dataset: { m: x.id }, tip: 'Klicken: auf diese Maßnahme zoomen', onmouseenter: () => highlight(x.id), onmouseleave: () => highlight(null),
       onclick: e => { if (!e.target.closest('button')) tlZoomTo(x); } },
-      x.pc ? h('button', { class: 'tog', 'aria-label': 'Detailplan auf-/zuklappen', onclick: () => { tlOpen.has(x.id) ? tlOpen.delete(x.id) : tlOpen.add(x.id); renderNow(); } }, open ? '▾' : '▸') : h('span', { class: 'tog' }),
+      x.pc && !UI.printing ? h('button', { class: 'tog',   /* im PDF überall derselbe Platzhalter (0.52.1) */ 'aria-label': 'Detailplan auf-/zuklappen', onclick: () => { tlOpen.has(x.id) ? tlOpen.delete(x.id) : tlOpen.add(x.id); renderNow(); } }, open ? '▾' : '▸') : h('span', { class: 'tog' }),
       h('span', { class: 'dot', style: { background: x.color } }),
       h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'),
       ws.length ? h('span', { class: 'wicon', tip: () => h('div', null, ws.map(w => h('div', null, '⚠ ' + w.text))) }, '⚠') : null,

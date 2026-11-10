@@ -234,7 +234,7 @@ function buildPrintDoc(f) {
         PH().map(p => UI.phMini ? h('td', { class: 'st phm' }, x.st[p.key] != null ? '✓' : '') :          // eingeklappt (wie in der Tabelle): nur ein Häkchen, wo ein Start eingetragen ist
           h('td', { class: 'st' }, x.st[p.key] != null ? [h('div', null, fmtW(x.st[p.key])), x.pal != null ? h('div', { class: 'wt' }, workdaysBefore(x.st[p.key], x.pal) + ' WT') : null] : '–')),   // oben Datum, darunter Werktage
         h('td', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : '') }, fmtW(x.pal)),
-        h('td', null, x.m.palStatus), h('td', null, x.m.art || ''), h('td', { class: 'hinweis' }, x.m.hinweis || '')))))));
+        h('td', null, h('span', { class: 'status ' + (x.m.palStatus === 'fest' ? 'fest' : 'vorl') }, x.m.palStatus === 'fest' ? 'fest' : 'vorläufig')), h('td', null, x.m.art || ''), h('td', { class: 'hinweis' }, x.m.hinweis || '')))))));
   }
   // Kalender: bei „PDF der aktuellen Ansicht“ ohne die ausgeblendeten Monate, im Dialog das ganze Jahr
   if (f.secs.kal) { const cal = h('div', { class: 'pd-kal' }, calendarBody(!f.calHide)); fitCalendar(cal); pages.push(frame(slimHead('Kalender ' + y), cal)); }

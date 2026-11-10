@@ -2271,3 +2271,7 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 /* 0.52: PDF – Bereichsspalten eingeklappt wie in der Tabelle */
 .pd-table th.phm, .pd-table td.phm { text-align: center; width: 22px; padding-left: 2px; padding-right: 2px; }
 .pd-table td.phm { color: #2e7d32; font-weight: 700; }
+/* 0.52.1: PAL-Status im PDF als farbiges Kästchen wie in der Tabelle (feste Farben – das PDF ist immer hell) */
+.pd-table .status { display: inline-block; font-size: 10.5px; border-radius: 9px; padding: 1px 8px; border: 1px solid; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+.pd-table .status.fest { background: #e8f5e9; border-color: #a5d6a7; color: #1b5e20; }
+.pd-table .status.vorl { background: #fff4e0; border-color: #f0c27a; color: #9a3412; }

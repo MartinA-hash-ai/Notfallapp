@@ -7,7 +7,8 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => { window.print = () => { window._printed = (window._printed || 0) + 1; }; });
   const doc = () => p.evaluate(() => { const d = document.querySelector('#printdoc'); if (!d) return null;
     const r = { titles: [...d.querySelectorAll('.pd-head h1')].map(e => e.textContent), phm: d.querySelectorAll('.pd-table th.phm').length, rows: [...d.querySelectorAll('.pd-table tbody tr td.nm')].map(e => e.textContent),
-      months: d.querySelectorAll('.pd-kal .month').length, tlRows: [...d.querySelectorAll('.pd-page')].filter(pg => /Zeitleiste/.test(pg.querySelector('h1').textContent)).map(pg => pg.querySelectorAll('.tl-row:not(.sep)').length) };
+      months: d.querySelectorAll('.pd-kal .month').length, status: [...d.querySelectorAll('.pd-table tbody td .status')].map(e => e.className + ':' + e.textContent),
+      dotX: [...new Set([...d.querySelectorAll('.pd-page .tl-row[data-m] > .tl-lab .dot')].map(e => Math.round(e.getBoundingClientRect().left)))], tlBtn: d.querySelectorAll('.pd-page .tl-lab button').length, tlRows: [...d.querySelectorAll('.pd-page')].filter(pg => /Zeitleiste/.test(pg.querySelector('h1').textContent)).map(pg => pg.querySelectorAll('.tl-row:not(.sep)').length) };
     d.remove(); document.body.classList.remove('printdoc-mode'); return r; });
   // ---- A: Jahresplanung – Tabelle offen, Kalender zu, Zeitleiste offen; S/I/D eingeklappt; eine Maßnahme abgehakt
   const hid = await p.evaluate(() => { UI.year = 2027; UI.view = 'jahr'; UI.secOpen = { mass: true, kal: false, tl: true, ag: false }; UI.phMini = true;
@@ -20,6 +21,8 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(a0 && a0.titles.join('|') === 'Maßnahmen 2027|Zeitleiste 2027' && !await p.$('.modal'), 'A: ohne Dialog – Tabelle und Zeitleiste (offen), kein Kalender (zu) ' + JSON.stringify(a0 && a0.titles));
   ok(a0.phm === 3 && !a0.rows.includes(hid) && a0.rows.length === 9, 'A: Spalten S, I, D eingeklappt wie in der Tabelle; abgehakte Maßnahme „' + hid + '“ fehlt (' + a0.rows.length + ' Zeilen)');
   ok(await p.evaluate(() => UI.phMini === true && UI.hiddenM.size === 1 && window._printed === 1), 'A: Ansicht danach unverändert, Druckfenster geöffnet');
+  ok(a0.status.length === 9 && a0.status.every(t => /^status (fest:fest|vorl:vorläufig)$/.test(t)), 'A: PAL-Status als farbiges Kästchen (fest grün, vorläufig orange) wie in der Tabelle');
+  ok(a0.dotX.length === 1 && a0.tlBtn === 0, 'A: Zeitleiste – alle Maßnahmen bündig, auch die mit Detailplan (kein Aufklapp-Knopf im PDF) ' + JSON.stringify([a0.dotX, a0.tlBtn]));
   // ---- B: Kalender mit ausgeblendeten Monaten; Strg+P
   await p.evaluate(() => { UI.secOpen = { mass: false, kal: true, tl: false, ag: false }; UI.calHide = { 2027: [0, 1, 2] }; UI.phMini = false; renderNow(); }); await p.waitForTimeout(150);
   await p.keyboard.press('Control+p'); await p.waitForTimeout(250);

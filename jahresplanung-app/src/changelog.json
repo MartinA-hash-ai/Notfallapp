@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.52.0",
+    "version": "0.52.1",
     "date": "",
+    "items": [
+      "PDF: PAL-Status wie in der Tabelle als Kästchen – „fest“ grün, „vorläufig“ orange",
+      "PDF-Zeitleiste: Maßnahmen mit Detailplan standen etwas weiter links (der Aufklapp-Knopf fehlt im Druck) – jetzt alle bündig"
+    ]
+  },
+  {
+    "version": "0.52.0",
+    "date": "2026-11-10T13:17",
     "items": [
       "PDF mit einem Klick: Export ▾ → „PDF der aktuellen Ansicht“ (oder Strg+P) druckt, was gerade zu sehen ist – aufgeklappte Bereiche des Reiters, angehakte und gefilterte Maßnahmen, Termine und Urlaub wie eingeblendet, eingeklappte Spalten S, I, D, ausgeblendete Monate im Kalender; bei Detailplänen der gewählte Plan, in der Auswertung die gewählte Maßnahme",
       "Der bisherige Dialog heißt „PDF zusammenstellen …“ (Strg+Umschalt+P); auch dort erscheinen die Spalten S, I, D wie in der Tabelle",
