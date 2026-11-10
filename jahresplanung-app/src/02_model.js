@@ -30,14 +30,18 @@ function saveUI() {
   } catch (e) { /* egal */ }
 }
 
-/* ---------- Bereiche einer Maßnahme (Phasen bis zum PAL): eine Liste für alle, Reihenfolge = zeitliche Abfolge.
-   Jeder Bereich hat einen Buchstaben (P ist für das PAL reserviert) und einen Start – ohne eigenes Ende läuft er bis zum nächsten Start bzw. bis zum PAL. */
+/* ---------- Bereiche einer Maßnahme: eine Liste für alle, Reihenfolge = zeitliche Abfolge.
+   Jeder Bereich hat einen Buchstaben (P ist für das PAL reserviert). Bereiche vor dem P haben einen Start – ohne eigenes Ende laufen sie bis zum nächsten
+   Start bzw. bis zum PAL. Ab 0.53 gibt es Bereiche hinter dem P (nach: true, z. B. „Laufzeit“ einer Veranstaltung): ihr Datum ist das Ende, sie laufen
+   vom PAL bzw. vom vorigen Bereich dahinter bis dorthin. Gespeichert wird wie bei allen der Abstand zum PAL (vorlauf, hier negativ = nach dem PAL). */
 const DEF_BEREICHE = [{ key: 'S', name: 'Selektion', vorlauf: 76 }, { key: 'I', name: 'Inhalt', vorlauf: 58 }, { key: 'D', name: 'Produktion', vorlauf: 21 }];
 const PH = () => (D && D.settings && Array.isArray(D.settings.bereiche)) ? D.settings.bereiche : DEF_BEREICHE;
 const phase = k => PH().find(p => p.key === k);
 const phName = k => k === 'P' ? 'PAL' : (phase(k) || { name: k }).name;
-const startLabel = k => k === 'P' ? 'PAL' : 'Start ' + phName(k);
-const evKeys = () => [...PH().map(p => p.key), 'P'];                 // alle Terminarten in zeitlicher Reihenfolge
+const phNach = k => k !== 'P' && !!(phase(k) || {}).nach;          // Bereich hinter dem P (Datum = Ende, nach dem PAL)
+const PHV = () => PH().filter(p => !p.nach), PHN = () => PH().filter(p => p.nach);
+const startLabel = k => k === 'P' ? 'PAL' : (phNach(k) ? 'Ende ' : 'Start ') + phName(k);
+const evKeys = () => [...PHV().map(p => p.key), 'P', ...PHN().map(p => p.key)];   // alle Terminarten in zeitlicher Reihenfolge
 const evDate = (x, t) => t === 'P' ? x.pal : (x.st[t] ?? null);
 const PHASE_KEY_RE = /^[A-OQ-Z]$/;                                  // interner Schlüssel: ein Großbuchstabe, nicht P
 // Markierungen: angezeigtes Zeichen und Aussehen je Bereich und für das PAL (Einstellungen). Intern bleiben die Schlüssel gleich.
@@ -168,8 +172,9 @@ function normBereiche(list, st) {
     const key = str(p.key).trim().toUpperCase();
     if (!PHASE_KEY_RE.test(key) || seen.has(key)) continue;
     seen.add(key); out.push({ key, name: str(p.name).trim() || key, vorlauf: isNum(p.vorlauf) ? Math.round(+p.vorlauf) : null, zeichen: str(p.zeichen).trim().toUpperCase(), stil: STILE[p.stil] ? p.stil : 'pastell', linie: LINIEN[p.linie] ? p.linie : 'auto' });
+    if (p.nach === true) out[out.length - 1].nach = true;
   }
-  return out;
+  return out.filter(p => !p.nach).concat(out.filter(p => p.nach));   // erst die Bereiche vor dem P, dann die dahinter
 }
 // Zeichen eindeutig halten (PAL zuerst): ungültig oder doppelt → eigener Schlüssel, sonst der nächste freie Buchstabe
 function normMarks(st) {
@@ -366,6 +371,8 @@ function prevWorkday(n) { let k = n; while (!isWorkday(k) && n - k < 60) k--; re
 // PAL darf auf einen Samstag fallen, aber nicht auf Sonntag oder Feiertag
 function prevPalDay(n) { let k = n; while ((wd(k) === 6 || holName(k)) && n - k < 60) k--; return k; }
 // Werktage (Mo–Fr ohne Feiertage) von n bis zum Tag vor dem PAL
+const workdaysAfter = (n, pal) => n == null || pal == null ? null : n > pal ? workdays(pal + 1, n) : -workdays(n, pal - 1);   // hinter dem P: Werktage nach dem PAL (ohne den PAL-Tag)
+const wtLabel = (k, n, pal) => n == null || pal == null ? '' : phNach(k) ? '+' + workdaysAfter(n, pal) + ' WT nach PAL' : workdaysBefore(n, pal) + ' WT vor PAL';
 const workdaysBefore = (n, pal) => n == null || pal == null ? null : n < pal ? workdays(n, pal - 1) : -workdays(pal, n - 1);
 // Urlaub/Abwesenheit einer Person (ab 0.15): diese Tage zählen bei ihren Aufgaben nicht als Werktage – die Aufgabe wird entsprechend länger
 let _awayCache = new Map();
@@ -496,8 +503,9 @@ function planCalc(m, days = !(m.plan && m.plan.wt)) {
 let C = null;
 // Ende je Bereich: eigenes Ende, sonst der nächste spätere Start, sonst das PAL
 function phaseEnds(st, enx, pal) {
-  const en = {}, all = Object.values(st);
+  const en = {}, all = Object.keys(st).filter(k => !phNach(k)).map(k => st[k]);
   for (const k of Object.keys(st)) {
+    if (phNach(k)) { en[k] = st[k]; continue; }                  // hinter dem P: das Datum ist das Ende
     if (enx[k] != null) { en[k] = enx[k]; continue; }
     const nx = all.filter(v => v > st[k]);
     en[k] = nx.length ? Math.min(...nx) : pal != null ? Math.max(pal, st[k]) : st[k];
@@ -510,12 +518,15 @@ function derive() {
   const mk = m => {
     const pal = dn(m.pal), st = {}, enx = {};
     let pc = null;
-    if (m.plan) { pc = planCalc(m); for (const k of keys) if (pc.ph[k]) { st[k] = pc.ph[k].start; enx[k] = pc.ph[k].end; } }
+    if (m.plan) { pc = planCalc(m); for (const k of keys) if (pc.ph[k]) { if (phNach(k)) st[k] = pc.ph[k].end; else { st[k] = pc.ph[k].start; enx[k] = pc.ph[k].end; } } }
     else if (pal != null) for (const k of keys) {
       const v = m.vorlauf && m.vorlauf[k], e = m.ende && m.ende[k];
       if (isNum(v)) { st[k] = pal - v; if (isNum(e)) enx[k] = Math.max(st[k], pal - e); }
     }
-    return { m, id: m.id, pal, st, en: phaseEnds(st, enx, pal), enx, pc, color: m.farbe || '#7F7F7F', s: st.S ?? null, i: st.I ?? null };
+    const en = phaseEnds(st, enx, pal), sa = {};                  // sa: Beginn des Abschnitts (hinter dem P: PAL bzw. das Datum des vorigen Bereichs dahinter)
+    for (const k of Object.keys(st)) sa[k] = phNach(k) ? Math.max(...[pal, ...Object.keys(st).filter(q => phNach(q) && st[q] < st[k]).map(q => st[q])].filter(v => v != null), -Infinity) : st[k];
+    for (const k of Object.keys(sa)) if (!isFinite(sa[k])) sa[k] = st[k];
+    return { m, id: m.id, pal, st, en, sa, enx, pc, color: m.farbe || '#7F7F7F', s: st.S ?? null, i: st.I ?? null };
   };
   const ms = D.massnahmen.map(mk);
   ms.sort((a, b) => (a.pal ?? 1e9) - (b.pal ?? 1e9) || a.m.name.localeCompare(b.m.name, 'de'));
@@ -601,15 +612,20 @@ function computeWarnings() {
       if (away.length && !isPal) W.push({ lvl: resp ? 'warn' : 'info', mid: x.id, n,
         text: `${nm}: ${lab} am ${fmtW(n)} – im Urlaub: ${[...new Set(away.map(v => v.u.wer || '?'))].join(', ')}` });
     };
-    for (const p of PH()) chk(x.st[p.key], startLabel(p.key), p.key);
+    for (const p of PHV()) chk(x.st[p.key], startLabel(p.key), p.key);   // Bereiche hinter dem P (z. B. Laufzeit): Wochenende ist dort normal
     chk(x.pal, 'PAL', 'P');
     for (const p of PH()) {
       const n = x.st[p.key], lab = startLabel(p.key);
       if (n == null) continue;
+      if (p.nach) {                                                 // hinter dem P: muss nach dem PAL liegen
+        if (n < x.pal) W.push({ lvl: 'warn', mid: x.id, n, text: `${nm}: ${lab} (${fmtD(n)}) liegt vor dem PAL (${fmtD(x.pal)}) – Datum prüfen` });
+        else if (n - x.pal > FAR) W.push({ lvl: 'warn', mid: x.id, n, text: `${nm}: ${lab} (${fmtD(n)}) liegt mehr als drei Jahre nach dem PAL – Datum prüfen` });
+        continue;
+      }
       if (n > x.pal) W.push({ lvl: 'warn', mid: x.id, n, text: `${nm}: ${lab} (${fmtD(n)}) liegt nach dem PAL (${fmtD(x.pal)}) – Datum prüfen` });
       else if (x.pal - n > FAR) W.push({ lvl: 'warn', mid: x.id, n, text: `${nm}: ${lab} (${fmtD(n)}) liegt mehr als drei Jahre vor dem PAL – Datum prüfen` });
     }
-    const def = PH().filter(p => x.st[p.key] != null);
+    const def = PHV().filter(p => x.st[p.key] != null);
     for (let j = 1; j < def.length; j++) if (x.st[def[j].key] < x.st[def[j - 1].key])
       W.push({ lvl: 'info', mid: x.id, text: `${nm}: ${startLabel(def[j].key)} liegt vor ${startLabel(def[j - 1].key)}` });
     if (x.pc) for (const s of x.m.plan.steps) {

@@ -559,26 +559,40 @@ function settingsParts() {
       RICHT);
     out.bereiche = h('div', { class: 'form settings' },
       h('h3', null, 'Bereiche und Markierungen'),
-      h('p', { class: 'muted small' }, 'Die Phasen jeder Maßnahme bis zum PAL, in zeitlicher Reihenfolge. Das Zeichen erscheint als Markierung im Kalender, in der Zeitleiste, in der Tabelle und in den Exporten. Die Linie ist das Teilstück des Bereichs: Verbindungslinie im Kalender und Balken in der Zeitleiste (im Detailplan bleiben die Abschnitte einheitlich grau). „Abgestuft“ = von hell (erster Bereich) nach kräftig (letzter). Im Detailplan wird jeder Abschnitt einem Bereich zugeordnet. Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start.'),
+      h('p', { class: 'muted small' }, 'Die Phasen jeder Maßnahme, in zeitlicher Reihenfolge – über dem PAL die Bereiche davor (ihr Datum ist der Start), darunter die Bereiche danach, z. B. die Laufzeit einer Veranstaltung (ihr Datum ist das Ende, sie beginnen am PAL). Mit ↑ ↓ lässt sich ein Bereich auch über das PAL hinweg verschieben. Das Zeichen erscheint als Markierung im Kalender, in der Zeitleiste, in der Tabelle und in den Exporten. Die Linie ist das Teilstück des Bereichs: Verbindungslinie im Kalender und Balken in der Zeitleiste (im Detailplan bleiben die Abschnitte einheitlich grau). „Abgestuft“ = von hell (erster Bereich) nach kräftig (letzter). Im Detailplan wird jeder Abschnitt einem Bereich zugeordnet. Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start.'),
       h('table', { class: 'grid ptable btable' },
         h('thead', null, h('tr', null, h('th', null, 'Vorschau'), h('th', null, 'Zeichen'), h('th', null, 'Begriff'), h('th', null, 'Markierung'), h('th', null, 'Linie'), h('th'), h('th'))),
-        h('tbody', null, PH().map((b, i) => h('tr', { dataset: { key: b.key } },
-        h('td', { class: 'prev' }, markPreview(b.key)),
-        h('td', { class: 'zcol' }, h('input', { value: sym(b.key), maxlength: 1, 'aria-label': 'Zeichen für ' + b.name, onchange: e => { setSym(b.key, e.target.value); draw(); } })),
-        h('td', null, h('input', { value: b.name, 'aria-label': 'Name des Bereichs ' + sym(b.key), onchange: e => { const nv = e.target.value.trim(); if (nv) commit(d => { d.settings.bereiche[i].name = nv; }); draw(); } })),
-        h('td', { class: 'scol' }, stilSelect(b.key, draw)),
-        h('td', { class: 'lcol' }, lineSelect(b.key, draw), linePreview(b.key, i)),
-        h('td', { class: 'muted small' }, bUsage(b.key) || 'nicht verwendet'),
-        h('td', { class: 'acts' },
-          h('button', { class: 'icon', tip: 'früher', 'aria-label': 'früher', 'data-repeat': true, disabled: i === 0, onclick: () => { commit(d => { const l = d.settings.bereiche; [l[i - 1], l[i]] = [l[i], l[i - 1]]; }); draw(); } }, '↑'),
-          h('button', { class: 'icon', tip: 'später', 'aria-label': 'später', 'data-repeat': true, disabled: i === PH().length - 1, onclick: () => { commit(d => { const l = d.settings.bereiche; [l[i + 1], l[i]] = [l[i], l[i + 1]]; }); draw(); } }, '↓'),
-          h('button', { class: 'icon', tip: 'entfernen', 'aria-label': 'entfernen', onclick: async () => { await removeBereich(b.key); draw(); } }, '✕')))),
-        h('tr', { class: 'palrow', dataset: { key: 'P' } },
-          h('td', { class: 'prev' }, markPreview('P')),
-          h('td', { class: 'zcol' }, h('input', { value: sym('P'), maxlength: 1, 'aria-label': 'Zeichen für das PAL', onchange: e => { setSym('P', e.target.value); draw(); } })),
-          h('td', null, h('b', null, 'PAL'), h('span', { class: 'muted small' }, ' (Briefkasten, fest)')),
-          h('td', { class: 'scol' }, stilSelect('P', draw)),
-          h('td', { class: 'muted small' }, 'Punkt – keine Linie'), h('td'), h('td')))),
+        h('tbody', null, (() => {
+          // Reihenfolge mit dem PAL dazwischen: ↑/↓ über das PAL hinweg schaltet „vor dem PAL“ / „nach dem PAL“ um
+          const seq = [...PHV().map(p => p.key), 'P', ...PHN().map(p => p.key)];
+          const move = (k, dir) => { const i = seq.indexOf(k), j = i + dir; if (j < 0 || j >= seq.length) return;
+            const crossing = seq[j] === 'P'; [seq[i], seq[j]] = [seq[j], seq[i]]; const pi = seq.indexOf('P');
+            commit(d => { const by = new Map(d.settings.bereiche.map(q => [q.key, q]));
+              d.settings.bereiche = seq.filter(q => q !== 'P').map(q => { const o = by.get(q); if (seq.indexOf(q) > pi) o.nach = true; else delete o.nach; return o; }); },
+              crossing ? phName(k) + (dir > 0 ? ': jetzt hinter dem PAL' : ': jetzt vor dem PAL') : phName(k) + ' verschoben');
+            if (crossing) { const u = bUsage(k); if (u) toast(phName(k) + ' steht jetzt ' + (dir > 0 ? 'hinter dem PAL – das Datum ist das Ende, eingetragene Termine vor dem PAL werden als Warnung gezeigt.' : 'vor dem PAL – eingetragene Termine nach dem PAL werden als Warnung gezeigt.'), 'warn'); }
+            draw(); };
+          const row = (b, i) => h('tr', { dataset: { key: b.key }, class: b.nach ? 'nach' : null },
+            h('td', { class: 'prev' }, markPreview(b.key)),
+            h('td', { class: 'zcol' }, h('input', { value: sym(b.key), maxlength: 1, 'aria-label': 'Zeichen für ' + b.name, onchange: e => { setSym(b.key, e.target.value); draw(); } })),
+            h('td', null, h('input', { value: b.name, 'aria-label': 'Name des Bereichs ' + sym(b.key), onchange: e => { const nv = e.target.value.trim(); if (nv) commit(d => { const q = d.settings.bereiche.find(o => o.key === b.key); if (q) q.name = nv; }); draw(); } }),
+              b.nach ? h('div', { class: 'muted small' }, 'nach dem PAL · Datum = Ende') : null),
+            h('td', { class: 'scol' }, stilSelect(b.key, draw)),
+            h('td', { class: 'lcol' }, lineSelect(b.key, draw), linePreview(b.key, i)),
+            h('td', { class: 'muted small' }, bUsage(b.key) || 'nicht verwendet'),
+            h('td', { class: 'acts' },
+              h('button', { class: 'icon', tip: seq[seq.indexOf(b.key) - 1] === 'P' ? 'vor das PAL schieben' : 'früher', 'aria-label': 'früher', 'data-repeat': true, disabled: seq.indexOf(b.key) === 0, onclick: () => move(b.key, -1) }, '↑'),
+              h('button', { class: 'icon', tip: seq[seq.indexOf(b.key) + 1] === 'P' ? 'hinter das PAL schieben' : 'später', 'aria-label': 'später', 'data-repeat': true, disabled: seq.indexOf(b.key) === seq.length - 1, onclick: () => move(b.key, 1) }, '↓'),
+              h('button', { class: 'icon', tip: 'entfernen', 'aria-label': 'entfernen', onclick: async () => { await removeBereich(b.key); draw(); } }, '✕')));
+          return [PHV().map((b, i) => row(b, i)),
+            h('tr', { class: 'palrow', dataset: { key: 'P' } },
+              h('td', { class: 'prev' }, markPreview('P')),
+              h('td', { class: 'zcol' }, h('input', { value: sym('P'), maxlength: 1, 'aria-label': 'Zeichen für das PAL', onchange: e => { setSym('P', e.target.value); draw(); } })),
+              h('td', null, h('b', null, 'PAL'), h('span', { class: 'muted small' }, ' (Briefkasten bzw. Start der Veranstaltung, fest)')),
+              h('td', { class: 'scol' }, stilSelect('P', draw)),
+              h('td', { class: 'muted small' }, 'Punkt – keine Linie'), h('td'), h('td')),
+            PHN().map((b, i) => row(b, PHV().length + i))];
+        })())),
       h('div', { class: 'inl addline' },
         h('input', { placeholder: 'Buchstabe', maxlength: 1, style: 'width:86px', value: newKey, oninput: e => { newKey = e.target.value.toUpperCase(); e.target.value = newKey; } }),
         h('input', { placeholder: 'Name, z. B. Versand', value: newBName, oninput: e => { newBName = e.target.value; }, onkeydown: e => { if (e.key === 'Enter') { e.preventDefault(); addB(); } } }),

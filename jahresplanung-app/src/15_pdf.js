@@ -224,16 +224,18 @@ function buildPrintDoc(f) {
   const pages = [];
   if (f.secs.mass) {
     const chipH = t => demoChip(t);
+    const phTh = p => UI.phMini ? h('th', { class: 'phm', title: startLabel(p.key) }, chipH(p.key)) : h('th', null, startLabel(p.key) + ' ', chipH(p.key));
+    const phTd = x => p => UI.phMini ? h('td', { class: 'st phm' }, x.st[p.key] != null ? '✓' : '') :          // eingeklappt (wie in der Tabelle): nur ein Häkchen, wo ein Datum eingetragen ist
+      h('td', { class: 'st' }, x.st[p.key] != null ? [h('div', null, fmtW(x.st[p.key])), x.pal != null ? h('div', { class: 'wt' }, p.nach ? '+' + workdaysAfter(x.st[p.key], x.pal) + ' WT' : workdaysBefore(x.st[p.key], x.pal) + ' WT') : null] : '–');   // oben Datum, darunter Werktage
     pages.push(page('Maßnahmen ' + y, h('table', { class: 'pd-table' },
       h('thead', null, h('tr', null, h('th'), h('th', null, 'Maßnahme'), h('th', null, 'Verantwortlich'), h('th', null, 'Auflage'),
-        PH().map(p => UI.phMini ? h('th', { class: 'phm', title: 'Start ' + p.name }, chipH(p.key)) : h('th', null, 'Start ' + p.name + ' ', chipH(p.key))), h('th', null, 'PAL ', chipH('P')), h('th', null, 'PAL-Status'), h('th', null, 'Spendenbitte'), h('th', null, 'Hinweis'))),
+        PHV().map(phTh), h('th', null, 'PAL ', chipH('P')), PHN().map(phTh), h('th', null, 'PAL-Status'), h('th', null, 'Spendenbitte'), h('th', null, 'Hinweis'))),
       h('tbody', null, ms.map(x => h('tr', null,
         h('td', null, h('span', { class: 'dot', style: { background: x.color } })),
         h('td', { class: 'nm', style: { color: inkC(x.color) } }, x.m.name),
         h('td', null, x.m.verantwortlich || ''), h('td', { class: 'num' }, isNum(x.m.auflage) ? (+x.m.auflage).toLocaleString('de-DE') : ''),
-        PH().map(p => UI.phMini ? h('td', { class: 'st phm' }, x.st[p.key] != null ? '✓' : '') :          // eingeklappt (wie in der Tabelle): nur ein Häkchen, wo ein Start eingetragen ist
-          h('td', { class: 'st' }, x.st[p.key] != null ? [h('div', null, fmtW(x.st[p.key])), x.pal != null ? h('div', { class: 'wt' }, workdaysBefore(x.st[p.key], x.pal) + ' WT') : null] : '–')),   // oben Datum, darunter Werktage
-        h('td', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : '') }, fmtW(x.pal)),
+        PHV().map(phTd(x)),
+        h('td', { class: 'pal' + (x.m.palStatus !== 'fest' ? ' vorl' : '') }, fmtW(x.pal)), PHN().map(phTd(x)),
         h('td', null, h('span', { class: 'status ' + (x.m.palStatus === 'fest' ? 'fest' : 'vorl') }, x.m.palStatus === 'fest' ? 'fest' : 'vorläufig')), h('td', null, x.m.art || ''), h('td', { class: 'hinweis' }, x.m.hinweis || '')))))));
   }
   // Kalender: bei „PDF der aktuellen Ansicht“ ohne die ausgeblendeten Monate, im Dialog das ganze Jahr

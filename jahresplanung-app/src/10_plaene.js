@@ -70,7 +70,7 @@ function adjustMark(m, which, target) {
 }
 // Start Selektion/Inhalt einer Maßnahme auf ein Datum legen (Zeitleiste, Kalender): ohne Plan über den Vorlauf,
 // mit Detailplan über die Dauer der Schritte davor. Liefert die Meldung für den Hinweis.
-function startMovable(x, t) { return !x.m.plan || !!(x.pc && x.pc.ph[t]); }
+function startMovable(x, t) { return !x.m.plan || (!phNach(t) && !!(x.pc && x.pc.ph[t])); }   // hinter dem P bei Detailplan: Ende kommt aus dem Plan
 async function moveStartTo(id, t, n) {
   let res = null;
   const x = C.byId.get(id), label = startLabel(t);
@@ -88,7 +88,7 @@ async function moveStartTo(id, t, n) {
     const m = findM(d, id); if (!m) return;
     const pal = dn(m.pal);
     if (m.plan) res = adjustMark(m, t, n);
-    else if (pal != null) { m.vorlauf = Object.assign({}, m.vorlauf, { [t]: Math.max(0, pal - n) }); res = { changed: [] }; }
+    else if (pal != null) { m.vorlauf = Object.assign({}, m.vorlauf, { [t]: phNach(t) ? Math.min(0, pal - n) : Math.max(0, pal - n) }); res = { changed: [] }; }   // hinter dem P: nicht vor den PAL
   });
   if (!res) return;
   derive();
@@ -111,6 +111,7 @@ function startMoveAsk(x, t, want, reach, changed) {
 }
 const label2 = t => startLabel(t);
 // Start als Werktage vor dem PAL angeben: der späteste Arbeitstag, ab dem noch so viele Werktage bis zum PAL bleiben
+function dateForWTAfter(pal, w) { let n = pal, c = 0; while (c < w && n - pal < 3000) { n++; if (isWorkday(n)) c++; } return n; }
 function dateForWT(pal, w) { let n = pal, c = 0; while (c < w && pal - n < 3000) { n--; if (isWorkday(n)) c++; } return n; }
 // Schritt auf neuen Beginn/Ende setzen (Verknüpfung bleibt, der Versatz wird angepasst)
 // Woran hängt ein Schritt? (für Hinweise) – und welche Schritte hängen an ihm
@@ -289,8 +290,8 @@ async function createPlan(id) {
   const copyBox = h('div', { class: 'np-copy' });
   const pick = (kind, src) => {
     if (f.pal == null) { msg.textContent = 'Bitte zuerst den PAL eintragen – er ist Pflicht.'; palIn.classList.add('bad'); palIn.focus(); return; }
-    const late = PH().find(p => f.st[p.key] != null && f.st[p.key] > f.pal);
-    if (late) { msg.textContent = startLabel(late.key) + ' liegt nach dem PAL – bitte prüfen.'; return; }
+    const late = PH().find(p => f.st[p.key] != null && (p.nach ? f.st[p.key] < f.pal : f.st[p.key] > f.pal));
+    if (late) { msg.textContent = startLabel(late.key) + (late.nach ? ' liegt vor dem PAL' : ' liegt nach dem PAL') + ' – bitte prüfen.'; return; }
     close({ kind, src });
   };
   const drawCopy = () => setKids(copyBox, showCopy ? (others.length ? others.map(o => h('button', { class: 'np-src', onclick: () => pick('copy', o.id) },
@@ -317,7 +318,7 @@ async function createPlan(id) {
   let info = [];
   commit(d => {
     const m = findM(d, id), pal = f.pal;
-    const starts = Object.fromEntries(PH().map(p => [p.key, f.st[p.key]]).filter(([, v]) => v != null));
+    const starts = Object.fromEntries(PHV().map(p => [p.key, f.st[p.key]]).filter(([, v]) => v != null));
     let plan;
     if (res.kind === 'blanko') plan = blankPlan();
     else if (res.kind === 'tpl') {                                                            // eigene Vorlage: hängt am PAL – feste Termine wandern mit
@@ -327,7 +328,7 @@ async function createPlan(id) {
     } else if (res.kind === 'mailing') {
       plan = migratePlan(JSON.parse(JSON.stringify(MAILING_TEMPLATE)), PH().map(p => p.key));
       plan.steps.forEach(s => { s.wer = ''; });                                              // ohne Zugehörigkeiten
-    } else if (res.kind === 'bereiche') plan = phasePlan(pal, Object.assign(Object.fromEntries(PH().filter(p => isNum(p.vorlauf)).map(p => [p.key, pal - p.vorlauf])), starts));
+    } else if (res.kind === 'bereiche') plan = phasePlan(pal, Object.assign(Object.fromEntries(PHV().filter(p => isNum(p.vorlauf)).map(p => [p.key, pal - p.vorlauf])), starts));
     else {
       const srcM = findM(d, res.src), sp = dn(srcM.pal);
       plan = JSON.parse(JSON.stringify(srcM.plan));
@@ -1083,7 +1084,7 @@ function palOverSteps(m, pc) {
   let ber = null;
   for (const s of m.plan.steps) {
     if (s.typ === 'gruppe') { ber = s.bereich || null; continue; }
-    if (!ber || s.pal) continue;
+    if (!ber || s.pal || phNach(ber)) continue;                    // Bereiche hinter dem P dürfen nach dem PAL enden
     const r = pc.map.get(s.id); if (r && !r.err && r.end != null && r.end > pal) out.push({ id: s.id, name: s.name, end: r.end, over: r.end - pal, ber });
   }
   return out;

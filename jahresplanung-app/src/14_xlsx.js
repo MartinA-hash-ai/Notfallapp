@@ -130,7 +130,7 @@ function viewWorkbookLight(opts = {}) {
   // 1. Übersicht
   {
     const rows = [[{ v: 'Jahresplanung Außenkommunikation ' + y, st: XS.title }], [{ v: hint, st: XS.note }], [],
-      ['', 'Maßnahme', ...PH().map(p => 'Start ' + p.name), ...PH().map(p => 'WT bis PAL (' + sym(p.key) + ')'), 'PAL', 'PAL-Status', 'Verantwortlich', 'Spendenbitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
+      ['', 'Maßnahme', ...PH().map(p => startLabel(p.key)), ...PH().map(p => (p.nach ? 'WT nach PAL (' : 'WT bis PAL (') + sym(p.key) + ')'), 'PAL', 'PAL-Status', 'Verantwortlich', 'Spendenbitte', 'Auflage', 'Hinweis', 'Bitte prüfen'].map(t => ({ v: t, st: XS.head }))];
     for (const x of ms) {
       const bd = { border: 'thin', v: 'top' };
       rows.push([{ v: '', st: { fill: x.color, border: 'thin' } }, { v: x.m.name, st: { ...bd, b: true, color: darker(x.color) } },
@@ -151,7 +151,7 @@ function viewWorkbookLight(opts = {}) {
     const set = (r, c, v) => { (rows[r] = rows[r] || [])[c] = v; };
     set(0, 0, { v: 'Jahresplanung Außenkommunikation ' + y + ' – Kalender', st: XS.title }); merges.push('A1:AI1'); heights[0] = 22;
     set(1, 0, { v: hint, st: XS.note }); merges.push('A2:AI2');
-    set(2, 0, { v: [['P', 'PAL'], ...PH().map(p => [p.key, 'Start ' + p.name])].map(([k, l]) => sym(k) + ' = ' + l + ' (' + ({ kraeftig: 'kräftige Farbe', rahmen: 'ohne Füllung', streifen: 'Pastellton', pastell: 'Pastellton' })[stilOf(k)] + ')').join(' · ') + ' · hellgrau = Wochenende · dunkelgrau = Feiertag NRW', st: { sz: 9, color: '#404040' } }); merges.push('A3:AI3');
+    set(2, 0, { v: [['P', 'PAL'], ...PH().map(p => [p.key, startLabel(p.key)])].map(([k, l]) => sym(k) + ' = ' + l + ' (' + ({ kraeftig: 'kräftige Farbe', rahmen: 'ohne Füllung', streifen: 'Pastellton', pastell: 'Pastellton' })[stilOf(k)] + ')').join(' · ') + ' · hellgrau = Wochenende · dunkelgrau = Feiertag NRW', st: { sz: 9, color: '#404040' } }); merges.push('A3:AI3');
     const evAll = eventsIn(a, b, true), byDay = new Map();
     evAll.forEach(e => { if (!byDay.has(e.n)) byDay.set(e.n, []); byDay.get(e.n).push(e); });
     let r = 4;
@@ -235,7 +235,7 @@ function viewWorkbookLight(opts = {}) {
         const st = { sz: 7, h: 'center', v: 'center', border: 'thin', b: true };
         let v = '';
         // Woche im Bereich: der späteste Bereich, der in dieser Woche läuft, bestimmt die Farbe (hell → kräftiger)
-        const phs = PH().filter(p => x.st[p.key] != null), inW = phs.map((p, i) => [p, i]).filter(([p]) => x.st[p.key] <= e && (x.en[p.key] ?? x.st[p.key]) >= n);
+        const phs = PH().filter(p => x.st[p.key] != null), inW = phs.map((p, i) => [p, i]).filter(([p]) => (x.sa[p.key] ?? x.st[p.key]) <= e && (x.en[p.key] ?? x.st[p.key]) >= n);
         if (has(x.pal)) { Object.assign(st, { fill: x.color, color: onColor(x.color) }); v = sym('P'); }
         else if (inW.length) {
           const [p, i] = inW[inW.length - 1], f = phs.length > 1 ? i / (phs.length - 1) : 0;

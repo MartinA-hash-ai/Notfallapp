@@ -16,7 +16,9 @@ function chipStyle(t, color) {
 // pts: [{ n, k }] nach Datum sortiert; das Teilstück ab pts[i] gehört zum Bereich pts[i].k – sein Aussehen kommt aus den Einstellungen („Linie“).
 function lineHalves(n, pts, c) {
   const a = pts[0].n, b = pts[pts.length - 1].n, k = pts.length - 1;
-  const col = t => { let i = 0; while (i < k - 1 && t >= pts[i + 1].n) i++; return lineBg(pts[i].k, c, k <= 1 ? 1 : (k - 1 - i) / (k - 1)); };
+  const col = t => { let i = 0; while (i < k - 1 && t >= pts[i + 1].n) i++;
+    const own = pts[i + 1] && phNach(pts[i + 1].k) ? pts[i + 1].k : pts[i].k;   // hinter dem P gehört das Teilstück zum Bereich an seinem Ende
+    return lineBg(own, c, k <= 1 ? 1 : (k - 1 - i) / (k - 1)); };
   return [n > a ? col(n - 0.25) : 'none', n < b ? col(n + 0.25) : 'none'];
 }
 const linePts = (x, keys) => keys.map(k => ({ n: evDate(x, k), k })).filter(p => p.n != null).sort((p, q) => p.n - q.n);
@@ -26,7 +28,7 @@ const linePts = (x, keys) => keys.map(k => ({ n: evDate(x, k), k })).filter(p =>
 function spanPts(x) {
   const pts = linePts(x, evKeys().filter(showType)), last = pts[pts.length - 1];
   const end = p => x.pc ? x.en[p.k] : x.enx[p.k] ?? x.pal;
-  if (last && last.k !== 'P') {
+  if (last && last.k !== 'P' && !phNach(last.k)) {
     let e = Math.max(...pts.filter(p => p.k !== 'P').map(p => end(p) ?? p.n));
     if (x.pal != null && last.n <= x.pal) e = Math.min(e, x.pal);
     if (e > last.n) pts.push({ n: e, k: null });
@@ -52,7 +54,7 @@ function chipTip(e) {
   const x = e.x, m = x.m;
   // je Termin eine Zeile: Kästchen, „Start Selektion: Fr 02.04.2027 · 53 WT“
   const line = (t, n) => h('div', { class: 'tt-row one' + (t === e.t ? ' cur' : '') }, h('span', { class: 'chip ' + (t === 'P' ? '' : 'ph ') + t, style: chipStyle(t, x.color) }, sym(t)),
-    h('span', null, startLabel(t) + ': ', h('b', null, fmtW(n)), t !== 'P' && x.pal != null ? h('span', { class: 'muted' }, ' · ' + workdaysBefore(n, x.pal) + ' WT') : null));
+    h('span', null, startLabel(t) + ': ', h('b', null, fmtW(n)), t !== 'P' && x.pal != null ? h('span', { class: 'muted' }, ' · ' + (phNach(t) ? '+' + workdaysAfter(n, x.pal) + ' WT' : workdaysBefore(n, x.pal) + ' WT')) : null));
   return h('div', null,
     h('div', { class: 'tt-title', style: { borderColor: x.color } }, m.name || '(ohne Namen)'),
     evKeys().map(t => evDate(x, t) != null ? line(t, evDate(x, t)) : null));

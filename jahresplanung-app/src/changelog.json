@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.52.1",
+    "version": "0.53.0",
     "date": "",
+    "items": [
+      "Bereiche hinter dem PAL, z. B. „L – Laufzeit“ einer Veranstaltung: in den Einstellungen unter „Bereiche und Markierungen“ mit ↑/↓ über das PAL schieben. Ihr Datum ist das Ende – sie laufen vom PAL (Start der Veranstaltung) bis dorthin – und darf nach dem PAL liegen",
+      "Tabelle: die Spalten dieser Bereiche stehen rechts vom PAL – als Datum oder als Werktage nach dem PAL („+5 WT“), eingeklappt mit Häkchen wie S, I, D",
+      "Zeitleiste: Balken vom PAL bis zum Ende, Markierung am Ende; Kalender, PDF, Excel und „Bearbeiten“ ebenso. Hinweise: Ende vor dem PAL wird gewarnt; Wochenende ist bei der Laufzeit kein Problem"
+    ]
+  },
+  {
+    "version": "0.52.1",
+    "date": "2026-11-10T13:25",
     "items": [
       "PDF: PAL-Status wie in der Tabelle als Kästchen – „fest“ grün, „vorläufig“ orange",
       "PDF-Zeitleiste: Maßnahmen mit Detailplan standen etwas weiter links (der Aufklapp-Knopf fehlt im Druck) – jetzt alle bündig"

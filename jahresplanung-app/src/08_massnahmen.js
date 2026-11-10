@@ -165,17 +165,21 @@ const wtView = () => UI.startView === 'wt';
 const mcols = () => [
   { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 170, t: 'Maßnahme' }, { k: 'resp', w: 150, t: 'Verantwortlich' },
   { k: 'tags', w: 96, t: 'Schlagworte', tip: 'zum Ein- und Ausblenden in Zeitleiste und Kalender (Knopf „Schlagworte“ dort)' }, { k: 'auflage', w: 68, t: 'Auflage' },
-  ...PH().map(p => UI.phMini ? { k: 'ph_' + p.key, w: 34, fixed: true, t: p.name, tip: 'Start ' + p.name + ' – Häkchen: Datum eingetragen', chip: p.key, phase: p.key, mini: true }
-    : { k: 'ph_' + p.key, w: wtView() ? 112 : 122, t: p.name, tip: 'Start ' + p.name + (wtView() ? ' – Werktage bis zum PAL' : ''), chip: p.key, phase: p.key }),
+  ...PHV().map(phCol),
   { k: 'pal', w: 136, t: 'PAL', chip: 'P' },
+  ...PHN().map(phCol),                                                 // Bereiche hinter dem P (z. B. Laufzeit) rechts vom PAL
   { k: 'status', w: 84, t: 'PAL-Status' }, { k: 'bitte', w: 96, t: 'Spendenbitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
   { k: 'warns', w: 34, fixed: true }, { k: 'acts', w: 34, fixed: true }];
+function phCol(p) {
+  return UI.phMini ? { k: 'ph_' + p.key, w: 34, fixed: true, t: p.name, tip: startLabel(p.key) + ' – Häkchen: Datum eingetragen', chip: p.key, phase: p.key, mini: true }
+    : { k: 'ph_' + p.key, w: wtView() ? 112 : 122, t: p.name, tip: startLabel(p.key) + (wtView() ? (p.nach ? ' – Werktage nach dem PAL' : ' – Werktage bis zum PAL') : ''), chip: p.key, phase: p.key };
+}
 const colKey = c => c.mini ? c.k + ':mini' : c.phase ? c.k + (wtView() ? ':wt' : '') : c.k;
 const colW = c => c.flex ? 0 : (UI.colW && UI.colW[colKey(c)]) || c.w;   // Hinweis nimmt immer den Rest
 function tableWidth() { return mcols().reduce((s, c) => s + (colW(c) || c.flex || 0), 0); }
 // Kopfzeile der Bereiche: „Start der“ / „Selektion“ in zwei Zeilen (eigene Bereiche: „Start“ / Name)
 const PH_HEAD = { Selektion: ['Start der', 'Selektion'], Inhalt: ['Start des', 'Inhalts'], Produktion: ['Start der', 'Produktion'] };
-const phHead = p => wtView() ? ['Zeit bis PAL für', p.name] : PH_HEAD[p.name] || ['Start', p.name];   // Werktage-Ansicht: „Zeit bis PAL für“ / „Selektion“
+const phHead = p => p.nach ? (wtView() ? ['Zeit nach PAL', p.name] : ['Ende', p.name]) : wtView() ? ['Zeit bis PAL für', p.name] : PH_HEAD[p.name] || ['Start', p.name];   // Werktage-Ansicht: „Zeit bis PAL für“ / „Selektion“
 // Schalter über den Spalten der Bereiche: links Datum, rechts Werktage bis zum PAL
 // Bereichsspalten ein-/ausklappen: eingeklappt nur Buchstaben und ein Häkchen, wo ein Start eingetragen ist
 const phToggle = () => h('button', { class: 'link small ph-tog', tip: UI.phMini ? 'Starts der Bereiche wieder mit Datum zeigen' : 'einklappen – nur Buchstaben und ein Häkchen, wo ein Start eingetragen ist',
@@ -227,7 +231,7 @@ function setStartWT(id, key, v) {
   if (v === '') return setStartDate(id, key, '');
   const w = Math.round(+v);
   if (!(w >= 0 && w <= 400)) { toast('Bitte 0 bis 400 Werktage eingeben.', 'warn'); renderNow(); return; }
-  moveStartTo(id, key, dateForWT(x.pal, w));
+  moveStartTo(id, key, phNach(key) ? dateForWTAfter(x.pal, w) : dateForWT(x.pal, w));
 }
 function massnahmenSection() {
   const y = UI.year;
@@ -241,16 +245,19 @@ function massnahmenSection() {
     const startCell = key => {
       const n = x.st[key];
       // Hinweise: Wochenende/Feiertag/Urlaub am Start, dazu Urlaub von Personen, die im Detailplan in diesem Bereich eingetragen sind
-      const w = n != null ? dateWarn(n, resp) : [], pv = phaseVacations(x, key);
+      const w = n != null && !phNach(key) ? dateWarn(n, resp) : [], pv = phaseVacations(x, key);   // hinter dem P (Laufzeit): Wochenende ist kein Problem
       const lines = w.concat(pv.map(({ s, v }) => s.wer + ': Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis) + ' („' + s.name + '“)'));
       const warnIcon = lines.length ? h('span', { class: 'wi' + (pv.length ? ' vac' : ''), tip: (pv.length ? 'Urlaub im Bereich ' + phName(key) + ':\n' : '') + lines.join('\n') }, pv.length ? '🏖' : '⚠') : null;
-      const tipDate = n != null ? startLabel(key) + ': ' + fmtW(n) + (x.pal != null ? ' · ' + workdaysBefore(n, x.pal) + ' Werktage vor PAL' : '') + (x.enx[key] != null ? ' · bis ' + fmtW(x.en[key]) : '') : null;
-      const pi = PH().findIndex(q => q.key === key), cellCls = 'date ph' + (wtView() && !UI.phMini ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === PH().length - 1 ? ' ph-last' : '');
+      const nach = phNach(key), grp = nach ? PHN() : PHV();
+      const tipDate = n != null ? startLabel(key) + ': ' + fmtW(n) + (x.pal != null ? ' · ' + (nach ? workdaysAfter(n, x.pal) + ' Werktage nach PAL · ab ' + fmtW(x.sa[key]) : workdaysBefore(n, x.pal) + ' Werktage vor PAL') : '') + (!nach && x.enx[key] != null ? ' · bis ' + fmtW(x.en[key]) : '') : null;
+      const pi = grp.findIndex(q => q.key === key), cellCls = 'date ph' + (nach ? ' nach' : '') + (wtView() && !UI.phMini ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === grp.length - 1 ? ' ph-last' : '');
       if (UI.phMini) { const has = x.pal != null && n != null && !(m.plan && !startMovable(x, key)); return h('td', { class: cellCls + ' mini', tip: has ? tipDate : null }, has ? h('span', { class: 'ph-ok', 'aria-label': 'eingetragen' }, '✓') : null); }
+      if (m.plan && nach) return h('td', { class: cellCls + ' derived-date', tip: n != null ? tipDate + ' – aus dem Detailplan' : 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' },
+        n != null ? (wtView() ? '+' + workdaysAfter(n, x.pal) + ' WT' : fmtW(n)) : h('span', { class: 'muted' }, '–'));
       if (m.plan && !startMovable(x, key)) return h('td', { class: cellCls + ' derived-date', tip: 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' }, h('span', { class: 'muted' }, '–'));
       if (x.pal == null) return h('td', { class: cellCls }, h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–'), warnIcon);
       const inp = wtView()
-        ? h('span', { class: 'wtbox', tip: tipDate }, h('input', { type: 'number', class: 'nospin', min: 0, max: 400, value: n != null ? workdaysBefore(n, x.pal) : '', placeholder: '–', 'data-fk': fk(key + ':wt'), onwheel: wheelStep,
+        ? h('span', { class: 'wtbox', tip: tipDate }, nach ? h('span', { class: 'unit pre' }, '+') : null, h('input', { type: 'number', class: 'nospin', min: 0, max: 400, value: n != null ? (nach ? workdaysAfter(n, x.pal) : workdaysBefore(n, x.pal)) : '', placeholder: '–', 'data-fk': fk(key + ':wt'), onwheel: wheelStep,
             onchange: e => setStartWT(id, key, e.target.value) }), h('span', { class: 'unit' }, 'WT'))
         : dateInput(n != null ? ds(n) : '', fk(key), v => setStartDate(id, key, v), { title: tipDate || '' });
       return h('td', { class: cellCls, tip: m.plan ? 'Start ändern – die Arbeitsschritte im Detailplan passen sich an' : null }, inp, warnIcon);
@@ -263,8 +270,9 @@ function massnahmenSection() {
       h('td', { class: 'resp' }, personInput({ value: m.verantwortlich || '', 'data-fk': fk('resp'), placeholder: '–', onchange: e => setM(id, 'verantwortlich', e.target.value.trim()) })),
       tagCell(x),
       h('td', { class: 'num' }, numField(m.auflage, 0, v => setM(id, 'auflage', v), { 'data-fk': fk('auflage') })),
-      PH().map(p => startCell(p.key)),
+      PHV().map(p => startCell(p.key)),
       h('td', { class: 'date pal' + (m.palStatus !== 'fest' ? ' vorl' : '') }, dateInput(m.pal, fk('pal'), v => setM(id, 'pal', v || null))),
+      PHN().map(p => startCell(p.key)),
       h('td', null, h('button', { class: 'status ' + (m.palStatus === 'fest' ? 'fest' : 'vorl'), 'data-fk': fk('status'), tip: 'Klicken zum Umschalten',
         onclick: () => setM(id, 'palStatus', m.palStatus === 'fest' ? 'vorläufig' : 'fest') }, m.palStatus === 'fest' ? 'fest' : 'vorläufig')),
       h('td', { class: 'art' }, h('select', { 'data-fk': fk('art'), onchange: e => setM(id, 'art', e.target.value) }, ART.map(a => h('option', { value: a, selected: (m.art || '') === a }, a || '–')))),
@@ -276,8 +284,10 @@ function massnahmenSection() {
   }
   const nWarn = C.warnings.filter(w => w.mid && rows.some(x => x.id === w.mid) && w.lvl === 'warn').length;
   const COLS = mcols();
-  const phs = PH(), nBefore = COLS.findIndex(c => c.phase), nAfter = COLS.length - nBefore - phs.length;
-  const ths = COLS.map(c => h('th', { class: 'h-' + c.k + (c.mini ? ' mini' : '') + (c.phase ? ' h-ph' + (c.phase === phs[0].key ? ' ph-first' : '') + (c.phase === phs[phs.length - 1].key ? ' ph-last' : '') : ''), tip: c.tip || null },
+  const phs = PHV(), phn = PHN(), nBefore = COLS.findIndex(c => c.phase && !phNach(c.phase));
+  const iN = COLS.findIndex(c => c.phase && phNach(c.phase)), nMid = phn.length ? iN - nBefore - phs.length : 0, nAfter = phn.length ? COLS.length - iN - phn.length : COLS.length - nBefore - phs.length;
+  const edge = (c, g) => g.length ? (c.phase === g[0].key ? ' ph-first' : '') + (c.phase === g[g.length - 1].key ? ' ph-last' : '') : '';
+  const ths = COLS.map(c => h('th', { class: 'h-' + c.k + (c.mini ? ' mini' : '') + (c.phase ? ' h-ph' + (phNach(c.phase) ? ' nach' + edge(c, phn) : edge(c, phs)) : ''), tip: c.tip || null },
     c.k === 'vis' ? h('input', { type: 'checkbox', checked: rows.every(selChk), 'aria-label': 'alle anzeigen', tip: 'Häkchen = im Kalender und in der Zeitleiste anzeigen',
       onclick: e => { const on = e.target.checked; unpin(); rows.forEach(x => on ? UI.hiddenM.delete(x.id) : UI.hiddenM.add(x.id)); renderNow(); } }) :
     c.mini ? demoChip(c.chip) :
@@ -296,7 +306,10 @@ function massnahmenSection() {
       h('div', { class: 'tablewrap' }, h('table', { class: 'grid mtable', style: { width: 'max(100%, ' + tableWidth() + 'px)' } },
         h('colgroup', null, COLS.map(c => h('col', { dataset: { k: c.k }, style: colW(c) ? { width: colW(c) + 'px' } : null }))),
         h('thead', null,
-          phs.length ? h('tr', { class: 'grouprow' }, nBefore ? h('th', { colspan: nBefore }) : null, h('th', { class: 'gr-ph' + (UI.phMini ? ' mini' : ''), colspan: phs.length }, UI.phMini ? phToggle() : h('div', { class: 'gr-phin' }, viewSwitch(), phToggle())), nAfter ? h('th', { colspan: nAfter }) : null) : null,
+          phs.length || phn.length ? h('tr', { class: 'grouprow' }, nBefore > 0 ? h('th', { colspan: nBefore }) : null,
+            phs.length ? h('th', { class: 'gr-ph' + (UI.phMini ? ' mini' : ''), colspan: phs.length }, UI.phMini ? phToggle() : h('div', { class: 'gr-phin' }, viewSwitch(), phToggle())) : null,
+            phn.length ? [nMid > 0 ? h('th', { colspan: nMid }) : null, h('th', { class: 'gr-ph nach' + (UI.phMini ? ' mini' : ''), colspan: phn.length }, phs.length ? (UI.phMini ? h('span', { class: 'gr-nach', tip: 'Bereiche nach dem PAL' }, '›') : h('span', { class: 'gr-nach' }, 'nach PAL')) : UI.phMini ? phToggle() : h('div', { class: 'gr-phin' }, viewSwitch(), phToggle()))] : null,
+            nAfter ? h('th', { colspan: nAfter }) : null) : null,
           h('tr', null, ths)), tb)),
       nFlt ? h('div', { class: 'flt-note muted small' }, (nFlt === 1 ? '1 Maßnahme' : nFlt + ' Maßnahmen') + ' durch den Filter ausgeblendet – ', h('button', { class: 'link small', onclick: () => { UI.tagHide = []; UI.respHide = []; saveUI(); renderNow(); } }, 'Filter aufheben')) : null,
       !rowsY.length ? h('div', { class: 'empty' }, 'Noch keine Maßnahmen in ' + y + '. ', h('button', { class: 'link', onclick: () => addMassnahme(y) }, 'Maßnahme anlegen'),
@@ -339,13 +352,14 @@ async function editMassnahme(id) {
       const v = m.vorlauf[p.key], e = m.ende[p.key], st = pal != null && isNum(v) ? pal - v : null, en = pal != null && isNum(e) ? pal - e : null;
       if (!keepInputs) { inS[p.key].value = st != null ? ds(st) : ''; inE[p.key].value = en != null ? ds(en) : ''; }
       inS[p.key].disabled = inE[p.key].disabled = pal == null;
-      wtS[p.key].textContent = st != null ? workdaysBefore(st, pal) + ' WT vor PAL' : '';
+      wtS[p.key].textContent = st != null ? wtLabel(p.key, st, pal) : '';
+      if (p.nach) inE[p.key].style.visibility = 'hidden';
     }
-    calc.textContent = pal == null ? 'Erst den PAL eintragen – die Starts der Bereiche verschieben sich mit dem PAL.' : 'Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start (der letzte bis zum PAL).';
+    calc.textContent = pal == null ? 'Erst den PAL eintragen – die Starts der Bereiche verschieben sich mit dem PAL.' : 'Ohne eigenes Ende läuft ein Bereich bis zum nächsten Start (der letzte bis zum PAL).' + (PHN().length ? ' Bereiche hinter dem PAL (' + PHN().map(p => p.name).join(', ') + '): das Datum ist ihr Ende, sie beginnen am PAL.' : '');
   };
   upd();
   const phaseRows = m.plan ? null : h('div', { class: 'phgrid' }, h('span'), h('span', { class: 'muted small' }, 'Start'), h('span'), h('span', { class: 'muted small' }, 'Ende (optional)'),
-    PH().map(p => [h('span', null, demoChip(p.key), ' ', p.name), inS[p.key], wtS[p.key], inE[p.key]]));
+    PH().map(p => [h('span', null, demoChip(p.key), ' ', p.name, p.nach ? h('small', { class: 'muted' }, ' (Ende)') : null), inS[p.key], wtS[p.key], inE[p.key]]));
   const body = h('div', { class: 'form' }, personList(),
     row('Maßnahme', h('input', { value: m.name, oninput: e => { m.name = e.target.value; } })),
     h('div', { class: 'frow' }, h('span', null, 'Farbe'), sw),

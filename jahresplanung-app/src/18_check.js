@@ -10,7 +10,8 @@ function checkData(d = D) {
     if (str(m.verantwortlich) !== str(m.verantwortlich).trim()) add(nm + ': Verantwortlich „' + m.verantwortlich + '“ mit Leerzeichen am Rand', 'Leerzeichen entfernen', dd => { M(dd).verantwortlich = str(M(dd).verantwortlich).trim(); });
     for (const k of Object.keys(m.vorlauf || {})) {
       if (!keys.includes(k)) add(nm + ': Start für den nicht mehr vorhandenen Bereich „' + k + '“', 'entfernen', dd => { delete M(dd).vorlauf[k]; });
-      else if (m.vorlauf[k] < 0) add(nm + ': ' + startLabel(k) + ' liegt nach dem PAL', startLabel(k) + ' entfernen', dd => { delete M(dd).vorlauf[k]; });
+      else if (!phNach(k) && m.vorlauf[k] < 0) add(nm + ': ' + startLabel(k) + ' liegt nach dem PAL', startLabel(k) + ' entfernen', dd => { delete M(dd).vorlauf[k]; });
+      else if (phNach(k) && m.vorlauf[k] > 0) add(nm + ': ' + startLabel(k) + ' liegt vor dem PAL', startLabel(k) + ' entfernen', dd => { delete M(dd).vorlauf[k]; });
     }
     for (const k of Object.keys(m.ende || {})) {
       if (!keys.includes(k) || !isNum((m.vorlauf || {})[k])) add(nm + ': Ende für „' + k + '“ ohne Start', 'entfernen', dd => { delete M(dd).ende[k]; });

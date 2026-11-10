@@ -10,8 +10,9 @@ function dateWarn(n, resp) {
   return out;
 }
 function tlRange(rows, y) {
-  let x0 = mkdn(y, 1, 1);
-  const x1 = mkdn(y, 12, 31);
+  let x0 = mkdn(y, 1, 1), x1 = mkdn(y, 12, 31);
+  const maxs = rows.flatMap(r => Object.values(r.st)).filter(v => v != null && v > x1 && v <= x1 + 120);   // Bereiche hinter dem P ins Folgejahr: Zeitleiste verlängern
+  if (maxs.length) { const [yy, mm] = ymd(Math.max(...maxs)); x1 = mkdn(yy, mm, daysIn(yy, mm)); }
   const mins = rows.flatMap(r => [...Object.values(r.st), r.pal]).filter(v => v != null && v < x0 && v >= x0 - 400);
   if (mins.length) { const [yy, mm] = ymd(Math.min(...mins)); x0 = mkdn(yy, mm, 1); }
   return [x0, x1];
@@ -78,15 +79,18 @@ function timelineSection(opts = {}) {
     const place = (st, en, pal) => {
       const Cx = n => X(clamp(n, x0 - 2, x1 + 2)) + pxd / 2;   // alles auf die Tagesmitte; weit Entferntes an den Rand
       const ks = phs.map(p => p.key).filter(k => st[k] != null);
-      const over = ks.some((a, i) => ks.some((b, j) => i < j && st[a] < en[b] && st[b] < en[a]));
-      const order = ks.slice().sort((a, b) => st[a] - st[b]);
+      // Abschnitt je Bereich: vor dem P vom Start bis zum Ende; hinter dem P vom PAL (bzw. vom vorigen Bereich dahinter) bis zu seinem Datum
+      const sg = {}; for (const k of ks) { if (phNach(k)) { const prev = [pal, ...Object.keys(st).filter(q => phNach(q) && st[q] != null && st[q] < st[k]).map(q => st[q])].filter(v => v != null);
+        sg[k] = [prev.length ? Math.max(...prev) : st[k], st[k]]; } else sg[k] = [st[k], en[k] != null ? en[k] : st[k]]; }
+      const over = ks.some((a, i) => ks.some((b, j) => i < j && sg[a][0] < sg[b][1] && sg[b][0] < sg[a][1]));
+      const order = ks.slice().sort((a, b) => sg[a][0] - sg[b][0]);
       ks.forEach((k, j) => {
-        const e = segs[k], a = st[k], b = en[k] != null ? en[k] : a, oi = order.indexOf(k);
+        const e = segs[k], a = sg[k][0], b = sg[k][1], oi = order.indexOf(k);
         e.style.display = b > a ? '' : 'none';
         e.style.left = Cx(a) + 'px'; e.style.width = Math.max(2, Cx(b) - Cx(a)) + 'px';
         e.style.setProperty('--ln', over ? j : 0); e.style.setProperty('--lns', over ? ks.length : 1);
         e.classList.toggle('first', !over && oi === 0); e.classList.toggle('last', !over && oi === order.length - 1); e.classList.toggle('lane', over);
-        hands[k].style.display = ''; hands[k].style.left = Cx(a) + 'px';
+        hands[k].style.display = ''; hands[k].style.left = Cx(st[k]) + 'px';   // Griff am Datum (hinter dem P: am Ende)
       });
       dia.style.display = pal != null && showType('P') ? '' : 'none'; if (pal != null) dia.style.left = X(pal) + pxd / 2 + 'px';
     };
@@ -94,7 +98,7 @@ function timelineSection(opts = {}) {
     const tipFn = () => chipTip({ x, t: 'P' });
     [...Object.values(segs), dia].forEach(e => { setTip(e, tipFn); e.addEventListener('pointerdown', ev => tlDrag(ev, x, 'move', pxd, place)); e.addEventListener('dblclick', () => editMassnahme(x.id)); });
     for (const p of phs) {
-      setTip(hands[p.key], () => h('div', null, h('b', null, startLabel(p.key) + ' ' + fmtW(x.st[p.key])), h('div', { class: 'muted' }, (x.pal != null ? workdaysBefore(x.st[p.key], x.pal) + ' Werktage vor PAL · ' : '') +
+      setTip(hands[p.key], () => h('div', null, h('b', null, startLabel(p.key) + ' ' + fmtW(x.st[p.key])), h('div', { class: 'muted' }, (x.pal != null ? wtLabel(p.key, x.st[p.key], x.pal).replace('WT', 'Werktage') + ' · ' : '') +
         (x.enx[p.key] != null ? 'bis ' + fmtWS(x.en[p.key]) + ' · ' : '') + (x.pc ? 'ziehen = verschieben, der Detailplan passt sich an' : 'ziehen = verschieben'))));
       hands[p.key].addEventListener('pointerdown', ev => tlDrag(ev, x, p.key, pxd, place));
     }
