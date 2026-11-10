@@ -419,7 +419,10 @@ function warnPanel() {
   const vorl = C.ms.filter(x => x.pal != null && ymd(x.pal)[0] === UI.year && x.m.palStatus !== 'fest').length;
   const item = w => h('div', { class: 'witem ' + w.lvl },
     h('button', { class: 'wtext', onclick: () => goTo(w) }, w.text),
-    w.fix ? h('button', { class: 'wfix', tip: w.fix.t === 'P' ? 'PAL auf den Tag davor legen (Samstag ist erlaubt)' : 'Termin auf den vorherigen Arbeitstag legen', onclick: () => fixDate(w) }, 'auf ' + fmtWS(w.fix.to) + ' vorziehen') : null);
+    w.fix ? h('button', { class: 'wfix', tip: w.fix.t === 'P' ? 'PAL auf den Tag davor legen (Samstag ist erlaubt)' : 'Termin auf den vorherigen Arbeitstag legen', onclick: () => fixDate(w) }, 'auf ' + fmtWS(w.fix.to) + ' vorziehen') : null,
+    w.okKey ? h('button', { class: 'wok', tip: 'bewusst so geplant – diesen Hinweis für diesen Termin nicht mehr zeigen (verschiebt sich der Termin, kommt er wieder; gilt für alle)', onclick: () => setWarnOk(w.mid, w.okKey, true) }, '✓ stimmt so') : null);
+  const okItem = w => h('div', { class: 'witem ok' }, h('span', { class: 'wtext' }, w.text),
+    h('button', { class: 'link small wunok', onclick: () => setWarnOk(w.mid, w.okKey, false) }, 'wieder anzeigen'));
   return h('aside', { class: 'warnpanel' },
     h('header', null, h('h2', null, 'Warnungen ' + UI.year), h('button', { class: 'icon', 'aria-label': 'Schließen', onclick: () => { UI.warnOpen = false; renderNow(); } }, '✕')),
     h('div', { class: 'wbody' },
@@ -428,6 +431,7 @@ function warnPanel() {
         warn.filter(w => w.fix).length > 1 ? h('button', { class: 'fixall', onclick: () => fixAll(warn.filter(w => w.fix)) }, 'Alle ' + warn.filter(w => w.fix).length + ' Termine am Wochenende/Feiertag auf den Arbeitstag davor legen') : null,
         warn.map(item)] : h('p', { class: 'ok' }, '✓ Keine Konflikte gefunden.'),
       info.length ? [h('h3', null, 'Hinweise (' + info.length + ')'), info.map(item)] : null,
+      (C.warnOk || []).length ? h('details', { class: 'wokd' }, h('summary', null, 'Als „stimmt so“ bestätigt (' + C.warnOk.length + ')'), C.warnOk.map(okItem)) : null,
       h('p', { class: 'muted small' }, 'Geprüft werden: Starts am Wochenende oder Feiertag, PAL an Sonn-/Feiertagen, Termine im Urlaub der verantwortlichen Person, ' +
         'Arbeitsschritte im Urlaub der zugeordneten Person.')));
 }

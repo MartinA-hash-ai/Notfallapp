@@ -2323,3 +2323,12 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .mtable td.date.wt .wt-n { display: inline-block; box-sizing: border-box; min-width: calc(3ch + 6px); padding-right: 2px; text-align: right; color: var(--ink); }
 .mtable td.date.wt .wtbox.wt-leer .wt-n, .mtable td.ph .ph-dash { color: var(--line2); }
 .mtable td.ph.derived-date.wt { text-align: center; }
+/* 0.53.5: leeres Feld bei Detailplan ohne diesen Bereich – wie jedes leere Feld, nur nicht anklickbar */
+.mtable td input[type=date][readonly].noval { pointer-events: none; }
+/* „stimmt so“ – Hinweis bewusst so geplant */
+.witem .wok { margin: 4px 0 0 6px; font-size: 12px; padding: 2px 8px; border: 1px solid var(--line2); background: var(--card); color: var(--ink2); border-radius: 6px; }
+.witem .wok:hover { border-color: var(--okline); background: var(--okbg); color: var(--okink); }
+.wokd { margin-top: 12px; font-size: 12.5px; }
+.wokd summary { cursor: pointer; color: var(--muted); font-weight: 600; }
+.witem.ok { border-left-color: var(--okline); background: var(--soft); display: flex; align-items: center; gap: 8px; }
+.witem.ok .wtext { flex: 1; color: var(--muted); }

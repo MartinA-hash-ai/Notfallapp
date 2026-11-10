@@ -281,12 +281,13 @@ function massnahmenSection() {
     const startCell = key => {
       const n = x.st[key];
       // Hinweise: Wochenende/Feiertag/Urlaub am Start, dazu Urlaub von Personen, die im Detailplan in diesem Bereich eingetragen sind
-      const w = n != null && !phNach(key) ? dateWarn(n, resp) : [], pv = phaseVacations(x, key);   // hinter dem P (Laufzeit): Wochenende ist kein Problem
+      const w = n != null && !phNach(key) && !warnOkd(x, key, n) ? dateWarn(n, resp) : [], pv = phaseVacations(x, key);   // hinter dem P (Laufzeit): Wochenende ist kein Problem
       const lines = w.concat(pv.map(({ s, v }) => s.wer + ': Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis) + ' („' + s.name + '“)'));
       const warnIcon = lines.length ? h('span', { class: 'wi' + (pv.length ? ' vac' : ''), tip: (pv.length ? 'Urlaub im Bereich ' + phName(key) + ':\n' : '') + lines.join('\n') }, pv.length ? '🏖' : '⚠') : null;
       const nach = phNach(key), grp = nach ? PHN() : PHV();
       // leer (auch bei Detailplan ohne Abschnitt): überall gleich – hellgraues „–“, in der Werktage-Ansicht mit „WT“
-      const phEmpty = nb => wtView(nb) ? h('span', { class: 'wtbox wt-leer' }, h('span', { class: 'wt-n' }, '–'), h('span', { class: 'unit' }, 'WT')) : h('span', { class: 'ph-dash' }, '–');
+      const phEmpty = nb => wtView(nb) ? h('span', { class: 'wtbox wt-leer' }, h('span', { class: 'wt-n' }, '–'), h('span', { class: 'unit' }, 'WT'))
+        : h('input', { type: 'date', class: 'noval', readonly: true, tabindex: '-1', 'aria-label': 'kein Termin' });   // sieht aus wie jedes leere Datumsfeld
       const tipDate = n != null ? startLabel(key) + ': ' + fmtW(n) + (x.pal != null ? ' · ' + (nach ? workdaysAfter(n, x.pal) + ' Werktage nach PAL · ab ' + fmtW(x.sa[key]) : workdaysBefore(n, x.pal) + ' Werktage vor PAL') : '') + (!nach && x.enx[key] != null ? ' · bis ' + fmtW(x.en[key]) : '') : null;
       const pi = grp.findIndex(q => q.key === key), cellCls = 'date ph' + (nach ? ' nach' : '') + (wtView(nach) && !phMiniOf(nach) ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === grp.length - 1 ? ' ph-last' : '');
       if (phMiniOf(nach)) { const has = x.pal != null && n != null && !(m.plan && !startMovable(x, key)); return h('td', { class: cellCls + ' mini', tip: has ? tipDate : null }, has ? h('span', { class: 'ph-ok', 'aria-label': 'eingetragen' }, '✓') : null); }

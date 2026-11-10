@@ -37,7 +37,7 @@ function agendaSection() {
     const dcol = h('div', { class: 'ad' }, h('b', null, fmtWS(it.n)), h('span', { class: 'rel' + (it.n < today ? ' past' : it.n - today <= 7 ? ' soon' : '') }, relDays(it.n, today)));
     let what;
     if (it.kind === 'ev') {
-      const w = dateWarn(it.n, it.e.x.m.verantwortlich).filter(t => it.e.t !== 'P' || !/Samstag|Urlaub/.test(t));
+      const w = warnOkd(it.e.x, it.e.t, it.n) ? [] : dateWarn(it.n, it.e.x.m.verantwortlich).filter(t => it.e.t !== 'P' || !/Samstag|Urlaub/.test(t));
       what = h('div', { class: 'aw' }, chip(it.e), h('span', { class: 'stxt' }, h('b', null, it.e.x.m.name), ' – ' + TYPE_LABEL[it.e.t],
         it.e.t === 'P' && it.e.x.m.palStatus !== 'fest' ? h('span', { class: 'tag vorl' }, 'vorläufig') : null,
         it.e.x.m.verantwortlich ? h('span', { class: 'who', style: { background: pastel(personColor(it.e.x.m.verantwortlich)) } }, it.e.x.m.verantwortlich) : null,

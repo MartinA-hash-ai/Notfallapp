@@ -269,6 +269,8 @@ function normalizeData(d) {
   d.personen.forEach(p => { p.name = str(p.name).trim(); if (typeof p.farbe !== 'string') p.farbe = '#888888'; });
   const ids = new Set(), freshId = v => { let id = str(v); if (!id || ids.has(id)) id = uid(); ids.add(id); return id; }, tagCase = new Map();
   d.massnahmen.forEach(m => {
+    // „stimmt so“ (0.53.5): bestätigte Termin-Hinweise je Maßnahme, Schlüssel „Bereich:Datum“ (z. B. „P:2027-05-27“) – verschiebt sich der Termin, kommt der Hinweis wieder
+    m.okW = [...new Set((Array.isArray(m.okW) ? m.okW : []).map(str).filter(k => /^[A-Z0-9]:\d{4}-\d\d-\d\d$/.test(k)))]; if (!m.okW.length) delete m.okW;
     m.id = freshId(m.id); m.tags = normTags(m.tags, tagCase); m.name = str(m.name); m.farbe = typeof m.farbe === 'string' && m.farbe ? m.farbe : '#7F7F7F';
     m.verantwortlich = str(m.verantwortlich); m.hinweis = str(m.hinweis); m.pal = dateStr(m.pal);
     if (!('palStatus' in m)) m.palStatus = 'vorläufig';
@@ -536,10 +538,18 @@ function derive() {
     .map(v => v.bis - v.von > 400 ? Object.assign(v, { bis: v.von + 400, tooLong: true }) : v);   // Tippfehler im Jahr bremst sonst alle Ansichten
   const fer = D.ferien.map(u => ({ u, von: dn(u.von), bis: dn(u.bis) ?? dn(u.von) })).filter(v => v.von != null && v.bis >= v.von && v.bis - v.von <= 400).sort((p, q) => p.von - q.von);
   C = { ms, byId, vac, fer };
-  C.warnings = computeWarnings();
+  const all = computeWarnings();
+  C.warnings = all.filter(w => !w.ok); C.warnOk = all.filter(w => w.ok);   // bestätigte („stimmt so“) zählen nicht mehr
   return C;
 }
 const vacOn = n => C.vac.filter(v => v.von <= n && n <= v.bis);
+const warnOkd = (x, t, n) => n != null && (x.m.okW || []).includes(t + ':' + ds(n));   // Termin-Hinweis als „stimmt so“ bestätigt
+// „stimmt so“ setzen bzw. zurücknehmen
+function setWarnOk(mid, key, on) {
+  const x = C.byId.get(mid); if (!x) return;
+  commit(d => { const m = d.massnahmen.find(q => q.id === mid); if (!m) return; const s = new Set(m.okW || []); if (on) s.add(key); else s.delete(key); if (s.size) m.okW = [...s]; else delete m.okW; },
+    (x.m.name || 'Maßnahme') + ': ' + (on ? 'Hinweis bestätigt (stimmt so)' : 'Hinweis wieder angezeigt'));
+}
 // Anzeige in Kalender, Zeitleiste, „Was steht an?“: Häkchen in der Tabelle und Schlagwort-Filter (UI.tagHide: ausgeblendete Schlagworte, '' = ohne Schlagwort)
 const allTags = () => { const m = new Map(); for (const x of D.massnahmen) for (const t of x.tags || []) if (!m.has(t.toLowerCase())) m.set(t.toLowerCase(), t); return [...m.values()].sort((a, b) => a.localeCompare(b, 'de')); };
 const tagOk = x => { const hd = UI.tagHide; if (!Array.isArray(hd) || !hd.length) return true; const t = x.m.tags || []; return t.length ? t.some(s => !hd.includes(s)) : !hd.includes(''); };
@@ -605,11 +615,12 @@ function computeWarnings() {
       const w = wd(n), hn = holName(n), isPal = t === 'P';
       const planLocked = !isPal && x.m.plan && !(x.pc && x.pc.ph[t]);
       const fix = planLocked ? null : { t, to: isPal ? prevPalDay(n) : prevWorkday(n) };
-      if (hn) W.push({ lvl: 'warn', mid: x.id, n, fix, text: `${nm}: ${lab} fällt auf den Feiertag „${hn}“ (${fmtW(n)})` });
-      else if ((!isPal && w >= 5) || (isPal && w === 6)) W.push({ lvl: 'warn', mid: x.id, n, fix, text: `${nm}: ${lab} fällt auf einen ${WDL[w]} (${fmtD(n)})` });
+      const okKey = t + ':' + ds(n), ok = (x.m.okW || []).includes(okKey);   // „stimmt so“ – bewusst so geplant
+      if (hn) W.push({ lvl: 'warn', mid: x.id, n, fix, okKey, ok, text: `${nm}: ${lab} fällt auf den Feiertag „${hn}“ (${fmtW(n)})` });
+      else if ((!isPal && w >= 5) || (isPal && w === 6)) W.push({ lvl: 'warn', mid: x.id, n, fix, okKey, ok, text: `${nm}: ${lab} fällt auf einen ${WDL[w]} (${fmtD(n)})` });
       const resp = (x.m.verantwortlich || '').trim();
       const away = vacOn(n).filter(v => !resp || v.u.wer === resp);
-      if (away.length && !isPal) W.push({ lvl: resp ? 'warn' : 'info', mid: x.id, n,
+      if (away.length && !isPal) W.push({ lvl: resp ? 'warn' : 'info', mid: x.id, n, okKey, ok,
         text: `${nm}: ${lab} am ${fmtW(n)} – im Urlaub: ${[...new Set(away.map(v => v.u.wer || '?'))].join(', ')}` });
     };
     for (const p of PHV()) chk(x.st[p.key], startLabel(p.key), p.key);   // Bereiche hinter dem P (z. B. Laufzeit): Wochenende ist dort normal

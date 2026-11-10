@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.53.4",
+    "version": "0.53.5",
     "date": "",
+    "items": [
+      "Warnungen: bei Terminen auf Wochenende, Feiertag oder im Urlaub ein Knopf „✓ stimmt so“ – der Hinweis verschwindet für genau diesen Termin an diesem Datum (für alle, in den Planungsdaten gespeichert). Verschiebt sich der Termin, kommt er wieder. Bestätigte stehen unten im Fenster „Warnungen“ und lassen sich wieder anzeigen; Strg+Z nimmt es zurück",
+      "Tabelle: bei Maßnahmen mit Detailplan, in dem es einen Bereich nicht gibt, sieht das leere Feld jetzt genauso aus wie alle anderen leeren Felder"
+    ]
+  },
+  {
+    "version": "0.53.4",
+    "date": "2026-11-10T15:21",
     "items": [
       "Tabelle: leere Bereichsfelder sehen überall gleich aus – hellgraues „– WT“ (Werktage) bzw. „–“ (Datum), auch bei Maßnahmen mit Detailplan (dort stand bisher ein dunkles „–“ ohne „WT“)"
     ]
