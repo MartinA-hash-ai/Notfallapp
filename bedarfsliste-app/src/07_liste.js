@@ -156,6 +156,8 @@ function filterUndSortiere(o = {}) {
   try { L.sort((x, y) => prioVorn(x, y) || sortVergleich(x, y) || cmp(x, y, 'prio') || cmp(x, y, 'frist') || cmp(x, y, 'titel')); } finally { SORT_MEMO = null; }
   if (!o.alle && ORDER.ids && ORDER.key === ordKey()) { const i = id => { const n = ORDER.ids.indexOf(id); return n < 0 ? 1e9 : n; }; L.sort((x, y) => i(x.id) - i(y.id)); }
   // zurückgestellte und verworfene immer ganz unten – untereinander nur grob: erst die mit Prio, dann zurückgestellt vor verworfen, sonst nach Namen
+  // ab 0.158: abgeschlossene (alles erledigt) ebenfalls unten, vor den zurückgestellten
+  const A = L.filter(b => !b.manuell && istAbgeschlossen(b)); if (A.length) L = L.filter(b => !A.includes(b)).concat(A);
   const Z = L.filter(b => b.manuell);
   if (Z.length) L = L.filter(b => !b.manuell).concat(Z.sort((x, y) => (x.prio === 'hoch' ? 0 : 1) - (y.prio === 'hoch' ? 0 : 1) || (x.manuell === 'verworfen') - (y.manuell === 'verworfen') || x.titel.localeCompare(y.titel, 'de')));
   return L;

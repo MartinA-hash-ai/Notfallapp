@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.158:** Netz-Fehler behoben, abgeschlossene Bedarfe unten, Förderer im Förderplan einklappbar, Cowork-Dateien auch in tiefen Unterordnern.
+
 **Seit 0.157:** E-Mail-Auswertung: Copilot legt je Lauf eine neue Datei in OneDrive „Dokumente/Cowork“ an (keine Bestätigung mehr nötig), das Programm holt sie dort ab; abgeschlossene Bedarfe blass wie zurückgestellte.
 
 **Seit 0.156:** Abgeschlossene Bedarfe in der Liste nur mit „✓ abgeschlossen (archiviert in X Tagen)“; nach einem Sprung aus den Hinweisen bleibt der Bedarf aufgeklappt.

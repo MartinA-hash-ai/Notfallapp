@@ -136,6 +136,10 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   await p.evaluate(() => peScan()); await p.waitForTimeout(300);
   r = await p.evaluate(() => [PE.L.filter(v => /^L2026-11-20 06:05#/.test(v.key)).length, (new TextDecoder().decode(__fs.files['/Ordner/Förderrecherche/Posteingang.txt'].data).match(/LAUF 2026-11-20 06:05/g) || []).length]);
   ok(r.join('|') === '1|1', 'zweites Einlesen: nicht doppelt angezeigt und nicht doppelt angehängt: ' + r.join('|'));
+  // 0.158: tief verschachtelt (Tasks/<Aufgabe>/output), Betrag mit Komma
+  await p.evaluate(async () => { __fs.files['/Ordner/Cowork/Tasks/Aufgabe-2026-11-21/output/Posteingang_LAUF_2026-11-21_06-05.txt'] = { data: new TextEncoder().encode('##### LAUF 2026-11-21 06:05 #####\r\nLauf-Ergebnis: 1 Vorschlag\r\n=== VORSCHLAG ===\r\nArt: zusage\r\nBedarf: b1\r\nFörderer: f2\r\nBetrag: 4994,97\r\nSicherheit: sicher'), lm: 99003 }; await peScan(); });
+  r = await p.evaluate(() => { const v = PE.L.find(x => /^L2026-11-21 06:05#/.test(x.key)); return [!!v, v && peBetrag(v.betrag), PE.cwInfo.n]; });
+  ok(r.join('|') === 'true|4994.97|2', 'Cowork: Datei in Tasks/…/output gefunden, Betrag 4994,97 gelesen, Zähler für die Einstellungen: ' + r.join('|'));
   r = await p.evaluate(async () => { __fs.perm = 'prompt'; await peScan(); renderNow(); return [PE.cwZ, (document.querySelector('header.top [data-act="pe-cw-erlauben"]') || {}).textContent || '']; });
   await p.evaluate(() => { __fs.perm = 'granted'; });
   ok(r[0] === 'zugriff', 'ohne Freigabe des Browsers: Zustand „zugriff“ (Knopf oben, wenn keine Vorschläge offen): ' + r.join('|'));

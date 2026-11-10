@@ -1,5 +1,15 @@
 [
   {
+    "version": "0.158.0",
+    "date": "2026-12-01T15:00",
+    "items": [
+      "Fördererliste, Netz: Häufigkeit und Aufwand sprangen bei neu angelegten Förderern zurück (der Wert fehlte im Speicher und wurde nicht übernommen) – behoben",
+      "Liste: abgeschlossene Bedarfe rutschen nach unten (vor die zurückgestellten)",
+      "Förderplan: Förderer unter dem Kreisdiagramm ein- und ausblenden – Pfeil mittig unten am Kasten; beim Sprung zu einem Förderer werden sie wieder gezeigt",
+      "E-Mail-Auswertung: Lauf-Dateien von Copilot auch tief in Unterordnern (z. B. Cowork/Tasks/…/output), auch als .md und in UTF-16; Einstellungen zeigen, was im Cowork-Ordner gefunden wurde, mit „Jetzt abholen“"
+    ]
+  },
+  {
     "version": "0.157.0",
     "date": "2026-12-01T12:00",
     "items": [

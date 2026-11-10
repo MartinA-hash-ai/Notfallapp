@@ -29,7 +29,7 @@ function fristenAusText(t) {
   const rest = String(t || '').replace(FRIST_RE, '').replace(/\b(und|sowie|bzw|oder|jeweils|bis|zum|am|je)\b/gi, '').replace(/[\s,.;:–\-\/()*_]+/g, '');
   return { L, text: rest ? strV(t) : '' };
 }
-const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg: [], anschrift: '', web: '', schwer: '', hoehe: '', fristen: '', quote: '', kurz: '', gross: false, hoeheVon: null, hoeheBis: null, topfe: [], topfMig: false, richtlinien: '', recherche: '', notiz: '', bew: { chance: 0, dauer: 0, summe: 0 }, antrag: '', fristenL: [], ansprache: [], kontakte: [], foerderungen: [], beispiele: [] });
+const flLeer = () => ({ id: '', name: '', art: '', status: 'aktiv', gl: [], weg: [], anschrift: '', web: '', schwer: '', hoehe: '', fristen: '', quote: '', kurz: '', gross: false, hoeheVon: null, hoeheBis: null, topfe: [], topfMig: false, richtlinien: '', recherche: '', notiz: '', bew: flBewNull(), antrag: '', fristenL: [], ansprache: [], kontakte: [], foerderungen: [], beispiele: [] });
 // Einschätzung (ab 0.89, Häufigkeit und Aufwand ab 0.96): je drei Stufen, 1 = ungünstig … 3 = günstig (im Netz außen = besser; bei Dauer und Aufwand heißt außen
 // „geht schnell“ bzw. „einfach“); 0 = nicht von Hand gesetzt. Reihenfolge = im Uhrzeigersinn ab oben: Geld (Summe, Häufigkeit) rechts, Mühe (Aufwand, Dauer) links
 const FL_BEW = [
@@ -445,7 +445,8 @@ function fnSuchSetzen(k, v) {
   const n = $('.fl-such .fl-netz'); if (n) n.outerHTML = flNetz(flQEintrag(), true, { such: true });
   flListeNeu(); const g = $(`.fl-such .fn-griff[data-k="${k}"]`); if (g) g.focus({ preventScroll: true });
 }
-function fnSetzen(k, v, such) { if (such) return fnSuchSetzen(k, v); const e = flCur(), W = e && flTraeger(e); if (!W || !(k in W.bew) || W.bew[k] === v) return; W.bew[k] = v; changed(); keep(renderNow); const g = $(`.fl-netz.zieh .fn-griff[data-k="${k}"]`); if (g) g.focus({ preventScroll: true }); }
+function fnSetzen(k, v, such) { if (such) return fnSuchSetzen(k, v); const e = flCur(), W = e && flTraeger(e); if (!W || !FL_BEW.some(x => x.k === k)) return;   // ab 0.158: auch wenn der Wert noch fehlt (neu angelegte Förderer) – sonst sprang er zurück
+  if (!isObj(W.bew)) W.bew = flBewNull(); if ((W.bew[k] || 0) !== v) { W.bew[k] = v; changed(); } keep(renderNow); const g = $(`.fl-netz.zieh .fn-griff[data-k="${k}"]`); if (g) g.focus({ preventScroll: true }); }
 document.addEventListener('pointerdown', ev => {
   const g = ev.target.closest && ev.target.closest('.fl-netz.zieh .fn-griff'); if (!g || ev.button !== 0) return;
   ev.preventDefault(); g.focus({ preventScroll: true }); g.setPointerCapture(ev.pointerId);

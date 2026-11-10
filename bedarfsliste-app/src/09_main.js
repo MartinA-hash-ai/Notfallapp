@@ -112,7 +112,7 @@ function springZu(id, z, fid, farbe) {
   }
   const ber = ZIEL_BEREICH[z], los = () => blitz([$(sel(ZIEL_SEITE)) || $('#f-titel')], farbe);
   if (UI.view !== 'detail' || UI.id !== id) return oeffnen(id, { offen: ber, nachher: los });   // aufleuchten erst, wenn die Seite sichtbar ist
-  if (ber && zuGet(b, ber)) { zuSet(b, ber, false); keep(renderNow); }
+  if (ber && (zuGet(b, ber) || (ber === 'foe' && zuGet(b, 'fk')))) { zuSet(b, ber, false); if (ber === 'foe') zuSet(b, 'fk', false); keep(renderNow); }
   los();
 }
 // kurz aufleuchten lassen: rot hinterlegt, springt kurz hervor – nach dem Hinscrollen
@@ -392,7 +392,7 @@ function oeffnen(id, o = {}) {
   if (UI.view === 'list') { LISTE_Y = scrollY; NAV = filtered().map(x => x.id); UI.vonFl = null; }
   if (UI.view === 'fdetail' || UI.view === 'flist') { FL_Y = scrollY; UI.vonFl = UI.view === 'fdetail' ? UI.flId : null; }   // aus der Fördererliste geöffnet: „zurück“ führt dorthin
   closeMenus(); klickRuhe(); UI.view = 'detail'; UI.id = id; ZU = null;
-  const b = D.bedarfe.find(x => x.id === id); if (b && o.offen) { ZU = zuStd(b); ZU[o.offen] = false; }
+  const b = D.bedarfe.find(x => x.id === id); if (b && o.offen) { ZU = zuStd(b); ZU[o.offen] = false; if (o.offen === 'foe') ZU.fk = false; }
   uebergang('vor', () => { renderNow(); scrollTo(0, 0); if (o.danach) o.danach(); }, o.nachher);   // o.nachher: erst wenn der Wechsel fertig zu sehen ist
   setTimeout(kiCheck, 300);                                                        // Ergebnis von Copilot oder Cowork da?
 }

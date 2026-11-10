@@ -6,7 +6,7 @@
    Beim Öffnen meldet das Programm neue Vorschläge; übernommen wird erst nach Prüfung (Haken je Vorschlag, ↶ macht alles rückgängig). */
 const PE_AUFTRAG = 'Auftrag E-Mail-Auswertung.txt', PE_UEB = 'Überblick für Copilot.txt', PE_DATEI = 'Posteingang.txt', PE_RE = /^Posteingang.*\.(txt|md)$/i;   // ab 0.147 eine feste Datei, in die Copilot je Lauf einen Abschnitt anhängt (ältere Einzeldateien werden weiter gelesen)
 // ab 0.157: Copilot darf ohne Rückfrage nur NEUE Dateien in seinem Arbeitsordner anlegen (OneDrive „Dokumente/Cowork“) – je Lauf eine Datei
-const PE_CW = 'Dokumente/Cowork', PE_CW_RE = /^Posteingang_LAUF_.*\.txt$/i, PE_CW_NAME = 'Posteingang_LAUF_JJJJ-MM-TT_HH-MM.txt';
+const PE_CW = 'Dokumente/Cowork', PE_CW_RE = /^Posteingang_LAUF.*\.(txt|md)$/i, PE_CW_NAME = 'Posteingang_LAUF_JJJJ-MM-TT_HH-MM.txt';
 const PE_SATZ = 'Lies die Datei „' + PE_AUFTRAG + '“ im Ordner „' + RECH_DIR + '“ (neben der Bedarfsliste) und führe den Auftrag darin vollständig aus.';
 // Ort des Ordners für Copilot: OneDrive/SharePoint-Pfad, wenn die Programmdatei dort liegt (ohne Benutzernamen)
 const peOrt = () => { const P = rechOrdnerOk() ? rechPfad() : { od: '' }; return P.od ? '„' + P.od + '“ (OneDrive bzw. SharePoint)' : '„' + RECH_DIR + '“ neben der Bedarfsliste'; };
@@ -145,7 +145,7 @@ async function peScan() {
   }
   // ab 0.157: je Lauf eine Datei aus dem Arbeitsordner von Copilot (OneDrive „Dokumente/Cowork“) – derselbe Lauf zählt nur einmal
   const CW = await peCoworkDateien(), neuFest = [];
-  for (const x of CW) { let text = ''; try { text = await x.f.text(); } catch (e) { continue; }
+  for (const x of CW) { let text = ''; try { text = await peTextLesen(x.f); } catch (e) { continue; }
     if (!/#{3,}\s*LAUF\s+\d{4}-\d{2}-\d{2}/.test(text)) continue;                  // noch nicht fertig übertragen: beim nächsten Mal wieder
     const vorher = laeufe.length; peLaeufeLesen(text, x.n, laeufe, L, erl);
     if (fest && laeufe.slice(vorher).some(l => !fest.has(peLaufK(l)))) { neuFest.push(text.replace(/^\ufeff/, '').replace(/\r/g, '').trim()); laeufe.slice(vorher).forEach(l => fest.add(peLaufK(l))); } }
@@ -176,6 +176,13 @@ async function peAnhaengen(T) {
     const w = await fh.createWritable(); await w.write(new Blob([alt.replace(/\s+$/, '') + '\r\n\r\n' + T.join('\r\n\r\n').replace(/\r?\n/g, '\r\n') + '\r\n'], { type: 'text/plain;charset=utf-8' })); await w.close();
   } catch (e) { console.warn(e); } finally { PE.anh = false; }
 }
+// Text einer Datei: UTF-8 (mit/ohne BOM) oder UTF-16 (BOM FF FE / FE FF)
+async function peTextLesen(f) {
+  const u = new Uint8Array(await f.arrayBuffer());
+  if (u[0] === 0xff && u[1] === 0xfe) return new TextDecoder('utf-16le').decode(u.subarray(2));
+  if (u[0] === 0xfe && u[1] === 0xff) return new TextDecoder('utf-16be').decode(u.subarray(2));
+  return new TextDecoder('utf-8').decode(u).replace(/^\ufeff/, '');
+}
 // Arbeitsordner von Copilot (über OneDrive auf dem PC): einmal verbinden, der Verweis liegt im Browser (IndexedDB)
 const peCwKey = () => 'cowork:' + (localPath() || location.href);
 async function peCoworkVerbinden() {
@@ -193,9 +200,9 @@ async function peCoworkDateien() {
   const z = p === 'granted' ? 'ok' : 'zugriff'; if (z !== PE.cwZ) { PE.cwZ = z; safeRender(); } if (z !== 'ok') return [];
   const R = [], erl = new Set(peErledigt());
   const lauf = async (dir, tiefe) => { try { for await (const [n, e] of dir.entries()) {
-    if (e.kind === 'directory' && tiefe < 3) await lauf(e, tiefe + 1);
+    if (e.kind === 'directory' && tiefe < 7) await lauf(e, tiefe + 1);                 // z. B. Cowork/Tasks/<Aufgabe>/output/
     else if (e.kind === 'file' && PE_CW_RE.test(n)) { const f = await e.getFile(); R.push({ n, f, k: 'cw:' + n + '@' + f.lastModified }); } } } catch (e) { console.warn(e); } };
-  await lauf(PE.cw, 0); return R.sort((a, c) => a.n.localeCompare(c.n));
+  await lauf(PE.cw, 0); PE.cwInfo = { n: R.length, letzte: R.map(x => x.n).sort().pop() || '', am: new Date() }; return R.sort((a, c) => a.n.localeCompare(c.n));
 }
 // Hinweis oben: der Ordner ist verbunden, der Browser will die Freigabe neu (geht nur per Klick)
 const peCwChip = () => PE.cwZ === 'zugriff' ? `<button class="pe-stat warn" data-act="pe-cw-erlauben" title="Der Browser fragt nach dem Neustart wieder nach – einmal klicken und „Zulassen“ (bei „Bei jedem Besuch zulassen“ entfällt das)">${PE_MAIL_SVG}<span>Copilot-Ergebnisse freigeben</span></button>`
@@ -475,7 +482,11 @@ function peToast(n, rej, spaet, undo) {
 }
 
 /* ---------- Einstellungen: was gesucht wird, Einrichtung in Cowork */
+const peCwInfoText = () => !D.settings.coworkOrdner ? '' : PE.cwZ === 'zugriff' ? 'Der Browser braucht die Freigabe – oben auf „Copilot-Ergebnisse freigeben“ klicken.' : PE.cwZ === 'fehlt' ? 'In diesem Browser nicht verbunden – bitte neu verbinden.'
+  : !PE.cwInfo ? '' : PE.cwInfo.n ? 'Gefunden: ' + PE.cwInfo.n + (PE.cwInfo.n === 1 ? ' Lauf-Datei' : ' Lauf-Dateien') + ', zuletzt „' + PE.cwInfo.letzte + '“.' : 'Noch keine Datei „Posteingang_LAUF_…“ im Ordner (auch nicht in Unterordnern) – kommt sie nach dem Lauf von Copilot nicht an, ist sie nicht in deinem OneDrive gelandet.';
 async function peEinstDialog() {
+  if (D.settings.coworkOrdner) await peScan().catch(() => {});
+  const cwI = h('p', { class: 'muted small pe-cw-info' }, peCwInfoText());
   const S = peEinst(), cwT = h('span', { class: 'muted small' }, D.settings.coworkOrdner ? (PE.cwZ === 'ok' ? 'Verbunden: „' : 'Verbunden (Freigabe nötig): „') + D.settings.coworkOrdner + '“' : 'Noch nicht verbunden');
   const gr = g => h('section', { class: 'pe-eg' }, h('label', { class: 'pe-eh' }, h('input', { type: 'checkbox', checked: S[g], onchange: e => { S[g] = e.target.checked; } }), h('b', null, PE_GRUPPEN[g])),
     h('ul', { class: 'pe-el' }, ...PE_ARTEN.filter(a => a[1] === g).map(a => h('li', null, a[2]))));
@@ -487,7 +498,8 @@ async function peEinstDialog() {
     h('h3', null, 'Wo Copilot seine Ergebnisse ablegt'),
     h('p', null, 'Copilot darf ohne Rückfrage nur neue Dateien in seinem Arbeitsordner anlegen: OneDrive „' + PE_CW + '“. Verbinde diesen Ordner einmal (im Explorer meist unter „OneDrive – Malteser › Dokumente › Cowork“) – das Programm holt die Ergebnisse dort ab und hängt sie an „' + PE_DATEI + '“ an.'),
     h('div', { class: 'pe-cw' }, h('button', { type: 'button', onclick: async () => { if (await peCoworkVerbinden()) cwT.textContent = 'Verbunden: „' + D.settings.coworkOrdner + '“'; } }, D.settings.coworkOrdner ? 'Anderen Ordner wählen …' : 'Cowork-Ordner verbinden …'),
-      cwT),
+      cwT, h('button', { type: 'button', class: 'link small', onclick: async () => { await peScan(); cwI.textContent = peCwInfoText(); } }, 'Jetzt abholen')),
+    cwI,
     h('h3', null, 'Wonach gesucht wird'), gr('A'), gr('B'), gr('C'),
     h('h3', null, 'Einmal in Cowork einrichten'),
     h('ol', { class: 'pe-schritte' },

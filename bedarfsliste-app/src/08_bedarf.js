@@ -522,8 +522,9 @@ function secFoe(b) {
     <table class="fsum"><tbody id="fin-rows">${finRows(b)}</tbody>
       <tbody><tr class="r-eig"><th>${swa('eig')}Eigenmittel <span class="r-st">aus Mitteln der Gliederung oder der Diözese</span></th><td class="num"><span class="row nowrap"><input type="text" inputmode="decimal" class="inline num eig" data-num data-p="eigenanteil" value="${esc(fmtNum(b.eigenanteil))}" placeholder="0" aria-label="Eigenmittel in Euro"><span class="unit">€</span></span></td><td class="num" id="fin-eig">${finEigPct(b)}</td></tr></tbody></table>
     <div id="fin-pie" class="fin-pie">${finPie(b)}</div></div>
+    ${b.foerderer.length ? `<button type="button" class="fk-zu${zuGet(b, 'fk') ? ' zu' : ''}" data-act="zu" data-v="fk" aria-expanded="${!zuGet(b, 'fk')}" title="${zuGet(b, 'fk') ? 'Förderer einblenden' : 'Förderer ausblenden'}" aria-label="${zuGet(b, 'fk') ? 'Förderer einblenden' : 'Förderer ausblenden'}">${ICON_CHEV}</button>` : ''}
   </section>
-  <div class="fk-grid">${foeSortiert(b.foerderer).map(f => fpCard(b, f)).join('')}<button class="fk-neu" data-act="add-foe" title="Förderer hinzufügen – viele auf einmal über die Recherche-Excel (Symbol oben rechts im Förderplan)"><span class="fk-plus" aria-hidden="true">+</span>Förderer hinzufügen</button></div>`;
+  ${zuGet(b, 'fk') && b.foerderer.length ? '' : `<div class="fk-grid">${foeSortiert(b.foerderer).map(f => fpCard(b, f)).join('')}<button class="fk-neu" data-act="add-foe" title="Förderer hinzufügen – viele auf einmal über die Recherche-Excel (Symbol oben rechts im Förderplan)"><span class="fk-plus" aria-hidden="true">+</span>Förderer hinzufügen</button></div>`}`;
 }
 
 /* ---------- Nacharbeit: Spendenübergabe einmal je Bedarf (Pressemitteilung entfällt ab 0.67), Verwendungsnachweis (Sach- und Finanzbericht) je Förderer */
