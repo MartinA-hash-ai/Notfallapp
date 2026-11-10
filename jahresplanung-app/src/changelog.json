@@ -1,7 +1,16 @@
 [
   {
-    "version": "0.51.0",
+    "version": "0.52.0",
     "date": "",
+    "items": [
+      "PDF mit einem Klick: Export ▾ → „PDF der aktuellen Ansicht“ (oder Strg+P) druckt, was gerade zu sehen ist – aufgeklappte Bereiche des Reiters, angehakte und gefilterte Maßnahmen, Termine und Urlaub wie eingeblendet, eingeklappte Spalten S, I, D, ausgeblendete Monate im Kalender; bei Detailplänen der gewählte Plan, in der Auswertung die gewählte Maßnahme",
+      "Der bisherige Dialog heißt „PDF zusammenstellen …“ (Strg+Umschalt+P); auch dort erscheinen die Spalten S, I, D wie in der Tabelle",
+      "Zeitleiste im PDF: bis zu 24 Maßnahmen je Seite statt 16, auf mehrere Seiten gleichmäßig verteilt – keine Seite mehr mit nur einer Maßnahme; die Urlaubszeilen passen immer auf die letzte Seite"
+    ]
+  },
+  {
+    "version": "0.51.0",
+    "date": "2026-11-06T22:01",
     "items": [
       "Regeln aus drei Teilen: Schlagwort, Zeitraum und Konto – eine Spende passt, wenn alle drei zutreffen (leeres Schlagwort = jeder Verwendungszweck, kein Konto = jedes Konto). Jede Regel steht als Kästchen mit Datum (und Konto) in der Regelzeile",
       "„+ neue Regel“ öffnet darunter Schlagwort, Zeitraum (vorbelegt mit dem der letzten Regel) und Konten zum Ankreuzen; Klick auf eine Regel ändert sie. Rechts zeigt die Vorschau die passenden offenen Spenden, „Zugeordnet“ links bleibt stehen (auch wenn vorher nur „Zugeordnet“ an war)",

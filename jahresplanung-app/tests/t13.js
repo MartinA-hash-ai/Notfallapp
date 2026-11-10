@@ -162,8 +162,8 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
 
   // ---------- PDF-Dialog (im Darkmode – PDF muss trotzdem hell sein)
   await p.click('nav.tabs >> text=Detailpläne'); await p.waitForTimeout(150);
-  await p.keyboard.press('Control+p'); await p.waitForTimeout(200);
-  ok(await p.evaluate(() => /PDF exportieren/.test(document.querySelector('.modal h2').textContent)), 'Strg+P öffnet PDF-Dialog');
+  await p.keyboard.press('Control+Shift+P'); await p.waitForTimeout(200);   // 0.52: Strg+P druckt die aktuelle Ansicht, Strg+Umschalt+P öffnet den Dialog
+  ok(await p.evaluate(() => /PDF exportieren/.test(document.querySelector('.modal h2').textContent)), 'Strg+Umschalt+P öffnet PDF-Dialog');
   await p.screenshot({ path: 'r7_pdf_dialog.png' });
   await p.click('.modal button:has-text("Wie aktuelle Ansicht")'); await p.waitForTimeout(100);
   const pv = await p.evaluate(() => [$$('.modal .pdf-area').map(a => a.classList.contains('on') ? 1 : 0).join(''), $$('.modal .mspick input:checked').length]);

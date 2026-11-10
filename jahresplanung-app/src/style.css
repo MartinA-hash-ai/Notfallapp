@@ -2268,3 +2268,6 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .spm-sug-why { color: var(--muted); font-size: 11px; padding-right: 6px; }
 .spm-sug.konto { border-style: dashed; }
 .prevon .spj-listbox.prev { flex: 1 1 0; min-width: 0; }
+/* 0.52: PDF – Bereichsspalten eingeklappt wie in der Tabelle */
+.pd-table th.phm, .pd-table td.phm { text-align: center; width: 22px; padding-left: 2px; padding-right: 2px; }
+.pd-table td.phm { color: #2e7d32; font-weight: 700; }

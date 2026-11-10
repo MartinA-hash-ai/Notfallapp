@@ -90,7 +90,7 @@ function topBar() {
         onclick: () => { UI.warnOpen = !UI.warnOpen; renderNow(); } },
         nW ? '⚠ ' + nW : '✓', nI ? h('span', { class: 'sub' }, ' · ' + nI) : null),
       menuButton('Export ▾', [
-        ['PDF exportieren …', pdfDialog], null,
+        ['PDF der aktuellen Ansicht', pdfQuick], ['PDF zusammenstellen …', pdfDialog], null,
         ['Excel-Datei (.xlsx)', exportExcel], ['Outlook-Kalender (.ics)', exportICS]]),
       presenceChip(),
       saveBox(),
@@ -633,7 +633,7 @@ document.addEventListener('keydown', e => {
   if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); if ($('.modal')) return; if (document.activeElement && document.activeElement.blur) document.activeElement.blur(); setTimeout(() => save(), 30); }
   else if ((e.ctrlKey || e.metaKey) && k === 'z' && !e.shiftKey && !inField) { e.preventDefault(); undo(); }
   else if ((e.ctrlKey || e.metaKey) && (k === 'y' || (k === 'z' && e.shiftKey)) && !inField) { e.preventDefault(); redo(); }
-  else if ((e.ctrlKey || e.metaKey) && k === 'p' && !$('.modal')) { e.preventDefault(); pdfDialog(); }
+  else if ((e.ctrlKey || e.metaKey) && k === 'p' && !$('.modal')) { e.preventDefault(); if (e.shiftKey) pdfDialog(); else pdfQuick(); }   // Strg+P: aktuelle Ansicht, Strg+Umschalt+P: zusammenstellen
 });
 window.addEventListener('beforeunload', e => { if (D && isDirty() && !window.__jpReload) { e.preventDefault(); e.returnValue = ''; } });
 window.addEventListener('beforeprint', () => { if (!UI.printing) { UI.printing = true; renderNow(); } });
