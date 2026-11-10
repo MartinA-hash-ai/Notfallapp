@@ -184,14 +184,24 @@ function dateW() {
   const tw = el => { const cs = getComputedStyle(el); c.font = cs.fontStyle + ' ' + cs.fontWeight + ' ' + cs.fontSize + ' ' + cs.fontFamily;
     const ls = parseFloat(cs.letterSpacing) || 0; return Math.max(c.measureText('00.00.0000').width, c.measureText('00/00/0000').width) + 10 * ls; };
   const ph = Math.ceil(tw(a) + 36), pal = Math.ceil(tw(b) + 36);
+  // Werktage-Spalte: Kopfschrift für den Namen messen
+  const th = h('th', { class: 'h-ph' }, h('span', { class: 'th2' }, h('span', null, 'Selektion')));
+  t.querySelector('tbody').before(h('thead', null, h('tr', null, th)));
+  const hs = getComputedStyle(th.querySelector('.th2 > span')), hf = hs.fontStyle + ' ' + hs.fontWeight + ' ' + hs.fontSize + ' ' + hs.fontFamily;
   t.remove();
-  if (ph > 40 && ph < 200) _dateW = { ph, pal };                   // Probe ging schief (z. B. noch kein Layout): Standard, nicht merken
-  return _dateW || { ph: 96, pal: 104 };
+  if (ph > 40 && ph < 200) _dateW = { ph, pal, hf };                // Probe ging schief (z. B. noch kein Layout): Standard, nicht merken
+  return _dateW || { ph: 96, pal: 104, hf: '600 12px sans-serif' };
 }
+// Werktage: so breit wie „400 WT“ bzw. der Name des Bereichs im Kopf – je nachdem, was breiter ist
+function wtColW(name) {
+  const c = document.createElement('canvas').getContext('2d'); c.font = dateW().hf;
+  return Math.max(66, Math.ceil(c.measureText(name).width) + 14);   // mindestens Platz für „bis PAL [S]“ in der oberen Zeile
+}
+// Spalte allein in ihrer Gruppe: mindestens 94 px – Platz für Schalter und Symbol darüber
 function phCol(p) {
   const wt = wtView(p.nach);
   return phMiniOf(p.nach) ? { k: 'ph_' + p.key, w: 34, fixed: true, t: p.name, tip: startLabel(p.key) + ' – Häkchen: Datum eingetragen', chip: p.key, phase: p.key, mini: true }
-    : { k: 'ph_' + p.key, w: wt ? 80 : dateW().ph + 10, t: p.name, tip: startLabel(p.key) + (wt ? (p.nach ? ' – Werktage nach dem PAL' : ' – Werktage bis zum PAL') : ''), chip: p.key, phase: p.key };
+    : { k: 'ph_' + p.key, w: Math.max(wt ? wtColW(phHead(p)[1]) : dateW().ph + 10, (p.nach ? PHN() : PHV()).length === 1 ? 94 : 0), t: p.name, tip: startLabel(p.key) + (wt ? (p.nach ? ' – Werktage nach dem PAL' : ' – Werktage bis zum PAL') : ''), chip: p.key, phase: p.key };
 }
 const colKey = c => c.mini ? c.k + ':mini' : c.phase ? c.k + (wtView(phNach(c.phase)) ? ':wt' : '') + ':2' : c.k === 'pal' ? 'pal:2' : c.k;   // „:2“ – ab 0.53.2 schmalere Spalten (alte gespeicherte Breiten gelten nicht mehr)
 const colW = c => c.flex ? 0 : (UI.colW && UI.colW[colKey(c)]) || c.w;   // Hinweis nimmt immer den Rest
@@ -208,8 +218,9 @@ const phToggle = (nach = false) => { const mini = phMiniOf(nach), k = nach ? 'ph
     onclick: () => { UI[k] = !UI[k]; saveUI(); renderNow(); } }, icon(mini ? 'expand' : 'collapse')); };
 function viewSwitch(nach = false, short = false) {
   const on = wtView(nach), set = v => { UI[nach ? 'startViewN' : 'startView'] = v; saveUI(); renderNow(); };
-  if (short) return h('div', { class: 'vswitch mini' + (on ? ' on' : '') + (nach ? ' nach' : ''), tip: (nach ? 'Enden der Bereiche nach dem PAL' : 'Starts der Bereiche') + ' als Datum oder als Werktage' },   // schmale Spalte: zwei kleine Knöpfe
+  if (short) return h('div', { class: 'vswitch mini' + (on ? ' on' : '') + (nach ? ' nach' : ''), tip: (nach ? 'Enden der Bereiche nach dem PAL' : 'Starts der Bereiche') + ' als Datum oder als Werktage' },   // schmale Spalte: Kalender-Symbol · Kippschalter · WT
     h('button', { class: 'vs-lab' + (on ? '' : ' act'), dataset: { v: 'date' }, 'aria-label': 'Datum', 'aria-pressed': String(!on), onclick: () => set('date') }, icon('calendar')),
+    h('button', { class: 'vs-track', role: 'switch', 'aria-checked': String(on), 'aria-label': 'zwischen Datum und Werktagen umschalten', onclick: () => set(on ? 'date' : 'wt') }, h('span', { class: 'vs-knob' })),
     h('button', { class: 'vs-lab' + (on ? ' act' : ''), dataset: { v: 'wt' }, 'aria-label': 'Werktage', 'aria-pressed': String(on), onclick: () => set('wt') }, 'WT'));
   return h('div', { class: 'vswitch' + (on ? ' on' : '') + (nach ? ' nach' : ''), tip: nach ? 'Enden der Bereiche nach dem PAL als Datum oder als Werktage nach dem PAL' : 'Starts der Bereiche als Datum oder als Werktage bis zum PAL anzeigen (das PAL bleibt ein Datum)' },
     h('button', { class: 'vs-lab' + (on ? '' : ' act'), dataset: { v: 'date' }, onclick: () => set('date') }, 'Datum'),
@@ -278,11 +289,11 @@ function massnahmenSection() {
       const pi = grp.findIndex(q => q.key === key), cellCls = 'date ph' + (nach ? ' nach' : '') + (wtView(nach) && !phMiniOf(nach) ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === grp.length - 1 ? ' ph-last' : '');
       if (phMiniOf(nach)) { const has = x.pal != null && n != null && !(m.plan && !startMovable(x, key)); return h('td', { class: cellCls + ' mini', tip: has ? tipDate : null }, has ? h('span', { class: 'ph-ok', 'aria-label': 'eingetragen' }, '✓') : null); }
       if (m.plan && nach) return h('td', { class: cellCls + ' derived-date', tip: n != null ? tipDate + ' – aus dem Detailplan' : 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' },
-        n != null ? (wtView(true) ? '+' + workdaysAfter(n, x.pal) + ' WT' : fmtW(n)) : h('span', { class: 'muted' }, '–'));
+        n != null ? (wtView(true) ? workdaysAfter(n, x.pal) + ' WT' : fmtW(n)) : h('span', { class: 'muted' }, '–'));
       if (m.plan && !startMovable(x, key)) return h('td', { class: cellCls + ' derived-date', tip: 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' }, h('span', { class: 'muted' }, '–'));
       if (x.pal == null) return h('td', { class: cellCls }, h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–'), warnIcon);
       const inp = wtView(nach)
-        ? h('span', { class: 'wtbox', tip: tipDate }, nach ? h('span', { class: 'unit pre' }, '+') : null, h('input', { type: 'number', class: 'nospin', min: 0, max: 400, value: n != null ? (nach ? workdaysAfter(n, x.pal) : workdaysBefore(n, x.pal)) : '', placeholder: '–', 'data-fk': fk(key + ':wt'), onwheel: wheelStep,
+        ? h('span', { class: 'wtbox' + (n == null ? ' wt-leer' : ''), tip: tipDate }, h('input', { type: 'number', class: 'nospin', min: 0, max: 400, value: n != null ? (nach ? workdaysAfter(n, x.pal) : workdaysBefore(n, x.pal)) : '', placeholder: '–', 'data-fk': fk(key + ':wt'), onwheel: wheelStep,
             onchange: e => setStartWT(id, key, e.target.value) }), h('span', { class: 'unit' }, 'WT'))
         : dateInput(n != null ? ds(n) : '', fk(key), v => setStartDate(id, key, v), { title: tipDate || '' });
       return h('td', { class: cellCls, tip: m.plan ? 'Start ändern – die Arbeitsschritte im Detailplan passen sich an' : null }, inp, warnIcon);

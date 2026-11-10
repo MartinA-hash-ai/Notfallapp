@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.53.2",
+    "version": "0.53.3",
     "date": "",
+    "items": [
+      "Werktage in der Tabelle: kein „+“ mehr bei den Bereichen nach dem PAL; Zahl direkt vor „WT“, mittig in einer schmalen Spalte (so breit wie der Name im Kopf); leere Felder hellgrau",
+      "Umschalter Datum/Werktage als Kippschalter (Spur mit grauem Knopf) – auch über der schmalen Spalte rechts vom PAL (Kalender-Symbol · Schalter · WT)"
+    ]
+  },
+  {
+    "version": "0.53.2",
+    "date": "2026-11-10T14:57",
     "items": [
       "Tabelle: Spalten der Bereiche und des PAL nur so breit wie nötig – das Datumsfeld ist so breit wie das Datum (in der Schrift dieses Rechners gemessen), das Kalender-Symbol direkt dahinter; Werktage-Spalten 80 statt 112 px",
       "Werktage-Ansicht: oben „bis PAL [S]“ bzw. „nach PAL [L]“, darunter der Name – passt in die schmale Spalte; Hinweis ⚠ klein in der Ecke der Zelle",

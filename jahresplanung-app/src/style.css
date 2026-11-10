@@ -2299,3 +2299,23 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .mtable td.date.ph > .wi { position: absolute; top: 1px; right: 2px; margin: 0; font-size: 10px; line-height: 1; }   /* Hinweis klein in der Ecke – braucht keine eigene Breite */
 .mtable th.h-ph { padding-right: 5px; }
 .mtable th .th2 small .chip { transform: scale(.85); vertical-align: -2px; }
+/* 0.53.3: Werktage kompakt – Zahl rechtsbündig direkt vor „WT“, Inhalt mittig; leere Zellen dezent */
+.mtable td.date.wt { padding-left: 2px; padding-right: 2px; }
+.mtable td.date.wt .wtbox { display: flex; justify-content: center; gap: 2px; }
+.mtable td.date.wt input[type=number] { width: calc(3ch + 6px) !important; text-align: right; padding-left: 1px; padding-right: 1px; }
+.mtable td.date.wt input[type=number]::placeholder { color: var(--line2); opacity: 1; }
+.mtable td.date.wt .wtbox.wt-leer .unit { color: var(--line2); }
+.mtable td.date.wt .wtbox.wt-leer input:focus::placeholder { color: transparent; }
+/* Kippschalter Datum/Werktage (wie ein Schiebeschalter: Spur mit grauem Knopf) */
+.vswitch .vs-track { width: 32px; height: 18px; border-radius: 9px; border: 1px solid var(--line2); background: var(--soft); box-shadow: inset 0 1px 2px rgba(0,0,0,.06); }
+.vswitch .vs-knob { top: 2px; left: 2px; width: 12px; height: 12px; background: #b5b5b5; box-shadow: 0 1px 2px rgba(0,0,0,.25); transition: left .15s, background .15s; }
+.vswitch.on .vs-knob { left: 16px; background: #8a8a8a; }
+.vswitch .vs-track:hover .vs-knob { background: #9a9a9a; }
+.vswitch.mini { gap: 3px; }
+.vswitch.mini .vs-track { width: 26px; height: 15px; }
+.vswitch.mini .vs-knob { width: 9px; height: 9px; }
+.vswitch.mini.on .vs-knob { left: 13px; }
+.vswitch.mini .vs-lab { padding: 0 1px; background: none !important; }
+.mtable thead tr.grouprow th.gr-ph.nach { padding-left: 3px; padding-right: 3px; }
+.mtable .gr-ph.nach .gr-phin { gap: 3px; }
+.mtable .gr-ph .ph-tog { padding: 1px 2px; }
