@@ -140,6 +140,15 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   await p.evaluate(async () => { __fs.files['/Ordner/Cowork/Tasks/Aufgabe-2026-11-21/output/Posteingang_LAUF_2026-11-21_06-05.txt'] = { data: new TextEncoder().encode('##### LAUF 2026-11-21 06:05 #####\r\nLauf-Ergebnis: 1 Vorschlag\r\n=== VORSCHLAG ===\r\nArt: zusage\r\nBedarf: b1\r\nFörderer: f2\r\nBetrag: 4994,97\r\nSicherheit: sicher'), lm: 99003 }; await peScan(); });
   r = await p.evaluate(() => { const v = PE.L.find(x => /^L2026-11-21 06:05#/.test(x.key)); return [!!v, v && peBetrag(v.betrag), PE.cwInfo.n]; });
   ok(r.join('|') === 'true|4994.97|2', 'Cowork: Datei in Tasks/…/output gefunden, Betrag 4994,97 gelesen, Zähler für die Einstellungen: ' + r.join('|'));
+  // 0.159: „Jetzt abholen“ sagt, was gefunden wurde
+  await p.evaluate(() => { peEinstDialog(); }); await p.waitForSelector('.pe-cw-info'); await p.waitForTimeout(200);
+  await p.click('.pe-cw button.link:text-is("Jetzt abholen")'); await p.waitForTimeout(500);
+  r = [await p.evaluate(() => document.querySelector('.pe-cw-info').textContent)];
+  await p.evaluate(async () => { for (const k of Object.keys(__fs.files)) if (k.startsWith('/Ordner/Cowork/') && /LAUF/.test(k)) delete __fs.files[k]; });
+  await p.click('.pe-cw button.link:text-is("Jetzt abholen")'); await p.waitForTimeout(500);
+  r.push(await p.evaluate(() => document.querySelector('.pe-cw-info').textContent));
+  ok(/^Gefunden: 2 Lauf-Dateien, zuletzt „Posteingang_LAUF_2026-11-21_06-05\.txt“/.test(r[0]) && /Keine Datei „Posteingang_LAUF_…“ gefunden.*liegt: Notiz\.txt/.test(r[1]), 'Jetzt abholen: Rückmeldung mit Fund bzw. mit dem Inhalt des Ordners: ' + r.join(' || '));
+  await p.keyboard.press('Escape'); await p.waitForTimeout(200);
   r = await p.evaluate(async () => { __fs.perm = 'prompt'; await peScan(); renderNow(); return [PE.cwZ, (document.querySelector('header.top [data-act="pe-cw-erlauben"]') || {}).textContent || '']; });
   await p.evaluate(() => { __fs.perm = 'granted'; });
   ok(r[0] === 'zugriff', 'ohne Freigabe des Browsers: Zustand „zugriff“ (Knopf oben, wenn keine Vorschläge offen): ' + r.join('|'));

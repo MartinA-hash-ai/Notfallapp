@@ -2758,3 +2758,5 @@ table.list tbody tr.fertig-z:hover, table.list tbody tr.fertig-z:focus { opacity
 .fk-zu:hover, .fk-zu:focus-visible { color: var(--muted); background: var(--hover); }
 .fk-zu .chev { width: 18px; height: 18px; transform: rotate(180deg); transition: transform .15s; }
 .fk-zu.zu .chev { transform: none; }
+
+.pe-cw-info.warn { color: var(--warn); }

@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.159.0",
+    "date": "2026-12-01T17:00",
+    "items": [
+      "E-Mail-Auswertung, „Jetzt abholen“: sagt jetzt immer, was passiert ist – wie viele Lauf-Dateien gefunden wurden und ob Vorschläge da sind; findet es keine, zeigt es, was im verbundenen Ordner liegt (zum Prüfen, ob der richtige gewählt ist)",
+      "Fehlt die Freigabe des Browsers, fragt „Jetzt abholen“ direkt danach; abgeholt wird auch, wenn gerade die Auftragsdatei geschrieben wird"
+    ]
+  },
+  {
     "version": "0.158.0",
     "date": "2026-12-01T15:00",
     "items": [

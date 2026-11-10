@@ -484,6 +484,27 @@ function peToast(n, rej, spaet, undo) {
 /* ---------- Einstellungen: was gesucht wird, Einrichtung in Cowork */
 const peCwInfoText = () => !D.settings.coworkOrdner ? '' : PE.cwZ === 'zugriff' ? 'Der Browser braucht die Freigabe – oben auf „Copilot-Ergebnisse freigeben“ klicken.' : PE.cwZ === 'fehlt' ? 'In diesem Browser nicht verbunden – bitte neu verbinden.'
   : !PE.cwInfo ? '' : PE.cwInfo.n ? 'Gefunden: ' + PE.cwInfo.n + (PE.cwInfo.n === 1 ? ' Lauf-Datei' : ' Lauf-Dateien') + ', zuletzt „' + PE.cwInfo.letzte + '“.' : 'Noch keine Datei „Posteingang_LAUF_…“ im Ordner (auch nicht in Unterordnern) – kommt sie nach dem Lauf von Copilot nicht an, ist sie nicht in deinem OneDrive gelandet.';
+// „Jetzt abholen“ (ab 0.159): sagt immer, was passiert ist – Freigabe gleich hier (der Klick erlaubt die Rückfrage des Browsers), sonst Fundstand und Ordnerinhalt
+async function peAbholen(el) {
+  el.textContent = 'Suche im Cowork-Ordner …'; el.classList.remove('warn');
+  const sag = (t, w) => { el.textContent = t; el.classList.toggle('warn', !!w); };
+  try {
+    if (PE.cw === undefined) PE.cw = await idbGet(peCwKey());
+    if (!PE.cw) return sag('Der Cowork-Ordner ist in diesem Browser nicht verbunden – oben „Anderen Ordner wählen …“ und „Dokumente › Cowork“ auswählen.', true);
+    let p = 'prompt'; try { p = await PE.cw.queryPermission({ mode: 'read' }); } catch (e) { /* */ }
+    if (p !== 'granted') { try { p = await PE.cw.requestPermission({ mode: 'read' }); } catch (e) { /* */ } }
+    if (p !== 'granted') return sag('Der Browser hat den Zugriff auf „' + PE.cw.name + '“ nicht erlaubt. Bitte noch einmal klicken und „Zulassen“ wählen.', true);
+    PE.cwZ = 'ok';
+    for (let i = 0; PE.busy && i < 25; i++) await new Promise(r => setTimeout(r, 200));
+    const vorher = PE.L.length;
+    if (rechOrdnerOk()) await peScan(); else await peCoworkDateien();
+    const I = PE.cwInfo || { n: 0, letzte: '' };
+    if (!I.n) { const T = []; try { for await (const [n, e] of PE.cw.entries()) T.push(e.kind === 'directory' ? n + '/' : n); } catch (e) { /* */ }
+      return sag('Keine Datei „Posteingang_LAUF_…“ gefunden – auch nicht in Unterordnern. Im verbundenen Ordner „' + PE.cw.name + '“ liegt: ' + (T.length ? T.sort().slice(0, 12).join(', ') + (T.length > 12 ? ' …' : '') : 'nichts') + '. Ist das der richtige Ordner?', true); }
+    sag('Gefunden: ' + I.n + (I.n === 1 ? ' Lauf-Datei' : ' Lauf-Dateien') + ', zuletzt „' + I.letzte + '“. ' + (!rechOrdnerOk() ? 'Übernehmen geht erst, wenn die Bedarfsliste mit ihrem Ordner verbunden ist.' : PE.L.length ? PE.L.length + (PE.L.length === 1 ? ' Vorschlag' : ' Vorschläge') + ' oben zum Prüfen' + (PE.L.length > vorher ? ' (neu dazu: ' + (PE.L.length - vorher) + ')' : '') + '.' : 'Keine offenen Vorschläge (schon übernommen oder ohne Ergebnis).'), !rechOrdnerOk());
+    renderNow();
+  } catch (e) { console.warn(e); sag('Fehler beim Lesen: ' + (e && e.message || e), true); }
+}
 async function peEinstDialog() {
   if (D.settings.coworkOrdner) await peScan().catch(() => {});
   const cwI = h('p', { class: 'muted small pe-cw-info' }, peCwInfoText());
@@ -498,7 +519,7 @@ async function peEinstDialog() {
     h('h3', null, 'Wo Copilot seine Ergebnisse ablegt'),
     h('p', null, 'Copilot darf ohne Rückfrage nur neue Dateien in seinem Arbeitsordner anlegen: OneDrive „' + PE_CW + '“. Verbinde diesen Ordner einmal (im Explorer meist unter „OneDrive – Malteser › Dokumente › Cowork“) – das Programm holt die Ergebnisse dort ab und hängt sie an „' + PE_DATEI + '“ an.'),
     h('div', { class: 'pe-cw' }, h('button', { type: 'button', onclick: async () => { if (await peCoworkVerbinden()) cwT.textContent = 'Verbunden: „' + D.settings.coworkOrdner + '“'; } }, D.settings.coworkOrdner ? 'Anderen Ordner wählen …' : 'Cowork-Ordner verbinden …'),
-      cwT, h('button', { type: 'button', class: 'link small', onclick: async () => { await peScan(); cwI.textContent = peCwInfoText(); } }, 'Jetzt abholen')),
+      cwT, h('button', { type: 'button', class: 'link small', onclick: () => peAbholen(cwI) }, 'Jetzt abholen')),
     cwI,
     h('h3', null, 'Wonach gesucht wird'), gr('A'), gr('B'), gr('C'),
     h('h3', null, 'Einmal in Cowork einrichten'),
