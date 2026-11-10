@@ -38,7 +38,7 @@ function pdfViewOpts() {
   let ms = new Set(list.filter(x => area === 'spenden' || visibleM(x)).map(x => x.id));          // die Auswertung zeigt immer alle Maßnahmen des Jahres
   if (area === 'plaene') ms = new Set(UI.planSel && list.some(x => x.id === UI.planSel) ? [UI.planSel] : []);
   return { secs, show: Object.fromEntries(evKeys().map(k => [k, showType(k)])), vac: UI.showVac, verbund: !!UI.verbund, ms,
-    planCompact: !!UI.planCompact, planColl: JSON.parse(JSON.stringify(UI.planColl || {})), spOne: secs.spm ? UI.spMid || '' : '', phMini: !!UI.phMini, calHide: true, view: true };
+    planCompact: !!UI.planCompact, planColl: JSON.parse(JSON.stringify(UI.planColl || {})), spOne: secs.spm ? UI.spMid || '' : '', phMini: !!UI.phMini, phMiniN: !!UI.phMiniN, calHide: true, view: true };
 }
 // Prüfen und drucken (für beide Wege)
 function pdfGo(f) {
@@ -65,7 +65,7 @@ async function pdfDialog() {
     show: Object.assign(Object.fromEntries(evKeys().map(k => [k, true])), last.show), vac: last.vac !== false, verbund: !!UI.verbund,
     ms: new Set(list.map(x => x.id)), spOne: '',
     planCompact: !!UI.planCompact, planColl: null,        // Detailplan wie eingestellt: Tabelle eingeklappt nur, wenn sie es gerade ist
-    phMini: !!UI.phMini,                                   // Spalten S, I, D wie in der Tabelle (ein- oder ausgeklappt)
+    phMini: !!UI.phMini, phMiniN: !!UI.phMiniN,            // Spalten S, I, D (und die nach dem PAL) wie in der Tabelle (ein- oder ausgeklappt)
   };
   const subsOf = k => PDF_AREAS.find(a => a.k === k).secs.map(([s]) => s);
   const fillArea = k => { if (!subsOf(k).some(s => f.sub[s])) subsOf(k).forEach(s => { f.sub[s] = PDF_SUB0[s]; }); };
@@ -137,7 +137,7 @@ async function pdfDialog() {
     f.area = Object.fromEntries(PDF_AREAS.map(a => [a.k, a.k === area0]));
     for (const s of subsOf(area0)) f.sub[s] = !!v.secs[s];
     if (area0 === 'spenden') f.sub.spcmp = false;
-    Object.assign(f, { show: v.show, vac: v.vac, verbund: v.verbund, ms: v.ms, planCompact: v.planCompact, planColl: v.planColl, spOne: v.spOne, phMini: v.phMini });
+    Object.assign(f, { show: v.show, vac: v.vac, verbund: v.verbund, ms: v.ms, planCompact: v.planCompact, planColl: v.planColl, spOne: v.spOne, phMini: v.phMini, phMiniN: v.phMiniN });
   };
   draw();
   const ok = await modal('PDF exportieren', wrap, [['Abbrechen', false], ['PDF erstellen', true, 'primary']], { wide: true, cls: 'pdfmodal' });
@@ -147,7 +147,7 @@ async function pdfDialog() {
   if (!f.ms.size && ['mass', 'kal', 'tl', 'plaene', 'sp', 'spcmp'].some(k => secs[k]) && !(secs.spm && f.spOne)) { toast('Keine Maßnahme gewählt.', 'warn'); return; }
   if (!estimate()) { toast(secs.plaene ? 'Keine der gewählten Maßnahmen hat einen Detailplan.' : secs.jv && !SP.rows.length ? 'Für den Jahresvergleich sind noch keine Buchungen eingelesen.' : 'Für diese Auswahl gibt es nichts zu drucken.', 'warn'); return; }
   UI.pdfOpts = { secs: f.sub, show: f.show, vac: f.vac }; saveUI();
-  printPDF({ secs, show: f.show, vac: f.vac, verbund: f.verbund, ms: f.ms, planCompact: f.planCompact, planColl: f.planColl, spOne: f.spOne, phMini: f.phMini });
+  printPDF({ secs, show: f.show, vac: f.vac, verbund: f.verbund, ms: f.ms, planCompact: f.planCompact, planColl: f.planColl, spOne: f.spOne, phMini: f.phMini, phMiniN: f.phMiniN });
 }
 
 // Zeitleiste im PDF: höchstens TL_ROWS Zeilen je Seite (gemessen passen 26 – Reserve für andere Schriften); die Maßnahmen gleichmäßig verteilt,
@@ -166,12 +166,12 @@ function tlPdfChunks(n, vacRows = tlPdfVacRows(UI.showVac)) {
   return out;
 }
 function printPDF(f) {
-  const keys = ['phMini', 'show', 'hiddenM', 'showVac', 'hiddenP', 'monthLists', 'tlPlans', 'tlPxd', 'planSel', 'planCompact', 'planColl', 'planPxd', 'view', 'verbund', '_tl', '_pl'];
+  const keys = ['phMini', 'phMiniN', 'show', 'hiddenM', 'showVac', 'hiddenP', 'monthLists', 'tlPlans', 'tlPxd', 'planSel', 'planCompact', 'planColl', 'planPxd', 'view', 'verbund', '_tl', '_pl'];
   const keep = {}; keys.forEach(k => { keep[k] = UI[k] instanceof Set ? new Set(UI[k]) : UI[k] && typeof UI[k] === 'object' ? JSON.parse(JSON.stringify(UI[k])) : UI[k]; });
   UI.show = { ...f.show }; UI.showVac = f.vac; UI.verbund = !!f.verbund; UI.hiddenP = new Set(); UI.monthLists = true; UI.tlPlans = false; UI.tlPxd = 0;
   UI.hiddenM = new Set(C.ms.filter(x => !f.ms.has(x.id)).map(x => x.id));
   UI.planCompact = f.planCompact ?? !!keep.planCompact; UI.planColl = f.planColl || {}; UI.planPxd = 0;
-  UI.phMini = f.phMini ?? !!keep.phMini;
+  UI.phMini = f.phMini ?? !!keep.phMini; UI.phMiniN = f.phMiniN ?? !!keep.phMiniN;
   UI.printing = true;
   derive();
   let doc;
@@ -224,8 +224,8 @@ function buildPrintDoc(f) {
   const pages = [];
   if (f.secs.mass) {
     const chipH = t => demoChip(t);
-    const phTh = p => UI.phMini ? h('th', { class: 'phm', title: startLabel(p.key) }, chipH(p.key)) : h('th', null, startLabel(p.key) + ' ', chipH(p.key));
-    const phTd = x => p => UI.phMini ? h('td', { class: 'st phm' }, x.st[p.key] != null ? '✓' : '') :          // eingeklappt (wie in der Tabelle): nur ein Häkchen, wo ein Datum eingetragen ist
+    const phTh = p => phMiniOf(p.nach) ? h('th', { class: 'phm', title: startLabel(p.key) }, chipH(p.key)) : h('th', null, startLabel(p.key) + ' ', chipH(p.key));
+    const phTd = x => p => phMiniOf(p.nach) ? h('td', { class: 'st phm' }, x.st[p.key] != null ? '✓' : '') :          // eingeklappt (wie in der Tabelle): nur ein Häkchen, wo ein Datum eingetragen ist
       h('td', { class: 'st' }, x.st[p.key] != null ? [h('div', null, fmtW(x.st[p.key])), x.pal != null ? h('div', { class: 'wt' }, p.nach ? '+' + workdaysAfter(x.st[p.key], x.pal) + ' WT' : workdaysBefore(x.st[p.key], x.pal) + ' WT') : null] : '–');   // oben Datum, darunter Werktage
     pages.push(page('Maßnahmen ' + y, h('table', { class: 'pd-table' },
       h('thead', null, h('tr', null, h('th'), h('th', null, 'Maßnahme'), h('th', null, 'Verantwortlich'), h('th', null, 'Auflage'),

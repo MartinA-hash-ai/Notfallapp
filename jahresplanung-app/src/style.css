@@ -2279,3 +2279,9 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .mtable .gr-nach { font-size: 11px; font-weight: 500; color: var(--muted); }
 .mtable .wtbox .unit.pre { margin-right: 1px; }
 .btable tr.nach td { background: color-mix(in srgb, var(--soft) 60%, transparent); }
+/* 0.53.1: Ein-/Ausklappen der Bereichsspalten als Symbol, je Seite (vor/nach dem PAL) */
+.mtable .gr-ph .ph-tog { border: 0; background: transparent; padding: 1px 3px; border-radius: 5px; color: var(--muted); cursor: pointer; display: inline-flex; align-items: center; line-height: 1; }
+.mtable .gr-ph .ph-tog:hover { color: var(--ink); background: var(--head2); text-decoration: none; }
+.mtable .gr-ph .ph-tog .ico svg { width: 13px; height: 13px; }
+.mtable .gr-ph.nach .gr-phin { gap: 6px; }
+.mtable .gr-ph.nach .vswitch .vs-lab { padding-left: 2px; padding-right: 2px; }

@@ -161,7 +161,9 @@ function tagPop(anchor, id) {
 }
 
 /* ---------- Tabelle: je Bereich eine Spalte „Start …“ (als Datum oder als Werktage bis zum PAL), dann das PAL */
-const wtView = () => UI.startView === 'wt';
+// Ansicht der Bereichsspalten – je Seite getrennt (0.53.1): vor dem PAL UI.startView / UI.phMini, hinter dem PAL UI.startViewN / UI.phMiniN
+const wtView = (nach = false) => (nach ? UI.startViewN : UI.startView) === 'wt';
+const phMiniOf = (nach = false) => !!(nach ? UI.phMiniN : UI.phMini);
 const mcols = () => [
   { k: 'vis', w: 28, fixed: true }, { k: 'col', w: 30, fixed: true }, { k: 'name', w: 170, t: 'Maßnahme' }, { k: 'resp', w: 150, t: 'Verantwortlich' },
   { k: 'tags', w: 96, t: 'Schlagworte', tip: 'zum Ein- und Ausblenden in Zeitleiste und Kalender (Knopf „Schlagworte“ dort)' }, { k: 'auflage', w: 68, t: 'Auflage' },
@@ -170,26 +172,31 @@ const mcols = () => [
   ...PHN().map(phCol),                                                 // Bereiche hinter dem P (z. B. Laufzeit) rechts vom PAL
   { k: 'status', w: 84, t: 'PAL-Status' }, { k: 'bitte', w: 96, t: 'Spendenbitte' }, { k: 'hinweis', w: 0, t: 'Hinweis', flex: 140 }, { k: 'plan', w: 64, t: 'Plan' },
   { k: 'warns', w: 34, fixed: true }, { k: 'acts', w: 34, fixed: true }];
+// einzelne Spalte nach dem PAL: etwas breiter (Platz für Umschalter und Symbol)
 function phCol(p) {
-  return UI.phMini ? { k: 'ph_' + p.key, w: 34, fixed: true, t: p.name, tip: startLabel(p.key) + ' – Häkchen: Datum eingetragen', chip: p.key, phase: p.key, mini: true }
-    : { k: 'ph_' + p.key, w: wtView() ? 112 : 122, t: p.name, tip: startLabel(p.key) + (wtView() ? (p.nach ? ' – Werktage nach dem PAL' : ' – Werktage bis zum PAL') : ''), chip: p.key, phase: p.key };
+  const wt = wtView(p.nach);
+  return phMiniOf(p.nach) ? { k: 'ph_' + p.key, w: 34, fixed: true, t: p.name, tip: startLabel(p.key) + ' – Häkchen: Datum eingetragen', chip: p.key, phase: p.key, mini: true }
+    : { k: 'ph_' + p.key, w: p.nach && PHN().length === 1 ? 150 : wt ? 112 : 122, t: p.name, tip: startLabel(p.key) + (wt ? (p.nach ? ' – Werktage nach dem PAL' : ' – Werktage bis zum PAL') : ''), chip: p.key, phase: p.key };
 }
-const colKey = c => c.mini ? c.k + ':mini' : c.phase ? c.k + (wtView() ? ':wt' : '') : c.k;
+const colKey = c => c.mini ? c.k + ':mini' : c.phase ? c.k + (wtView(phNach(c.phase)) ? ':wt' : '') : c.k;
 const colW = c => c.flex ? 0 : (UI.colW && UI.colW[colKey(c)]) || c.w;   // Hinweis nimmt immer den Rest
 function tableWidth() { return mcols().reduce((s, c) => s + (colW(c) || c.flex || 0), 0); }
 // Kopfzeile der Bereiche: „Start der“ / „Selektion“ in zwei Zeilen (eigene Bereiche: „Start“ / Name)
 const PH_HEAD = { Selektion: ['Start der', 'Selektion'], Inhalt: ['Start des', 'Inhalts'], Produktion: ['Start der', 'Produktion'] };
-const phHead = p => p.nach ? (wtView() ? ['Zeit nach PAL', p.name] : ['Ende', p.name]) : wtView() ? ['Zeit bis PAL für', p.name] : PH_HEAD[p.name] || ['Start', p.name];   // Werktage-Ansicht: „Zeit bis PAL für“ / „Selektion“
+const phHead = p => p.nach ? (wtView(true) ? ['Zeit nach PAL', p.name] : ['Ende', p.name]) : wtView() ? ['Zeit bis PAL für', p.name] : PH_HEAD[p.name] || ['Start', p.name];   // Werktage-Ansicht: „Zeit bis PAL für“ / „Selektion“
 // Schalter über den Spalten der Bereiche: links Datum, rechts Werktage bis zum PAL
 // Bereichsspalten ein-/ausklappen: eingeklappt nur Buchstaben und ein Häkchen, wo ein Start eingetragen ist
-const phToggle = () => h('button', { class: 'link small ph-tog', tip: UI.phMini ? 'Starts der Bereiche wieder mit Datum zeigen' : 'einklappen – nur Buchstaben und ein Häkchen, wo ein Start eingetragen ist',
-  onclick: () => { UI.phMini = !UI.phMini; saveUI(); renderNow(); } }, UI.phMini ? 'aufklappen' : 'einklappen');
-function viewSwitch() {
-  const on = wtView(), set = v => { UI.startView = v; saveUI(); renderNow(); };
-  return h('div', { class: 'vswitch' + (on ? ' on' : ''), tip: 'Starts der Bereiche als Datum oder als Werktage bis zum PAL anzeigen (das PAL bleibt ein Datum)' },
+// Ein-/Ausklappen je Seite mit Symbol (Pfeile nach außen = aufklappen, nach innen = einklappen)
+const phToggle = (nach = false) => { const mini = phMiniOf(nach), k = nach ? 'phMiniN' : 'phMini';
+  return h('button', { class: 'ph-tog' + (nach ? ' nach' : ''), 'aria-label': mini ? 'aufklappen' : 'einklappen', 'aria-pressed': String(!mini),
+    tip: (mini ? 'aufklappen – ' + (nach ? 'Enden' : 'Starts') + ' der Bereiche wieder mit Datum bzw. Werktagen' : 'einklappen – nur Buchstaben und ein Häkchen, wo ein Datum eingetragen ist') + (nach ? ' (Bereiche nach dem PAL)' : ' (Bereiche vor dem PAL)'),
+    onclick: () => { UI[k] = !UI[k]; saveUI(); renderNow(); } }, icon(mini ? 'expand' : 'collapse')); };
+function viewSwitch(nach = false, short = false) {
+  const on = wtView(nach), set = v => { UI[nach ? 'startViewN' : 'startView'] = v; saveUI(); renderNow(); };
+  return h('div', { class: 'vswitch' + (on ? ' on' : '') + (nach ? ' nach' : ''), tip: nach ? 'Enden der Bereiche nach dem PAL als Datum oder als Werktage nach dem PAL' : 'Starts der Bereiche als Datum oder als Werktage bis zum PAL anzeigen (das PAL bleibt ein Datum)' },
     h('button', { class: 'vs-lab' + (on ? '' : ' act'), onclick: () => set('date') }, 'Datum'),
     h('button', { class: 'vs-track', role: 'switch', 'aria-checked': String(on), 'aria-label': 'zwischen Datum und Werktagen umschalten', onclick: () => set(on ? 'date' : 'wt') }, h('span', { class: 'vs-knob' })),
-    h('button', { class: 'vs-lab' + (on ? ' act' : ''), onclick: () => set('wt') }, 'Werktage'));
+    h('button', { class: 'vs-lab' + (on ? ' act' : ''), onclick: () => set('wt') }, short ? 'WT' : 'Werktage'));
 }
 // Spaltenbreite ziehen wie in Excel: nur diese Spalte ändert sich, alle rechts davon rücken mit und behalten ihre Breite.
 // Den Platz gibt bzw. nimmt die Spalte „Hinweis“ (füllt den Rest); reicht er nicht, wird die Tabelle breiter (waagerecht scrollen).
@@ -250,13 +257,13 @@ function massnahmenSection() {
       const warnIcon = lines.length ? h('span', { class: 'wi' + (pv.length ? ' vac' : ''), tip: (pv.length ? 'Urlaub im Bereich ' + phName(key) + ':\n' : '') + lines.join('\n') }, pv.length ? '🏖' : '⚠') : null;
       const nach = phNach(key), grp = nach ? PHN() : PHV();
       const tipDate = n != null ? startLabel(key) + ': ' + fmtW(n) + (x.pal != null ? ' · ' + (nach ? workdaysAfter(n, x.pal) + ' Werktage nach PAL · ab ' + fmtW(x.sa[key]) : workdaysBefore(n, x.pal) + ' Werktage vor PAL') : '') + (!nach && x.enx[key] != null ? ' · bis ' + fmtW(x.en[key]) : '') : null;
-      const pi = grp.findIndex(q => q.key === key), cellCls = 'date ph' + (nach ? ' nach' : '') + (wtView() && !UI.phMini ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === grp.length - 1 ? ' ph-last' : '');
-      if (UI.phMini) { const has = x.pal != null && n != null && !(m.plan && !startMovable(x, key)); return h('td', { class: cellCls + ' mini', tip: has ? tipDate : null }, has ? h('span', { class: 'ph-ok', 'aria-label': 'eingetragen' }, '✓') : null); }
+      const pi = grp.findIndex(q => q.key === key), cellCls = 'date ph' + (nach ? ' nach' : '') + (wtView(nach) && !phMiniOf(nach) ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === grp.length - 1 ? ' ph-last' : '');
+      if (phMiniOf(nach)) { const has = x.pal != null && n != null && !(m.plan && !startMovable(x, key)); return h('td', { class: cellCls + ' mini', tip: has ? tipDate : null }, has ? h('span', { class: 'ph-ok', 'aria-label': 'eingetragen' }, '✓') : null); }
       if (m.plan && nach) return h('td', { class: cellCls + ' derived-date', tip: n != null ? tipDate + ' – aus dem Detailplan' : 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' },
-        n != null ? (wtView() ? '+' + workdaysAfter(n, x.pal) + ' WT' : fmtW(n)) : h('span', { class: 'muted' }, '–'));
+        n != null ? (wtView(true) ? '+' + workdaysAfter(n, x.pal) + ' WT' : fmtW(n)) : h('span', { class: 'muted' }, '–'));
       if (m.plan && !startMovable(x, key)) return h('td', { class: cellCls + ' derived-date', tip: 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' }, h('span', { class: 'muted' }, '–'));
       if (x.pal == null) return h('td', { class: cellCls }, h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–'), warnIcon);
-      const inp = wtView()
+      const inp = wtView(nach)
         ? h('span', { class: 'wtbox', tip: tipDate }, nach ? h('span', { class: 'unit pre' }, '+') : null, h('input', { type: 'number', class: 'nospin', min: 0, max: 400, value: n != null ? (nach ? workdaysAfter(n, x.pal) : workdaysBefore(n, x.pal)) : '', placeholder: '–', 'data-fk': fk(key + ':wt'), onwheel: wheelStep,
             onchange: e => setStartWT(id, key, e.target.value) }), h('span', { class: 'unit' }, 'WT'))
         : dateInput(n != null ? ds(n) : '', fk(key), v => setStartDate(id, key, v), { title: tipDate || '' });
@@ -307,8 +314,9 @@ function massnahmenSection() {
         h('colgroup', null, COLS.map(c => h('col', { dataset: { k: c.k }, style: colW(c) ? { width: colW(c) + 'px' } : null }))),
         h('thead', null,
           phs.length || phn.length ? h('tr', { class: 'grouprow' }, nBefore > 0 ? h('th', { colspan: nBefore }) : null,
-            phs.length ? h('th', { class: 'gr-ph' + (UI.phMini ? ' mini' : ''), colspan: phs.length }, UI.phMini ? phToggle() : h('div', { class: 'gr-phin' }, viewSwitch(), phToggle())) : null,
-            phn.length ? [nMid > 0 ? h('th', { colspan: nMid }) : null, h('th', { class: 'gr-ph nach' + (UI.phMini ? ' mini' : ''), colspan: phn.length }, phs.length ? (UI.phMini ? h('span', { class: 'gr-nach', tip: 'Bereiche nach dem PAL' }, '›') : h('span', { class: 'gr-nach' }, 'nach PAL')) : UI.phMini ? phToggle() : h('div', { class: 'gr-phin' }, viewSwitch(), phToggle()))] : null,
+            phs.length ? h('th', { class: 'gr-ph' + (phMiniOf() ? ' mini' : ''), colspan: phs.length }, phMiniOf() ? phToggle() : h('div', { class: 'gr-phin' }, viewSwitch(), phToggle())) : null,
+            phn.length ? [nMid > 0 ? h('th', { colspan: nMid }) : null, h('th', { class: 'gr-ph nach' + (phMiniOf(true) ? ' mini' : ''), colspan: phn.length },     // Bereiche nach dem PAL: eigene Ansicht
+              phMiniOf(true) ? phToggle(true) : h('div', { class: 'gr-phin' }, viewSwitch(true, phn.length < 2), phToggle(true)))] : null,
             nAfter ? h('th', { colspan: nAfter }) : null) : null,
           h('tr', null, ths)), tb)),
       nFlt ? h('div', { class: 'flt-note muted small' }, (nFlt === 1 ? '1 Maßnahme' : nFlt + ' Maßnahmen') + ' durch den Filter ausgeblendet – ', h('button', { class: 'link small', onclick: () => { UI.tagHide = []; UI.respHide = []; saveUI(); renderNow(); } }, 'Filter aufheben')) : null,

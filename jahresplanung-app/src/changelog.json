@@ -1,7 +1,15 @@
 [
   {
-    "version": "0.53.0",
+    "version": "0.53.1",
     "date": "",
+    "items": [
+      "Tabelle: die Bereiche vor und hinter dem PAL lassen sich unabhängig voneinander ein- und ausklappen und je für sich auf Datum oder Werktage stellen (wird gemerkt)",
+      "Ein-/Ausklappen als Symbol statt Wort: Pfeile nach außen = aufklappen, nach innen = einklappen"
+    ]
+  },
+  {
+    "version": "0.53.0",
+    "date": "2026-11-10T14:33",
     "items": [
       "Bereiche hinter dem PAL, z. B. „L – Laufzeit“ einer Veranstaltung: in den Einstellungen unter „Bereiche und Markierungen“ mit ↑/↓ über das PAL schieben. Ihr Datum ist das Ende – sie laufen vom PAL (Start der Veranstaltung) bis dorthin – und darf nach dem PAL liegen",
       "Tabelle: die Spalten dieser Bereiche stehen rechts vom PAL – als Datum oder als Werktage nach dem PAL („+5 WT“), eingeklappt mit Häkchen wie S, I, D",

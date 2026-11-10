@@ -111,13 +111,13 @@ const { chromium, ok, open, finish } = require('./lib');
   // ---- D: Bereichsspalten einklappen – nur Buchstaben, Häkchen bei eingetragenem Start, sonst leer (kein „–“)
   await p.click('.mtable .ph-tog'); await p.waitForTimeout(300);
   const d0 = await p.evaluate(() => [UI.phMini, [...document.querySelectorAll('.mtable thead th.h-ph')].map(t => t.textContent.trim()).join(''), [...document.querySelectorAll('.mtable tbody tr')].map(tr => [...tr.querySelectorAll('td.ph')].map(td => td.textContent || '·').join('')).join(' '),
-    !document.querySelector('.mtable td.ph input'), document.querySelector('.mtable .gr-ph').textContent.trim(), [...document.querySelectorAll('.mtable thead th.h-ph')].map(t => Math.round(t.getBoundingClientRect().width)).join(','),
+    !document.querySelector('.mtable td.ph input'), document.querySelector('.mtable .gr-ph .ph-tog').getAttribute('aria-label') + (document.querySelector('.mtable .gr-ph .ph-tog svg') ? '+symbol' : ''), [...document.querySelectorAll('.mtable thead th.h-ph')].map(t => Math.round(t.getBoundingClientRect().width)).join(','),
     (() => { const td = document.querySelector('tr[data-m="t0"] td.ph'); const f = TIPS.get(td); return typeof f === 'function' ? f() : f; })()]);
-  ok(d0[0] === true && d0[1] === 'SID' && d0[2] === '✓✓✓ ·✓· ✓✓✓ ✓✓✓ ···' && d0[3] && d0[4] === 'aufklappen' && /^3[0-9],3[0-9],3[0-9]$/.test(d0[5]),
+  ok(d0[0] === true && d0[1] === 'SID' && d0[2] === '✓✓✓ ·✓· ✓✓✓ ✓✓✓ ···' && d0[3] && d0[4] === 'aufklappen+symbol' && /^3[0-9],3[0-9],3[0-9]$/.test(d0[5]),
     'D: eingeklappt – Spalten S, I, D schmal, ✓ wo ein Start steht, sonst leer: ' + d0.slice(1, 6).join(' / '));
   ok(/^Start der Selektion: .*2027 · \d+ Werktage vor PAL/.test(String(d0[6]).replace(/\s+/g, ' ')) || /Selektion/.test(String(d0[6])), 'D: Zeigen auf ein Häkchen nennt das Datum (' + d0[6] + ')');
   await p.click('.mtable .ph-tog'); await p.waitForTimeout(300);
-  ok(await p.evaluate(() => !UI.phMini && document.querySelectorAll('.mtable td.ph input').length > 0 && /einklappen/.test(document.querySelector('.mtable .gr-ph').textContent)), 'D: „aufklappen“ zeigt wieder die Daten');
+  ok(await p.evaluate(() => !UI.phMini && document.querySelectorAll('.mtable td.ph input').length > 0 && document.querySelector('.mtable .gr-ph .ph-tog').getAttribute('aria-label') === 'einklappen'), 'D: Symbol „aufklappen“ (Pfeile nach außen) zeigt wieder die Daten');
 
   // ---- E: Farbwahl – eigene Farben, Farben aus anderen Maßnahmen, neue Farbe per Farbcode
   await p.click('tr[data-m="t1"] .swatch'); await p.waitForTimeout(200);

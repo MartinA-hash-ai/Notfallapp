@@ -32,12 +32,23 @@ const { chromium, ok, open, finish } = require('./lib');
   const b1 = await p.evaluate(() => { const x = C.byId.get('ev1'); return [D.massnahmen.find(m => m.id === 'ev1').vorlauf.L, ds(x.st.L), ds(x.sa.L), ds(x.en.L), C.warnings.filter(w => w.mid === 'ev1').map(w => w.text)]; });
   ok(b1[0] === -9 && b1[1] === '2027-08-01' && b1[2] === '2027-07-23' && b1[3] === '2027-08-01' && !b1[4].length, 'B: Ende 01.08. (Sonntag) nach dem PAL wird gespeichert (−9), läuft ab PAL, keine Warnung ' + JSON.stringify(b1));
   ok(await p.evaluate(() => !document.querySelector('tr[data-m="ev1"] td.ph.nach .wi')), 'B: kein Wochenend-Hinweis an der Laufzeit');
-  await p.evaluate(() => { UI.startView = 'wt'; renderNow(); }); await p.waitForTimeout(150);
+  await p.evaluate(() => { UI.startViewN = 'wt'; renderNow(); }); await p.waitForTimeout(150);   // 0.53.1: rechts eigene Einstellung
   ok(await p.evaluate(() => document.querySelector('[data-fk="m:ev1:L:wt"]').value === '5' && document.querySelector('tr[data-m="ev1"] td.ph.nach').textContent.includes('+')), 'B: Werktage-Ansicht „+5 WT“ (nach dem PAL)');
   await p.fill('[data-fk="m:ev1:L:wt"]', '10'); await p.press('[data-fk="m:ev1:L:wt"]', 'Tab'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => ds(C.byId.get('ev1').st.L)) === '2027-08-06', 'B: „+10 WT“ eingeben → 06.08.2027');
-  await p.evaluate(() => { UI.phMini = true; renderNow(); }); await p.waitForTimeout(150);
+  await p.evaluate(() => { UI.phMiniN = true; renderNow(); }); await p.waitForTimeout(150);
   ok(await p.evaluate(() => document.querySelector('tr[data-m="ev1"] td.ph.nach.mini .ph-ok') !== null), 'B: eingeklappt – Häkchen in der Spalte L');
+  // ---- B2 (0.53.1): rechts eigene Ansicht – unabhängig von S, I, D
+  await p.evaluate(() => { UI.phMini = false; UI.phMiniN = false; UI.startView = 'date'; UI.startViewN = 'date'; renderNow(); }); await p.waitForTimeout(150);
+  await p.click('.mtable th.gr-ph.nach .ph-tog'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => UI.phMiniN === true && !UI.phMini && !!document.querySelector('tr[data-m="ev1"] td.ph.nach.mini') && !!document.querySelector('.mtable td.ph:not(.nach) input')), 'B2: rechts einklappen – links bleibt aufgeklappt');
+  await p.click('.mtable th.gr-ph.nach .ph-tog'); await p.waitForTimeout(200);
+  await p.click('.mtable th.gr-ph.nach .vswitch .vs-track'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => UI.startViewN === 'wt' && UI.startView === 'date' && !!document.querySelector('[data-fk="m:ev1:L:wt"]') && !document.querySelector('.mtable td.ph:not(.nach) input[type=number]') && UI_KEYS.includes('phMiniN') && UI_KEYS.includes('startViewN')),
+    'B2: rechts auf Werktage – links bleibt Datum (beides gemerkt)');
+  await p.click('.mtable th.gr-ph:not(.nach) .ph-tog'); await p.waitForTimeout(200);
+  ok(await p.evaluate(() => UI.phMini === true && !UI.phMiniN && !!document.querySelector('[data-fk="m:ev1:L:wt"]')), 'B2: links einklappen – rechts bleibt offen');
+  await p.evaluate(() => { UI.phMini = false; UI.startViewN = 'date'; renderNow(); }); await p.waitForTimeout(150);
   // ---- C: Prüfungen – vor dem PAL ist hinter dem P falsch
   await p.evaluate(() => commit(d => { d.massnahmen.find(m => m.id === 'ev1').vorlauf.L = 3; })); await p.waitForTimeout(150);
   ok(await p.evaluate(() => C.warnings.some(w => w.mid === 'ev1' && /Ende Laufzeit .* liegt vor dem PAL/.test(w.text)) && checkData().some(t => /Ende Laufzeit liegt vor dem PAL/.test(t.text || t))), 'C: Ende vor dem PAL → Warnung und Hinweis in „Daten prüfen“');
