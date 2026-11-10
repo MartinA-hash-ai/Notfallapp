@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.156.0",
+    "date": "2026-12-01T10:00",
+    "items": [
+      "Liste: ein ganz abgeschlossener Bedarf zeigt hinter dem Ort nur noch grün „✓ abgeschlossen (archiviert in X Tagen)“ – Freigabe, Finanzierung, Nachweis und Übergabe entfallen in der Zeile (aufgeklappt bzw. auf der Seite weiter alles sichtbar)",
+      "Sprung aus den Hinweisen oben (kompakte Ansicht): der Bedarf bleibt aufgeklappt und gewählt, auch wenn man danach auf den freien Bereich klickt; Esc oder ein anderer Bedarf klappt ihn zu"
+    ]
+  },
+  {
     "version": "0.155.0",
     "date": "2026-11-30T21:00",
     "items": [

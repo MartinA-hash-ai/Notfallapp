@@ -2742,3 +2742,7 @@ html[data-bl-theme="dark"] .pe-chip { background: var(--viobg); border-color: va
 /* eine einzige durchgehende Linie (statt drei Stücken mit versetzten Punkten): die Linie zur Übergabe reicht nach links bis hinter den Betrag
    (Spalten: Linie 36 + Abstand 8 + Kreis 15 + Abstand 8 = 67 px; der Abstand hinter dem Betrag bleibt) */
 .fg > .fr > .vt.nn > .ue-weg.an { margin-left: -67px; }
+
+/* 0.156: ganz abgeschlossener Bedarf – hinter dem Ort nur grün „abgeschlossen (archiviert in X Tagen)“ */
+td.k-abg { vertical-align: middle; }
+td.k-abg .kz { color: var(--e5ink); }

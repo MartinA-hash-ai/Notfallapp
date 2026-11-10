@@ -237,12 +237,21 @@ const nameZelle = (b, ohnePause) => `${sternZelle(b)}<td class="l-name">${wort('
     <td class="l-sum">${wort('summe', b.summe ? eur(b.summe) : '<span class="ph">Summe</span>')}</td>`;
 const pauseText = b => (b.manuell === 'verworfen' ? 'Verworfen' : 'Zurückgestellt') + (b.grundM ? ', weil: <span class="pg">' + esc(b.grundM.replace(/\s*\n+\s*/g, ' ')) + '</span>' : '');
 const ortText = b => b.gliederung ? esc(b.gliederung === DIO ? 'Diözese' : b.gliederung) : '<span class="ph">Ort</span>';
+// ganz abgeschlossen (alles erledigt, Phase 3): in der Liste nur noch Name, Summe, Ort und grün „abgeschlossen (archiviert in X Tagen)“
+const istAbgeschlossen = b => !b.archiv && !b.manuell && b !== MEHR.T && !istVorlage(b.id) && phase(b).step === 3;
+function fertigText(b) {
+  const n = b.autoArchiv ? Math.round((Date.parse(b.autoArchiv) - Date.parse(today())) / 864e5) : null;
+  const zus = n === null ? '' : n > 1 ? ' (archiviert in ' + n + ' Tagen)' : n === 1 ? ' (archiviert morgen)' : ' (wird archiviert)';
+  return `<span class="kz k-ok">${mi('ok')}<span>abgeschlossen${zus}</span></span>`;
+}
 // solange die Freigabe nicht vollständig ist, wird hinter ihr noch nichts angegangen: Finanzierung, Nachweis und Übergabe grau (ohne Farben)
 function row(b) {
   const kl = (b.manuell ? 'paused' : '') + (frOffen(b).names.length ? ' ohne-fg' : '') + (pickSet() ? (pickSet().has(b.id) ? ' heute-w' : '') : heuteHat(b.id) && !heuteAktiv() ? ' heute-m' : '');
   const fg = frStand(b), zeig = fg === 'ok' || b.foerderer.some(f => f.status === 'zugesagt');   // kompakt ohne Freigabe und ohne Zusage: nur der Hinweis
   if (KOMPAKT() && UI.auf !== b.id && b.manuell) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b, true)}
     <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-pause" colspan="4">${pauseText(b)}</td></tr>`;   // zurückgestellt: hinter dem Ort nur der Grund
+  if (UI.auf !== b.id && istAbgeschlossen(b)) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl} fertig-z">${nameZelle(b)}
+    <td class="${KOMPAKT() ? 'l-ort' : 'l-meta'}"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-abg" colspan="${KOMPAKT() ? 4 : 3}">${fertigText(b)}</td></tr>`;   // ab 0.156: ganz abgeschlossen – hinter dem Ort nur „✓ abgeschlossen“
   if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b)}
     <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-fr">${kFreigabe(b)}</td>${zeig ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
       : `<td class="k-nach">${kGrau(fg === 'no' ? 'Freigabe abgelehnt' : 'Freigabe ausstehend')}</td><td class="k-nach"></td><td class="k-nach"></td>`}</tr>`;

@@ -68,6 +68,7 @@ document.addEventListener('click', e => {
   if (tr && e.target.closest('.zu-det')) { e.preventDefault(); e.stopPropagation(); oeffnen(id); return; }   // Pfeil hinter dem Namen: gleich die Seite des Bedarfs
   if (komp && UI.auf && id !== UI.auf && !e.target.closest(AUF_POPS)) {
     if (tr) { e.preventDefault(); e.stopPropagation(); aufklappen(id); return; }
+    if (UI.aufFest === UI.auf) { zeileFokus(UI.auf); return; }                     // aus den Hinweisen hierher gesprungen: aufgeklappt und gewählt lassen
     aufklappen(null);
   }
   if (!tr) return;
@@ -144,6 +145,7 @@ function aufBreiten() {
 // Aufklappen gleitet: die Zeile zieht sich von ihrer alten Höhe nach unten auf, die Zeilen darunter rutschen mit, die anderen werden blass
 function aufklappen(id, ruhig) {                                                 // ruhig: ohne Gleiten (zurück von der Seite eines Bedarfs)
   const alt = UI.auf; if (alt === id) return;
+  UI.aufFest = null;
   klickRuhe();
   const wie = !ruhig && !matchMedia('(prefers-reduced-motion: reduce)').matches;
   const vorher = wie ? new Map($$('#list-body tr[data-id]').map(r => [r.dataset.id, r.getBoundingClientRect()])) : null;

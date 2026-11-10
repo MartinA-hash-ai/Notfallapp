@@ -104,6 +104,7 @@ function springZu(id, z, fid, farbe) {
   const sel = S => (S[z] || ':not(*)').replace(/§/g, CSS.escape(fid || ''));
   if (UI.view === 'list' && filtered().some(x => x.id === id)) {
     if (KOMPAKT() && UI.auf !== id) aufklappen(id);
+    if (KOMPAKT()) UI.aufFest = id;                                                 // ab 0.156: nach dem Sprung bleibt er aufgeklappt, auch beim Klick daneben
     const tr = zeileEl(id); if (!tr) return;
     const L = [...tr.querySelectorAll(sel(ZIEL_LISTE))];
     blitz(L.length ? L : [tr.querySelector('.l-name .le-w')], farbe); zeileFokus(id);

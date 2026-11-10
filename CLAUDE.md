@@ -4,7 +4,7 @@ Offline-Tool als **eine einzige HTML-Datei**. Projektordner: `bedarfsliste-app/`
 
 ## Aufbau
 - Quellen: `bedarfsliste-app/src/NN_*.js`, `style.css`, `changelog.json`, `demo.js`. Gebaut wird mit `python3 build.py` (im Ordner `bedarfsliste-app/`) → `Bedarfsliste.html`, `Bedarfsliste_Update.zip`, die Vorlagen-xlsx und `vorschau/Bedarfsliste_Vorschau.html` (gitignored).
-- Tests: `bedarfsliste-app/tests/tXX.js` (Playwright), Aufruf `sh tests/run.sh t23 t06 …`, parallel mit `J=4`. Üblicher Satz vor jedem Commit: `J=4 sh tests/run.sh t23 t06 t03 t07 t20 t22 t08 t09 t11`.
+- Tests: `bedarfsliste-app/tests/tXX.js` (Playwright), Aufruf `sh tests/run.sh t23 t06 …`, parallel mit `J=4`. Üblicher Satz vor jedem Commit: `J=4 sh tests/run.sh t23 t06 t03 t07 t20 t22 t08 t09 t11 t24 t25`.
 - Bekannt rot, unabhängig von neuen Änderungen: **t01, t10, t12** – nicht „reparieren“, nur erwähnen.
 - Fördererliste: `src/23_foerderer.js` (Modell, Liste, Seite, Excel), `src/25_fl_copilot.js` (Copilot-Vorlage, Auftrag, Einlesen mit Reitern), `src/26_fl_serie.js` (KI-Recherche für mehrere Förderer: Auswahl, ZIP, mehrere Dateien einlesen), `src/27_fl_auftrag.js` (Recherche-Auftrag Variante A klein / B groß, Ausfüllregeln nur hier), `src/24_zwecke.js`. Seitenleiste links (Verwendungszweck, Kontenliste, Gebietsnummern): `src/28_seitenleiste.js`, Kontenliste: `src/21_konten.js`. Einstellungen: `src/29_einstellungen.js`; Export (Auswahlmodus, PDF, Excel, Termine): `src/30_export.js`; E-Mail-Auswertung mit Cowork (Auftrag/Überblick im Ordner „Förderrecherche“, Vorschläge „Posteingang …“, Prüffenster): `src/31_posteingang.js`, Test `t24`.
 
