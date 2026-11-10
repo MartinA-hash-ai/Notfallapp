@@ -285,12 +285,14 @@ function massnahmenSection() {
       const lines = w.concat(pv.map(({ s, v }) => s.wer + ': Urlaub ' + fmtS(v.von) + '–' + fmtS(v.bis) + ' („' + s.name + '“)'));
       const warnIcon = lines.length ? h('span', { class: 'wi' + (pv.length ? ' vac' : ''), tip: (pv.length ? 'Urlaub im Bereich ' + phName(key) + ':\n' : '') + lines.join('\n') }, pv.length ? '🏖' : '⚠') : null;
       const nach = phNach(key), grp = nach ? PHN() : PHV();
+      // leer (auch bei Detailplan ohne Abschnitt): überall gleich – hellgraues „–“, in der Werktage-Ansicht mit „WT“
+      const phEmpty = nb => wtView(nb) ? h('span', { class: 'wtbox wt-leer' }, h('span', { class: 'wt-n' }, '–'), h('span', { class: 'unit' }, 'WT')) : h('span', { class: 'ph-dash' }, '–');
       const tipDate = n != null ? startLabel(key) + ': ' + fmtW(n) + (x.pal != null ? ' · ' + (nach ? workdaysAfter(n, x.pal) + ' Werktage nach PAL · ab ' + fmtW(x.sa[key]) : workdaysBefore(n, x.pal) + ' Werktage vor PAL') : '') + (!nach && x.enx[key] != null ? ' · bis ' + fmtW(x.en[key]) : '') : null;
       const pi = grp.findIndex(q => q.key === key), cellCls = 'date ph' + (nach ? ' nach' : '') + (wtView(nach) && !phMiniOf(nach) ? ' wt' : '') + (pi === 0 ? ' ph-first' : '') + (pi === grp.length - 1 ? ' ph-last' : '');
       if (phMiniOf(nach)) { const has = x.pal != null && n != null && !(m.plan && !startMovable(x, key)); return h('td', { class: cellCls + ' mini', tip: has ? tipDate : null }, has ? h('span', { class: 'ph-ok', 'aria-label': 'eingetragen' }, '✓') : null); }
       if (m.plan && nach) return h('td', { class: cellCls + ' derived-date', tip: n != null ? tipDate + ' – aus dem Detailplan' : 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' },
-        n != null ? (wtView(true) ? workdaysAfter(n, x.pal) + ' WT' : fmtW(n)) : h('span', { class: 'muted' }, '–'));
-      if (m.plan && !startMovable(x, key)) return h('td', { class: cellCls + ' derived-date', tip: 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' }, h('span', { class: 'muted' }, '–'));
+        n != null ? (wtView(true) ? h('span', { class: 'wtbox' }, h('span', { class: 'wt-n' }, String(workdaysAfter(n, x.pal))), h('span', { class: 'unit' }, 'WT')) : fmtW(n)) : phEmpty(nach));
+      if (m.plan && !startMovable(x, key)) return h('td', { class: cellCls + ' derived-date', tip: 'Im Detailplan gehört noch kein Abschnitt zum Bereich „' + phName(key) + '“' }, phEmpty(nach));
       if (x.pal == null) return h('td', { class: cellCls }, h('span', { class: 'muted small', tip: 'erst PAL eintragen' }, '–'), warnIcon);
       const inp = wtView(nach)
         ? h('span', { class: 'wtbox' + (n == null ? ' wt-leer' : ''), tip: tipDate }, h('input', { type: 'number', class: 'nospin', min: 0, max: 400, value: n != null ? (nach ? workdaysAfter(n, x.pal) : workdaysBefore(n, x.pal)) : '', placeholder: '–', 'data-fk': fk(key + ':wt'), onwheel: wheelStep,

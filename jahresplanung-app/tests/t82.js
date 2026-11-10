@@ -34,6 +34,8 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(await p.evaluate(() => !document.querySelector('tr[data-m="ev1"] td.ph.nach .wi')), 'B: kein Wochenend-Hinweis an der Laufzeit');
   await p.evaluate(() => { UI.startViewN = 'wt'; renderNow(); }); await p.waitForTimeout(150);   // 0.53.1: rechts eigene Einstellung
   ok(await p.evaluate(() => document.querySelector('[data-fk="m:ev1:L:wt"]').value === '5' && !document.querySelector('tr[data-m="ev1"] td.ph.nach').textContent.includes('+') && !!document.querySelector('tr[data-m="ev1"] td.ph.nach .wtbox:not(.wt-leer)') && !!document.querySelector('tr:not([data-m="ev1"]) td.ph.nach .wtbox.wt-leer')), 'B: Werktage-Ansicht „5 WT“ ohne „+“; leere Zellen dezent (0.53.3)');
+  ok(await p.evaluate(() => { const c = [...document.querySelectorAll('td.ph.nach.derived-date')]; return c.length > 0 && c.every(td => !!td.querySelector('.wtbox.wt-leer .unit')); }),
+    'B: auch bei Maßnahmen mit Detailplan (ohne Abschnitt L) dasselbe hellgraue „– WT“ (0.53.4)');
   await p.fill('[data-fk="m:ev1:L:wt"]', '10'); await p.press('[data-fk="m:ev1:L:wt"]', 'Tab'); await p.waitForTimeout(250);
   ok(await p.evaluate(() => ds(C.byId.get('ev1').st.L)) === '2027-08-06', 'B: „+10 WT“ eingeben → 06.08.2027');
   await p.evaluate(() => { UI.phMiniN = true; renderNow(); }); await p.waitForTimeout(150);

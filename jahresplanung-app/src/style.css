@@ -2319,3 +2319,7 @@ main.view-jahr { overflow: visible; }                                  /* sonst 
 .mtable thead tr.grouprow th.gr-ph.nach { padding-left: 3px; padding-right: 3px; }
 .mtable .gr-ph.nach .gr-phin { gap: 3px; }
 .mtable .gr-ph .ph-tog { padding: 1px 2px; }
+/* 0.53.4: Werktage/leer überall gleich – auch bei Maßnahmen mit Detailplan */
+.mtable td.date.wt .wt-n { display: inline-block; box-sizing: border-box; min-width: calc(3ch + 6px); padding-right: 2px; text-align: right; color: var(--ink); }
+.mtable td.date.wt .wtbox.wt-leer .wt-n, .mtable td.ph .ph-dash { color: var(--line2); }
+.mtable td.ph.derived-date.wt { text-align: center; }

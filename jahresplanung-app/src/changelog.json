@@ -1,7 +1,14 @@
 [
   {
-    "version": "0.53.3",
+    "version": "0.53.4",
     "date": "",
+    "items": [
+      "Tabelle: leere Bereichsfelder sehen überall gleich aus – hellgraues „– WT“ (Werktage) bzw. „–“ (Datum), auch bei Maßnahmen mit Detailplan (dort stand bisher ein dunkles „–“ ohne „WT“)"
+    ]
+  },
+  {
+    "version": "0.53.3",
+    "date": "2026-11-10T15:09",
     "items": [
       "Werktage in der Tabelle: kein „+“ mehr bei den Bereichen nach dem PAL; Zahl direkt vor „WT“, mittig in einer schmalen Spalte (so breit wie der Name im Kopf); leere Felder hellgrau",
       "Umschalter Datum/Werktage als Kippschalter (Spur mit grauem Knopf) – auch über der schmalen Spalte rechts vom PAL (Kalender-Symbol · Schalter · WT)"
