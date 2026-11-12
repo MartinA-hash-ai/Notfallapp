@@ -247,7 +247,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('.seg.ansicht [data-v="kompakt"]');
   r = await p.evaluate(() => { const rows = [...document.querySelectorAll('#list-body tr[data-id]')], hs = rows.map(x => Math.round(x.getBoundingClientRect().height));
     return [rows[0].children.length, [...document.querySelectorAll('table.list thead th')].map(x => x.textContent).join(','), JSON.parse(localStorage.getItem(uiKey())).ansicht, Math.max(...hs) - Math.min(...hs) <= 2, !document.querySelector('#list-body [data-le="zust"], #list-body [data-le="deadline"]')]; });
-  ok(r.join('|') === '8|,Bedarf,Summe,Ort,Freigabe,Finanzierung,Verwendungsnachweis,Spendenübergabe|kompakt|true|true', 'Knopf „Kompakt“: je Bedarf eine Zeile, Ansprechperson und Deadline ausgeblendet, Wahl gemerkt: ' + r.join('|'));
+  ok(r.join('|') === '9|,Bedarf,Summe,Ort,Freigabe,Koordination,Finanzierung,Verwendungsnachweis,Spendenübergabe|kompakt|true|true', 'Knopf „Kompakt“: je Bedarf eine Zeile, Ansprechperson und Deadline ausgeblendet, Wahl gemerkt: ' + r.join('|'));
   r = await p.evaluate(() => [...document.querySelectorAll('#list-body tr[data-id]')].map(tr => { const b = D.bedarfe.find(x => x.id === tr.dataset.id), c = [...tr.querySelectorAll('td.k-nach')].map(t => t.textContent.trim());
     return frStand(b) === 'ok' ? c.every(Boolean) : c[0] === (frStand(b) === 'no' ? 'Freigabe abgelehnt' : 'Freigabe ausstehend') && !c[1] && !c[2]; }));
   ok(r.every(Boolean) && await p.evaluate(() => D.bedarfe.some(b => !b.archiv && frStand(b) !== 'ok')), 'kompakt ohne Freigabe: Finanzierung „Freigabe ausstehend“, Nachweis und Übergabe leer; freigegebene wie gewohnt: ' + r.join(','));
@@ -263,11 +263,11 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // Strg+Klick klappt einen Bedarf ausführlich auf (bearbeitbar), noch einmal Strg+Klick öffnet ihn; ein Klick daneben klappt ihn zu
   await p.click(R('b-mtw') + ' .l-sum', { modifiers: ['Control'] });
   r = await p.evaluate(() => { const tr = document.querySelector('#list-body tr[data-id="b-mtw"]'); return [UI.view, tr.classList.contains('auf'), tr.children.length, !!tr.querySelector('.l-fin[colspan="2"] .fg'), !!tr.querySelector('[data-le="zust"]'), document.querySelectorAll('#list-body tr.auf').length]; });
-  ok(r.join('|') === 'list|true|7|true|true|1', 'Strg+Klick: dieser Bedarf ausführlich (Förderer, Ansprechperson …), die anderen bleiben kompakt: ' + r.join('|'));
+  ok(r.join('|') === 'list|true|8|true|true|1', 'Strg+Klick: dieser Bedarf ausführlich (Förderer, Ansprechperson …), die anderen bleiben kompakt: ' + r.join('|'));
   await p.evaluate(() => { const f = D.bedarfe.find(x => x.id === 'b-mtw').foerderer[0]; Object.assign(f, { status: 'zugesagt' }); f.vn.noetig = true; changed(); relist(D.bedarfe.find(x => x.id === 'b-mtw')); });
   await p.setViewportSize({ width: 1690, height: 900 }); await p.mouse.move(1200, 300); await p.waitForTimeout(150);
-  r = await p.evaluate(() => { const th = $$('table.list thead th'), vn = document.querySelector('#list-body tr.auf .l-fin .mi[data-le="vn"]'), k = document.querySelector('#list-body tr:not(.auf) td:nth-child(7) .kz'), fa = document.querySelector('#list-body tr.auf .l-fin .fa');
-    return vn && k ? [Math.round(Math.abs(vn.getBoundingClientRect().left - k.getBoundingClientRect().left)), fa.getBoundingClientRect().right <= th[6].getBoundingClientRect().left] : null; });
+  r = await p.evaluate(() => { const th = $$('table.list thead th'), vn = document.querySelector('#list-body tr.auf .l-fin .mi[data-le="vn"]'), k = document.querySelector('#list-body tr:not(.auf) td:nth-child(8) .kz'), fa = document.querySelector('#list-body tr.auf .l-fin .fa');
+    return vn && k ? [Math.round(Math.abs(vn.getBoundingClientRect().left - k.getBoundingClientRect().left)), fa.getBoundingClientRect().right <= th[7].getBoundingClientRect().left] : null; });
   ok(r && r[0] <= 2 && r[1], 'aufgeklappt: der Verwendungsnachweis steht unter seiner Überschrift, die Beträge davor unter „Finanzierung“: ' + JSON.stringify(r));
   await p.setViewportSize({ width: 1500, height: 900 });
   await p.click(R('b-mtw') + ' [data-le="zust"]');
@@ -301,9 +301,9 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(r.join() === 'separate,true', 'kompakt: jede Zeile malt Hintergrund und Linie selbst – beim Aufgleiten rutscht alles zusammen: ' + r.join());
   // Spaltenbreiten auch kompakt ziehen, mit Mindestbreiten; eigene Breiten bleiben beim Aufklappen stehen
   const zieh = async (i, dx) => { const q = await (await p.$(`table.list.kompakt thead .col-rs[data-i="${i}"]`)).boundingBox(); await p.mouse.move(q.x + 4, q.y + q.height / 2); await p.mouse.down(); await p.mouse.move(q.x + 4 + dx, q.y + q.height / 2, { steps: 4 }); await p.mouse.up(); };
-  await zieh(5, -250); await zieh(1, 60);
+  await zieh(6, -250); await zieh(1, 60);
   r = await p.evaluate(() => [$$('table.list thead th').map(t => Math.round(t.getBoundingClientRect().width)), JSON.parse(localStorage.getItem('bl-colw-k') || 'null'), localStorage.getItem('bl-colw')]);
-  ok(r[0][5] === 300 && r[1] && r[1].length === 8 && r[1][5] === 300 && r[1][1] === r[0][1] && r[2] === null, 'kompakt: Spalten ziehen – Finanzierung nicht schmaler als 300 px, gemerkt (getrennt von „Ausführlich“): ' + JSON.stringify(r));
+  ok(r[0][6] === 300 && r[1] && r[1].length === 9 && r[1][6] === 300 && r[1][1] === r[0][1] && r[2] === null, 'kompakt: Spalten ziehen – Finanzierung nicht schmaler als 300 px, gemerkt (getrennt von „Ausführlich“): ' + JSON.stringify(r));
   const sp1 = await spalten(); await daneben(R('b-kueche') + ' td.l-name');
   ok(await p.evaluate(() => UI.auf === 'b-kueche') && await spalten() === sp1, 'eigene Breiten bleiben beim Aufklappen stehen');
   await K.press('Escape');
@@ -313,7 +313,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-kueche'), 'Klick neben die Freigabe klappt auf, danach Klick neben die Summe öffnet den Bedarf');
   await p.click('button[data-act="back"]');
   await p.click('.seg.ansicht [data-v="voll"]');
-  ok(await p.evaluate(() => UI.ansicht === 'voll' && document.querySelectorAll('#list-body tr[data-id]')[0].children.length === 7), 'Knopf „Ausführlich“: wieder alle Angaben');
+  ok(await p.evaluate(() => UI.ansicht === 'voll' && document.querySelectorAll('#list-body tr[data-id]')[0].children.length === 8), 'Knopf „Ausführlich“: wieder alle Angaben');
   for (const td of ['td.l-meta', 'td.l-fr', 'td.l-ueb']) {
     await daneben(R('b-kueche') + ' ' + td);
     ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'b-kueche'), 'ausführlich: Klick daneben (' + td + ') öffnet den Bedarf');
@@ -392,8 +392,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   await p.click('#sec-eck .pe[data-k="beschreibung"]'); await K.press('Escape');
   ok(await p.evaluate(() => UI.view === 'detail'), 'Esc in einem offenen Feld bleibt auf der Seite');
   await p.mouse.click(5, 300); await K.press('Escape');
-  r = await p.evaluate(() => [UI.view, Math.round(scrollY)]);
-  ok(r.join() === 'list,120', 'Esc auf der Seite: zurück zur Liste, an dieselbe Stelle: ' + r.join());
+  r = await p.evaluate(() => { const q = document.querySelector('#list-body tr[data-id="b-kueche"]').getBoundingClientRect(); return [UI.view, Math.round(scrollY) >= 120, q.top >= 0 && q.bottom <= innerHeight]; });
+  ok(r.join() === 'list,true,true', 'Esc auf der Seite: zurück zur Liste, an dieselbe Stelle (der Bedarf im Blick): ' + r.join());
   await p.evaluate(() => scrollTo(0, 0));
 
   // Darstellung hell, auch wenn die umgebende Seite dunkel ist: eingebaute Bedienelemente hell

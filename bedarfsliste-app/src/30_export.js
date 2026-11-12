@@ -205,7 +205,7 @@ function exBDetail(b) {
     <table class="ex-steck">${exZeile('Gliederung', esc(b.gliederung))}${exZeile('Summe', b.summe ? eur(b.summe) + (b.summeArt ? ' <span class="ex-k">(' + esc(b.summeArt) + ')</span>' : '') : '')}${exZeile('Priorität', esc(b.prio))}${exZeile('Deadline', b.deadline ? fmtDate(b.deadline) : '')}
       ${exZeile('Stand', esc(phaseName(p)) + (p.sub || p.t ? ' <span class="ex-k">· ' + esc(p.t + (p.sub ? ': ' + p.sub : '')) + '</span>' : ''))}${exZeile('Stichworte', esc(b.stichworte.join(', ')))}${exZeile('Zuständig', zust)}</table>
     ${b.beschreibung ? '<h2>Beschreibung</h2><div class="ex-txt">' + exFmt(b.beschreibung) + '</div>' : ''}
-    <h2>Freigabe und Unterlagen</h2><div class="ex-zwei"><div>${fr}</div><div>${ul}</div></div>
+    <h2>Freigabe, Koordination und Unterlagen</h2><div class="ex-zwei"><div>${fr}</div><div>${ul}</div></div>
     <h2>Förderplan</h2>${plan}
     <p class="ex-sum">${F.S ? 'Summe ' + eur(F.S) + ' · zugesagt ' + eur(F.zu) + (F.eig ? ' · Eigenmittel ' + eur(F.eig) : '') + (F.d > 0 ? ' · offen ' + eur(F.d) : '') : ''}</p>
     ${u.noetig && (u.termin || u.ort) ? '<h2>Spendenübergabe</h2><p>' + [u.termin && fmtDate(u.termin) + (u.zeit ? ', ' + esc(u.zeit) + ' Uhr' : ''), esc(u.ort)].filter(Boolean).join(' · ') + '</p>' : ''}`;
@@ -230,13 +230,13 @@ function exFDetail(e) {
 /* ---------- Excel der Bedarfe */
 function exBedarfeXlsx(L) {
   const kopf = { b: true, color: '#FFFFFF', fill: '#404040', v: 'center', wrap: true, border: 'thin' }, z = { border: 'thin', v: 'top', wrap: true };
-  const K = ['Bedarf', 'Gliederung', 'Summe (€)', 'Priorität', 'Stand', 'Was fehlt', 'Deadline', 'Nächste Frist', 'Frist für', 'zugesagt (€)', 'offen (€)', 'Freigabe', 'Ansprechperson', 'E-Mail', 'Stichworte', 'Archiv'];
+  const K = ['Bedarf', 'Gliederung', 'Summe (€)', 'Priorität', 'Stand', 'Was fehlt', 'Deadline', 'Nächste Frist', 'Frist für', 'zugesagt (€)', 'offen (€)', 'Freigabe', 'Koordination', 'Ansprechperson', 'E-Mail', 'Stichworte', 'Archiv'];
   const R = L.map(b => { const p = phase(b), F = finState(b), x = nextFrist(b), o = frOffen(b), z0 = b.zust.find(q => q.n.trim()) || {};
-    return [b.titel, b.gliederung, b.summe ?? '', b.prio, phaseName(p), p.t + (p.sub ? ': ' + p.sub : ''), b.deadline ? fmtDate(b.deadline) : '', x ? fmtDate(x.d) : '', x ? x.t : '', F.zu || '', F.d > 0 ? F.d : '', o.names.length ? 'es fehlt: ' + o.names.join(', ') : 'vollständig', z0.n || '', z0.mail || '', b.stichworte.join(', '), b.archiv ? 'ja' : '']; });
+    return [b.titel, b.gliederung, b.summe ?? '', b.prio, phaseName(p), p.t + (p.sub ? ': ' + p.sub : ''), b.deadline ? fmtDate(b.deadline) : '', x ? fmtDate(x.d) : '', x ? x.t : '', F.zu || '', F.d > 0 ? F.d : '', o.names.length ? 'es fehlt: ' + o.names.join(', ') : 'vollständig', koItems(b).map(u => u.name + ': ' + ulText(u)).join(', '), z0.n || '', z0.mail || '', b.stichworte.join(', '), b.archiv ? 'ja' : '']; });
   const KF = ['Bedarf', 'Gliederung', 'Förderer', 'Stand', 'Betrag (€)', 'eingegangen (€)', 'Antragsfrist', 'beantragt am', 'Antwort erwartet', 'Nachweis bis', 'Einschätzung', 'Argumente', 'Knackpunkte'];
   const RF = L.flatMap(b => b.foerderer.filter(f => f.name.trim() || f.betrag).map(f => [b.titel, b.gliederung, f.name, F_ST_L[f.status], foeAmt(f) || '', f.eingegangen ?? '', f.frist ? fmtDate(f.frist) : '', f.beantragtAm ? fmtDate(f.beantragtAm) : '', f.erwartet ? fmtDate(f.erwartet) : '', f.vn.noetig && f.vn.frist ? fmtDate(f.vn.frist) : '', exEinsch(f.einsch), exPlain(f.warum), exPlain(f.knackpunkte)]));
   const blatt = (name, K, R, w) => ({ name, cols: w, rows: [K.map(v => ({ v, st: kopf })), ...R.map(r => r.map(v => ({ v, st: z })))], heights: { 0: 30 }, freeze: 'B2', filter: 'A1:' + colName(K.length - 1) + (R.length + 1) });
-  return xlsxBlob([blatt('Bedarfe', K, R, [40, 16, 11, 9, 18, 40, 11, 12, 30, 12, 11, 30, 22, 28, 24, 7]), blatt('Förderplan', KF, RF, [36, 16, 30, 11, 11, 12, 11, 11, 12, 11, 18, 40, 40])]);
+  return xlsxBlob([blatt('Bedarfe', K, R, [40, 16, 11, 9, 18, 40, 11, 12, 30, 12, 11, 30, 30, 22, 28, 24, 7]), blatt('Förderplan', KF, RF, [36, 16, 30, 11, 11, 12, 11, 11, 12, 11, 18, 40, 40])]);
 }
 
 /* ---------- Termine für Outlook: eine .ics mit allen künftigen Terminen der Auswahl, ganztägig, mit Erinnerung */

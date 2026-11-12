@@ -49,7 +49,7 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   r = await p.evaluate(() => { const x = cur(), F = x.freigabe;
     return [UI.view, x.titel, x.gliederung, x.summe, x.summeArt, x.deadline, x.prio, x.stichworte.join(','), F.fach.name, F.ofk.st + ':' + F.ofk.erledigt, F.fach.st + ':' + F.fach.angefragt, F.verw.st,
       x.unterlagen.map(u => u.name + ':' + u.st).join(','), x.zust.map(z => z.n + ':' + z.rolle + ':' + z.mail + ':' + z.tel).join(','), x.foerderer.map(f => f.name + ':' + f.status + ':' + f.betrag).join(','), x.link, x.beschreibung]; });
-  ok(r.slice(0, 16).join('|') === 'detail|Defibrillator für die Jugendgruppe|Brakel|2600|Angebot|2027-03-31|hoch|AED,Defi|Notfallvorsorge|ok:2026-10-12|angefragt:2026-10-20|offen|Angebot:da,Interview:fehlt,Konzept:fehlt,Projektsteckbrief:fehlt,Fotos:arbeit|Max Muster:Ortsbeauftragter:max.muster@x.example:05272 1234||',
+  ok(r.slice(0, 16).join('|') === 'detail|Defibrillator für die Jugendgruppe|Brakel|2600|Angebot|2027-03-31|hoch|AED,Defi|Notfallvorsorge|ok:2026-10-12|angefragt:2026-10-20|offen|Interview:fehlt,Angebot:da,Konzept:fehlt,Fotos:arbeit|Max Muster:Ortsbeauftragter:max.muster@x.example:05272 1234||',
     'angelegt und geöffnet, alles übernommen, nichts dazuerfunden: ' + r.slice(0, 16).join('|'));
   ok(r[16] === 'Die Jugendgruppe braucht einen *AED* für Übungen.\n\n- Einsatz bei Ferienfreizeiten\n\n*Offen laut KI:*\n- Verwaltung: nichts genannt\n\n*Quellen:*\n- E-Mail von Max Muster, 10.10.2026', 'Beschreibung mit Formatierung, darunter offene Punkte und Quellen: ' + JSON.stringify(r[16]));
   await p.waitForSelector('.modal h2:text-is("In die Personenliste übernehmen?")', { timeout: 3000 }).catch(() => {});

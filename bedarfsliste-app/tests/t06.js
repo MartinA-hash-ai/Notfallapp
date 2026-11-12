@@ -32,10 +32,10 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     getComputedStyle(document.querySelector('tr[data-id="b-klausur"] .fr.sum .fn')).color === getComputedStyle(document.querySelectorAll('tr[data-id="b-klausur"] .fr.sum .fn')[1]).color]);
   ok(r.join() === 'middle,700,true', 'Kerninfo mittig, Ort fett, Delta im selben Schwarz wie die Eigenmittel: ' + r.join());
   // Zeilen von Freigabe und Finanzierungsplan auf einer Höhe
-  r = await p.evaluate(() => { const tr = document.querySelector('tr[data-id="b-mtw"]'), mid = e => { const r = e.getBoundingClientRect(); return Math.round(r.top + r.height / 2); };
-    const fr = [...tr.querySelectorAll('.l-fr .ml')].map(mid), fin = [...tr.querySelectorAll('.l-fin .fr > .fn')].map(mid);
-    const dots = [...tr.querySelectorAll('.l-fr .ml .mi')].map(mid); return [fr, fin, dots]; });
-  ok(r[0].every((y, i) => Math.abs(y - r[1][i]) <= 1) && r[2].every((y, i) => Math.abs(y - r[0][i]) <= 1), 'Freigabe und Förderer stehen Zeile für Zeile auf einer Höhe, Punkte mittig zur Schrift: ' + JSON.stringify(r));
+  r = await p.evaluate(() => { const tr = document.querySelector('tr[data-id="b-mtw"]'), mid = e => { const r = e.getBoundingClientRect(); return Math.round(r.top + r.height / 2); }, z1 = e => Math.round(e.getBoundingClientRect().top + 10);   // erste Zeile (Namen können umbrechen)
+    const fr = [...tr.querySelectorAll('.l-fr .ml')].map(z1), fin = [...tr.querySelectorAll('.l-fin .fr > .fn')].map(z1);
+    const dots = [...tr.querySelectorAll('.l-fr .ml .mi')].map(mid), frm = [...tr.querySelectorAll('.l-fr .ml')].map(mid); return [fr, fin, dots, frm]; });
+  ok(r[0].every((y, i) => Math.abs(y - r[1][i]) <= 1) && r[2].every((y, i) => Math.abs(y - r[3][i]) <= 1), 'Freigabe und Förderer stehen Zeile für Zeile auf einer Höhe, Punkte mittig zur Schrift: ' + JSON.stringify(r));
   // Zeitstrahl in der Punktlinie zur Frist des Verwendungsnachweises
   r = await p.evaluate(() => { const l = document.querySelector('tr[data-id="b-mtw"] .l-fin .lead.tl'); return l && [l.className, l.title]; });
   ok(r && r[0] === 'lead tl tl-0' && /^noch \d+ Tage bis zur Frist$/.test(r[1]), 'Punktlinie zur Frist: drei Monate und mehr – ganz grau: ' + JSON.stringify(r));
@@ -72,7 +72,7 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
     Math.round(document.querySelector('#sec-foe .fsum').getBoundingClientRect().width) <= 580, document.querySelector('#fin-pie').getBoundingClientRect().left > document.querySelector('#sec-foe .fsum').getBoundingClientRect().right]);
   ok(r.join('|') === '4|zu,eig,be,ge|none,zu,ge,be,eig|false|false|true|true', 'Förderplan: Kreisdiagramm neben der schmaleren Tabelle, Farbfelder als Legende; kein Balken, kein grüner Kasten „Freigabe vollständig“: ' + r.join('|'));
   r = await p.evaluate(() => [...document.querySelectorAll('.d-right .circ')].map(c => c.className.replace('circ c-', '')).join());
-  ok(r === 'ok,ok,ok,ok,no,ok,ok,ok,run,add', 'rechts: Freigaben und Unterlagen als Kreise (Angebot oben, dann das neue Interview, noch offen): ' + r);
+  ok(r === 'ok,ok,ok,off,ok,ok,ok,run,add', 'rechts: Freigaben, Koordination (Interview offen, Angebot, Konzept) und Unterlagen als Kreise: ' + r);
   ok(!!(await p.$('.d-right input[data-p="link"]')) && !(await p.$('input[data-p="pfad"]')), 'Ordner rechts unter den Unterlagen, nur als Link');
   // Klick auf einen Kreis: gleich der nächste Stand, kein Menü
   const ulSt = () => p.evaluate(() => cur().unterlagen.find(u => u.name === 'Kostenplan').st);
@@ -102,8 +102,8 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
   // Freigaben alle da: grünes Kästchen, Überschrift „alle vorhanden“
   r = await p.evaluate(() => [!!document.querySelector('#fr-blk .fr-blk.ok'), document.querySelector('#fr-blk h3').textContent.replace(/\s+/g, ' ').trim()]);
   ok(r[0] && r[1] === 'Freigaben · alle vorhanden i', 'Freigaben vollständig: grünes Kästchen, „alle vorhanden“: ' + r[1]);
-  r = await p.evaluate(() => [[...document.querySelectorAll('#fr-body .ci-n')].map(e => e.textContent).join(','), [...document.querySelectorAll('#ul-body .ci-n')].map(e => e.textContent).join(',')]);
-  ok(r.join(' / ') === 'Ortsführungskreis,Fachreferat,Verwaltung / Angebot,Interview,Konzept,Projektsteckbrief', 'Angebot oben bei den Unterlagen, dann das Interview; nicht bei den Freigaben: ' + r.join(' / '));
+  r = await p.evaluate(() => [[...document.querySelectorAll('#fr-body .ci-n')].map(e => e.textContent).join(','), [...document.querySelectorAll('#ko-body .ci-n')].map(e => e.textContent).join(','), [...document.querySelectorAll('#ul-body .ci-n')].map(e => e.textContent).join(',')]);
+  ok(r.join(' / ') === 'Ortsführungskreis,Fachreferat,Verwaltung / Interview,Angebot,Konzept / ', '0.161: Koordination (Interview, Angebot, Konzept) eigener Block, kein Projektsteckbrief: ' + r.join(' / '));
   // Förderplan und Nacharbeit einklappen – beim Öffnen je nach Phase: Förderung läuft → Förderplan offen, Nacharbeit zu
   r = await p.evaluate(() => [!!document.querySelector('#fin-pie'), !!document.querySelector('#nach-body'), (document.querySelector('#nach-kurz') || {}).textContent]);
   ok(r[0] === true && r[1] === false && /^offen: /.test(r[2]), 'Förderung läuft: Förderplan aufgeklappt, Nacharbeit eingeklappt mit den offenen Punkten: ' + r.join('|'));

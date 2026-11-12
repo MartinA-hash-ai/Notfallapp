@@ -194,6 +194,7 @@ function strgAct(b, el, then) {
       if (k === 'ofk' && istDio(b.gliederung)) { toast('Bei Bedarfen der Diözese entfällt der Ortsführungskreis.', 'warn'); return; }
       const alt = it.st, v = nextOf(ROT_FR, alt); it.st = v; effects(b, b, 'freigabe.' + k + '.st', v, alt); return done();
     }
+    case 'ko': { if (b === MEHR.T) return; const u = b.unterlagen.find(x => x.id === el.dataset.uid); if (!u) return; u.st = nextOf(u.name === 'Angebot' ? ROT_ANG_A : ROT_ANG, u.st); return done(); }   // Koordination: offen → in Arbeit → erledigt (Angebot auch „nicht nötig“)
     case 'ang': { const u = angebotUL(b); if (!u) return; u.st = nextOf(ROT_ANG_A, u.st); if (b === MEHR.T) vorlageBeruehrt('ang'); return done(); }
     case 'foe': { if (!f) return; if (geldDa(f)) return geldDaHinweis(); const alt = f.status, v = ROT_FOE[alt] || 'geplant'; f.status = v; effects(b, f, 'status', v, alt); if (b === MEHR.T) vorlageBeruehrt('foe.' + f.id); return done(); }
     case 'ue-mit': if (!f || b !== MEHR.T) return; vorlageUeKlick(f.id); return done();   // gemeinsam bearbeiten: bei der Übergabe dabei?

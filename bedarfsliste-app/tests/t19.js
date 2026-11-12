@@ -8,7 +8,7 @@ const { chromium, ok, open, finish } = require('./lib');
     D = normalize({ bedarfe: ['A', 'B', 'C'].map((t, i) => Object.assign(blank(), { id: 'x' + i, titel: 'Bedarf ' + t, summe: 1000 * (3 - i) })) }); SAVED_JSON = JSON.stringify(D); undoReset();
     UI.ansicht = 'kompakt'; renderNow();
   });
-  await p.click('#list-body tr[data-id="x0"] .l-name'); await p.waitForTimeout(150);
+  await p.click('#list-body tr[data-id="x0"] .l-name', { position: { x: 4, y: 6 } }); await p.waitForTimeout(150);
   ok(await p.evaluate(() => UI.auf === 'x0'), 'Klick klappt den Bedarf auf');
   await p.keyboard.press('ArrowRight'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => UI.view === 'detail' && UI.id === 'x0' && UI.auf === 'x0'), 'auf seiner Seite: aufgeklappt bleibt gemerkt');

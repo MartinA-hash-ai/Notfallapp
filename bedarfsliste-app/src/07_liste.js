@@ -32,6 +32,15 @@ function lFreigabe(b) {
   });
   return L.join('');
 }
+// Koordination (ab 0.161): Interview, Angebot, Konzept untereinander – Klick schaltet offen → in Arbeit → erledigt; alle erledigt: ein Haken „erledigt“
+const KO_MI = { fehlt: 'off', arbeit: 'run', da: 'ok', nn: 'none' };
+function lKoord(b) {
+  if (b === MEHR.T) return '';
+  const L = koItems(b);
+  if (koStand(b) === 'ok') return `<div class="ml fr-voll" title="${esc(L.map(u => u.name + ': ' + ulText(u)).join('\n'))}">${mi('ok')}<span>erledigt</span></div>`;
+  return L.map(u => `<div class="ml${u.st === 'nn' ? ' nn' : ''}" data-le="ko" data-uid="${u.id}">${mi(KO_MI[u.st] || 'off', u.name + ': ' + ulText(u))}<span>${esc(u.name)}</span></div>`).join('');
+}
+const kKoord = b => b === MEHR.T ? '' : ({ ok: kz('ok', 'erledigt', 'k-ok'), run: kz('run', 'in Arbeit', 'k-run'), off: kz('off', 'offen', 'k-off') })[koStand(b)];
 // Finanzierungsplan: je Förderer Kreis, Name, Betrag und – bei Zusage – gepunktet weiter zum Verwendungsnachweis; darunter Delta und Eigenmittel
 const F_SYM = { zugesagt: 'ok', beantragt: 'run', geplant: 'off', abgelehnt: 'no' };
 const EMPTY3 = '<span></span><span></span><span></span>';
@@ -115,6 +124,7 @@ const SORT = {
   zust: { t: 'Ansprechperson', w: ['A → Z', 'Z → A'], v: b => norm((b.zust[0] || {}).n) || null },
   deadline: { t: 'Deadline', w: ['früh → spät', 'spät → früh'], v: b => b.deadline || null },
   fr: { t: 'Freigabe', w: ['freigegeben zuerst', 'ohne Freigabe zuerst'], v: b => ({ ok: 0, run: 1, off: 2, no: 3 })[frStand(b)] },
+  ko: { t: 'Koordination', w: ['erledigt zuerst', 'offen zuerst'], v: b => ({ ok: 0, run: 1, off: 2 })[koStand(b)] },
   fin: { t: 'Finanzierung', w: ['beendet zuerst', 'ohne Finanzierung zuerst'], v: b => ({ ok: 0, run: 1, no: 2, off: 3 })[finStand(b)] },
   vn: { t: 'Verwendungsnachweis', w: ['nächste Frist zuerst', 'späteste Frist zuerst'], v: b => {
     const Z = b.foerderer.filter(f => f.status === 'zugesagt'), L = Z.filter(f => f.vn.noetig), auf = L.filter(f => f.vn.st !== 'erledigt');
@@ -216,7 +226,7 @@ const KOMPAKT = () => UI.ansicht === 'kompakt';
 // unter seiner Überschrift stehen. Dafür bekommt die Zeile den Abstand von dieser Überschrift bis zum Zellenende. Gemessen wird nach dem
 // Zeichnen und jedes Mal, wenn sich die Spalten verschieben (Fenstergröße, Symbole beim Überfahren, neue Inhalte)
 function aufMessen() {
-  const tr = $('#list-body tr.auf'), th = $$('table.list.kompakt thead th')[6], td = tr && tr.querySelector('td.l-fin'); if (!th || !td) return;
+  const tr = $('#list-body tr.auf'), th = $$('table.list.kompakt thead th')[7], td = tr && tr.querySelector('td.l-fin'); if (!th || !td) return;
   for (let i = 0; i < 2; i++) {                    // zweimal: die neue Breite kann die Spalten noch einmal verschieben
     const a = th.getBoundingClientRect().left, z = td.getBoundingClientRect().right, pl = parseFloat(getComputedStyle(th).paddingLeft), pr = parseFloat(getComputedStyle(td).paddingRight);
     tr.style.setProperty('--vnw', (z - a) + 'px'); tr.style.setProperty('--vtw', Math.max(90, z - pr - a - pl - 23) + 'px');   // 23: Kreis und Abstand
@@ -251,24 +261,25 @@ function row(b) {
   const kl = (b.manuell ? 'paused' : '') + (frOffen(b).names.length ? ' ohne-fg' : '') + (pickSet() ? (pickSet().has(b.id) ? ' heute-w' : '') : heuteHat(b.id) && !heuteAktiv() ? ' heute-m' : '');
   const fg = frStand(b), zeig = fg === 'ok' || b.foerderer.some(f => f.status === 'zugesagt');   // kompakt ohne Freigabe und ohne Zusage: nur der Hinweis
   if (KOMPAKT() && UI.auf !== b.id && b.manuell) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b, true)}
-    <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-pause" colspan="4">${pauseText(b)}</td></tr>`;   // zurückgestellt: hinter dem Ort nur der Grund
+    <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-pause" colspan="5">${pauseText(b)}</td></tr>`;   // zurückgestellt: hinter dem Ort nur der Grund
   if (UI.auf !== b.id && istAbgeschlossen(b)) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl} fertig-z">${nameZelle(b)}
-    <td class="${KOMPAKT() ? 'l-ort' : 'l-meta'}"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-abg" colspan="${KOMPAKT() ? 4 : 3}">${fertigText(b)}</td></tr>`;   // ab 0.156: ganz abgeschlossen – hinter dem Ort nur „✓ abgeschlossen“
+    <td class="${KOMPAKT() ? 'l-ort' : 'l-meta'}"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-abg" colspan="${KOMPAKT() ? 5 : 4}">${fertigText(b)}</td></tr>`;   // ab 0.156: ganz abgeschlossen – hinter dem Ort nur „✓ abgeschlossen“
   if (KOMPAKT() && UI.auf !== b.id) return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}">${nameZelle(b)}
-    <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-fr">${kFreigabe(b)}</td>${zeig ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
+    <td class="l-ort"><div class="ort">${wort('ort', ortText(b))}</div></td><td class="k-fr">${kFreigabe(b)}</td><td class="k-ko">${kKoord(b)}</td>${zeig ? `<td class="k-nach">${kFinanz(b)}</td><td class="k-nach">${kNachweis(b)}</td><td class="k-nach">${kUebergabe(b)}</td>`
       : `<td class="k-nach">${kGrau(fg === 'no' ? 'Freigabe abgelehnt' : 'Freigabe ausstehend')}</td><td class="k-nach"></td><td class="k-nach"></td>`}</tr>`;
   const auf = KOMPAKT();                                  // in der kompakten Ansicht aufgeklappt: Finanzierung und Nachweis über zwei Spalten
   return `<tr data-act="open" data-id="${b.id}" tabindex="0" class="${kl}${auf ? ' auf' : ''}">${nameZelle(b)}
     <td class="l-meta"><div class="ort">${wort('ort', ortText(b))}</div><div>${wort('zust', b.zust[0] && b.zust[0].n ? esc(b.zust[0].n) : '<span class="ph">Ansprechperson</span>')}</div><div>${wort('deadline', b.deadline ? 'bis ' + fmtDate(b.deadline) : '<span class="nn">ohne Deadline</span>')}</div></td>
     <td class="l-fr">${lFreigabe(b)}</td>
+    <td class="l-ko">${lKoord(b)}</td>
     <td class="l-fin"${auf ? ' colspan="2"' : ''}>${lFinanz(b)}</td>
     <td class="l-ueb${b.nach.ueb.noetig && b.foerderer.some(f => f.status === 'zugesagt' && (b === MEHR.T || b.nach.ueb.mit.includes(f.id))) ? ' mit-pkt' : ''}">${lUebergabe(b)}</td>
   </tr>`;
 }
-const NCOL = 7;
+const NCOL = 8;
 function listBody() {
   const L = filtered();
-  if (!L.length) return { html: `<tr><td colspan="${KOMPAKT() ? 8 : NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
+  if (!L.length) return { html: `<tr><td colspan="${KOMPAKT() ? 9 : NCOL}"><div class="empty">${UI.tab === 'archiv' ? 'Im Archiv liegt nichts' + (anyFilter() ? ', das zu den Filtern passt.' : '.') : D.bedarfe.some(b => !b.archiv) ? 'Kein Bedarf passt zu den Filtern.' : 'Noch keine Bedarfe – oben rechts mit „+ Bedarf“ den ersten anlegen.'}</div></td></tr>`, n: 0 };
   return { html: L.map(row).join(''), n: L.length };
 }
 // Leiste der Liste: hängt wie auf der Seite eines Bedarfs unter der Kopfzeile – so beginnen beide Seiten gleich hoch und beim Hineinschieben springt nichts
@@ -292,8 +303,8 @@ function listView() {
   if (!komp || !UI.auf || colw) AUF_W = null;
   return `<main><section class="card list-card">
     <div class="tablewrap"><table class="list${colw ? ' fixed' : ''}${komp ? ' kompakt' : ''}${pickSet() ? ' heute-modus' : ''}${komp && UI.auf ? ' hat-auf' : ''}${AUF_W ? ' auf-fest' : ''}"${colw ? ` style="width:${colw.reduce((a, x) => a + x, 0)}px"` : AUF_W && AUF_W.min ? ` style="min-width:${AUF_W.min}px"` : ''}>${colw ? '<colgroup>' + colw.map(x => `<col style="width:${x}px">`).join('') + '</colgroup>' : AUF_W ? aufCols() : ''}<thead><tr>
-      ${(komp ? ['<th class="l-star">' + kopfStern(), ...[['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => '<th>' + sk(k, t))]
-        : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')])
+      ${(komp ? ['<th class="l-star">' + kopfStern(), ...[['titel', 'Bedarf'], ['summe', 'Summe'], ['ort', 'Ort'], ['fr', 'Freigabe'], ['ko', 'Koordination'], ['fin', 'Finanzierung'], ['vn', 'Verwendungsnachweis'], ['ueb', 'Spendenübergabe']].map(([k, t]) => '<th>' + sk(k, t))]
+        : ['<th class="l-star">' + kopfStern(), '<th>' + sk('titel', 'Bedarf'), '<th>' + sk('summe', 'Summe'), '<th>' + sk('ort', 'Ort'), '<th class="l-fr">' + sk('fr', 'Freigabe'), '<th class="l-ko">' + sk('ko', 'Koordination'), `<th class="l-fin"><div class="fg fg-h"><span>${sk('fin', 'Finanzierungsplan')}</span><span>${sk('vn', 'Verwendungsnachweis')}</span></div>`, '<th class="l-ueb">' + sk('ueb', 'Spendenübergabe')])
         .map((t, i) => t + `<span class="col-rs" data-i="${i}" title="Spaltenbreite ziehen (Doppelklick: alle Spalten zurücksetzen)"></span></th>`).join('')}
     </tr></thead><tbody id="list-body">${body.html}</tbody></table></div>
   </section></main>`;
@@ -317,8 +328,8 @@ function sortSpalte(k) {
 /* ---------- Spaltenbreiten wie in Excel: am rechten Rand eines Spaltenkopfs ziehen – nur diese Spalte ändert sich, die rechts davon rücken mit.
    Je Ansicht eigene Breiten mit Mindestbreiten (kompakt: Freigabe, Finanzierung, Nachweis und Übergabe brauchen Platz, wenn ein Bedarf aufklappt).
    Die Breiten merkt sich der Browser; Doppelklick auf einen Rand oder das Zahnrad setzt sie zurück. */
-const COLW_KEY = 'bl-colw', COL_MIN = [30, 140, 70, 90, 110, 330, 150];
-const COLW_KEY_K = 'bl-colw-k', COL_MIN_K = [30, 140, 80, 90, 155, 300, 150, 140];
+const COLW_KEY = 'bl-colw', COL_MIN = [30, 140, 70, 90, 110, 110, 330, 150];
+const COLW_KEY_K = 'bl-colw-k', COL_MIN_K = [30, 140, 80, 90, 155, 120, 300, 150, 140];
 const colwGet = (komp = KOMPAKT()) => { try { const a = JSON.parse(localStorage.getItem(komp ? COLW_KEY_K : COLW_KEY) || 'null'); return Array.isArray(a) && a.length === (komp ? COL_MIN_K : COL_MIN).length && a.every(x => x > 0) ? a : null; } catch (e) { return null; } };
 const colwSet = (a, komp = KOMPAKT()) => { const k = komp ? COLW_KEY_K : COLW_KEY; try { if (a) localStorage.setItem(k, JSON.stringify(a)); else localStorage.removeItem(k); } catch (e) { /* nur in diesem Browser */ } };
 document.addEventListener('pointerdown', e => {

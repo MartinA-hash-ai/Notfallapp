@@ -28,10 +28,9 @@ function peEinweisung() {
     '2. Lies beide Dateien und fasse in höchstens fünf Sätzen zusammen, was du tun sollst.',
     '3. Mach einen Probelauf für die letzten 14 Tage genau nach der Anleitung und lege ihn als Datei in „' + PE_CW + '“ ab – ausnahmsweise mit „Probelauf“ hinter der Kopfzeile und im Dateinamen.',
     '4. Nenne mir danach: wie viele Vorschläge, welche E-Mails du bewusst übersprungen hast (und warum) und wo du bei der Zuordnung unsicher warst. Stell Rückfragen, wenn etwas unklar ist.', '',
-    'DANACH (erst wenn ich den Probelauf bestätigt habe)',
-    'Richte eine geplante Aufgabe ein: Montag bis Freitag, 6:00 Uhr deutscher Zeit (Europe/Berlin). Auftrag der Aufgabe, wörtlich:',
-    peSatz(),
-    'Nenne mir zur Kontrolle die eingestellte Uhrzeit und Zeitzone.'].join('\n');
+    'DANACH',
+    'Richte KEINE geplante Aufgabe ein. Ich starte den Lauf einmal pro Woche selbst, indem ich dir diesen Satz schicke:',
+    peSatz()].join('\n');
 }
 const PE = { laeufe: [], L: [], dateien: [], letzte: '', aufStr: '', uebStr: '', busy: false };
 
@@ -46,6 +45,7 @@ const PE_ARTEN = [
   ['kontakt', 'A', 'Neue Ansprechperson beim Förderer', 'Neue oder geänderte Ansprechperson beim Förderer (nur dienstliche Angaben). Wert = „Name; Position; E-Mail; Telefon“.'],
   ['freigabe', 'B', 'Freigabe (OFK, Fachreferat, Verwaltung)', 'Intern: Ortsführungskreis stimmt zu/lehnt ab, Fachreferat gibt frei/lehnt ab, Verwaltung budgetiert/lehnt ab. Wert = ofk, fach oder verw; Ergebnis = ok oder nein; Datum = Tag der Entscheidung.'],
   ['unterlage', 'B', 'Unterlage geliefert', 'Intern: Angebot, Kostenplan, Konzept, Projektsteckbrief, Bilder o. Ä. wurden geschickt (Anhang). Wert = Name der Unterlage wie im Überblick.'],
+  ['koordination', 'B', 'Koordination (Interview, Angebot, Konzept)', 'Intern, AUCH in „Gesendete Elemente“: Ich habe eine Gliederung angeschrieben, um über ein Vorhaben zu sprechen (Interview), oder ein Angebot bzw. Konzept angefragt – oder das Gespräch hat stattgefunden bzw. Angebot/Konzept liegt vor. Wert = Interview, Angebot oder Konzept; Ergebnis = in Arbeit oder erledigt.'],
   ['uebergabe_erfolgt', 'B', 'Spendenübergabe hat stattgefunden', 'Die Spendenübergabe bzw. der Besuch des Förderers hat stattgefunden (z. B. „Danke für Ihr Kommen heute“). Datum = Tag der Übergabe; Ort, falls genannt; Förderername = wer gespendet hat; Person = wer vom Förderer vor Ort war (Name wie in der E-Mail, z. B. die angeschriebene Person).'],
   ['uebergabe_termin', 'B', 'Termin der Spendenübergabe', 'Termin der Spendenübergabe vereinbart. Datum, Uhrzeit (HH:MM), Ort.'],
   ['presse', 'B', 'Presse und Öffentlichkeit', 'Intern: jemand aus Presse und Öffentlichkeit kommt zur Spendenübergabe, schreibt die Pressemitteilung oder stimmt sie mit dem Förderer ab. Person = Vor- und Nachname der Person aus Presse und Öffentlichkeit (nicht der Empfänger der E-Mail); Wert = kurz, was sie übernimmt (z. B. „Pressemitteilung, Entwurf an Förderer zur Abstimmung“).'],
@@ -240,6 +240,10 @@ function peWirkung(v, zu = {}) {
     case 'freigabe': { const k = /verw/i.test(v.wert) ? 'verw' : /fach/i.test(v.wert) ? 'fach' : /ofk|orts/i.test(v.wert) ? 'ofk' : '', ja = !/nein|ab/i.test(v.ergebnis || ''), st = ja ? 'ok' : 'nein', it = b && k ? frItems(b).find(i => i.k === k) : null;
       r.bereich = 'Freigabe'; r.vorher = it ? frName(it) + ': ' + (frText(it) || it.st) : '–'; r.nachher = (it ? frName(it) : 'Freigabe') + ': ' + (k ? FR_DEF[k][st] : ja ? 'zugestimmt' : 'abgelehnt') + (d ? ' am ' + fmtDate(d) : ''); r.ton = ja ? 't-ok' : 't-err';
       r.ok = !!b && !!k; r.schon = !!b && !!k && b.freigabe[k].st === st; r.fn = () => { const i2 = b.freigabe[k], alt = i2.st; i2.st = st; effects(b, b, 'freigabe.' + k + '.st', st, alt); if (d) i2.erledigt = d; }; break; }
+    case 'koordination': {                                                          // ab 0.161: Interview, Angebot, Konzept – in Arbeit oder erledigt
+      const w = norm(v.wert || ''), u = b && koItems(b).find(x => w.includes(norm(x.name))), ziel = /erledigt|fertig|liegt vor|vorhanden|gefuhrt|geführt|stattgefunden|\bda\b/.test(norm(v.ergebnis || '') + ' ' + w) ? 'da' : 'arbeit';
+      r.bereich = 'Koordination'; r.vorher = u ? u.name + ': ' + ulText(u) : '–'; r.nachher = u ? u.name + ': ' + ulText(Object.assign({}, u, { st: ziel })) : (v.wert || '?'); r.ton = ziel === 'da' ? 't-ok' : 't-run';
+      r.ok = !!u; r.schon = !!u && (u.st === ziel || (ziel === 'arbeit' && u.st === 'da')); r.fn = () => { u.st = ziel; }; break; }
     case 'unterlage': { const u = b && b.unterlagen.find(x => norm(x.name) === norm(v.wert) || norm(v.wert || '').includes(norm(x.name))); r.bereich = 'Unterlagen';
       r.vorher = u ? u.name + ': ' + ulText(u) : (v.wert || 'Unterlage') + ': noch nicht in der Liste'; r.nachher = (u ? u.name : v.wert || 'Unterlage') + ': ' + (u ? (ulOpts(u).find(o => o[0] === 'da') || [, 'liegt vor'])[1] : 'vorhanden'); r.ton = 't-ok';
       r.ok = !!b && !!(u || v.wert); r.schon = !!u && u.st === 'da'; r.fn = () => { if (u) u.st = 'da'; else b.unterlagen.push(UL(v.wert, 'da')); }; break; }
@@ -333,17 +337,25 @@ const PE_MAIL_SVG = '<svg width="15" height="12" viewBox="0 0 15 12" aria-hidden
 const peLetzterLauf = () => (PE.laeufe || []).filter(l => !l.probe).slice(-1)[0] || (PE.laeufe || []).slice(-1)[0] || { datum: '', zeit: '' };
 // Werktage seit dem letzten Lauf (Wochenende zählt nicht): ab 2 fehlt ein Lauf
 function peWerktageSeit(iso) { if (!iso) return 99; let n = 0; const d = new Date(iso + 'T12:00'), h = new Date(today() + 'T12:00'); while (d < h) { d.setDate(d.getDate() + 1); if (d.getDay() % 6) n++; } return n; }
+// ab 0.161: einmal pro Woche von Hand – ab Freitag gelb, wenn in dieser Woche noch kein Lauf war (oder der letzte länger als eine Woche her ist)
+const peMontag = (t = today()) => { const d = new Date(t + 'T12:00'); d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); return isoDate(d); };
+const peFaellig = (t = today()) => { const l = peLetzterLauf(), wt = new Date(t + 'T12:00').getDay(); return !l.datum || l.datum < peMontag(t) && (wt === 5 || wt === 6 || wt === 0 || peWerktageSeit(l.datum) > 5); };
+const peEingerichtet = () => !!(D.settings.coworkOrdner || (PE.laeufe || []).length);
 function peStatusChip() {
-  const l = peLetzterLauf(); if (!l.datum) return '';
-  const alt = peWerktageSeit(l.datum) >= 2, wann = l.datum === today() ? 'heute' + (l.zeit ? ' ' + l.zeit : '') : fmtDate(l.datum).slice(0, 6) + (l.zeit ? ' ' + l.zeit : ''), ohne = /kein zugriff/i.test(l.erg);
-  return `<button class="pe-stat${alt || ohne ? ' warn' : ''}" data-act="pe-laeufe" title="${esc(alt ? 'Copilot hat seit dem ' + fmtDate(l.datum) + ' nicht mehr geprüft – geplante Aufgabe in Cowork kontrollieren' : 'Copilot hat die E-Mails geprüft: ' + l.erg)}">${PE_MAIL_SVG}<span>${alt ? 'zuletzt geprüft ' + wann : ohne ? 'kein Zugriff auf E-Mails' : 'geprüft ' + wann}</span>${alt || ohne ? '' : '<span class="pe-stat-ok">✓</span>'}</button>`;
+  const l = peLetzterLauf(); if (!peEingerichtet()) return '';
+  if (!l.datum) return `<button class="pe-stat warn" data-act="pe-laeufe" title="Copilot hat noch nicht geprüft – klicken: Auftrag für Cowork kopieren">${PE_MAIL_SVG}<span>E-Mails prüfen lassen</span></button>`;
+  const alt = peFaellig(), wann = l.datum === today() ? 'heute' + (l.zeit ? ' ' + l.zeit : '') : fmtDate(l.datum).slice(0, 6) + (l.zeit ? ' ' + l.zeit : ''), ohne = /kein zugriff/i.test(l.erg);
+  return `<button class="pe-stat${alt || ohne ? ' warn' : ''}" data-act="pe-laeufe" title="${esc(alt ? 'Wochenlauf fällig: zuletzt am ' + fmtDate(l.datum) + ' geprüft – klicken: Auftrag für Cowork kopieren' : 'Copilot hat die E-Mails geprüft: ' + l.erg)}">${PE_MAIL_SVG}<span>${alt ? 'E-Mails prüfen lassen' : ohne ? 'kein Zugriff auf E-Mails' : 'geprüft ' + wann}</span>${alt || ohne ? '' : '<span class="pe-stat-ok">✓</span>'}</button>`;
 }
 function peLaeufePop(btn) {
   closeMenus();
   const L = (PE.laeufe || []).slice(-10).reverse();
-  placePop(h('div', { class: 'menu pe-laeufe', role: 'dialog', 'aria-label': 'Läufe von Copilot' }, h('div', { class: 'menu-kopf' }, 'E-Mail-Auswertung – letzte Läufe'),
+  const kop = h('button', { type: 'button', class: 'primary pe-kopie', onclick: () => { flcTextKopieren(peSatz(), 'Auftrag kopiert – in Copilot Cowork einfügen und abschicken. Die Vorschläge erscheinen danach hier oben.'); closeMenus(); } }, 'Auftrag für Cowork kopieren');
+  placePop(h('div', { class: 'menu pe-laeufe', role: 'dialog', 'aria-label': 'Läufe von Copilot' }, h('div', { class: 'menu-kopf' }, 'E-Mail-Auswertung – einmal pro Woche'),
+    h('div', { class: 'pe-lkop' }, kop, h('div', { class: 'muted small' }, 'In Copilot Cowork einfügen und abschicken. Nach ein paar Minuten liegen die Vorschläge im Cowork-Ordner und erscheinen hier oben.')),
+    h('div', { class: 'menu-kopf' }, 'Letzte Läufe'),
     ...(L.length ? L.map(l => h('div', { class: 'pe-lz' }, h('span', null, fmtDate(l.datum) + (l.zeit ? ' · ' + l.zeit : '') + (l.probe ? ' · Probelauf' : '')), h('span', { class: /kein zugriff/i.test(l.erg) ? 'warn' : '' }, l.erg))) : [h('div', { class: 'pe-lz muted' }, 'Noch kein Lauf.')]),
-    h('div', { class: 'pe-lfuss muted small' }, peWerktageSeit(peLetzterLauf().datum) >= 2 ? 'Seit mehr als einem Werktag kein Lauf – bitte die geplante Aufgabe in Copilot Cowork prüfen.' : 'Copilot läuft werktags früh; neue Vorschläge erscheinen hier oben.')), btn, 'right');
+    h('div', { class: 'pe-lfuss muted small' }, peFaellig() ? 'Diese Woche noch kein Lauf – Auftrag oben kopieren und in Cowork einfügen.' : 'Der nächste Lauf ist ab Freitag fällig; das Symbol wird dann gelb.')), btn, 'right');
 }
 const peChip = () => peCwChip() + peChipV();
 function peChipV() {
@@ -522,7 +534,7 @@ async function peEinstDialog() {
   const einw = h('button', { type: 'button', class: 'primary', onclick: () => flcTextKopieren(peEinweisung(), 'Einweisung kopiert – in Copilot Cowork einfügen') }, 'Einweisung kopieren');
   const stand = h('p', { class: 'muted small' }, peLetzterLauf().datum ? 'Letzter Lauf von Copilot: ' + fmtDate(peLetzterLauf().datum) + (peLetzterLauf().zeit ? ' um ' + peLetzterLauf().zeit : '') + ' – ' + peLetzterLauf().erg + '.' : PE.letzte ? 'Letzte Datei von Copilot: „' + PE.letzte + '“.' : rechOrdnerOk() ? 'Noch keine Datei „Posteingang …“ von Copilot im Ordner.' : 'Ordner nicht verbunden – die Dateien für Copilot werden geschrieben, sobald die Bedarfsliste mit ihrem Ordner verbunden ist.');
   const body = h('div', { class: 'pe-einst' },
-    h('p', null, 'Copilot Cowork liest werktags früh deine E-Mails (alle Ordner) und schlägt vor, was sich geändert hat. Übernommen wird erst, wenn du es bestätigst.'),
+    h('p', null, 'Einmal pro Woche lässt du Copilot Cowork deine E-Mails lesen (alle Ordner, auch Gesendete); es schlägt vor, was sich geändert hat. Übernommen wird erst, wenn du es bestätigst. Ab Freitag wird das Brief-Symbol oben gelb, wenn in der Woche noch kein Lauf war – ein Klick darauf kopiert den Auftrag für Cowork.'),
     h('h3', null, 'Wo Copilot seine Ergebnisse ablegt'),
     h('p', null, 'Copilot darf ohne Rückfrage nur neue Dateien in seinem Arbeitsordner anlegen: OneDrive „' + PE_CW + '“. Verbinde diesen Ordner einmal (im Explorer meist unter „OneDrive – MalteserCloud › Dokumente › Cowork“) – das Programm holt die Ergebnisse dort ab und hängt sie an „' + PE_DATEI + '“ an.'),
     h('div', { class: 'pe-cw' }, h('button', { type: 'button', onclick: async () => { if (await peCoworkVerbinden()) cwT.textContent = 'Verbunden: „' + D.settings.coworkOrdner + '“'; } }, D.settings.coworkOrdner ? 'Anderen Ordner wählen …' : 'Cowork-Ordner verbinden …'),
@@ -532,8 +544,9 @@ async function peEinstDialog() {
     h('h3', null, 'Einmal in Cowork einrichten'),
     h('ol', { class: 'pe-schritte' },
       h('li', null, 'Bedarfsliste einmal mit ihrem Ordner geöffnet haben – dann liegen Auftrag und Überblick im Ordner „' + RECH_DIR + '“.'),
-      h('li', null, 'In Copilot Cowork einen neuen Chat öffnen und die Einweisung einfügen: ', einw, h('div', { class: 'muted small' }, 'Sie erklärt Copilot, worum es geht, lässt den Zugriff prüfen und einen Probelauf über die letzten 7 Tage machen („Posteingang …-test.txt“ – erscheint hier als Vorschläge). Passt das Ergebnis, legt Copilot die geplante Aufgabe selbst an.')),
-      h('li', null, 'Lieber von Hand anlegen? „Automatisierungen“ bzw. „Geplante Aufgabe“: Montag bis Freitag, früh morgens (z. B. 6:00 Uhr – erwartet Cowork die Zeit in UTC, im Winter 5:00, im Sommer 4:00). Als Auftrag nur diesen Satz: ', h('q', null, peSatz()), ' ', kop),
+      h('li', null, 'In Copilot Cowork einen neuen Chat öffnen und die Einweisung einfügen: ', einw, h('div', { class: 'muted small' }, 'Sie erklärt Copilot, worum es geht, lässt den Zugriff prüfen und einen Probelauf über die letzten 7 Tage machen („Posteingang …-test.txt“ – erscheint hier als Vorschläge). Eine geplante Aufgabe legt Copilot nicht an – den Wochenlauf startest du über das Brief-Symbol oben.')),
+      h('li', null, 'Jede Woche (ab Freitag erinnert das gelbe Brief-Symbol oben): diesen Satz in Cowork einfügen und abschicken: ', h('q', null, peSatz()), ' ', kop),
+      h('li', null, 'Eine bisher eingerichtete geplante Aufgabe in Cowork bitte löschen.'),
       h('li', null, 'Fertig. Ändert sich hier etwas, schreibt das Programm die Auftragsdatei neu – die Aufgabe in Cowork bleibt, wie sie ist.')),
     stand);
   const ok = await modal('E-Mail-Auswertung', body, [['Abbrechen', false], ['Speichern', true, 'primary']], { wide: true, cls: 'pe-einst-modal' });

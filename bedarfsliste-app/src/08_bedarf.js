@@ -121,8 +121,13 @@ function freigabeList(b) {
   return rows + (fo.names.length ? `<div class="ci-foot warn">Es fehlt noch: ${esc(fo.names.join(', '))}</div>` : '')
     + dl('dl-fach', [...fachNamen(), ...D.bedarfe.map(x => x.freigabe.fach.name)]);
 }
+// Koordination (ab 0.161): Interview, Angebot, Konzept – leerer Kreis = offen, gelb = in Arbeit, grün = erledigt
+function koList(b) {
+  return koItems(b).map(u => `<div class="ci-row"${u.name === 'Angebot' ? ' id="fr-ang"' : ''}>${circ(({ da: 'ok', arbeit: 'run', fehlt: 'off', nn: 'na' })[u.st] || 'off', `data-kind="ul" data-uid="${u.id}"`, u.name)}
+      <div class="ci-t"><span class="ci-n">${esc(u.name)}</span><span class="ci-hint">${esc(ulText(u))}</span></div></div>`).join('');
+}
 function unterlagenList(b) {
-  return b.unterlagen.map(u => `<div class="ci-row"${u.fest && u.name === 'Angebot' ? ' id="fr-ang"' : ''}>${circ(ulKind(u), `data-kind="ul" data-uid="${u.id}"`, u.name || 'Unterlage')}
+  return b.unterlagen.filter(u => !(u.fest && KO_UL.includes(u.name))).map(u => `<div class="ci-row">${circ(ulKind(u), `data-kind="ul" data-uid="${u.id}"`, u.name || 'Unterlage')}
       <div class="ci-t">${u.fest ? `<span class="ci-n">${esc(u.name)}</span>` : tin(u, 'name', `class="inline" data-uid="${u.id}" aria-label="Name der Unterlage"`, 'Unterlage')}<span class="ci-hint">${esc(ulText(u))}</span></div>
       ${u.fest ? '' : `<button class="x" data-act="rm-ul" data-uid="${u.id}" aria-label="${esc(u.name)} entfernen" title="entfernen">×</button>`}</div>`).join('')
     + `<div class="ci-row add"><span class="circ c-add" aria-hidden="true">+</span><input type="text" id="ul-new" class="inline" list="dl-ul" placeholder="weitere Unterlage" aria-label="Weitere Unterlage hinzufügen"></div>`
@@ -135,6 +140,7 @@ function frBlock(b) {
 function sidePanel(b) {
   return `<section class="card side" id="sec-frei">
     <div id="fr-blk">${frBlock(b)}</div>
+    <h3>Koordination</h3><div id="ko-body" class="ci-list">${koList(b)}</div>
     <h3>Unterlagen</h3><div id="ul-body" class="ci-list">${unterlagenList(b)}</div>
     <h3>Ordner ${infoBtn('ordner')}</h3>
     <div class="o-row o-link" title="Link einfügen – oder einen Ordner aus dem Explorer bzw. einen SharePoint-Link hierher ziehen"><span class="o-lab">OneDrive / SharePoint</span><div class="row">${tin(b, 'link', 'class="grow" aria-label="Link zum Ordner"', 'SharePoint-Link einfügen (https://…)')}<span id="link-btn">${linkBtn(b)}</span></div>

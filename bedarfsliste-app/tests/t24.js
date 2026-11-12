@@ -13,8 +13,8 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   let r = await p.evaluate(async () => { await peSchreiben(true); const F = Object.keys(__fs.files); const t = n => { const k = F.find(x => x.endsWith('/Förderrecherche/' + n)); return k ? new TextDecoder().decode(__fs.files[k].data) : ''; };
     const a = t('Auftrag E-Mail-Auswertung.txt'), u = t('Überblick für Copilot.txt'); return [a.includes('Gesendete Elemente'), a.includes('=== VORSCHLAG ==='), /- zusage:/.test(a), /- freigabe:/.test(a), /- fl_frist:/.test(a), u.includes('[b1] Zelt für den Katastrophenschutz'), u.includes('[f1] Sparkasse Testhausen')]; });
   ok(r.join() === 'true,true,true,true,false,true,true', 'Auftragsdatei (A und B, C aus) und Überblick mit Kennungen im Ordner „Förderrecherche“: ' + r.join());
-  r = await p.evaluate(() => [peSatz(), peEinweisung()]);
-  ok(/Auftrag E-Mail-Auswertung\.txt/.test(r[0]) && /HINTERGRUND/.test(r[1]) && /Probelauf/.test(r[1]) && r[1].includes(r[0]) && /Europe\/Berlin/.test(r[1]), 'Satz für die geplante Aufgabe und Einweisung für Copilot (Zugriff, Probelauf, dann Aufgabe anlegen): ' + r[0]);
+  r = await p.evaluate(() => [peSatz(), peEinweisung(), peAuftragText()]);
+  ok(/Auftrag E-Mail-Auswertung\.txt/.test(r[0]) && /HINTERGRUND/.test(r[1]) && /Probelauf/.test(r[1]) && r[1].includes(r[0]) && /KEINE geplante Aufgabe/.test(r[1]) && /- koordination:/.test(r[2]) && /Gesendete/.test(r[2]), 'Satz für den Wochenlauf und Einweisung (Zugriff, Probelauf, keine geplante Aufgabe); Auftrag sucht auch Koordination: ' + r[0]);
   // Vorschläge von Copilot
   await writeF(p, ['=== VORSCHLAG ===', 'Art: zusage', 'Bedarf: [b1]', 'Förderer: f1', 'Datum: 05.11.2026', 'Betrag: 3.000', 'Sicherheit: sicher', 'Mail: 05.11.2026 | Sparkasse | Ihr Antrag', 'Zitat: „Wir freuen uns, 3.000 € zu bewilligen.“', '',
     '=== VORSCHLAG ===', 'Art: freigabe', 'Bedarf: b1', 'Wert: ofk', 'Ergebnis: ok', 'Datum: 04.11.2026', 'Sicherheit: sicher', '',
@@ -165,5 +165,17 @@ const { chromium, ok, open, connect, writeF, finish } = require('./lib');
   await p.keyboard.press('a'); await p.waitForTimeout(80); await p.click('.pe2-los'); await p.waitForTimeout(300);
   r = await p.evaluate(() => { const B = D.bedarfe.find(x => x.titel === 'LKW-Führerscheine Einsatzdienste'); return B ? [B.gliederung, B.summe, B.beschreibung] : ['fehlt']; });
   ok(r.join('|') === 'Geseke|2400|Anfrage, ob LKW-Führerscheinerweiterungen förderbar sind.', 'übernommen: neuer Bedarf mit Gliederung, Summe und Beschreibung: ' + r.join('|'));
+  // 0.161: Koordination aus E-Mails (auch Gesendete): Interview angestoßen, Angebot liegt vor
+  r = await p.evaluate(() => { const B = D.bedarfe.find(x => x.id === 'b1'), I = koItems(B);
+    const v1 = { art: 'koordination', bedarf: 'b1', wert: 'Interview', ergebnis: 'in Arbeit' }, v2 = { art: 'koordination', bedarf: 'b1', wert: 'Angebot', ergebnis: 'erledigt' };
+    const w1 = peWirkung(v1), w2 = peWirkung(v2); w1.fn(); w2.fn(); return [w1.nachher, w2.nachher, I.map(u => u.name + ':' + u.st).join(',')]; });
+  ok(r.join('|') === 'Interview: in Arbeit|Angebot: liegt vor|Interview:arbeit,Angebot:da,Konzept:fehlt', 'Koordination aus E-Mails: Interview in Arbeit, Angebot liegt vor: ' + r.join('|'));
+  // 0.161: Wochenlauf – ab Freitag gelb, Klick bietet den Auftrag zum Kopieren
+  r = await p.evaluate(() => { const res = [];
+    for (const [t, lauf] of [['2026-11-13', '2026-11-06'], ['2026-11-12', '2026-11-06'], ['2026-11-13', '2026-11-10']]) { PE.laeufe = [{ datum: lauf, zeit: '06:00', erg: 'Keine Vorschläge' }]; res.push(peFaellig(t)); }
+    PE.laeufe = [{ datum: '2026-11-06', zeit: '06:00', erg: 'Keine Vorschläge' }]; return res; });
+  ok(r.join() === 'true,false,false', 'Wochenlauf: Freitag ohne Lauf in dieser Woche fällig, Donnerstag noch nicht, mit Lauf diese Woche nicht: ' + r.join());
+  await p.evaluate(() => { PE.L = []; renderNow(); }); await p.click('header.top .pe-stat'); await p.waitForTimeout(150);
+  ok(await p.evaluate(() => !!document.querySelector('.pe-laeufe .pe-kopie')), 'Klick aufs Brief-Symbol: „Auftrag für Cowork kopieren“');
   await finish(b, [p]);
 })();

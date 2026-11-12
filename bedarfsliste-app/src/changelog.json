@@ -1,5 +1,16 @@
 [
   {
+    "version": "0.161.0",
+    "date": "2026-12-02T10:00",
+    "items": [
+      "Neue Spalte „Koordination“ hinter der Freigabe: Interview, Angebot und Konzept untereinander – Klick schaltet offen → in Arbeit → erledigt (Angebot auch „nicht nötig“); alle erledigt: ein Haken „erledigt“; kompakt: offen / in Arbeit / erledigt; sortierbar",
+      "Bedarfsseite: eigener Block „Koordination“ über den Unterlagen; der Projektsteckbrief ist keine feste Unterlage mehr (unberührt entfernt, sonst als eigene Unterlage behalten)",
+      "E-Mail-Auswertung einmal pro Woche von Hand statt täglich: ab Freitag wird das Brief-Symbol oben gelb („E-Mails prüfen lassen“), wenn in der Woche noch kein Lauf war; Klick darauf → „Auftrag für Cowork kopieren“",
+      "Copilot erkennt jetzt auch die Koordination – auch in „Gesendete Elemente“ (Gliederung zum Gespräch angeschrieben, Angebot oder Konzept angefragt bzw. erhalten); Einweisung ohne geplante Aufgabe",
+      "Excel-Export der Bedarfe mit Spalte „Koordination“"
+    ]
+  },
+  {
     "version": "0.160.0",
     "date": "2026-12-01T18:00",
     "items": [

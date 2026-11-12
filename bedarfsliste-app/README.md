@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.161:** Spalte „Koordination“ (Interview, Angebot, Konzept), Projektsteckbrief nicht mehr fest; E-Mail-Auswertung wöchentlich von Hand mit Erinnerung ab Freitag.
+
 **Seit 0.160:** Gemeldete neue Bedarfe aus E-Mails lassen sich im Prüffenster direkt anlegen.
 
 **Seit 0.159:** „Jetzt abholen“ meldet Fundstand bzw. Ordnerinhalt und holt die Freigabe selbst.

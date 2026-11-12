@@ -14,7 +14,7 @@ const kiListeKnopf = () => `<button class="icon-btn ki-btn ki-liste${EIN.neu ? '
 const NEU_BLOCK = () => ['#BEDARF', 'Name:', 'Ort:', 'Summe:', 'Summe ist: Schätzung | Angebot', 'Deadline:', 'Prio: hoch | normal', 'Stichworte:', 'Fachreferat:', 'Ordner:',
   '#BESCHREIBUNG', '(der Text)',
   '#FREIGABEN', 'Ortsführungskreis: offen | angefragt am TT.MM.JJJJ | zugestimmt am TT.MM.JJJJ | abgelehnt am TT.MM.JJJJ', 'Fachreferat:', 'Verwaltung:',
-  '#UNTERLAGEN', 'Angebot: vorhanden | in Arbeit | fehlt', 'Konzept:', 'Projektsteckbrief:', '(weitere Unterlagen je Zeile „Name: Stand“)',
+  '#UNTERLAGEN', 'Interview: geführt | in Arbeit | offen', 'Angebot: vorhanden | in Arbeit | fehlt', 'Konzept:', '(weitere Unterlagen je Zeile „Name: Stand“)',
   '#ZUSTÄNDIGE', 'Name:', 'Position:', 'E-Mail:', 'Telefon:', 'Handy:', '(Leerzeile, dann die nächste Person, wieder mit „Name:“)',
   '#FÖRDERER', 'Name:', 'Stand: geplant | beantragt | zugesagt | abgelehnt', 'Summe:', 'Antragsfrist:', '(nur Förderer, die in den Unterlagen genannt sind; Leerzeile, dann der nächste)',
   '#QUELLEN', '- (je Quelle eine Zeile: Art, Absender oder Titel, Datum)', '#OFFEN', '- (was fehlt, unklar ist oder sich widerspricht)'];
@@ -82,7 +82,7 @@ function neuLesen(t) {
 
 /* ---------- Rohdaten → neuer Bedarf, mit Hinweisen (warn: auffällig, leer: nicht gefunden) */
 const FR_WORT = [[/abgelehnt|nein|abgesagt/, 'nein'], [/zugestimmt|freigegeben|genehmigt|zugesagt|\bok\b|\bja\b|erteilt/, 'ok'], [/angefragt|beantragt|vorgelegt|läuft/, 'angefragt'], [/offen|noch nicht/, 'offen']];
-const UL_WORT = [[/fehlt|nicht vorhanden|liegt nicht vor/, 'fehlt'], [/arbeit|kommt|angefragt|wird erstellt/, 'arbeit'], [/nicht nötig|entfällt/, 'nn'], [/vorhanden|liegt vor|\bda\b|ja/, 'da']];
+const UL_WORT = [[/fehlt|nicht vorhanden|liegt nicht vor/, 'fehlt'], [/arbeit|kommt|angefragt|wird erstellt/, 'arbeit'], [/nicht nötig|entfällt/, 'nn'], [/vorhanden|liegt vor|geführt|\bda\b|ja/, 'da']];
 const FOE_WORT = [[/abgelehnt|absage/, 'abgelehnt'], [/zugesagt|bewilligt|zusage/, 'zugesagt'], [/beantragt|gestellt|eingereicht/, 'beantragt'], [/geplant|angedacht|vorgesehen/, 'geplant']];
 const wortSt = (L, v) => (L.find(([re]) => re.test(norm(v))) || [])[1] || '';
 function neuOrt(v) {

@@ -18,7 +18,8 @@ const EINSCH = [['sw', 'sehr wahrscheinlich', 't-e5'], ['w', 'wahrscheinlich', '
 const EINSCH_ALT = { gut: 'w', unsicher: 'u', schwierig: 'uw' };
 // Verwendungsnachweis (Sach- und Finanzbericht in einem Abwasch)
 const VN_ST = [['offen', 'steht aus'], ['erledigt', 'erledigt', 't-ok']];   // ab 0.70 ohne „in Arbeit“
-const FEST_UL = ['Angebot', 'Interview', 'Konzept', 'Projektsteckbrief'];        // feste Unterlagen in dieser Reihenfolge (Interview: Gespräch mit den Leuten vor Ort, ab 0.54)
+const FEST_UL = ['Interview', 'Angebot', 'Konzept'];   // ab 0.161: die drei Schritte der Koordination (eigene Spalte); der Projektsteckbrief ist keine feste Unterlage mehr
+const KO_UL = FEST_UL;        // feste Unterlagen in dieser Reihenfolge (Interview: Gespräch mit den Leuten vor Ort, ab 0.54)
 
 function emptyData() { return { meta: { savedAt: null, rev: 0 }, settings: { kartei: '' }, bedarfe: [] }; }
 function blank() {
@@ -111,7 +112,8 @@ function normalize(d) {
     n.zust = (Array.isArray(b.zust) ? b.zust : []).map(z => typeof z === 'string' ? Object.assign(leerZ(), { n: z.trim() })
       : isObj(z) ? Object.assign({ n: String(z.n ?? ''), rolle: String(z.rolle ?? ''), mail: String(z.mail ?? ''), tel: String(z.tel ?? ''), mobil: String(z.mobil ?? '') }, z.pxl ? { pxl: String(z.pxl) } : {}) : null).filter(z => z && !kontaktLeer(z));   // pxl: zuletzt aus dieser Fassung der Personen-Excel ergänzt
     n.unterlagen = (Array.isArray(b.unterlagen) ? b.unterlagen : []).filter(isObj).map(u => Object.assign(UL('', 'fehlt'), u))
-      .map(u => Object.assign(u, { id: gueltigeId(u.id, 'u'), name: String(u.name ?? ''), st: UL_STAENDE.includes(u.st) && (u.st !== 'nn' || (u.fest && u.name === 'Angebot')) ? u.st : 'fehlt' }));
+      .map(u => Object.assign(u, { id: gueltigeId(u.id, 'u'), name: String(u.name ?? ''), st: UL_STAENDE.includes(u.st) && (u.st !== 'nn' || (u.fest && u.name === 'Angebot')) ? u.st : 'fehlt' }))
+      .filter(u => !(u.fest && u.name === 'Projektsteckbrief' && u.st === 'fehlt')).map(u => u.fest && !FEST_UL.includes(u.name) ? Object.assign(u, { fest: false }) : u);   // ab 0.161: unberührter Projektsteckbrief fällt weg, sonst bleibt er als eigene Unterlage
     // ab 0.2 ist das Angebot eine Unterlage (vorher Teil der Freigabe); die drei festen Unterlagen gibt es immer
     const alt = isObj(b.freigabe) && isObj(b.freigabe.angebot) ? b.freigabe.angebot.st : null;
     FEST_UL.forEach((name, i) => {
@@ -185,7 +187,10 @@ function frOffen(b) {
   const open = frItems(b).filter(i => frNeeded(i) && i.st !== 'ok');                // das Angebot ist seit 0.52 eine Unterlage, kein Teil der Freigabe
   return { names: open.map(frName), rej: open.filter(i => i.st === 'nein') };
 }
-const ulOpts = u => u.fest && u.name === 'Interview' ? [['fehlt', 'offen'], ['arbeit', 'vereinbart', 't-warn'], ['da', 'geführt', 't-ok']] : u.fest && u.name === 'Angebot' ? [['fehlt', 'fehlt'], ['arbeit', 'angefragt', 't-warn'], ['da', 'liegt vor', 't-ok'], ['nn', 'nicht nötig']] : [['fehlt', 'fehlt'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'vorhanden', 't-ok']];
+const ulOpts = u => u.fest && u.name === 'Interview' ? [['fehlt', 'offen'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'geführt', 't-ok']] : u.fest && u.name === 'Angebot' ? [['fehlt', 'offen'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'liegt vor', 't-ok'], ['nn', 'nicht nötig']] : u.fest && u.name === 'Konzept' ? [['fehlt', 'offen'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'liegt vor', 't-ok']] : [['fehlt', 'fehlt'], ['arbeit', 'in Arbeit', 't-warn'], ['da', 'vorhanden', 't-ok']];
+// Koordination (ab 0.161): Interview, Angebot, Konzept – erledigt, wenn alle nötigen vorliegen; in Arbeit, sobald einer angefangen ist
+const koItems = b => KO_UL.map(n => b.unterlagen.find(u => u.fest && u.name === n)).filter(Boolean);
+const koStand = b => { const L = koItems(b).filter(u => u.st !== 'nn'); return !L.length || L.every(u => u.st === 'da') ? 'ok' : L.some(u => u.st !== 'fehlt') ? 'run' : 'off'; };
 const ulText = u => (ulOpts(u).find(o => o[0] === u.st) || [, u.st])[1];
 
 /* ---------- Finanzierung */

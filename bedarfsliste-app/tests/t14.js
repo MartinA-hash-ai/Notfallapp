@@ -52,7 +52,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.click('.modal footer button.primary');
 
   // 2. Zurückstellen mit Begründung
-  await p.click('#list-body tr[data-id="k3"] .l-name', { position: { x: 200, y: 8 } }); await p.waitForTimeout(150);
+  await p.click('#list-body tr[data-id="k3"] .l-name', { position: { x: 4, y: 8 } }); await p.waitForTimeout(150);
   await p.click('button[data-act="more"]'); await p.click('#mmenu button[data-v="zurückgestellt"]'); await p.waitForTimeout(150);
   r = await p.$eval('.modal', e => [e.querySelector('h2').textContent, e.querySelector('.tf-l').textContent, document.activeElement.tagName]);
   ok(r.join('|') === 'Bedarf zurückstellen|Zurückgestellt, weil …|TEXTAREA', 'Zurückstellen fragt nach dem Grund: ' + r.join('|'));
@@ -63,7 +63,7 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(await p.evaluate(() => cur().grundM === 'Budget 2028'), 'Klick auf den Grund ändert ihn');
   await p.evaluate(() => { zurueck(); UI.ansicht = 'kompakt'; renderNow(); });
   r = await p.evaluate(() => { const t = document.querySelector('#list-body tr[data-id="k3"]'); return [t.querySelector('td.k-pause').textContent, t.querySelector('td.k-pause').colSpan, !t.querySelector('.pause-t'), getComputedStyle(t).opacity]; });
-  ok(r.join('|') === 'Zurückgestellt, weil: Budget 2028|4|true|0.4', 'kompakt: ab der Freigabe nur „Zurückgestellt, weil: …“, blasser: ' + r.join('|'));
+  ok(r.join('|') === 'Zurückgestellt, weil: Budget 2028|5|true|0.4', 'kompakt: ab der Freigabe nur „Zurückgestellt, weil: …“, blasser: ' + r.join('|'));
   ok(await ids() === 'k0,k1,k2,k3', 'zurückgestellt (mit Prio) steht ganz unten: ' + await ids());
   await p.evaluate(() => { D.bedarfe.find(x => x.id === 'k1').manuell = 'zurückgestellt'; changed(); renderNow(); });
   ok(await ids() === 'k0,k2,k3,k1', 'unter den zurückgestellten: die mit Prio zuerst: ' + await ids());
@@ -185,7 +185,7 @@ const { chromium, ok, open, finish } = require('./lib');
     'neue Vorlage gespeichert, Rundmail wieder offen mit ihr (gewählt): ' + r.join('|'));
   await p.dblclick('.modal .rm-k:has-text("Unterlagen anfragen")'); await p.waitForTimeout(100);
   r = await p.evaluate(() => new URL(MAILS.pop()).searchParams.get('body'));
-  ok(r.includes('fehlen mir noch:\r\n- Angebot\r\n- Interview'), 'Doppelklick auf die Kachel öffnet gleich die E-Mail, fehlende Unterlagen eingesetzt: ' + r.slice(0, 120).replace(/\r?\n/g, '⏎'));
+  ok(r.includes('fehlen mir noch:\r\n- Interview\r\n- Angebot'), 'Doppelklick auf die Kachel öffnet gleich die E-Mail, fehlende Unterlagen eingesetzt: ' + r.slice(0, 120).replace(/\r?\n/g, '⏎'));
   // gelöschte mitgelieferte Vorlage kommt nicht wieder
   await p.evaluate(() => { vorlagenDialog({ id: 'v-f-zusage' }); }); await p.waitForTimeout(100);
   await p.click('.modal button:text-is("Löschen")'); await p.click('.modal footer button.primary');
