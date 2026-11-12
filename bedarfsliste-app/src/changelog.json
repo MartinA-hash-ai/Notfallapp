@@ -1,5 +1,13 @@
 [
   {
+    "version": "0.162.0",
+    "date": "2026-12-02T14:00",
+    "items": [
+      "Liste: ist das Geld eines Förderers eingegangen, stehen Name und Betrag grün – auch solange der Verwendungsnachweis noch aussteht",
+      "Senkrechte Trennlinie zwischen Verwendungsnachweis und Spendenübergabe; die Punkte der Spendenübergabe liegen genau auf der Linie, auch wenn man die Spalten breiter oder schmaler zieht"
+    ]
+  },
+  {
     "version": "0.161.0",
     "date": "2026-12-02T10:00",
     "items": [

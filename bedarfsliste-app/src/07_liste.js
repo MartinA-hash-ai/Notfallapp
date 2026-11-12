@@ -80,9 +80,10 @@ function lFinanz(b) {
     const pen = `<button class="le-pen" data-le="foe-name" ${a} title="Förderer umbenennen" aria-label="Förderer umbenennen">${ICON_PEN}</button>`;
     const nm = `<span class="fn" data-le="foe" ${a}><span class="fn-t">${esc(f.name || '(ohne Namen)')}</span>${pen}</span><span class="fa" data-le="amt" ${a}>${eur(foeAmt(f))}</span>`;
     const pk = f.status === 'zugesagt' ? uebPunkt(b, f) : '';
-    if (!F.done) R.push(`<div class="fr${ab}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false, pk) : EMPTY3}</div>`);
+    const gd = f.status === 'zugesagt' && geldDa(f) ? ' geld' : '';                      // ab 0.162: Geld eingegangen → grün (auch solange der Nachweis noch aussteht)
+    if (!F.done) R.push(`<div class="fr${ab}${gd}" title="${t}">${sym(F_SYM[f.status])}${nm}${f.status === 'zugesagt' ? lNachweis(f, false, pk) : EMPTY3}</div>`);
     else if (f.status !== 'zugesagt') R.push(`<div class="fr x${ab}" title="${t}">${sym('dot')}${nm}${EMPTY3}</div>`);
-    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig, pk)}</div>`); }
+    else { const fertig = !f.vn.noetig || f.vn.st === 'erledigt'; R.push(`<div class="fr ${fertig ? 'z' : 'strong'}${gd}" title="${t}">${sym('dot')}${nm}${lNachweis(f, fertig, pk)}</div>`); }
   }
   R.push('<div class="fline"></div>');
   if (F.d) R.push(`<div class="fr sum"><span></span><span class="fn">${F.d > 0 ? 'Delta' : 'Überfinanzierung'}</span><span class="fa">${eur(Math.abs(F.d))}</span>${EMPTY3}</div><div class="fline"></div>`);

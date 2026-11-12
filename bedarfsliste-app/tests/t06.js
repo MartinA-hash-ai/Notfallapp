@@ -14,16 +14,16 @@ const { chromium, ok, open, finish, fs, T } = require('./lib');
       sym: [...tr.querySelectorAll('.l-fin .fr > .mi:first-child')].map(m => m.className.replace('mi m-', '')).join(), leads: tr.querySelectorAll('.l-fin .lead').length, ueb: t(tr.querySelector('.l-ueb')) }; }, id);
   r = await L('b-mtw');
   ok(r.name === 'Mannschaftstransportwagen (MTW) für den Sanitätsdienst' && r.sum === '68.000 €' && r.meta === 'Paderborn Thomas Beispiel bis 30.06.2027' && r.frDone && r.fr === 'ok', 'Kerninfo: Name mit (Prio), Summe, Ort · Zuständig · bis; Freigabe vollständig: nur ein Haken „freigegeben“ (das Angebot steht nicht in der Liste): ' + JSON.stringify(r));
-  ok(r.sym === 'ok,off,run' && r.leads === 1 && r.fin === ':Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Beispiel-Soziallotterie 30.000 € | :Bürgerstiftung Musterstadt 15.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
+  ok(r.sym === 'ok,off,run' && r.leads === 1 && r.fin === 'geld:Sparkasse Musterstadt 10.000 € bis 30.09.2027 | :Beispiel-Soziallotterie 30.000 € | :Bürgerstiftung Musterstadt 15.000 € | sum:Eigenmittel 13.000 €' && r.ueb === 'Wache Paderborn',
     'Finanzierung läuft: Zusage oben, dann nach Einschätzung; Kreise nach Stand, nur die Zusage führt gepunktet zum Nachweis, ohne Delta; Übergabe zeigt nur den Ort: ' + r.fin);
   r = await L('b-aed');
   ok(!r.frDone && r.fr === 'ok,off,run' && r.fin.includes('sum:Delta 2.400 €') && r.sym === 'off', 'AED: Freigabe offen (Kreise), Delta 2.400 €: ' + r.fr + ' / ' + r.fin);
   ok((await L('b-rucksack')).fr === 'ok,no,off', 'Rucksäcke: Verwaltung abgelehnt als roter Kreis');
   r = await L('b-waerme');
-  ok(r.fin === 'strong:Beispiel-Soziallotterie 12.000 € bis 30.04.2027 | x:Stadtwerke Hagen (Beispiel) 1.500 € | x ab:Volksbank Beispielland eG 2.000 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.ueb === 'erledigt am 05.10.2026 Hauptbahnhof Hagen',
+  ok(r.fin === 'strong geld:Beispiel-Soziallotterie 12.000 € bis 30.04.2027 | x:Stadtwerke Hagen (Beispiel) 1.500 € | x ab:Volksbank Beispielland eG 2.000 € | sum:Eigenmittel 2.000 €' && r.leads === 1 && r.ueb === 'erledigt am 05.10.2026 Hauptbahnhof Hagen',
     'Finanzierung steht: Zusage kräftig mit Nachweis, Absage und nie Angegangene blass, kein Delta: ' + r.fin);
   r = await L('b-kueche');
-  ok(r.fin === 'z:Bürgerstiftung Musterstadt 5.000 € erledigt | z:Sparkasse Musterstadt 3.000 € | sum:Überfinanzierung 500 € | sum:Eigenmittel 2.000 €' && r.leads === 2 && r.meta.endsWith('ohne Deadline')
+  ok(r.fin === 'z geld:Bürgerstiftung Musterstadt 5.000 € erledigt | z geld:Sparkasse Musterstadt 3.000 € | sum:Überfinanzierung 500 € | sum:Eigenmittel 2.000 €' && r.leads === 2 && r.meta.endsWith('ohne Deadline')
     && await p.evaluate(() => document.querySelectorAll('tr[data-id="b-kueche"] .l-fin .mi[data-le="vn"]').length === 1 && !!document.querySelector('tr[data-id="b-kueche"] .l-fin .mi.m-weg:not([data-le])') && getComputedStyle(document.querySelector('tr[data-id="b-kueche"] .l-fin .lead.weg')).borderBottomColor === 'rgba(0, 0, 0, 0)')
     && r.ueb.startsWith('Spendenübergabe einleiten Küche wird erst Ende November eingebaut'), 'Küche: erledigte Nachweise blass grün, „nicht nötig“ ohne Kreis, Text und Linie (0.152), Überfinanzierung, Dreieck mit Info: ' + r.fin + ' / ' + r.ueb);
   r = await L('b-klausur');

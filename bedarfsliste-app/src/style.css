@@ -1458,7 +1458,7 @@ table.k-tab tbody tr:hover > .k-haupt { background: var(--chipbg); }
 @media (max-width: 560px) { .mw-neu { grid-template-columns: 1fr; } }
 /* 0.80: Spendenübergabe in der Liste – Punkt je Förderer links in der Spalte (grau: soll dabei sein, grün: kommt), gepunktet hingeführt, wenn eingeladen */
 .vt.mit-ue { display: flex; align-items: center; gap: 4px; overflow: visible; }
-.ue-weg { flex: 1 1 auto; position: relative; min-width: 14px; height: 0; margin-right: -21px; align-self: center; }
+.ue-weg { flex: 1 1 auto; position: relative; min-width: 14px; height: 0; margin-right: -12px; align-self: center; }   /* ab 0.162: endet genau am Zellenrand – der Punkt sitzt auf der Trennlinie */
 .ue-weg.an { border-bottom: 2px dotted var(--line2); }
 .ue-weg.an.ok { border-color: var(--f-zu); }
 .ue-pkt { position: absolute; right: -5px; top: -4px; width: 9px; height: 9px; border-radius: 50%; background: var(--ghost); }
@@ -2765,3 +2765,10 @@ table.list tbody tr.fertig-z:hover, table.list tbody tr.fertig-z:focus { opacity
 table.list td.k-ko { white-space: nowrap; }
 .pe-lkop { display: grid; gap: 6px; padding: 6px 12px 10px; max-width: 320px; }
 .pe-lkop .pe-kopie { justify-self: start; }
+
+/* 0.162: eingegangenes Geld grün; Trennlinie zwischen Verwendungsnachweis und Spendenübergabe, die Punkte liegen genau darauf (auch beim Ziehen der Spalten) */
+.fr.geld:not(.z) .fn, .fr.geld:not(.z) .fa { color: var(--e5ink); }
+.fr.geld:not(.z) .mi.m-dot { background: var(--e5ink); }
+table.list :is(td, th).l-ueb { position: relative; }
+table.list :is(td, th).l-ueb::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: var(--line3); pointer-events: none; }
+td.l-ueb.mit-pkt { padding-left: 20px; }

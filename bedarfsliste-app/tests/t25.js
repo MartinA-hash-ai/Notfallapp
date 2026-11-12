@@ -38,5 +38,12 @@ const { chromium, ok, open, finish, T } = require('./lib');
   r = await p.evaluate(() => { const e = D.fl.liste[0]; e.bew = { chance: 0, dauer: 0, summe: 0 }; UI.view = 'fdetail'; UI.flId = e.id; renderNow(); fnSetzen('haeufig', 3); fnSetzen('aufwand', 1); return [e.bew.haeufig, e.bew.aufwand, flBew(e)['haeufig'].v]; });
   ok(r.join() === '3,1,3', 'Netz: Häufigkeit und Aufwand lassen sich auch ohne vorhandenen Wert setzen: ' + r.join());
   ok(await p.evaluate(() => Object.keys(flLeer().bew).length === 5), 'neuer Förderer hat alle fünf Achsen');
+  // 0.162: Geld eingegangen → grün; Trennlinie zur Spendenübergabe, Punkte genau darauf
+  r = await p.evaluate(() => { UI.view = 'list'; UI.ansicht = 'voll'; const B = D.bedarfe.find(x => x.id === 'b-kueche'), u = B.nach.ueb; u.noetig = true; u.mit = B.foerderer.map(f => f.id); u.einl = {}; B.foerderer.forEach(f => u.einl[f.id] = { am: '2026-11-01', zu: 'ja' });
+    const M = D.bedarfe.find(x => x.id === 'b-mtw'), f = M.foerderer.find(x => x.status === 'zugesagt'); f.eingegangen = 10000; f.eingangAm = '2026-10-02'; renderNow();
+    const g = document.querySelector('tr[data-id="b-mtw"] .fr.geld .fn'), tr = document.querySelector('tr[data-id="b-kueche"]'), td = tr.querySelector('td.l-ueb'), L = td.getBoundingClientRect().left;
+    return [!!g && getComputedStyle(g).color === getComputedStyle(document.documentElement).getPropertyValue('--e5ink').trim().replace(/^#(..)(..)(..)$/, (m, a, b, c) => `rgb(${parseInt(a, 16)}, ${parseInt(b, 16)}, ${parseInt(c, 16)})`),
+      getComputedStyle(td, '::before').width, [...tr.querySelectorAll('.ue-pkt')].map(x => { const q = x.getBoundingClientRect(); return Math.abs(q.left + q.width / 2 - L - .5) < .6; })]; });
+  ok(r[0] && r[1] === '1px' && r[2].length === 2 && r[2].every(Boolean), 'eingegangen grün; Trennlinie vor der Spendenübergabe, Punkte mittig darauf: ' + JSON.stringify(r));
   await finish(b, [p]);
 })();
