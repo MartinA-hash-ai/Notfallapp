@@ -185,7 +185,7 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   await p.evaluate(() => setTheme('light'));
 
   // ---------- Outlook-Export (0.54: immer eine Datei – Start der Maßnahmen mit 5 Werktagen Puffer)
-  await p.evaluate(() => { UI.icsOpts = { fut: false }; });
+  await p.evaluate(() => { UI.icsOpts = { fut: false, alarm: { on: false } }; });
   await p.click('header button:has-text("Export")'); await p.click('.menu button:has-text("Outlook")'); await p.waitForTimeout(150);
   await p.click('.modal .ics-an button:has-text("alle")'); await p.waitForTimeout(100);
   const cnt = await p.evaluate(() => document.querySelector('.modal .ics-count').textContent);

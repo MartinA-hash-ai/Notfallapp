@@ -123,6 +123,14 @@ function anchorText(p, s) {
   return a.art === 'fest' ? 'hat ein festes Datum' : 'hat kein festes Ende';
 }
 const dependents = (p, s) => p.steps.filter(q => predsOf(q).includes(s.id));      // Schritte, die nach s beginnen
+// Dauer ändern: Ende festhalten, wenn am Ende andere Schritte hängen (oder s selbst mit dem Ende an einem anderen Schritt hängt), der Beginn aber frei ist
+function durKeepsEnd(p, s) {
+  const a = s.anker || { art: 'offen' };
+  if (a.art === 'nach' && predsOf(s).length) return false;                       // Beginn hängt an Vorgängern
+  if (p.steps.some(q => q.anker && q.anker.art === 'start' && q.anker.ref === s.id)) return false;   // ein anderer Schritt hängt an seinem Beginn
+  return dependents(p, s).length > 0 || ((a.art === 'start' || a.art === 'ende') && !!a.ref)
+    || p.steps.some(q => q.anker && q.anker.art === 'ende' && q.anker.ref === s.id);
+}
 // keepDur: verschieben – die Dauer (Werktage) bleibt, der Beginn rückt auf einen Werktag
 function setStepSpan(m, sid, ns, ne, keepDur) {
   const s = m.plan.steps.find(q => q.id === sid);
@@ -661,8 +669,12 @@ function planEditor(main, x) {
             : r.away ? h('span', { class: 'wi vacx', tip: 'Wegen Urlaub/Abwesenheit von ' + s.wer + ' (' + vacTxt + ') um ' + r.away + (r.away === 1 ? ' Werktag' : ' Werktage') + ' verlängert' }, '+' + r.away) : null),
         h('div', { class: 'c-kom' }, h('input', { value: s.kommentar || '', title: s.kommentar || '', placeholder: '–', 'data-fk': fk('kom'), onchange: e => setStep(m.id, s.id, st => { st.kommentar = e.target.value; }) })),
         h('div', { class: 'c-dur' + (s.fix ? ' fix' : '') }, isTask ? h('span', { class: 'wtbox' }, h('input', { type: 'number', class: 'nospin', min: 0, max: MAX_DAUER, value: s.dauer ?? 0, onwheel: wheelStep, 'data-fk': fk('dur'), tip: 'Dauer in Werktagen (Mo–Fr ohne Feiertage und freie Tage)', onchange: e => { const v = Math.round(+e.target.value || 0); if (v > MAX_DAUER) toast('Höchstens ' + MAX_DAUER + ' Werktage – auf ' + MAX_DAUER + ' gesetzt.', 'warn');
-          const nv = clamp(v, 0, MAX_DAUER);                       // Beginn bleibt, das Ende wandert (und was danach beginnt)
-          if (r.start != null && !r.err) commit(d => { const mm = findM(d, m.id); setStepSpan(mm, s.id, r.start, endFrom(mm, r.start, nv, s)); }); else setStep(m.id, s.id, st => { st.dauer = nv; }); } }), h('span', { class: 'unit' }, 'WT')) : null, isTask && s.fix ? h('span', { class: 'fixlock', tip: 'Feste Dauer – bleibt beim anteiligen Anpassen unverändert (⋯ → „Dauer freigeben“)', 'aria-label': 'feste Dauer' }) : null),
+          const nv = clamp(v, 0, MAX_DAUER);
+          // zur freien Seite hin (0.54.1): hängt der Beginn an einem anderen Schritt (oder gar nichts am Ende), bleibt er und das Ende wandert;
+          // hängen nur am Ende andere Schritte (z. B. Kick-off, nach dem alles beginnt), bleibt das Ende und der Beginn rückt nach vorn
+          const keepEnd = durKeepsEnd(p, s);
+          if (r.start != null && r.end != null && !r.err) commit(d => { const mm = findM(d, m.id); if (keepEnd) setStepSpan(mm, s.id, startFrom(mm, r.end, nv, s), r.end); else setStepSpan(mm, s.id, r.start, endFrom(mm, r.start, nv, s)); });
+          else setStep(m.id, s.id, st => { st.dauer = nv; }); } }), h('span', { class: 'unit' }, 'WT')) : null, isTask && s.fix ? h('span', { class: 'fixlock', tip: 'Feste Dauer – bleibt beim anteiligen Anpassen unverändert (⋯ → „Dauer freigeben“)', 'aria-label': 'feste Dauer' }) : null),
         h('div', { class: 'c-date' + (r.err ? ' err' : ''), tip: r.err || null }, r.err ? '⚠ ' + r.err : startInp),
         h('div', { class: 'c-date' }, r.err ? '' : endInp)],
       h('div', { class: 'c-acts' }, menuButton('⋯', [['Neue Aufgabe darunter', () => addStep(m.id, curGroupOf(p.steps, row.idx), s.id)],

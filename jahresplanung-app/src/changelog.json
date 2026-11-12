@@ -1,7 +1,18 @@
 [
   {
-    "version": "0.54",
+    "version": "0.54.1",
     "date": "",
+    "items": [
+      "Outlook-Export: Hinweis (Erinnerung) in Outlook – Schalter mit Glocke oben rechts, Uhrzeit wählbar (Standard 09:00). Jeder Termin wird dann ein kurzer Termin (15 Minuten, als „frei“ eingetragen) an genau einem Tag mit Erinnerung zu Beginn – bei Ganztagesterminen übernimmt Outlook Erinnerungen nicht zuverlässig. Ohne Hinweis: Ganztagestermine wie bisher",
+      "Outlook-Export: immer nur einzelne Tage – auch bei Aufgaben steht in der Liste nur noch der Tag, der in Outlook landet (die Zeitspanne steht im Tooltip und in der Beschreibung des Termins)",
+      "Outlook-Export: „Start der Maßnahme“ und „Start der Abschnitte“ bleiben nebeneinander, auch wenn beide an sind; mehr Abstand zwischen den Zeilen; Fenster etwas breiter",
+      "Outlook-Export: Knopf „Schlagworte“ neben „Verantwortlich“ – Maßnahmen nach Schlagworten (auch „ohne Schlagwort“) filtern",
+      "Detailplan: Dauer ändern zur freien Seite hin – hängen am Ende andere Schritte (z. B. ein Kick-off, nach dem alles beginnt) und ist der Beginn frei, bleibt das Ende und der Beginn rückt nach vorn. Hängt der Beginn an einem Vorgänger oder hängt nichts dran, bleibt wie bisher der Beginn und das Ende wandert"
+    ]
+  },
+  {
+    "version": "0.54",
+    "date": "2026-11-12T15:13",
     "items": [
       "Outlook-Export neu und schlanker: zwei Reiter „Maßnahmen“ und „Aufgaben“, immer genau eine Kalenderdatei; die Optionen für Zeitraum, Terminarten und mehrere Dateien sind weg",
       "Maßnahmen: auswählen per Häkchen, mit Suche, Filter „Verantwortlich“ und „ab heute“ (vergangene Termine ausblenden); „alle“/„keine“ wirken auf die gerade sichtbaren",

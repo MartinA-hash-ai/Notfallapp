@@ -50,12 +50,16 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(dd === 'Thema definieren' && bi1[0] === th[1] && bi1[1] - bi1[0] === bi0[1] - bi0[0], 'D: „Bilder einholen“ beginnt jetzt am Ende von „Thema definieren“ (Dauer bleibt)');
   ok(await p.evaluate(() => { const st = C.byId.get(UI.planSel).m.plan.steps; return dependents(C.byId.get(UI.planSel).m.plan, st.find(s => s.name === 'Thema definieren')).length === 2; }), 'D: ein Ende mit zwei Anfängen (Texte und Bilder)');
 
-  // ---- E: Dauer ändern – Beginn bleibt, alles danach wandert mit
-  const sel = '[data-fk="st:' + await id('Thema definieren') + ':dur"]', te0 = await span('Texte erstellen'), ge0 = await span('Gestaltung');
-  await p.fill(sel, '4'); await p.press(sel, 'Enter'); await p.waitForTimeout(250);
-  const th2 = await span('Thema definieren'), te1 = await span('Texte erstellen'), bi2 = await span('Bilder einholen'), ge1 = await span('Gestaltung');
-  const e4 = await p.evaluate(a => { const e = addWT(a, 4); return [e, nextWorkday(e)]; }, th[0]);
-  ok(th2[0] === th[0] && th2[1] === e4[0] && te1[0] === e4[1] && bi2[0] === e4[1] && ge1[0] > ge0[0], 'E: „Thema definieren“ 1 → 4 Werktage: Beginn bleibt, Texte und Bilder beginnen danach, Gestaltung … wandert mit');
+  // ---- E: Dauer ändern (0.54.1 zur freien Seite hin): am Ende von „Thema definieren“ hängen Texte und Bilder, der Beginn ist frei → Ende bleibt, Beginn rückt vor;
+  //      „Texte erstellen“ beginnt nach „Thema definieren“ → Beginn bleibt, alles danach wandert mit
+  const sel0 = '[data-fk="st:' + await id('Thema definieren') + ':dur"]', te0 = await span('Texte erstellen'), bi0b = await span('Bilder einholen'), ge0 = await span('Gestaltung');
+  await p.fill(sel0, '4'); await p.press(sel0, 'Enter'); await p.waitForTimeout(250);
+  const th2 = await span('Thema definieren'), te1 = await span('Texte erstellen'), bi2 = await span('Bilder einholen'), s4 = await p.evaluate(e => subWT(e, 4), th[1]);
+  ok(th2[1] === th[1] && th2[0] === s4 && te1.join() === te0.join() && bi2.join() === bi0b.join(), 'E: „Thema definieren“ 1 → 4 Werktage: Ende bleibt, Beginn rückt vor – Texte und Bilder bleiben');
+  const sel = '[data-fk="st:' + await id('Texte erstellen') + ':dur"]';
+  await p.fill(sel, '8'); await p.press(sel, 'Enter'); await p.waitForTimeout(250);
+  const te2 = await span('Texte erstellen'), ge1 = await span('Gestaltung'), e8 = await p.evaluate(a => addWT(a, 8), te0[0]);
+  ok(te2[0] === te0[0] && te2[1] === e8 && ge1[0] > ge0[0], 'E: „Texte erstellen“ 5 → 8 Werktage: Beginn bleibt (hängt an „Thema definieren“), Gestaltung … wandert mit');
 
   // ---- F: über den PAL hinaus → Warnung, „Alles vor den PAL rücken“ (PAL und Dauern bleiben)
   await p.fill(sel, '24'); await p.press(sel, 'Enter'); await p.waitForTimeout(250);

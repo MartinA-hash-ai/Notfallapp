@@ -45,12 +45,22 @@ function icsFold(line) {
   return out.join('\r\n ');
 }
 const icsDate = n => ds(n).replace(/-/g, '');
-function icsEvent(uidv, a, b, summary, desc) {
+// at: Uhrzeit „HH:MM“ – dann ein kurzer Termin (15 Minuten, „frei“) mit Erinnerung zu Beginn statt eines Ganztagestermins
+// (bei Ganztagesterminen übernimmt Outlook die Erinnerung nicht zuverlässig)
+function icsEvent(uidv, a, b, summary, desc, at) {
   const stamp = new Date().toISOString().replace(/[-:]/g, '').replace(/\.\d+/, '');
-  return ['BEGIN:VEVENT', 'UID:' + uidv + '@jahresplanung.local', 'DTSTAMP:' + stamp, 'DTSTART;VALUE=DATE:' + icsDate(a), 'DTEND;VALUE=DATE:' + icsDate(b + 1),
+  let when = ['DTSTART;VALUE=DATE:' + icsDate(a), 'DTEND;VALUE=DATE:' + icsDate(b + 1)], alarm = [];
+  if (at) {
+    const [hh, mm] = at.split(':').map(Number), t0 = hh * 60 + mm, t1 = Math.min(t0 + 15, 23 * 60 + 59), tm = t => p2(Math.floor(t / 60)) + p2(t % 60) + '00';
+    when = ['DTSTART;TZID=Europe/Berlin:' + icsDate(a) + 'T' + tm(t0), 'DTEND;TZID=Europe/Berlin:' + icsDate(a) + 'T' + tm(t1)];
+    alarm = ['BEGIN:VALARM', 'ACTION:DISPLAY', 'DESCRIPTION:' + icsEsc(summary), 'TRIGGER:-PT0M', 'END:VALARM'];
+  }
+  return ['BEGIN:VEVENT', 'UID:' + uidv + '@jahresplanung.local', 'DTSTAMP:' + stamp, ...when,
     'SUMMARY:' + icsEsc(summary), desc ? 'DESCRIPTION:' + icsEsc(desc) : null, 'CATEGORIES:Jahresplanung', 'TRANSP:TRANSPARENT',
-    'X-MICROSOFT-CDO-BUSYSTATUS:FREE', 'END:VEVENT'].filter(Boolean);
+    'X-MICROSOFT-CDO-BUSYSTATUS:FREE', ...alarm, 'END:VEVENT'].filter(Boolean);
 }
+const ICS_TZ = ['BEGIN:VTIMEZONE', 'TZID:Europe/Berlin', 'BEGIN:DAYLIGHT', 'TZOFFSETFROM:+0100', 'TZOFFSETTO:+0200', 'TZNAME:CEST', 'DTSTART:19700329T020000', 'RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=-1SU', 'END:DAYLIGHT',
+  'BEGIN:STANDARD', 'TZOFFSETFROM:+0200', 'TZOFFSETTO:+0100', 'TZNAME:CET', 'DTSTART:19701025T030000', 'RRULE:FREQ=YEARLY;BYMONTH=10;BYDAY=-1SU', 'END:STANDARD', 'END:VTIMEZONE'];
 /* Termine für Outlook (0.54): je Maßnahme der Start (frühester Termin) und die Starts der Abschnitte – jeweils mit Puffer in Werktagen –
    sowie die Aufgaben einer Person aus den Detailplänen; immer eine Datei, alles ganztägig */
 const wtBack = (n, w) => n == null || !(w > 0) ? n : dateForWT(n, w);              // w Werktage vorher
@@ -114,9 +124,9 @@ function icsCollect(o, list) {
   }
   return out.filter(keep).map(e => Object.assign(e, { b: e.a })).sort((p, q) => p.a - q.a);
 }
-function icsFile(name, items) {
-  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Jahresplanung Aussenkommunikation//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:' + icsEsc(name)];
-  items.forEach(e => L.push(...icsEvent(e.uid, e.a, e.b, e.summary, e.desc)));
+function icsFile(name, items, at) {
+  const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Jahresplanung Aussenkommunikation//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:' + icsEsc(name), ...(at ? ICS_TZ : [])];
+  items.forEach(e => L.push(...icsEvent(e.uid, e.a, e.b, e.summary, e.desc, at)));
   L.push('END:VCALENDAR');
   return L.map(icsFold).join('\r\n') + '\r\n';
 }
@@ -130,10 +140,12 @@ async function exportICS() {
     tab: last.tab === 'tasks' ? 'tasks' : 'ms', q: '', resp: '', fut: last.fut !== false,
     start: { on: last.start ? last.start.on !== false : true, buf: num(last.start && last.start.buf, 5) },
     ab: { on: !!(last.ab && last.ab.on), buf: num(last.ab && last.ab.buf, 2) }, tbuf: num(last.tbuf, 0),
-    ms: new Set(arr(last.ms).filter(id => ids.has(id))), off: new Set(arr(last.off)), tk: new Set(arr(last.tk)),
+    ms: new Set(arr(last.ms).filter(id => ids.has(id))), off: new Set(arr(last.off)), tk: new Set(arr(last.tk)), tags: new Set(),
+    alarm: { on: !last.alarm || last.alarm.on !== false, t: /^\d\d:\d\d$/.test(last.alarm && last.alarm.t) ? last.alarm.t : '09:00' },
     person: persons.includes(last.person) ? last.person : persons.includes(UI.userName) ? UI.userName : '' };
   const lastDate = x => Math.max(...[x.pal, ...Object.values(x.st), ...(x.pc ? [...x.pc.map.values()].map(r => r.end) : [])].filter(n => n != null));
-  const visible = () => list.filter(x => (!o.fut || lastDate(x) >= today) && (!o.resp || respOf(x) === o.resp)
+  const tagHit = x => !o.tags.size || ((x.m.tags || []).length ? x.m.tags.some(t => o.tags.has(t)) : o.tags.has(''));   // Schlagworte: eins davon gewählt ('' = ohne)
+  const visible = () => list.filter(x => (!o.fut || lastDate(x) >= today) && (!o.resp || respOf(x) === o.resp) && tagHit(x)
     && (!o.q || (x.m.name || '').toLowerCase().includes(o.q.toLowerCase())));
   const wrap = h('div', { class: 'icsx' }), body = h('div', { class: 'icsbody' }), count = h('div', { class: 'ics-count' });
   // kleine Bausteine
@@ -150,6 +162,24 @@ async function exportICS() {
   const futPill = () => h('button', { class: 'pill ics-fut' + (o.fut ? ' on' : ''), 'aria-pressed': String(o.fut), tip: 'vergangene Termine ausblenden', onclick: () => { o.fut = !o.fut; draw(); } }, 'ab heute');
   const tab = (k, ic, label) => h('button', { class: 'seg-btn' + (o.tab === k ? ' on' : ''), dataset: { tab: k }, 'aria-pressed': String(o.tab === k), onclick: () => { o.tab = k; draw(); } }, icon(ic), label);
   const dateTxt = n => n == null ? '–' : fmtWS(n);
+  // Schlagwort-Filter: Knopf mit Auswahlliste
+  const tagsOf = () => { const s = new Set(); list.forEach(x => (x.m.tags || []).forEach(t => s.add(t))); return [...s].sort((a, b) => a.localeCompare(b, 'de')); };
+  const tagBtn = () => {
+    const tags = tagsOf(), noTag = list.some(x => !(x.m.tags || []).length);
+    if (!tags.length) return null;
+    const box = h('div', { class: 'ics-tagpop' });
+    const fill = () => {
+      const item = (k, label) => h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: o.tags.has(k), onchange: e => { e.target.checked ? o.tags.add(k) : o.tags.delete(k); draw(); fill(); } }), label);
+      setKids(box, tags.map(t => item(t, h('span', { class: 'tagchip' }, t))), noTag ? item('', h('span', { class: 'muted' }, 'ohne Schlagwort')) : null,
+        o.tags.size ? h('button', { class: 'link small', onclick: () => { o.tags.clear(); closeMenu(); draw(); } }, 'alle zeigen') : null);
+    };
+    const n = o.tags.size, btn = h('button', { class: 'ics-tagbtn' + (n ? ' on' : ''), 'aria-label': 'nach Schlagworten filtern', onclick: e => { e.stopPropagation(); fill(); popover(btn, box); } },
+      icon('tag'), 'Schlagworte' + (n ? ' (' + n + ')' : ''), ' ▾');
+    return btn;
+  };
+  const alarmCtl = () => h('span', { class: 'ics-alarm' + (o.alarm.on ? ' on' : ''), tip: o.alarm.on ? 'Termine mit Hinweis (Erinnerung) in Outlook – als kurzer Termin um diese Uhrzeit, als „frei“ eingetragen' : 'ohne Hinweis – Ganztagestermine' },
+    sw(o.alarm.on, 'Hinweis in Outlook', () => { o.alarm.on = !o.alarm.on; draw(); }), icon('bell'),
+    o.alarm.on ? h('input', { type: 'time', class: 'ics-time', value: o.alarm.t, step: 300, 'aria-label': 'Uhrzeit des Hinweises', onchange: e => { if (/^\d\d:\d\d$/.test(e.target.value)) o.alarm.t = e.target.value; draw(); } }) : h('span', { class: 'muted small' }, 'ganztägig'));
   const msView = items => {
     const opt = (k, ic, label) => h('div', { class: 'ics-opt' + (o[k].on ? ' on' : ''), dataset: { opt: k } },
       sw(o[k].on, label, () => { o[k].on = !o[k].on; draw(); }), icon(ic), h('b', null, label), o[k].on ? stepper(o[k].buf, v => { o[k].buf = v; }, label) : null);
@@ -165,7 +195,7 @@ async function exportICS() {
         h('input', { type: 'search', class: 'ics-q', placeholder: 'Suchen …', value: o.q, 'aria-label': 'Maßnahmen suchen', oninput: e => { o.q = e.target.value; drawList(); } }),
         h('select', { class: 'ics-resp', 'aria-label': 'Verantwortlich', onchange: e => { o.resp = e.target.value; draw(); } }, h('option', { value: '' }, 'alle Verantwortlichen'),
           allResp().map(n => h('option', { value: n, selected: o.resp === n }, n))),
-        h('span', { class: 'sp' }), allNone(o.ms, () => visible().map(x => x.id))),
+        tagBtn(), h('span', { class: 'sp' }), allNone(o.ms, () => visible().map(x => x.id))),
       h('div', { class: 'icsprev' }, vis.length ? vis.map(x => {
         const on = o.ms.has(x.id), first = icsFirst(x);
         return h('div', { class: 'icsm' + (on ? ' on' : ''), dataset: { m: x.id } },
@@ -188,7 +218,7 @@ async function exportICS() {
         : all.length ? all.map(t => {
           const on = o.tk.has(t.key);
           return h('label', { class: 'icst' + (on ? ' on' : ''), dataset: { key: t.key } }, h('input', { type: 'checkbox', checked: on, onchange: e => { e.target.checked ? o.tk.add(t.key) : o.tk.delete(t.key); draw(); } }),
-            h('span', { class: 'd' }, t.pt || t.b === t.a ? fmtWS(t.a) : fmtWS(t.a) + ' – ' + fmtS(t.b)), h('span', { class: 'ty' }, t.pt ? '◆' : ''),
+            h('span', { class: 'd', tip: t.pt || t.b === t.a ? fmtW(t.a) : fmtW(t.a) + ' – ' + fmtW(t.b) }, fmtWS(wtBack(t.a, o.tbuf))), h('span', { class: 'ty' }, t.pt ? '◆' : ''),
             h('span', { class: 'nm' }, t.s.name || 'Aufgabe'), h('span', { class: 'ms' }, h('span', { class: 'dot', style: { background: t.x.color } }), t.x.m.name || ''));
         }) : h('div', { class: 'muted ics-empty' }, 'keine Aufgaben für ' + o.person))];
   };
@@ -196,7 +226,7 @@ async function exportICS() {
   const draw = () => {
     const items = icsCollect(o, list), nMs = items.filter(e => e.kind !== 'task').length, nT = items.length - nMs;
     setKids(wrap,
-      h('div', { class: 'ics-top' }, h('span', { class: 'segs ics-tabs' }, tab('ms', 'flag', 'Maßnahmen'), tab('tasks', 'user', 'Aufgaben')), h('span', { class: 'sp' }), futPill()),
+      h('div', { class: 'ics-top' }, h('span', { class: 'segs ics-tabs' }, tab('ms', 'flag', 'Maßnahmen'), tab('tasks', 'user', 'Aufgaben')), h('span', { class: 'sp' }), alarmCtl(), futPill()),
       body);
     setKids(body, o.tab === 'ms' ? msView(items) : taskView());
     setKids(count, icon('calendar'), h('b', null, String(items.length)), items.length === 1 ? ' Termin' : ' Termine',
@@ -206,12 +236,12 @@ async function exportICS() {
   };
   draw();
   const ok = await modal('Termine für Outlook', wrap, [['Abbrechen', false], ['Kalenderdatei erstellen', true, 'primary']], { wide: true, cls: 'icsdlg' });
-  UI.icsOpts = { tab: o.tab, fut: o.fut, start: o.start, ab: o.ab, tbuf: o.tbuf, person: o.person, ms: [...o.ms], off: [...o.off].filter(k => ids.has(k.split(':')[0])), tk: [...o.tk].filter(k => ids.has(k.split(':')[0])) }; saveUI();
+  UI.icsOpts = { tab: o.tab, fut: o.fut, alarm: o.alarm, start: o.start, ab: o.ab, tbuf: o.tbuf, person: o.person, ms: [...o.ms], off: [...o.off].filter(k => ids.has(k.split(':')[0])), tk: [...o.tk].filter(k => ids.has(k.split(':')[0])) }; saveUI();
   if (!ok) return;
   const items = icsCollect(o, list);
   if (!items.length) { toast('Keine Termine ausgewählt.', 'warn'); return; }
   const suffix = items.every(e => e.kind === 'task') ? '_' + fileSafe(o.person) : o.ms.size === 1 && !items.some(e => e.kind === 'task') ? '_' + fileSafe(C.byId.get([...o.ms][0]).m.name) : '';
-  download('Jahresplanung_' + y + suffix + '.ics', new Blob([icsFile('Jahresplanung ' + y + suffix.replace(/_/g, ' '), items)], { type: 'text/calendar' }));
+  download('Jahresplanung_' + y + suffix + '.ics', new Blob([icsFile('Jahresplanung ' + y + suffix.replace(/_/g, ' '), items, o.alarm.on ? o.alarm.t : null)], { type: 'text/calendar' }));
   toast(items.length + ' Termine exportiert', 'ok');
 }
 

@@ -25,9 +25,10 @@ const { chromium, ok, open, finish } = require('./lib');
   ok(/Werktagen/.test(tip), 'B: Hinweis „Dauer in Werktagen …“');
   const r0 = await p.evaluate(tid => { const x = C.byId.get(UI.planSel); return x.pc.map.get(tid); }, tid);
   await p.fill('[data-fk="st:' + tid + ':dur"]', '3'); await p.press('[data-fk="st:' + tid + ':dur"]', 'Enter'); await p.waitForTimeout(250);
-  const b1 = await p.evaluate(([tid, st]) => { const x = C.byId.get(UI.planSel), r = x.pc.map.get(tid), te = x.m.plan.steps.find(s => s.name === 'Texte erstellen'), rt = x.pc.map.get(te.id);
-    return [r.start === st, r.end === addWT(st, 3), +x.m.plan.steps.find(s => s.id === tid).dauer, rt.start === nextWorkday(r.end), fmtW(r.start) + ' – ' + fmtW(r.end)]; }, [tid, r0.start]);
-  ok(b1[0] && b1[1] && b1[2] === 3 && b1[3], 'B: 3 Werktage eingetragen → ' + b1[4] + ' (Wochenende/Feiertage zählen nicht), der nächste Schritt beginnt am folgenden Werktag');
+  // 0.54.1: an „Thema definieren“ hängt nur das Ende (Texte erstellen) – das Ende bleibt, der Beginn rückt vor
+  const b1 = await p.evaluate(([tid, en]) => { const x = C.byId.get(UI.planSel), r = x.pc.map.get(tid), te = x.m.plan.steps.find(s => s.name === 'Texte erstellen'), rt = x.pc.map.get(te.id);
+    return [r.end === en, r.start === subWT(en, 3), +x.m.plan.steps.find(s => s.id === tid).dauer, rt.start === nextWorkday(r.end), fmtW(r.start) + ' – ' + fmtW(r.end)]; }, [tid, r0.end]);
+  ok(b1[0] && b1[1] && b1[2] === 3 && b1[3], 'B: 3 Werktage eingetragen → ' + b1[4] + ' (Wochenende/Feiertage zählen nicht), Ende bleibt, der nächste Schritt beginnt weiter am folgenden Werktag');
 
   // ---- C: Balken übers Wochenende verschieben – die Dauer (WT) bleibt
   const c0 = await p.evaluate(tid => { const x = C.byId.get(UI.planSel), m = JSON.parse(JSON.stringify(x.m)), r = x.pc.map.get(tid); setStepSpan(m, tid, r.start + 4, r.end + 4, true); const r2 = planCalc(m).map.get(tid); return [+m.plan.steps.find(s => s.id === tid).dauer, isWorkday(r2.start), wtSpan(r2.start, r2.end)]; }, tid);

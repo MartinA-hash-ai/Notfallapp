@@ -38,7 +38,7 @@ const { chromium, ok, open, finish } = require('./lib');
   await p.evaluate(() => undo()); await p.waitForTimeout(200);
 
   // ---- D: über den PAL → „Auf den PAL stauchen“: Beginn und PAL bleiben, Gestaltung (fix) bleibt 14 Tage
-  const tid = await sid('Thema definieren');
+  const tid = await sid('Texte erstellen');   // beginnt nach „Thema definieren“ – längere Dauer schiebt das Ende (0.54.1)
   await p.fill('[data-fk="st:' + tid + ':dur"]', '25'); await p.press('[data-fk="st:' + tid + ':dur"]', 'Enter'); await p.waitForTimeout(250);
   const d0 = await p.evaluate(() => { const x = C.byId.get(UI.planSel); return [x.pc.ph.I.start, x.pc.ph.I.end, x.pal, document.querySelectorAll('.plwarn button').length]; });
   ok(d0[1] > d0[2] && d0[3] === 3, 'D: Inhalt endet ' + (d0[1] - d0[2]) + ' Tage nach dem PAL – Warnung mit „vorrücken“, „stauchen“, „ausblenden“');

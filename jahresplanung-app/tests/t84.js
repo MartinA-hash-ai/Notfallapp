@@ -8,7 +8,8 @@ const fs = require('fs');
   // Testdaten: Verantwortliche und Aufgaben mit Datum für „Testperson“ (Phantasienamen)
   await p.evaluate(() => { UI.year = 2027; UI.icsOpts = undefined;
     commit(d => { d.massnahmen[1].verantwortlich = 'Erika'; d.massnahmen[2].verantwortlich = 'Erika';
-      for (const m of d.massnahmen) if (m.plan) m.plan.steps.forEach((s, i) => { if (s.typ !== 'gruppe' && i % 3 === 1) s.wer = 'Testperson'; }); });
+      for (const m of d.massnahmen) if (m.plan) m.plan.steps.forEach((s, i) => { if (s.typ !== 'gruppe' && i % 3 === 1) s.wer = 'Testperson'; });
+      d.massnahmen.forEach((m, i) => { m.tags = [['Mailing'], ['Dank'], ['Mailing', 'Bußgeld'], []][i % 4]; }); });
     renderNow(); });
   // ---- A: frühester Termin
   const a0 = await p.evaluate(() => C.ms.map(x => { const v = [...PHV().map(q => x.st[q.key]), x.pal, ...(x.pc ? [...x.pc.map.values()].map(r => r.start) : [])].filter(n => n != null);
@@ -17,8 +18,14 @@ const fs = require('fs');
   // ---- B: Dialog – nichts ausgewählt, Start an (5 WT), Abschnitte aus, keine Zeitraum-/Datei-Optionen mehr
   await p.evaluate(() => { exportICS(); }); await p.waitForSelector('.modal .icsprev');
   const b0 = await p.evaluate(() => { const m = document.querySelector('.modal'); return [m.querySelector('.ics-count b').textContent, m.querySelector('[data-opt="start"]').classList.contains('on'), m.querySelector('[data-opt="ab"]').classList.contains('on'),
-    m.querySelector('[data-opt="start"] input').value, /Zeitraum|je Maßnahme|je Terminart|Schnellauswahl/.test(m.textContent), m.querySelectorAll('input[type=radio]').length]; });
-  ok(b0[0] === '0' && b0[1] && !b0[2] && b0[3] === '5' && !b0[4] && !b0[5], 'B: Grundzustand – 0 Termine, Start an mit 5 WT, Abschnitte aus, keine Zeitraum-/Datei-Optionen ' + JSON.stringify(b0));
+    m.querySelector('[data-opt="start"] input').value, /Zeitraum|je Maßnahme|je Terminart|Schnellauswahl/.test(m.textContent), m.querySelectorAll('input[type=radio]').length,
+    !!m.querySelector('.ics-alarm.on'), (m.querySelector('.ics-time') || {}).value]; });
+  ok(b0[0] === '0' && b0[1] && !b0[2] && b0[3] === '5' && !b0[4] && !b0[5] && b0[6] && b0[7] === '09:00', 'B: Grundzustand – 0 Termine, Start an mit 5 WT, Abschnitte aus, Hinweis an um 09:00, keine Zeitraum-/Datei-Optionen ' + JSON.stringify(b0));
+  const b1 = await p.evaluate(() => { const r = [...document.querySelectorAll('.ics-opt')].map(e => e.getBoundingClientRect()); return [Math.abs(r[0].top - r[1].top), r[0].right <= r[1].left]; });
+  await p.click('.ics-opt[data-opt="ab"] .ics-sw'); await p.waitForTimeout(80);
+  const b2 = await p.evaluate(() => { const r = [...document.querySelectorAll('.ics-opt')].map(e => e.getBoundingClientRect()); return [Math.abs(r[0].top - r[1].top), r[0].right <= r[1].left]; });
+  await p.click('.ics-opt[data-opt="ab"] .ics-sw'); await p.waitForTimeout(80);
+  ok(b1[0] < 1 && b1[1] && b2[0] < 1 && b2[1], 'B: „Start der Maßnahme“ und „Start der Abschnitte“ stehen nebeneinander – auch wenn beide an sind ' + JSON.stringify([b1, b2]));
   await p.click('.modal footer button.primary'); await p.waitForTimeout(150);
   ok(await p.evaluate(() => !document.querySelector('.modal') && /Keine Termine/.test(document.body.textContent)), 'B: ohne Auswahl kein Download, Hinweis');
   // ---- C: alle auswählen – Chip-Datum = 5 Werktage vor dem Start; Puffer + verschiebt
@@ -60,6 +67,7 @@ const fs = require('fs');
   await p.selectOption('.ics-person', 'Testperson'); await p.waitForTimeout(100);
   const f0 = await p.evaluate(() => [document.querySelectorAll('.icst').length, document.querySelectorAll('.icst.on').length, icsTasks('Testperson', C.ms).filter(t => t.b >= todayDn()).length]);
   ok(f0[0] > 3 && f0[1] === 0 && f0[0] === f0[2], 'F: Aufgaben von „Testperson“: ' + f0[0] + ' (kommende), keine vorausgewählt');
+  ok(await p.evaluate(() => [...document.querySelectorAll('.icst .d')].every(e => /^[A-Z][a-z] \d\d\.\d\d\.$/.test(e.textContent))), 'F: in der Liste immer nur ein Tag (keine Zeitspannen)');
   const before = await p.evaluate(() => +document.querySelector('.ics-count b').textContent);
   await p.click('.icst >> nth=0'); await p.click('.icst >> nth=2'); await p.waitForTimeout(100);
   const f1 = await p.evaluate(() => [document.querySelectorAll('.icst.on').length, +document.querySelector('.ics-count b').textContent, document.querySelector('.ics-count').textContent]);
@@ -67,11 +75,13 @@ const fs = require('fs');
   // ---- G: Download – eine Datei mit allen Terminen
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.modal footer button.primary')]);
   const ics = fs.readFileSync(await dl.path(), 'utf8'), uids = [...ics.matchAll(/^UID:(.*)$/gm)].map(m => m[1]), sums = [...ics.matchAll(/^SUMMARY:(.*)$/gm)].map(m => m[1]);
-  ok(/^Jahresplanung_2027\.ics$/.test(dl.suggestedFilename()) && uids.length === f1[1] && new Set(uids).size === uids.length && (ics.match(/DTSTART;VALUE=DATE:/g) || []).length === uids.length
+  ok(/^Jahresplanung_2027\.ics$/.test(dl.suggestedFilename()) && uids.length === f1[1] && new Set(uids).size === uids.length && (ics.match(/DTSTART;TZID=Europe\/Berlin:\d{8}T090000/g) || []).length === uids.length
+    && (ics.match(/DTEND;TZID=Europe\/Berlin:\d{8}T091500/g) || []).length === uids.length && (ics.match(/BEGIN:VALARM\r\nACTION:DISPLAY\r\nDESCRIPTION:[^\r]*\r\nTRIGGER:-PT0M\r\nEND:VALARM/g) || []).length === uids.length
+    && /BEGIN:VTIMEZONE\r\nTZID:Europe\/Berlin/.test(ics) && !/VALUE=DATE/.test(ics)
     && sums.filter(s => / – Start /.test(s)).length > 0 && sums.filter(s => / · /.test(s)).length === 2,
-    'G: eine Datei ' + dl.suggestedFilename() + ' mit ' + uids.length + ' Terminen (Starts, Abschnitte, 2 Aufgaben) – z. B. ' + sums[0]);
+    'G: eine Datei ' + dl.suggestedFilename() + ' mit ' + uids.length + ' Terminen (Starts, Abschnitte, 2 Aufgaben), je 09:00–09:15 mit Hinweis – z. B. ' + sums[0]);
   const g1 = await p.evaluate(id => { const x = C.byId.get(id), n = icsFirst(x); return ds(dateForWT(n, 6)).replace(/-/g, ''); }, mid);
-  ok(new RegExp('UID:' + mid + '-start@[^\\r]*\\r\\n(?:[^\\r]*\\r\\n)?DTSTART;VALUE=DATE:' + g1).test(ics), 'G: Start-Termin liegt 6 Werktage vor dem Start (' + g1 + ')');
+  ok(new RegExp('UID:' + mid + '-start@[^\\r]*\\r\\n(?:[^\\r]*\\r\\n)?DTSTART;TZID=Europe/Berlin:' + g1 + 'T090000').test(ics), 'G: Start-Termin liegt 6 Werktage vor dem Start (' + g1 + ')');
   // ---- H: beim nächsten Öffnen ist alles wie zuletzt
   await p.evaluate(() => { exportICS(); }); await p.waitForSelector('.modal .icsprev');
   const h0 = await p.evaluate(() => [UI_KEYS.includes('icsOpts'), document.querySelector('.ics-tabs .on').dataset.tab, document.querySelector('.ics-person').value, document.querySelectorAll('.icst.on').length, +document.querySelector('.ics-count b').textContent]);
@@ -84,5 +94,29 @@ const fs = require('fs');
   ok(i1[0] === i1[1] && i1[0] >= i0, 'I: „ab heute“ aus – alle Maßnahmen des Jahres ' + JSON.stringify([i0, i1]));
   await p.click('.modal footer button:has-text("Abbrechen")'); await p.waitForTimeout(80);
   ok(await p.evaluate(() => UI.icsOpts.fut === false), 'I: auch beim Abbrechen gemerkt');
+  // ---- J: Hinweis aus → Ganztagestermine (je ein Tag), andere Uhrzeit wird gemerkt
+  await p.evaluate(() => { exportICS(); }); await p.waitForSelector('.modal .icsprev');
+  await p.fill('.ics-time', '07:30'); await p.waitForTimeout(80);
+  ok(await p.evaluate(() => document.querySelector('.ics-time').value) === '07:30', 'J: Uhrzeit des Hinweises änderbar (07:30)');
+  await p.click('.ics-alarm .ics-sw'); await p.waitForTimeout(80);
+  const [dl2] = await Promise.all([p.waitForEvent('download'), p.click('.modal footer button.primary')]);
+  const ics2 = fs.readFileSync(await dl2.path(), 'utf8'), st2 = [...ics2.matchAll(/DTSTART;VALUE=DATE:(\d{8})\r\nDTEND;VALUE=DATE:(\d{8})/g)];
+  const oneDay = st2.every(m => { const a = new Date(m[1].replace(/(\d{4})(\d\d)(\d\d)/, '$1-$2-$3')), e = new Date(m[2].replace(/(\d{4})(\d\d)(\d\d)/, '$1-$2-$3')); return (e - a) / 864e5 === 1; });
+  ok(st2.length > 0 && st2.length === (ics2.match(/BEGIN:VEVENT/g) || []).length && oneDay && !/VALARM|VTIMEZONE/.test(ics2), 'J: ohne Hinweis – ' + st2.length + ' Ganztagestermine, jeder genau ein Tag, keine Erinnerung');
+  ok(await p.evaluate(() => UI.icsOpts.alarm.on === false && UI.icsOpts.alarm.t === '07:30'), 'J: Hinweis aus und 07:30 gemerkt');
+  // ---- K: Schlagwort-Filter
+  await p.evaluate(() => { exportICS(); }); await p.waitForSelector('.modal .icsprev');
+  await p.click('.ics-tabs [data-tab="ms"]'); await p.waitForTimeout(80);
+  const k0 = await p.evaluate(() => document.querySelectorAll('.icsm').length);
+  await p.click('.ics-tagbtn'); await p.waitForTimeout(100);
+  await p.click('.ics-tagpop label:has-text("Dank")'); await p.waitForTimeout(100);
+  const k1 = await p.evaluate(() => [document.querySelectorAll('.icsm').length, C.ms.filter(x => inYear(x, 2027) && (x.m.tags || []).includes('Dank')).length, document.querySelector('.ics-tagbtn').textContent, !!document.querySelector('.ics-tagpop .link')]);
+  ok(k1[0] === k1[1] && k1[0] < k0 && /Schlagworte \(1\)/.test(k1[2]) && k1[3], 'K: Schlagwort „Dank“ → nur deren Maßnahmen, Knopf zeigt „(1)“ ' + JSON.stringify([k0, k1]));
+  await p.click('.ics-tagpop label:has-text("ohne Schlagwort")'); await p.waitForTimeout(100);
+  const k2 = await p.evaluate(() => [document.querySelectorAll('.icsm').length, C.ms.filter(x => inYear(x, 2027) && (!(x.m.tags || []).length || x.m.tags.includes('Dank'))).length]);
+  ok(k2[0] === k2[1] && k2[0] > k1[0], 'K: dazu „ohne Schlagwort“ ' + JSON.stringify(k2));
+  await p.click('.ics-tagpop .link'); await p.waitForTimeout(100);
+  ok(await p.evaluate(() => document.querySelectorAll('.icsm').length) === k0, 'K: „alle zeigen“ hebt den Filter auf');
+  await p.click('.modal footer button:has-text("Abbrechen")');
   await finish(b, pages);
 })();
