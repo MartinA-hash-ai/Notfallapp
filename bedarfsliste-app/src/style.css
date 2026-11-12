@@ -2772,3 +2772,22 @@ table.list td.k-ko { white-space: nowrap; }
 table.list :is(td, th).l-ueb { position: relative; }
 table.list :is(td, th).l-ueb::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 1px; background: var(--line3); pointer-events: none; }
 td.l-ueb.mit-pkt { padding-left: 20px; }
+
+/* 0.163: Rundmail für mehrere Bedarfe – Chips oben, Auswahl der Gliederung, einheitlich graue Häkchen */
+.help.rm input[type="checkbox"] { accent-color: var(--ink2); }
+.rm-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 6px; }
+.rm-chip { display: inline-flex; align-items: center; gap: 7px; border: 1px solid var(--line2); border-radius: 999px; padding: 4px 10px 4px 12px; background: var(--card); font-size: 13px; color: var(--ink); }
+.rm-cx { border: 0; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 0 0 2px; }
+.rm-cx:hover { color: var(--ink); }
+.rm-cplus { border-style: dashed; background: var(--soft); color: var(--ink2); cursor: pointer; }
+.rm-cplus[aria-expanded="true"] { background: var(--hover); }
+.rm-ko { display: inline-flex; gap: 3px; }
+.rm-ko i { width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--line2); box-sizing: border-box; display: inline-block; }
+.rm-ko i.k-ok { background: var(--f-zu, #3c8a46); border-color: var(--f-zu, #3c8a46); }
+.rm-ko i.k-run { background: #f2c94c; border-color: #d9b740; }
+.rm-ko i.k-nn { border-style: dashed; }
+.rm-bwahl { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; padding: 8px; border: 1px solid var(--line3); border-radius: 10px; background: var(--soft); margin-bottom: 4px; }
+.rm-bw { display: flex; align-items: center; gap: 8px; padding: 6px 8px; border-radius: 8px; background: var(--card); border: 1px solid var(--line3); margin: 0; }
+.rm-bw .rm-bs { margin-left: auto; }
+.rm-ct { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 240px; }
+.rm-iv { margin-top: 10px; }

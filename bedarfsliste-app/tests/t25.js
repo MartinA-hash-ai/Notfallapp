@@ -45,5 +45,20 @@ const { chromium, ok, open, finish, T } = require('./lib');
     return [!!g && getComputedStyle(g).color === getComputedStyle(document.documentElement).getPropertyValue('--e5ink').trim().replace(/^#(..)(..)(..)$/, (m, a, b, c) => `rgb(${parseInt(a, 16)}, ${parseInt(b, 16)}, ${parseInt(c, 16)})`),
       getComputedStyle(td, '::before').width, [...tr.querySelectorAll('.ue-pkt')].map(x => { const q = x.getBoundingClientRect(); return Math.abs(q.left + q.width / 2 - L - .5) < .6; })]; });
   ok(r[0] && r[1] === '1px' && r[2].length === 2 && r[2].every(Boolean), 'eingegangen grün; Trennlinie vor der Spendenübergabe, Punkte mittig darauf: ' + JSON.stringify(r));
+  // 0.163: Rundmail für mehrere Bedarfe einer Gliederung
+  await p.evaluate(() => { const n = Object.assign(blank(), { id: 'b-bue2', titel: 'Funkgeräte OV', gliederung: 'Büren', summe: 4200, zust: [Object.assign(leerZ(), { n: 'Rita Probe', mail: 'rita@x.example' })] }); D.bedarfe.push(n);
+    const a = D.bedarfe.find(x => x.id === 'b-dig-bue'); if (!a.zust.some(z => z.mail)) a.zust = [Object.assign(leerZ(), { n: 'Maria Beispiel', mail: 'maria@x.example' })];
+    HTMLAnchorElement.prototype.click = function () { window.__url = this.href; }; oeffnen('b-dig-bue'); });
+  await p.waitForTimeout(700);
+  await p.evaluate(() => { rundmail(cur(), 'zust'); }); await p.waitForSelector('.rm-chips');
+  r = await p.evaluate(() => [[...document.querySelectorAll('.rm-chip')].map(c => c.textContent.trim()).join('|'), document.querySelector('.rm-bwahl').hidden]);
+  ok(/^Laptop und Beamer für den Ausbildungsraum\|＋ Büren 1$/.test(r[0]) && r[1], 'Rundmail: Chip des Bedarfs, „＋ Büren 1“ (Auswahl zu): ' + r.join(' / '));
+  await p.click('.rm-cplus'); await p.click('.rm-bw input'); await p.waitForTimeout(100);
+  await p.click('.rm-k:has-text("Terminvereinbarung zum Interview")'); await p.waitForTimeout(100);
+  r = await p.evaluate(() => [document.querySelectorAll('.rm-chip:not(.rm-cplus)').length, [...document.querySelectorAll('.rm-p')].map(x => x.textContent.trim()).join(','), document.querySelector('.rm-k.on .rm-ks').textContent, !document.querySelector('.rm-iv').hidden, getComputedStyle(document.querySelector('.rm input[type=checkbox]')).accentColor]);
+  ok(r[0] === 2 && /Maria Beispiel/.test(r[1]) && /Rita Probe/.test(r[1]) && r[2] === 'Kurzes Gespräch zu „Laptop und Beamer für den Ausbildungsraum“ und „Funkgeräte OV“' && r[3], 'zweiter Bedarf: Empfänger beider, Betreff mit beiden Namen, „Interview → in Arbeit“ angeboten: ' + r.join(' | '));
+  await p.click('.modal .btn-row button.primary, .modal button.primary:has-text("E-Mail")'); await p.waitForTimeout(300);
+  r = await p.evaluate(() => [decodeURIComponent(window.__url || ''), ['b-dig-bue', 'b-bue2'].map(id => koItems(D.bedarfe.find(x => x.id === id)).find(u => u.name === 'Interview').st).join()]);
+  ok(/maria@x\.example/.test(r[0]) && /rita@x\.example/.test(r[0]) && /„Laptop und Beamer für den Ausbildungsraum“ und „Funkgeräte OV“/.test(r[0]) && r[1] === 'arbeit,arbeit', 'E-Mail an beide Gliederungs-Bedarfe; Interview bei beiden „in Arbeit“: ' + r[1]);
   await finish(b, [p]);
 })();

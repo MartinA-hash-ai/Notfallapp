@@ -32,7 +32,7 @@ const VL_STD = [
   { id: 'v-f-zusage', name: 'Info: Finanzierung steht', fuer: 'fach', betreff: 'Finanzierung steht: „{bedarf}“ ({gliederung})',
     text: 'Hallo zusammen,\n\nzur Info: Die Finanzierung für „{bedarf}“ ({gliederung}) steht. Gespendet haben:\n{spender}\n\nDie Spendenübergabe stimmen wir mit der Gliederung ab – wenn ihr dabei sein möchtet, gebt mir kurz Bescheid.\n\nViele Grüße' },
 ];
-const VL_PLATZ = [['bedarf', 'Name des Bedarfs'], ['gliederung', 'Gliederung'], ['summe', 'Summe des Bedarfs'], ['wann', 'Termin der Spendenübergabe mit Uhrzeit'], ['ort', 'Ort der Spendenübergabe'],
+const VL_PLATZ = [['bedarf', 'Name des Bedarfs (bei mehreren: alle Namen)'], ['bedarfe', 'Alle Bedarfe der Rundmail, je Zeile einer mit Summe'], ['gliederung', 'Gliederung'], ['summe', 'Summe des Bedarfs'], ['wann', 'Termin der Spendenübergabe mit Uhrzeit'], ['ort', 'Ort der Spendenübergabe'],
   ['spender', 'Förderer mit Zusage und Betrag, je Zeile einer'], ['ansprechperson', 'Ansprechperson des Bedarfs'], ['fachreferat', 'Fachreferat'], ['link', 'Link zum Ordner'], ['beschreibung', 'Beschreibung des Bedarfs'], ['anrede', 'Förderer: einzeln „Guten Tag Name,“, gemeinsam „Sehr geehrte Damen und Herren,“'], ['malteser', '„der Malteser in Brakel“ bzw. „… in der Diözese Paderborn“'], ['ihre_foerderung', 'einzeln: „ in Höhe von 5.000 €“, gemeinsam leer'], ['foerderer', 'einzeln: Name des Förderers'], ['ortkurz', 'Gliederung bzw. Ort ohne Adresse (z. B. Paderborn)'], ['vorort', 'je Förderer, wer bei der Übergabe dabei ist, mit Position'], ['presse', 'die angeklickte Person aus Presse und Öffentlichkeit'], ['notizen', 'Notizen zur Übergabe (mit Überschrift, sonst leer)'], ['fehlt', 'Unterlagen, die noch fehlen, je Zeile eine']];
 const vorlagen = () => { const S = D.settings, eig = Array.isArray(S.vorlagen) ? S.vorlagen : [], weg = new Set(S.vorlagenWeg || []);
   return [...eig, ...VL_STD.filter(v => !weg.has(v.id) && !eig.some(e => e.id === v.id))]; };   // neue mitgelieferte kommen dazu
@@ -47,8 +47,23 @@ function vlWerte(b) {
     anrede: 'Sehr geehrte Damen und Herren,', ihre_foerderung: '', foerderer: '', malteser: !b.gliederung || b.gliederung === DIO ? 'der Malteser in der Diözese Paderborn' : 'der Malteser in ' + b.gliederung,
     fehlt: b.unterlagen.filter(u => u.st === 'fehlt' || u.st === 'arbeit').map(u => '- ' + u.name).join('\n') || '- (alles da)',
     ortkurz: ortKurz(b), vorort: dabeiListe(b).map(({ f, p }) => '- ' + f.name.trim() + ': ' + (p ? p.n + (p.pos ? ' (' + p.pos + ')' : '') : 'noch offen')).join('\n') || '- (noch niemand ausgewählt)',
-    presse: presseGewaehlt(b).map(p => p.n).join(', ') || 'noch offen', notizen: u.info.trim() ? 'Notizen:\n' + u.info.trim() : '' };
+    presse: presseGewaehlt(b).map(p => p.n).join(', ') || 'noch offen', notizen: u.info.trim() ? 'Notizen:\n' + u.info.trim() : '',
+    bedarfe: '- ' + (b.titel || 'Bedarf') + (b.summe ? ' (' + eur(b.summe) + ')' : '') };
 }
+// ab 0.163: eine Rundmail für mehrere Bedarfe derselben Gliederung – dieselben Platzhalter, nur zusammengefasst
+const undListe = L => L.length < 2 ? L.join('') : L.slice(0, -1).join(', ') + ' und ' + L[L.length - 1];
+function vlWerteMehr(B) {
+  if (B.length < 2) return vlWerte(B[0]);
+  const W = vlWerte(B[0]), T = B.map(b => b.titel || 'Bedarf'), je = (f, leer) => B.map(b => { const x = f(b); return x ? (b.titel || 'Bedarf') + ':\n' + x : ''; }).filter(Boolean).join('\n\n') || leer;
+  return Object.assign(W, { bedarf: undListe(T), titelListe: T, summe: eur(B.reduce((s, b) => s + (+b.summe || 0), 0)),
+    bedarfe: B.map(b => '- ' + (b.titel || 'Bedarf') + (b.summe ? ' (' + eur(b.summe) + ')' : '')).join('\n'),
+    fehlt: je(b => b.unterlagen.filter(u => u.st === 'fehlt' || u.st === 'arbeit').map(u => '- ' + u.name).join('\n'), '- (alles da)'),
+    link: B.filter(b => okLink(b.link)).map(b => (b.titel || 'Bedarf') + ': ' + b.link.trim()).join('\n'),
+    beschreibung: je(b => String(b.beschreibung || '').replace(/\*\*|__|~~/g, '').replace(/^\s*[*•]\s+/gm, '- ').trim(), '(noch keine Beschreibung)'),
+    ansprechperson: uniq(B.map(b => (b.zust[0] && b.zust[0].n) || '').filter(Boolean)).join(', ') });
+}
+// „{bedarf}“ in Anführungszeichen wird bei mehreren zu „A“, „B“ und „C“
+const vlFuellenMehr = (t, W) => vlFuellen(W.titelListe ? String(t || '').replace(/„\{bedarf\}“/g, undListe(W.titelListe.map(x => '„' + x + '“'))) : t, W);
 // Ort für Titel und Kalender: die Gliederung (bei der Diözese der Ort aus der Adresse, sonst „Diözese“)
 const ortKurz = b => b.gliederung && b.gliederung !== DIO ? b.gliederung : (b.nach.ueb.ort.match(/\b\d{5}\s+([^,]+)/) || [])[1] || 'Diözese';
 // wer vom Förderer bei der Übergabe dabei ist: von Hand gewählt (nach.ueb.vorOrt), sonst der Hauptkontakt aus dem Förderer (meist aus der Förder-Kartei)
@@ -109,6 +124,13 @@ function icsLaden(b) {
 const dateiName = s => String(s).replace(/[\\/:*?"<>|]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 80);
 
 /* ---------- Rundmail: Empfänger nach Gruppen (angehakt je nach Knopf), Art: Blanko oder Vorlage → Outlook */
+function rundGruppenMehr(B) {
+  if (B.length < 2) return rundGruppen(B[0]);
+  const M = new Map();
+  for (const b of B) for (const [g, t, L] of rundGruppen(b)) { const k = g + '|' + t; if (!M.has(k)) M.set(k, [g, t, []]); const Z = M.get(k)[2];
+    for (const p of L) { const q = Z.find(x => kkey(x.n) === kkey(p.n) && (x.mail || '') === (p.mail || '')); if (q) q.mehrfach = true; else Z.push(Object.assign({}, p)); } }
+  return [...M.values()];
+}
 function rundGruppen(b) {
   const G = [['zust', 'Zuständig', b.zust.filter(z => z.n.trim() || z.mail.trim())], ['fach', 'Fachreferat' + (b.freigabe.fach.name.trim() ? ' ' + b.freigabe.fach.name.trim() : ''), fachZeig(b).Z],
     ['presse', 'Presse und Öffentlichkeit', grpZeig(b, 'presse').Z]];
@@ -128,14 +150,18 @@ const foeWerte = (W, p) => p ? Object.assign({}, W, { anrede: p.n && !/@/.test(p
 const mailUrl = (an, bcc, betreff, text) => 'mailto:' + (bcc ? '?bcc=' : '') + an.map(encodeURIComponent).join(';').replace(/%40/g, '@') + (bcc ? '&' : '?') + 'subject=' + encodeURIComponent(betreff)
   + (text != null ? '&body=' + encodeURIComponent(text.replace(/\r?\n/g, '\r\n')) : '');
 const mailOeffnen = url => { if (url.length > 1900) toast('Sehr lange E-Mail – falls Outlook sie abschneidet, die Vorlage kürzen.', 'warn'); const a = h('a', { href: url }); document.body.append(a); a.click(); a.remove(); };
-async function rundmail(b, art, wahl = '', modus0) {
+async function rundmail(b, art, wahl = '', modus0, mehr0) {
   closeMenus();
-  const foe = art === 'foe', G = foe ? foeGruppen(b) : rundGruppen(b);
+  // ab 0.163: weitere Bedarfe derselben Gliederung (nur intern: Zuständige, Fachreferat)
+  const mehrGeht = art === 'zust' || art === 'fach', andere = mehrGeht ? D.bedarfe.filter(x => x !== b && !x.archiv && !x.manuell && x.gliederung && x.gliederung === b.gliederung) : [];
+  const BS = [b, ...(mehr0 || []).map(id => andere.find(x => x.id === id)).filter(Boolean)];
+  const foe = art === 'foe'; let G = foe ? foeGruppen(b) : rundGruppenMehr(BS);
   const vor = { zust: ['zust'], fach: ['fach'], ueb: ['zust', 'presse'], presse: ['presse'] }[art] || ['zust'];
   const an = new Set();
   const pw = new Set((GRP.presse.obj(b).wahl || []));                          // Presse: angeklickte vorwählen (niemand angeklickt: alle)
-  G.forEach(([g, , L, ja]) => L.forEach(p => { if (p.mail && (foe ? ja && p.vor : vor.includes(g) && (g !== 'presse' || !pw.size || pw.has(kkey(p.n))))) an.add(g + '|' + kkey(p.n)); }));
-  const V = vorlagen().filter(v => v.fuer === art || v.fuer === 'alle' || (art === 'ueb' && v.fuer === 'presse')), W = vlWerte(b);   // intern: auch die Vorlagen für die Presse
+  const vorwahl = GG => GG.forEach(([g, , L, ja]) => L.forEach(p => { if (p.mail && (foe ? ja && p.vor : vor.includes(g) && (g !== 'presse' || !pw.size || pw.has(kkey(p.n))))) an.add(g + '|' + kkey(p.n)); }));
+  vorwahl(G);
+  const V = vorlagen().filter(v => v.fuer === art || v.fuer === 'alle' || (art === 'ueb' && v.fuer === 'presse')); let W = vlWerteMehr(BS);   // intern: auch die Vorlagen für die Presse
   if (wahl === undefined || (wahl && !V.some(v => v.id === wahl))) wahl = '';
   if (foe && wahl === '' && !modus0) wahl = (V.find(v => v.fuer === 'foe') || { id: '' }).id;   // Förderer: gleich die Einladung vorgewählt
   let zu = null, modus = modus0 || (an.size > 1 ? 'bcc' : 'einzeln');
@@ -144,39 +170,61 @@ async function rundmail(b, art, wahl = '', modus0) {
   const zaehl = () => { const M = new Set(empf().map(p => p.mail.trim().toLowerCase())); zahl.textContent = foe && modus === 'einzeln' ? 'Einzeln schreiben' + (M.size ? ' (' + M.size + ') …' : ' …') : M.size ? 'E-Mail an ' + M.size + (foe ? ' (BCC)' : '') + ' öffnen' : 'E-Mail öffnen'; };
   // je Vorlage eine Kachel (zwei je Reihe): Klick wählt, Doppelklick öffnet gleich die E-Mail, Stift bearbeitet die Vorlage
   const kacheln = h('div', { class: 'rm-kacheln' });
-  const zeigK = () => kacheln.replaceChildren(...[['', 'Blanko', 'nur Empfänger und Betreff']].concat(V.map(v => [v.id, v.name, vlFuellen(v.betreff, W)])).map(([id, t, x]) =>
+  const nurEiner = v => /^v-z-ueb|^v-ueb/.test(v.id) || /spendenübergabe/i.test(v.name);   // Spendenübergabe: je Bedarf ein Termin – bei mehreren ausgeblendet
+  const zeigK = () => { const VV = BS.length > 1 ? V.filter(v => !nurEiner(v)) : V; if (wahl && !VV.some(v => v.id === wahl)) wahl = '';
+    kacheln.replaceChildren(...[['', 'Blanko', 'nur Empfänger und Betreff']].concat(VV.map(v => [v.id, v.name, vlFuellenMehr(v.betreff, W)])).map(([id, t, x]) =>
     h('div', { class: 'rm-k' + (id === wahl ? ' on' : ''), role: 'radio', tabindex: 0, 'aria-checked': String(id === wahl), title: id ? 'Doppelklick: gleich die E-Mail öffnen' : '',
       onclick: () => { wahl = id; zeigK(); }, ondblclick: () => { wahl = id; zu && zu(true); }, onkeydown: e => { if (e.key === ' ' || e.key === 'Enter') { e.preventDefault(); wahl = id; zeigK(); } } },
       h('b', null, t), h('span', { class: 'rm-ks' }, x),
       id ? h('button', { type: 'button', class: 'rm-pen', title: 'Vorlage bearbeiten', 'aria-label': 'Vorlage bearbeiten', html: ICON_PEN, onclick: e => { e.stopPropagation(); zu && zu({ edit: id }); } }) : null))
-    .concat(h('button', { type: 'button', class: 'rm-k rm-neu', onclick: () => zu && zu('neu') }, h('span', { class: 'rm-plus', 'aria-hidden': 'true' }, '+'), 'Neue Vorlage')));
-  const emp = h('div', { class: 'rm-emp' }, G.map(([g, t, L]) => h('div', { class: 'rm-g' }, h('div', { class: 'rm-gt' }, t),
+    .concat(h('button', { type: 'button', class: 'rm-k rm-neu', onclick: () => zu && zu('neu') }, h('span', { class: 'rm-plus', 'aria-hidden': 'true' }, '+'), 'Neue Vorlage'))); zeigIv(); };
+  // Interview: nach dem Öffnen bei allen gewählten Bedarfen „in Arbeit“ (vorgewählt)
+  const ivT = h('span'), ivCb = h('input', { type: 'checkbox', checked: true }), ivL = h('label', { class: 'check rm-iv', hidden: true }, ivCb, ' ', ivT);
+  const istIv = () => { const vl = V.find(x => x.id === wahl); return !!vl && (vl.id === 'v-z-interview' || /interview/i.test(vl.name)); };
+  const ivOffen = () => BS.map(x => koItems(x).find(u => u.name === 'Interview')).filter(u => u && u.st === 'fehlt');
+  function zeigIv() { const n = ivOffen().length; ivL.hidden = !istIv() || !n; ivT.textContent = 'Interview → in Arbeit' + (BS.length > 1 ? ' (' + n + ')' : ''); }
+  // Bedarfe oben als Chips (mit den Kreisen der Koordination); „＋ Gliederung“ klappt die anderen Bedarfe dort auf
+  const koPkt = x => h('span', { class: 'rm-ko', title: koItems(x).map(u => u.name + ': ' + ulText(u)).join('\n') }, ...koItems(x).map(u => h('i', { class: 'k-' + (({ da: 'ok', arbeit: 'run', nn: 'nn' })[u.st] || 'off') })));
+  const chips = h('div', { class: 'rm-chips' }), wahlListe = h('div', { class: 'rm-bwahl', hidden: true });
+  const neuBerechnen = () => { G = rundGruppenMehr(BS); vorwahl(G); W = vlWerteMehr(BS); zeigEmp(); zeigK(); zaehl(); zeigChips(); };
+  function zeigChips() {
+    chips.replaceChildren(...BS.map(x => h('span', { class: 'rm-chip' }, h('span', { class: 'rm-ct' }, x.titel || 'Bedarf'), koPkt(x),
+      x === b ? null : h('button', { type: 'button', class: 'rm-cx', 'aria-label': (x.titel || 'Bedarf') + ' entfernen', onclick: () => { BS.splice(BS.indexOf(x), 1); neuBerechnen(); } }, '×'))),
+      andere.length ? h('button', { type: 'button', class: 'rm-chip rm-cplus', 'aria-expanded': String(!wahlListe.hidden), onclick: () => { wahlListe.hidden = !wahlListe.hidden; zeigChips(); } }, '＋ ' + b.gliederung + ' ', h('b', null, String(andere.length))) : null);
+    wahlListe.replaceChildren(...andere.map(x => h('label', { class: 'check rm-bw' + (BS.includes(x) ? ' on' : '') }, h('input', { type: 'checkbox', checked: BS.includes(x), onchange: e => { if (e.target.checked) BS.push(x); else BS.splice(BS.indexOf(x), 1); neuBerechnen(); } }),
+      h('span', { class: 'rm-ct' }, x.titel || 'Bedarf'), koPkt(x), h('span', { class: 'muted small rm-bs' }, x.summe ? eur(x.summe) : ''))));
+  }
+  const emp = h('div', { class: 'rm-emp' });
+  const zeigEmp = () => emp.replaceChildren(...G.map(([g, t, L]) => h('div', { class: 'rm-g' }, h('div', { class: 'rm-gt' }, t),
     L.length ? L.map(p => { const k = g + '|' + kkey(p.n);
       return h('label', { class: 'check rm-p' + (p.mail ? '' : ' ohne'), title: p.mail || 'keine E-Mail-Adresse eingetragen' }, h('input', { type: 'checkbox', checked: an.has(k), disabled: !p.mail,
-        onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); zaehl(); } }), ' ' + (p.n || p.mail), h('span', { class: 'muted small' }, p.mail ? '' : ' · ohne E-Mail')); })
+        onchange: e => { if (e.target.checked) an.add(k); else an.delete(k); zaehl(); } }), ' ' + (p.n || p.mail), h('span', { class: 'muted small' }, p.mail ? (p.mehrfach ? ' · mehrere' : '') : ' · ohne E-Mail')); })
       : h('span', { class: 'muted small' }, 'Kein Kontakt eingetragen – beim Förderer unter „Kontakte“ ergänzen.'))));
+  zeigEmp(); zeigChips();
   const modusSeg = foe ? h('div', { class: 'seg small rm-modus', role: 'group', 'aria-label': 'Wie verschicken?' }, [['bcc', 'Gemeinsam (BCC)', 'eine E-Mail, alle Förderer in BCC, ohne persönliche Anrede'], ['einzeln', 'Einzeln, persönlich', 'je Kontakt eine eigene E-Mail mit Namen und Betrag']].map(([v, l, t]) =>
     h('button', { type: 'button', class: v === modus ? 'on' : '', title: t, onclick: e => { modus = v; [...e.target.parentNode.children].forEach(x => x.classList.toggle('on', x === e.target)); zaehl(); } }, l))) : null;
   zeigK(); zaehl();
   const leer = foe ? 'Noch keine zugesagten Förderer.' : 'Noch niemand mit E-Mail-Adresse – erst Personen eintragen.';
   // intern zur Übergabe: die Kalenderdatei gleich mit herunterladen (eine E-Mail aus dem Browser kann keinen Anhang mitbringen)
   const mitIcs = art === 'ueb' && validIso(b.nach.ueb.termin) ? h('input', { type: 'checkbox', checked: true }) : null;
-  const v = await modal(foe ? 'Förderer zur Spendenübergabe einladen' : 'Rundmail', h('div', { class: 'help rm' }, h('h4', null, 'Worum geht es?'), kacheln,
+  const v = await modal(foe ? 'Förderer zur Spendenübergabe einladen' : 'Rundmail', h('div', { class: 'help rm' }, mehrGeht && andere.length ? h('h4', null, 'Bedarfe') : null, mehrGeht && andere.length ? chips : null, mehrGeht && andere.length ? wahlListe : null, h('h4', null, 'Worum geht es?'), kacheln,
     h('h4', null, 'An'), modusSeg, G.length ? emp : h('p', { class: 'muted' }, leer),
-    mitIcs ? h('label', { class: 'check rm-ics' }, mitIcs, ' Kalendereintrag (.ics) dazu herunterladen – in Outlook an die E-Mail anhängen') : null),
+    mitIcs ? h('label', { class: 'check rm-ics' }, mitIcs, ' Kalendereintrag (.ics) dazu herunterladen – in Outlook an die E-Mail anhängen') : null, ivL),
     [['Abbrechen', false], [zahl, true, 'primary']], { wide: true, expose: c => { zu = c; } });
-  if (v === 'neu') { if (await vorlagenDialog({ neu: art })) rundmail(b, art, (vorlagen().filter(x => x.fuer === art).pop() || {}).id, modus); return; }
-  if (v && v.edit) { await vorlagenDialog({ id: v.edit }); rundmail(b, art, v.edit, modus); return; }
+  const mehrIds = BS.slice(1).map(x => x.id);
+  if (v === 'neu') { if (await vorlagenDialog({ neu: art })) rundmail(b, art, (vorlagen().filter(x => x.fuer === art).pop() || {}).id, modus, mehrIds); return; }
+  if (v && v.edit) { await vorlagenDialog({ id: v.edit }); rundmail(b, art, v.edit, modus, mehrIds); return; }
   if (!v) return;
   const P = empf(), M = uniq(P.map(p => p.mail.trim()));
   if (!M.length) { toast('Niemand mit E-Mail-Adresse angehakt.', 'warn'); return; }
   const vl = V.find(x => x.id === wahl);
-  const betreff = Wx => vl ? vlFuellen(vl.betreff, Wx) : (art === 'ueb' || foe ? 'Spendenübergabe ' : '') + '„' + Wx.bedarf + '“' + (Wx.gliederung ? ' (' + Wx.gliederung + ')' : '');
+  const betreff = Wx => vl ? vlFuellenMehr(vl.betreff, Wx) : (art === 'ueb' || foe ? 'Spendenübergabe ' : '') + '„' + Wx.bedarf + '“' + (Wx.gliederung ? ' (' + Wx.gliederung + ')' : '');
   if (foe && modus === 'einzeln') { einzelnSchreiben(P, p => { einlVermerken(b, [p.f]); return mailUrl([p.mail.trim()], false, betreff(foeWerte(W, p)), vl ? vlFuellen(vl.text, foeWerte(W, p)) : null); }); return; }
   if (foe) einlVermerken(b, P.map(p => p.f));                                      // „Eingeladen“ beim Förderer abhaken (heute)
   // Outlook trennt Empfänger mit „;“ (andere Programme mit „,“ – Outlook ist hier der Standard); Förderer gemeinsam: alle in BCC
   if (mitIcs && mitIcs.checked) { download('Spendenübergabe ' + dateiName(b.titel || 'Bedarf') + '.ics', icsBlob(b)); if (!DEMO) toast('Kalendereintrag liegt in „Downloads“ – in Outlook an die E-Mail anhängen.', 'ok'); }
-  mailOeffnen(mailUrl(M, foe, betreff(W), vl ? vlFuellen(vl.text, W) : null));
+  mailOeffnen(mailUrl(M, foe, betreff(W), vl ? vlFuellenMehr(vl.text, W) : null));
+  if (!ivL.hidden && ivCb.checked) { ivOffen().forEach(u => { u.st = 'arbeit'; }); changed(); keep(renderNow); }   // Koordination: Interview angestoßen
 }
 function einlVermerken(b, F) {
   const E = b.nach.ueb.einl = Object.assign({}, b.nach.ueb.einl); let neu = false;

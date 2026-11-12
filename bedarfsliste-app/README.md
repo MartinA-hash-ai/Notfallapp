@@ -124,6 +124,8 @@ des Bedarfs (Name aus der Freigabe) mit allen Personen der Personenliste, die da
 bzw. Dienststelle). Der Knopf „Personenliste“ bei „Zuständig“ öffnet die Liste zum Bearbeiten (hinzufügen, ändern, entfernen); gespeichert wird in
 `Personen.xlsx`, die dafür die Spalte „Fachreferat“ hat. Beim Bearbeiten der Zuständigen steht jede Person in einem eigenen Kasten.
 
+**Seit 0.163:** Rundmail für mehrere Bedarfe einer Gliederung (Chips, Empfänger zusammengeführt, Interview → in Arbeit).
+
 **Seit 0.162:** Eingegangenes Geld grün; Trennlinie vor der Spendenübergabe mit Punkten genau darauf.
 
 **Seit 0.161:** Spalte „Koordination“ (Interview, Angebot, Konzept), Projektsteckbrief nicht mehr fest; E-Mail-Auswertung wöchentlich von Hand mit Erinnerung ab Freitag.
