@@ -51,29 +51,68 @@ function icsEvent(uidv, a, b, summary, desc) {
     'SUMMARY:' + icsEsc(summary), desc ? 'DESCRIPTION:' + icsEsc(desc) : null, 'CATEGORIES:Jahresplanung', 'TRANSP:TRANSPARENT',
     'X-MICROSOFT-CDO-BUSYSTATUS:FREE', 'END:VEVENT'].filter(Boolean);
 }
-const icsKinds = () => [...PH().map(p => [p.key, startLabel(p.key)]), ['P', 'PAL (Briefkasten)'], ['steps', 'Arbeitsschritte aus Detailplänen'], ['ms', 'Meilensteine/Ziele aus Detailplänen'], ['vac', 'Urlaube']];
-// alle wählbaren Kalendereinträge; jeder Eintrag ist ganztägig
-function icsItems(o) {
-  const a = o.from, b = o.to, out = [];
-  const who = o.person, match = n => !who || (n || '') === who;
-  for (const x of C.ms) {
-    if (!o.ms.has(x.id)) continue;
-    for (const t of evKeys()) {
-      const n = evDate(x, t), lab = startLabel(t);
-      if (!o.kinds[t] || n == null || n < a || n > b || !match(x.m.verantwortlich)) continue;
-      out.push({ kind: t, mid: x.id, uid: x.id + '-' + t + '-' + ds(n), a: n, b: n, lab, summary: lab + ' · ' + x.m.name,
-        desc: [x.m.name, TYPE_LABEL[t] + ': ' + fmtW(n), x.pal != null && t !== 'P' ? 'PAL: ' + fmtW(x.pal) + ' (' + workdaysBefore(n, x.pal) + ' Werktage davor)' : '', t === 'P' && x.m.palStatus !== 'fest' ? 'PAL noch vorläufig' : '',
-          x.m.verantwortlich ? 'Verantwortlich: ' + x.m.verantwortlich : '', x.m.hinweis].filter(Boolean).join('\n') });
+/* Termine für Outlook (0.54): je Maßnahme der Start (frühester Termin) und die Starts der Abschnitte – jeweils mit Puffer in Werktagen –
+   sowie die Aufgaben einer Person aus den Detailplänen; immer eine Datei, alles ganztägig */
+const wtBack = (n, w) => n == null || !(w > 0) ? n : dateForWT(n, w);              // w Werktage vorher
+// frühester Termin der Maßnahme (Starts vor dem PAL, Schritte im Detailplan, PAL)
+function icsFirst(x) {
+  const c = [...PHV().map(p => x.st[p.key]), x.pal];
+  if (x.pc) for (const r of x.pc.map.values()) c.push(r.start);
+  const v = c.filter(n => n != null);
+  return v.length ? Math.min(...v) : null;
+}
+// Abschnitte: im Detailplan die Abschnitte (Gruppen), sonst die Bereiche vor dem PAL
+function icsSections(x) {
+  const steps = x.pc ? x.m.plan.steps : [];
+  if (steps.some(s => s.typ === 'gruppe')) {
+    const out = []; let g = null;
+    for (const s of steps) {
+      if (s.typ === 'gruppe') { g = { id: s.id, k: s.bereich && !phNach(s.bereich) ? s.bereich : '', name: str(s.name).trim() || (s.bereich ? phName(s.bereich) : 'Abschnitt'), n: null }; out.push(g); continue; }
+      const r = x.pc.map.get(s.id); if (g && r && r.start != null && (g.n == null || r.start < g.n)) g.n = r.start;
     }
-    if (x.pc) for (const s of x.m.plan.steps) {
-      const r = x.pc.map.get(s.id), isPoint = s.typ !== 'aufgabe', kind = isPoint ? 'ms' : 'steps';
-      if (!o.kinds[kind] || !r || r.start == null || s.typ === 'gruppe' || r.end < a || r.start > b || !match(s.wer)) continue;
-      out.push({ kind, mid: x.id, uid: x.id + '-' + s.id, a: isPoint ? r.end : r.start, b: isPoint ? r.end : Math.max(r.start, r.end - 1), lab: (isPoint ? '◆ ' : '') + s.name + (s.wer ? ' (' + s.wer + ')' : ''),
-        summary: (isPoint ? '◆ ' : '') + s.name + ' · ' + x.m.name, desc: [x.m.name, s.wer ? 'Zugeordnet: ' + s.wer : '', s.kommentar, isPoint ? '' : fmtW(r.start) + ' – ' + fmtW(r.end)].filter(Boolean).join('\n') });
+    // Bereich mit nur einem Abschnitt: derselbe Start wie in der Tabelle (festgelegter Beginn-Schritt)
+    for (const g of out) if (g.k && x.st[g.k] != null && out.filter(q => q.k === g.k).length === 1) g.n = x.st[g.k];
+    return out.filter(g => g.n != null);
+  }
+  return PHV().filter(p => x.st[p.key] != null).map(p => ({ id: p.key, k: p.key, name: p.name, n: x.st[p.key] }));
+}
+// Aufgaben, Meilensteine und Ziele einer Person aus den Detailplänen
+function icsTasks(person, list) {
+  const out = [];
+  if (person) for (const x of list) if (x.pc) for (const s of x.m.plan.steps) {
+    if (s.typ === 'gruppe' || str(s.wer).trim() !== person) continue;
+    const r = x.pc.map.get(s.id); if (!r || r.start == null) continue;
+    const pt = s.typ !== 'aufgabe';
+    out.push({ key: x.id + ':' + s.id, x, s, pt, a: pt ? r.end : r.start, b: pt ? r.end : Math.max(r.start, r.end - 1) });
+  }
+  return out.sort((p, q) => p.a - q.a || p.x.m.name.localeCompare(q.x.m.name, 'de'));
+}
+// alle Termine der Auswahl o = { ms, off, tk, start: {on, buf}, ab: {on, buf}, tbuf, person, fut }
+function icsCollect(o, list) {
+  const out = [], today = todayDn(), keep = e => !o.fut || e.a >= today;
+  const info = x => [x.pal != null ? 'PAL: ' + fmtW(x.pal) + (x.m.palStatus !== 'fest' ? ' (vorläufig)' : '') : '', respOf(x) ? 'Verantwortlich: ' + respOf(x) : '', x.m.hinweis].filter(Boolean);
+  for (const x of list) {
+    if (!o.ms.has(x.id)) continue;
+    const nm = x.m.name || '(ohne Namen)';
+    if (o.start.on) {
+      const n = icsFirst(x), key = x.id + ':start';
+      if (n != null && !o.off.has(key)) out.push({ key, kind: 'start', mid: x.id, uid: x.id + '-start', n, a: wtBack(n, o.start.buf),
+        summary: nm + ' – Start' + (o.start.buf > 0 ? ' ' + fmtWS(n) : ''), desc: [nm, 'Start der Maßnahme: ' + fmtW(n) + (o.start.buf > 0 ? ' (Erinnerung ' + o.start.buf + ' Werktage vorher)' : ''), ...info(x)].join('\n') });
+    }
+    if (o.ab.on) for (const g of icsSections(x)) {
+      const key = x.id + ':ab:' + g.id;
+      if (!o.off.has(key)) out.push({ key, kind: 'ab', mid: x.id, uid: x.id + '-ab-' + g.id, n: g.n, a: wtBack(g.n, o.ab.buf), g,
+        summary: nm + ' – ' + g.name + (o.ab.buf > 0 ? ' ab ' + fmtWS(g.n) : ''), desc: [nm, 'Abschnitt „' + g.name + '“ beginnt: ' + fmtW(g.n) + (o.ab.buf > 0 ? ' (Erinnerung ' + o.ab.buf + ' Werktage vorher)' : ''), ...info(x)].join('\n') });
     }
   }
-  if (o.kinds.vac) for (const v of C.vac) if (v.bis >= a && v.von <= b && match(v.u.wer)) out.push({ kind: 'vac', mid: null, uid: 'u-' + v.u.id, a: v.von, b: v.bis, lab: vacKind(v.u) + ' ' + (v.u.wer || '?'), summary: vacKind(v.u) + ': ' + (v.u.wer || '?'), desc: v.u.notiz });
-  return out.sort((p, q) => p.a - q.a);
+  for (const t of icsTasks(o.person, list)) {
+    if (!o.tk.has(t.key)) continue;
+    const nm = t.x.m.name || '(ohne Namen)', when = t.pt ? fmtW(t.a) : fmtW(t.a) + (t.b > t.a ? ' – ' + fmtW(t.b) : '');
+    out.push({ key: t.key, kind: 'task', mid: t.x.id, uid: t.x.id + '-' + t.s.id, n: t.a, a: wtBack(t.a, o.tbuf),
+      summary: (t.pt ? '◆ ' : '') + (t.s.name || 'Aufgabe') + ' · ' + nm + (o.tbuf > 0 ? ' ab ' + fmtWS(t.a) : ''),
+      desc: [nm, (t.s.name || 'Aufgabe') + ': ' + when, 'Zugeordnet: ' + o.person, t.s.kommentar, ...info(t.x)].filter(Boolean).join('\n') });
+  }
+  return out.filter(keep).map(e => Object.assign(e, { b: e.a })).sort((p, q) => p.a - q.a);
 }
 function icsFile(name, items) {
   const L = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//Jahresplanung Aussenkommunikation//DE', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH', 'X-WR-CALNAME:' + icsEsc(name)];
@@ -84,95 +123,95 @@ function icsFile(name, items) {
 const fileSafe = s => String(s).replace(/[\\/:*?"<>|]+/g, '').replace(/\s+/g, '_').slice(0, 60);
 async function exportICS() {
   const y = UI.year, list = C.ms.filter(x => inYear(x, y)), today = todayDn();
-  const last = UI.icsOpts || {};
-  const allStarts = Object.fromEntries(evKeys().map(k => [k, true]));
-  const o = { kinds: Object.assign({ ...allStarts, steps: false, ms: false, vac: false }, last.kinds), ms: new Set(list.map(x => x.id)),
-    person: '', range: last.range || 'year', from: mkdn(y, 1, 1), to: mkdn(y, 12, 31), split: last.split || 'one' };
-  const persons = D.personen.map(p => p.name);
-  // Vorlauf der Maßnahmen dieses Jahres, der noch im Vorjahr liegt (z. B. Selektion im November für ein Januar-Mailing)
-  const firstDates = list.flatMap(x => [...Object.values(x.st), x.pal, ...(x.pc ? [...x.pc.map.values()].map(r => r.start) : [])]).filter(v => v != null);
-  const wrap = h('div', { class: 'form' }), count = h('div', { class: 'calcline' });
-  const range = () => {
-    if (o.range === 'year') { o.from = Math.min(mkdn(y, 1, 1), ...firstDates); o.to = mkdn(y, 12, 31); }
-    else if (o.range === 'rest') { o.from = Math.max(today, mkdn(y, 1, 1)); o.to = mkdn(y, 12, 31); }
+  const last = UI.icsOpts || {}, ids = new Set(list.map(x => x.id)), arr = v => Array.isArray(v) ? v : [];
+  const persons = [...new Set([...D.personen.map(p => p.name), ...list.flatMap(x => x.pc ? x.m.plan.steps.map(s => str(s.wer).trim()) : [])].filter(Boolean))].sort((a, b) => a.localeCompare(b, 'de'));
+  const num = (v, d) => isNum(v) ? clamp(Math.round(+v), 0, 60) : d;
+  const o = {
+    tab: last.tab === 'tasks' ? 'tasks' : 'ms', q: '', resp: '', fut: last.fut !== false,
+    start: { on: last.start ? last.start.on !== false : true, buf: num(last.start && last.start.buf, 5) },
+    ab: { on: !!(last.ab && last.ab.on), buf: num(last.ab && last.ab.buf, 2) }, tbuf: num(last.tbuf, 0),
+    ms: new Set(arr(last.ms).filter(id => ids.has(id))), off: new Set(arr(last.off)), tk: new Set(arr(last.tk)),
+    person: persons.includes(last.person) ? last.person : persons.includes(UI.userName) ? UI.userName : '' };
+  const lastDate = x => Math.max(...[x.pal, ...Object.values(x.st), ...(x.pc ? [...x.pc.map.values()].map(r => r.end) : [])].filter(n => n != null));
+  const visible = () => list.filter(x => (!o.fut || lastDate(x) >= today) && (!o.resp || respOf(x) === o.resp)
+    && (!o.q || (x.m.name || '').toLowerCase().includes(o.q.toLowerCase())));
+  const wrap = h('div', { class: 'icsx' }), body = h('div', { class: 'icsbody' }), count = h('div', { class: 'ics-count' });
+  // kleine Bausteine
+  const sw = (on, label, onclick) => h('button', { class: 'ics-sw' + (on ? ' on' : ''), role: 'switch', 'aria-checked': String(on), 'aria-label': label, onclick }, h('span', { class: 'vs-knob' }));
+  const stepper = (val, set, label) => {
+    const inp = h('input', { type: 'number', min: 0, max: 60, value: val, 'aria-label': label + ' – Werktage vorher', onchange: e => { set(num(e.target.value, 0)); draw(); } });
+    return h('span', { class: 'ics-buf', tip: 'Erinnerung so viele Werktage vor dem Termin (0 = am Tag selbst)' },
+      h('button', { class: 'ics-pm', 'aria-label': 'weniger', onclick: () => { set(Math.max(0, val - 1)); draw(); } }, '−'), inp,
+      h('button', { class: 'ics-pm', 'aria-label': 'mehr', onclick: () => { set(Math.min(60, val + 1)); draw(); } }, '+'), h('span', { class: 'unit' }, 'WT vorher'));
   };
-  const prev = h('div', { class: 'icsprev' });
-  const drawPrev = () => {
-    const all = icsItems(Object.assign({}, o, { ms: new Set(list.map(x => x.id)) }));
-    const when = e => e.a === e.b ? fmtW(e.a) : fmtS(e.a) + ' – ' + fmtW(e.b);
-    const line = e => h('div', { class: 'icsev k-' + e.kind }, h('span', { class: 'd' }, when(e)), h('span', { class: 'l' }, e.lab));
-    const boxes = [];
-    setKids(prev, 
-      h('div', { class: 'pop-h' }, 'Termine in der Datei', h('span', null,
-        h('button', { class: 'link', onclick: e => { e.preventDefault(); list.forEach(x => o.ms.add(x.id)); upd(); } }, 'alle'), ' · ',
-        h('button', { class: 'link', onclick: e => { e.preventDefault(); o.ms.clear(); upd(); } }, 'keine'))),
-      list.map(x => {
-        const ev = all.filter(e => e.mid === x.id), on = o.ms.has(x.id);
-        const b = h('input', { type: 'checkbox', checked: on, onchange: e => { e.target.checked ? o.ms.add(x.id) : o.ms.delete(x.id); upd(); } });
-        boxes.push(b);
-        return h('div', { class: 'icsgrp' + (on ? '' : ' off') },
-          h('label', { class: 'mchk' }, b, h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)'),
-            h('span', { class: 'muted small' }, ev.length ? ev.length + ' Termin' + (ev.length > 1 ? 'e' : '') : 'keine Termine')),
-          on ? ev.map(line) : null);
-      }),
-      (() => { const v = all.filter(e => e.kind === 'vac'); return v.length ? h('div', { class: 'icsgrp' }, h('div', { class: 'mchk' }, h('b', null, 'Urlaube')), v.map(line)) : null; })());
+  const allNone = (sel, keys) => h('span', { class: 'ics-an' },
+    h('button', { class: 'link', onclick: () => { keys().forEach(k => sel.add(k)); draw(); } }, 'alle'), ' · ',
+    h('button', { class: 'link', onclick: () => { keys().forEach(k => sel.delete(k)); draw(); } }, 'keine'));
+  const futPill = () => h('button', { class: 'pill ics-fut' + (o.fut ? ' on' : ''), 'aria-pressed': String(o.fut), tip: 'vergangene Termine ausblenden', onclick: () => { o.fut = !o.fut; draw(); } }, 'ab heute');
+  const tab = (k, ic, label) => h('button', { class: 'seg-btn' + (o.tab === k ? ' on' : ''), dataset: { tab: k }, 'aria-pressed': String(o.tab === k), onclick: () => { o.tab = k; draw(); } }, icon(ic), label);
+  const dateTxt = n => n == null ? '–' : fmtWS(n);
+  const msView = items => {
+    const opt = (k, ic, label) => h('div', { class: 'ics-opt' + (o[k].on ? ' on' : ''), dataset: { opt: k } },
+      sw(o[k].on, label, () => { o[k].on = !o[k].on; draw(); }), icon(ic), h('b', null, label), o[k].on ? stepper(o[k].buf, v => { o[k].buf = v; }, label) : null);
+    const vis = visible(), byKey = new Map(items.map(e => [e.key, e]));
+    const chip = (key, cls, lead, n, title) => {
+      const e = byKey.get(key), off = o.off.has(key);
+      return h('button', { class: 'icsc ' + cls + (off ? ' off' : '') + (!e && !off ? ' past' : ''), dataset: { key }, 'aria-pressed': String(!off), tip: title + ': ' + fmtW(n) + (e && e.a !== n ? ' – Erinnerung ' + fmtW(e.a) : '') + (off ? ' (abgewählt)' : ''),
+        onclick: () => { off ? o.off.delete(key) : o.off.add(key); draw(); } }, lead, h('span', { class: 'd' }, dateTxt(e ? e.a : wtBack(n, cls === 'k-start' ? o.start.buf : o.ab.buf))));
+    };
+    return [
+      h('div', { class: 'ics-opts' }, opt('start', 'flag', 'Start der Maßnahme'), opt('ab', 'layers', 'Start der Abschnitte')),
+      h('div', { class: 'ics-filter' },
+        h('input', { type: 'search', class: 'ics-q', placeholder: 'Suchen …', value: o.q, 'aria-label': 'Maßnahmen suchen', oninput: e => { o.q = e.target.value; drawList(); } }),
+        h('select', { class: 'ics-resp', 'aria-label': 'Verantwortlich', onchange: e => { o.resp = e.target.value; draw(); } }, h('option', { value: '' }, 'alle Verantwortlichen'),
+          allResp().map(n => h('option', { value: n, selected: o.resp === n }, n))),
+        h('span', { class: 'sp' }), allNone(o.ms, () => visible().map(x => x.id))),
+      h('div', { class: 'icsprev' }, vis.length ? vis.map(x => {
+        const on = o.ms.has(x.id), first = icsFirst(x);
+        return h('div', { class: 'icsm' + (on ? ' on' : ''), dataset: { m: x.id } },
+          h('label', { class: 'mchk' }, h('input', { type: 'checkbox', checked: on, onchange: e => { e.target.checked ? o.ms.add(x.id) : o.ms.delete(x.id); draw(); } }),
+            h('span', { class: 'dot', style: { background: x.color } }), h('span', { class: 'nm' }, x.m.name || '(ohne Namen)')),
+          on ? h('div', { class: 'icschips' },
+            o.start.on && first != null ? chip(x.id + ':start', 'k-start', icon('flag'), first, 'Start der Maßnahme') : null,
+            o.ab.on ? icsSections(x).map(g => chip(x.id + ':ab:' + g.id, 'k-ab', g.k ? h('span', { class: 'ics-k' }, g.k) : h('span', { class: 'ics-gn' }, g.name), g.n, g.name)) : null) : null);
+      }) : h('div', { class: 'muted ics-empty' }, 'keine Maßnahmen'))];
   };
-  const upd = () => {
-    range();
-    drawPrev();
-    const items = icsItems(o), files = o.split === 'one' ? 1 : new Set(items.map(e => o.split === 'kind' ? e.kind : e.mid || 'vac')).size;
-    count.textContent = items.length + ' Termine' + (items.length ? ' · ' + files + (files === 1 ? ' Datei' : ' Dateien (als ZIP)') : '') + ' · alle ganztägig';
+  const taskView = () => {
+    const all = icsTasks(o.person, list).filter(t => !o.fut || t.b >= today);
+    return [
+      h('div', { class: 'ics-opts' }, h('div', { class: 'ics-opt on person' }, icon('user'),
+        h('select', { class: 'ics-person', 'aria-label': 'Person', onchange: e => { o.person = e.target.value; draw(); } }, h('option', { value: '' }, 'Person wählen …'),
+          persons.map(n => h('option', { value: n, selected: o.person === n }, n))),
+        stepper(o.tbuf, v => { o.tbuf = v; }, 'Aufgaben'))),
+      all.length ? h('div', { class: 'ics-filter' }, h('span', { class: 'sp' }), allNone(o.tk, () => all.map(t => t.key))) : null,
+      h('div', { class: 'icsprev tasks' }, !o.person ? h('div', { class: 'muted ics-empty' }, icon('user'), ' Person wählen')
+        : all.length ? all.map(t => {
+          const on = o.tk.has(t.key);
+          return h('label', { class: 'icst' + (on ? ' on' : ''), dataset: { key: t.key } }, h('input', { type: 'checkbox', checked: on, onchange: e => { e.target.checked ? o.tk.add(t.key) : o.tk.delete(t.key); draw(); } }),
+            h('span', { class: 'd' }, t.pt || t.b === t.a ? fmtWS(t.a) : fmtWS(t.a) + ' – ' + fmtS(t.b)), h('span', { class: 'ty' }, t.pt ? '◆' : ''),
+            h('span', { class: 'nm' }, t.s.name || 'Aufgabe'), h('span', { class: 'ms' }, h('span', { class: 'dot', style: { background: t.x.color } }), t.x.m.name || ''));
+        }) : h('div', { class: 'muted ics-empty' }, 'keine Aufgaben für ' + o.person))];
   };
-  const preset = kinds => { o.kinds = Object.assign(Object.fromEntries(icsKinds().map(([k]) => [k, false])), kinds); draw(); };
+  let drawList = () => {};
   const draw = () => {
-    const cb = k => h('label', { class: 'check' }, h('input', { type: 'checkbox', checked: !!o.kinds[k], onchange: e => { o.kinds[k] = e.target.checked; upd(); } }), icsKinds().find(q => q[0] === k)[1]);
-    const radio = (name, val, label, key) => h('label', { class: 'check' }, h('input', { type: 'radio', name, checked: o[key] === val, onchange: () => { o[key] = val; draw(); } }), label);
-    setKids(wrap, 
-      h('p', { class: 'muted small' }, 'Erstellt Kalenderdateien (.ics) für Outlook. Doppelklick auf die Datei → „Als neuen Kalender öffnen“ oder importieren.'),
-      h('div', { class: 'ics-presets' }, h('span', { class: 'muted small' }, 'Schnellauswahl:'),
-        PH().map(p => h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ [p.key]: true }); } }, 'nur Start ' + p.name)),
-        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ P: true }); } }, 'nur PAL'),
-        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ ...allStarts }); } }, 'alle Starts + PAL'),
-        h('button', { class: 'pill', onclick: e => { e.preventDefault(); preset({ ...allStarts, steps: true, ms: true }); } }, 'alles aus den Maßnahmen')),
-      h('div', { class: 'pdf-cols' },
-        h('div', null,
-          h('h3', null, 'Termine'), h('div', { class: 'checks' }, icsKinds().map(([k]) => cb(k))),
-          h('h3', null, 'Person'), h('select', { onchange: e => { o.person = e.target.value; upd(); } }, h('option', { value: '' }, 'alle Personen'),
-            persons.map(n => h('option', { value: n, selected: o.person === n }, n))),
-          h('div', { class: 'muted small' }, 'Starts/PAL: verantwortliche Person · Schritte: zugeordnete Person'),
-          h('h3', null, 'Zeitraum'), h('div', { class: 'checks' }, radio('rng', 'year', 'alle Termine der Maßnahmen ' + y + (firstDates.some(n => n < mkdn(y, 1, 1)) ? ' (inkl. Vorlauf aus ' + (y - 1) + ')' : ''), 'range'), radio('rng', 'rest', 'ab heute bis Jahresende', 'range'), radio('rng', 'free', 'eigener Zeitraum', 'range'),
-            o.range === 'free' ? h('div', { class: 'inl' }, h('input', { type: 'date', value: ds(o.from), onchange: e => { o.from = dn(e.target.value) ?? o.from; upd(); } }), '–',
-              h('input', { type: 'date', value: ds(o.to), onchange: e => { o.to = dn(e.target.value) ?? o.to; upd(); } })) : null),
-          h('h3', null, 'Dateien'), h('div', { class: 'checks' }, radio('spl', 'one', 'eine Kalenderdatei', 'split'), radio('spl', 'mass', 'je Maßnahme eine Datei', 'split'), radio('spl', 'kind', 'je Terminart eine Datei', 'split'))),
-        prev),
-      count,
-      h('p', { class: 'muted small' }, 'Hinweis: Wiederholter Import kann Termine in Outlook doppelt anlegen. Am übersichtlichsten ist ein eigener Kalender „Jahresplanung“, den du vor einem neuen Import löschst.'));
-    upd();
+    const items = icsCollect(o, list), nMs = items.filter(e => e.kind !== 'task').length, nT = items.length - nMs;
+    setKids(wrap,
+      h('div', { class: 'ics-top' }, h('span', { class: 'segs ics-tabs' }, tab('ms', 'flag', 'Maßnahmen'), tab('tasks', 'user', 'Aufgaben')), h('span', { class: 'sp' }), futPill()),
+      body);
+    setKids(body, o.tab === 'ms' ? msView(items) : taskView());
+    setKids(count, icon('calendar'), h('b', null, String(items.length)), items.length === 1 ? ' Termin' : ' Termine',
+      nMs && nT ? h('span', { class: 'muted' }, ' (' + nMs + ' Maßnahmen · ' + nT + ' Aufgaben)') : null);
+    wrap.append(count);
+    drawList = () => { const q = body.querySelector('.ics-q'), pos = q ? q.selectionStart : 0; draw(); const q2 = body.querySelector('.ics-q'); if (q2) { q2.focus(); q2.setSelectionRange(pos, pos); } };
   };
   draw();
-  const ok = await modal('Termine für Outlook exportieren', wrap, [['Abbrechen', false], ['Kalenderdatei erstellen', true, 'primary']], { wide: true });
+  const ok = await modal('Termine für Outlook', wrap, [['Abbrechen', false], ['Kalenderdatei erstellen', true, 'primary']], { wide: true, cls: 'icsdlg' });
+  UI.icsOpts = { tab: o.tab, fut: o.fut, start: o.start, ab: o.ab, tbuf: o.tbuf, person: o.person, ms: [...o.ms], off: [...o.off].filter(k => ids.has(k.split(':')[0])), tk: [...o.tk].filter(k => ids.has(k.split(':')[0])) }; saveUI();
   if (!ok) return;
-  UI.icsOpts = { kinds: o.kinds, range: o.range, split: o.split }; saveUI();
-  range();
-  const items = icsItems(o);
-  if (!items.length) { toast('Keine Termine für diese Auswahl.', 'warn'); return; }
-  const base = 'Jahresplanung_' + y + (o.person ? '_' + fileSafe(o.person) : '');
-  const kindName = k => ({ P: 'PAL', steps: 'Arbeitsschritte', ms: 'Meilensteine', vac: 'Urlaube' })[k] || fileSafe('Start_' + phName(k));
-  const onlyKind = Object.keys(o.kinds).filter(k => o.kinds[k]);
-  if (o.split === 'one') {
-    const suffix = onlyKind.length === 1 ? '_' + kindName(onlyKind[0]) : o.ms.size === 1 ? '_' + fileSafe(C.byId.get([...o.ms][0]).m.name) : '';
-    download(base + suffix + '.ics', new Blob([icsFile('Jahresplanung ' + y + suffix.replace(/_/g, ' '), items)], { type: 'text/calendar' }));
-  } else {
-    const groups = new Map();
-    items.forEach(e => { const k = o.split === 'kind' ? e.kind : e.mid || 'vac'; if (!groups.has(k)) groups.set(k, []); groups.get(k).push(e); });
-    const files = [...groups].map(([k, its]) => {
-      const nm = o.split === 'kind' ? kindName(k) : k === 'vac' ? 'Urlaube' : fileSafe(C.byId.get(k).m.name);
-      return { name: base + '_' + nm + '.ics', data: icsFile('Jahresplanung ' + y + ' ' + nm.replace(/_/g, ' '), its) };
-    });
-    download(base + '_Kalender.zip', zipBlob(files, 'application/zip'));
-  }
+  const items = icsCollect(o, list);
+  if (!items.length) { toast('Keine Termine ausgewählt.', 'warn'); return; }
+  const suffix = items.every(e => e.kind === 'task') ? '_' + fileSafe(o.person) : o.ms.size === 1 && !items.some(e => e.kind === 'task') ? '_' + fileSafe(C.byId.get([...o.ms][0]).m.name) : '';
+  download('Jahresplanung_' + y + suffix + '.ics', new Blob([icsFile('Jahresplanung ' + y + suffix.replace(/_/g, ' '), items)], { type: 'text/calendar' }));
   toast(items.length + ' Termine exportiert', 'ok');
 }
 
-/* ---------- Drucken über das Browser-Menü: helle Darstellung (PDF-Export siehe 15_pdf.js) */
-window.addEventListener('afterprint', () => { if (UI.printing) { UI.printing = false; renderNow(); } });

@@ -17,7 +17,8 @@ const { chromium, ok, open, readF, connect, banners, finish } = require('./lib')
   await p.evaluate(y => { UI.year = y; renderNow(); }, y);
   let [dl] = await Promise.all([p.waitForEvent('download'), p.evaluate(() => exportExcel())]);
   ok(/^Jahresplanung_\d{4}_Export_\d{4}-\d\d-\d\d\.xlsx$/.test(dl.suggestedFilename()), 'B: Excel-Export als ' + dl.suggestedFilename());
-  await p.evaluate(() => { exportICS(); }); await p.waitForSelector('.modal .icsprev');
+  await p.evaluate(() => { UI.icsOpts = { fut: false }; exportICS(); }); await p.waitForSelector('.modal .icsprev');
+  await p.click('.modal .ics-an button:has-text("alle")');
   [dl] = await Promise.all([p.waitForEvent('download'), p.click('.modal:has(.icsprev) footer button.primary')]);
   const ics = require('fs').readFileSync(await dl.path(), 'utf8');
   ok(/\.ics$/.test(dl.suggestedFilename()) && /^BEGIN:VCALENDAR/.test(ics) && (ics.match(/BEGIN:VEVENT/g) || []).length > 0,

@@ -55,18 +55,20 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
   ok(!hc[1], 'Feiertage-Kasten ohne Erklärtexte, Höhe ' + hc[0] + ' px');
   await p.click('nav.tabs >> text=Jahresplanung'); await p.waitForTimeout(150);
 
-  // ---------- Outlook-Vorschau
+  // ---------- Outlook-Vorschau (0.54): je Maßnahme Chips für Start und Abschnitte
+  await p.evaluate(() => { UI.icsOpts = { fut: false }; });
   await p.click('header button:has-text("Export")'); await p.click('.menu button:has-text("Outlook")'); await p.waitForTimeout(150);
-  await p.click('.modal button:has-text("nur Start Selektion")'); await p.waitForTimeout(100);
-  const pv1 = await p.evaluate(() => [...document.querySelectorAll('.icsev')].map(e => e.textContent));
-  await p.click('.modal button:has-text("alle Starts + PAL")'); await p.waitForTimeout(100);
-  const pv2 = await p.evaluate(() => [document.querySelectorAll('.icsev').length, [...document.querySelectorAll('.icsgrp')][0].textContent.slice(0, 160)]);
+  await p.click('.modal .ics-an button:has-text("alle")'); await p.waitForTimeout(100);
+  const pv1 = await p.evaluate(() => [document.querySelectorAll('.icsc.k-start').length, document.querySelectorAll('.icsm').length]);
+  await p.click('.ics-opt[data-opt="ab"] .ics-sw'); await p.waitForTimeout(100);
+  const pv2 = await p.evaluate(() => [document.querySelectorAll('.icsc').length, parseInt(document.querySelector('.modal .ics-count b').textContent)]);
   await p.screenshot({ path: 'r8_ics.png' });
-  // eine Maßnahme abwählen → deren Termine verschwinden aus der Liste
-  await p.click('.icsgrp >> nth=0 >> input'); await p.waitForTimeout(100);
-  const pv3 = await p.evaluate(() => [document.querySelectorAll('.icsev').length, document.querySelector('.modal .calcline').textContent]);
-  ok(pv1.length && pv1.every(t => /Start Selektion/.test(t)) && pv1.length === 10 && pv2[0] === 32 && pv3[0] === 29,
-    'Terminliste im Outlook-Export: nur S ' + pv1.length + ', S+I+P ' + pv2[0] + ', ohne 1. Maßnahme ' + pv3[0] + ' (' + pv3[1] + ') · ' + pv2[1]);
+  // eine Maßnahme abwählen → ihre Chips und Termine verschwinden
+  const n0 = await p.evaluate(() => document.querySelectorAll('.icsm')[0].querySelectorAll('.icsc').length);
+  await p.click('.icsm >> nth=0 >> input'); await p.waitForTimeout(100);
+  const pv3 = await p.evaluate(() => [document.querySelectorAll('.icsc').length, parseInt(document.querySelector('.modal .ics-count b').textContent)]);
+  ok(pv1[0] === pv1[1] && pv1[0] > 5 && pv2[0] > pv1[0] && pv2[1] === pv2[0] && pv3[0] === pv2[0] - n0 && pv3[1] === pv3[0],
+    'Outlook-Export: Start je Maßnahme ' + JSON.stringify(pv1) + ', mit Abschnitten ' + JSON.stringify(pv2) + ', ohne 1. Maßnahme ' + JSON.stringify(pv3));
   await p.click('.modal footer button:has-text("Abbrechen")');
 
   // ---------- PDF mit Verbund-Darstellung

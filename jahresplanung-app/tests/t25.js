@@ -75,7 +75,8 @@ const { chromium, T, ORIG, ok, open, finish, fs } = require('./lib');
 
   // ---- H: ICS-Export mit Produktion
   await p.evaluate(() => { UI.view = 'jahr'; renderNow(); });
-  const ics = await p.evaluate(() => icsItems({ kinds: { D: true }, ms: new Set(C.ms.map(x => x.id)), from: mkdn(2027, 1, 1), to: mkdn(2027, 12, 31), person: '' }).map(e => e.summary));
-  ok(ics.length >= 2 && ics.every(s => /^Start Produktion · /.test(s)), 'H: Outlook-Export „Start Produktion“: ' + ics.length + ' Termine');
+  const ics = await p.evaluate(() => icsCollect({ ms: new Set(C.ms.map(x => x.id)), off: new Set(), tk: new Set(), start: { on: false }, ab: { on: true, buf: 0 }, tbuf: 0, person: '', fut: false }, C.ms)
+    .filter(e => e.g.k === 'D').map(e => [e.summary, e.a === e.n, ds(e.n) === ds(C.byId.get(e.mid).st.D)]));
+  ok(ics.length >= 2 && ics.every(e => / – /.test(e[0]) && e[1] && e[2]), 'H: Outlook-Export – Start der Abschnitte mit Bereich D am Start Produktion: ' + JSON.stringify(ics.slice(0, 2)));
   await finish(b, pages);
 })();

@@ -184,22 +184,17 @@ const ok = (c, m) => console.log((c ? 'OK   ' : 'FAIL ') + m);
     'PDF: ' + pages[0] + ' Seiten gebaut (' + pages[3] + '), Titel „' + pages[2] + '“');
   await p.evaluate(() => setTheme('light'));
 
-  // ---------- Outlook-Export
+  // ---------- Outlook-Export (0.54: immer eine Datei – Start der Maßnahmen mit 5 Werktagen Puffer)
+  await p.evaluate(() => { UI.icsOpts = { fut: false }; });
   await p.click('header button:has-text("Export")'); await p.click('.menu button:has-text("Outlook")'); await p.waitForTimeout(150);
-  await p.click('.modal button:has-text("nur Start Selektion")'); await p.waitForTimeout(100);
-  const cnt = await p.evaluate(() => document.querySelector('.modal .calcline').textContent);
+  await p.click('.modal .ics-an button:has-text("alle")'); await p.waitForTimeout(100);
+  const cnt = await p.evaluate(() => document.querySelector('.modal .ics-count').textContent);
   await p.screenshot({ path: 'r7_ics_dialog.png' });
   const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.modal button:has-text("Kalenderdatei erstellen")')]);
   const ics = fs.readFileSync(await dl.path(), 'utf8');
-  const ev = ics.split('BEGIN:VEVENT').length - 1, allDay = (ics.match(/DTSTART;VALUE=DATE:/g) || []).length, sum = [...ics.matchAll(/SUMMARY:(.*)/g)].map(m => m[1].split(' · ')[0]);
-  ok(ev > 0 && ev === allDay && sum.every(s => s === 'Start Selektion'), 'ICS ' + dl.suggestedFilename() + ': ' + ev + ' Termine, ganztags ' + allDay + ', nur S: ' + [...new Set(sum)].join(',') + ' (' + cnt + ')');
-  await p.click('header button:has-text("Export")'); await p.click('.menu button:has-text("Outlook")'); await p.waitForTimeout(150);
-  await p.click('.modal button:has-text("alles aus den Maßnahmen")');
-  await p.click('.modal label:has-text("je Maßnahme") input');
-  const [dl2] = await Promise.all([p.waitForEvent('download'), p.click('.modal button:has-text("Kalenderdatei erstellen")')]);
-  const zb = fs.readFileSync(await dl2.path());
-  const names = []; for (let i = 0; i < zb.length - 4; i++) if (zb.readUInt32LE(i) === 0x04034b50) { const nl = zb.readUInt16LE(i + 26); names.push(zb.slice(i + 30, i + 30 + nl).toString()); }
-  ok(dl2.suggestedFilename().endsWith('.zip') && names.length >= 5, 'ZIP je Maßnahme: ' + names.length + ' Dateien, z. B. ' + names.slice(0, 2).join(', '));
+  const ev = ics.split('BEGIN:VEVENT').length - 1, allDay = (ics.match(/DTSTART;VALUE=DATE:/g) || []).length, sum = [...ics.matchAll(/SUMMARY:(.*)/g)].map(m => m[1]);
+  ok(ev > 0 && ev === allDay && sum.every(s => / – Start /.test(s)) && dl.suggestedFilename().endsWith('.ics') && cnt.startsWith(String(ev)),
+    'ICS ' + dl.suggestedFilename() + ': ' + ev + ' Termine, ganztags ' + allDay + ', z. B. ' + sum[0] + ' (' + cnt + ')');
 
   // ---------- Programm-Update ohne Datenverlust
   const orig = fs.readFileSync(HTML, 'utf8');

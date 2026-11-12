@@ -1,7 +1,19 @@
 [
   {
-    "version": "0.53.5",
+    "version": "0.54",
     "date": "",
+    "items": [
+      "Outlook-Export neu und schlanker: zwei Reiter „Maßnahmen“ und „Aufgaben“, immer genau eine Kalenderdatei; die Optionen für Zeitraum, Terminarten und mehrere Dateien sind weg",
+      "Maßnahmen: auswählen per Häkchen, mit Suche, Filter „Verantwortlich“ und „ab heute“ (vergangene Termine ausblenden); „alle“/„keine“ wirken auf die gerade sichtbaren",
+      "„Start der Maßnahme“ = der früheste Termin der Maßnahme (z. B. ein Kick-off im Detailplan) und „Start der Abschnitte“ (Abschnitte des Detailplans bzw. Bereiche) – je ein- und ausschaltbar, mit eigener Pufferzeit in Werktagen (Erinnerung so viele Werktage vorher)",
+      "Je Maßnahme zeigen kleine Chips die Termine mit dem Erinnerungstag; ein Klick auf einen Chip nimmt genau diesen Termin heraus",
+      "Aufgaben: Person wählen – alle ihre Aufgaben, Meilensteine und Ziele aus den Detailplänen erscheinen als Liste und lassen sich einzeln auswählen, ebenfalls mit Puffer",
+      "Auswahl, Puffer und Person werden gemerkt"
+    ]
+  },
+  {
+    "version": "0.53.5",
+    "date": "2026-11-10T15:28",
     "items": [
       "Warnungen: bei Terminen auf Wochenende, Feiertag oder im Urlaub ein Knopf „✓ stimmt so“ – der Hinweis verschwindet für genau diesen Termin an diesem Datum (für alle, in den Planungsdaten gespeichert). Verschiebt sich der Termin, kommt er wieder. Bestätigte stehen unten im Fenster „Warnungen“ und lassen sich wieder anzeigen; Strg+Z nimmt es zurück",
       "Tabelle: bei Maßnahmen mit Detailplan, in dem es einen Bereich nicht gibt, sieht das leere Feld jetzt genauso aus wie alle anderen leeren Felder"
